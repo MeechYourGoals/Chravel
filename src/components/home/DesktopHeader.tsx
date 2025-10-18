@@ -45,9 +45,9 @@ export const DesktopHeader = ({ viewMode, onCreateTrip, onUpgrade, onSettings }:
 
   return (
     <>
-      {/* Demo Mode Toggle - Aligned to match Upgrade Plan width */}
-      <div className="flex justify-end mb-3">
-        <div className="w-[150px]">
+      {/* Demo Mode Toggle - Enhanced visibility and styling */}
+      <div className="flex justify-end mb-4">
+        <div className="w-[160px]">
           <DemoModeToggle />
         </div>
       </div>
@@ -58,11 +58,11 @@ export const DesktopHeader = ({ viewMode, onCreateTrip, onUpgrade, onSettings }:
         <div className="grid grid-cols-[140px_420px_150px] gap-0 items-center mb-5">
           {/* Column 1: Brand - stacked on My Trips button */}
           <div className="flex flex-col">
-            <h1 className="text-2xl font-semibold text-foreground tracking-tight" aria-label="Chravel Home">
+            <h1 className="text-h1 md:text-h1-desktop font-bold text-foreground tracking-tight" aria-label="Chravel Home">
               Chravel
             </h1>
-            <div className="mt-1">
-              <p className="text-xs text-muted-foreground font-medium leading-tight">The Group Chat for Group Travel</p>
+            <div className="mt-2">
+              <p className="text-caption text-muted-foreground font-medium leading-tight">The Group Chat for Group Travel</p>
             </div>
           </div>
 
@@ -77,10 +77,10 @@ export const DesktopHeader = ({ viewMode, onCreateTrip, onUpgrade, onSettings }:
 
           {/* Column 3: Action Buttons - aligned to right */}
           <div className="flex items-center gap-3 justify-end">
-            {/* Action button group - compact and aligned */}
+            {/* Action button group - enhanced with new design system */}
             <button
               onClick={onCreateTrip}
-              className="w-12 h-12 bg-gray-900/80 backdrop-blur-md border border-gray-700 hover:bg-gray-800/80 hover:border-gray-600 text-white rounded-2xl flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
+              className="w-12 h-12 bg-card/90 backdrop-blur-xl border-2 border-border/50 hover:bg-card hover:border-primary/60 text-foreground rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary-glow/50"
               title="New Trip"
             >
               <Plus size={20} />
@@ -92,19 +92,19 @@ export const DesktopHeader = ({ viewMode, onCreateTrip, onUpgrade, onSettings }:
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="w-12 h-12 bg-gray-900/80 backdrop-blur-md border border-gray-700 hover:bg-gray-800/80 hover:border-gray-600 text-white rounded-2xl flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl">
+                <button className="w-12 h-12 bg-card/90 backdrop-blur-xl border-2 border-border/50 hover:bg-card hover:border-primary/60 text-foreground rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary-glow/50">
                   <Settings size={20} />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent 
                 align="end" 
                 sideOffset={8}
-                className="bg-gray-900/95 backdrop-blur-md border border-gray-700 text-white min-w-[200px] z-50 rounded-xl shadow-lg"
+                className="bg-card/95 backdrop-blur-xl border-2 border-border/50 text-foreground min-w-[200px] z-50 rounded-xl shadow-xl"
               >
                 {!user && (
                   <DropdownMenuItem 
                     onClick={handleAuthClick}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-800/80 cursor-pointer"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/80 cursor-pointer rounded-lg"
                   >
                     <LogIn size={16} />
                     Log In / Sign Up
@@ -112,22 +112,22 @@ export const DesktopHeader = ({ viewMode, onCreateTrip, onUpgrade, onSettings }:
                 )}
                 <DropdownMenuItem 
                   onClick={onSettings}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-800/80 cursor-pointer"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/80 cursor-pointer rounded-lg"
                 >
                   <User size={16} />
                   Account Settings
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={onUpgrade}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-800/80 cursor-pointer"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/80 cursor-pointer rounded-lg"
                 >
-                  <Crown size={16} className="text-[hsl(45,95%,58%)]" />
+                  <Crown size={16} className="text-accent" />
                   Upgrade Chravel Experience
                 </DropdownMenuItem>
                 {user && (
                   <DropdownMenuItem 
                     onClick={() => navigate('/organizations')}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-800/80 cursor-pointer"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/80 cursor-pointer rounded-lg"
                   >
                     <Building size={16} />
                     My Organizations
@@ -136,7 +136,7 @@ export const DesktopHeader = ({ viewMode, onCreateTrip, onUpgrade, onSettings }:
                 {user && (
                   <DropdownMenuItem 
                     onClick={signOut}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-800/80 cursor-pointer text-red-400"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-destructive/20 cursor-pointer text-destructive rounded-lg"
                   >
                     <LogIn size={16} />
                     Sign Out

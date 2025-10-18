@@ -49,10 +49,10 @@ export const DemoModeToggle = () => {
               onClick={handleToggle}
               variant="outline"
               size="sm"
-              className={`w-full flex items-center justify-center gap-2 transition-all duration-200 ${
+              className={`w-full flex items-center justify-center gap-2 transition-all duration-200 rounded-xl ${
                 isDemoMode 
-                  ? 'bg-primary/20 border-primary/40 text-primary hover:bg-primary/30 shadow-lg shadow-primary/20' 
-                  : 'bg-muted/50 border-muted-foreground/20 text-muted-foreground hover:bg-muted/70'
+                  ? 'bg-primary/20 border-primary/60 text-primary hover:bg-primary/30 shadow-lg shadow-primary/30 border-2' 
+                  : 'bg-card/80 border-border/40 text-muted-foreground hover:bg-card/90 backdrop-blur-sm border-2'
               }`}
             >
               {isDemoMode ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
