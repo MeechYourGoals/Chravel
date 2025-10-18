@@ -48,8 +48,8 @@ const Index = () => {
   const location = useLocation();
   const { isDemoMode } = useDemoMode();
 
-  // Determine if marketing content should be shown (only for unauthenticated users in demo mode)
-  const showMarketingContent = !user && isDemoMode;
+  // Marketing content should always show to unauthenticated users
+  const showMarketingContent = !user;
 
   // Use centralized trip data - only show if demo mode is enabled
   const trips = isDemoMode ? tripsData : [];
@@ -169,8 +169,8 @@ const Index = () => {
     }
   }, [location.search]);
 
-  // Show landing page for unauthenticated users when demo mode is off
-  if (!user && !isDemoMode) {
+  // Show full marketing landing for all unauthenticated users
+  if (!user) {
     return (
       <div className="min-h-screen bg-background font-outfit">
         {/* Animated background elements */}
@@ -181,10 +181,29 @@ const Index = () => {
         </div>
 
         <div className="container mx-auto px-4 py-6 max-w-7xl relative z-10">
+          {/* Hero Section */}
           <UnauthenticatedLanding 
             onSignIn={() => setIsAuthModalOpen(true)}
             onSignUp={() => setIsAuthModalOpen(true)}
           />
+
+          {/* Marketing Content - Always show to unauthenticated users */}
+          <div className="mt-20 space-y-20">
+            {/* Social Proof Section */}
+            <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+              <SocialProofSection />
+            </div>
+
+            {/* Feature Showcase */}
+            <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
+              <FeatureShowcase />
+            </div>
+
+            {/* Pricing Section */}
+            <div id="pricing-section" className="animate-fade-in" style={{ animationDelay: '0.5s' }}>
+              <PricingSection />
+            </div>
+          </div>
         </div>
 
         <AuthModal
@@ -275,25 +294,6 @@ const Index = () => {
           />
         </div>
 
-        {/* Marketing Content - Only show to unauthenticated users in demo mode */}
-        {showMarketingContent && (
-          <>
-            {/* Social Proof Section */}
-            <div className="mb-12 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-              <SocialProofSection />
-            </div>
-
-            {/* Feature Showcase */}
-            <div className="mb-12 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-              <FeatureShowcase />
-            </div>
-
-            {/* Pricing Section */}
-            <div className="mb-12 animate-fade-in" style={{ animationDelay: '0.5s' }}>
-              <PricingSection />
-            </div>
-          </>
-        )}
 
       </div>
 
