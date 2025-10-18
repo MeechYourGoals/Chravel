@@ -8,34 +8,34 @@
 
 @layer base {
   :root {
-    /* Enterprise Dark Theme */
-    --background: 223 25% 12%; /* Slate background instead of pure black */
-    --foreground: 223 25% 97%;
+    /* Modern Dark Theme - Pure Black with Enhanced Contrast */
+    --background: 0 0% 3%; /* Near-black with slight warmth */
+    --foreground: 0 0% 100%; /* Pure white text */
 
-    --card: 223 25% 18%; /* Slate card background */
-    --card-foreground: 223 25% 97%;
+    --card: 223 20% 10%; /* Darker cards with blue tint */
+    --card-foreground: 0 0% 100%;
 
-    --popover: 223 25% 18%;
-    --popover-foreground: 223 25% 97%;
+    --popover: 223 20% 8%; /* Even darker for depth */
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 223 56% 53%; /* Enterprise blue */
+    --primary: 223 80% 60%; /* Brighter blue for contrast */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 223 25% 20%;
-    --secondary-foreground: 223 25% 97%;
+    --secondary: 223 20% 15%; /* Subtle secondary bg */
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 223 15% 25%;
-    --muted-foreground: 223 15% 70%;
+    --muted: 223 10% 20%; /* Muted elements */
+    --muted-foreground: 0 0% 60%; /* Gray text */
 
-    --accent: 32 95% 48%; /* Accent orange */
+    --accent: 32 100% 55%; /* Vibrant orange accent */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 223 15% 25%;
-    --input: 223 25% 20%;
-    --ring: 223 56% 53%;
+    --border: 223 15% 18%; /* More visible borders */
+    --input: 223 20% 12%; /* Darker inputs */
+    --ring: 223 80% 60%; /* Bright focus rings */
 
     /* Payment system colors */
     --payment-primary: 155 80% 25%; /* Forest green */
@@ -45,7 +45,7 @@
     --payment-border: 155 60% 30%; /* Green border */
     --payment-text: 0 0% 0%; /* Black text for inputs */
 
-    --radius: 0.5rem;
+    --radius: 1.25rem; /* Increased from 0.5rem (8px → 20px) */
 
     --sidebar-background: 223 25% 15%;
     --sidebar-foreground: 223 25% 90%;
@@ -113,8 +113,8 @@
 
   body {
     @apply bg-background text-foreground font-sans;
-    font-size: 15px; /* Mobile-first font size */
-    line-height: 1.5;
+    font-size: 16px; /* Updated to match body typography */
+    line-height: 1.6;
     
     /* Mobile optimizations */
     -webkit-font-smoothing: antialiased;
@@ -148,13 +148,13 @@
   /* Mobile typography adjustments */
   @media (max-width: 599px) {
     body {
-      font-size: 15px;
+      font-size: 16px;
     }
   }
   
   @media (min-width: 600px) {
     body {
-      font-size: 16px;
+      font-size: 17px;
     }
   }
 }
@@ -331,6 +331,43 @@
   .mobile-safe-area-right {
     padding-right: env(safe-area-inset-right);
   }
+
+  /* Modern card variants */
+  .card-modern {
+    @apply bg-card/80 backdrop-blur-xl rounded-2xl shadow-lg border border-white/10;
+    background-image: linear-gradient(135deg, rgba(58, 96, 208, 0.08) 0%, rgba(58, 96, 208, 0.01) 100%);
+    padding: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .card-modern {
+      padding: 2.5rem;
+    }
+  }
+  
+  .card-premium {
+    @apply bg-card/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/20;
+    background-image: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.02) 100%);
+    padding: 2.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .card-premium {
+      padding: 3rem;
+    }
+  }
+  
+  .card-hero {
+    @apply bg-card/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/30;
+    background-image: linear-gradient(135deg, rgba(58, 96, 208, 0.15) 0%, rgba(139, 92, 246, 0.08) 100%);
+    padding: 3rem;
+  }
+
+  @media (min-width: 768px) {
+    .card-hero {
+      padding: 4rem;
+    }
+  }
 }
 
 /* Touch feedback for mobile */
@@ -441,6 +478,44 @@
   
   .safe-container-bottom {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  /* Geometric background accents */
+  .geometric-bg {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .geometric-bg::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(58, 96, 208, 0.08) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .geometric-bg::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: -10%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.06) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* Wireframe grid overlay */
+  .wireframe-overlay {
+    background-image: 
+      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 50px 50px;
   }
 }
 

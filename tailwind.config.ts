@@ -15,9 +15,9 @@ export default {
 		container: {
 			center: true,
 			padding: '2rem',
-			screens: {
-				'2xl': '1400px'
-			}
+		screens: {
+			'2xl': '1480px'
+		}
 		},
 		screens: {
 			// iOS-specific breakpoints for native app experience
@@ -44,19 +44,21 @@ export default {
 					'sans-serif'
 				],
 			},
-			fontSize: {
-				// Enterprise typography scale with mobile optimization
-				'h1': ['22px', { lineHeight: '28px', fontWeight: '700' }], // Mobile: 22px
-				'h1-desktop': ['24px', { lineHeight: '32px', fontWeight: '700' }], // Desktop: 24px
-				'h2': ['18px', { lineHeight: '24px', fontWeight: '600' }], // Mobile: 18px
-				'h2-desktop': ['20px', { lineHeight: '28px', fontWeight: '600' }], // Desktop: 20px
-				'h3': ['16px', { lineHeight: '20px', fontWeight: '600' }], // Mobile: 16px
-				'h3-desktop': ['18px', { lineHeight: '24px', fontWeight: '600' }], // Desktop: 18px
-				'body': ['15px', { lineHeight: '22px', fontWeight: '400' }], // Mobile: 15px
-				'body-desktop': ['16px', { lineHeight: '24px', fontWeight: '400' }], // Desktop: 16px
-				'body-sm': ['14px', { lineHeight: '20px', fontWeight: '400' }],
-				'caption': ['13px', { lineHeight: '18px', fontWeight: '500' }], // Mobile: 13px min
-			},
+		fontSize: {
+			// Modern, bold typography scale inspired by ClarityLab
+			'display': ['48px', { lineHeight: '1.1', fontWeight: '800', letterSpacing: '-0.02em' }], // Hero text
+			'h1': ['32px', { lineHeight: '1.2', fontWeight: '700', letterSpacing: '-0.01em' }], // Mobile
+			'h1-desktop': ['40px', { lineHeight: '1.15', fontWeight: '700', letterSpacing: '-0.01em' }], // Desktop
+			'h2': ['24px', { lineHeight: '1.3', fontWeight: '600' }], // Mobile
+			'h2-desktop': ['28px', { lineHeight: '1.25', fontWeight: '600' }], // Desktop
+			'h3': ['20px', { lineHeight: '1.4', fontWeight: '600' }], // Mobile
+			'h3-desktop': ['24px', { lineHeight: '1.35', fontWeight: '600' }], // Desktop
+			'body': ['16px', { lineHeight: '1.6', fontWeight: '400' }], // Mobile
+			'body-desktop': ['17px', { lineHeight: '1.7', fontWeight: '400' }], // Desktop
+			'body-large': ['18px', { lineHeight: '1.7', fontWeight: '400' }], // Subheadings
+			'body-sm': ['14px', { lineHeight: '20px', fontWeight: '400' }],
+			'caption': ['14px', { lineHeight: '1.5', fontWeight: '500' }], // Labels
+		},
 			colors: {
 				// Enterprise color system
 				glass: {
@@ -129,35 +131,53 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				}
 			},
-			spacing: {
-				// Enterprise spacing scale with mobile optimization
-				'page-gutter-mobile': '16px',
-				'page-gutter-desktop': '24px',
-				'section-gap': '20px',
-				'card-padding': '20px',
-				'button-padding-y': '16px',
-				'button-padding-x': '24px',
-				'touch-target': '44px', // Minimum touch target size
-				'mobile-nav-height': '80px', // Height for bottom navigation
-				'safe-area-bottom': 'env(safe-area-inset-bottom)', // iOS safe area
-			},
-			borderRadius: {
-				lg: 'var(--radius)',
-				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)',
-				// Enterprise border radius
-				'enterprise': '8px',
-				'enterprise-sm': '6px',
-			},
-			boxShadow: {
-				// Enterprise shadows
-				'enterprise': '0px 2px 16px rgba(50, 50, 93, 0.07)',
-				'enterprise-md': '0px 4px 24px rgba(50, 50, 93, 0.12)',
-				'enterprise-lg': '0px 8px 32px rgba(50, 50, 93, 0.18)',
-				// Mobile-specific shadows
-				'mobile-nav': '0px -2px 16px rgba(0, 0, 0, 0.1)',
-				'mobile-sheet': '0px -8px 32px rgba(0, 0, 0, 0.15)',
-			},
+		spacing: {
+			// Modern spacing scale with generous breathing room
+			'page-gutter-mobile': '20px',
+			'page-gutter-desktop': '32px',
+			'section-gap': '32px',
+			'section-gap-desktop': '48px',
+			'card-padding': '24px',
+			'card-padding-desktop': '32px',
+			'card-padding-lg': '40px',
+			'button-padding-y': '16px',
+			'button-padding-x': '32px',
+			'touch-target': '48px',
+			'mobile-nav-height': '80px',
+			'safe-area-bottom': 'env(safe-area-inset-bottom)',
+		},
+		borderRadius: {
+			'none': '0',
+			'sm': '0.5rem', // 8px
+			'md': '0.75rem', // 12px
+			'lg': '1rem', // 16px
+			'xl': '1.25rem', // 20px
+			'2xl': '1.5rem', // 24px
+			'3xl': '2rem', // 32px
+			'full': '9999px',
+			// Aliases for enterprise components
+			'enterprise': '1.25rem', // 20px
+			'enterprise-sm': '0.75rem', // 12px
+			'enterprise-lg': '1.5rem', // 24px
+		},
+		boxShadow: {
+			// Modern elevation system with dramatic depth
+			'sm': '0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.24)',
+			'md': '0 4px 8px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3)',
+			'lg': '0 8px 16px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.4)',
+			'xl': '0 12px 24px rgba(0, 0, 0, 0.6), 0 6px 12px rgba(0, 0, 0, 0.5)',
+			'2xl': '0 20px 40px rgba(0, 0, 0, 0.7), 0 10px 20px rgba(0, 0, 0, 0.6)',
+			// Enterprise aliases
+			'enterprise': '0 4px 16px rgba(0, 0, 0, 0.5)',
+			'enterprise-md': '0 8px 24px rgba(0, 0, 0, 0.6)',
+			'enterprise-lg': '0 12px 32px rgba(0, 0, 0, 0.7)',
+			// Colored shadows for CTAs
+			'primary-glow': '0 8px 32px rgba(58, 96, 208, 0.4), 0 4px 16px rgba(58, 96, 208, 0.3)',
+			'accent-glow': '0 8px 32px rgba(245, 124, 0, 0.4), 0 4px 16px rgba(245, 124, 0, 0.3)',
+			// Mobile shadows
+			'mobile-nav': '0 -4px 16px rgba(0, 0, 0, 0.4)',
+			'mobile-sheet': '0 -12px 32px rgba(0, 0, 0, 0.6)',
+		},
 			keyframes: {
 				'accordion-down': {
 					from: {
