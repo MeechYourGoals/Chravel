@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from './ui/button';
 import { Plane, Users, Calendar, MapPin, Sparkles } from 'lucide-react';
+import { DemoModeToggle } from './DemoModeToggle';
 
 interface UnauthenticatedLandingProps {
   onSignIn: () => void;
@@ -10,6 +11,13 @@ interface UnauthenticatedLandingProps {
 export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLandingProps) => {
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-12">
+      {/* Demo Mode Toggle - Top Right */}
+      <div className="absolute top-6 right-6 z-10">
+        <div className="w-[160px]">
+          <DemoModeToggle />
+        </div>
+      </div>
+
       {/* Hero Section */}
       <div className="text-center max-w-3xl mx-auto space-y-6 animate-fade-in">
         {/* Logo/Icon */}
