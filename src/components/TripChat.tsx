@@ -72,7 +72,9 @@ export const TripChat = ({
   const {
     availableChannels,
     activeChannel,
-    setActiveChannel
+    messages: channelMessages,
+    setActiveChannel,
+    sendMessage: sendChannelMessage
   } = useRoleChannels(resolvedTripId, userRole);
 
   const {
@@ -107,6 +109,15 @@ export const TripChat = ({
   }, [liveMessages, shouldUseDemoData]);
 
   const handleSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: PaymentData) => {
+    // If we're in a role channel, send to that channel instead
+    if (isPro && activeChannel) {
+      const success = await sendChannelMessage(inputMessage);
+      if (success) {
+        setInputMessage('');
+      }
+      return;
+    }
+
     const message = await sendMessage({
       isBroadcast, 
       isPayment, 
@@ -220,16 +231,35 @@ export const TripChat = ({
   }, [shouldUseDemoData, isEvent, resolvedTripId, liveFormattedMessages.length]);
 
   // Determine which messages to show:
-  // 1. Demo mode OR no tripId: show demo messages
-  // 2. Consumer trip (1-12) with no live messages: show demo messages as fallback
-  // 3. Otherwise: show live messages
+  // 1. If in a role channel: show channel messages
+  // 2. Demo mode OR no tripId: show demo messages
+  // 3. Consumer trip (1-12) with no live messages: show demo messages as fallback
+  // 4. Otherwise: show live messages
   const tripIdNum = parseInt(resolvedTripId);
   const isConsumerTripWithNoMessages = 
     tripIdNum >= 1 && tripIdNum <= 12 && liveFormattedMessages.length === 0 && !shouldUseDemoData;
   
-  const messagesToShow = (shouldUseDemoData || isConsumerTripWithNoMessages) 
-    ? demoMessages 
-    : liveFormattedMessages;
+  let messagesToShow: MockMessage[];
+  if (isPro && activeChannel) {
+    // Show channel messages for enterprise trips when channel is selected
+    messagesToShow = channelMessages.map(msg => ({
+      id: msg.id,
+      text: msg.content,
+      sender: {
+        id: msg.senderId,
+        name: msg.senderName || 'Unknown',
+        avatar: msg.senderAvatar || getMockAvatar(msg.senderName || 'Unknown')
+      },
+      createdAt: msg.createdAt,
+      isBroadcast: false,
+      isPayment: false,
+      tags: [] as string[]
+    }));
+  } else {
+    messagesToShow = (shouldUseDemoData || isConsumerTripWithNoMessages) 
+      ? demoMessages 
+      : liveFormattedMessages;
+  }
   
   const filteredMessages = filterMessages(messagesToShow);
 
@@ -312,6 +342,7 @@ export const TripChat = ({
           isTyping={isSendingMessage}
           tripMembers={tripMembers}
           hidePayments={true}
+          isInChannelMode={isPro && !!activeChannel}
         />
       </div>
     </div>

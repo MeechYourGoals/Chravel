@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Shield, Settings, UserCheck, AlertTriangle, UserPlus, UsersRound, MessageCircle, Download, Star, Megaphone, Grid3x3, Network, MessageSquare } from 'lucide-react';
+import { Users, Settings, UserCheck, AlertTriangle, UserPlus, UsersRound, MessageCircle, Download, Grid3x3, Network, MessageSquare } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
 import { ProTripCategory, getCategoryConfig } from '../../types/proCategories';
 import { EditMemberRoleModal } from './EditMemberRoleModal';
@@ -8,8 +8,6 @@ import { BulkRoleAssignmentModal } from './BulkRoleAssignmentModal';
 import { QuickContactMenu } from './QuickContactMenu';
 import { RoleContactSheet } from './RoleContactSheet';
 import { ExportTeamDirectoryModal } from './ExportTeamDirectoryModal';
-import { RoleTemplateManager } from './RoleTemplateManager';
-import { RoleBroadcastModal } from './RoleBroadcastModal';
 import { TeamOrgChart } from './TeamOrgChart';
 import { RoleChannelManager } from './RoleChannelManager';
 import { extractUniqueRoles, getRoleColorClass } from '../../utils/roleUtils';
@@ -26,15 +24,10 @@ interface TeamTabProps {
 
 export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId, onUpdateMemberRole }: TeamTabProps) => {
   const [selectedRole, setSelectedRole] = useState<string>('all');
-  const [showCredentials, setShowCredentials] = useState(false);
-  const [showEmergencyContacts, setShowEmergencyContacts] = useState(false);
   const [editingMember, setEditingMember] = useState<ProParticipant | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [showTemplateManager, setShowTemplateManager] = useState(false);
-  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
-  const [broadcastRole, setBroadcastRole] = useState<string | undefined>();
   const [roleContactSheet, setRoleContactSheet] = useState<{ role: string; members: ProParticipant[] } | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'orgchart'>('grid');
   const [showChannelManager, setShowChannelManager] = useState(false);
@@ -77,16 +70,6 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
     await onUpdateMemberRole(memberId, newRole);
   };
 
-  const getCredentialColor = (level: string) => {
-    switch (level) {
-      case 'AllAccess': return 'bg-green-500';
-      case 'Backstage': return 'bg-yellow-500';
-      case 'Guest': return 'bg-blue-500';
-      case 'Restricted': return 'bg-red-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
   const handleAssignRolesClick = () => {
     // Find first member without proper role and open edit modal
     const firstUnassigned = roster.find(member => 
@@ -116,16 +99,16 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
         </div>
       )}
 
-      {/* Header with Stats */}
+      {/* Header with Stats and Actions */}
       <div className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
           <div className="flex items-center gap-3">
             <Users className="text-red-400" size={24} />
             <h2 className="text-xl font-bold text-white">{teamLabel}</h2>
+            <span className="text-gray-400">{roster.length} members</span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-gray-400">{roster.length} total members</span>
-            
+          
+          <div className="flex items-center gap-2 flex-wrap">
             {/* View Mode Toggle */}
             <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1">
               <button
@@ -167,33 +150,6 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
               </Button>
             )}
 
-            {/* Broadcast Button */}
-            {tripId && (
-              <Button
-                onClick={() => {
-                  setBroadcastRole(undefined);
-                  setShowBroadcastModal(true);
-                }}
-                variant="outline"
-                className="border-gray-600"
-                title="Send announcement to team roles"
-              >
-                <Megaphone size={16} className="mr-2" />
-                Broadcast
-              </Button>
-            )}
-            
-            {/* Templates Button */}
-            <Button
-              onClick={() => setShowTemplateManager(true)}
-              variant="outline"
-              className="border-gray-600"
-              title="Save or load role templates"
-            >
-              <Star size={16} className="mr-2" />
-              Templates
-            </Button>
-
             {/* Export Button */}
             <Button
               onClick={() => setShowExportModal(true)}
@@ -211,7 +167,7 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
                 onClick={() => setShowBulkModal(true)}
                 variant="outline"
                 className="border-gray-600"
-                title="Assign roles to multiple members at once"
+                title="Assign roles to multiple members"
               >
                 <UsersRound size={16} className="mr-2" />
                 Bulk Edit
@@ -229,28 +185,6 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
                 Assign Roles
               </Button>
             )}
-            
-            <button
-              onClick={() => setShowCredentials(!showCredentials)}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-              title={showCredentials ? 'Hide credential levels' : 'Show credential levels'}
-            >
-              <Shield size={16} />
-              {showCredentials ? 'Hide Credentials' : 'Show Credentials'}
-            </button>
-            
-            <button
-              onClick={() => setShowEmergencyContacts(!showEmergencyContacts)}
-              className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                showEmergencyContacts
-                  ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                  : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-              }`}
-              title={showEmergencyContacts ? 'Hide emergency contacts' : 'Show emergency contacts'}
-            >
-              <AlertTriangle size={16} />
-              Emergency
-            </button>
           </div>
         </div>
 
@@ -277,28 +211,14 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
                     )}
                   </button>
                   {/* Contact All Button for specific roles */}
-                  {role !== 'all' && roleMembers.length > 0 && (
-                    <>
-                      <button
-                        onClick={() => setRoleContactSheet({ role, members: roleMembers })}
-                        className="p-1 hover:bg-white/10 rounded transition-colors"
-                        title={`Contact all ${role}`}
-                      >
-                        <MessageCircle size={14} className="text-blue-400" />
-                      </button>
-                      {tripId && (
-                        <button
-                          onClick={() => {
-                            setBroadcastRole(role);
-                            setShowBroadcastModal(true);
-                          }}
-                          className="p-1 hover:bg-white/10 rounded transition-colors"
-                          title={`Broadcast to all ${role}`}
-                        >
-                          <Megaphone size={14} className="text-purple-400" />
-                        </button>
-                      )}
-                    </>
+                      {role !== 'all' && roleMembers.length > 0 && (
+                    <button
+                      onClick={() => setRoleContactSheet({ role, members: roleMembers })}
+                      className="p-1 hover:bg-white/10 rounded transition-colors"
+                      title={`Contact all ${role}`}
+                    >
+                      <MessageCircle size={14} className="text-blue-400" />
+                    </button>
                   )}
                 </div>
               );
@@ -341,7 +261,6 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
               <div className="flex-1 min-w-0">
                 <QuickContactMenu
                   member={member}
-                  showEmergencyContacts={showEmergencyContacts}
                 >
                   <h3 className="text-white font-medium truncate cursor-pointer hover:text-blue-400 transition-colors">
                     {member.name}
@@ -355,11 +274,6 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
                   <span className={`${getRoleColorClass(member.role, category)} px-2 py-1 rounded text-xs font-medium`}>
                     {member.role}
                   </span>
-                  {showCredentials && (
-                    <span className={`${getCredentialColor(member.credentialLevel)} text-white px-2 py-1 rounded text-xs font-medium`}>
-                      {member.credentialLevel}
-                    </span>
-                  )}
                 </div>
               </div>
               {userRole === 'admin' && !isReadOnly && onUpdateMemberRole && (
@@ -390,19 +304,6 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
             {member.dietaryRestrictions && member.dietaryRestrictions.length > 0 && (
               <div className="mt-2">
                 <p className="text-gray-400 text-xs">Dietary: {member.dietaryRestrictions.join(', ')}</p>
-              </div>
-            )}
-
-            {showCredentials && member.permissions.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-gray-700">
-                <p className="text-gray-400 text-xs mb-1">Permissions:</p>
-                <div className="flex flex-wrap gap-1">
-                  {member.permissions.map((permission, index) => (
-                    <span key={index} className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs">
-                      {permission}
-                    </span>
-                  ))}
-                </div>
               </div>
             )}
           </div>
@@ -459,38 +360,6 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
         category={category}
         existingRoles={existingRoles}
       />
-
-      {/* Role Template Manager */}
-      {onUpdateMemberRole && (
-        <RoleTemplateManager
-          isOpen={showTemplateManager}
-          onClose={() => setShowTemplateManager(false)}
-          roster={roster}
-          category={category}
-          onApplyTemplate={async (assignments) => {
-            // Apply template assignments
-            for (const [memberId, role] of assignments.entries()) {
-              await onUpdateMemberRole(memberId, role);
-            }
-          }}
-        />
-      )}
-
-      {/* Role Broadcast Modal */}
-      {tripId && (
-        <RoleBroadcastModal
-          isOpen={showBroadcastModal}
-          onClose={() => {
-            setShowBroadcastModal(false);
-            setBroadcastRole(undefined);
-          }}
-          tripId={tripId}
-          roster={roster}
-          category={category}
-          availableRoles={existingRoles}
-          preselectedRole={broadcastRole}
-        />
-      )}
 
       {/* Role Channel Manager */}
       {tripId && (
