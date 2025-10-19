@@ -102,7 +102,7 @@ export const FeatureShowcase = () => {
   };
 
   return (
-    <div className="w-full space-y-12">
+    <div className="w-full space-y-8">
       {/* Before/After Comparison */}
       <div className="space-y-6">
         <div className="text-center">

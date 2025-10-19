@@ -79,45 +79,6 @@ export const SocialProofSection = () => {
         ))}
       </div>
 
-      {/* Testimonials Carousel */}
-      <div className="space-y-4">
-        <h3 className="text-2xl font-bold text-center text-foreground">
-          Trusted by travelers and professionals worldwide
-        </h3>
-        <div className="grid md:grid-cols-3 gap-6">
-          {testimonials.map((testimonial, index) => (
-            <Card key={index} className="bg-card/80 backdrop-blur-sm border border-border/50 hover:border-primary/30 transition-colors">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center text-primary font-bold">
-                    {testimonial.avatar}
-                  </div>
-                  <div>
-                    <div className="font-semibold text-foreground">{testimonial.name}</div>
-                    <div className="text-sm text-muted-foreground">{testimonial.role}</div>
-                    <div className="text-xs text-accent">{testimonial.company}</div>
-                  </div>
-                </div>
-                
-                <div className="flex mb-3">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} size={16} className="text-yellow-400 fill-current" />
-                  ))}
-                </div>
-                
-                <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
-                  "{testimonial.quote}"
-                </p>
-                
-                <Badge variant="outline" className="text-xs">
-                  {testimonial.useCase}
-                </Badge>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
     </div>
   );
 };

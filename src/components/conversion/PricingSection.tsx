@@ -522,41 +522,6 @@ export const PricingSection = () => {
         ))}
       </div>
 
-      {/* Feature Comparison Table */}
-      <div className="bg-card/30 rounded-2xl p-8 border border-border/50">
-        <h3 className="text-2xl font-bold text-center mb-8">Feature Comparison</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border/50">
-                <th className="text-left py-4 font-medium">Features</th>
-                <th className="text-center py-4 font-medium">Free</th>
-                <th className="text-center py-4 font-medium">Bundles</th>
-                <th className="text-center py-4 font-medium">Pro Monthly</th>
-                <th className="text-center py-4 font-medium">Enterprise</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm">
-              {[
-                { feature: 'Trip Limit', free: '3/year', bundles: '10-∞', pro: 'Unlimited', enterprise: 'Unlimited' },
-                { feature: 'AI Assistant', free: '✗', bundles: '✓', pro: '✓ Priority', enterprise: '✓ Custom' },
-                { feature: 'Team Management', free: '✗', bundles: '✗', pro: '✗', enterprise: '✓' },
-                { feature: 'Analytics', free: '✗', bundles: 'Basic', pro: '✓', enterprise: 'Advanced' },
-                { feature: 'Support', free: 'Community', bundles: 'Email', pro: 'Priority', enterprise: '24/7 + CSM' }
-              ].map((row, index) => (
-                <tr key={index} className="border-b border-border/20">
-                  <td className="py-4 font-medium">{row.feature}</td>
-                  <td className="py-4 text-center text-muted-foreground">{row.free}</td>
-                  <td className="py-4 text-center text-muted-foreground">{row.bundles}</td>
-                  <td className="py-4 text-center text-muted-foreground">{row.pro}</td>
-                  <td className="py-4 text-center text-muted-foreground">{row.enterprise}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       {/* ROI Calculator */}
       {activeTab === 'pro' && (
         <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-2xl p-8 border border-primary/20">
@@ -627,30 +592,6 @@ export const PricingSection = () => {
         </div>
       )}
 
-      {/* Customer Testimonials */}
-      <div className="text-center space-y-8">
-        <h3 className="text-2xl font-bold">Trusted by industry leaders</h3>
-        <div className="grid md:grid-cols-3 gap-8">
-          {testimonials.map((testimonial, index) => (
-            <Card key={index} className="bg-card/50 border-border/50">
-              <CardContent className="p-6 text-center space-y-4">
-                <Quote className="w-8 h-8 mx-auto text-primary/50" />
-                <p className="text-muted-foreground italic">"{testimonial.quote}"</p>
-                <div className="space-y-2">
-                  <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto">
-                    <span className="text-primary font-bold">{testimonial.avatar}</span>
-                  </div>
-                  <div>
-                    <p className="font-medium">{testimonial.author}</p>
-                    <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
       {/* FAQ Section */}
       <div className="max-w-3xl mx-auto space-y-8">
         <div className="text-center">
@@ -679,27 +620,6 @@ export const PricingSection = () => {
             </Collapsible>
           ))}
         </div>
-      </div>
-
-      {/* Final CTA */}
-      <div className="text-center space-y-6 bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl p-12 border border-primary/20">
-        <h3 className="text-3xl font-bold">Ready to transform your travel planning?</h3>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Join thousands of teams already saving time and reducing stress with Chravel
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button size="lg" className="bg-primary hover:bg-primary/90">
-            Start Free Trial
-            <Clock className="w-4 h-4 ml-2" />
-          </Button>
-          <Button size="lg" variant="outline">
-            Schedule Demo
-            <MessageSquare className="w-4 h-4 ml-2" />
-          </Button>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          ✓ 14-day free trial ✓ No credit card required ✓ Cancel anytime
-        </p>
       </div>
     </div>
   );

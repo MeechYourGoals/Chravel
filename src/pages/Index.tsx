@@ -196,7 +196,7 @@ const Index = () => {
           />
 
           {/* Marketing Content - Always show to unauthenticated users */}
-          <div className="mt-20 space-y-20">
+          <div className="mt-12 space-y-12">
             {/* Social Proof Section */}
             <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
               <SocialProofSection />
