@@ -51,22 +51,14 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
           </div>
         </div>
 
-        {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+        {/* CTA Button */}
+        <div className="flex justify-center pt-4">
           <Button 
             size="lg" 
             onClick={onSignUp}
             className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
           >
             Get Started Free
-          </Button>
-          <Button 
-            size="lg" 
-            variant="outline" 
-            onClick={onSignIn}
-            className="text-lg px-8 py-6 border-2"
-          >
-            Sign In
           </Button>
         </div>
 
@@ -77,7 +69,7 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
       </div>
 
       {/* Feature Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-12 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
         <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 text-center hover:border-primary/50 transition-colors">
           <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
             <Users className="text-primary" size={24} />
