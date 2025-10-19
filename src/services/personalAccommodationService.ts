@@ -50,6 +50,11 @@ class PersonalAccommodationService {
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        // If table doesn't exist yet, return null gracefully
+        if (error.message?.includes('relation "user_accommodations" does not exist')) {
+          console.warn('user_accommodations table does not exist yet. Migration may need to be applied.');
+          return null;
+        }
         throw error;
       }
 
@@ -105,7 +110,14 @@ class PersonalAccommodationService {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // If table doesn't exist yet, return null gracefully
+        if (error.message?.includes('relation "user_accommodations" does not exist')) {
+          console.warn('user_accommodations table does not exist yet. Migration may need to be applied.');
+          return null;
+        }
+        throw error;
+      }
       return data;
     } catch (error) {
       console.error('Failed to set user accommodation:', error);
