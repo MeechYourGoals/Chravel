@@ -47,7 +47,7 @@ export const DesktopHeader = ({ viewMode, onCreateTrip, onUpgrade, onSettings }:
     <>
       {/* Demo Mode Toggle - Enhanced visibility and styling */}
       <div className="flex justify-end mb-4">
-        <div className="w-[160px]">
+        <div className="w-[150px]">
           <DemoModeToggle />
         </div>
       </div>
@@ -78,7 +78,7 @@ export const DesktopHeader = ({ viewMode, onCreateTrip, onUpgrade, onSettings }:
           </div>
 
           {/* Column 3: Action Buttons - aligned to right */}
-          <div className="flex items-center gap-3 justify-end">
+          <div className="flex items-center gap-2 justify-end">
             {/* Action button group - enhanced with new design system */}
             <button
               onClick={onCreateTrip}
