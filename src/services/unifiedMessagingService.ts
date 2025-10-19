@@ -326,7 +326,7 @@ class UnifiedMessagingService {
    */
   async getScheduledMessages(userId: string, tripId?: string, tourId?: string): Promise<ScheduledMessage[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('scheduled_messages')
         .select('*')
         .eq('user_id', userId)
@@ -334,7 +334,7 @@ class UnifiedMessagingService {
         .order('send_at', { ascending: true });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as ScheduledMessage[];
     } catch (error) {
       console.error('Failed to get scheduled messages:', error);
       return [];
@@ -346,7 +346,7 @@ class UnifiedMessagingService {
    */
   async updateScheduledMessage(messageId: string, updates: Partial<ScheduledMessage>): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('scheduled_messages')
         .update(updates)
         .eq('id', messageId);
@@ -367,7 +367,7 @@ class UnifiedMessagingService {
    */
   async cancelScheduledMessage(messageId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('scheduled_messages')
         .delete()
         .eq('id', messageId);

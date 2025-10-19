@@ -10,6 +10,8 @@ import { RoleContactSheet } from './RoleContactSheet';
 import { ExportTeamDirectoryModal } from './ExportTeamDirectoryModal';
 import { TeamOrgChart } from './TeamOrgChart';
 import { RoleChannelManager } from './RoleChannelManager';
+import { ChannelsPanel } from './channels/ChannelsPanel';
+import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { extractUniqueRoles, getRoleColorClass } from '../../utils/roleUtils';
 import { Button } from '../ui/button';
 
@@ -29,18 +31,19 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [roleContactSheet, setRoleContactSheet] = useState<{ role: string; members: ProParticipant[] } | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'orgchart'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'orgchart' | 'channels'>('grid');
   const [showChannelManager, setShowChannelManager] = useState(false);
+  const { canUseChannels } = useFeatureFlags();
 
   // Load view preference from localStorage
   useEffect(() => {
-    const savedView = localStorage.getItem('team-view-mode') as 'grid' | 'orgchart' | null;
+    const savedView = localStorage.getItem('team-view-mode') as 'grid' | 'orgchart' | 'channels' | null;
     if (savedView) {
       setViewMode(savedView);
     }
   }, []);
 
-  const handleViewModeChange = (mode: 'grid' | 'orgchart') => {
+  const handleViewModeChange = (mode: 'grid' | 'orgchart' | 'channels') => {
     setViewMode(mode);
     localStorage.setItem('team-view-mode', mode);
   };
@@ -135,6 +138,20 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
                 <Network size={14} />
                 Org Chart
               </button>
+              {canUseChannels('pro') && (
+                <button
+                  onClick={() => handleViewModeChange('channels')}
+                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
+                    viewMode === 'channels'
+                      ? 'bg-red-600 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="Channels view"
+                >
+                  <MessageSquare size={14} />
+                  Channels
+                </button>
+              )}
             </div>
             
             {/* Channels Button */}
@@ -234,8 +251,20 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
         )}
       </div>
 
-      {/* Org Chart View */}
-      {viewMode === 'orgchart' ? (
+      {/* Conditional View Rendering */}
+      {viewMode === 'channels' ? (
+        tripId ? (
+          <ChannelsPanel
+            tripId={tripId}
+            userRole={userRole}
+            isAdmin={!isReadOnly}
+          />
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-400">Trip ID required for channels</p>
+          </div>
+        )
+      ) : viewMode === 'orgchart' ? (
         <TeamOrgChart
           roster={roster}
           category={category}

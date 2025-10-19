@@ -29,7 +29,7 @@ export const ScheduledMessagesDashboard = ({
     setLoading(true);
     try {
       const messages = await unifiedMessagingService.getScheduledMessages(userId, tripId, tourId);
-      setScheduledMessages(messages);
+      setScheduledMessages(messages as any);
     } catch (error) {
       console.error('Failed to load scheduled messages:', error);
     } finally {

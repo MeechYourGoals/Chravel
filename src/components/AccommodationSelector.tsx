@@ -220,29 +220,19 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
 
       {/* Location Selector Modals */}
       {showTripSelector && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Set Trip Base Camp</h3>
-            <BasecampSelector
-              onLocationSet={handleTripLocationSet}
-              onCancel={() => setShowTripSelector(false)}
-              placeholder="Search for a meeting point or landmark..."
-            />
-          </div>
-        </div>
+        <BasecampSelector
+          isOpen={showTripSelector}
+          onClose={() => setShowTripSelector(false)}
+          onBasecampSet={handleTripLocationSet}
+        />
       )}
 
       {showPersonalSelector && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Set Your Accommodation</h3>
-            <BasecampSelector
-              onLocationSet={handlePersonalLocationSet}
-              onCancel={() => setShowPersonalSelector(false)}
-              placeholder="Search for your hotel, Airbnb, or accommodation..."
-            />
-          </div>
-        </div>
+        <BasecampSelector
+          isOpen={showPersonalSelector}
+          onClose={() => setShowPersonalSelector(false)}
+          onBasecampSet={handlePersonalLocationSet}
+        />
       )}
     </div>
   );

@@ -21,7 +21,7 @@ export const ProTabNavigation = ({ tabs, activeTab, onTabChange, category }: Pro
   const userPermissions = user?.permissions || ['read'];
 
   return (
-    <div className="flex overflow-x-auto whitespace-nowrap scroll-smooth gap-2 mb-8 pb-2 -mx-2 px-2 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
+    <div className="flex justify-center overflow-x-auto whitespace-nowrap scroll-smooth gap-2 mb-8 pb-2 -mx-2 px-2 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isReadOnly = isReadOnlyTab(tab.id, userRole, userPermissions);

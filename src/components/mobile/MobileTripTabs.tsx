@@ -7,6 +7,7 @@ import { CommentsWall } from '../CommentsWall';
 import { MobileUnifiedMediaHub } from './MobileUnifiedMediaHub';
 import { PlacesSection } from '../PlacesSection';
 import { AIConciergeChat } from '../AIConciergeChat';
+import { MobileTripChat } from './MobileTripChat';
 import { MobileTripPayments } from './MobileTripPayments';
 import { hapticService } from '../../services/hapticService';
 import { useTripVariant } from '../../contexts/TripVariantContext';
