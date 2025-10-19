@@ -174,13 +174,6 @@ const Index = () => {
   if (!user && !isDemoMode) {
     return (
       <div className="min-h-screen bg-background font-outfit">
-        {/* Demo Mode Toggle - Top Right for Investor Presentations */}
-        <div className="fixed top-6 right-6 z-[9999] bg-red-500 p-4 border-4 border-yellow-400 rounded-lg">
-          <div className="text-white font-bold text-lg mb-2">DEMO TOGGLE</div>
-          <div className="w-[180px]">
-            <DemoModeToggle />
-          </div>
-        </div>
 
         {/* Animated background elements */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">

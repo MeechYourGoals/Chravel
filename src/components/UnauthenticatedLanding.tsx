@@ -20,9 +20,8 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
         </div>
 
         {/* Headline */}
-        <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight">
-          Plan Together.<br />Travel Better.<br />
-          <span className="text-red-500 text-2xl">DEMO TOGGLE ACTIVE</span>
+        <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight">
+          Plan Together.<br />Travel Better.
         </h1>
 
         {/* Subheadline */}
