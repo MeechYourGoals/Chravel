@@ -11,11 +11,23 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
   return (
     <div className="flex flex-col items-center justify-start px-4 pt-2 pb-16 md:pt-4 md:pb-20">
       {/* Hero Section */}
-      <div className="text-center max-w-3xl mx-auto space-y-4 animate-fade-in">
-        {/* Headline */}
-        <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight mt-4">
-          Plan Together.<br />Travel Better.
-        </h1>
+      <div className="max-w-5xl mx-auto space-y-4 animate-fade-in">
+        {/* Logo + Headline Flex Container */}
+        <div className="flex items-center justify-center gap-6 md:gap-8">
+          {/* Chravel Logo - Left Side */}
+          <div className="flex-shrink-0 w-24 h-24 md:w-32 md:h-32 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <img 
+              src="/chravel-logo.png" 
+              alt="Chravel Logo" 
+              className="w-full h-full object-contain drop-shadow-2xl"
+            />
+          </div>
+          
+          {/* Headline - Center-Right */}
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight text-center md:text-left">
+            Plan Together.<br />Travel Better.
+          </h1>
+        </div>
 
         {/* Subheadline */}
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">

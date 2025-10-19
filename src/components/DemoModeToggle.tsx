@@ -47,17 +47,17 @@ export const DemoModeToggle = () => {
               onClick={handleToggle}
               variant="outline"
               size="sm"
-              className={`w-full flex items-center justify-center gap-2 transition-all duration-200 rounded-xl ${
+              className={`w-full flex items-center justify-center gap-1.5 transition-all duration-200 rounded-xl ${
                 isDemoMode 
                   ? 'bg-primary/20 border-primary/60 text-primary hover:bg-primary/30 shadow-lg shadow-primary/30 border-2' 
                   : 'bg-card/80 border-border/40 text-muted-foreground hover:bg-card/90 backdrop-blur-sm border-2'
               }`}
             >
               {isDemoMode ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-              <span className="text-xs font-medium">
+              <span className="text-[10px] font-medium leading-tight">
                 {isDemoMode ? 'Demo ON' : 'Demo OFF'}
               </span>
-              <Info className="h-3 w-3 opacity-60" />
+              <Info className="h-2.5 w-2.5 opacity-60" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="max-w-xs">
