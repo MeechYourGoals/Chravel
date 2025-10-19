@@ -174,6 +174,12 @@ const Index = () => {
   if (!user && !isDemoMode) {
     return (
       <div className="min-h-screen bg-background font-outfit">
+        {/* Demo Mode Toggle - Top Right for All Logged Out Users */}
+        <div className="fixed top-6 right-6 z-[9999]">
+          <div className="w-[180px] bg-card/80 backdrop-blur-sm p-3 rounded-xl border border-border shadow-lg">
+            <DemoModeToggle />
+          </div>
+        </div>
 
         {/* Animated background elements */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
