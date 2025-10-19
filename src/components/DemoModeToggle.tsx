@@ -20,10 +20,8 @@ import {
 } from './ui/alert-dialog';
 
 export const DemoModeToggle = () => {
-  const { isDemoMode, toggleDemoMode, isLoading } = useDemoMode();
+  const { isDemoMode, toggleDemoMode } = useDemoMode();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-
-  if (isLoading) return null;
 
   const handleToggle = () => {
     if (isDemoMode) {

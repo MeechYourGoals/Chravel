@@ -175,8 +175,8 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-background font-outfit">
         {/* Demo Mode Toggle - Top Right for Investor Presentations */}
-        <div className="fixed top-6 right-6 z-50">
-          <div className="w-[160px]">
+        <div className="fixed top-6 right-6 z-[9999] bg-red-500/20 p-2 rounded-lg border-2 border-red-500">
+          <div className="w-[180px]">
             <DemoModeToggle />
           </div>
         </div>

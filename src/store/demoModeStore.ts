@@ -12,7 +12,7 @@ interface DemoModeState {
 
 export const useDemoModeStore = create<DemoModeState>((set, get) => ({
   isDemoMode: false,
-  isLoading: true,
+  isLoading: false,
 
   init: async () => {
     try {
