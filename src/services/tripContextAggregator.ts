@@ -84,8 +84,13 @@ export interface ComprehensiveTripContext {
 }
 
 export class TripContextAggregator {
-  static async buildContext(tripId: string): Promise<ComprehensiveTripContext> {
+  static async buildContext(tripId: string, isDemoMode: boolean = false): Promise<ComprehensiveTripContext> {
     try {
+      // Return mock context in demo mode
+      if (isDemoMode) {
+        return this.buildMockContext(tripId);
+      }
+
       // Parallel fetch all data sources
       const [
         tripMetadata,
@@ -128,6 +133,68 @@ export class TripContextAggregator {
     }
   }
 
+  private static buildMockContext(tripId: string): ComprehensiveTripContext {
+    // Return comprehensive mock data for demo trips
+    return {
+      tripMetadata: {
+        id: tripId,
+        name: 'Corporate Holiday Ski Trip',
+        destination: 'Aspen, Colorado',
+        startDate: '2025-01-15',
+        endDate: '2025-01-20',
+        type: 'consumer' as const
+      },
+      collaborators: [
+        { id: '1', name: 'Sarah Chen', role: 'organizer', email: 'sarah@example.com' },
+        { id: '2', name: 'Marcus Johnson', role: 'participant' },
+        { id: '3', name: 'Priya Patel', role: 'participant' },
+        { id: '4', name: 'Alex Kim', role: 'participant' },
+        { id: '5', name: 'David Thompson', role: 'participant' }
+      ],
+      messages: [
+        { id: '1', content: 'Super excited for this trip! Has everyone seen the weather forecast?', authorName: 'Sarah Chen', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), type: 'message' as const },
+        { id: '2', content: 'Just booked my flight, landing at 3:30 PM on Friday', authorName: 'Marcus Johnson', timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), type: 'message' as const },
+        { id: '3', content: 'Created a poll for restaurant options tonight', authorName: 'Priya Patel', timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(), type: 'message' as const }
+      ],
+      calendar: [
+        { id: '1', title: 'Airport Pickup', startTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(), endTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(), location: 'Aspen Airport' },
+        { id: '2', title: 'Welcome Dinner', startTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000 + 8 * 60 * 60 * 1000).toISOString(), endTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000 + 10 * 60 * 60 * 1000).toISOString(), location: 'The Little Nell Restaurant', description: 'Group dinner at 7 PM' }
+      ],
+      tasks: [
+        { id: '1', content: 'Pack snorkeling gear', assignee: 'Sarah Chen', isComplete: false },
+        { id: '2', content: 'Confirm dinner reservations', assignee: 'Priya Patel', isComplete: false },
+        { id: '3', content: 'Buy sunscreen', isComplete: false }
+      ],
+      payments: [
+        { id: '1', description: 'Hotel Deposit', amount: 500, paidBy: 'Sarah Chen', participants: ['1', '2', '3', '4', '5'], isSettled: false },
+        { id: '2', description: 'Ski Rental', amount: 150, paidBy: 'Marcus Johnson', participants: ['1', '2'], isSettled: true }
+      ],
+      polls: [
+        { id: '1', question: 'Where should we eat tonight?', options: [{ text: 'Italian Bistro', votes: 3 }, { text: 'Sushi Palace', votes: 2 }, { text: 'Local BBQ', votes: 1 }], status: 'active' }
+      ],
+      places: {
+        basecamp: {
+          name: 'The Little Nell',
+          address: '675 E Durant Ave, Aspen, CO 81611',
+          lat: 39.1911,
+          lng: -106.8175
+        },
+        savedPlaces: [
+          { name: 'Aspen Mountain', address: 'Aspen Mountain, Aspen, CO', category: 'activity' },
+          { name: 'The Little Nell Restaurant', address: '675 E Durant Ave, Aspen, CO 81611', category: 'dining' }
+        ]
+      },
+      media: {
+        files: [
+          { id: '1', name: 'trip_itinerary.pdf', type: 'application/pdf', url: '#', uploadedBy: 'Sarah Chen', uploadedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() }
+        ],
+        links: [
+          { id: '1', url: 'https://weather.com/aspen', title: 'Aspen Weather Forecast', category: 'weather', addedBy: 'Alex Kim' }
+        ]
+      }
+    };
+  }
+
   private static async fetchTripMetadata(tripId: string) {
     try {
       const { data, error } = await supabase
@@ -144,7 +211,7 @@ export class TripContextAggregator {
         destination: data.destination,
         startDate: data.start_date,
         endDate: data.end_date,
-        type: data.trip_type || 'consumer'
+        type: (data.trip_type || 'consumer') as 'consumer' | 'pro' | 'event'
       };
     } catch (error) {
       console.error('Error fetching trip metadata:', error);
@@ -168,11 +235,11 @@ export class TripContextAggregator {
           role,
           profiles:user_id (full_name, email)
         `)
-        .eq('trip_id', tripId);
+        .eq('trip_id', tripId) as any;
 
       if (error) throw error;
 
-      return data?.map(m => ({
+      return data?.map((m: any) => ({
         id: m.user_id,
         name: m.profiles?.full_name || 'Unknown',
         role: m.role || 'participant',
@@ -191,16 +258,16 @@ export class TripContextAggregator {
         .select('id, content, author_name, created_at, message_type')
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(50) as any;
 
       if (error) throw error;
 
-      return data?.map(m => ({
+      return data?.map((m: any) => ({
         id: m.id,
         content: m.content,
         authorName: m.author_name,
         timestamp: m.created_at,
-        type: m.message_type === 'broadcast' ? 'broadcast' : 'message'
+        type: (m.message_type === 'broadcast' ? 'broadcast' : 'message') as 'broadcast' | 'message'
       })).reverse() || [];
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -237,11 +304,11 @@ export class TripContextAggregator {
       const { data, error } = await supabase
         .from('trip_tasks')
         .select('id, content, assignee_id, due_date, is_complete, profiles:assignee_id(full_name)')
-        .eq('trip_id', tripId);
+        .eq('trip_id', tripId) as any;
 
       if (error) throw error;
 
-      return data?.map(t => ({
+      return data?.map((t: any) => ({
         id: t.id,
         content: t.content,
         assignee: t.profiles?.full_name,
@@ -259,11 +326,11 @@ export class TripContextAggregator {
       const { data, error } = await supabase
         .from('trip_payment_messages')
         .select('id, description, amount, created_by, split_participants, is_settled, profiles:created_by(full_name)')
-        .eq('trip_id', tripId);
+        .eq('trip_id', tripId) as any;
 
       if (error) throw error;
 
-      return data?.map(p => ({
+      return data?.map((p: any) => ({
         id: p.id,
         description: p.description,
         amount: p.amount,
@@ -282,11 +349,11 @@ export class TripContextAggregator {
       const { data, error } = await supabase
         .from('trip_polls')
         .select('id, question, options, status')
-        .eq('trip_id', tripId);
+        .eq('trip_id', tripId) as any;
 
       if (error) throw error;
 
-      return data?.map(p => ({
+      return data?.map((p: any) => ({
         id: p.id,
         question: p.question,
         options: p.options as Array<{ text: string; votes: number }>,
@@ -300,25 +367,27 @@ export class TripContextAggregator {
 
   private static async fetchPlaces(tripId: string) {
     try {
-      const { data: trip } = await supabase
+      const tripQuery = await supabase
         .from('trips')
         .select('basecamp_name, basecamp_address')
         .eq('id', tripId)
         .single();
+      const trip = tripQuery.data as any;
 
-      const { data: places } = await supabase
+      const placesQuery = await supabase
         .from('trip_places')
         .select('name, address, category, lat, lng')
         .eq('trip_id', tripId);
+      const places = placesQuery.data as any;
 
       return {
         basecamp: trip?.basecamp_name ? {
           name: trip.basecamp_name,
           address: trip.basecamp_address,
-          lat: places?.find(p => p.name === trip.basecamp_name)?.lat,
-          lng: places?.find(p => p.name === trip.basecamp_name)?.lng
+          lat: places?.find((p: any) => p.name === trip.basecamp_name)?.lat,
+          lng: places?.find((p: any) => p.name === trip.basecamp_name)?.lng
         } : undefined,
-        savedPlaces: places?.map(p => ({
+        savedPlaces: places?.map((p: any) => ({
           name: p.name,
           address: p.address,
           category: p.category
@@ -338,11 +407,11 @@ export class TripContextAggregator {
       const { data, error } = await supabase
         .from('trip_files')
         .select('id, file_name, file_type, file_url, uploaded_by, created_at, profiles:uploaded_by(full_name)')
-        .eq('trip_id', tripId);
+        .eq('trip_id', tripId) as any;
 
       if (error) throw error;
 
-      return data?.map(f => ({
+      return data?.map((f: any) => ({
         id: f.id,
         name: f.file_name,
         type: f.file_type,
@@ -361,11 +430,11 @@ export class TripContextAggregator {
       const { data, error } = await supabase
         .from('trip_links')
         .select('id, url, title, category, added_by, profiles:added_by(full_name)')
-        .eq('trip_id', tripId);
+        .eq('trip_id', tripId) as any;
 
       if (error) throw error;
 
-      return data?.map(l => ({
+      return data?.map((l: any) => ({
         id: l.id,
         url: l.url,
         title: l.title,
