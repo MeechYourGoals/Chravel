@@ -122,14 +122,15 @@ export const TripChat = ({
   });
 
   // Swipe gestures for mobile navigation
-  const { onTouchStart, onTouchMove, onTouchEnd } = useSwipeGesture({
+  const swipeRef = useRef<HTMLDivElement>(null);
+  useSwipeGesture(swipeRef, {
     onSwipeLeft: () => {
       // Handle swipe left gesture
-      hapticService.triggerHapticFeedback('light');
+      hapticService.light();
     },
     onSwipeRight: () => {
       // Handle swipe right gesture
-      hapticService.triggerHapticFeedback('light');
+      hapticService.light();
     },
     threshold: 50
   });

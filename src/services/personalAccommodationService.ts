@@ -42,7 +42,7 @@ class PersonalAccommodationService {
    */
   async getUserAccommodation(tripId: string, userId?: string): Promise<PersonalAccommodation | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_accommodations')
         .select('*')
         .eq('trip_id', tripId)
@@ -58,7 +58,7 @@ class PersonalAccommodationService {
         throw error;
       }
 
-      return data;
+      return data as PersonalAccommodation | null;
     } catch (error) {
       console.error('Failed to get user accommodation:', error);
       return null;
@@ -70,14 +70,14 @@ class PersonalAccommodationService {
    */
   async getTripAccommodations(tripId: string): Promise<PersonalAccommodation[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_accommodations')
         .select('*')
         .eq('trip_id', tripId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as PersonalAccommodation[];
     } catch (error) {
       console.error('Failed to get trip accommodations:', error);
       return [];
@@ -92,7 +92,7 @@ class PersonalAccommodationService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_accommodations')
         .upsert({
           trip_id: request.trip_id,
@@ -118,7 +118,7 @@ class PersonalAccommodationService {
         }
         throw error;
       }
-      return data;
+      return data as PersonalAccommodation | null;
     } catch (error) {
       console.error('Failed to set user accommodation:', error);
       return null;
@@ -133,7 +133,7 @@ class PersonalAccommodationService {
     updates: UpdateAccommodationRequest
   ): Promise<PersonalAccommodation | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_accommodations')
         .update(updates)
         .eq('id', accommodationId)
@@ -141,7 +141,7 @@ class PersonalAccommodationService {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as PersonalAccommodation | null;
     } catch (error) {
       console.error('Failed to update user accommodation:', error);
       return null;
@@ -153,7 +153,7 @@ class PersonalAccommodationService {
    */
   async deleteUserAccommodation(accommodationId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('user_accommodations')
         .delete()
         .eq('id', accommodationId);
@@ -176,14 +176,14 @@ class PersonalAccommodationService {
   ): Promise<PersonalAccommodation[]> {
     try {
       // Use PostGIS ST_DWithin for accurate distance calculation
-      const { data, error } = await supabase.rpc('get_accommodations_within_radius', {
+      const { data, error } = await (supabase as any).rpc('get_accommodations_within_radius', {
         lat: latitude,
         lng: longitude,
         radius: radiusKm * 1000 // Convert km to meters
       });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as PersonalAccommodation[];
     } catch (error) {
       console.error('Failed to get accommodations near location:', error);
       return [];

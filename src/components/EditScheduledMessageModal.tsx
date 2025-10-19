@@ -36,9 +36,8 @@ export const EditScheduledMessageModal = ({
     try {
       const result = await unifiedMessagingService.updateScheduledMessage(message.id, {
         content,
-        sendAt: new Date(sendAt),
+        send_at: new Date(sendAt).toISOString(),
         priority,
-        userId: message.senderId, // Using senderId as userId for compatibility
       });
 
       if (result.success) {
