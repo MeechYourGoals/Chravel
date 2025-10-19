@@ -41,11 +41,7 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
   const [showTripSelector, setShowTripSelector] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadAccommodations();
-  }, [tripId, user]);
-
-  const loadAccommodations = async () => {
+  const loadAccommodations = React.useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
@@ -61,7 +57,11 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [tripId, user]);
+
+  useEffect(() => {
+    loadAccommodations();
+  }, [loadAccommodations]);
 
   const handlePersonalLocationSet = async (location: any) => {
     if (!user) return;

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { MessageCircle, Calendar, ClipboardList, BarChart3, Camera, MapPin, Sparkles, CreditCard } from 'lucide-react';
-import { MobileTripChat } from './MobileTripChat';
+import { TripChat } from '../TripChat';
 import { MobileGroupCalendar } from './MobileGroupCalendar';
 import { MobileTripTasks } from './MobileTripTasks';
 import { CommentsWall } from '../CommentsWall';
@@ -60,7 +60,7 @@ export const MobileTripTabs = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'chat':
-        return <MobileTripChat tripId={tripId} />;
+        return <TripChat tripId={tripId} />;
       case 'calendar':
         return <MobileGroupCalendar tripId={tripId} />;
       case 'tasks':

@@ -16,7 +16,7 @@
 **Files Created:**
 - `src/pages/MobileTripDetail.tsx`
 - `src/components/mobile/MobileTripTabs.tsx`
-- `src/components/mobile/MobileTripChat.tsx`
+- `src/components/TripChat.tsx` (consolidated mobile functionality)
 - `src/components/mobile/MobileGroupCalendar.tsx`
 - `src/components/mobile/MobileTripTasks.tsx`
 - `src/components/mobile/MobileUnifiedMediaHub.tsx`

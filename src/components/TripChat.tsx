@@ -1,19 +1,26 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { demoModeService } from '../services/demoModeService';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useChatComposer } from '../hooks/useChatComposer';
+import { useOrientation } from '../hooks/useOrientation';
+import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
+import { useSwipeGesture } from '../hooks/useSwipeGesture';
 import { ChatInput } from './chat/ChatInput';
 import { MessageList } from './chat/MessageList';
 import { MessageFilters } from './chat/MessageFilters';
 import { InlineReplyComponent } from './chat/InlineReplyComponent';
 import { ChannelSwitcher } from './chat/ChannelSwitcher';
+import { PullToRefreshIndicator } from './mobile/PullToRefreshIndicator';
+import { MessageSkeleton } from './mobile/SkeletonLoader';
 import { getMockAvatar } from '../utils/mockAvatars';
 import { useTripMembers } from '../hooks/useTripMembers';
 import { useTripChat } from '@/hooks/useTripChat';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { PaymentData } from '@/types/payments';
+import { hapticService } from '../services/hapticService';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -88,6 +95,44 @@ export const TripChat = ({
     sendMessage,
     filterMessages
   } = useChatComposer({ tripId: resolvedTripId, demoMode: demoMode.isDemoMode, isEvent });
+
+  // Mobile-specific hooks
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const orientation = useOrientation();
+  
+  // Handle keyboard visibility for better UX
+  const { isKeyboardVisible } = useKeyboardHandler({
+    preventZoom: true,
+    adjustViewport: true,
+    onShow: () => {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    }
+  });
+
+  // Pull to refresh functionality
+  const { isPulling, isRefreshing, pullDistance, shouldTrigger } = usePullToRefresh({
+    onRefresh: async () => {
+      // Refresh messages logic here
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    },
+    threshold: 80
+  });
+
+  // Swipe gestures for mobile navigation
+  const { onTouchStart, onTouchMove, onTouchEnd } = useSwipeGesture({
+    onSwipeLeft: () => {
+      // Handle swipe left gesture
+      hapticService.triggerHapticFeedback('light');
+    },
+    onSwipeRight: () => {
+      // Handle swipe right gesture
+      hapticService.triggerHapticFeedback('light');
+    },
+    threshold: 50
+  });
 
   const shouldUseDemoData = demoMode.isDemoMode || !resolvedTripId;
 
