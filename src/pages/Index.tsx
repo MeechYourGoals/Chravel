@@ -12,6 +12,7 @@ import { DesktopHeader } from '../components/home/DesktopHeader';
 import { TripGrid } from '../components/home/TripGrid';
 import { RecommendationFilters } from '../components/home/RecommendationFilters';
 import { UnauthenticatedLanding } from '../components/UnauthenticatedLanding';
+import { DemoModeToggle } from '../components/DemoModeToggle';
 
 // New conversion components
 import { PersistentCTABar } from '../components/conversion/PersistentCTABar';
@@ -173,6 +174,13 @@ const Index = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-background font-outfit">
+        {/* Demo Mode Toggle - Top Right for Investor Presentations */}
+        <div className="fixed top-6 right-6 z-50">
+          <div className="w-[160px]">
+            <DemoModeToggle />
+          </div>
+        </div>
+
         {/* Animated background elements */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-float"></div>
