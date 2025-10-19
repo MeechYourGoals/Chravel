@@ -188,7 +188,7 @@ const Index = () => {
           <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-primary/3 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
         </div>
 
-        <div className="container mx-auto px-4 py-6 max-w-7xl relative z-10">
+        <div className="container mx-auto px-4 pt-2 pb-6 max-w-7xl relative z-10">
           {/* Hero Section */}
           <UnauthenticatedLanding 
             onSignIn={() => setIsAuthModalOpen(true)}

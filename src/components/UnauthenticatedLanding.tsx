@@ -9,18 +9,11 @@ interface UnauthenticatedLandingProps {
 
 export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLandingProps) => {
   return (
-    <div className="flex flex-col items-center justify-center px-4 py-16 md:py-20">
+    <div className="flex flex-col items-center justify-start px-4 pt-2 pb-16 md:pt-4 md:pb-20">
       {/* Hero Section */}
-      <div className="text-center max-w-3xl mx-auto space-y-6 animate-fade-in">
-        {/* Logo/Icon */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-gradient-to-br from-primary/20 to-accent/20 p-4 rounded-2xl backdrop-blur-sm border border-white/10">
-            <Plane size={40} className="text-primary" />
-          </div>
-        </div>
-
+      <div className="text-center max-w-3xl mx-auto space-y-4 animate-fade-in">
         {/* Headline */}
-        <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight">
+        <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight mt-4">
           Plan Together.<br />Travel Better.
         </h1>
 
@@ -30,7 +23,7 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
         </p>
 
         {/* Feature Pills */}
-        <div className="flex flex-wrap justify-center gap-3 pt-4">
+        <div className="flex flex-wrap justify-center gap-3 pt-2">
           <div className="bg-background/50 backdrop-blur-sm border border-border rounded-full px-4 py-2 flex items-center gap-2">
             <Users size={16} className="text-primary" />
             <span className="text-sm">Group Planning</span>
@@ -50,7 +43,7 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
         </div>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
           <Button 
             size="lg" 
             onClick={onSignUp}
