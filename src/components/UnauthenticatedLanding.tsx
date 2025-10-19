@@ -58,7 +58,7 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
             onClick={onSignUp}
             className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
           >
-            Get Started Free
+            Get Started Free · Log In or Sign Up
           </Button>
         </div>
 
