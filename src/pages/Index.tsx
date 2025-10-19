@@ -170,8 +170,8 @@ const Index = () => {
     }
   }, [location.search]);
 
-  // Show full marketing landing for all unauthenticated users
-  if (!user) {
+  // Show full marketing landing ONLY when logged out AND demo mode is OFF
+  if (!user && !isDemoMode) {
     return (
       <div className="min-h-screen bg-background font-outfit">
         {/* Demo Mode Toggle - Top Right for Investor Presentations */}
@@ -231,6 +231,15 @@ const Index = () => {
         <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-accent/8 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
         <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-primary/6 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
       </div>
+
+      {/* Demo Mode Toggle - Top Right for Unauthenticated Users */}
+      {!user && (
+        <div className="fixed top-6 right-6 z-[9999]">
+          <div className="w-[180px] bg-card/80 backdrop-blur-sm p-3 rounded-xl border border-border shadow-lg">
+            <DemoModeToggle />
+          </div>
+        </div>
+      )}
 
       <div className="container mx-auto px-4 py-6 max-w-7xl relative z-10">
         {/* Mobile Header */}

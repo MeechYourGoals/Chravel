@@ -9,18 +9,18 @@ interface UnauthenticatedLandingProps {
 
 export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLandingProps) => {
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-12">
+    <div className="flex flex-col items-center justify-center px-4 py-16 md:py-20">
       {/* Hero Section */}
       <div className="text-center max-w-3xl mx-auto space-y-6 animate-fade-in">
         {/* Logo/Icon */}
         <div className="flex justify-center mb-8">
-          <div className="bg-gradient-to-br from-primary/20 to-accent/20 p-6 rounded-3xl backdrop-blur-sm border border-white/10">
-            <Plane size={64} className="text-primary" />
+          <div className="bg-gradient-to-br from-primary/20 to-accent/20 p-4 rounded-2xl backdrop-blur-sm border border-white/10">
+            <Plane size={40} className="text-primary" />
           </div>
         </div>
 
         {/* Headline */}
-        <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight">
+        <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight">
           Plan Together.<br />Travel Better.
         </h1>
 
@@ -75,7 +75,7 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
       </div>
 
       {/* Feature Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-20 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-12 animate-fade-in" style={{ animationDelay: '0.2s' }}>
         <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 text-center hover:border-primary/50 transition-colors">
           <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
             <Users className="text-primary" size={24} />
