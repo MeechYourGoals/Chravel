@@ -177,7 +177,7 @@ const Index = () => {
         {/* Demo Mode Toggle - Top Right for Investor Presentations */}
         <div className="fixed top-6 right-6 z-[9999] bg-red-500 p-4 rounded-lg border-4 border-yellow-400">
           <div className="text-white font-bold text-lg">
-            DEMO TOGGLE TEST
+            DEMO TOGGLE TEST - FORCE DEPLOY
           </div>
           <button 
             onClick={() => alert('DEMO TOGGLE WORKS!')}

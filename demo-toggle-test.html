@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Toggle Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        
+        .demo-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: red;
+            border: 4px solid yellow;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 9999;
+            text-align: center;
+        }
+        
+        .demo-toggle h2 {
+            margin: 0 0 10px 0;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .demo-toggle button {
+            background: blue;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        
+        .demo-toggle button:hover {
+            background: darkblue;
+        }
+        
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .status.on {
+            background: green;
+        }
+        
+        .status.off {
+            background: gray;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-toggle">
+        <h2>DEMO TOGGLE TEST</h2>
+        <button onclick="toggleDemo()">Toggle Demo Mode</button>
+        <button onclick="showAlert()">Test Button</button>
+        <div id="status" class="status off">Demo Mode: OFF</div>
+    </div>
+
+    <div style="padding: 100px; text-align: center;">
+        <h1>Chravel Demo Toggle Test</h1>
+        <p>If you can see the red box in the top-right corner, the positioning works!</p>
+        <p>This is a standalone test to verify the demo toggle functionality.</p>
+    </div>
+
+    <script>
+        let demoMode = false;
+        
+        function toggleDemo() {
+            demoMode = !demoMode;
+            const status = document.getElementById('status');
+            if (demoMode) {
+                status.textContent = 'Demo Mode: ON';
+                status.className = 'status on';
+            } else {
+                status.textContent = 'Demo Mode: OFF';
+                status.className = 'status off';
+            }
+        }
+        
+        function showAlert() {
+            alert('DEMO TOGGLE WORKS! This proves the positioning and functionality work correctly.');
+        }
+    </script>
+</body>
+</html>
