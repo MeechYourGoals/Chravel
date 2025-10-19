@@ -175,8 +175,17 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-background font-outfit">
         {/* Demo Mode Toggle - Top Right for Investor Presentations */}
-        <div className="fixed top-6 right-6 z-[9999] bg-red-500/20 p-2 rounded-lg border-2 border-red-500">
-          <div className="w-[180px]">
+        <div className="fixed top-6 right-6 z-[9999] bg-red-500 p-4 rounded-lg border-4 border-yellow-400">
+          <div className="text-white font-bold text-lg">
+            DEMO TOGGLE TEST
+          </div>
+          <button 
+            onClick={() => alert('DEMO TOGGLE WORKS!')}
+            className="bg-blue-500 text-white px-4 py-2 rounded mt-2"
+          >
+            CLICK ME
+          </button>
+          <div className="w-[180px] mt-2">
             <DemoModeToggle />
           </div>
         </div>
