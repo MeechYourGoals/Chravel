@@ -232,15 +232,6 @@ const Index = () => {
         <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-primary/6 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
       </div>
 
-      {/* Demo Mode Toggle - Top Right for Unauthenticated Users */}
-      {!user && (
-        <div className="fixed top-6 right-6 z-[9999]">
-          <div className="w-[180px] bg-card/80 backdrop-blur-sm p-3 rounded-xl border border-border shadow-lg">
-            <DemoModeToggle />
-          </div>
-        </div>
-      )}
-
       <div className="container mx-auto px-4 py-6 max-w-7xl relative z-10">
         {/* Mobile Header */}
         <MobileHeader
