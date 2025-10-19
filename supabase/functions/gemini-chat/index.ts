@@ -2,7 +2,6 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from "../_shared/cors.ts"
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 
@@ -33,10 +32,6 @@ serve(async (req) => {
   }
 
   try {
-    if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured')
-    }
-
     const { 
       message, 
       tripContext, 
@@ -77,57 +72,24 @@ serve(async (req) => {
       }
     }
 
-    // Build context-aware system prompt
-    const systemPrompt = buildSystemPrompt(tripContext, analysisType, config.systemPrompt)
-    
-    // Prepare messages for OpenAI
-    const messages: ChatMessage[] = [
-      { role: 'system', content: systemPrompt },
-      ...chatHistory,
-    ]
-
-    // Add current message with optional image
-    if (imageBase64) {
-      messages.push({
-        role: 'user',
-        content: [
-          { type: 'text', text: message },
-          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
-        ]
-      })
-    } else {
-      messages.push({ role: 'user', content: message })
-    }
-
-    // Call OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: config.model || 'gpt-4.1-2025-04-14',
-        messages,
-        temperature: config.temperature || 0.7,
-        max_tokens: config.maxTokens || 2048,
-        stream: false
-      }),
+    // Call lovable-concierge instead of OpenAI
+    const conciergeResponse = await supabase.functions.invoke('lovable-concierge', {
+      body: {
+        message,
+        tripContext,
+        chatHistory,
+        config,
+        imageBase64,
+        analysisType
+      }
     })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(`OpenAI API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`)
+    if (conciergeResponse.error) {
+      throw new Error(`Concierge API Error: ${conciergeResponse.error.message}`)
     }
 
-    const data = await response.json()
-    
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('Invalid response format from OpenAI API')
-    }
-    
-    const aiResponse = data.choices[0].message.content
-    const usage = data.usage
+    const aiResponse = conciergeResponse.data.response
+    const usage = conciergeResponse.data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
 
     // Store conversation in database for context awareness
     if (tripContext?.id) {
@@ -146,7 +108,7 @@ serve(async (req) => {
         usage,
         sentimentScore,
         success: true,
-        model: config.model || 'gpt-4.1-2025-04-14'
+        model: 'gemini-1.5-pro'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -154,7 +116,7 @@ serve(async (req) => {
       },
     )
   } catch (error) {
-    console.error('OpenAI chat error:', error)
+    console.error('Concierge chat error:', error)
     return new Response(
       JSON.stringify({ error: error.message, success: false }),
       {

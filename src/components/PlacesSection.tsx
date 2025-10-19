@@ -4,14 +4,16 @@ import { AddPlaceModal } from './AddPlaceModal';
 import { WorkingGoogleMaps } from './WorkingGoogleMaps';
 import { SetBasecampSquare } from './SetBasecampSquare';
 import { TripPinsCard } from './TripPinsCard';
+import { AccommodationSelector } from './AccommodationSelector';
 import { BasecampLocation, PlaceWithDistance, DistanceCalculationSettings } from '../types/basecamp';
 import { DistanceCalculator } from '../utils/distanceCalculator';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { AddToCalendarData } from '../types/calendar';
 import { useFeatureToggle, DEFAULT_FEATURES } from '../hooks/useFeatureToggle';
 import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
-import { Home } from 'lucide-react';
+import { Home, MapPin, Bed } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
 import { useBasecamp } from '@/contexts/BasecampContext';
 
@@ -170,25 +172,53 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
         </div>
       )}
 
-      {/* Basecamp and Trip Pins Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Set Basecamp Square */}
-          <SetBasecampSquare 
-            basecamp={contextBasecamp} 
-            onBasecampSet={handleBasecampSet} 
+      {/* Accommodation and Places Tabs */}
+      <Tabs defaultValue="accommodations" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="accommodations" className="flex items-center gap-2">
+            <Bed size={16} />
+            Accommodations
+          </TabsTrigger>
+          <TabsTrigger value="places" className="flex items-center gap-2">
+            <MapPin size={16} />
+            Places & Activities
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="accommodations" className="space-y-6">
+          <AccommodationSelector 
+            tripId={tripId}
+            onLocationSet={(location, mode) => {
+              if (mode === 'trip') {
+                handleBasecampSet(location);
+              }
+              // Personal accommodation is handled internally by AccommodationSelector
+            }}
           />
+        </TabsContent>
+        
+        <TabsContent value="places" className="space-y-6">
+          {/* Basecamp and Trip Pins Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Set Basecamp Square */}
+            <SetBasecampSquare 
+              basecamp={contextBasecamp} 
+              onBasecampSet={handleBasecampSet} 
+            />
 
-        {/* Trip Pins Card */}
-        <TripPinsCard
-          places={places}
-          basecamp={contextBasecamp}
-          onPlaceAdded={handlePlaceAdded}
-          onPlaceRemoved={handlePlaceRemoved}
-          onEventAdded={handleEventAdded}
-          distanceUnit={distanceSettings.unit}
-          preferredMode={distanceSettings.preferredMode}
-        />
-      </div>
+            {/* Trip Pins Card */}
+            <TripPinsCard
+              places={places}
+              basecamp={contextBasecamp}
+              onPlaceAdded={handlePlaceAdded}
+              onPlaceRemoved={handlePlaceRemoved}
+              onEventAdded={handleEventAdded}
+              distanceUnit={distanceSettings.unit}
+              preferredMode={distanceSettings.preferredMode}
+            />
+          </div>
+        </TabsContent>
+      </Tabs>
 
 
       {/* Modals */}
