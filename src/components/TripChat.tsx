@@ -13,6 +13,7 @@ import { useTripMembers } from '../hooks/useTripMembers';
 import { useTripChat } from '@/hooks/useTripChat';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleChannels } from '@/hooks/useRoleChannels';
+import { PaymentData } from '@/types/payments';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -105,7 +106,7 @@ export const TripChat = ({
     }));
   }, [liveMessages, shouldUseDemoData]);
 
-  const handleSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: { amount: number; currency: string; description: string; splitCount: number }) => {
+  const handleSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: PaymentData) => {
     const message = await sendMessage({
       isBroadcast, 
       isPayment, 

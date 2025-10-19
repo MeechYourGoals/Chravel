@@ -7,9 +7,12 @@ import { Receipt } from './receipts';
 export interface PaymentMethod {
   id: string;
   type: PaymentMethodId | 'venmo' | 'zelle' | 'cashapp' | 'applepay' | 'paypal' | 'applecash' | 'cash' | 'other';
+  method_type?: string; // Database field
   identifier: string;
   displayName?: string;
+  display_name?: string; // Database field
   isPreferred?: boolean;
+  is_preferred?: boolean; // Database field
   isVisible?: boolean;
 }
 

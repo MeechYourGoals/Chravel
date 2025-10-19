@@ -528,14 +528,10 @@ export class EnhancedTripContextService {
 
   private static async getTripPayments(tripId: string): Promise<any[]> {
     try {
-      const { data, error } = await supabase
-        .from('trip_payments')
-        .select('*')
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
+      // Note: trip_payments table doesn't exist in current schema
+      // Using mock data for now - this should be replaced with actual payment data
+      console.warn('trip_payments table not found, returning empty array');
+      return [];
     } catch (error) {
       console.error('Error fetching trip payments:', error);
       return [];

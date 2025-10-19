@@ -11,6 +11,7 @@ import { ProParticipant } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 import { roleTemplateService, RoleTemplate } from '../../services/roleTemplateService';
 import { useToast } from '../../hooks/use-toast';
+import { supabase } from '../../integrations/supabase/client';
 
 interface RoleTemplateManagerProps {
   isOpen: boolean;
@@ -195,9 +196,13 @@ export const RoleTemplateManager = ({
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-medium">{template.name}</h3>
                             {template.isPublic ? (
-                              <Globe size={14} className="text-blue-400" title="Public template" />
+                              <div title="Public template">
+                                <Globe size={14} className="text-blue-400" />
+                              </div>
                             ) : (
-                              <Lock size={14} className="text-gray-400" title="Private template" />
+                              <div title="Private template">
+                                <Lock size={14} className="text-gray-400" />
+                              </div>
                             )}
                           </div>
                           {template.description && (

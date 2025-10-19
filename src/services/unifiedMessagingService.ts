@@ -305,6 +305,68 @@ class UnifiedMessagingService {
       privacy_encrypted: data.privacy_encrypted
     };
   }
+
+  /**
+   * Get scheduled messages for a user
+   */
+  async getScheduledMessages(userId: string, tripId?: string, tourId?: string): Promise<ScheduledMessage[]> {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_messages')
+        .select('*')
+        .eq('user_id', userId)
+        .eq(tripId ? 'trip_id' : 'tour_id', tripId || tourId)
+        .order('send_at', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Failed to get scheduled messages:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Update a scheduled message
+   */
+  async updateScheduledMessage(messageId: string, updates: Partial<ScheduledMessage>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabase
+        .from('scheduled_messages')
+        .update(updates)
+        .eq('id', messageId);
+
+      if (error) throw error;
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to update scheduled message:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
+   * Cancel a scheduled message
+   */
+  async cancelScheduledMessage(messageId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabase
+        .from('scheduled_messages')
+        .delete()
+        .eq('id', messageId);
+
+      if (error) throw error;
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to cancel scheduled message:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
 }
 
 export const unifiedMessagingService = new UnifiedMessagingService();

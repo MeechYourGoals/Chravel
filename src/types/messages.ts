@@ -1,5 +1,33 @@
 // Unified Messaging Types
 
+// Simple Message interface for backward compatibility
+export interface Message {
+  id: string;
+  content: string;
+  sender_id: string;
+  trip_id: string;
+  created_at: string;
+  updated_at?: string;
+  author_name?: string;
+  user_id?: string;
+  reply_to_id?: string;
+  thread_id?: string;
+  is_edited?: boolean;
+  edited_at?: string;
+  is_deleted?: boolean;
+  deleted_at?: string;
+  attachments?: Array<{
+    type: 'image' | 'video' | 'file';
+    url: string;
+    name?: string;
+  }>;
+  media_type?: string;
+  media_url?: string;
+  link_preview?: any;
+  privacy_mode?: string;
+  privacy_encrypted?: boolean;
+}
+
 export interface MessageAttachment {
   id: string;
   type: 'image' | 'video' | 'file' | 'link';

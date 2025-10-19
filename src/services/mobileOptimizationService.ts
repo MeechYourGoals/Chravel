@@ -69,7 +69,7 @@ export class MobileOptimizationService {
     document.body.style.perspective = '1000px';
 
     // Optimize scrolling
-    document.body.style.webkitOverflowScrolling = 'touch';
+    (document.body.style as any).webkitOverflowScrolling = 'touch';
     document.body.style.overscrollBehavior = 'contain';
 
     // Reduce motion for better performance

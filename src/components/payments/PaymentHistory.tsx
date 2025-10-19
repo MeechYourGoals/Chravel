@@ -71,7 +71,7 @@ export const PaymentHistory = ({ tripId }: PaymentHistoryProps) => {
         // Add session payments (demo mode only)
         const sessionPayments = demoModeService.getSessionPayments(tripId);
         if (sessionPayments.length > 0) {
-          const sessionMessages = sessionPayments.map((p: MockPayment) => ({
+          const sessionMessages = sessionPayments.map((p) => ({
             id: p.id,
             tripId: p.trip_id,
             messageId: null,

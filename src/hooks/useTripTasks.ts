@@ -550,6 +550,13 @@ export const useTripTasks = (tripId: string, options?: {
     // Task assignment
     assignTask,
     bulkAssign,
+    autoAssignByRole: async (taskId: string, role: string) => {
+      // Find all users with the specified role
+      const roleUsers = participants.filter(p => p.role === role).map(p => p.id);
+      if (roleUsers.length > 0) {
+        await bulkAssign({ taskId, userIds: roleUsers });
+      }
+    },
     
     // Mutations
     createTaskMutation,

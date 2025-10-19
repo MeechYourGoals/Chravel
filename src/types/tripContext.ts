@@ -1,3 +1,5 @@
+import { TripTask } from './tasks';
+
 export interface TripFile {
   id: string;
   name: string;
@@ -116,6 +118,7 @@ export interface TripContext {
   polls?: TripPoll[];
   chatHistory?: ChatMessage[];
   receipts?: TripReceipt[];
+  tasks?: TripTask[];
   preferences?: {
     dietary: string[];
     vibe: string[];

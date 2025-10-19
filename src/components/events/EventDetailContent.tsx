@@ -36,12 +36,12 @@ export const EventDetailContent = ({
 
   // 🆕 Updated Events tab order (Alphabetical): Agenda, Calendar, Chat, Concierge, Media, Performers, Polls
   const tabs = [
-    { id: 'agenda', label: 'Agenda', icon: Calendar, enabled: true },
+    { id: 'agenda', label: 'Agenda', icon: Calendar, enabled: true, eventOnly: true },
     { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: true },
     { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: eventData.chatEnabled !== false },
     { id: 'ai-chat', label: 'Concierge', icon: Sparkles, enabled: eventData.conciergeEnabled === true },
     { id: 'media', label: 'Media', icon: Camera, enabled: eventData.mediaUploadEnabled !== false },
-    { id: 'performers', label: 'Performers', icon: Users, enabled: true },
+    { id: 'performers', label: 'Performers', icon: Users, enabled: true, eventOnly: true },
     { id: 'polls', label: 'Polls', icon: BarChart3, enabled: eventData.pollsEnabled !== false }
   ];
 

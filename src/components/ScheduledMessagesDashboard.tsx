@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Calendar, Users, AlertCircle, Trash2, Edit3, Play, Pause } from 'lucide-react';
-import { MessageService } from '../services/MessageService';
+import { unifiedMessagingService } from '../services/unifiedMessagingService';
 import { ScheduledMessage } from '../types/messaging';
 import { Button } from './ui/button';
 import { EditScheduledMessageModal } from './EditScheduledMessageModal';
@@ -28,7 +28,7 @@ export const ScheduledMessagesDashboard = ({
   const loadScheduledMessages = async () => {
     setLoading(true);
     try {
-      const messages = await MessageService.getScheduledMessages(userId, tripId, tourId);
+      const messages = await unifiedMessagingService.getScheduledMessages(userId, tripId, tourId);
       setScheduledMessages(messages);
     } catch (error) {
       console.error('Failed to load scheduled messages:', error);
@@ -38,7 +38,7 @@ export const ScheduledMessagesDashboard = ({
   };
 
   const handleCancel = async (messageId: string) => {
-    const result = await MessageService.cancelScheduledMessage(messageId);
+    const result = await unifiedMessagingService.cancelScheduledMessage(messageId);
     if (result.success) {
       setScheduledMessages(prev => prev.filter(msg => msg.id !== messageId));
     } else {

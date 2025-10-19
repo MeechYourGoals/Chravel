@@ -18,7 +18,7 @@ interface AgendaSession {
 
 interface EnhancedAgendaTabProps {
   eventId: string;
-  userRole: 'organizer' | 'attendee';
+  userRole: 'organizer' | 'attendee' | 'exhibitor';
   pdfScheduleUrl?: string;
 }
 
@@ -132,10 +132,10 @@ export const EnhancedAgendaTab = ({
                   disabled={isUploadingPDF}
                 />
                 <Button 
-                  as="span"
                   variant="outline"
                   className="border-gray-600 cursor-pointer"
                   disabled={isUploadingPDF}
+                  type="button"
                 >
                   <Upload size={16} className="mr-2" />
                   {isUploadingPDF ? 'Uploading...' : 'Upload PDF'}
@@ -362,9 +362,9 @@ export const EnhancedAgendaTab = ({
                     className="hidden"
                   />
                   <Button 
-                    as="span"
                     variant="outline"
                     className="border-gray-600 cursor-pointer"
+                    type="button"
                   >
                     <Upload size={16} className="mr-2" />
                     Upload PDF Schedule

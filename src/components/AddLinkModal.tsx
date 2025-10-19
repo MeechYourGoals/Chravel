@@ -28,6 +28,11 @@ interface LinkOption {
 interface ResolvedPlace {
   name: string;
   formatted_address: string;
+  address: string;
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
   rating?: number;
   price_level?: number;
   photos?: { photo_reference: string; height: number; width: number }[];

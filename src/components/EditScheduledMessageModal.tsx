@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, Save, X } from 'lucide-react';
-import { MessageService } from '../services/MessageService';
+import { unifiedMessagingService } from '../services/unifiedMessagingService';
 import { ScheduledMessage } from '../types/messaging';
 import {
   Dialog,
@@ -34,7 +34,7 @@ export const EditScheduledMessageModal = ({
   const handleSave = async () => {
     setSaving(true);
     try {
-      const result = await MessageService.updateScheduledMessage(message.id, {
+      const result = await unifiedMessagingService.updateScheduledMessage(message.id, {
         content,
         sendAt: new Date(sendAt),
         priority,
