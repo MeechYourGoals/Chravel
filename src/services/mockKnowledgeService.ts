@@ -100,9 +100,28 @@ export class MockKnowledgeService {
   static async generateMockAnswer(query: string, tripId: string): Promise<string> {
     const lowercaseQuery = query.toLowerCase();
     
+    // Fetch actual mock data for context
+    const mockMessages = await demoModeService.getMockMessages('consumer-trip', false);
+    const mockBroadcasts = await demoModeService.getMockBroadcasts('consumer-trip');
+    const mockPolls = await demoModeService.getMockPolls(tripId);
+    const mockPayments = await demoModeService.getMockPayments(tripId);
+    const mockMembers = await demoModeService.getMockMembers(tripId);
+    
+    // Broadcast summary
+    if (lowercaseQuery.includes('broadcast') || lowercaseQuery.includes('announcement')) {
+      const broadcasts = mockBroadcasts;
+      return `📢 **Broadcast Messages** (${broadcasts.length} total)\n\n` +
+        broadcasts.map((b, i) => 
+          `${i + 1}. **${b.sender_name}** ${b.tag === 'urgent' || b.tag === 'emergency' ? '🚨' : ''}\n   "${b.content}"\n   _${Math.round((b.timestamp_offset_hours || 0))} hours ago_`
+        ).join('\n\n');
+    }
+    
     // Trip participants/who's coming
     if (lowercaseQuery.includes('who') && (lowercaseQuery.includes('trip') || lowercaseQuery.includes('coming') || lowercaseQuery.includes('going'))) {
-      return "🎿 **Trip Participants**\n\nYou'll be traveling with:\n- **Sarah Chen** (Organizer)\n- **Marcus Johnson**\n- **Priya Patel**\n- **Alex Kim**\n- **David Thompson**\n\nThat's 5 people total heading to Aspen for this corporate ski trip!";
+      const memberList = mockMembers.map((m, i) => 
+        `- **${m.display_name}**${i === 0 ? ' (Organizer)' : ''}`
+      ).join('\n');
+      return `🎿 **Trip Participants**\n\nYou'll be traveling with:\n${memberList}\n\nThat's ${mockMembers.length} people total heading to Aspen for this corporate ski trip!`;
     }
 
     // Agenda/schedule questions
@@ -117,7 +136,14 @@ export class MockKnowledgeService {
 
     // Payment/money questions
     if (lowercaseQuery.includes('owe') || lowercaseQuery.includes('payment') || lowercaseQuery.includes('money') || lowercaseQuery.includes('pay')) {
-      return "💰 **Payment Summary**\n\n**Outstanding Payments:**\n- Hotel Deposit: $500 paid by Sarah Chen - split 5 ways = $100 per person\n- Ski Rental: $150 paid by Marcus Johnson - split 2 ways = $75 per person (already settled)\n\nYou may owe Sarah $100 for the hotel deposit. Check the Payments tab to settle up!";
+      const paymentList = mockPayments.map(p => {
+        const splitAmount = p.amount / p.split_count;
+        const payer = mockMembers.find(m => m.user_id === p.created_by)?.display_name || 'Unknown';
+        const status = p.is_settled ? '✅ Settled' : '⏳ Pending';
+        return `- **${p.description}**: $${p.amount.toFixed(2)} paid by ${payer}\n  Split ${p.split_count} ways = $${splitAmount.toFixed(2)} per person ${status}`;
+      }).join('\n\n');
+      
+      return `💰 **Payment Summary**\n\n**All Payments:**\n${paymentList}\n\nCheck the Payments tab to settle up!`;
     }
 
     // Task questions
@@ -146,8 +172,15 @@ export class MockKnowledgeService {
     }
 
     // Catch missed messages
-    if (lowercaseQuery.includes('catch') || lowercaseQuery.includes('miss') || lowercaseQuery.includes('update')) {
-      return "💬 **Recent Activity**\n\n**Latest messages:**\n- Sarah Chen is excited about the trip and asked about weather\n- Marcus booked his flight (landing 3:30 PM Friday)\n- Priya created a restaurant poll\n- Alex sent a weather alert about afternoon rain\n- David mentioned a gate change to B12\n\nThe group chat has been pretty active with trip planning!";
+    if (lowercaseQuery.includes('catch') || lowercaseQuery.includes('miss') || lowercaseQuery.includes('update') || lowercaseQuery.includes('summarize')) {
+      const recentBroadcasts = mockBroadcasts.slice(0, 5);
+      const recentMessages = mockMessages.filter(m => !m.tags?.includes('payment')).slice(0, 5);
+      
+      return `💬 **Recent Activity**\n\n**Recent Broadcasts:**\n` +
+        recentBroadcasts.map(b => `- **${b.sender_name}**: ${b.content}`).join('\n') +
+        `\n\n**Recent Messages:**\n` +
+        recentMessages.map(m => `- **${m.sender_name}**: ${m.message_content}`).join('\n') +
+        `\n\n**Payments:** ${mockPayments.length} pending\n**Polls:** ${mockPolls.length} active\n\nThe group chat has been pretty active with trip planning!`;
     }
 
     // Generic fallback with trip awareness

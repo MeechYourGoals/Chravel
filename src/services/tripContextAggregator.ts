@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { demoModeService } from './demoModeService';
 
 export interface ComprehensiveTripContext {
   tripMetadata: {
@@ -88,7 +89,7 @@ export class TripContextAggregator {
     try {
       // Return mock context in demo mode
       if (isDemoMode) {
-        return this.buildMockContext(tripId);
+        return await this.buildMockContext(tripId);
       }
 
       // Parallel fetch all data sources
@@ -133,7 +134,32 @@ export class TripContextAggregator {
     }
   }
 
-  private static buildMockContext(tripId: string): ComprehensiveTripContext {
+  private static async buildMockContext(tripId: string): Promise<ComprehensiveTripContext> {
+    // Fetch actual mock data from demoModeService
+    const mockMessages = await demoModeService.getMockMessages('consumer-trip', false);
+    const mockBroadcasts = await demoModeService.getMockBroadcasts('consumer-trip');
+    const mockPolls = await demoModeService.getMockPolls(tripId);
+    const mockPayments = await demoModeService.getMockPayments(tripId);
+    const mockMembers = await demoModeService.getMockMembers(tripId);
+    
+    // Transform messages to include broadcasts with proper typing
+    const allMessages = [
+      ...mockMessages.map(m => ({
+        id: m.id,
+        content: m.message_content,
+        authorName: m.sender_name,
+        timestamp: new Date(Date.now() - (m.timestamp_offset_days || 0) * 24 * 60 * 60 * 1000).toISOString(),
+        type: (m.tags?.includes('broadcast') ? 'broadcast' : 'message') as 'broadcast' | 'message'
+      })),
+      ...mockBroadcasts.map(b => ({
+        id: b.id,
+        content: b.content,
+        authorName: b.sender_name,
+        timestamp: new Date(Date.now() - (b.timestamp_offset_hours || 0) * 60 * 60 * 1000).toISOString(),
+        type: 'broadcast' as const
+      }))
+    ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
     // Return comprehensive mock data for demo trips
     return {
       tripMetadata: {
@@ -144,18 +170,13 @@ export class TripContextAggregator {
         endDate: '2025-01-20',
         type: 'consumer' as const
       },
-      collaborators: [
-        { id: '1', name: 'Sarah Chen', role: 'organizer', email: 'sarah@example.com' },
-        { id: '2', name: 'Marcus Johnson', role: 'participant' },
-        { id: '3', name: 'Priya Patel', role: 'participant' },
-        { id: '4', name: 'Alex Kim', role: 'participant' },
-        { id: '5', name: 'David Thompson', role: 'participant' }
-      ],
-      messages: [
-        { id: '1', content: 'Super excited for this trip! Has everyone seen the weather forecast?', authorName: 'Sarah Chen', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), type: 'message' as const },
-        { id: '2', content: 'Just booked my flight, landing at 3:30 PM on Friday', authorName: 'Marcus Johnson', timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), type: 'message' as const },
-        { id: '3', content: 'Created a poll for restaurant options tonight', authorName: 'Priya Patel', timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(), type: 'message' as const }
-      ],
+      collaborators: mockMembers.map(m => ({
+        id: m.user_id,
+        name: m.display_name,
+        role: m.role,
+        email: m.user_id === 'user1' ? 'sarah@example.com' : undefined
+      })),
+      messages: allMessages,
       calendar: [
         { id: '1', title: 'Airport Pickup', startTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(), endTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(), location: 'Aspen Airport' },
         { id: '2', title: 'Welcome Dinner', startTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000 + 8 * 60 * 60 * 1000).toISOString(), endTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000 + 10 * 60 * 60 * 1000).toISOString(), location: 'The Little Nell Restaurant', description: 'Group dinner at 7 PM' }
@@ -165,13 +186,20 @@ export class TripContextAggregator {
         { id: '2', content: 'Confirm dinner reservations', assignee: 'Priya Patel', isComplete: false },
         { id: '3', content: 'Buy sunscreen', isComplete: false }
       ],
-      payments: [
-        { id: '1', description: 'Hotel Deposit', amount: 500, paidBy: 'Sarah Chen', participants: ['1', '2', '3', '4', '5'], isSettled: false },
-        { id: '2', description: 'Ski Rental', amount: 150, paidBy: 'Marcus Johnson', participants: ['1', '2'], isSettled: true }
-      ],
-      polls: [
-        { id: '1', question: 'Where should we eat tonight?', options: [{ text: 'Italian Bistro', votes: 3 }, { text: 'Sushi Palace', votes: 2 }, { text: 'Local BBQ', votes: 1 }], status: 'active' }
-      ],
+      payments: mockPayments.map(p => ({
+        id: p.id,
+        description: p.description,
+        amount: p.amount,
+        paidBy: mockMembers.find(m => m.user_id === p.created_by)?.display_name || 'Unknown',
+        participants: p.split_participants,
+        isSettled: p.is_settled
+      })),
+      polls: mockPolls.map(poll => ({
+        id: poll.id,
+        question: poll.question,
+        options: poll.options.map(opt => ({ text: opt.text, votes: opt.votes })),
+        status: poll.status as 'active' | 'closed'
+      })),
       places: {
         basecamp: {
           name: 'The Little Nell',
@@ -367,24 +395,30 @@ export class TripContextAggregator {
 
   private static async fetchPlaces(tripId: string) {
     try {
-      const tripQuery = await supabase
+      // @ts-ignore - Supabase type instantiation issue
+      const tripResult = await supabase
         .from('trips')
         .select('basecamp_name, basecamp_address')
         .eq('id', tripId)
         .single();
-      const trip = tripQuery.data as any;
+      const trip = tripResult.data;
 
-      const placesQuery = await supabase
+      // @ts-ignore - Supabase type instantiation issue
+      const placesResult = await supabase
+        // @ts-ignore - Supabase type instantiation issue
         .from('trip_places')
         .select('name, address, category, lat, lng')
         .eq('trip_id', tripId);
-      const places = placesQuery.data as any;
+      // @ts-ignore - Supabase type instantiation issue
+      const places = placesResult.data;
 
       return {
         basecamp: trip?.basecamp_name ? {
           name: trip.basecamp_name,
           address: trip.basecamp_address,
+          // @ts-ignore - Type already any
           lat: places?.find((p: any) => p.name === trip.basecamp_name)?.lat,
+          // @ts-ignore - Type already any
           lng: places?.find((p: any) => p.name === trip.basecamp_name)?.lng
         } : undefined,
         savedPlaces: places?.map((p: any) => ({
