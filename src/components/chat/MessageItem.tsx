@@ -10,7 +10,7 @@ interface MessageItemProps {
 }
 
 export const MessageItem = ({ message, reactions, onReaction }: MessageItemProps) => {
-  const messageWithGrounding = message as ChatMessageWithGrounding;
+  const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
   
   return (
     <MessageBubble

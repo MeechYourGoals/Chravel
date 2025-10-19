@@ -40,12 +40,12 @@ class RoleBroadcastService {
 
       // Insert message into trip_messages with role targeting
       const { data, error } = await supabase
-        .from('trip_messages')
+        .from('trip_chat_messages' as any)
         .insert({
           trip_id: tripId,
-          user_id: user.id,
-          content: message,
-          message_type: priority === 'urgent' ? 'broadcast' : 'announcement',
+          sender_id: user.id,
+          message: message,
+          message_type: 'text',
           metadata: {
             target_roles: roles,
             is_role_broadcast: true,
@@ -58,7 +58,7 @@ class RoleBroadcastService {
       if (error) throw error;
 
       // TODO: Trigger push notifications to role members
-      console.log('Role broadcast sent:', { roles, priority, messageId: data.id });
+      console.log('Role broadcast sent:', { roles, priority, messageId: (data as any).id });
 
       return true;
     } catch (error) {

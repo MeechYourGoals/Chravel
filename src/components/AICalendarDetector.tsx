@@ -38,23 +38,23 @@ export const AICalendarDetector = ({
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
+    const detect = async () => {
+      setIsLoading(true);
+      try {
+        const mockDetection = await simulateAIDetection(messageText || JSON.stringify(fileContent));
+        setDetectedEvents(mockDetection);
+      } catch (error) {
+        console.error('Error detecting events:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
     if (messageText || fileContent) {
-      detectEvents();
-    }
-  }, [messageText, fileContent, detectEvents]);
-
-  const detectEvents = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      // Simulate AI detection - in real app, this would call your AI service
-      const mockDetection = await simulateAIDetection(messageText || JSON.stringify(fileContent));
-      setDetectedEvents(mockDetection);
-    } catch (error) {
-      console.error('Error detecting events:', error);
-    } finally {
-      setIsLoading(false);
+      detect();
     }
   }, [messageText, fileContent]);
+
 
   const simulateAIDetection = async (text: string): Promise<DetectedEvent[]> => {
     // Mock AI detection logic

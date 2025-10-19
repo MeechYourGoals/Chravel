@@ -1,10 +1,22 @@
-
 import React, { useState, useEffect } from 'react';
 import { X, Link, Sparkles, CheckCircle, MapPin, Search, Globe } from 'lucide-react';
 import { Button } from './ui/button';
 import { BasecampLocation, PlaceWithDistance } from '../types/basecamp';
 import { usePlaceResolution } from '../hooks/usePlaceResolution';
 import { detectInputType, normalizeUrl, formatPlaceQuery, extractPlaceComponents } from '../utils/smartInputDetector';
+
+interface ResolvedPlace {
+  name: string;
+  formatted_address: string;
+  address: string;
+  coordinates: { lat: number; lng: number };
+  rating?: number;
+  price_level?: number;
+  photos?: any[];
+  types: string[];
+  place_id: string;
+  website?: string;
+}
 
 interface AddPlaceModalProps {
   isOpen: boolean;
@@ -31,8 +43,8 @@ export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPl
   const [useAiSorting, setUseAiSorting] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [searchResults, setSearchResults] = useState<{ name: string; address: string; coordinates: { lat: number; lng: number } }[]>([]);
-  const [selectedPlace, setSelectedPlace] = useState<{ name: string; address: string; coordinates: { lat: number; lng: number } } | null>(null);
+  const [searchResults, setSearchResults] = useState<ResolvedPlace[]>([]);
+  const [selectedPlace, setSelectedPlace] = useState<ResolvedPlace | null>(null);
   const [inputType, setInputType] = useState<'url' | 'place_name' | null>(null);
   
   const { resolvePlaceName, categorizePlaceType, isLoading: placeLoading } = usePlaceResolution();

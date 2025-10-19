@@ -29,7 +29,7 @@ class RoleChannelService {
       if (!user) throw new Error('No authenticated user');
 
       const { data, error } = await supabase
-        .from('role_channels')
+        .from('role_channels' as any)
         .insert({
           trip_id: tripId,
           role_name: roleName,
@@ -41,12 +41,12 @@ class RoleChannelService {
       if (error) throw error;
 
       return {
-        id: data.id,
-        tripId: data.trip_id,
-        roleName: data.role_name,
+        id: (data as any).id,
+        tripId: (data as any).trip_id,
+        roleName: (data as any).role_name,
         memberCount: 0,
-        createdAt: data.created_at,
-        createdBy: data.created_by
+        createdAt: (data as any).created_at,
+        createdBy: (data as any).created_by
       };
     } catch (error) {
       console.error('Failed to create role channel:', error);
@@ -60,14 +60,14 @@ class RoleChannelService {
   async getRoleChannels(tripId: string): Promise<RoleChannel[]> {
     try {
       const { data, error } = await supabase
-        .from('role_channels')
+        .from('role_channels' as any)
         .select('*')
         .eq('trip_id', tripId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
 
-      return (data || []).map(d => ({
+      return (data || []).map((d: any) => ({
         id: d.id,
         tripId: d.trip_id,
         roleName: d.role_name,
@@ -87,7 +87,7 @@ class RoleChannelService {
   async deleteChannel(channelId: string): Promise<boolean> {
     try {
       const { error } = await supabase
-        .from('role_channels')
+        .from('role_channels' as any)
         .delete()
         .eq('id', channelId);
 
@@ -115,7 +115,7 @@ class RoleChannelService {
       if (!user) throw new Error('No authenticated user');
 
       const { data, error } = await supabase
-        .from('role_channel_messages')
+        .from('role_channel_messages' as any)
         .insert({
           channel_id: channelId,
           sender_id: user.id,
@@ -127,11 +127,11 @@ class RoleChannelService {
       if (error) throw error;
 
       return {
-        id: data.id,
-        channelId: data.channel_id,
-        senderId: data.sender_id,
-        content: data.content,
-        createdAt: data.created_at
+        id: (data as any).id,
+        channelId: (data as any).channel_id,
+        senderId: (data as any).sender_id,
+        content: (data as any).content,
+        createdAt: (data as any).created_at
       };
     } catch (error) {
       console.error('Failed to send channel message:', error);
@@ -145,7 +145,7 @@ class RoleChannelService {
   async getChannelMessages(channelId: string): Promise<RoleChannelMessage[]> {
     try {
       const { data, error } = await supabase
-        .from('role_channel_messages')
+        .from('role_channel_messages' as any)
         .select(`
           *,
           sender:sender_id (
@@ -158,7 +158,7 @@ class RoleChannelService {
 
       if (error) throw error;
 
-      return (data || []).map(d => ({
+      return (data || []).map((d: any) => ({
         id: d.id,
         channelId: d.channel_id,
         senderId: d.sender_id,

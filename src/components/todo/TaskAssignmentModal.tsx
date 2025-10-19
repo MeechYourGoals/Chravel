@@ -16,7 +16,7 @@ export const TaskAssignmentModal = ({ taskId, tripId, onClose }: TaskAssignmentM
   const [assignmentMode, setAssignmentMode] = useState<'individual' | 'role'>('individual');
   const [selectedRole, setSelectedRole] = useState<string>('');
   
-  const { bulkAssign } = useTripTasks(tripId);
+  const { bulkAssign, autoAssignByRole } = useTripTasks(tripId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
