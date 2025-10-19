@@ -3,6 +3,8 @@ import { TripContext } from '../types/tripContext';
 import { MockKnowledgeService } from './mockKnowledgeService';
 import { demoModeService } from './demoModeService';
 import { EnhancedTripContextService } from './enhancedTripContextService';
+import { TripContextAggregator } from './tripContextAggregator';
+import { ContextCacheService } from './contextCacheService';
 
 export interface SearchResult {
   id: string;
@@ -173,15 +175,21 @@ export class UniversalConciergeService {
         };
       }
 
-      // 🆕 Enhanced: Get full trip context for AI Concierge
-      const enhancedTripContext = await EnhancedTripContextService.getEnhancedTripContext(tripContext.tripId);
+      // 🆕 Enhanced: Get comprehensive trip context with caching
+      let comprehensiveContext = ContextCacheService.get(tripContext.tripId);
+      
+      if (!comprehensiveContext) {
+        comprehensiveContext = await TripContextAggregator.buildContext(tripContext.tripId);
+        ContextCacheService.set(tripContext.tripId, comprehensiveContext);
+      }
       
       // For non-search queries, use the Google Gemini-powered concierge service
       const { data, error } = await supabase.functions.invoke('lovable-concierge', {
         body: {
           message: message,
-          tripContext: enhancedTripContext,
-          chatHistory: enhancedTripContext.chatHistory || []
+          tripContext: comprehensiveContext,
+          tripId: tripContext.tripId,
+          chatHistory: comprehensiveContext.messages?.slice(-10) || []
         }
       });
 

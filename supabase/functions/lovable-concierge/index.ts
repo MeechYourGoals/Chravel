@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from "../_shared/cors.ts"
+import { TripContextBuilder } from "../_shared/contextBuilder.ts"
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -14,6 +15,7 @@ interface ChatMessage {
 interface LovableConciergeRequest {
   message: string
   tripContext?: any
+  tripId?: string
   chatHistory?: ChatMessage[]
   config?: {
     model?: string
@@ -38,19 +40,71 @@ serve(async (req) => {
     const { 
       message, 
       tripContext, 
+      tripId,
       chatHistory = [], 
       config = {}
     }: LovableConciergeRequest = await req.json()
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
+    // Get current user for usage tracking
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
+
+    // Check usage limits for free users
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('app_role')
+      .eq('id', user.id)
+      .single()
+
+    const isFreeUser = !userProfile?.app_role || userProfile.app_role === 'consumer'
+    
+    if (isFreeUser) {
+      const { data: usageData } = await supabase
+        .rpc('get_daily_concierge_usage', { user_uuid: user.id })
+      
+      const dailyUsage = usageData || 0
+      const FREE_TIER_LIMIT = 10
+      
+      if (dailyUsage >= FREE_TIER_LIMIT) {
+        return new Response(
+          JSON.stringify({
+            response: `🚫 **Daily query limit reached**\n\nYou've used ${dailyUsage}/${FREE_TIER_LIMIT} free AI queries today. Upgrade to Pro for unlimited access!`,
+            usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+            sources: [],
+            success: false,
+            error: 'usage_limit_exceeded',
+            upgradeRequired: true
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          }
+        );
+      }
+    }
+
+    // Build comprehensive context if tripId is provided
+    let comprehensiveContext = tripContext
+    if (tripId && !tripContext) {
+      try {
+        comprehensiveContext = await TripContextBuilder.buildContext(tripId)
+      } catch (error) {
+        console.error('Failed to build comprehensive context:', error)
+        // Continue with basic context
+      }
+    }
+
     // Check privacy settings if trip context is provided
-    if (tripContext?.id) {
+    if (comprehensiveContext?.tripMetadata?.id) {
       try {
         const { data: privacyConfig } = await supabase
           .from('trip_privacy_configs')
           .select('*')
-          .eq('trip_id', tripContext.id)
+          .eq('trip_id', comprehensiveContext.tripMetadata.id)
           .single();
 
         // If high privacy mode or AI access disabled, return privacy notice
@@ -75,7 +129,7 @@ serve(async (req) => {
     }
 
     // Build context-aware system prompt
-    const systemPrompt = buildSystemPrompt(tripContext, config.systemPrompt)
+    const systemPrompt = buildSystemPrompt(comprehensiveContext, config.systemPrompt)
     
     // Prepare messages for Lovable AI
     const messages: ChatMessage[] = [
@@ -89,7 +143,7 @@ serve(async (req) => {
       /\b(where|restaurant|hotel|cafe|bar|attraction|place|location|near|around|close|best|find|suggest|recommend|visit|directions|route|food|eat|drink|stay|sushi|pizza|beach|museum|park)\b/i
     );
 
-    const hasLocationContext = tripContext?.basecamp?.lat && tripContext?.basecamp?.lng;
+    const hasLocationContext = comprehensiveContext?.places?.basecamp?.lat && comprehensiveContext?.places?.basecamp?.lng;
     const enableGrounding = isLocationQuery && hasLocationContext;
 
     // Call Lovable AI Gateway with optional grounding
@@ -111,8 +165,8 @@ serve(async (req) => {
           toolConfig: {
             retrievalConfig: {
               latLng: {
-                latitude: tripContext.basecamp.lat,
-                longitude: tripContext.basecamp.lng
+                latitude: comprehensiveContext.places.basecamp.lat,
+                longitude: comprehensiveContext.places.basecamp.lng
               }
             }
           }
@@ -184,11 +238,27 @@ serve(async (req) => {
     }))
 
     // Store conversation in database for context awareness
-    if (tripContext?.id) {
-      await storeConversation(supabase, tripContext.id, message, aiResponse, 'chat', {
+    if (comprehensiveContext?.tripMetadata?.id) {
+      await storeConversation(supabase, comprehensiveContext.tripMetadata.id, message, aiResponse, 'chat', {
         grounding_sources: citations.length,
         has_map_widget: !!googleMapsWidget
       })
+    }
+
+    // Track usage for analytics and rate limiting
+    try {
+      await supabase
+        .from('concierge_usage')
+        .insert({
+          user_id: user.id,
+          trip_id: comprehensiveContext?.tripMetadata?.id || tripId || 'unknown',
+          query_text: message.substring(0, 500), // Truncate for storage
+          response_tokens: usage?.completion_tokens || 0,
+          model_used: config.model || 'google/gemini-2.5-flash'
+        });
+    } catch (usageError) {
+      console.error('Failed to track usage:', usageError);
+      // Don't fail the request if usage tracking fails
     }
 
     return new Response(
@@ -258,29 +328,77 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
 
   if (tripContext) {
     basePrompt += `\n\n=== TRIP CONTEXT ===`
-    basePrompt += `\nDestination: ${tripContext.location || 'Not specified'}`
     
-    if (typeof tripContext.dateRange === 'object') {
+    // Handle both old and new context structures
+    const tripMetadata = tripContext.tripMetadata || tripContext
+    const collaborators = tripContext.collaborators || tripContext.participants
+    const messages = tripContext.messages || tripContext.chatHistory
+    const calendar = tripContext.calendar || tripContext.itinerary
+    const tasks = tripContext.tasks
+    const payments = tripContext.payments
+    const polls = tripContext.polls
+    const places = tripContext.places || { basecamp: tripContext.basecamp }
+    
+    basePrompt += `\nDestination: ${tripMetadata.destination || tripMetadata.location || 'Not specified'}`
+    
+    if (tripMetadata.startDate && tripMetadata.endDate) {
+      basePrompt += `\nTravel Dates: ${tripMetadata.startDate} to ${tripMetadata.endDate}`
+    } else if (typeof tripContext.dateRange === 'object') {
       basePrompt += `\nTravel Dates: ${tripContext.dateRange.start} to ${tripContext.dateRange.end}`
     } else if (tripContext.dateRange) {
       basePrompt += `\nTravel Dates: ${tripContext.dateRange}`
     }
     
-    basePrompt += `\nParticipants: ${tripContext.participants?.length || 0} people`
+    basePrompt += `\nParticipants: ${collaborators?.length || 0} people`
     
-    if (tripContext.participants?.length) {
-      basePrompt += ` (${tripContext.participants.map(p => p.name || p).join(', ')})`
+    if (collaborators?.length) {
+      basePrompt += ` (${collaborators.map(p => p.name || p).join(', ')})`
     }
 
-    if (tripContext.accommodation) {
-      const accommodation = typeof tripContext.accommodation === 'object' 
-        ? `${tripContext.accommodation.name} at ${tripContext.accommodation.address}`
-        : tripContext.accommodation
-      basePrompt += `\nAccommodation: ${accommodation}`
+    if (places?.basecamp) {
+      basePrompt += `\nCurrent Basecamp: ${places.basecamp.name} at ${places.basecamp.address}`
     }
 
-    if (tripContext.basecamp) {
-      basePrompt += `\nCurrent Basecamp: ${tripContext.basecamp.name} at ${tripContext.basecamp.address}`
+    // Add comprehensive context sections
+    if (messages?.length) {
+      basePrompt += `\n\n=== RECENT MESSAGES ===`
+      const recentMessages = messages.slice(-5)
+      recentMessages.forEach(msg => {
+        basePrompt += `\n${msg.authorName}: ${msg.content.substring(0, 100)}${msg.content.length > 100 ? '...' : ''}`
+      })
+    }
+
+    if (calendar?.length) {
+      basePrompt += `\n\n=== UPCOMING EVENTS ===`
+      calendar.slice(0, 5).forEach(event => {
+        basePrompt += `\n- ${event.title} on ${event.startTime}`
+        if (event.location) basePrompt += ` at ${event.location}`
+      })
+    }
+
+    if (tasks?.length) {
+      basePrompt += `\n\n=== ACTIVE TASKS ===`
+      const activeTasks = tasks.filter(t => !t.isComplete)
+      activeTasks.slice(0, 5).forEach(task => {
+        basePrompt += `\n- ${task.content}${task.assignee ? ` (assigned to ${task.assignee})` : ''}`
+      })
+    }
+
+    if (payments?.length) {
+      basePrompt += `\n\n=== RECENT PAYMENTS ===`
+      payments.slice(0, 3).forEach(payment => {
+        basePrompt += `\n- ${payment.description}: $${payment.amount} (${payment.paidBy})`
+      })
+    }
+
+    if (polls?.length) {
+      basePrompt += `\n\n=== ACTIVE POLLS ===`
+      polls.filter(p => p.status === 'active').forEach(poll => {
+        basePrompt += `\n- ${poll.question}`
+        poll.options.forEach(option => {
+          basePrompt += `\n  - ${option.text}: ${option.votes} votes`
+        })
+      })
     }
 
     // Enhanced contextual information

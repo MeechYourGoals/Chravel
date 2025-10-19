@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Sparkles, CheckCircle, Search, AlertCircle } from 'lucide-react';
+import { Sparkles, CheckCircle, Search, AlertCircle, Crown, Clock } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { TripPreferences } from '../types/consumer';
 import { TripContextService } from '../services/tripContextService';
@@ -11,6 +11,9 @@ import { AiChatInput } from './chat/AiChatInput';
 import { supabase } from '@/integrations/supabase/client';
 import { conciergeRateLimitService } from '../services/conciergeRateLimitService';
 import { useAuth } from '../hooks/useAuth';
+import { useConciergeUsage } from '../hooks/useConciergeUsage';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
 
 interface AIConciergeChatProps {
   tripId: string;
@@ -43,6 +46,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   const { isPlus } = useConsumerSubscription();
   const { basecamp: globalBasecamp } = useBasecamp();
   const { user } = useAuth();
+  const { usage, getUsageStatus, formatTimeUntilReset, isFreeUser, upgradeUrl } = useConciergeUsage();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -207,6 +211,31 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
               <CheckCircle size={16} className="text-green-400" />
               <span className="text-xs text-green-400">Ready with Web Search</span>
             </div>
+            
+            {/* Usage status for free users */}
+            {isFreeUser && usage && (
+              <div className="flex items-center gap-2 ml-2">
+                <Badge 
+                  variant={getUsageStatus().status === 'limit_reached' ? 'destructive' : 
+                          getUsageStatus().status === 'warning' ? 'secondary' : 'default'}
+                  className="text-xs"
+                >
+                  {getUsageStatus().message}
+                </Badge>
+                {getUsageStatus().status === 'limit_reached' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs h-6 px-2"
+                    onClick={() => window.open(upgradeUrl, '_blank')}
+                  >
+                    <Crown size={12} className="mr-1" />
+                    Upgrade
+                  </Button>
+                )}
+              </div>
+            )}
+            
             {/* Rate limit indicator for events */}
             {isEvent && !isPlus && user && remainingQueries !== Infinity && (
               <div className="flex items-center gap-1 ml-2">
@@ -220,8 +249,34 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         </div>
       </div>
 
+      {/* Usage Limit Reached State */}
+      {isFreeUser && usage?.isLimitReached && (
+        <div className="text-center py-8 mb-6">
+          <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Crown size={24} className="text-white" />
+          </div>
+          <h4 className="text-white font-medium mb-3">Daily Limit Reached</h4>
+          <div className="text-sm text-gray-300 space-y-3 max-w-md mx-auto">
+            <p>You've used all {usage.limit} free AI queries today.</p>
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+              <Clock size={14} />
+              <span>Resets in {formatTimeUntilReset(usage.resetTime)}</span>
+            </div>
+            <div className="mt-4">
+              <Button
+                onClick={() => window.open(upgradeUrl, '_blank')}
+                className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+              >
+                <Crown size={16} className="mr-2" />
+                Upgrade to Pro for Unlimited Access
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Empty State */}
-      {messages.length === 0 && (
+      {messages.length === 0 && !(isFreeUser && usage?.isLimitReached) && (
         <div className="text-center py-8 mb-6">
           <h4 className="text-white font-medium mb-3">Your AI Travel Concierge</h4>
           <div className="text-sm text-gray-300 space-y-2 max-w-md mx-auto">
@@ -255,7 +310,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         onSendMessage={handleSendMessage}
         onKeyPress={handleKeyPress}
         isTyping={isTyping}
-        disabled={aiStatus === 'error'}
+        disabled={aiStatus === 'error' || (isFreeUser && usage?.isLimitReached)}
       />
     </div>
   );
