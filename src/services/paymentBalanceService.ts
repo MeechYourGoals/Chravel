@@ -161,7 +161,10 @@ export const paymentBalanceService = {
 
         const profile = profiles?.find(p => p.user_id === personUserId);
         const userMethods = paymentMethods?.filter(m => m.user_id === personUserId) || [];
-        const primaryMethod = getPrimaryMethod(userMethods);
+        const primaryMethod = getPrimaryMethod(userMethods.map(m => ({
+          ...m,
+          type: m.method_type as PaymentMethod['type']
+        })));
 
         balances.push({
           userId: personUserId,
@@ -170,7 +173,7 @@ export const paymentBalanceService = {
           amountOwed: entry.netAmount,
           preferredPaymentMethod: primaryMethod ? {
             id: primaryMethod.id,
-            type: primaryMethod.method_type,
+            type: primaryMethod.method_type as PaymentMethod['type'],
             identifier: primaryMethod.identifier,
             displayName: primaryMethod.display_name || undefined,
             isPreferred: primaryMethod.is_preferred || false

@@ -53,7 +53,7 @@ class RoleTemplateService {
         credentialLevel: data.credentialLevel
       }));
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('role_templates')
         .insert({
           name: request.name,
@@ -70,16 +70,16 @@ class RoleTemplateService {
       if (error) throw error;
 
       return {
-        id: data.id,
-        name: data.name,
-        description: data.description,
-        category: data.category,
-        roles: data.roles,
-        createdBy: data.created_by,
-        organizationId: data.organization_id,
-        isPublic: data.is_public,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at
+        id: (data as any).id,
+        name: (data as any).name,
+        description: (data as any).description,
+        category: (data as any).category,
+        roles: (data as any).roles,
+        createdBy: (data as any).created_by,
+        organizationId: (data as any).organization_id,
+        isPublic: (data as any).is_public,
+        createdAt: (data as any).created_at,
+        updatedAt: (data as any).updated_at
       };
     } catch (error) {
       console.error('Failed to save template:', error);
@@ -92,7 +92,7 @@ class RoleTemplateService {
    */
   async loadTemplate(templateId: string): Promise<RoleTemplate | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('role_templates')
         .select('*')
         .eq('id', templateId)
@@ -101,16 +101,16 @@ class RoleTemplateService {
       if (error) throw error;
 
       return {
-        id: data.id,
-        name: data.name,
-        description: data.description,
-        category: data.category,
-        roles: data.roles,
-        createdBy: data.created_by,
-        organizationId: data.organization_id,
-        isPublic: data.is_public,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at
+        id: (data as any).id,
+        name: (data as any).name,
+        description: (data as any).description,
+        category: (data as any).category,
+        roles: (data as any).roles,
+        createdBy: (data as any).created_by,
+        organizationId: (data as any).organization_id,
+        isPublic: (data as any).is_public,
+        createdAt: (data as any).created_at,
+        updatedAt: (data as any).updated_at
       };
     } catch (error) {
       console.error('Failed to load template:', error);
@@ -126,7 +126,7 @@ class RoleTemplateService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('role_templates')
         .select('*')
         .or(`created_by.eq.${user.id},is_public.eq.true`)
@@ -134,7 +134,7 @@ class RoleTemplateService {
 
       if (error) throw error;
 
-      return (data || []).map(d => ({
+      return (data || []).map((d: any) => ({
         id: d.id,
         name: d.name,
         description: d.description,
@@ -160,7 +160,7 @@ class RoleTemplateService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('role_templates')
         .select('*')
         .eq('category', category)
@@ -169,7 +169,7 @@ class RoleTemplateService {
 
       if (error) throw error;
 
-      return (data || []).map(d => ({
+      return (data || []).map((d: any) => ({
         id: d.id,
         name: d.name,
         description: d.description,
@@ -192,7 +192,7 @@ class RoleTemplateService {
    */
   async deleteTemplate(templateId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('role_templates')
         .delete()
         .eq('id', templateId);
@@ -213,7 +213,7 @@ class RoleTemplateService {
     updates: Partial<Pick<RoleTemplate, 'name' | 'description' | 'isPublic'>>
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('role_templates')
         .update({
           name: updates.name,

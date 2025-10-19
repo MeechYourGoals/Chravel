@@ -158,9 +158,7 @@ export class EnhancedTripContextService {
       visitedPlaces,
       weatherContext,
       // 🆕 Enhanced context for AI Concierge
-      tasks,
-      payments,
-      calendar
+      tasks
     };
   }
 

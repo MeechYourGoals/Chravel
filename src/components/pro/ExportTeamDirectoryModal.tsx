@@ -194,7 +194,7 @@ export const ExportTeamDirectoryModal = ({
                   <Input
                     id="subtitle"
                     value={subtitle}
-                    onChange={(e) => setSubtitle(e.target.value)}
+                    onChange={(e) => setSubtitle(e.target.value as typeof subtitle)}
                     className="bg-gray-800 border-gray-600 text-white"
                   />
                 </div>

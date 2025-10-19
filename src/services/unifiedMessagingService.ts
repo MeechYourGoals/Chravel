@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
-
+import { ScheduledMessage as UIScheduledMessage } from '@/types/messaging';
 export interface Message {
   id: string;
   trip_id: string;
@@ -57,6 +57,21 @@ export interface ScheduledMessageRequest {
   recurrenceType?: 'daily' | 'weekly' | 'monthly';
   recurrenceEnd?: Date;
   templateId?: string;
+}
+
+export interface ScheduledMessage {
+  id: string;
+  user_id: string;
+  trip_id?: string;
+  tour_id?: string;
+  content: string;
+  send_at: string;
+  priority?: 'urgent' | 'reminder' | 'fyi';
+  is_recurring?: boolean;
+  recurrence_type?: 'daily' | 'weekly' | 'monthly';
+  recurrence_end?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 class UnifiedMessagingService {

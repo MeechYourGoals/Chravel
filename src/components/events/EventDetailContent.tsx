@@ -69,7 +69,7 @@ export const EventDetailContent = ({
         return (
           <EnhancedAgendaTab
             eventId={tripId}
-            userRole={eventData.userRole || 'attendee'}
+            userRole={(eventData.userRole === 'speaker' ? 'attendee' : eventData.userRole) as 'attendee' | 'exhibitor' | 'organizer'}
             pdfScheduleUrl={eventData.pdfScheduleUrl}
           />
         );

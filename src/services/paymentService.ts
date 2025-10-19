@@ -254,12 +254,12 @@ export const paymentService = {
         userBalances[payment.createdBy] += payment.amount;
       });
 
-      splits.forEach((split: PaymentSplit) => {
+      splits.forEach((split: any) => {
         // Debtors get negative balance
         if (!userBalances[split.debtor_user_id]) {
           userBalances[split.debtor_user_id] = 0;
         }
-        userBalances[split.debtor_user_id] -= parseFloat(split.amount_owed);
+        userBalances[split.debtor_user_id] -= parseFloat(split.amount_owed.toString());
       });
 
       // Generate settlement suggestions (simplified)

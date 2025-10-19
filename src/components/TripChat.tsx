@@ -108,7 +108,7 @@ export const TripChat = ({
     }));
   }, [liveMessages, shouldUseDemoData]);
 
-  const handleSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: PaymentData) => {
+  const handleSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: any) => {
     // If we're in a role channel, send to that channel instead
     if (isPro && activeChannel) {
       const success = await sendChannelMessage(inputMessage);
@@ -118,10 +118,23 @@ export const TripChat = ({
       return;
     }
 
+    // Transform paymentData if needed to match useChatComposer expectations
+    let transformedPaymentData;
+    if (isPayment && paymentData) {
+      transformedPaymentData = {
+        amount: paymentData.amount,
+        currency: paymentData.currency,
+        description: paymentData.description,
+        splitCount: paymentData.splitCount,
+        splitParticipants: paymentData.splitParticipants || [],
+        paymentMethods: paymentData.paymentMethods || []
+      };
+    }
+
     const message = await sendMessage({
       isBroadcast, 
       isPayment, 
-      paymentData 
+      paymentData: transformedPaymentData 
     });
     
     if (!message) {
