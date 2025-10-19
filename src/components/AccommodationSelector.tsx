@@ -6,6 +6,7 @@ import { Badge } from './ui/badge';
 import { BasecampSelector } from './BasecampSelector';
 import { personalAccommodationService, PersonalAccommodation } from '../services/personalAccommodationService';
 import { useAuth } from '../hooks/useAuth';
+import { useBasecamp } from '../contexts/BasecampContext';
 
 interface AccommodationSelectorProps {
   tripId: string;
@@ -35,8 +36,8 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
   onLocationSet
 }) => {
   const { user } = useAuth();
+  const { basecamp: tripBasecamp, setBasecamp: setTripBasecampRoute } = useBasecamp();
   const [personalAccommodation, setPersonalAccommodation] = useState<PersonalAccommodation | null>(null);
-  const [tripBasecamp, setTripBasecamp] = useState<any>(null);
   const [showPersonalSelector, setShowPersonalSelector] = useState(false);
   const [showTripSelector, setShowTripSelector] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -46,18 +47,20 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
     
     setLoading(true);
     try {
+      console.log('Loading accommodations for trip:', tripId, 'user:', user.id);
       // Load personal accommodation
       const personal = await personalAccommodationService.getUserAccommodation(tripId, user.id);
+      console.log('Loaded personal accommodation:', personal);
       setPersonalAccommodation(personal);
 
-      // Load trip basecamp (you'll need to implement this based on your existing basecamp system)
-      // setTripBasecamp(tripBasecamp);
+      // Trip basecamp is already loaded from BasecampContext
+      console.log('Trip basecamp from context:', tripBasecamp);
     } catch (error) {
       console.error('Failed to load accommodations:', error);
     } finally {
       setLoading(false);
     }
-  }, [tripId, user]);
+  }, [tripId, user, tripBasecamp]);
 
   useEffect(() => {
     loadAccommodations();
@@ -87,7 +90,7 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
   };
 
   const handleTripLocationSet = (location: any) => {
-    setTripBasecamp(location);
+    setTripBasecampRoute(location);
     onLocationSet?.(location, 'trip');
     setShowTripSelector(false);
   };
