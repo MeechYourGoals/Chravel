@@ -166,7 +166,7 @@ export const TripGrid = ({
 
   // Render content grid (using filtered data)
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       {/* Location alert for travel recs */}
       {viewMode === 'travelRecs' && activeLocation && (
         <Alert className="border-info/50 bg-info/10 mb-6">
@@ -180,7 +180,7 @@ export const TripGrid = ({
         </Alert>
       )}
 
-      <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 xl:grid-cols-3'}`}>
+      <div className={`grid gap-6 w-full ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 xl:grid-cols-3'}`}>
         {viewMode === 'myTrips' ? (
           activeTrips.map((trip) => (
             isMobile ? (

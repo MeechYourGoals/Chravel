@@ -243,27 +243,26 @@ const Index = () => {
           viewMode={viewMode}
         />
 
-        {/* Shared Alignment Container for SearchBar and Toggle */}
-        <div className="w-[710px] mx-auto p-0 m-0">
-          {/* Desktop Header */}
-          {!isMobile && (
+        {/* Desktop Header - Full width container */}
+        {!isMobile && (
+          <div className="w-full">
             <DesktopHeader
               viewMode={viewMode}
               onCreateTrip={handleCreateTrip}
               onUpgrade={() => setIsUpgradeModalOpen(true)}
               onSettings={() => setIsSettingsOpen(true)}
             />
-          )}
+          </div>
+        )}
 
-          {/* Enhanced Toggle with smooth transitions */}
-          <div className="animate-fade-in mb-8">
+        {/* Enhanced Toggle with smooth transitions - Full width container */}
+        <div className="w-full animate-fade-in mb-8">
           <TripViewToggle 
             viewMode={viewMode} 
             onViewModeChange={handleViewModeChange}
             onUpgrade={() => setIsUpgradeModalOpen(true)}
             showRecsTab={showMarketingContent}
           />
-          </div>
         </div>
 
         {/* Trip Stats Overview with loading state - moved above filters for travel recs */}
@@ -290,7 +289,7 @@ const Index = () => {
         )}
 
         {/* Main Content - Trip Cards with enhanced loading and empty states */}
-        <div className="mb-12 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        <div className="mb-12 animate-fade-in w-full" style={{ animationDelay: '0.2s' }}>
           <TripGrid
             viewMode={viewMode}
             trips={filteredData.trips}

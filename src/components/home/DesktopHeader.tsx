@@ -52,10 +52,10 @@ export const DesktopHeader = ({ viewMode, onCreateTrip, onUpgrade, onSettings }:
         </div>
       </div>
 
-      {/* Main Header Container - 710px to match toggle group */}
+      {/* Main Header Container - Responsive layout */}
       <div className="mb-6">
-        {/* Grid Layout: Brand (140px) | Search (420px) | Actions (150px) */}
-        <div className="grid grid-cols-[160px_400px_150px] gap-4 items-center mb-5">
+        {/* Responsive Grid Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center mb-5">
           {/* Column 1: Brand - stacked on My Trips button */}
           <div className="flex flex-col">
             <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight" aria-label="Chravel Home">
