@@ -153,47 +153,47 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
   return (
     <div className="space-y-6">
       {/* Trip Base Camp Section */}
-      <Card className="border-blue-200 bg-blue-50/50">
+      <Card className="bg-glass-slate-card border border-glass-slate-border shadow-enterprise-lg rounded-2xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-blue-900 flex items-center gap-2">
-              <MapPin size={20} />
+            <CardTitle className="text-white flex items-center gap-2">
+              <MapPin size={20} className="text-blue-400" />
               Trip Base Camp
             </CardTitle>
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => setShowTripSelector(true)}
-              className="border-blue-300 text-blue-700 hover:bg-blue-100"
+              className="border-glass-slate-border text-white hover:bg-white/10"
             >
               {tripBasecamp ? <Edit size={16} /> : <Plus size={16} />}
               {tripBasecamp ? 'Edit' : 'Set Location'}
             </Button>
           </div>
-          <p className="text-sm text-blue-700">
+          <p className="text-sm text-gray-300">
             Main meeting point for group activities and shared recommendations
           </p>
         </CardHeader>
         {tripBasecamp && (
           <CardContent className="pt-0">
-            <div className="flex items-center gap-2 text-blue-800">
-              <MapPin size={16} />
+            <div className="flex items-center gap-2 text-white">
+              <MapPin size={16} className="text-blue-400" />
               <span className="font-medium">{tripBasecamp.name}</span>
             </div>
             {tripBasecamp.address && (
-              <p className="text-sm text-blue-600 mt-1">{tripBasecamp.address}</p>
+              <p className="text-sm text-gray-300 mt-1">{tripBasecamp.address}</p>
             )}
           </CardContent>
         )}
       </Card>
 
       {/* Personal Accommodation Section */}
-      <Card className="border-green-200 bg-green-50/50">
+      <Card className="bg-glass-slate-card border border-glass-slate-border shadow-enterprise-lg rounded-2xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-green-900 flex items-center gap-2">
-              <Bed size={20} />
-              Your Accommodation {!user && <Badge variant="outline" className="text-xs">Private</Badge>}
+            <CardTitle className="text-white flex items-center gap-2">
+              <Bed size={20} className="text-green-400" />
+              Your Accommodation {!user && <Badge variant="outline" className="text-xs border-green-400/30 text-green-400">Private</Badge>}
             </CardTitle>
             <div className="flex gap-2">
               {personalAccommodation && user && (
@@ -201,7 +201,7 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
                   variant="outline" 
                   size="sm"
                   onClick={handleDeletePersonalAccommodation}
-                  className="border-red-300 text-red-700 hover:bg-red-100"
+                  className="border-glass-slate-border text-red-400 hover:bg-red-500/10"
                 >
                   <Trash2 size={16} />
                 </Button>
@@ -211,14 +211,14 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
                 size="sm"
                 onClick={() => setShowPersonalSelector(true)}
                 disabled={!user}
-                className="border-green-300 text-green-700 hover:bg-green-100 disabled:opacity-50"
+                className="border-glass-slate-border text-white hover:bg-white/10 disabled:opacity-50"
               >
                 {personalAccommodation ? <Edit size={16} /> : <Plus size={16} />}
                 {personalAccommodation ? 'Edit' : 'Set Your Location'}
               </Button>
             </div>
           </div>
-          <p className="text-sm text-green-700">
+          <p className="text-sm text-gray-300">
             {user 
               ? "Where you're staying for personalized recommendations and local insights" 
               : "Sign in to save your private accommodation for personalized directions"}
@@ -229,18 +229,18 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {React.createElement(accommodationTypeIcons[personalAccommodation.accommodation_type], { size: 16, className: "text-green-700" })}
-                  <span className="font-medium text-green-800">{personalAccommodation.accommodation_name}</span>
+                  {React.createElement(accommodationTypeIcons[personalAccommodation.accommodation_type], { size: 16, className: "text-green-400" })}
+                  <span className="font-medium text-white">{personalAccommodation.accommodation_name}</span>
                 </div>
-                <Badge className={accommodationTypeColors[personalAccommodation.accommodation_type]}>
+                <Badge variant="outline" className="border-green-400/30 text-green-400 text-xs">
                   {personalAccommodation.accommodation_type}
                 </Badge>
               </div>
               {personalAccommodation.address && (
-                <p className="text-sm text-green-600">{personalAccommodation.address}</p>
+                <p className="text-sm text-gray-300">{personalAccommodation.address}</p>
               )}
               {(personalAccommodation.check_in || personalAccommodation.check_out) && (
-                <div className="flex gap-4 text-sm text-green-600">
+                <div className="flex gap-4 text-sm text-gray-400">
                   {personalAccommodation.check_in && (
                     <span>Check-in: {new Date(personalAccommodation.check_in).toLocaleDateString()}</span>
                   )}
