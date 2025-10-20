@@ -188,7 +188,103 @@ export const useMediaManagement = (tripId: string) => {
   useEffect(() => {
     fetchMediaItems();
     fetchLinkItems();
-  }, [fetchMediaItems, fetchLinkItems]);
+
+    // Realtime subscriptions for media/files/links
+    const channel = supabase
+      .channel(`media:${tripId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trip_media_index', filter: `trip_id=eq.${tripId}` }, (payload) => {
+        const row: any = payload.new;
+        setMediaItems((prev) => [
+          {
+            id: row.id,
+            media_url: row.media_url,
+            filename: row.filename || 'Untitled',
+            media_type: row.media_type,
+            metadata: row.metadata || {},
+            created_at: row.created_at,
+            source: 'chat',
+          },
+          ...prev,
+        ]);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trip_media_index', filter: `trip_id=eq.${tripId}` }, (payload) => {
+        const row: any = payload.new;
+        setMediaItems((prev) => prev.map((m) => (m.id === row.id ? {
+          id: row.id,
+          media_url: row.media_url,
+          filename: row.filename || 'Untitled',
+          media_type: row.media_type,
+          metadata: row.metadata || {},
+          created_at: row.created_at,
+          source: 'chat',
+        } : m)));
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trip_files', filter: `trip_id=eq.${tripId}` }, (payload) => {
+        const row: any = payload.new;
+        setMediaItems((prev) => [
+          {
+            id: row.id,
+            media_url: row.public_url || row.file_url || row.file_path || '',
+            filename: row.name,
+            media_type: 'document',
+            metadata: { extracted_events: row.extracted_events },
+            created_at: row.created_at,
+            source: 'upload',
+          },
+          ...prev,
+        ]);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trip_files', filter: `trip_id=eq.${tripId}` }, (payload) => {
+        const row: any = payload.new;
+        setMediaItems((prev) => prev.map((m) => (m.id === row.id ? {
+          id: row.id,
+          media_url: row.public_url || row.file_url || row.file_path || '',
+          filename: row.name,
+          media_type: 'document',
+          metadata: { extracted_events: row.extracted_events },
+          created_at: row.created_at,
+          source: 'upload',
+        } : m)));
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trip_link_index', filter: `trip_id=eq.${tripId}` }, (payload) => {
+        const row: any = payload.new;
+        setLinkItems((prev) => [
+          {
+            id: row.id,
+            url: row.url,
+            title: row.og_title || 'Untitled Link',
+            description: row.og_description || '',
+            domain: row.domain || new URL(row.url).hostname,
+            image_url: row.og_image_url || undefined,
+            created_at: row.created_at,
+            source: 'chat',
+            category: 'Activities',
+            tags: [],
+          },
+          ...prev,
+        ]);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trip_link_index', filter: `trip_id=eq.${tripId}` }, (payload) => {
+        const row: any = payload.new;
+        setLinkItems((prev) => prev.map((l) => (l.id === row.id ? {
+          id: row.id,
+          url: row.url,
+          title: row.og_title || 'Untitled Link',
+          description: row.og_description || '',
+          domain: row.domain || new URL(row.url).hostname,
+          image_url: row.og_image_url || undefined,
+          created_at: row.created_at,
+          source: 'chat',
+          category: 'Activities',
+          tags: [],
+        } : l)));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchMediaItems, fetchLinkItems, tripId]);
 
   const filterByType = useCallback((type: MediaType) => {
     if (type === 'all') return [...mediaItems, ...linkItems];

@@ -21,6 +21,7 @@ import { useTripMembers } from '../hooks/useTripMembers';
 import { useTripChat } from '@/hooks/useTripChat';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleChannels } from '@/hooks/useRoleChannels';
+import { useShareAsset } from '@/hooks/useShareAsset';
 import { PaymentData } from '@/types/payments';
 import { hapticService } from '../services/hapticService';
 
@@ -155,7 +156,8 @@ export const TripChat = ({
       createdAt: message.created_at,
       isBroadcast: message.privacy_mode === 'broadcast',
       isPayment: false,
-      tags: [] as string[]
+      tags: [] as string[],
+      attachments: (message as any).attachments as any
     }));
   }, [liveMessages, shouldUseDemoData]);
 
@@ -203,6 +205,21 @@ export const TripChat = ({
     } catch (error) {
       console.error('Failed to send chat message:', error);
     }
+  };
+
+  // Share helpers
+  const authorName = user?.displayName || user?.email?.split('@')[0] || 'You';
+  const { shareFile, shareLink } = useShareAsset(resolvedTripId, user?.id || 'anonymous', authorName);
+
+  // Wire Share uploads from ChatInput
+  const handleShareFiles = async (files: FileList, kind: 'image' | 'video' | 'document') => {
+    const first = files?.[0];
+    if (!first) return;
+    await shareFile(kind === 'document' ? 'file' : (kind as 'image' | 'video'), first);
+  };
+
+  const handleShareLink = async (url: string) => {
+    await shareLink(url);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -428,6 +445,8 @@ export const TripChat = ({
             onInputChange={setInputMessage}
             onSendMessage={handleSendMessage}
             onKeyPress={handleKeyPress}
+            onFileUpload={handleShareFiles}
+            onShareLink={handleShareLink}
             apiKey=""
             isTyping={isSendingMessage}
             tripMembers={tripMembers}

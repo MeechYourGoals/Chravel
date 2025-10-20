@@ -17,7 +17,7 @@ interface TripMedia {
 
 interface UploadMediaRequest {
   file: File;
-  media_type: 'photo' | 'video' | 'document';
+  media_type: 'image' | 'video' | 'document';
 }
 
 export const useTripMedia = (tripId: string) => {
@@ -45,10 +45,11 @@ export const useTripMedia = (tripId: string) => {
     mutationFn: async ({ file, media_type }: UploadMediaRequest) => {
       // Upload file to Supabase Storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${tripId}/${Date.now()}.${fileExt}`;
+      const subdir = media_type === 'image' ? 'images' : media_type === 'video' ? 'videos' : 'files';
+      const fileName = `${tripId}/${subdir}/${Date.now()}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('advertiser-assets') // Using existing bucket
+        .from('advertiser-assets') // Unified bucket
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
@@ -63,7 +64,7 @@ export const useTripMedia = (tripId: string) => {
         .from('trip_media_index')
         .insert({
           trip_id: tripId,
-          media_type,
+          media_type, // 'image' | 'video' | 'document'
           media_url: publicUrl,
           filename: file.name,
           mime_type: file.type,

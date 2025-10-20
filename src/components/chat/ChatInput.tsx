@@ -11,6 +11,7 @@ interface ChatInputProps {
   onSendMessage: (isBroadcast?: boolean, isPayment?: boolean, paymentData?: any) => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
   onFileUpload?: (files: FileList, type: 'image' | 'video' | 'document') => void;
+  onShareLink?: (url: string) => void;
   apiKey: string; // Keep for backward compatibility but won't be used
   isTyping: boolean;
   tripMembers?: Array<{ id: string; name: string; avatar?: string }>;
@@ -24,6 +25,7 @@ export const ChatInput = ({
   onSendMessage, 
   onKeyPress, 
   onFileUpload,
+  onShareLink,
   isTyping,
   tripMembers = [],
   hidePayments = false,
@@ -93,10 +95,11 @@ export const ChatInput = ({
   const handleLinkShare = () => {
     const url = prompt('Paste the link you want to share:');
     if (url && url.trim()) {
-      // TODO: Send link to chat/media - route to Links tab
-      console.log('Link shared:', url);
-      // For now, just send as a message
-      onInputChange(url);
+      if (onShareLink) {
+        onShareLink(url.trim());
+        return;
+      }
+      onInputChange(url.trim());
       onSendMessage();
     }
   };
