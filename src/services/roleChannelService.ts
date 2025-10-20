@@ -152,7 +152,7 @@ class RoleChannelService {
             id,
             raw_user_meta_data
           ),
-          profiles:sender_id (
+          profiles!sender_id (
             display_name,
             avatar_url
           )

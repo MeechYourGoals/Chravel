@@ -167,9 +167,6 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
               minute: '2-digit' 
             })}
           </span>
-          {message.author && (
-            <span className="text-xs text-gray-500">• {message.author}</span>
-          )}
         </div>
       </div>
     </div>

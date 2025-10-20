@@ -433,7 +433,7 @@ export const TripChat = ({
             tripMembers={tripMembers}
             hidePayments={true}
             isInChannelMode={isPro && !!activeChannel}
-            tripId={tripIdParam || tripId || ''}
+            tripId={resolvedTripId}
           />
         </div>
       </div>

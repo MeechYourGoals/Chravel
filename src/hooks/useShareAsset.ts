@@ -38,7 +38,7 @@ export function useShareAsset(tripId: string) {
         await sendChatMessage({
           trip_id: tripId,
           user_id: userId,
-          author_name: user?.user_metadata?.full_name || 'Unknown User',
+          author_name: user?.email?.split('@')[0] || 'Unknown User',
           content: '', // Empty content for pure media upload
           media_type: kind,
           media_url: publicUrl,
@@ -63,7 +63,7 @@ export function useShareAsset(tripId: string) {
         await sendChatMessage({
           trip_id: tripId,
           user_id: userId,
-          author_name: user?.user_metadata?.full_name || 'Unknown User',
+          author_name: user?.email?.split('@')[0] || 'Unknown User',
           content: file.name,
           attachments: [{
             type: 'file',
@@ -115,7 +115,7 @@ export function useShareAsset(tripId: string) {
       await sendChatMessage({
         trip_id: tripId,
         user_id: userId,
-        author_name: user?.user_metadata?.full_name || 'Unknown User',
+        author_name: user?.email?.split('@')[0] || 'Unknown User',
         content: url,
         link_preview: {
           url,

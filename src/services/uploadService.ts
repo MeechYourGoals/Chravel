@@ -1,6 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
-import { v4 as uuid } from 'uuid';
+
+// Generate UUID using crypto API
+const uuid = () => crypto.randomUUID();
 
 type Tables = Database['public']['Tables'];
 

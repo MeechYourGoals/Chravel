@@ -61,7 +61,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
       {/* Header with filters */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <h2 className="text-2xl font-semibold">Media Gallery</h2>
-        <MediaFilters onSearch={setFilterQuery} />
+        <MediaFilters activeFilter={activeTab} onFilterChange={(filter) => setActiveTab(filter)} />
       </div>
 
       {/* Tabs */}
@@ -112,7 +112,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
                   <Camera size={20} />
                   Photos ({filteredImages.length})
                 </h3>
-                <MediaGrid items={filteredImages} type="image" />
+                <MediaGrid items={filteredImages} />
               </section>
             )}
             
@@ -122,7 +122,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
                   <Video size={20} />
                   Videos ({filteredVideos.length})
                 </h3>
-                <MediaGrid items={filteredVideos} type="video" />
+                <MediaGrid items={filteredVideos} />
               </section>
             )}
             
@@ -163,7 +163,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
         {/* Photos only */}
         <TabsContent value="photos" className="mt-6">
           {filteredImages.length > 0 ? (
-            <MediaGrid items={filteredImages} type="image" />
+            <MediaGrid items={filteredImages} />
           ) : (
             <EmptyState type="photos" onAddMedia={onAddMedia} />
           )}
@@ -172,7 +172,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
         {/* Videos only */}
         <TabsContent value="videos" className="mt-6">
           {filteredVideos.length > 0 ? (
-            <MediaGrid items={filteredVideos} type="video" />
+            <MediaGrid items={filteredVideos} />
           ) : (
             <EmptyState type="videos" onAddMedia={onAddMedia} />
           )}

@@ -31,7 +31,7 @@ export const ChatMessages = ({ messages, isTyping, showMapWidgets = false }: Cha
             <MessageRenderer message={message} showMapWidgets={showMapWidgets} />
             
             {/* 🆕 Render Google Maps widget if available */}
-            {showMapWidgets && message.type === 'assistant' && messageWithGrounding.googleMapsWidget && (
+            {showMapWidgets && messageWithGrounding.googleMapsWidget && (
               <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <GoogleMapsWidget widgetToken={messageWithGrounding.googleMapsWidget} />
               </div>
