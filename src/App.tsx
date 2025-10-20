@@ -34,6 +34,7 @@ const MobileEnterpriseHub = lazy(() => import("./pages/MobileEnterpriseHub").the
 const MobileOrganizationPage = lazy(() => import("./pages/MobileOrganizationPage").then(module => ({ default: module.MobileOrganizationPage })));
 const AcceptOrganizationInvite = lazy(() => import("./pages/AcceptOrganizationInvite").then(module => ({ default: module.AcceptOrganizationInvite })));
 const CravelRecsPage = lazy(() => import("./pages/CravelRecsPage").then(module => ({ default: module.CravelRecsPage })));
+const AdvertiserDashboard = lazy(() => import("./pages/AdvertiserDashboard"));
 
 // Note: Large components are already optimized with code splitting
 
@@ -115,6 +116,11 @@ const App = () => {
                     <Route path="/recs" element={
                       <LazyRoute>
                         <CravelRecsPage />
+                      </LazyRoute>
+                    } />
+                    <Route path="/advertiser" element={
+                      <LazyRoute>
+                        <AdvertiserDashboard />
                       </LazyRoute>
                     } />
                     <Route path="/profile" element={
