@@ -9,7 +9,7 @@ import { useToast } from '../../hooks/use-toast';
 import { ChannelSelector } from './channels/ChannelSelector';
 import { ChannelChatView } from './channels/ChannelChatView';
 import { AdminRoleManager } from './channels/AdminRoleManager';
-import { getDemoChannelsForTrip } from '../../data/demoChannelData';
+import { getDemoChannelsForTrip, isTripWithDemoChannels } from '../../data/demoChannelData';
 
 interface RoleChannelManagerProps {
   isOpen: boolean;
@@ -38,7 +38,10 @@ export const RoleChannelManager = ({
 
   useEffect(() => {
     if (isOpen) {
-      loadChannels();
+      // Auto-enable demo mode for showcase trips to bypass the info popup
+      const shouldAutoDemo = isTripWithDemoChannels(tripId);
+      setDemoMode(shouldAutoDemo);
+      loadChannels(shouldAutoDemo);
       checkAdminStatus();
     }
   }, [isOpen, tripId]);
@@ -48,15 +51,22 @@ export const RoleChannelManager = ({
     setIsAdmin(adminStatus);
   };
 
-  const loadChannels = async () => {
+  const loadChannels = async (forceDemo = demoMode) => {
     setLoading(true);
-    if (demoMode) {
+    if (forceDemo) {
       // Load demo data
       const { channels: demoChannels } = getDemoChannelsForTrip(tripId);
       setChannels(demoChannels);
     } else {
       const accessibleChannels = await channelService.getAccessibleChannels(tripId);
-      setChannels(accessibleChannels);
+      // If no channels and this is a showcase trip, fall back to demo automatically
+      if (accessibleChannels.length === 0 && isTripWithDemoChannels(tripId)) {
+        const { channels: demoChannels } = getDemoChannelsForTrip(tripId);
+        setChannels(demoChannels);
+        setDemoMode(true);
+      } else {
+        setChannels(accessibleChannels);
+      }
     }
     setLoading(false);
   };
@@ -119,6 +129,10 @@ export const RoleChannelManager = ({
               <ChannelChatView 
                 channel={selectedChannel} 
                 onBack={handleBackToList}
+                isDemoMode={demoMode}
+                initialMessages={
+                  demoMode ? getDemoChannelsForTrip(tripId).messagesByChannel.get(selectedChannel.id) || [] : undefined
+                }
               />
             ) : (
               <div className="space-y-6">
@@ -149,7 +163,7 @@ export const RoleChannelManager = ({
                         <strong>Role-Based Channels:</strong> Private channels for specific team roles. 
                         Only members with assigned roles can access their channels.
                       </p>
-                      {(tripId === '13' || tripId === '14') && (
+                      {isTripWithDemoChannels(tripId) && (
                         <Button
                           onClick={enterDemoMode}
                           size="sm"
