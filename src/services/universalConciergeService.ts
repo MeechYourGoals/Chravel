@@ -176,11 +176,25 @@ export class UniversalConciergeService {
       }
 
       // 🆕 Enhanced: Get comprehensive trip context with caching
-      let comprehensiveContext = ContextCacheService.get(tripContext.tripId);
-      
-      if (!comprehensiveContext) {
-        comprehensiveContext = await TripContextAggregator.buildContext(tripContext.tripId);
-        ContextCacheService.set(tripContext.tripId, comprehensiveContext);
+      let comprehensiveContext;
+      try {
+        comprehensiveContext = ContextCacheService.get(tripContext.tripId);
+        
+        if (!comprehensiveContext) {
+          comprehensiveContext = await TripContextAggregator.buildContext(tripContext.tripId);
+          ContextCacheService.set(tripContext.tripId, comprehensiveContext);
+        }
+      } catch (contextError) {
+        console.warn('Failed to build comprehensive context, using fallback:', contextError);
+        // Fallback to EnhancedTripContextService for compatibility
+        try {
+          const enhancedContext = await EnhancedTripContextService.getEnhancedTripContext(tripContext.tripId);
+          comprehensiveContext = enhancedContext;
+        } catch (fallbackError) {
+          console.error('Both context services failed, using basic context:', fallbackError);
+          // Use the basic tripContext passed in
+          comprehensiveContext = tripContext;
+        }
       }
       
       // For non-search queries, use the Google Gemini-powered concierge service
@@ -189,15 +203,23 @@ export class UniversalConciergeService {
           message: message,
           tripContext: comprehensiveContext,
           tripId: tripContext.tripId,
-          chatHistory: comprehensiveContext.messages?.slice(-10) || []
+          chatHistory: comprehensiveContext?.messages?.slice(-10) || []
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function invocation error:', error);
+        throw error;
+      }
+
+      if (!data) {
+        console.error('Edge function returned no data');
+        throw new Error('No response from AI service');
+      }
 
       return {
         content: data.response || "I'm having trouble processing your request right now.",
-        searchResults: data.citations || [],
+        searchResults: data.citations || data.sources || [],
         isFromFallback: false
       };
     } catch (error) {
