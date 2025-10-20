@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { ProUpgradeModal } from './ProUpgradeModal';
 import { EnterpriseSettings } from './EnterpriseSettings';
+import { AdvertiserDashboard } from './AdvertiserDashboard';
 import { ConsumerSettings } from './ConsumerSettings';
 import { EventsSettings } from './EventsSettings';
 import { ProfileSection } from './settings/ProfileSection';
@@ -73,7 +74,8 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection }: Settin
   const sections = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'subscription', label: 'Subscription', icon: Crown }
+    { id: 'subscription', label: 'Subscription', icon: Crown },
+    { id: 'advertiser', label: 'Advertiser', icon: Building }
   ];
 
   const renderSection = () => {
@@ -90,6 +92,8 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection }: Settin
             onShowEnterpriseSettings={() => setActiveSection('enterprise')}
           />
         );
+      case 'advertiser':
+        return <AdvertiserDashboard />;
       default:
         return <ProfileSection userOrganization={userOrganization} />;
     }
