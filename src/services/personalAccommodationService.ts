@@ -46,9 +46,9 @@ class PersonalAccommodationService {
       .select('*')
       .eq('trip_id', tripId)
       .eq('user_id', userId || (await supabase.auth.getUser()).data.user?.id || '')
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+    if (error) {
       console.error('Failed to get user accommodation:', error);
       throw error;
     }

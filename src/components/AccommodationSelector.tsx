@@ -44,11 +44,18 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const loadAccommodations = React.useCallback(async () => {
-    if (!user) return;
-    
     setLoading(true);
     setError(null);
+    
     try {
+      // Handle unauthenticated users - show UI but no personal accommodation
+      if (!user) {
+        console.log('No user authenticated, showing public trip basecamp only');
+        setPersonalAccommodation(null);
+        setLoading(false);
+        return;
+      }
+      
       console.log('Loading accommodations for trip:', tripId, 'user:', user.id);
       // Load personal accommodation
       const personal = await personalAccommodationService.getUserAccommodation(tripId, user.id);
@@ -186,10 +193,10 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
           <div className="flex items-center justify-between">
             <CardTitle className="text-green-900 flex items-center gap-2">
               <Bed size={20} />
-              Your Accommodation
+              Your Accommodation {!user && <Badge variant="outline" className="text-xs">Private</Badge>}
             </CardTitle>
             <div className="flex gap-2">
-              {personalAccommodation && (
+              {personalAccommodation && user && (
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -203,7 +210,8 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
                 variant="outline" 
                 size="sm"
                 onClick={() => setShowPersonalSelector(true)}
-                className="border-green-300 text-green-700 hover:bg-green-100"
+                disabled={!user}
+                className="border-green-300 text-green-700 hover:bg-green-100 disabled:opacity-50"
               >
                 {personalAccommodation ? <Edit size={16} /> : <Plus size={16} />}
                 {personalAccommodation ? 'Edit' : 'Set Your Location'}
@@ -211,7 +219,9 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
             </div>
           </div>
           <p className="text-sm text-green-700">
-            Where you're staying for personalized recommendations and local insights
+            {user 
+              ? "Where you're staying for personalized recommendations and local insights" 
+              : "Sign in to save your private accommodation for personalized directions"}
           </p>
         </CardHeader>
         {personalAccommodation && (
