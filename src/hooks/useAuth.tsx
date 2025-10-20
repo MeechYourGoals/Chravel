@@ -283,10 +283,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async (): Promise<{ error?: string }> => {
     try {
+      // Detect if running in Capacitor (mobile app)
+      const isNativeMobile = !!(window as any).Capacitor?.isNativePlatform();
+      const redirectTo = isNativeMobile
+        ? 'chravel://oauth-callback'
+        : `${window.location.origin}/`;
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`
+          redirectTo
         }
       });
 
@@ -302,10 +308,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithApple = async (): Promise<{ error?: string }> => {
     try {
+      // Detect if running in Capacitor (mobile app)
+      const isNativeMobile = !!(window as any).Capacitor?.isNativePlatform();
+      const redirectTo = isNativeMobile
+        ? 'chravel://oauth-callback'
+        : `${window.location.origin}/`;
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
-          redirectTo: `${window.location.origin}/`
+          redirectTo
         }
       });
 
