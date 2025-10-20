@@ -47,6 +47,7 @@ export class AdvertiserService {
           company_name: profile.company_name,
           company_email: profile.company_email,
           website: profile.website,
+          status: 'active',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };

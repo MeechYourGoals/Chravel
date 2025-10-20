@@ -33,14 +33,27 @@ export const ChannelsPanel: React.FC<ChannelsPanelProps> = ({
     refetch: loadChannels
   } = useChannels(tripId);
 
+  // Convert TripChannel to ChannelWithStats (add missing properties)
+  const channelsWithStats: ChannelWithStats[] = (channels || []).map(channel => ({
+    ...channel,
+    stats: {
+      channel_id: channel.id,
+      member_count: 0,
+      message_count: 0,
+      unread_count: 0
+    },
+    member_count: 0,
+    is_unread: false
+  }));
+
   // Filter channels based on search and tab
-  const filteredChannels = channels.filter(channel => {
-    const matchesSearch = !searchTerm || 
+  const filteredChannels = channelsWithStats.filter(channel => {
+    const matchesSearch = !searchTerm ||
       channel.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       channel.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesTab = activeTab === 'all' || channel.channel_type === activeTab;
-    
+
     return matchesSearch && matchesTab;
   });
 
