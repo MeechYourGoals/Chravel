@@ -1,8 +1,9 @@
 import React from 'react';
-import { MessageCircle, ExternalLink } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { ChatMessage } from './types';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { ChatMessageWithGrounding } from '@/types/grounding';
+import { MessageRenderer } from './MessageRenderer';
 
 interface ChatMessagesProps {
   messages: (ChatMessage | ChatMessageWithGrounding)[];
@@ -26,26 +27,20 @@ export const ChatMessages = ({ messages, isTyping, showMapWidgets = false }: Cha
       {messages.map((message) => {
         const messageWithGrounding = message as ChatMessageWithGrounding;
         return (
-          <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-xs lg:max-w-md ${
-              message.type === 'user' ? '' : 'w-full max-w-lg'
-            }`}>
-              <div className={`px-4 py-3 rounded-2xl ${
-                message.type === 'user'
-                  ? 'bg-gray-800 text-white'
-                  : 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-gray-300 border border-blue-500/20'
-              }`}>
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-              </div>
-
-              {/* 🆕 Render Google Maps widget if available */}
-              {showMapWidgets && message.type === 'assistant' && messageWithGrounding.googleMapsWidget && (
+          <div key={message.id} className="space-y-2">
+            <MessageRenderer message={message} showMapWidgets={showMapWidgets} />
+            
+            {/* 🆕 Render Google Maps widget if available */}
+            {showMapWidgets && message.type === 'assistant' && messageWithGrounding.googleMapsWidget && (
+              <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <GoogleMapsWidget widgetToken={messageWithGrounding.googleMapsWidget} />
-              )}
-
-              {/* 🆕 Enhanced: Show grounding sources with badge */}
-              {messageWithGrounding.sources && messageWithGrounding.sources.length > 0 && (
-                <div className="mt-2 space-y-1 px-2">
+              </div>
+            )}
+            
+            {/* 🆕 Enhanced: Show grounding sources with badge */}
+            {messageWithGrounding.sources && messageWithGrounding.sources.length > 0 && (
+              <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className="space-y-1 px-2 max-w-xs lg:max-w-md">
                   <div className="text-xs font-medium text-gray-400 flex items-center gap-2">
                     <span>Sources:</span>
                     {messageWithGrounding.sources.some(s => s.source === 'google_maps_grounding') && (
@@ -60,15 +55,14 @@ export const ChatMessages = ({ messages, isTyping, showMapWidgets = false }: Cha
                       href={source.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                      className="block text-xs text-blue-400 hover:text-blue-300"
                     >
-                      <ExternalLink size={10} />
                       {source.title}
                     </a>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         );
       })}

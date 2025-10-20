@@ -154,6 +154,7 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
             isTyping={false}
             tripMembers={[]}
             hidePayments={true}
+            tripId={tripId}
           />
         </div>
       </div>
