@@ -89,9 +89,9 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
             />
           </div>
 
-          <div className="space-y-4">
+          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4 flex flex-col h-full">
             {showAddEvent && (
-              <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4">
+              <div className="mb-4 pb-4 border-b border-border">
                 <h3 className="text-lg font-medium text-foreground mb-4">
                   Add Event {selectedDate && `for ${format(selectedDate, 'MMM d')}`}
                 </h3>
@@ -105,7 +105,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
               </div>
             )}
 
-            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4">
+            <div className="flex-1">
               <h3 className="text-lg font-medium text-foreground mb-4">
                 {selectedDate
                   ? `Events for ${format(selectedDate, 'EEEE, MMM d')}`

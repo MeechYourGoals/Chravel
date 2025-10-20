@@ -107,8 +107,8 @@ export const CollaborativeItineraryCalendar = ({ tripMembers, assignments, tripI
           />
         </div>
 
-        {/* Events and Add Event */}
-        <div className="space-y-4">
+        {/* Events and Add Event - Single Card */}
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 flex flex-col h-full">
           <QuickAddButtons
             categories={categories}
             onSelectCategory={(categoryId) => {
@@ -117,12 +117,14 @@ export const CollaborativeItineraryCalendar = ({ tripMembers, assignments, tripI
             }}
           />
 
-          <CategoryEventList
-            events={selectedDateEvents}
-            selectedDate={selectedDate}
-            assignments={assignments}
-            getCategoryInfo={getCategoryInfo}
-          />
+          <div className="flex-1 mt-4">
+            <CategoryEventList
+              events={selectedDateEvents}
+              selectedDate={selectedDate}
+              assignments={assignments}
+              getCategoryInfo={getCategoryInfo}
+            />
+          </div>
         </div>
       </div>
 
