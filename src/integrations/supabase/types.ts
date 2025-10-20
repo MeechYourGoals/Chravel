@@ -342,6 +342,85 @@ export type Database = {
           },
         ]
       }
+      channel_members: {
+        Row: {
+          channel_id: string
+          id: string
+          is_muted: boolean | null
+          joined_at: string | null
+          last_read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          id?: string
+          is_muted?: boolean | null
+          joined_at?: string | null
+          last_read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          id?: string
+          is_muted?: boolean | null
+          joined_at?: string | null
+          last_read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_members_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "trip_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channel_messages: {
+        Row: {
+          channel_id: string
+          content: string
+          created_at: string | null
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          message_type: string | null
+          metadata: Json | null
+          sender_id: string
+        }
+        Insert: {
+          channel_id: string
+          content: string
+          created_at?: string | null
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          message_type?: string | null
+          metadata?: Json | null
+          sender_id: string
+        }
+        Update: {
+          channel_id?: string
+          content?: string
+          created_at?: string | null
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          message_type?: string | null
+          metadata?: Json | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "trip_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_qa_questions: {
         Row: {
           answer: string | null
@@ -1321,6 +1400,98 @@ export type Database = {
           },
         ]
       }
+      trip_admins: {
+        Row: {
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_admins_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_channels: {
+        Row: {
+          archived_at: string | null
+          channel_name: string
+          channel_slug: string
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          is_archived: boolean | null
+          is_private: boolean | null
+          required_role_id: string | null
+          trip_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          channel_name: string
+          channel_slug: string
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          is_private?: boolean | null
+          required_role_id?: string | null
+          trip_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          channel_name?: string
+          channel_slug?: string
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          is_private?: boolean | null
+          required_role_id?: string | null
+          trip_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_channels_required_role_id_fkey"
+            columns: ["required_role_id"]
+            isOneToOne: false
+            referencedRelation: "trip_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_channels_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_chat_messages: {
         Row: {
           attachments: Json | null
@@ -1941,6 +2112,44 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_roles: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          role_name: string
+          trip_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          role_name: string
+          trip_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          role_name?: string
+          trip_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_roles_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_tasks: {
         Row: {
           completed: boolean
@@ -2177,11 +2386,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_trip_roles: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          role_id: string
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role_id: string
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role_id?: string
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_trip_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "trip_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_trip_roles_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      can_access_channel: {
+        Args: { _channel_id: string; _user_id: string }
+        Returns: boolean
+      }
       create_event_with_conflict_check: {
         Args: {
           p_created_by: string
@@ -2240,6 +2495,10 @@ export type Database = {
           user_local_start: string
         }[]
       }
+      get_user_role_ids: {
+        Args: { _trip_id: string; _user_id: string }
+        Returns: string[]
+      }
       get_visible_profile_fields: {
         Args: { profile_user_id: string; requesting_user_id: string }
         Returns: {
@@ -2272,6 +2531,10 @@ export type Database = {
       }
       is_org_member: {
         Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_trip_admin: {
+        Args: { _trip_id: string; _user_id: string }
         Returns: boolean
       }
       toggle_task_status: {
