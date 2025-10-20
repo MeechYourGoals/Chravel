@@ -480,6 +480,35 @@
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 
+  /* Chat scroll container with smooth scrolling */
+  .chat-scroll-container {
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Custom scrollbar for desktop chat */
+  @media (min-width: 900px) {
+    .chat-scroll-container::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chat-scroll-container::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
+
+    .chat-scroll-container::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+    }
+
+    .chat-scroll-container::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+
   /* Geometric background accents */
   .geometric-bg {
     position: relative;

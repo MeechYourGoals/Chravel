@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Send, MessageCircle } from 'lucide-react';
 import { currentUserAvatar } from '@/utils/mockAvatars';
 import { MessageReactionBar } from './chat/MessageReactionBar';
+import { VirtualizedMessageContainer } from './chat/VirtualizedMessageContainer';
 import { useUnifiedMessages } from '@/hooks/useUnifiedMessages';
 
 interface DemoChatProps {
@@ -22,7 +23,13 @@ interface DemoMessage {
 }
 
 export const DemoChat = ({ tripId }: DemoChatProps) => {
-  const { messages, sendMessage } = useUnifiedMessages({ tripId, enabled: true });
+  const { 
+    messages, 
+    sendMessage,
+    loadMore,
+    hasMore,
+    isLoadingMore 
+  } = useUnifiedMessages({ tripId, enabled: true });
   const [inputValue, setInputValue] = useState('');
   const [reactions, setReactions] = useState<Record<string, Record<string, { count: number; userReacted: boolean }>>>({});
 
@@ -86,16 +93,19 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
       {/* Message list */}
 
       {/* Chat Interface */}
-      <div className="bg-gray-900/50 rounded-xl overflow-hidden">
+      <div className="bg-gray-900/50 rounded-xl overflow-hidden flex flex-col" style={{ height: '500px' }}>
         {/* Messages Container */}
-        <div className="h-96 overflow-y-auto p-4 space-y-4">
-          {filteredMessages.length === 0 ? (
+        {filteredMessages.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center">
             <div className="text-center py-8">
               <MessageCircle size={32} className="text-gray-600 mx-auto mb-2" />
               <p className="text-gray-500 text-sm">No messages yet</p>
             </div>
-          ) : (
-            messages.map((message) => (
+          </div>
+        ) : (
+          <VirtualizedMessageContainer
+            messages={messages}
+            renderMessage={(message) => (
               <div key={message.id} className="flex items-start gap-3">
                 {/* Avatar */}
                 <img
@@ -132,9 +142,13 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
                   />
                 </div>
               </div>
-            ))
-          )}
-        </div>
+            )}
+            onLoadMore={loadMore}
+            hasMore={hasMore}
+            isLoading={isLoadingMore}
+            initialVisibleCount={10}
+          />
+        )}
 
         {/* Message Input */}
         <div className="border-t border-gray-700 p-4">

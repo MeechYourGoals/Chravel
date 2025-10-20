@@ -3,10 +3,13 @@ import { useOrientation } from '../../hooks/useOrientation';
 import { ChatInput } from '../chat/ChatInput';
 import { MessageList } from '../chat/MessageList';
 import { InlineReplyComponent } from '../chat/InlineReplyComponent';
+import { VirtualizedMessageContainer } from '../chat/VirtualizedMessageContainer';
+import { MessageItem } from '../chat/MessageItem';
 import { useChatComposer, ChatMessage } from '../../hooks/useChatComposer';
 import { useKeyboardHandler } from '../../hooks/useKeyboardHandler';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { useSwipeGesture } from '../../hooks/useSwipeGesture';
+import { useUnifiedMessages } from '../../hooks/useUnifiedMessages';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { MessageSkeleton } from './SkeletonLoader';
 import { hapticService } from '../../services/hapticService';
@@ -20,9 +23,30 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
   const orientation = useOrientation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [reactions, setReactions] = useState<{ [messageId: string]: { [reaction: string]: { count: number; userReacted: boolean } } }>({});
+  
+  // Use unified messages hook for real-time chat
+  const {
+    messages: rawMessages,
+    isLoading,
+    sendMessage: sendUnifiedMessage,
+    loadMore,
+    hasMore,
+    isLoadingMore
+  } = useUnifiedMessages({ tripId, enabled: true });
+
+  // Convert unified messages to chat messages format
+  const messages: ChatMessage[] = rawMessages.map(msg => ({
+    id: msg.id,
+    text: msg.content,
+    sender: {
+      id: msg.userId,
+      name: msg.userName,
+      avatar: msg.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.userName}`
+    },
+    createdAt: new Date(msg.created_at).toISOString(),
+    isBroadcast: false
+  }));
   
   const {
     inputMessage,
@@ -31,17 +55,6 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
     clearReply,
     sendMessage
   } = useChatComposer({ tripId });
-
-  // Pull to refresh
-  const { isPulling, isRefreshing, pullDistance, shouldTrigger } = usePullToRefresh({
-    onRefresh: async () => {
-      setIsLoading(true);
-      // Simulate loading new messages
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setIsLoading(false);
-    },
-    threshold: 80
-  });
 
   // Handle keyboard visibility for better UX
   const { isKeyboardVisible } = useKeyboardHandler({
@@ -54,21 +67,11 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
     }
   });
 
-  // Simulate initial load
-  useEffect(() => {
-    setTimeout(() => setIsLoading(false), 800);
-  }, []);
-
-  // Auto-scroll to bottom on new messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
   const handleMobileSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: any) => {
     await hapticService.light();
-    const message = await sendMessage({ isBroadcast, isPayment, paymentData });
-    if (message) {
-      setMessages(prev => [...prev, message]);
+    if (inputMessage.trim()) {
+      await sendUnifiedMessage(inputMessage);
+      setInputMessage('');
     }
   };
 
@@ -94,16 +97,9 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
 
   return (
     <div className="flex flex-col h-full bg-black relative">
-      <PullToRefreshIndicator
-        isRefreshing={isRefreshing}
-        pullDistance={pullDistance}
-        threshold={80}
-      />
-
       {/* Messages Container - Scrollable with orientation awareness */}
       <div 
-        ref={containerRef}
-        className="flex-1 overflow-y-auto px-4 py-4 native-scroll"
+        className="flex-1 flex flex-col"
         style={{
           maxHeight: isKeyboardVisible 
             ? orientation === 'portrait' ? 'calc(100dvh - 300px)' : 'calc(100dvh - 240px)'
@@ -111,18 +107,24 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
         }}
       >
         {isLoading ? (
-          <MessageSkeleton />
+          <div className="flex-1 p-4">
+            <MessageSkeleton />
+          </div>
         ) : (
-          <>
-            <MessageList
-              messages={messages}
-              reactions={reactions}
-              onReaction={handleReaction}
-              emptyStateTitle="Start the conversation"
-              emptyStateDescription="Send your first message to the group"
-            />
-            <div ref={messagesEndRef} />
-          </>
+          <VirtualizedMessageContainer
+            messages={messages}
+            renderMessage={(message) => (
+              <MessageItem
+                message={message}
+                reactions={reactions[message.id]}
+                onReaction={handleReaction}
+              />
+            )}
+            onLoadMore={loadMore}
+            hasMore={hasMore}
+            isLoading={isLoadingMore}
+            initialVisibleCount={10}
+          />
         )}
       </div>
 

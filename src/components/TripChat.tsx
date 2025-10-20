@@ -12,6 +12,8 @@ import { MessageList } from './chat/MessageList';
 import { MessageFilters } from './chat/MessageFilters';
 import { InlineReplyComponent } from './chat/InlineReplyComponent';
 import { ChannelSwitcher } from './chat/ChannelSwitcher';
+import { VirtualizedMessageContainer } from './chat/VirtualizedMessageContainer';
+import { MessageItem } from './chat/MessageItem';
 import { PullToRefreshIndicator } from './mobile/PullToRefreshIndicator';
 import { MessageSkeleton } from './mobile/SkeletonLoader';
 import { getMockAvatar } from '../utils/mockAvatars';
@@ -72,7 +74,10 @@ export const TripChat = ({
     messages: liveMessages,
     isLoading: liveLoading,
     sendMessageAsync: sendTripMessage,
-    isCreating: isSendingMessage
+    isCreating: isSendingMessage,
+    loadMore: loadMoreMessages,
+    hasMore,
+    isLoadingMore
   } = useTripChat(resolvedTripId);
 
   // 🆕 Role channels for enterprise trips
@@ -368,16 +373,39 @@ export const TripChat = ({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto bg-gray-800/30 rounded-lg mx-4 mb-4">
-        <div className="p-4">
-          <MessageList
-            messages={filteredMessages}
-            reactions={reactions}
-            onReaction={handleReaction}
-            emptyStateTitle={shouldUseDemoData ? undefined : 'No messages yet'}
-            emptyStateDescription={shouldUseDemoData ? undefined : 'Start the conversation with your team'}
-          />
-        </div>
+      <div className="flex-1 flex flex-col min-h-0">
+        {isLoading ? (
+          <div className="flex-1 overflow-y-auto bg-gray-800/30 rounded-lg mx-4 mb-4 p-4">
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-start gap-3 animate-pulse">
+                  <div className="w-10 h-10 rounded-full bg-slate-700" />
+                  <div className="flex-1">
+                    <div className="h-4 bg-slate-700 rounded w-1/4 mb-2" />
+                    <div className="h-16 bg-slate-700 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 bg-gray-800/30 rounded-lg mx-4 mb-4 overflow-hidden">
+            <VirtualizedMessageContainer
+              messages={filteredMessages}
+              renderMessage={(message) => (
+                <MessageItem
+                  message={message}
+                  reactions={reactions[message.id]}
+                  onReaction={handleReaction}
+                />
+              )}
+              onLoadMore={loadMoreMessages}
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+              initialVisibleCount={10}
+            />
+          </div>
+        )}
       </div>
 
       {replyingTo && (

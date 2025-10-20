@@ -102,13 +102,16 @@ export const useChannelMessages = (channelId: string) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Load messages
+  // Load initial messages (last 10)
   const loadMessages = async () => {
     try {
       setLoading(true);
-      const msgs = await channelService.getChannelMessages(channelId);
+      const msgs = await channelService.getChannelMessages(channelId, 10);
       setMessages(msgs);
+      setHasMore(msgs.length === 10);
     } catch (error) {
       console.error('Failed to load channel messages:', error);
     } finally {
@@ -143,11 +146,35 @@ export const useChannelMessages = (channelId: string) => {
     }
   };
 
+  // Load more messages
+  const loadMore = async () => {
+    if (!hasMore || isLoadingMore || messages.length === 0) return;
+
+    setIsLoadingMore(true);
+    try {
+      const oldestMessage = messages[0];
+      const olderMessages = await channelService.getChannelMessages(channelId, 20, oldestMessage.created_at);
+      if (olderMessages.length > 0) {
+        setMessages(prev => [...olderMessages, ...prev]);
+        setHasMore(olderMessages.length === 20);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('Failed to load more messages:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
   return {
     messages,
     loading,
     sending,
     sendMessage,
     refresh: loadMessages,
+    loadMore,
+    hasMore,
+    isLoadingMore,
   };
 };
