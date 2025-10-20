@@ -16,7 +16,14 @@ export const useChannels = (tripId: string) => {
     queryKey: ['channels', tripId],
     queryFn: async () => {
       try {
-        return await eventChannelService.getChannels(tripId);
+        const baseChannels = await eventChannelService.getChannels(tripId);
+        // Add ChannelWithStats properties
+        return baseChannels.map(ch => ({
+          ...ch,
+          stats: { channel_id: ch.id, member_count: 0, message_count: 0 },
+          member_count: 0,
+          is_unread: false
+        })) as ChannelWithStats[];
       } catch (error) {
         console.error('Failed to load channels:', error);
         return []; // Return empty array on error to prevent app crash

@@ -31,6 +31,7 @@ export const AdvertiserDashboard = () => {
     company_name: 'Paradise Resorts International',
     company_email: 'marketing@paradiseresorts.com',
     website: 'https://www.paradiseresorts.com',
+    status: 'active',
     created_at: new Date('2024-01-15').toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -43,12 +44,11 @@ export const AdvertiserDashboard = () => {
       description: 'Experience luxury at our beachfront resorts this summer with exclusive discounts for Chravel users.',
       discount_details: '30% off all bookings + Free spa treatment',
       images: [
-        'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800',
-        'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800'
+        { url: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800', alt: 'Resort view', order: 0 },
+        { url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800', alt: 'Water villa', order: 1 }
       ],
       destination_info: {
-        location: 'Maldives',
-        highlights: ['Private beaches', 'Water villas', 'Spa & wellness', 'Fine dining']
+        location: 'Maldives'
       },
       tags: ['luxury', 'beach', 'resort', 'spa'],
       status: 'active',
@@ -58,16 +58,19 @@ export const AdvertiserDashboard = () => {
       start_date: new Date('2024-06-01').toISOString(),
       end_date: new Date('2024-08-31').toISOString(),
       created_at: new Date('2024-05-15').toISOString(),
-      targeting: [
-        {
-          id: 'demo-targeting-1',
-          campaign_id: 'demo-campaign-1',
-          interests: ['luxury travel', 'beach vacation', 'wellness'],
-          locations: ['United States', 'Canada', 'United Kingdom'],
-          trip_types: ['honeymoon', 'anniversary', 'romantic getaway'],
-          created_at: new Date('2024-05-15').toISOString()
-        }
-      ]
+      updated_at: new Date('2024-05-15').toISOString(),
+      targeting: {
+        id: 'demo-targeting-1',
+        campaign_id: 'demo-campaign-1',
+        age_min: 25,
+        age_max: 55,
+        genders: ['all'],
+        interests: ['luxury travel', 'beach vacation', 'wellness'],
+        locations: ['United States', 'Canada', 'United Kingdom'],
+        trip_types: ['honeymoon', 'anniversary', 'romantic getaway'],
+        created_at: new Date('2024-05-15').toISOString(),
+        updated_at: new Date('2024-05-15').toISOString()
+      }
     },
     {
       id: 'demo-campaign-2',
@@ -76,12 +79,11 @@ export const AdvertiserDashboard = () => {
       description: 'Calling all thrill-seekers! Experience the ultimate adventure vacation with guided tours and activities.',
       discount_details: '20% off adventure packages + Free equipment rental',
       images: [
-        'https://images.unsplash.com/photo-1527004013197-933c4bb611b3?w=800',
-        'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800'
+        { url: 'https://images.unsplash.com/photo-1527004013197-933c4bb611b3?w=800', alt: 'Mountain adventure', order: 0 },
+        { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800', alt: 'Nature view', order: 1 }
       ],
       destination_info: {
-        location: 'Costa Rica',
-        highlights: ['Zip-lining', 'White water rafting', 'Volcano tours', 'Wildlife safaris']
+        location: 'Costa Rica'
       },
       tags: ['adventure', 'outdoor', 'nature', 'active'],
       status: 'active',
@@ -91,16 +93,19 @@ export const AdvertiserDashboard = () => {
       start_date: new Date('2024-07-01').toISOString(),
       end_date: new Date('2024-09-30').toISOString(),
       created_at: new Date('2024-06-20').toISOString(),
-      targeting: [
-        {
-          id: 'demo-targeting-2',
-          campaign_id: 'demo-campaign-2',
-          interests: ['adventure travel', 'outdoor activities', 'eco-tourism'],
-          locations: ['United States', 'Canada', 'Australia'],
-          trip_types: ['adventure', 'group travel', 'eco-tourism'],
-          created_at: new Date('2024-06-20').toISOString()
-        }
-      ]
+      updated_at: new Date('2024-06-20').toISOString(),
+      targeting: {
+        id: 'demo-targeting-2',
+        campaign_id: 'demo-campaign-2',
+        age_min: 20,
+        age_max: 45,
+        genders: ['all'],
+        interests: ['adventure travel', 'outdoor activities', 'eco-tourism'],
+        locations: ['United States', 'Canada', 'Australia'],
+        trip_types: ['adventure', 'group travel', 'eco-tourism'],
+        created_at: new Date('2024-06-20').toISOString(),
+        updated_at: new Date('2024-06-20').toISOString()
+      }
     }
   ];
 

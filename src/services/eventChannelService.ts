@@ -16,7 +16,23 @@ class EventChannelService {
         .order('created_at');
 
       if (error) throw error;
-      return data || [];
+      
+      // Map database columns to TripChannel type
+      const channels = (data || []).map(ch => ({
+        id: ch.id,
+        trip_id: ch.trip_id,
+        name: ch.channel_name,
+        slug: ch.channel_slug,
+        description: ch.description,
+        channel_type: ch.is_private ? 'role' : 'custom',
+        role_filter: null,
+        created_by: ch.created_by,
+        created_at: ch.created_at,
+        updated_at: ch.updated_at,
+        is_archived: ch.is_archived || false
+      }));
+      
+      return channels as TripChannel[];
     } catch (error) {
       console.error('Failed to fetch channels:', error);
       return [];
@@ -34,18 +50,35 @@ class EventChannelService {
         .from('trip_channels')
         .insert({
           trip_id: request.trip_id,
-          name: request.name,
-          slug,
+          channel_name: request.name,
+          channel_slug: slug,
           description: request.description,
           channel_type: request.channel_type,
           role_filter: request.role_filter || null,
-          created_by: user.id
+          created_by: user.id,
+          is_private: request.channel_type === 'role'
         })
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      
+      // Map response to TripChannel
+      const channel: TripChannel = {
+        id: data.id,
+        trip_id: data.trip_id,
+        name: data.channel_name,
+        slug: data.channel_slug,
+        description: data.description,
+        channel_type: data.is_private ? 'role' : 'custom',
+        role_filter: null,
+        created_by: data.created_by,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        is_archived: data.is_archived || false
+      };
+      
+      return channel;
     } catch (error) {
       console.error('Failed to create channel:', error);
       return null;
@@ -142,7 +175,6 @@ class EventChannelService {
         .from('channel_messages')
         .select('*')
         .eq('channel_id', channelId)
-        .eq('is_deleted', false)
         .order('created_at', { ascending: false })
         .limit(limit);
 
@@ -153,7 +185,22 @@ class EventChannelService {
       const { data, error } = await query;
       if (error) throw error;
 
-      return (data || []).reverse();
+      // Map to ChannelMessage type
+      const messages = (data || []).map(msg => ({
+        id: msg.id,
+        channel_id: msg.channel_id,
+        trip_id: '', // Will be fetched from channel if needed
+        user_id: msg.sender_id,
+        content: msg.content,
+        author_name: 'User', // Fetch from profiles if needed
+        created_at: msg.created_at,
+        updated_at: msg.edited_at || msg.created_at,
+        edited_at: msg.edited_at,
+        is_deleted: !!msg.deleted_at,
+        deleted_at: msg.deleted_at
+      }));
+
+      return messages.reverse() as ChannelMessage[];
     } catch (error) {
       console.error('Failed to load messages:', error);
       return [];
@@ -169,16 +216,29 @@ class EventChannelService {
         .from('channel_messages')
         .insert({
           channel_id: input.channel_id,
-          trip_id: input.trip_id,
-          user_id: user.id,
+          sender_id: user.id,
           content: input.content,
-          attachments: input.attachments || []
+          message_type: 'text',
+          metadata: {}
         })
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      
+      // Map to ChannelMessage type
+      const message: ChannelMessage = {
+        id: data.id,
+        channel_id: data.channel_id,
+        trip_id: input.trip_id,
+        user_id: data.sender_id,
+        content: data.content,
+        author_name: 'You',
+        created_at: data.created_at,
+        updated_at: data.created_at
+      };
+      
+      return message;
     } catch (error) {
       console.error('Failed to send message:', error);
       return null;

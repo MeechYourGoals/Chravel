@@ -9,6 +9,7 @@ import { useToast } from '../../hooks/use-toast';
 import { ChannelSelector } from './channels/ChannelSelector';
 import { ChannelChatView } from './channels/ChannelChatView';
 import { AdminRoleManager } from './channels/AdminRoleManager';
+import { getDemoChannelsForTrip } from '../../data/demoChannelData';
 
 interface RoleChannelManagerProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export const RoleChannelManager = ({
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [demoMode, setDemoMode] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -48,9 +50,27 @@ export const RoleChannelManager = ({
 
   const loadChannels = async () => {
     setLoading(true);
-    const accessibleChannels = await channelService.getAccessibleChannels(tripId);
-    setChannels(accessibleChannels);
+    if (demoMode) {
+      // Load demo data
+      const { channels: demoChannels } = getDemoChannelsForTrip(tripId);
+      setChannels(demoChannels);
+    } else {
+      const accessibleChannels = await channelService.getAccessibleChannels(tripId);
+      setChannels(accessibleChannels);
+    }
     setLoading(false);
+  };
+
+  const enterDemoMode = () => {
+    setDemoMode(true);
+    setSelectedChannel(null);
+    loadChannels();
+  };
+
+  const exitDemoMode = () => {
+    setDemoMode(false);
+    setSelectedChannel(null);
+    loadChannels();
   };
 
   const handleChannelSelect = (channel: TripChannel) => {
@@ -102,13 +122,46 @@ export const RoleChannelManager = ({
               />
             ) : (
               <div className="space-y-6">
+                {/* Demo Mode Banner */}
+                {demoMode && (
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-blue-400 text-sm">
+                        <strong>Demo Mode:</strong> Viewing sample channels with mock messages
+                      </p>
+                      <Button
+                        onClick={exitDemoMode}
+                        size="sm"
+                        variant="outline"
+                        className="border-blue-500 text-blue-400 hover:bg-blue-500/10"
+                      >
+                        Exit Demo
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Info Banner */}
-                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-                  <p className="text-red-400 text-sm">
-                    <strong>Role-Based Channels:</strong> Private channels for specific team roles. 
-                    Only members with assigned roles can access their channels.
-                  </p>
-                </div>
+                {!demoMode && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-red-400 text-sm">
+                        <strong>Role-Based Channels:</strong> Private channels for specific team roles. 
+                        Only members with assigned roles can access their channels.
+                      </p>
+                      {(tripId === '13' || tripId === '14') && (
+                        <Button
+                          onClick={enterDemoMode}
+                          size="sm"
+                          variant="outline"
+                          className="border-blue-500 text-blue-400 hover:bg-blue-500/10 flex-shrink-0 ml-4"
+                        >
+                          View Demo
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Channel List */}
                 <div className="space-y-3">

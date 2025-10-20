@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Settings, UserCheck, AlertTriangle, UserPlus, UsersRound, MessageCircle, Download, Grid3x3, Network, MessageSquare } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, Settings, AlertTriangle, UserPlus, UsersRound, MessageCircle, MessageSquare } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
 import { ProTripCategory, getCategoryConfig } from '../../types/proCategories';
 import { EditMemberRoleModal } from './EditMemberRoleModal';
@@ -8,11 +8,9 @@ import { BulkRoleAssignmentModal } from './BulkRoleAssignmentModal';
 import { QuickContactMenu } from './QuickContactMenu';
 import { RoleContactSheet } from './RoleContactSheet';
 import { ExportTeamDirectoryModal } from './ExportTeamDirectoryModal';
-import { TeamOrgChart } from './TeamOrgChart';
 import { RoleChannelManager } from './RoleChannelManager';
 import { extractUniqueRoles, getRoleColorClass } from '../../utils/roleUtils';
 import { Button } from '../ui/button';
-import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface TeamTabProps {
   roster: ProParticipant[];
@@ -30,21 +28,7 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [roleContactSheet, setRoleContactSheet] = useState<{ role: string; members: ProParticipant[] } | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'orgchart'>('grid');
   const [showChannelManager, setShowChannelManager] = useState(false);
-
-  // Load view preference from localStorage
-  useEffect(() => {
-    const savedView = localStorage.getItem('team-view-mode') as 'grid' | 'orgchart' | null;
-    if (savedView) {
-      setViewMode(savedView);
-    }
-  }, []);
-
-  const handleViewModeChange = (mode: 'grid' | 'orgchart') => {
-    setViewMode(mode);
-    localStorage.setItem('team-view-mode', mode);
-  };
 
   const { terminology: { teamLabel }, roles: categoryRoles } = getCategoryConfig(category);
 
@@ -111,53 +95,42 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
           </div>
         </div>
 
-        {/* Row 2: Centered View Toggle + Action Buttons */}
-        <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 mb-6">
-          {/* View Mode Tabs (Grid, Org Chart only) */}
-          <Tabs value={viewMode} onValueChange={handleViewModeChange} className="w-full md:w-auto">
-            <TabsList className="grid grid-cols-2 w-full md:w-auto bg-gray-800/50 border border-gray-700">
-              <TabsTrigger value="grid" className="flex items-center gap-1.5">
-                <Grid3x3 size={14} />
-                Grid
-              </TabsTrigger>
-              <TabsTrigger value="orgchart" className="flex items-center gap-1.5">
-                <Network size={14} />
-                Org Chart
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+        {/* Row 2: Centered Action Buttons */}
+        <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-6">
+          {/* Main Action Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {/* Team Members Button (static - always on grid view) */}
+            <Button
+              variant="outline"
+              className="border-gray-600 hover:bg-white/10 hover:border-gray-500 transition-all duration-200 min-w-[140px]"
+              disabled
+            >
+              <Users size={16} className="mr-2" />
+              Team Members
+            </Button>
 
-          {/* Action Buttons Group */}
-          <div className="flex flex-wrap items-center justify-center gap-2 w-full md:w-auto">
             {/* Channels Button */}
             {tripId && (
               <Button
                 onClick={() => setShowChannelManager(true)}
                 variant="outline"
-                className="border-gray-600 hover:bg-white/10 hover:border-gray-500 transition-all duration-200"
+                className="border-gray-600 hover:bg-white/10 hover:border-gray-500 transition-all duration-200 min-w-[140px]"
                 title="Manage role-based chat channels"
               >
                 <MessageSquare size={16} className="mr-2" />
                 Channels
               </Button>
             )}
+          </div>
 
-            {/* Export Button */}
-            <Button
-              onClick={() => setShowExportModal(true)}
-              variant="outline"
-              className="border-gray-600 hover:bg-white/10 hover:border-gray-500 transition-all duration-200"
-              title="Export team directory"
-            >
-              <Download size={16} className="mr-2" />
-              Export
-            </Button>
-
+          {/* Secondary Action Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
             {/* Bulk Edit Button */}
             {!isReadOnly && onUpdateMemberRole && (
               <Button
                 onClick={() => setShowBulkModal(true)}
                 variant="outline"
+                size="sm"
                 className="border-gray-600 hover:bg-white/10 hover:border-gray-500 transition-all duration-200"
                 title="Assign roles to multiple members"
               >
@@ -170,6 +143,7 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
             {hasUnassignedRoles && !isReadOnly && (
               <Button
                 onClick={handleAssignRolesClick}
+                size="sm"
                 className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white transition-all duration-200"
                 title="Assign roles to team members"
               >
@@ -228,23 +202,9 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
         )}
       </div>
 
-      {/* Conditional View Rendering */}
-      {viewMode === 'orgchart' ? (
-        <TeamOrgChart
-          roster={roster}
-          category={category}
-          onMemberClick={(memberId) => {
-            const member = roster.find(m => m.id === memberId);
-            if (member) {
-              setEditingMember(member);
-            }
-          }}
-        />
-      ) : (
-        /* Team Grid View */
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredRoster.map((member) => (
+      {/* Team Grid View */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {filteredRoster.map((member) => (
           <div key={member.id} className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-xl p-4">
             <div className="flex items-start gap-3">
               <img
@@ -301,16 +261,14 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
               </div>
             )}
           </div>
-            ))}
-          </div>
+        ))}
+      </div>
 
-          {filteredRoster.length === 0 && (
-            <div className="text-center py-12">
-              <Users size={48} className="text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400">No team members found for the selected role.</p>
-            </div>
-          )}
-        </>
+      {filteredRoster.length === 0 && (
+        <div className="text-center py-12">
+          <Users size={48} className="text-gray-600 mx-auto mb-4" />
+          <p className="text-gray-400">No team members found for the selected role.</p>
+        </div>
       )}
 
       {/* Role Edit Modal */}
