@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      advertisers: {
+        Row: {
+          company_email: string
+          company_name: string
+          created_at: string | null
+          id: string
+          status: string
+          updated_at: string | null
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          company_email: string
+          company_name: string
+          created_at?: string | null
+          id?: string
+          status?: string
+          updated_at?: string | null
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          company_email?: string
+          company_name?: string
+          created_at?: string | null
+          id?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       ai_queries: {
         Row: {
           created_at: string | null
@@ -114,6 +147,159 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      campaign_analytics: {
+        Row: {
+          campaign_id: string
+          created_at: string | null
+          event_data: Json | null
+          event_type: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string | null
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string | null
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_analytics_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_targeting: {
+        Row: {
+          age_max: number | null
+          age_min: number | null
+          campaign_id: string
+          created_at: string | null
+          genders: string[] | null
+          id: string
+          interests: string[] | null
+          locations: string[] | null
+          trip_types: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          age_max?: number | null
+          age_min?: number | null
+          campaign_id: string
+          created_at?: string | null
+          genders?: string[] | null
+          id?: string
+          interests?: string[] | null
+          locations?: string[] | null
+          trip_types?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          age_max?: number | null
+          age_min?: number | null
+          campaign_id?: string
+          created_at?: string | null
+          genders?: string[] | null
+          id?: string
+          interests?: string[] | null
+          locations?: string[] | null
+          trip_types?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_targeting_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: true
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          advertiser_id: string
+          budget_daily: number | null
+          budget_total: number | null
+          clicks: number | null
+          conversions: number | null
+          created_at: string | null
+          description: string | null
+          destination_info: Json | null
+          discount_details: string | null
+          end_date: string | null
+          id: string
+          images: Json
+          impressions: number | null
+          name: string
+          start_date: string | null
+          status: string
+          tags: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          advertiser_id: string
+          budget_daily?: number | null
+          budget_total?: number | null
+          clicks?: number | null
+          conversions?: number | null
+          created_at?: string | null
+          description?: string | null
+          destination_info?: Json | null
+          discount_details?: string | null
+          end_date?: string | null
+          id?: string
+          images?: Json
+          impressions?: number | null
+          name: string
+          start_date?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          advertiser_id?: string
+          budget_daily?: number | null
+          budget_total?: number | null
+          clicks?: number | null
+          conversions?: number | null
+          created_at?: string | null
+          description?: string | null
+          destination_info?: Json | null
+          discount_details?: string | null
+          end_date?: string | null
+          id?: string
+          images?: Json
+          impressions?: number | null
+          name?: string
+          start_date?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_advertiser_id_fkey"
+            columns: ["advertiser_id"]
+            isOneToOne: false
+            referencedRelation: "advertisers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       category_assignments: {
         Row: {
@@ -2075,6 +2261,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_campaign_stat: {
+        Args: { p_campaign_id: string; p_stat_type: string }
+        Returns: undefined
       }
       is_org_admin: {
         Args: { _org_id: string; _user_id: string }

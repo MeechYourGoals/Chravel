@@ -46,7 +46,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
 
       if (error) throw error;
 
-      onUpdate(data);
+      onUpdate(data as unknown as Advertiser);
       setIsEditing(false);
       toast({
         title: "Settings Updated",

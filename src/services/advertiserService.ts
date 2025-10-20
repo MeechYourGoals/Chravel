@@ -23,7 +23,7 @@ export class AdvertiserService {
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      return data as unknown as Advertiser | null;
     } catch (error) {
       console.error('Error fetching advertiser profile:', error);
       return null;
@@ -49,7 +49,7 @@ export class AdvertiserService {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as unknown as Advertiser;
     } catch (error) {
       console.error('Error creating advertiser profile:', error);
       throw error;
@@ -72,7 +72,7 @@ export class AdvertiserService {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as CampaignWithTargeting[];
     } catch (error) {
       console.error('Error fetching campaigns:', error);
       return [];
@@ -91,7 +91,7 @@ export class AdvertiserService {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as unknown as CampaignWithTargeting | null;
     } catch (error) {
       console.error('Error fetching campaign:', error);
       return null;
@@ -111,8 +111,8 @@ export class AdvertiserService {
           name: formData.name,
           description: formData.description,
           discount_details: formData.discount_details,
-          images: formData.images,
-          destination_info: formData.destination_info,
+          images: formData.images as any,
+          destination_info: formData.destination_info as any,
           tags: formData.tags,
           status: formData.status,
           start_date: formData.start_date,
@@ -139,7 +139,7 @@ export class AdvertiserService {
         }
       }
 
-      return campaign;
+      return campaign as unknown as Campaign;
     } catch (error) {
       console.error('Error creating campaign:', error);
       throw error;
@@ -156,7 +156,7 @@ export class AdvertiserService {
       // Update campaign
       const { data: campaign, error: campaignError } = await supabase
         .from('campaigns')
-        .update(campaignUpdates)
+        .update(campaignUpdates as any)
         .eq('id', campaignId)
         .select()
         .single();
@@ -175,7 +175,7 @@ export class AdvertiserService {
         if (targetingError) throw targetingError;
       }
 
-      return campaign;
+      return campaign as unknown as Campaign;
     } catch (error) {
       console.error('Error updating campaign:', error);
       throw error;
@@ -321,7 +321,7 @@ export class AdvertiserService {
         });
       }
 
-      return filteredCampaigns;
+      return filteredCampaigns as unknown as CampaignWithTargeting[];
     } catch (error) {
       console.error('Error fetching active campaigns:', error);
       return [];
