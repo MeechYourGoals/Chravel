@@ -373,9 +373,10 @@ export const TripChat = ({
         </div>
       )}
 
-      <div className="flex-1 flex flex-col min-h-0">
+      {/* Unified Chat Shell - Teams-like container */}
+      <div className="mx-4 mb-6 rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col" style={{ maxHeight: '72vh' }}>
         {isLoading ? (
-          <div className="flex-1 overflow-y-auto bg-gray-800/30 rounded-lg mx-4 mb-4 p-4">
+          <div className="flex-1 overflow-y-auto p-4">
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex items-start gap-3 animate-pulse">
@@ -389,48 +390,51 @@ export const TripChat = ({
             </div>
           </div>
         ) : (
-          <div className="flex-1 bg-gray-800/30 rounded-lg mx-4 mb-4 overflow-hidden">
-            <VirtualizedMessageContainer
-              messages={filteredMessages}
-              renderMessage={(message) => (
-                <MessageItem
-                  message={message}
-                  reactions={reactions[message.id]}
-                  onReaction={handleReaction}
-                />
-              )}
-              onLoadMore={loadMoreMessages}
-              hasMore={hasMore}
-              isLoading={isLoadingMore}
-              initialVisibleCount={10}
+          <VirtualizedMessageContainer
+            messages={filteredMessages}
+            renderMessage={(message) => (
+              <MessageItem
+                message={message}
+                reactions={reactions[message.id]}
+                onReaction={handleReaction}
+              />
+            )}
+            onLoadMore={(shouldUseDemoData || isConsumerTripWithNoMessages || (isPro && activeChannel)) ? () => {} : loadMoreMessages}
+            hasMore={(shouldUseDemoData || isConsumerTripWithNoMessages || (isPro && activeChannel)) ? false : hasMore}
+            isLoading={isLoadingMore}
+            initialVisibleCount={10}
+            className="chat-scroll-container native-scroll"
+          />
+        )}
+        
+        {/* Reply Bar */}
+        {replyingTo && (
+          <div className="border-t border-white/10 bg-black/30 px-4 py-2">
+            <InlineReplyComponent 
+              replyTo={{ 
+                id: replyingTo.id, 
+                text: replyingTo.text,
+                senderName: replyingTo.senderName 
+              }}
+              onCancel={clearReply} 
             />
           </div>
         )}
-      </div>
-
-      {replyingTo && (
-        <InlineReplyComponent 
-          replyTo={{ 
-            id: replyingTo.id, 
-            text: replyingTo.text,
-            senderName: replyingTo.senderName 
-          }}
-          onCancel={clearReply} 
-        />
-      )}
-
-      <div className="p-4">
-        <ChatInput
-          inputMessage={inputMessage}
-          onInputChange={setInputMessage}
-          onSendMessage={handleSendMessage}
-          onKeyPress={handleKeyPress}
-          apiKey=""
-          isTyping={isSendingMessage}
-          tripMembers={tripMembers}
-          hidePayments={true}
-          isInChannelMode={isPro && !!activeChannel}
-        />
+        
+        {/* Input Area */}
+        <div className="border-t border-white/10 bg-black/30 p-3">
+          <ChatInput
+            inputMessage={inputMessage}
+            onInputChange={setInputMessage}
+            onSendMessage={handleSendMessage}
+            onKeyPress={handleKeyPress}
+            apiKey=""
+            isTyping={isSendingMessage}
+            tripMembers={tripMembers}
+            hidePayments={true}
+            isInChannelMode={isPro && !!activeChannel}
+          />
+        </div>
       </div>
     </div>
   );

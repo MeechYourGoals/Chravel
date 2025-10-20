@@ -29,19 +29,43 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
   const [showNewMessagesBadge, setShowNewMessagesBadge] = useState(false);
   const previousMessageCountRef = useRef(messages.length);
   const isLoadingRef = useRef(false);
+  const previousScrollHeightRef = useRef(0);
+  
+  // Internal windowing state - show last N messages initially
+  const [visibleStartIndex, setVisibleStartIndex] = useState(
+    Math.max(0, messages.length - initialVisibleCount)
+  );
+  const pageSize = 20;
+  
+  // Calculate visible messages
+  const visibleMessages = messages.slice(visibleStartIndex);
+  const localHasMore = visibleStartIndex > 0;
 
-  // Auto-scroll to bottom on new messages (unless user is scrolled up)
+  // Update visible start index when messages change
   useEffect(() => {
-    if (messages.length > previousMessageCountRef.current) {
+    const newMessageCount = messages.length;
+    const oldMessageCount = previousMessageCountRef.current;
+    
+    if (newMessageCount > oldMessageCount) {
+      // New messages arrived
       if (!userIsScrolledUp) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        // User at bottom - keep showing last N messages
+        setVisibleStartIndex(Math.max(0, newMessageCount - initialVisibleCount));
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 50);
         setShowNewMessagesBadge(false);
       } else {
+        // User scrolled up - maintain current view, show badge
         setShowNewMessagesBadge(true);
       }
+    } else if (newMessageCount < oldMessageCount) {
+      // Messages removed (shouldn't happen often)
+      setVisibleStartIndex(Math.max(0, newMessageCount - initialVisibleCount));
     }
-    previousMessageCountRef.current = messages.length;
-  }, [messages.length, userIsScrolledUp]);
+    
+    previousMessageCountRef.current = newMessageCount;
+  }, [messages.length, userIsScrolledUp, initialVisibleCount]);
 
   // Initial scroll to bottom on mount
   useEffect(() => {
@@ -63,21 +87,45 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
     const isScrolledUp = distanceFromBottom > 100;
     setUserIsScrolledUp(isScrolledUp);
 
-    if (isScrolledUp) {
+    if (!isScrolledUp) {
       setShowNewMessagesBadge(false);
     }
 
-    // Trigger load more when near the top
-    if (scrollTop < 200 && hasMore && !isLoadingRef.current) {
-      isLoadingRef.current = true;
-      hapticService.light();
-      onLoadMore();
-      // Reset after 1 second to allow next load
-      setTimeout(() => {
-        isLoadingRef.current = false;
-      }, 1000);
+    // Load more logic: check local windowing first, then server
+    if (scrollTop < 200 && !isLoadingRef.current) {
+      if (localHasMore) {
+        // Load more from local messages
+        isLoadingRef.current = true;
+        const prevScrollHeight = containerRef.current.scrollHeight;
+        previousScrollHeightRef.current = prevScrollHeight;
+        
+        setVisibleStartIndex(prev => {
+          const newStart = Math.max(0, prev - pageSize);
+          return newStart;
+        });
+        
+        // Preserve scroll position after DOM update
+        setTimeout(() => {
+          if (containerRef.current) {
+            const newScrollHeight = containerRef.current.scrollHeight;
+            const scrollDiff = newScrollHeight - prevScrollHeight;
+            containerRef.current.scrollTop = scrollTop + scrollDiff;
+          }
+          isLoadingRef.current = false;
+        }, 50);
+        
+        hapticService.light();
+      } else if (hasMore) {
+        // Load more from server
+        isLoadingRef.current = true;
+        hapticService.light();
+        onLoadMore();
+        setTimeout(() => {
+          isLoadingRef.current = false;
+        }, 1000);
+      }
     }
-  }, [hasMore, onLoadMore]);
+  }, [hasMore, onLoadMore, localHasMore, pageSize]);
 
   // Scroll to bottom handler
   const scrollToBottom = () => {
@@ -98,12 +146,13 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
         <LoadMoreIndicator
           isLoading={isLoading}
           hasMore={hasMore}
+          localHasMore={localHasMore}
           messageCount={messages.length}
         />
 
         {/* Messages */}
         <div className="space-y-4 p-4">
-          {messages.map((message, index) => (
+          {visibleMessages.map((message, index) => (
             <React.Fragment key={message.id}>
               {renderMessage(message, index)}
             </React.Fragment>

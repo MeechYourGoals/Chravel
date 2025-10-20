@@ -96,18 +96,18 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
   };
 
   return (
-    <div className="flex flex-col h-full bg-black relative">
-      {/* Messages Container - Scrollable with orientation awareness */}
+    <div className="flex flex-col h-full bg-black relative p-4">
+      {/* Unified Chat Shell - Teams-like container */}
       <div 
-        className="flex-1 flex flex-col"
+        className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col"
         style={{
           maxHeight: isKeyboardVisible 
-            ? orientation === 'portrait' ? 'calc(100dvh - 300px)' : 'calc(100dvh - 240px)'
-            : orientation === 'portrait' ? 'calc(100dvh - 280px)' : 'calc(100dvh - 220px)'
+            ? orientation === 'portrait' ? 'calc(100dvh - 240px)' : 'calc(100dvh - 180px)'
+            : orientation === 'portrait' ? 'calc(100dvh - 220px)' : 'calc(100dvh - 160px)'
         }}
       >
         {isLoading ? (
-          <div className="flex-1 p-4">
+          <div className="flex-1 overflow-y-auto p-4">
             <MessageSkeleton />
           </div>
         ) : (
@@ -124,37 +124,38 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
             hasMore={hasMore}
             isLoading={isLoadingMore}
             initialVisibleCount={10}
+            className="chat-scroll-container native-scroll"
           />
         )}
-      </div>
+        
+        {/* Reply Bar */}
+        {replyingTo && (
+          <div className="border-t border-white/10 bg-black/30 px-4 py-2">
+            <InlineReplyComponent
+              replyTo={replyingTo}
+              onCancel={clearReply}
+            />
+          </div>
+        )}
 
-      {/* Reply Bar (if replying) */}
-      {replyingTo && (
-        <div className="px-4 py-2 border-t border-white/10 bg-black/80">
-          <InlineReplyComponent
-            replyTo={replyingTo}
-            onCancel={clearReply}
+        {/* Input Area */}
+        <div className="border-t border-white/10 bg-black/30 p-3 safe-bottom">
+          <ChatInput
+            inputMessage={inputMessage}
+            onInputChange={setInputMessage}
+            onSendMessage={handleMobileSendMessage}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleMobileSendMessage();
+              }
+            }}
+            apiKey=""
+            isTyping={false}
+            tripMembers={[]}
+            hidePayments={true}
           />
         </div>
-      )}
-
-      {/* Input Area - Sticky at bottom */}
-      <div className="sticky bottom-0 bg-black border-t border-white/10 px-4 py-3 safe-bottom">
-        <ChatInput
-          inputMessage={inputMessage}
-          onInputChange={setInputMessage}
-          onSendMessage={handleMobileSendMessage}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleMobileSendMessage();
-            }
-          }}
-          apiKey=""
-          isTyping={false}
-          tripMembers={[]}
-          hidePayments={true}
-        />
       </div>
     </div>
   );
