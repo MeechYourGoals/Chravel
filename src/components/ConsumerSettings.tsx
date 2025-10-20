@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { User, Bell, CreditCard, Shield, Settings, Wallet, ChevronDown, Archive, Bookmark, Sparkles } from 'lucide-react';
+import { User, Bell, CreditCard, Shield, Settings, Wallet, ChevronDown, Archive, Bookmark, Sparkles, Megaphone } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { getFeatureTierEmoji, getTierLegend } from '../utils/featureTiers';
 import { TravelWallet } from './TravelWallet';
 import { ConsumerProfileSection } from './consumer/ConsumerProfileSection';
@@ -16,16 +17,19 @@ import { ConsumerAIConciergeSection } from './consumer/ConsumerAIConciergeSectio
 interface ConsumerSettingsProps {
   currentUserId: string;
   initialSection?: string;
+  onClose?: () => void;
 }
 
-export const ConsumerSettings = ({ currentUserId, initialSection }: ConsumerSettingsProps) => {
+export const ConsumerSettings = ({ currentUserId, initialSection, onClose }: ConsumerSettingsProps) => {
   const [activeSection, setActiveSection] = useState(initialSection || 'profile');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   const sections = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'billing', label: 'Billing & Subscription', icon: CreditCard },
+    { id: 'advertiser', label: 'Advertiser Hub', icon: Megaphone },
     { id: 'ai-concierge', label: 'AI Concierge', icon: Sparkles },
     { id: 'travel-wallet', label: 'Travel Wallet', icon: Wallet },
     { id: 'saved-recs', label: 'Saved Recommendations', icon: Bookmark },
@@ -85,8 +89,14 @@ export const ConsumerSettings = ({ currentUserId, initialSection }: ConsumerSett
                   <button
                     key={section.id}
                     onClick={() => {
-                      setActiveSection(section.id);
-                      setShowMobileMenu(false);
+                      if (section.id === 'advertiser') {
+                        navigate('/advertiser');
+                        onClose?.();
+                        setShowMobileMenu(false);
+                      } else {
+                        setActiveSection(section.id);
+                        setShowMobileMenu(false);
+                      }
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
                       activeSection === section.id
@@ -124,7 +134,14 @@ export const ConsumerSettings = ({ currentUserId, initialSection }: ConsumerSett
             return (
               <button
                 key={section.id}
-                onClick={() => setActiveSection(section.id)}
+                onClick={() => {
+                  if (section.id === 'advertiser') {
+                    navigate('/advertiser');
+                    onClose?.();
+                  } else {
+                    setActiveSection(section.id);
+                  }
+                }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
                   activeSection === section.id
                     ? 'bg-glass-orange/20 text-glass-orange border border-glass-orange/30'
