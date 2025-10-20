@@ -80,10 +80,10 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
   return (
     <div className="space-y-6">
       {/* Account Status */}
-      <Card>
+      <Card className="bg-white/5 border-gray-700">
         <CardHeader>
-          <CardTitle>Account Status</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-white">Account Status</CardTitle>
+          <CardDescription className="text-gray-400">
             Your current advertiser account status and details
           </CardDescription>
         </CardHeader>
@@ -91,33 +91,33 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <User className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-500">Account Status</span>
+              <span className="text-sm text-gray-400">Account Status</span>
             </div>
             {getStatusBadge(advertiser.status)}
           </div>
           
-          <Separator />
+          <Separator className="bg-gray-700" />
           
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-gray-500">Account ID</p>
-              <p className="font-mono text-xs">{advertiser.id}</p>
+              <p className="text-gray-400">Account ID</p>
+              <p className="font-mono text-xs text-white">{advertiser.id}</p>
             </div>
             <div>
-              <p className="text-gray-500">Member Since</p>
-              <p>{new Date(advertiser.created_at).toLocaleDateString()}</p>
+              <p className="text-gray-400">Member Since</p>
+              <p className="text-white">{new Date(advertiser.created_at).toLocaleDateString()}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Company Information */}
-      <Card>
+      <Card className="bg-white/5 border-gray-700">
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>Company Information</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-white">Company Information</CardTitle>
+              <CardDescription className="text-gray-400">
                 Manage your company details and contact information
               </CardDescription>
             </div>
@@ -126,6 +126,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
                 variant="outline"
                 size="sm"
                 onClick={() => setIsEditing(true)}
+                className="border-gray-600 text-gray-300 hover:bg-white/10"
               >
                 Edit
               </Button>
@@ -180,6 +181,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
                 <Button
                   onClick={handleSave}
                   disabled={isSaving}
+                  className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {isSaving ? 'Saving...' : 'Save Changes'}
@@ -194,6 +196,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
                       website: advertiser.website || ''
                     });
                   }}
+                  className="border-gray-600 text-gray-300 hover:bg-white/10"
                 >
                   Cancel
                 </Button>
@@ -204,35 +207,35 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
               <div className="flex items-center gap-3">
                 <Building2 className="h-5 w-5 text-gray-400" />
                 <div>
-                  <p className="text-sm text-gray-500">Company Name</p>
-                  <p className="font-medium">{advertiser.company_name}</p>
+                  <p className="text-sm text-gray-400">Company Name</p>
+                  <p className="font-medium text-white">{advertiser.company_name}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-gray-400" />
                 <div>
-                  <p className="text-sm text-gray-500">Company Email</p>
-                  <p className="font-medium">{advertiser.company_email}</p>
+                  <p className="text-sm text-gray-400">Company Email</p>
+                  <p className="font-medium text-white">{advertiser.company_email}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
                 <Globe className="h-5 w-5 text-gray-400" />
                 <div>
-                  <p className="text-sm text-gray-500">Website</p>
-                  <p className="font-medium">
+                  <p className="text-sm text-gray-400">Website</p>
+                  <p className="font-medium text-white">
                     {advertiser.website ? (
                       <a 
                         href={advertiser.website} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="text-red-400 hover:underline"
                       >
                         {advertiser.website}
                       </a>
                     ) : (
-                      <span className="text-gray-400">Not provided</span>
+                      <span className="text-gray-500">Not provided</span>
                     )}
                   </p>
                 </div>
@@ -243,16 +246,16 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
       </Card>
 
       {/* API Access */}
-      <Card>
+      <Card className="bg-white/5 border-gray-700">
         <CardHeader>
-          <CardTitle>API Access</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-white">API Access</CardTitle>
+          <CardDescription className="text-gray-400">
             Programmatic access for campaign management (Coming Soon)
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="p-4 bg-gray-50 rounded-lg text-center">
-            <p className="text-sm text-gray-600">
+          <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-lg text-center">
+            <p className="text-sm text-gray-400">
               API access will be available in a future update
             </p>
           </div>

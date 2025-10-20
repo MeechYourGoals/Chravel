@@ -61,7 +61,7 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
     <div className="space-y-6">
       {/* Header Controls */}
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Campaign Analytics</h2>
+        <h2 className="text-xl font-semibold text-white">Campaign Analytics</h2>
         <div className="flex gap-4">
           <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
             <SelectTrigger className="w-[200px]">
@@ -92,54 +92,54 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="bg-white/5 border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Impressions</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-white">Total Impressions</CardTitle>
+            <Eye className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalImpressions.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 inline text-green-600" /> +15.3% from last week
+            <div className="text-2xl font-bold text-white">{totalImpressions.toLocaleString()}</div>
+            <p className="text-xs text-gray-400">
+              <TrendingUp className="h-3 w-3 inline text-green-500" /> +15.3% from last week
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white/5 border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
-            <MousePointer className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-white">Total Clicks</CardTitle>
+            <MousePointer className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalClicks.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 inline text-green-600" /> +8.2% from last week
+            <div className="text-2xl font-bold text-white">{totalClicks.toLocaleString()}</div>
+            <p className="text-xs text-gray-400">
+              <TrendingUp className="h-3 w-3 inline text-green-500" /> +8.2% from last week
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white/5 border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overall CTR</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-white">Overall CTR</CardTitle>
+            <Target className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overallCTR.toFixed(2)}%</div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingDown className="h-3 w-3 inline text-red-600" /> -0.8% from last week
+            <div className="text-2xl font-bold text-white">{overallCTR.toFixed(2)}%</div>
+            <p className="text-xs text-gray-400">
+              <TrendingDown className="h-3 w-3 inline text-red-500" /> -0.8% from last week
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white/5 border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conversions</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-white">Conversions</CardTitle>
+            <DollarSign className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalConversions.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 inline text-green-600" /> +5% from last week
+            <div className="text-2xl font-bold text-white">{totalConversions.toLocaleString()}</div>
+            <p className="text-xs text-gray-400">
+              <TrendingUp className="h-3 w-3 inline text-green-500" /> +5% from last week
             </p>
           </CardContent>
         </Card>
@@ -147,16 +147,16 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
 
       {/* Charts */}
       <Tabs defaultValue="performance" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="engagement">Engagement</TabsTrigger>
-          <TabsTrigger value="campaigns">Top Campaigns</TabsTrigger>
+        <TabsList className="bg-gray-800 border-gray-700">
+          <TabsTrigger value="performance" className="data-[state=active]:bg-red-600">Performance</TabsTrigger>
+          <TabsTrigger value="engagement" className="data-[state=active]:bg-red-600">Engagement</TabsTrigger>
+          <TabsTrigger value="campaigns" className="data-[state=active]:bg-red-600">Top Campaigns</TabsTrigger>
         </TabsList>
 
         <TabsContent value="performance" className="space-y-4">
-          <Card>
+          <Card className="bg-white/5 border-gray-700">
             <CardHeader>
-              <CardTitle>Performance Trends</CardTitle>
+              <CardTitle className="text-white">Performance Trends</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -185,9 +185,9 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
         </TabsContent>
 
         <TabsContent value="engagement" className="space-y-4">
-          <Card>
+          <Card className="bg-white/5 border-gray-700">
             <CardHeader>
-              <CardTitle>Engagement Metrics</CardTitle>
+              <CardTitle className="text-white">Engagement Metrics</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -205,28 +205,28 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
         </TabsContent>
 
         <TabsContent value="campaigns" className="space-y-4">
-          <Card>
+          <Card className="bg-white/5 border-gray-700">
             <CardHeader>
-              <CardTitle>Top Performing Campaigns</CardTitle>
+              <CardTitle className="text-white">Top Performing Campaigns</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {topPerformingCampaigns.map((campaign, index) => (
                   <div key={campaign.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="text-lg font-semibold text-gray-500">
+                      <div className="text-lg font-semibold text-gray-400">
                         #{index + 1}
                       </div>
                       <div>
-                        <p className="font-medium">{campaign.name}</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="font-medium text-white">{campaign.name}</p>
+                        <p className="text-sm text-gray-400">
                           {campaign.impressions.toLocaleString()} impressions
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">{campaign.clicks} clicks</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="font-semibold text-white">{campaign.clicks} clicks</p>
+                      <p className="text-sm text-gray-400">
                         {campaign.impressions > 0 
                           ? ((campaign.clicks / campaign.impressions) * 100).toFixed(2)
                           : '0.00'
@@ -242,31 +242,31 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
       </Tabs>
 
       {/* Active Campaigns Summary */}
-      <Card>
+      <Card className="bg-white/5 border-gray-700">
         <CardHeader>
-          <CardTitle>Active Campaigns Summary</CardTitle>
+          <CardTitle className="text-white">Active Campaigns Summary</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <BarChart3 className="h-8 w-8 mx-auto mb-2 text-purple-600" />
-              <p className="text-2xl font-bold">{activeCampaigns.length}</p>
-              <p className="text-sm text-gray-500">Active Campaigns</p>
+            <div className="text-center p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
+              <BarChart3 className="h-8 w-8 mx-auto mb-2 text-red-500" />
+              <p className="text-2xl font-bold text-white">{activeCampaigns.length}</p>
+              <p className="text-sm text-gray-400">Active Campaigns</p>
             </div>
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <Calendar className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-              <p className="text-2xl font-bold">{campaigns.length}</p>
-              <p className="text-sm text-gray-500">Total Campaigns</p>
+            <div className="text-center p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
+              <Calendar className="h-8 w-8 mx-auto mb-2 text-blue-500" />
+              <p className="text-2xl font-bold text-white">{campaigns.length}</p>
+              <p className="text-sm text-gray-400">Total Campaigns</p>
             </div>
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <TrendingUp className="h-8 w-8 mx-auto mb-2 text-green-600" />
-              <p className="text-2xl font-bold">
+            <div className="text-center p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
+              <TrendingUp className="h-8 w-8 mx-auto mb-2 text-green-500" />
+              <p className="text-2xl font-bold text-white">
                 {totalClicks > 0 
                   ? ((totalConversions / totalClicks) * 100).toFixed(1)
                   : '0.0'
                 }%
               </p>
-              <p className="text-sm text-gray-500">Conversion Rate</p>
+              <p className="text-sm text-gray-400">Conversion Rate</p>
             </div>
           </div>
         </CardContent>

@@ -154,8 +154,8 @@ export const AdvertiserDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
       </div>
     );
   }
@@ -165,10 +165,10 @@ export const AdvertiserDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       {/* Demo Mode Banner */}
       {isDemoMode && (
-        <div className="bg-purple-600 text-white py-2 px-4 text-center">
+        <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white py-2 px-4 text-center">
           <p className="text-sm font-medium">
             🎭 Demo Mode Active - This is a preview of the Chravel Advertiser Hub
           </p>
@@ -176,14 +176,14 @@ export const AdvertiserDashboard = () => {
       )}
       
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-white">
                 Chravel Advertiser Hub
               </h1>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-400">
                 {advertiser?.company_name || 'Loading...'}
               </span>
             </div>
@@ -192,6 +192,7 @@ export const AdvertiserDashboard = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/')}
+                className="border-gray-600 text-gray-300 hover:bg-white/10"
               >
                 Back to Chravel
               </Button>
@@ -200,6 +201,7 @@ export const AdvertiserDashboard = () => {
                   variant="ghost"
                   size="sm"
                   onClick={handleSignOut}
+                  className="text-gray-300 hover:bg-white/10"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign Out
@@ -213,16 +215,16 @@ export const AdvertiserDashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="mb-8">
-            <TabsTrigger value="campaigns" className="flex items-center gap-2">
+          <TabsList className="mb-8 bg-gray-800 border-gray-700">
+            <TabsTrigger value="campaigns" className="flex items-center gap-2 data-[state=active]:bg-red-600">
               <Plus className="h-4 w-4" />
               Campaigns
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <TabsTrigger value="analytics" className="flex items-center gap-2 data-[state=active]:bg-red-600">
               <BarChart3 className="h-4 w-4" />
               Analytics
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
+            <TabsTrigger value="settings" className="flex items-center gap-2 data-[state=active]:bg-red-600">
               <Settings className="h-4 w-4" />
               Settings
             </TabsTrigger>
@@ -230,8 +232,11 @@ export const AdvertiserDashboard = () => {
 
           <TabsContent value="campaigns" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Your Campaigns</h2>
-              <Button onClick={() => setShowCampaignCreator(true)}>
+              <h2 className="text-xl font-semibold text-white">Your Campaigns</h2>
+              <Button 
+                onClick={() => setShowCampaignCreator(true)}
+                className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Campaign
               </Button>
