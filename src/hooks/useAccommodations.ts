@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { personalAccommodationService, PersonalAccommodation, CreateAccommodationRequest } from '../services/personalAccommodationService';
+import { PersonalAccommodationService } from '@/services/personalAccommodationService';
+import { CreateAccommodationRequest, UpdateAccommodationRequest } from '@/types/accommodations';
 import { useAuth } from './useAuth';
 
 export const useAccommodations = (tripId: string) => {
@@ -8,122 +8,85 @@ export const useAccommodations = (tripId: string) => {
   const queryClient = useQueryClient();
 
   // Get user's personal accommodation
-  const {
-    data: personalAccommodation,
-    isLoading: isLoadingPersonal,
-    error: personalError
-  } = useQuery({
-    queryKey: ['personalAccommodation', tripId, user?.id],
-    queryFn: () => personalAccommodationService.getUserAccommodation(tripId, user?.id),
-    enabled: !!tripId && !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+  const { data: myAccommodation, isLoading: isLoadingAccommodation } = useQuery({
+    queryKey: ['accommodation', tripId, user?.id],
+    queryFn: () => PersonalAccommodationService.getMyAccommodation(tripId),
+    enabled: !!user && !!tripId,
   });
 
-  // Get all accommodations for the trip
-  const {
-    data: tripAccommodations,
-    isLoading: isLoadingTrip,
-    error: tripError
-  } = useQuery({
-    queryKey: ['tripAccommodations', tripId],
-    queryFn: () => personalAccommodationService.getTripAccommodations(tripId),
+  // Get trip basecamp
+  const { data: tripBasecamp, isLoading: isLoadingBasecamp } = useQuery({
+    queryKey: ['tripBasecamp', tripId],
+    queryFn: () => PersonalAccommodationService.getTripBasecamp(tripId),
     enabled: !!tripId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Get accommodation statistics
-  const {
-    data: accommodationStats,
-    isLoading: isLoadingStats
-  } = useQuery({
-    queryKey: ['accommodationStats', tripId],
-    queryFn: () => personalAccommodationService.getTripAccommodationStats(tripId),
-    enabled: !!tripId,
-    staleTime: 10 * 60 * 1000, // 10 minutes
-  });
-
-  // Mutation for setting user accommodation
-  const setAccommodationMutation = useMutation({
-    mutationFn: (request: CreateAccommodationRequest) =>
-      personalAccommodationService.setUserAccommodation(request),
+  // Create/Update accommodation mutation
+  const saveAccommodationMutation = useMutation({
+    mutationFn: (request: CreateAccommodationRequest) => 
+      PersonalAccommodationService.saveAccommodation(request),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['personalAccommodation', tripId, user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['tripAccommodations', tripId] });
-      queryClient.invalidateQueries({ queryKey: ['accommodationStats', tripId] });
+      queryClient.invalidateQueries({ queryKey: ['accommodation', tripId, user?.id] });
     },
   });
 
-  // Mutation for updating user accommodation
+  // Update accommodation mutation
   const updateAccommodationMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<PersonalAccommodation> }) =>
-      personalAccommodationService.updateUserAccommodation(id, updates),
+    mutationFn: ({ id, updates }: { id: string; updates: UpdateAccommodationRequest }) =>
+      PersonalAccommodationService.updateAccommodation(id, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['personalAccommodation', tripId, user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['tripAccommodations', tripId] });
+      queryClient.invalidateQueries({ queryKey: ['accommodation', tripId, user?.id] });
     },
   });
 
-  // Mutation for deleting user accommodation
+  // Delete accommodation mutation
   const deleteAccommodationMutation = useMutation({
     mutationFn: (accommodationId: string) =>
-      personalAccommodationService.deleteUserAccommodation(accommodationId),
+      PersonalAccommodationService.deleteAccommodation(accommodationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['personalAccommodation', tripId, user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['tripAccommodations', tripId] });
-      queryClient.invalidateQueries({ queryKey: ['accommodationStats', tripId] });
+      queryClient.invalidateQueries({ queryKey: ['accommodation', tripId, user?.id] });
     },
   });
 
-  // Helper functions
-  const setAccommodation = (request: CreateAccommodationRequest) => {
-    return setAccommodationMutation.mutateAsync(request);
-  };
-
-  const updateAccommodation = (id: string, updates: Partial<PersonalAccommodation>) => {
-    return updateAccommodationMutation.mutateAsync({ id, updates });
-  };
-
-  const deleteAccommodation = (id: string) => {
-    return deleteAccommodationMutation.mutateAsync(id);
-  };
-
-  // Get accommodations near a location
-  const getAccommodationsNearLocation = async (latitude: number, longitude: number, radiusKm?: number) => {
-    return personalAccommodationService.getAccommodationsNearLocation(latitude, longitude, radiusKm);
-  };
+  // Update trip basecamp mutation
+  const updateBasecampMutation = useMutation({
+    mutationFn: ({ name, address, latitude, longitude }: {
+      name: string;
+      address: string;
+      latitude?: number;
+      longitude?: number;
+    }) => PersonalAccommodationService.updateTripBasecamp(tripId, name, address, latitude, longitude),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tripBasecamp', tripId] });
+    },
+  });
 
   return {
     // Data
-    personalAccommodation,
-    tripAccommodations,
-    accommodationStats,
+    myAccommodation,
+    tripBasecamp,
     
     // Loading states
-    isLoadingPersonal,
-    isLoadingTrip,
-    isLoadingStats,
-    isLoading: isLoadingPersonal || isLoadingTrip || isLoadingStats,
-    
-    // Errors
-    personalError,
-    tripError,
+    isLoadingAccommodation,
+    isLoadingBasecamp,
+    isLoading: isLoadingAccommodation || isLoadingBasecamp,
     
     // Mutations
-    setAccommodation,
-    updateAccommodation,
-    deleteAccommodation,
+    saveAccommodation: saveAccommodationMutation.mutate,
+    updateAccommodation: updateAccommodationMutation.mutate,
+    deleteAccommodation: deleteAccommodationMutation.mutate,
+    updateBasecamp: updateBasecampMutation.mutate,
     
     // Mutation states
-    isSettingAccommodation: setAccommodationMutation.isPending,
-    isUpdatingAccommodation: updateAccommodationMutation.isPending,
-    isDeletingAccommodation: deleteAccommodationMutation.isPending,
+    isSaving: saveAccommodationMutation.isPending,
+    isUpdating: updateAccommodationMutation.isPending,
+    isDeleting: deleteAccommodationMutation.isPending,
+    isUpdatingBasecamp: updateBasecampMutation.isPending,
     
-    // Helper functions
-    getAccommodationsNearLocation,
-    
-    // Refetch functions
-    refetchPersonal: () => queryClient.invalidateQueries({ queryKey: ['personalAccommodation', tripId, user?.id] }),
-    refetchTrip: () => queryClient.invalidateQueries({ queryKey: ['tripAccommodations', tripId] }),
-    refetchStats: () => queryClient.invalidateQueries({ queryKey: ['accommodationStats', tripId] }),
+    // Errors
+    saveError: saveAccommodationMutation.error,
+    updateError: updateAccommodationMutation.error,
+    deleteError: deleteAccommodationMutation.error,
+    basecampError: updateBasecampMutation.error,
   };
 };

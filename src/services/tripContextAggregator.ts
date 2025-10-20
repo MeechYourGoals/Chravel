@@ -51,19 +51,25 @@ export interface ComprehensiveTripContext {
     options: Array<{ text: string; votes: number }>;
     status: 'active' | 'closed';
   }>;
-  places: {
-    basecamp?: {
-      name: string;
-      address: string;
-      lat?: number;
-      lng?: number;
-    };
-    savedPlaces: Array<{
-      name: string;
-      address: string;
-      category: string;
-    }>;
-  };
+      places: {
+        basecamp?: {
+          name: string;
+          address: string;
+          lat?: number;
+          lng?: number;
+        };
+        userAccommodation?: {
+          label: string;
+          address: string;
+          lat?: number;
+          lng?: number;
+        };
+        savedPlaces: Array<{
+          name: string;
+          address: string;
+          category: string;
+        }>;
+      };
   media: {
     files: Array<{
       id: string;
@@ -300,9 +306,11 @@ export class TripContextAggregator {
 
   private static async fetchPlaces(tripId: string) {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { data: trip } = await supabase
         .from('trips')
-        .select('basecamp_name, basecamp_address')
+        .select('basecamp_name, basecamp_address, basecamp_lat, basecamp_lng')
         .eq('id', tripId)
         .single();
 
@@ -311,13 +319,34 @@ export class TripContextAggregator {
         .select('name, address, category, lat, lng')
         .eq('trip_id', tripId);
 
+      // Get user's personal accommodation
+      let userAccommodation;
+      if (user) {
+        const { data: accommodation } = await supabase
+          .from('user_accommodations')
+          .select('label, address, latitude, longitude')
+          .eq('trip_id', tripId)
+          .eq('user_id', user.id)
+          .single();
+
+        if (accommodation) {
+          userAccommodation = {
+            label: accommodation.label,
+            address: accommodation.address,
+            lat: accommodation.latitude,
+            lng: accommodation.longitude
+          };
+        }
+      }
+
       return {
         basecamp: trip?.basecamp_name ? {
           name: trip.basecamp_name,
-          address: trip.basecamp_address,
-          lat: places?.find(p => p.name === trip.basecamp_name)?.lat,
-          lng: places?.find(p => p.name === trip.basecamp_name)?.lng
+          address: trip.basecamp_address || '',
+          lat: trip.basecamp_lat,
+          lng: trip.basecamp_lng
         } : undefined,
+        userAccommodation,
         savedPlaces: places?.map(p => ({
           name: p.name,
           address: p.address,
@@ -328,6 +357,7 @@ export class TripContextAggregator {
       console.error('Error fetching places:', error);
       return {
         basecamp: undefined,
+        userAccommodation: undefined,
         savedPlaces: []
       };
     }

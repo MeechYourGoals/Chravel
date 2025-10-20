@@ -4,7 +4,8 @@ import { AddPlaceModal } from './AddPlaceModal';
 import { WorkingGoogleMaps } from './WorkingGoogleMaps';
 import { SetBasecampSquare } from './SetBasecampSquare';
 import { TripPinsCard } from './TripPinsCard';
-import { AccommodationSelector } from './AccommodationSelector';
+import { BasecampCard } from './places/BasecampCard';
+import { AccommodationCard } from './places/AccommodationCard';
 import { BasecampLocation, PlaceWithDistance, DistanceCalculationSettings } from '../types/basecamp';
 import { DistanceCalculator } from '../utils/distanceCalculator';
 import { useTripVariant } from '../contexts/TripVariantContext';
@@ -186,15 +187,10 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
         </TabsList>
         
         <TabsContent value="accommodations" className="space-y-6">
-          <AccommodationSelector 
-            tripId={tripId}
-            onLocationSet={(location, mode) => {
-              if (mode === 'trip') {
-                handleBasecampSet(location);
-              }
-              // Personal accommodation is handled internally by AccommodationSelector
-            }}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <BasecampCard tripId={tripId} />
+            <AccommodationCard tripId={tripId} />
+          </div>
         </TabsContent>
         
         <TabsContent value="places" className="space-y-6">
