@@ -62,10 +62,17 @@ export const calendarService = {
 
       if (error) throw error;
       
-      // Fetch the created event to return complete data
+      // Fetch the created event to return complete data with creator profile
       const { data: createdEvent, error: fetchError } = await supabase
         .from('trip_events')
-        .select('*')
+        .select(`
+          *,
+          creator:created_by (
+            id,
+            display_name,
+            avatar_url
+          )
+        `)
         .eq('id', eventId)
         .single();
 
@@ -90,7 +97,14 @@ export const calendarService = {
       // Use Supabase for authenticated users
       const { data, error } = await supabase
         .from('trip_events')
-        .select('*')
+        .select(`
+          *,
+          creator:created_by (
+            id,
+            display_name,
+            avatar_url
+          )
+        `)
         .eq('trip_id', tripId)
         .order('start_time', { ascending: true });
 
@@ -155,7 +169,7 @@ export const calendarService = {
   },
 
   // Convert database event to CalendarEvent format
-  convertToCalendarEvent(tripEvent: TripEvent): CalendarEvent {
+  convertToCalendarEvent(tripEvent: any): CalendarEvent {
     return {
       id: tripEvent.id,
       title: tripEvent.title,
@@ -168,6 +182,8 @@ export const calendarService = {
       location: tripEvent.location,
       description: tripEvent.description,
       createdBy: tripEvent.created_by,
+      creatorName: tripEvent.creator?.display_name || 'Unknown User',
+      creatorAvatar: tripEvent.creator?.avatar_url,
       include_in_itinerary: tripEvent.include_in_itinerary,
       event_category: tripEvent.event_category as CalendarEvent['event_category'],
       source_type: tripEvent.source_type as any,

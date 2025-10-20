@@ -277,14 +277,19 @@ export const useTripTasks = (tripId: string, options?: {
 
       // Authenticated mode: use Supabase
       try {
-        const { data: tasks, error } = await supabase
-          .from('trip_tasks')
-          .select(`
-            *,
-            task_status(*)
-          `)
-          .eq('trip_id', tripId)
-          .order('created_at', { ascending: false });
+      const { data: tasks, error } = await supabase
+        .from('trip_tasks')
+        .select(`
+          *,
+          task_status(*),
+          creator:creator_id (
+            id,
+            display_name,
+            avatar_url
+          )
+        `)
+        .eq('trip_id', tripId)
+        .order('created_at', { ascending: false });
 
         if (error) throw error;
 
@@ -294,7 +299,7 @@ export const useTripTasks = (tripId: string, options?: {
         }
 
         // Transform database tasks to match TripTask interface
-        return tasks.map(task => ({
+        return tasks.map((task: any) => ({
           id: task.id,
           trip_id: task.trip_id,
           creator_id: task.creator_id,
@@ -306,7 +311,8 @@ export const useTripTasks = (tripId: string, options?: {
           updated_at: task.updated_at,
           creator: {
             id: task.creator_id,
-            name: 'User'
+            name: task.creator?.display_name || 'Unknown User',
+            avatar: task.creator?.avatar_url
           },
           task_status: (task.task_status || []) as any[]
         }));
@@ -348,6 +354,13 @@ export const useTripTasks = (tripId: string, options?: {
         console.error('Membership error:', membershipError);
         throw new Error('Unable to join trip. Please try again.');
       }
+
+      // Fetch current user's profile for display_name
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('display_name, avatar_url')
+        .eq('user_id', authUser.id)
+        .single();
 
       // Create the task in database
       const { data: newTask, error } = await supabase
@@ -393,7 +406,8 @@ export const useTripTasks = (tripId: string, options?: {
         updated_at: newTask.updated_at,
         creator: {
           id: authUser.id,
-          name: 'Current User'
+          name: userProfile?.display_name || 'Unknown User',
+          avatar: userProfile?.avatar_url
         },
         task_status: [{
           task_id: newTask.id,

@@ -304,6 +304,13 @@ class ChannelService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Fetch user profile for display_name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('user_id', user.id)
+        .single();
+
       const { data, error } = await (supabase as any)
         .from('trip_chat_messages')
         .insert({
@@ -311,7 +318,7 @@ class ChannelService {
           channel_id: input.channel_id,
           user_id: user.id,
           content: input.content,
-          author_name: user.user_metadata?.full_name || user.email || 'Anonymous',
+          author_name: profile?.display_name || user.email || 'Anonymous',
           attachments: input.attachments || []
         })
         .select()
