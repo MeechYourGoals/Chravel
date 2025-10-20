@@ -118,7 +118,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     const roles = userRoles?.map(r => r.role) || [];
     const isPro = roles.includes('pro');
-    const isSystemAdmin = roles.includes('admin');
+    const isSystemAdmin = roles.includes('enterprise_admin');
     
     // Map roles to permissions - only grant what user actually has
     const permissions: string[] = ['read'];

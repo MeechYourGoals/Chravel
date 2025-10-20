@@ -1857,6 +1857,59 @@ export type Database = {
         }
         Relationships: []
       }
+      user_accommodations: {
+        Row: {
+          accommodation_name: string
+          accommodation_type: string | null
+          address: string | null
+          check_in: string | null
+          check_out: string | null
+          created_at: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          trip_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          accommodation_name: string
+          accommodation_type?: string | null
+          address?: string | null
+          check_in?: string | null
+          check_out?: string | null
+          created_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          trip_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          accommodation_name?: string
+          accommodation_type?: string | null
+          address?: string | null
+          check_in?: string | null
+          check_out?: string | null
+          created_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          trip_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_accommodations_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_payment_methods: {
         Row: {
           created_at: string
@@ -2051,7 +2104,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "consumer" | "pro" | "enterprise_admin" | "admin"
+      app_role: "consumer" | "pro" | "enterprise_admin"
       org_member_role: "owner" | "admin" | "member"
       org_status: "active" | "trial" | "cancelled" | "expired" | "suspended"
       org_subscription_tier:
@@ -2186,7 +2239,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["consumer", "pro", "enterprise_admin", "admin"],
+      app_role: ["consumer", "pro", "enterprise_admin"],
       org_member_role: ["owner", "admin", "member"],
       org_status: ["active", "trial", "cancelled", "expired", "suspended"],
       org_subscription_tier: [

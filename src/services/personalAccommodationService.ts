@@ -41,28 +41,19 @@ class PersonalAccommodationService {
    * Get user's accommodation for a specific trip
    */
   async getUserAccommodation(tripId: string, userId?: string): Promise<PersonalAccommodation | null> {
-    try {
-      const { data, error } = await (supabase as any)
-        .from('user_accommodations')
-        .select('*')
-        .eq('trip_id', tripId)
-        .eq('user_id', userId || (await supabase.auth.getUser()).data.user?.id || '')
-        .single();
+    const { data, error } = await (supabase as any)
+      .from('user_accommodations')
+      .select('*')
+      .eq('trip_id', tripId)
+      .eq('user_id', userId || (await supabase.auth.getUser()).data.user?.id || '')
+      .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        // If table doesn't exist yet, return null gracefully
-        if (error.message?.includes('relation "user_accommodations" does not exist')) {
-          console.warn('user_accommodations table does not exist yet. Migration may need to be applied.');
-          return null;
-        }
-        throw error;
-      }
-
-      return data as PersonalAccommodation | null;
-    } catch (error) {
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
       console.error('Failed to get user accommodation:', error);
-      return null;
+      throw error;
     }
+
+    return data as PersonalAccommodation | null;
   }
 
   /**
@@ -88,41 +79,32 @@ class PersonalAccommodationService {
    * Create or update user's accommodation
    */
   async setUserAccommodation(request: CreateAccommodationRequest): Promise<PersonalAccommodation | null> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await (supabase as any)
-        .from('user_accommodations')
-        .upsert({
-          trip_id: request.trip_id,
-          user_id: user.id,
-          accommodation_name: request.accommodation_name,
-          address: request.address,
-          latitude: request.latitude,
-          longitude: request.longitude,
-          check_in: request.check_in,
-          check_out: request.check_out,
-          accommodation_type: request.accommodation_type || 'hotel'
-        }, {
-          onConflict: 'trip_id,user_id'
-        })
-        .select()
-        .single();
+    const { data, error } = await (supabase as any)
+      .from('user_accommodations')
+      .upsert({
+        trip_id: request.trip_id,
+        user_id: user.id,
+        accommodation_name: request.accommodation_name,
+        address: request.address,
+        latitude: request.latitude,
+        longitude: request.longitude,
+        check_in: request.check_in,
+        check_out: request.check_out,
+        accommodation_type: request.accommodation_type || 'hotel'
+      }, {
+        onConflict: 'trip_id,user_id'
+      })
+      .select()
+      .single();
 
-      if (error) {
-        // If table doesn't exist yet, return null gracefully
-        if (error.message?.includes('relation "user_accommodations" does not exist')) {
-          console.warn('user_accommodations table does not exist yet. Migration may need to be applied.');
-          return null;
-        }
-        throw error;
-      }
-      return data as PersonalAccommodation | null;
-    } catch (error) {
+    if (error) {
       console.error('Failed to set user accommodation:', error);
-      return null;
+      throw error;
     }
+    return data as PersonalAccommodation | null;
   }
 
   /**

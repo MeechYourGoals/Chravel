@@ -41,11 +41,13 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
   const [showPersonalSelector, setShowPersonalSelector] = useState(false);
   const [showTripSelector, setShowTripSelector] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadAccommodations = React.useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
+    setError(null);
     try {
       console.log('Loading accommodations for trip:', tripId, 'user:', user.id);
       // Load personal accommodation
@@ -55,8 +57,9 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
 
       // Trip basecamp is already loaded from BasecampContext
       console.log('Trip basecamp from context:', tripBasecamp);
-    } catch (error) {
-      console.error('Failed to load accommodations:', error);
+    } catch (err: any) {
+      console.error('Failed to load accommodations:', err);
+      setError(err?.message || 'Failed to load accommodations. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -114,6 +117,29 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
         <div className="animate-pulse bg-gray-200 h-32 rounded-xl"></div>
         <div className="animate-pulse bg-gray-200 h-32 rounded-xl"></div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-red-200 bg-red-50">
+        <CardHeader>
+          <CardTitle className="text-red-900 flex items-center gap-2">
+            <MapPin size={20} />
+            Unable to Load Accommodations
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-red-700 mb-4">{error}</p>
+          <Button 
+            onClick={loadAccommodations}
+            variant="outline"
+            className="border-red-300 text-red-700 hover:bg-red-100"
+          >
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
