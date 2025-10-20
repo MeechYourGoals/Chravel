@@ -195,8 +195,8 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
               <Bed size={20} className="text-green-400" />
               Your Accommodation {!user && <Badge variant="outline" className="text-xs border-green-400/30 text-green-400">Private</Badge>}
             </CardTitle>
-            <div className="flex gap-2">
-              {personalAccommodation && user && (
+            {personalAccommodation && user ? (
+              <div className="flex items-center gap-2">
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -205,7 +205,17 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
                 >
                   <Trash2 size={16} />
                 </Button>
-              )}
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowPersonalSelector(true)}
+                  className="border-glass-slate-border text-white hover:bg-white/10"
+                >
+                  <Edit size={16} />
+                  Edit
+                </Button>
+              </div>
+            ) : (
               <Button 
                 variant="outline" 
                 size="sm"
@@ -213,10 +223,10 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
                 disabled={!user}
                 className="border-glass-slate-border text-white hover:bg-white/10 disabled:opacity-50"
               >
-                {personalAccommodation ? <Edit size={16} /> : <Plus size={16} />}
-                {personalAccommodation ? 'Edit' : 'Set Your Location'}
+                <Plus size={16} />
+                Set Your Location
               </Button>
-            </div>
+            )}
           </div>
           <p className="text-sm text-gray-300">
             {user 

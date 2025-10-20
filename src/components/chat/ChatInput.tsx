@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Send, MessageCircle, Megaphone, Share2, Image, Video, FileText, Mic, CreditCard } from 'lucide-react';
+import { Send, MessageCircle, Megaphone, Share2, Image, Video, FileText, Mic, CreditCard, Link } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { PaymentInput } from '../payments/PaymentInput';
@@ -31,6 +31,7 @@ export const ChatInput = ({
 }: ChatInputProps) => {
   const [isBroadcastMode, setIsBroadcastMode] = useState(false);
   const [isPaymentMode, setIsPaymentMode] = useState(false);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSend = () => {
@@ -87,6 +88,17 @@ export const ChatInput = ({
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+  };
+
+  const handleLinkShare = () => {
+    const url = prompt('Paste the link you want to share:');
+    if (url && url.trim()) {
+      // TODO: Send link to chat/media - route to Links tab
+      console.log('Link shared:', url);
+      // For now, just send as a message
+      onInputChange(url);
+      onSendMessage();
+    }
   };
 
   return (
@@ -162,6 +174,10 @@ export const ChatInput = ({
               <DropdownMenuItem onClick={() => handleFileUpload('document')}>
                 <FileText className="w-4 h-4 mr-2" />
                 Document
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLinkShare}>
+                <Link className="w-4 h-4 mr-2" />
+                Link
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

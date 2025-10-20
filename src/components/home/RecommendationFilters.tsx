@@ -25,7 +25,8 @@ export const RecommendationFilters = ({ activeFilter, onFilterChange, showInline
     <div className="space-y-4">
       {showInlineSearch && (
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex justify-center gap-2 overflow-x-auto pb-2 scrollbar-hide md:pb-0">
+          <div className="flex justify-center gap-2 overflow-x-auto pb-2 scrollbar-hide native-scroll flex-nowrap md:pb-0 px-2"
+            style={{ WebkitOverflowScrolling: 'touch' }}>
             {filters.map((filter) => {
               const Icon = filter.icon;
               const isActive = activeFilter === filter.id;
@@ -58,7 +59,8 @@ export const RecommendationFilters = ({ activeFilter, onFilterChange, showInline
       )}
       
       {!showInlineSearch && (
-        <div className="flex justify-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex justify-center gap-2 overflow-x-auto pb-2 scrollbar-hide native-scroll flex-nowrap px-2"
+          style={{ WebkitOverflowScrolling: 'touch' }}>
           {filters.map((filter) => {
             const Icon = filter.icon;
             const isActive = activeFilter === filter.id;

@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, DollarSign, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { hapticService } from '@/services/hapticService';
+import { CreatePaymentModal } from './CreatePaymentModal';
+import { demoModeService } from '@/services/demoModeService';
 
 interface Payment {
   id: string;
@@ -23,8 +25,9 @@ interface MobileTripPaymentsProps {
  * Shows payment splits, settlements, and status
  */
 export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   // Mock data - replace with real data from backend
-  const [payments] = useState<Payment[]>([
+  const [payments, setPayments] = useState<Payment[]>([
     {
       id: '1',
       payer: 'Sarah Chen',
@@ -60,10 +63,46 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     }
   ]);
 
+  // Load session payments on mount
+  useEffect(() => {
+    const sessionPayments = demoModeService.getSessionPayments(tripId);
+    if (sessionPayments.length > 0) {
+      // Convert session payments to Payment format
+      const convertedPayments = sessionPayments.map(sp => ({
+        id: sp.id,
+        payer: sp.createdByName,
+        payerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo',
+        amount: sp.amount,
+        currency: sp.currency,
+        description: sp.description,
+        status: sp.is_settled ? 'settled' as const : 'pending' as const,
+        splitWith: sp.split_participants,
+        date: sp.created_at
+      }));
+      setPayments(prev => [...convertedPayments, ...prev]);
+    }
+  }, [tripId]);
+
   const handleAddPayment = async () => {
     await hapticService.medium();
-    // TODO: Open payment creation modal
-    console.log('Add payment clicked');
+    setIsModalOpen(true);
+  };
+
+  const handlePaymentCreated = () => {
+    // Refresh payments from session storage
+    const sessionPayments = demoModeService.getSessionPayments(tripId);
+    const convertedPayments = sessionPayments.map(sp => ({
+      id: sp.id,
+      payer: sp.createdByName,
+      payerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo',
+      amount: sp.amount,
+      currency: sp.currency,
+      description: sp.description,
+      status: sp.is_settled ? 'settled' as const : 'pending' as const,
+      splitWith: sp.split_participants,
+      date: sp.created_at
+    }));
+    setPayments(convertedPayments);
   };
 
   const handlePaymentTap = async (paymentId: string) => {
@@ -191,6 +230,14 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
           Add Payment Split
         </button>
       </div>
+
+      {/* Create Payment Modal */}
+      <CreatePaymentModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        tripId={tripId}
+        onPaymentCreated={handlePaymentCreated}
+      />
     </div>
   );
 };
