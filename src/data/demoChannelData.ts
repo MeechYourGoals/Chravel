@@ -70,35 +70,30 @@ const lakersChannels: DemoChannelData[] = [
   }
 ];
 
-// Tesla Cybertruck Launch Demo Channels
-const teslaChannels: DemoChannelData[] = [
+// Beyoncé Cowboy Carter World Tour Demo Channels
+const beyonceChannels: DemoChannelData[] = [
   {
     channel: {
-      channelName: 'Production Crew',
-      channelSlug: 'production-crew',
-      description: 'Production team coordination',
+      channelName: 'Production',
+      channelSlug: 'production',
+      description: 'Stage, sound, and lighting coordination',
       requiredRoleId: 'demo-role-production',
       requiredRoleName: 'Production',
       isPrivate: true,
       isArchived: false,
-      memberCount: 12,
+      memberCount: 18,
       createdBy: 'demo-user'
     },
     messages: [
       {
-        senderName: 'Production Lead',
-        content: 'Stage setup complete. Sound check at 3pm',
-        timestamp: '1:45 PM'
+        senderName: 'Tour Manager',
+        content: 'Load-in complete. Sound check at 4pm.',
+        timestamp: '1:05 PM'
       },
       {
-        senderName: 'AV Tech',
-        content: 'Lighting programmed and ready to test',
-        timestamp: '2:10 PM'
-      },
-      {
-        senderName: 'Stage Manager',
-        content: 'Truck arrives at 4pm. Everyone ready to sync.',
-        timestamp: '2:30 PM'
+        senderName: 'Lighting Director',
+        content: 'New cues uploaded for opener. Please review.',
+        timestamp: '1:20 PM'
       }
     ]
   },
@@ -106,41 +101,105 @@ const teslaChannels: DemoChannelData[] = [
     channel: {
       channelName: 'Security',
       channelSlug: 'security',
-      description: 'Security team coordination',
+      description: 'Venue and backstage security',
       requiredRoleId: 'demo-role-security',
       requiredRoleName: 'Security',
       isPrivate: true,
       isArchived: false,
-      memberCount: 8,
+      memberCount: 10,
       createdBy: 'demo-user'
     },
     messages: [
       {
-        senderName: 'Security Chief',
-        content: 'Perimeter secured. All checkpoints active.',
-        timestamp: '10:00 AM'
+        senderName: 'Security Lead',
+        content: 'Artist transport route confirmed. All clear.',
+        timestamp: '2:00 PM'
       },
       {
-        senderName: 'Security Lead',
-        content: 'VIP entrance ready. Badge system live.',
-        timestamp: '10:30 AM'
+        senderName: 'Backstage Ops',
+        content: 'Credential checkpoint moved to Gate B.',
+        timestamp: '2:14 PM'
       }
     ]
   }
 ];
+
+// Eli Lilly C-Suite Retreat Demo Channels
+const eliLillyChannels: DemoChannelData[] = [
+  {
+    channel: {
+      channelName: 'Executive Team',
+      channelSlug: 'executive-team',
+      description: 'Agenda coordination for executives',
+      requiredRoleId: 'demo-role-executives',
+      requiredRoleName: 'Executives',
+      isPrivate: true,
+      isArchived: false,
+      memberCount: 6,
+      createdBy: 'demo-user'
+    },
+    messages: [
+      {
+        senderName: 'Chief of Staff',
+        content: 'Keynote moved to 9:30am to accommodate flights.',
+        timestamp: '8:12 AM'
+      },
+      {
+        senderName: 'Comms Director',
+        content: 'Slides uploaded to shared drive. Link in calendar invite.',
+        timestamp: '8:40 AM'
+      }
+    ]
+  },
+  {
+    channel: {
+      channelName: 'Logistics',
+      channelSlug: 'logistics',
+      description: 'Transport and room block coordination',
+      requiredRoleId: 'demo-role-logistics',
+      requiredRoleName: 'Logistics',
+      isPrivate: true,
+      isArchived: false,
+      memberCount: 9,
+      createdBy: 'demo-user'
+    },
+    messages: [
+      {
+        senderName: 'Logistics Lead',
+        content: 'Shuttle departs every 15 minutes from the lobby.',
+        timestamp: '7:55 AM'
+      },
+      {
+        senderName: 'Venue Coordinator',
+        content: 'Meeting rooms A-D are ready. Wi‑Fi codes posted.',
+        timestamp: '8:05 AM'
+      }
+    ]
+  }
+];
+
+export const isTripWithDemoChannels = (tripId: string): boolean => {
+  // Accept both legacy numeric demo IDs and new pro trip slugs
+  return [
+    '13', // legacy Lakers id (if referenced elsewhere)
+    'lakers-road-trip',
+    'beyonce-cowboy-carter-tour',
+    'eli-lilly-c-suite-retreat-2026'
+  ].includes(tripId);
+};
 
 export const getDemoChannelsForTrip = (tripId: string): { channels: TripChannel[]; messagesByChannel: Map<string, ChannelMessage[]> } => {
   const now = new Date().toISOString();
   
   let demoData: DemoChannelData[] = [];
   
-  // Lakers trip
-  if (tripId === '13') {
+  // Map both legacy ids and current slugs
+  if (tripId === '13' || tripId === 'lakers-road-trip') {
     demoData = lakersChannels;
-  } 
-  // Tesla Cybertruck Launch trip
-  else if (tripId === '14') {
-    demoData = teslaChannels;
+  } else if (tripId === 'beyonce-cowboy-carter-tour') {
+    demoData = beyonceChannels;
+  } else if (tripId === 'eli-lilly-c-suite-retreat-2026') {
+    demoData = eliLillyChannels;
   }
   
   const channels: TripChannel[] = demoData.map((data, index) => ({

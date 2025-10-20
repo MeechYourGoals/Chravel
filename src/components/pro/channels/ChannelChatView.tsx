@@ -10,10 +10,12 @@ import { format } from 'date-fns';
 interface ChannelChatViewProps {
   channel: TripChannel;
   onBack?: () => void;
+  isDemoMode?: boolean;
+  initialMessages?: ChannelMessage[];
 }
 
-export const ChannelChatView = ({ channel, onBack }: ChannelChatViewProps) => {
-  const [messages, setMessages] = useState<ChannelMessage[]>([]);
+export const ChannelChatView = ({ channel, onBack, isDemoMode = false, initialMessages }: ChannelChatViewProps) => {
+  const [messages, setMessages] = useState<ChannelMessage[]>(initialMessages || []);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -25,24 +27,29 @@ export const ChannelChatView = ({ channel, onBack }: ChannelChatViewProps) => {
   };
 
   useEffect(() => {
+    if (isDemoMode) {
+      // Demo mode: messages are loaded from props and appended locally
+      setMessages(initialMessages || []);
+      setLoading(false);
+      return;
+    }
     loadMessages();
-    
-    // Subscribe to real-time updates
+    // Subscribe to real-time updates in live mode
     const unsubscribe = channelService.subscribeToChannel(
       channel.id,
       (newMsg) => {
         setMessages(prev => [...prev, newMsg]);
       }
     );
-
     return unsubscribe;
-  }, [channel.id]);
+  }, [channel.id, isDemoMode, initialMessages]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   const loadMessages = async () => {
+    if (isDemoMode) return; // handled by initialMessages
     setLoading(true);
     const msgs = await channelService.getMessages(channel.id);
     setMessages(msgs);
@@ -53,18 +60,32 @@ export const ChannelChatView = ({ channel, onBack }: ChannelChatViewProps) => {
     if (!newMessage.trim() || sending) return;
 
     setSending(true);
-    const sent = await channelService.sendMessage({
-      channelId: channel.id,
-      content: newMessage.trim()
-    });
-
-    if (sent) {
+    if (isDemoMode) {
+      // In demo mode, append locally to mimic send
+      const local: ChannelMessage = {
+        id: `local-${Date.now()}`,
+        channelId: channel.id,
+        senderId: 'demo-user',
+        senderName: 'You',
+        content: newMessage.trim(),
+        messageType: 'text',
+        createdAt: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, local]);
       setNewMessage('');
     } else {
-      toast({
-        title: 'Failed to send message',
-        variant: 'destructive'
+      const sent = await channelService.sendMessage({
+        channelId: channel.id,
+        content: newMessage.trim()
       });
+      if (sent) {
+        setNewMessage('');
+      } else {
+        toast({
+          title: 'Failed to send message',
+          variant: 'destructive'
+        });
+      }
     }
     setSending(false);
   };
