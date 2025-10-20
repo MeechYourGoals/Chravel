@@ -10,10 +10,9 @@ import { RoleContactSheet } from './RoleContactSheet';
 import { ExportTeamDirectoryModal } from './ExportTeamDirectoryModal';
 import { TeamOrgChart } from './TeamOrgChart';
 import { RoleChannelManager } from './RoleChannelManager';
-import { ChannelsPanel } from './channels/ChannelsPanel';
-import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { extractUniqueRoles, getRoleColorClass } from '../../utils/roleUtils';
 import { Button } from '../ui/button';
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface TeamTabProps {
   roster: ProParticipant[];
@@ -31,19 +30,18 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [roleContactSheet, setRoleContactSheet] = useState<{ role: string; members: ProParticipant[] } | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'orgchart' | 'channels'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'orgchart'>('grid');
   const [showChannelManager, setShowChannelManager] = useState(false);
-  const { canUseChannels } = useFeatureFlags();
 
   // Load view preference from localStorage
   useEffect(() => {
-    const savedView = localStorage.getItem('team-view-mode') as 'grid' | 'orgchart' | 'channels' | null;
+    const savedView = localStorage.getItem('team-view-mode') as 'grid' | 'orgchart' | null;
     if (savedView) {
       setViewMode(savedView);
     }
   }, []);
 
-  const handleViewModeChange = (mode: 'grid' | 'orgchart' | 'channels') => {
+  const handleViewModeChange = (mode: 'grid' | 'orgchart') => {
     setViewMode(mode);
     localStorage.setItem('team-view-mode', mode);
   };
@@ -103,63 +101,40 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
       )}
 
       {/* Header with Stats and Actions */}
-      <div className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
+      <div className="bg-gradient-to-br from-white/5 via-white/3 to-transparent backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 shadow-xl">
+        {/* Row 1: Team Label + Stats */}
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Users className="text-red-400" size={24} />
             <h2 className="text-xl font-bold text-white">{teamLabel}</h2>
             <span className="text-gray-400">{roster.length} members</span>
           </div>
-          
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* View Mode Toggle */}
-            <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1">
-              <button
-                onClick={() => handleViewModeChange('grid')}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
-                  viewMode === 'grid'
-                    ? 'bg-red-600 text-white'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-                title="Grid view"
-              >
+        </div>
+
+        {/* Row 2: Centered View Toggle + Action Buttons */}
+        <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 mb-6">
+          {/* View Mode Tabs (Grid, Org Chart only) */}
+          <Tabs value={viewMode} onValueChange={handleViewModeChange} className="w-full md:w-auto">
+            <TabsList className="grid grid-cols-2 w-full md:w-auto bg-gray-800/50 border border-gray-700">
+              <TabsTrigger value="grid" className="flex items-center gap-1.5">
                 <Grid3x3 size={14} />
                 Grid
-              </button>
-              <button
-                onClick={() => handleViewModeChange('orgchart')}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
-                  viewMode === 'orgchart'
-                    ? 'bg-red-600 text-white'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-                title="Org chart view"
-              >
+              </TabsTrigger>
+              <TabsTrigger value="orgchart" className="flex items-center gap-1.5">
                 <Network size={14} />
                 Org Chart
-              </button>
-              {canUseChannels('pro') && (
-                <button
-                  onClick={() => handleViewModeChange('channels')}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
-                    viewMode === 'channels'
-                      ? 'bg-red-600 text-white'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                  title="Channels view"
-                >
-                  <MessageSquare size={14} />
-                  Channels
-                </button>
-              )}
-            </div>
-            
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {/* Action Buttons Group */}
+          <div className="flex flex-wrap items-center justify-center gap-2 w-full md:w-auto">
             {/* Channels Button */}
             {tripId && (
               <Button
                 onClick={() => setShowChannelManager(true)}
                 variant="outline"
-                className="border-gray-600"
+                className="border-gray-600 hover:bg-white/10 hover:border-gray-500 transition-all duration-200"
                 title="Manage role-based chat channels"
               >
                 <MessageSquare size={16} className="mr-2" />
@@ -171,7 +146,7 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
             <Button
               onClick={() => setShowExportModal(true)}
               variant="outline"
-              className="border-gray-600"
+              className="border-gray-600 hover:bg-white/10 hover:border-gray-500 transition-all duration-200"
               title="Export team directory"
             >
               <Download size={16} className="mr-2" />
@@ -183,7 +158,7 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
               <Button
                 onClick={() => setShowBulkModal(true)}
                 variant="outline"
-                className="border-gray-600"
+                className="border-gray-600 hover:bg-white/10 hover:border-gray-500 transition-all duration-200"
                 title="Assign roles to multiple members"
               >
                 <UsersRound size={16} className="mr-2" />
@@ -195,7 +170,7 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
             {hasUnassignedRoles && !isReadOnly && (
               <Button
                 onClick={handleAssignRolesClick}
-                className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white"
+                className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white transition-all duration-200"
                 title="Assign roles to team members"
               >
                 <UserPlus size={16} className="mr-2" />
@@ -205,41 +180,43 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
           </div>
         </div>
 
-        {/* Role Filter Chips - Only show if category has predefined roles */}
+        {/* Row 3: Centered Role Filter Pills */}
         {categoryRoles.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {roles.map((role) => {
-              const roleMembers = roster.filter(m => m.role === role);
-              return (
-                <div key={role} className="flex items-center gap-1">
-                  <button
-                    onClick={() => setSelectedRole(role)}
-                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                      selectedRole === role
-                        ? 'bg-red-600 text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
-                  >
-                    {role === 'all' ? 'All Roles' : role}
-                    {role !== 'all' && (
-                      <span className="ml-1 text-xs">
-                        ({roleMembers.length})
-                      </span>
-                    )}
-                  </button>
-                  {/* Contact All Button for specific roles */}
-                      {role !== 'all' && roleMembers.length > 0 && (
+          <div className="flex justify-center">
+            <div className="flex flex-wrap gap-2 justify-center items-center max-w-5xl">
+              {roles.map((role) => {
+                const roleMembers = roster.filter(m => m.role === role);
+                return (
+                  <div key={role} className="flex items-center gap-1">
                     <button
-                      onClick={() => setRoleContactSheet({ role, members: roleMembers })}
-                      className="p-1 hover:bg-white/10 rounded transition-colors"
-                      title={`Contact all ${role}`}
+                      onClick={() => setSelectedRole(role)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                        selectedRole === role
+                          ? 'bg-red-600 text-white shadow-lg shadow-red-600/30 scale-105'
+                          : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 hover:scale-102 border border-gray-600'
+                      }`}
                     >
-                      <MessageCircle size={14} className="text-blue-400" />
+                      {role === 'all' ? 'All Roles' : role}
+                      {role !== 'all' && (
+                        <span className="ml-1.5 text-xs opacity-75">
+                          ({roleMembers.length})
+                        </span>
+                      )}
                     </button>
-                  )}
-                </div>
-              );
-            })}
+                    {/* Contact All Button for specific roles */}
+                    {role !== 'all' && roleMembers.length > 0 && (
+                      <button
+                        onClick={() => setRoleContactSheet({ role, members: roleMembers })}
+                        className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
+                        title={`Contact all ${role}`}
+                      >
+                        <MessageCircle size={14} className="text-blue-400" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
         
@@ -252,19 +229,7 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
       </div>
 
       {/* Conditional View Rendering */}
-      {viewMode === 'channels' ? (
-        tripId ? (
-          <ChannelsPanel
-            tripId={tripId}
-            userRole={userRole}
-            isAdmin={!isReadOnly}
-          />
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-400">Trip ID required for channels</p>
-          </div>
-        )
-      ) : viewMode === 'orgchart' ? (
+      {viewMode === 'orgchart' ? (
         <TeamOrgChart
           roster={roster}
           category={category}
