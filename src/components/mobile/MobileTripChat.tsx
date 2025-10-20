@@ -40,9 +40,9 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
     id: msg.id,
     text: msg.content,
     sender: {
-      id: msg.userId,
-      name: msg.userName,
-      avatar: msg.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.userName}`
+      id: msg.user_id || 'unknown',
+      name: msg.author_name,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.author_name}`
     },
     createdAt: new Date(msg.created_at).toISOString(),
     isBroadcast: false
