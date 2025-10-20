@@ -13,6 +13,7 @@ import { useUnifiedMessages } from '../../hooks/useUnifiedMessages';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { MessageSkeleton } from './SkeletonLoader';
 import { hapticService } from '../../services/hapticService';
+import { useShareAsset } from '@/hooks/useShareAsset';
 
 interface MobileTripChatProps {
   tripId: string;
@@ -73,6 +74,18 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
       await sendUnifiedMessage(inputMessage);
       setInputMessage('');
     }
+  };
+
+  const { shareFile, shareLink } = useShareAsset(tripId, 'anonymous', 'You');
+
+  const handleShareFiles = async (files: FileList, kind: 'image' | 'video' | 'document') => {
+    const first = files[0];
+    if (!first) return;
+    await shareFile(kind === 'document' ? 'file' : (kind as 'image' | 'video'), first);
+  };
+
+  const handleShareLink = async (url: string) => {
+    await shareLink(url);
   };
 
   const handleReaction = async (messageId: string, reactionType: string) => {
@@ -150,6 +163,8 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
                 handleMobileSendMessage();
               }
             }}
+            onFileUpload={handleShareFiles}
+            onShareLink={handleShareLink}
             apiKey=""
             isTyping={false}
             tripMembers={[]}

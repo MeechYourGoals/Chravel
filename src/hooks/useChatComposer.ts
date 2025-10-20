@@ -13,6 +13,7 @@ export interface ChatMessage {
   reactions?: { [key: string]: string[] };
   replyTo?: { id: string; text: string; sender: string };
   tags?: string[];
+  attachments?: Array<{ type: 'image' | 'video' | 'file' | 'link'; url: string; name?: string }>;
 }
 
 export interface ReplyContext {

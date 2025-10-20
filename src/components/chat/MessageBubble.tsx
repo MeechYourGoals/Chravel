@@ -21,6 +21,8 @@ export interface MessageBubbleProps {
     sources?: Array<{ id: string; title: string; url: string; snippet: string; source: string }>;
     googleMapsWidget?: string;
   };
+  // 🆕 Attachments to render inline
+  attachments?: Array<{ type: 'image' | 'video' | 'file' | 'link'; url: string; name?: string }>;
 }
 
 export const MessageBubble = ({
@@ -33,7 +35,8 @@ export const MessageBubble = ({
   isPayment,
   reactions,
   onReaction,
-  grounding
+  grounding,
+  attachments
 }: MessageBubbleProps) => {
   const [showReactions, setShowReactions] = useState(false);
 
@@ -88,6 +91,37 @@ export const MessageBubble = ({
           <p className={cn('text-sm leading-relaxed', getTextColorClass())}>{text}</p>
         </div>
         
+        {/* Attachments */}
+        {attachments && attachments.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {attachments.map((att, idx) => {
+              if (att.type === 'image') {
+                return (
+                  <img key={idx} src={att.url} alt={att.name || 'image'} className="rounded-lg max-h-80 object-contain border border-white/10" />
+                );
+              }
+              if (att.type === 'video') {
+                return (
+                  <video key={idx} src={att.url} controls className="rounded-lg w-full max-h-80 border border-white/10" />
+                );
+              }
+              if (att.type === 'file') {
+                return (
+                  <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm bg-white/10 px-3 py-2 rounded-md border border-white/10">
+                    📎 {att.name || 'Download file'}
+                  </a>
+                );
+              }
+              // link
+              return (
+                <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="block text-blue-400 hover:text-blue-300">
+                  {att.url}
+                </a>
+              );
+            })}
+          </div>
+        )}
+
         {/* 🆕 Google Maps Widget */}
         {grounding?.googleMapsWidget && (
           <div className="mt-3">

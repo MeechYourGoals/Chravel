@@ -28,6 +28,7 @@ export const MessageItem = ({ message, reactions, onReaction }: MessageItemProps
         sources: messageWithGrounding.sources,
         googleMapsWidget: messageWithGrounding.googleMapsWidget
       } : undefined}
+      attachments={(message as any).attachments}
     />
   );
 };
