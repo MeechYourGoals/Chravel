@@ -57,20 +57,19 @@ export const AdvertiserOnboarding = ({ onComplete }: AdvertiserOnboardingProps) 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">
-            Welcome to Chravel Advertiser Hub
-          </CardTitle>
-          <CardDescription>
-            Create your advertiser profile to start promoting your travel destinations
-          </CardDescription>
-        </CardHeader>
+    <Card className="w-full max-w-2xl mx-auto bg-white/5 border-white/20">
+      <CardHeader className="text-center">
+        <CardTitle className="text-2xl font-bold text-white">
+          Welcome to Chravel Advertiser Hub
+        </CardTitle>
+        <CardDescription className="text-gray-300">
+          Create your advertiser profile to start promoting your travel destinations
+        </CardDescription>
+      </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="company_name">
+              <Label htmlFor="company_name" className="text-gray-200">
                 Company Name <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
@@ -81,14 +80,14 @@ export const AdvertiserOnboarding = ({ onComplete }: AdvertiserOnboardingProps) 
                   placeholder="Your Company Name"
                   value={formData.company_name}
                   onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                  className="pl-10"
+                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="company_email">
+              <Label htmlFor="company_email" className="text-gray-200">
                 Company Email <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
@@ -99,14 +98,14 @@ export const AdvertiserOnboarding = ({ onComplete }: AdvertiserOnboardingProps) 
                   placeholder="contact@company.com"
                   value={formData.company_email}
                   onChange={(e) => setFormData({ ...formData, company_email: e.target.value })}
-                  className="pl-10"
+                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="website">Website (Optional)</Label>
+              <Label htmlFor="website" className="text-gray-200">Website (Optional)</Label>
               <div className="relative">
                 <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -115,14 +114,14 @@ export const AdvertiserOnboarding = ({ onComplete }: AdvertiserOnboardingProps) 
                   placeholder="https://www.company.com"
                   value={formData.website}
                   onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                  className="pl-10"
+                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                 />
               </div>
             </div>
 
             <Button 
               type="submit" 
-              className="w-full"
+              className="w-full bg-purple-600 hover:bg-purple-700"
               disabled={isLoading}
             >
               {isLoading ? 'Creating Profile...' : 'Create Advertiser Profile'}
@@ -130,6 +129,5 @@ export const AdvertiserOnboarding = ({ onComplete }: AdvertiserOnboardingProps) 
           </form>
         </CardContent>
       </Card>
-    </div>
   );
 };

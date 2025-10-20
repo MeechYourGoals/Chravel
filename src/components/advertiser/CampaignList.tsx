@@ -78,9 +78,9 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
 
   if (campaigns.length === 0) {
     return (
-      <Card className="text-center py-12">
+      <Card className="text-center py-12 bg-white/5 border-white/20">
         <CardContent>
-          <p className="text-gray-500 mb-4">No campaigns yet</p>
+          <p className="text-gray-300 mb-4">No campaigns yet</p>
           <p className="text-sm text-gray-400">
             Create your first campaign to start advertising on Chravel
           </p>
@@ -92,11 +92,11 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
   return (
     <div className="grid gap-6">
       {campaigns.map((campaign) => (
-        <Card key={campaign.id} className="hover:shadow-lg transition-shadow">
+        <Card key={campaign.id} className="bg-white/5 border-white/20 hover:bg-white/10 transition-all">
           <CardHeader>
             <div className="flex justify-between items-start">
               <div>
-                <CardTitle className="text-xl">{campaign.name}</CardTitle>
+                <CardTitle className="text-xl text-white">{campaign.name}</CardTitle>
                 <div className="flex items-center gap-3 mt-2">
                   <Badge className={`${getStatusColor(campaign.status)} text-white`}>
                     {campaign.status}
