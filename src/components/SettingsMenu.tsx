@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, User, Bell, Crown, LogOut, Building } from 'lucide-react';
+import { X, User, Bell, Crown, LogOut, Building, Megaphone } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
@@ -73,7 +73,8 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection }: Settin
   const sections = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'subscription', label: 'Subscription', icon: Crown }
+    { id: 'subscription', label: 'Subscription', icon: Crown },
+    { id: 'advertiser', label: 'Advertiser Hub', icon: Megaphone }
   ];
 
   const renderSection = () => {
@@ -90,6 +91,11 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection }: Settin
             onShowEnterpriseSettings={() => setActiveSection('enterprise')}
           />
         );
+      case 'advertiser':
+        // Redirect to advertiser dashboard
+        navigate('/advertiser');
+        onClose();
+        return null;
       default:
         return <ProfileSection userOrganization={userOrganization} />;
     }
