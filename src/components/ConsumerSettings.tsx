@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
-import { User, Bell, CreditCard, Shield, Settings, Wallet, ChevronDown, Archive, Bookmark, Sparkles, Megaphone } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { User, Bell, CreditCard, Shield, Settings, Wallet, ChevronDown, Archive, Bookmark, Sparkles } from 'lucide-react';
 import { getFeatureTierEmoji, getTierLegend } from '../utils/featureTiers';
 import { TravelWallet } from './TravelWallet';
 import { ConsumerProfileSection } from './consumer/ConsumerProfileSection';
@@ -29,7 +28,6 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose }: Con
   const sections = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'billing', label: 'Billing & Subscription', icon: CreditCard },
-    { id: 'advertiser', label: 'Advertiser Hub', icon: Megaphone },
     { id: 'ai-concierge', label: 'AI Concierge', icon: Sparkles },
     { id: 'travel-wallet', label: 'Travel Wallet', icon: Wallet },
     { id: 'saved-recs', label: 'Saved Recommendations', icon: Bookmark },
@@ -89,14 +87,8 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose }: Con
                   <button
                     key={section.id}
                     onClick={() => {
-                      if (section.id === 'advertiser') {
-                        navigate('/advertiser');
-                        onClose?.();
-                        setShowMobileMenu(false);
-                      } else {
-                        setActiveSection(section.id);
-                        setShowMobileMenu(false);
-                      }
+                      setActiveSection(section.id);
+                      setShowMobileMenu(false);
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
                       activeSection === section.id
@@ -135,12 +127,7 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose }: Con
               <button
                 key={section.id}
                 onClick={() => {
-                  if (section.id === 'advertiser') {
-                    navigate('/advertiser');
-                    onClose?.();
-                  } else {
-                    setActiveSection(section.id);
-                  }
+                  setActiveSection(section.id);
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
                   activeSection === section.id

@@ -8,6 +8,7 @@ import {
   CampaignWithTargeting,
   CampaignStats 
 } from '../types/advertiser';
+import { useDemoModeStore } from '../store/demoModeStore';
 
 export class AdvertiserService {
   // Advertiser Management
@@ -36,6 +37,21 @@ export class AdvertiserService {
     website?: string;
   }): Promise<Advertiser | null> {
     try {
+      const isDemoMode = useDemoModeStore.getState().isDemoMode;
+      
+      if (isDemoMode) {
+        // Return mock advertiser in demo mode
+        return {
+          id: 'demo-advertiser-' + Date.now(),
+          user_id: 'demo-user',
+          company_name: profile.company_name,
+          company_email: profile.company_email,
+          website: profile.website,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 

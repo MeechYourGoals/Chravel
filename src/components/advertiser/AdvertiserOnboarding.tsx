@@ -7,6 +7,7 @@ import { Building2, Mail, Globe } from 'lucide-react';
 import { AdvertiserService } from '@/services/advertiserService';
 import { Advertiser } from '@/types/advertiser';
 import { useToast } from '@/hooks/use-toast';
+import { useDemoModeStore } from '@/store/demoModeStore';
 
 interface AdvertiserOnboardingProps {
   onComplete: (advertiser: Advertiser) => void;
@@ -14,11 +15,12 @@ interface AdvertiserOnboardingProps {
 
 export const AdvertiserOnboarding = ({ onComplete }: AdvertiserOnboardingProps) => {
   const { toast } = useToast();
+  const isDemoMode = useDemoModeStore((state) => state.isDemoMode);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    company_name: '',
-    company_email: '',
-    website: ''
+    company_name: isDemoMode ? 'Demo Travel Company' : '',
+    company_email: isDemoMode ? 'demo@travelcompany.com' : '',
+    website: isDemoMode ? 'https://www.demotravelcompany.com' : ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,7 +66,10 @@ export const AdvertiserOnboarding = ({ onComplete }: AdvertiserOnboardingProps) 
             Welcome to Chravel Advertiser Hub
           </CardTitle>
           <CardDescription>
-            Create your advertiser profile to start promoting your travel destinations
+            {isDemoMode 
+              ? 'Demo Mode: Fill out the form below to see how the advertiser hub works'
+              : 'Create your advertiser profile to start promoting your travel destinations'
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
