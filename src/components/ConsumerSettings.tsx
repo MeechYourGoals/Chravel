@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { User, Bell, CreditCard, Shield, Settings, Wallet, ChevronDown, Archive, Bookmark, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { getFeatureTierEmoji, getTierLegend } from '../utils/featureTiers';
 import { TravelWallet } from './TravelWallet';
 import { ConsumerProfileSection } from './consumer/ConsumerProfileSection';

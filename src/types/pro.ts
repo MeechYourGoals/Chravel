@@ -57,6 +57,7 @@ export interface TeamMember {
 // Enhanced Pro-specific types
 export interface ProParticipant {
   id: string;
+  userId?: string; // Supabase user ID for RBAC
   name: string;
   email: string;
   avatar?: string;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { channelService } from '../services/channelService';
+import { eventChannelService } from '../services/eventChannelService';
 import { ChannelWithStats, CreateChannelRequest, UpdateChannelRequest } from '../types/channels';
 
 export const useChannels = (tripId: string) => {
@@ -16,7 +16,7 @@ export const useChannels = (tripId: string) => {
     queryKey: ['channels', tripId],
     queryFn: async () => {
       try {
-        return await channelService.getChannels(tripId);
+        return await eventChannelService.getChannels(tripId);
       } catch (error) {
         console.error('Failed to load channels:', error);
         return []; // Return empty array on error to prevent app crash
@@ -29,7 +29,7 @@ export const useChannels = (tripId: string) => {
 
   // Create channel mutation
   const createChannelMutation = useMutation({
-    mutationFn: (request: CreateChannelRequest) => channelService.createChannel(request),
+    mutationFn: (request: CreateChannelRequest) => eventChannelService.createChannel(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['channels', tripId] });
     },
@@ -38,7 +38,7 @@ export const useChannels = (tripId: string) => {
   // Update channel mutation
   const updateChannelMutation = useMutation({
     mutationFn: ({ channelId, updates }: { channelId: string; updates: UpdateChannelRequest }) =>
-      channelService.updateChannel(channelId, updates),
+      eventChannelService.updateChannel(channelId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['channels', tripId] });
     },
@@ -46,7 +46,7 @@ export const useChannels = (tripId: string) => {
 
   // Archive channel mutation
   const archiveChannelMutation = useMutation({
-    mutationFn: (channelId: string) => channelService.archiveChannel(channelId),
+    mutationFn: (channelId: string) => eventChannelService.archiveChannel(channelId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['channels', tripId] });
     },
@@ -55,7 +55,7 @@ export const useChannels = (tripId: string) => {
   // Add members mutation
   const addMembersMutation = useMutation({
     mutationFn: ({ channelId, userIds }: { channelId: string; userIds: string[] }) =>
-      channelService.addMembers(channelId, userIds),
+      eventChannelService.addMembers(channelId, userIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['channels', tripId] });
     },
@@ -64,7 +64,7 @@ export const useChannels = (tripId: string) => {
   // Remove member mutation
   const removeMemberMutation = useMutation({
     mutationFn: ({ channelId, userId }: { channelId: string; userId: string }) =>
-      channelService.removeMember(channelId, userId),
+      eventChannelService.removeMember(channelId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['channels', tripId] });
     },
@@ -72,7 +72,7 @@ export const useChannels = (tripId: string) => {
 
   // Create default role channels
   const createDefaultChannelsMutation = useMutation({
-    mutationFn: () => channelService.createDefaultRoleChannels(tripId),
+    mutationFn: () => eventChannelService.createDefaultRoleChannels(tripId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['channels', tripId] });
     },
@@ -109,7 +109,7 @@ export const useChannelMessages = (channelId: string) => {
   const loadMessages = async () => {
     try {
       setLoading(true);
-      const msgs = await channelService.getChannelMessages(channelId, 10);
+      const msgs = await eventChannelService.getChannelMessages(channelId, 10);
       setMessages(msgs);
       setHasMore(msgs.length === 10);
     } catch (error) {
@@ -132,7 +132,7 @@ export const useChannelMessages = (channelId: string) => {
   const sendMessage = async (content: string, tripId: string) => {
     try {
       setSending(true);
-      await channelService.sendMessage({
+      await eventChannelService.sendMessage({
         trip_id: tripId,
         channel_id: channelId,
         content,
@@ -153,7 +153,7 @@ export const useChannelMessages = (channelId: string) => {
     setIsLoadingMore(true);
     try {
       const oldestMessage = messages[0];
-      const olderMessages = await channelService.getChannelMessages(channelId, 20, oldestMessage.created_at);
+      const olderMessages = await eventChannelService.getChannelMessages(channelId, 20, oldestMessage.created_at);
       if (olderMessages.length > 0) {
         setMessages(prev => [...olderMessages, ...prev]);
         setHasMore(olderMessages.length === 20);
