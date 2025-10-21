@@ -70,6 +70,124 @@ const lakersChannels: DemoChannelData[] = [
   }
 ];
 
+// Beyonce Cowboy Carter Tour Demo Channels
+const beyonceChannels: DemoChannelData[] = [
+  {
+    channel: {
+      channelName: 'Production',
+      channelSlug: 'production',
+      description: 'Production team coordination',
+      requiredRoleId: 'demo-role-production',
+      requiredRoleName: 'Production',
+      isPrivate: true,
+      isArchived: false,
+      memberCount: 25,
+      createdBy: 'demo-user'
+    },
+    messages: [
+      {
+        senderName: 'Production Lead',
+        content: 'Stage setup complete. Sound check at 3pm',
+        timestamp: '1:45 PM'
+      },
+      {
+        senderName: 'Lighting Director',
+        content: 'New lighting cues programmed for Act 2',
+        timestamp: '2:10 PM'
+      },
+      {
+        senderName: 'Stage Manager',
+        content: 'All pyro tested and ready for tonight',
+        timestamp: '2:30 PM'
+      }
+    ]
+  },
+  {
+    channel: {
+      channelName: 'Security',
+      channelSlug: 'security',
+      description: 'Security team coordination',
+      requiredRoleId: 'demo-role-security',
+      requiredRoleName: 'Security',
+      isPrivate: true,
+      isArchived: false,
+      memberCount: 20,
+      createdBy: 'demo-user'
+    },
+    messages: [
+      {
+        senderName: 'Security Chief',
+        content: 'VIP entrance secured. Meet & greet at 6pm',
+        timestamp: '10:00 AM'
+      },
+      {
+        senderName: 'Head of Security',
+        content: 'Barricades in place. Crowd control ready',
+        timestamp: '10:30 AM'
+      }
+    ]
+  }
+];
+
+// Eli Lilly C-Suite Retreat Demo Channels
+const eliLillyChannels: DemoChannelData[] = [
+  {
+    channel: {
+      channelName: 'Executives',
+      channelSlug: 'executives',
+      description: 'Executive team discussions',
+      requiredRoleId: 'demo-role-executives',
+      requiredRoleName: 'Executives',
+      isPrivate: true,
+      isArchived: false,
+      memberCount: 8,
+      createdBy: 'demo-user'
+    },
+    messages: [
+      {
+        senderName: 'David Ricks',
+        content: 'Strategic planning session moved to 3pm today',
+        timestamp: '9:00 AM'
+      },
+      {
+        senderName: 'Anat Ashkenazi',
+        content: 'Q1 financials deck ready for review',
+        timestamp: '9:15 AM'
+      },
+      {
+        senderName: 'Dan Skovronsky',
+        content: 'R&D pipeline update at tomorrow\'s session',
+        timestamp: '10:30 AM'
+      }
+    ]
+  },
+  {
+    channel: {
+      channelName: 'Event Planning',
+      channelSlug: 'event-planning',
+      description: 'Event coordination team',
+      requiredRoleId: 'demo-role-event',
+      requiredRoleName: 'Event Planning',
+      isPrivate: true,
+      isArchived: false,
+      memberCount: 4,
+      createdBy: 'demo-user'
+    },
+    messages: [
+      {
+        senderName: 'Event Coordinator',
+        content: 'Dinner reservations confirmed for 7:30pm',
+        timestamp: '11:00 AM'
+      },
+      {
+        senderName: 'Meeting Planner',
+        content: 'AV equipment tested in all conference rooms',
+        timestamp: '11:20 AM'
+      }
+    ]
+  }
+];
+
 // Tesla Cybertruck Launch Demo Channels
 const teslaChannels: DemoChannelData[] = [
   {
@@ -134,13 +252,18 @@ export const getDemoChannelsForTrip = (tripId: string): { channels: TripChannel[
   
   let demoData: DemoChannelData[] = [];
   
-  // Lakers trip
-  if (tripId === '13') {
+  // Map trip IDs to demo channels
+  if (tripId === '13' || tripId === 'lakers-road-trip') {
     demoData = lakersChannels;
   } 
-  // Tesla Cybertruck Launch trip
-  else if (tripId === '14') {
+  else if (tripId === '14' || tripId === 'tesla-cybertruck-roadshow-2025') {
     demoData = teslaChannels;
+  }
+  else if (tripId === '15' || tripId === 'beyonce-cowboy-carter-tour') {
+    demoData = beyonceChannels;
+  }
+  else if (tripId === '16' || tripId === 'eli-lilly-c-suite-retreat-2026') {
+    demoData = eliLillyChannels;
   }
   
   const channels: TripChannel[] = demoData.map((data, index) => ({

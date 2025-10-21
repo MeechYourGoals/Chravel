@@ -6,6 +6,7 @@ import { TripChannel, ChannelMessage } from '../../../types/roleChannels';
 import { channelService } from '../../../services/channelService';
 import { useToast } from '../../../hooks/use-toast';
 import { format } from 'date-fns';
+import { getDemoChannelsForTrip } from '../../../data/demoChannelData';
 
 interface ChannelChatViewProps {
   channel: TripChannel;
@@ -27,16 +28,18 @@ export const ChannelChatView = ({ channel, onBack }: ChannelChatViewProps) => {
   useEffect(() => {
     loadMessages();
     
-    // Subscribe to real-time updates
-    const unsubscribe = channelService.subscribeToChannel(
-      channel.id,
-      (newMsg) => {
-        setMessages(prev => [...prev, newMsg]);
-      }
-    );
-
-    return unsubscribe;
-  }, [channel.id]);
+    // Subscribe to real-time updates (skip for demo channels)
+    const DEMO_TRIP_IDS = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026'];
+    if (!DEMO_TRIP_IDS.includes(channel.tripId)) {
+      const unsubscribe = channelService.subscribeToChannel(
+        channel.id,
+        (newMsg) => {
+          setMessages(prev => [...prev, newMsg]);
+        }
+      );
+      return unsubscribe;
+    }
+  }, [channel.id, channel.tripId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -44,6 +47,17 @@ export const ChannelChatView = ({ channel, onBack }: ChannelChatViewProps) => {
 
   const loadMessages = async () => {
     setLoading(true);
+    
+    // Check if this is a demo channel
+    const DEMO_TRIP_IDS = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026'];
+    if (DEMO_TRIP_IDS.includes(channel.tripId)) {
+      const { messagesByChannel } = getDemoChannelsForTrip(channel.tripId);
+      const demoMessages = messagesByChannel.get(channel.id) || [];
+      setMessages(demoMessages);
+      setLoading(false);
+      return;
+    }
+    
     const msgs = await channelService.getMessages(channel.id);
     setMessages(msgs);
     setLoading(false);
@@ -53,6 +67,26 @@ export const ChannelChatView = ({ channel, onBack }: ChannelChatViewProps) => {
     if (!newMessage.trim() || sending) return;
 
     setSending(true);
+    
+    // Check if this is a demo channel
+    const DEMO_TRIP_IDS = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026'];
+    if (DEMO_TRIP_IDS.includes(channel.tripId)) {
+      // For demo channels, just add the message locally
+      const newMsg: ChannelMessage = {
+        id: `demo-msg-${Date.now()}`,
+        channelId: channel.id,
+        senderId: 'current-user',
+        senderName: 'You',
+        content: newMessage.trim(),
+        messageType: 'text',
+        createdAt: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, newMsg]);
+      setNewMessage('');
+      setSending(false);
+      return;
+    }
+    
     const sent = await channelService.sendMessage({
       channelId: channel.id,
       content: newMessage.trim()

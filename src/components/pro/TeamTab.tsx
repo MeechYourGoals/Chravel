@@ -9,6 +9,7 @@ import { QuickContactMenu } from './QuickContactMenu';
 import { RoleContactSheet } from './RoleContactSheet';
 import { ExportTeamDirectoryModal } from './ExportTeamDirectoryModal';
 import { RoleChannelManager } from './RoleChannelManager';
+import { DirectChannelView } from './channels/DirectChannelView';
 import { extractUniqueRoles, getRoleColorClass } from '../../utils/roleUtils';
 import { Button } from '../ui/button';
 
@@ -268,6 +269,19 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
         <div className="text-center py-12">
           <Users size={48} className="text-gray-600 mx-auto mb-4" />
           <p className="text-gray-400">No team members found for the selected role.</p>
+        </div>
+      )}
+
+      {/* Direct Channel View for Demo Trips */}
+      {tripId && ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026'].includes(tripId) && (
+        <div className="mt-8">
+          <div className="border-t border-gray-700 pt-8">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <MessageSquare size={20} className="text-purple-400" />
+              Role-Based Channels
+            </h3>
+            <DirectChannelView tripId={tripId} userRole={userRole} />
+          </div>
         </div>
       )}
 

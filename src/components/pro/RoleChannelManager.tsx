@@ -38,6 +38,11 @@ export const RoleChannelManager = ({
 
   useEffect(() => {
     if (isOpen) {
+      // Auto-enable demo mode for specific trips
+      const autoDemoTrips = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026', '13', '14', '15'];
+      if (autoDemoTrips.includes(tripId)) {
+        setDemoMode(true);
+      }
       loadChannels();
       checkAdminStatus();
     }
@@ -149,7 +154,9 @@ export const RoleChannelManager = ({
                         <strong>Role-Based Channels:</strong> Private channels for specific team roles. 
                         Only members with assigned roles can access their channels.
                       </p>
-                      {(tripId === '13' || tripId === '14') && (
+                      {(tripId === '13' || tripId === '14' || tripId === '15' || 
+                        tripId === 'lakers-road-trip' || tripId === 'beyonce-cowboy-carter-tour' || 
+                        tripId === 'eli-lilly-c-suite-retreat-2026') && (
                         <Button
                           onClick={enterDemoMode}
                           size="sm"
