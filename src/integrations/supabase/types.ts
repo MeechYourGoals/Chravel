@@ -427,6 +427,42 @@ export type Database = {
           },
         ]
       }
+      channel_role_access: {
+        Row: {
+          channel_id: string
+          created_at: string | null
+          id: string
+          role_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string | null
+          id?: string
+          role_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string | null
+          id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_role_access_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "trip_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_role_access_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "trip_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_qa_questions: {
         Row: {
           answer: string | null
@@ -1411,6 +1447,7 @@ export type Database = {
           granted_at: string | null
           granted_by: string | null
           id: string
+          permissions: Json | null
           trip_id: string
           user_id: string
         }
@@ -1418,6 +1455,7 @@ export type Database = {
           granted_at?: string | null
           granted_by?: string | null
           id?: string
+          permissions?: Json | null
           trip_id: string
           user_id: string
         }
@@ -1425,6 +1463,7 @@ export type Database = {
           granted_at?: string | null
           granted_by?: string | null
           id?: string
+          permissions?: Json | null
           trip_id?: string
           user_id?: string
         }
@@ -2397,6 +2436,7 @@ export type Database = {
           assigned_at: string | null
           assigned_by: string | null
           id: string
+          is_primary: boolean | null
           role_id: string
           trip_id: string
           user_id: string
@@ -2405,6 +2445,7 @@ export type Database = {
           assigned_at?: string | null
           assigned_by?: string | null
           id?: string
+          is_primary?: boolean | null
           role_id: string
           trip_id: string
           user_id: string
@@ -2413,6 +2454,7 @@ export type Database = {
           assigned_at?: string | null
           assigned_by?: string | null
           id?: string
+          is_primary?: boolean | null
           role_id?: string
           trip_id?: string
           user_id?: string
@@ -2501,6 +2543,10 @@ export type Database = {
           user_local_start: string
         }[]
       }
+      get_user_primary_role: {
+        Args: { _trip_id: string; _user_id: string }
+        Returns: string
+      }
       get_user_role_ids: {
         Args: { _trip_id: string; _user_id: string }
         Returns: string[]
@@ -2519,6 +2565,10 @@ export type Database = {
           show_phone: boolean
           user_id: string
         }[]
+      }
+      has_admin_permission: {
+        Args: { _permission: string; _trip_id: string; _user_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {

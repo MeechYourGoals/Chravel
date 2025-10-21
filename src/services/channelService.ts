@@ -38,7 +38,7 @@ class ChannelService {
         .eq('user_id', uid)
         .single();
       if (!data) return false;
-      const permissions = data.permissions as AdminPermissions;
+      const permissions = data.permissions as unknown as AdminPermissions;
       return permissions?.[permission] === true;
     } catch { return false; }
   }
@@ -408,7 +408,7 @@ class ChannelService {
       }
 
       const updatedPermissions = {
-        ...(currentAdmin.permissions as AdminPermissions),
+        ...(currentAdmin.permissions as unknown as AdminPermissions),
         ...permissions
       };
 
@@ -439,7 +439,7 @@ class ChannelService {
 
       return (data || []).map(d => ({
         userId: d.user_id,
-        permissions: d.permissions as AdminPermissions,
+        permissions: d.permissions as unknown as AdminPermissions,
         grantedBy: d.granted_by,
         grantedAt: d.granted_at
       }));
