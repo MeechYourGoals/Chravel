@@ -38,73 +38,110 @@ export const AdvertiserDashboard = () => {
 
   const mockCampaigns: CampaignWithTargeting[] = [
     {
-      id: 'demo-campaign-1',
+      id: 'demo-campaign-uber',
       advertiser_id: 'demo-advertiser-1',
-      name: 'Summer Paradise Sale - 30% Off',
-      description: 'Experience luxury at our beachfront resorts this summer with exclusive discounts for Chravel users.',
-      discount_details: '30% off all bookings + Free spa treatment',
+      name: 'Uber - Premium Airport Rides',
+      description: 'Flat $10 off airport rides for Chravel users. Choose from Uber Comfort or Uber Black for luxury travel.',
+      discount_details: '$10 off airport rides',
       images: [
-        { url: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800', alt: 'Resort view', order: 0 },
-        { url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800', alt: 'Water villa', order: 1 }
+        { url: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800', alt: 'Airport terminal', order: 0 },
+        { url: 'https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=800', alt: 'Luxury car interior', order: 1 },
+        { url: 'https://images.unsplash.com/photo-1606768666853-403c90a981ad?w=800', alt: 'City skyline', order: 2 }
       ],
       destination_info: {
-        location: 'Maldives'
+        location: 'Miami, FL'
       },
-      tags: ['luxury', 'beach', 'resort', 'spa'],
+      tags: ['rideshare', 'airport-transfer', 'premium-service', 'city-travel'],
       status: 'active',
-      impressions: 12543,
-      clicks: 892,
-      conversions: 47,
-      start_date: new Date('2024-06-01').toISOString(),
-      end_date: new Date('2024-08-31').toISOString(),
-      created_at: new Date('2024-05-15').toISOString(),
-      updated_at: new Date('2024-05-15').toISOString(),
+      impressions: 15234,
+      clicks: 1203,
+      conversions: 89,
+      start_date: new Date('2024-01-01').toISOString(),
+      end_date: new Date('2024-12-31').toISOString(),
+      created_at: new Date('2024-01-01').toISOString(),
+      updated_at: new Date('2024-01-01').toISOString(),
       targeting: {
-        id: 'demo-targeting-1',
-        campaign_id: 'demo-campaign-1',
-        age_min: 25,
-        age_max: 55,
+        id: 'demo-targeting-uber',
+        campaign_id: 'demo-campaign-uber',
+        age_min: 21,
+        age_max: 65,
         genders: ['all'],
-        interests: ['luxury travel', 'beach vacation', 'wellness'],
-        locations: ['United States', 'Canada', 'United Kingdom'],
-        trip_types: ['honeymoon', 'anniversary', 'romantic getaway'],
-        created_at: new Date('2024-05-15').toISOString(),
-        updated_at: new Date('2024-05-15').toISOString()
+        interests: ['business-travel', 'airport-transportation', 'premium-services'],
+        locations: ['United States', 'Canada'],
+        trip_types: ['business', 'leisure', 'group'],
+        created_at: new Date('2024-01-01').toISOString(),
+        updated_at: new Date('2024-01-01').toISOString()
       }
     },
     {
-      id: 'demo-campaign-2',
+      id: 'demo-campaign-lyft',
       advertiser_id: 'demo-advertiser-1',
-      name: 'Adventure Seekers Package',
-      description: 'Calling all thrill-seekers! Experience the ultimate adventure vacation with guided tours and activities.',
-      discount_details: '20% off adventure packages + Free equipment rental',
+      name: 'Lyft - Reliable City Rides',
+      description: 'Safe, friendly rides when you need them. New user discount for Chravel members available citywide.',
+      discount_details: 'New user discount for Chravel',
       images: [
-        { url: 'https://images.unsplash.com/photo-1527004013197-933c4bb611b3?w=800', alt: 'Mountain adventure', order: 0 },
-        { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800', alt: 'Nature view', order: 1 }
+        { url: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800', alt: 'City street view', order: 0 },
+        { url: 'https://images.unsplash.com/photo-1502489597346-dad15683d4c2?w=800', alt: 'Happy passenger', order: 1 }
       ],
       destination_info: {
-        location: 'Costa Rica'
+        location: 'Major Cities Nationwide'
       },
-      tags: ['adventure', 'outdoor', 'nature', 'active'],
+      tags: ['rideshare', 'city-travel', 'new-user-offer', 'budget-friendly'],
       status: 'active',
-      impressions: 8921,
-      clicks: 567,
-      conversions: 23,
-      start_date: new Date('2024-07-01').toISOString(),
-      end_date: new Date('2024-09-30').toISOString(),
-      created_at: new Date('2024-06-20').toISOString(),
-      updated_at: new Date('2024-06-20').toISOString(),
+      impressions: 12876,
+      clicks: 945,
+      conversions: 67,
+      start_date: new Date('2024-02-01').toISOString(),
+      end_date: new Date('2024-11-30').toISOString(),
+      created_at: new Date('2024-02-01').toISOString(),
+      updated_at: new Date('2024-02-01').toISOString(),
       targeting: {
-        id: 'demo-targeting-2',
-        campaign_id: 'demo-campaign-2',
-        age_min: 20,
-        age_max: 45,
+        id: 'demo-targeting-lyft',
+        campaign_id: 'demo-campaign-lyft',
+        age_min: 18,
+        age_max: 55,
         genders: ['all'],
-        interests: ['adventure travel', 'outdoor activities', 'eco-tourism'],
-        locations: ['United States', 'Canada', 'Australia'],
-        trip_types: ['adventure', 'group travel', 'eco-tourism'],
-        created_at: new Date('2024-06-20').toISOString(),
-        updated_at: new Date('2024-06-20').toISOString()
+        interests: ['city-exploration', 'nightlife', 'dining'],
+        locations: ['United States', 'Canada'],
+        trip_types: ['leisure', 'group', 'solo'],
+        created_at: new Date('2024-02-01').toISOString(),
+        updated_at: new Date('2024-02-01').toISOString()
+      }
+    },
+    {
+      id: 'demo-campaign-hotels',
+      advertiser_id: 'demo-advertiser-1',
+      name: 'Hotels.com - Compare & Save',
+      description: 'Compare hotel prices and earn rewards. Get one night free for every 10 nights booked.',
+      discount_details: 'Collect 10 nights, get 1 free',
+      images: [
+        { url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800', alt: 'Luxury hotel exterior', order: 0 },
+        { url: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800', alt: 'Hotel pool view', order: 1 },
+        { url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800', alt: 'Comfortable hotel room', order: 2 }
+      ],
+      destination_info: {
+        location: 'Global Hotel Network'
+      },
+      tags: ['lodging', 'price-comparison', 'rewards-program', 'travel-booking'],
+      status: 'active',
+      impressions: 18765,
+      clicks: 1456,
+      conversions: 134,
+      start_date: new Date('2024-01-15').toISOString(),
+      end_date: new Date('2024-12-31').toISOString(),
+      created_at: new Date('2024-01-15').toISOString(),
+      updated_at: new Date('2024-01-15').toISOString(),
+      targeting: {
+        id: 'demo-targeting-hotels',
+        campaign_id: 'demo-campaign-hotels',
+        age_min: 25,
+        age_max: 65,
+        genders: ['all'],
+        interests: ['hotels', 'accommodations', 'travel-planning'],
+        locations: ['United States', 'Canada', 'United Kingdom', 'Australia'],
+        trip_types: ['leisure', 'business', 'family', 'romantic'],
+        created_at: new Date('2024-01-15').toISOString(),
+        updated_at: new Date('2024-01-15').toISOString()
       }
     }
   ];

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ import { CampaignWithTargeting } from '@/types/advertiser';
 import { AdvertiserService } from '@/services/advertiserService';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { CampaignEditor } from './CampaignEditor';
 
 interface CampaignListProps {
   campaigns: CampaignWithTargeting[];
@@ -26,6 +27,7 @@ interface CampaignListProps {
 
 export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
   const { toast } = useToast();
+  const [editingCampaign, setEditingCampaign] = useState<CampaignWithTargeting | null>(null);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -126,7 +128,12 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
                     <Pause className="h-4 w-4" />
                   </Button>
                 ) : null}
-                <Button size="sm" variant="outline">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => setEditingCampaign(campaign)}
+                  className="border-gray-600 hover:bg-white/10"
+                >
                   <Edit2 className="h-4 w-4" />
                 </Button>
                 <Button
@@ -219,6 +226,18 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
           </CardContent>
         </Card>
       ))}
+      
+      {/* Campaign Editor Modal */}
+      {editingCampaign && (
+        <CampaignEditor
+          campaign={editingCampaign}
+          onClose={() => setEditingCampaign(null)}
+          onSuccess={() => {
+            setEditingCampaign(null);
+            onRefresh();
+          }}
+        />
+      )}
     </div>
   );
 };

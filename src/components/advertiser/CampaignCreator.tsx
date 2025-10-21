@@ -25,7 +25,7 @@ import {
   DollarSign,
   Check
 } from 'lucide-react';
-import { CampaignFormData, CampaignImage } from '@/types/advertiser';
+import { CampaignFormData, CampaignImage, MAX_CAMPAIGN_TAGS, MAX_CAMPAIGN_IMAGES, CAMPAIGN_TAG_CATEGORIES } from '@/types/advertiser';
 import { AdvertiserService } from '@/services/advertiserService';
 import { useToast } from '@/hooks/use-toast';
 import { CampaignPreview } from './CampaignPreview';
@@ -87,6 +87,17 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
+
+    // Check if adding these files would exceed the limit
+    const remainingSlots = MAX_CAMPAIGN_IMAGES - formData.images.length;
+    if (files.length > remainingSlots) {
+      toast({
+        title: "Too Many Images",
+        description: `You can only upload ${remainingSlots} more image(s). Maximum is ${MAX_CAMPAIGN_IMAGES}.`,
+        variant: "destructive"
+      });
+      return;
+    }
 
     setUploadingImage(true);
     const newImages: CampaignImage[] = [];
@@ -212,7 +223,7 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
             <div>
               <Label>Campaign Images</Label>
               <p className="text-sm text-gray-500 mb-2">
-                Upload carousel images for your campaign (min 2, max 10)
+                Upload carousel images for your campaign ({formData.images.length}/{MAX_CAMPAIGN_IMAGES})
               </p>
               
               <div className="grid grid-cols-2 gap-4 mb-4">
@@ -235,47 +246,83 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
                 ))}
               </div>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <input
-                  type="file"
-                  id="image-upload"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="image-upload"
-                  className="cursor-pointer flex flex-col items-center"
-                >
-                  <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                  <span className="text-sm text-gray-600">
-                    {uploadingImage ? 'Uploading...' : 'Click to upload images'}
-                  </span>
-                </label>
-              </div>
+              {formData.images.length < MAX_CAMPAIGN_IMAGES && (
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <input
+                    type="file"
+                    id="image-upload"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="image-upload"
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                    <span className="text-sm text-gray-600">
+                      {uploadingImage ? 'Uploading...' : `Click to upload (${MAX_CAMPAIGN_IMAGES - formData.images.length} slots remaining)`}
+                    </span>
+                  </label>
+                </div>
+              )}
             </div>
 
             <div>
-              <Label>Tags</Label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {['beach', 'adventure', 'luxury', 'family', 'romantic', 'budget'].map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant={formData.tags.includes(tag) ? 'default' : 'outline'}
-                    className="cursor-pointer"
-                    onClick={() => {
-                      setFormData({
-                        ...formData,
-                        tags: formData.tags.includes(tag)
-                          ? formData.tags.filter(t => t !== tag)
-                          : [...formData.tags, tag]
-                      });
-                    }}
-                  >
-                    {tag}
-                  </Badge>
+              <Label>Campaign Tags (Select up to {MAX_CAMPAIGN_TAGS})</Label>
+              <p className="text-sm text-gray-400 mb-3">
+                Choose tags that best describe your campaign
+              </p>
+              
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {Object.entries(CAMPAIGN_TAG_CATEGORIES).map(([categoryKey, tags]) => (
+                  <div key={categoryKey}>
+                    <h4 className="text-sm font-semibold text-gray-300 mb-2 capitalize">
+                      {categoryKey.replace(/([A-Z])/g, ' $1').trim()}
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {tags.map((tag) => {
+                        const isSelected = formData.tags.includes(tag.value);
+                        const isDisabled = !isSelected && formData.tags.length >= MAX_CAMPAIGN_TAGS;
+                        
+                        return (
+                          <label
+                            key={tag.value}
+                            className={cn(
+                              "flex items-center space-x-2 p-2 rounded border cursor-pointer transition-colors",
+                              isSelected 
+                                ? "bg-red-600/20 border-red-500" 
+                                : isDisabled
+                                ? "bg-gray-800/30 border-gray-700 opacity-50 cursor-not-allowed"
+                                : "bg-gray-800/50 border-gray-700 hover:bg-gray-800"
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              disabled={isDisabled}
+                              onChange={(e) => {
+                                setFormData({
+                                  ...formData,
+                                  tags: e.target.checked
+                                    ? [...formData.tags, tag.value]
+                                    : formData.tags.filter(t => t !== tag.value)
+                                });
+                              }}
+                              className="rounded border-gray-600"
+                            />
+                            <span className="text-sm text-gray-300">{tag.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 ))}
+              </div>
+              
+              <div className="mt-2 text-sm text-gray-400">
+                {formData.tags.length} / {MAX_CAMPAIGN_TAGS} tags selected
               </div>
             </div>
           </div>

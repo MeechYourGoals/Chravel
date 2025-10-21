@@ -100,3 +100,45 @@ export interface CampaignFormData {
     trip_types: string[];
   };
 }
+
+// Campaign Tag Categories
+export const CAMPAIGN_TAG_CATEGORIES = {
+  transportation: [
+    { value: 'rideshare', label: 'Rideshare' },
+    { value: 'airport-transfer', label: 'Airport Transfer' },
+    { value: 'premium-service', label: 'Premium Service' },
+    { value: 'city-travel', label: 'City Travel' },
+    { value: 'car-rental', label: 'Car Rental' }
+  ],
+  accommodation: [
+    { value: 'lodging', label: 'Lodging' },
+    { value: 'price-comparison', label: 'Price Comparison' },
+    { value: 'rewards-program', label: 'Rewards Program' },
+    { value: 'budget-friendly', label: 'Budget Friendly' },
+    { value: 'luxury-stays', label: 'Luxury Stays' }
+  ],
+  services: [
+    { value: 'travel-booking', label: 'Travel Booking' },
+    { value: 'package-deals', label: 'Package Deals' },
+    { value: 'multi-service', label: 'Multi-Service' },
+    { value: 'business-travel', label: 'Business Travel' },
+    { value: 'concierge', label: 'Concierge' }
+  ],
+  specialOffers: [
+    { value: 'new-user-offer', label: 'New User Offer' },
+    { value: 'promotional', label: 'Promotional' },
+    { value: 'discount', label: 'Discount' },
+    { value: 'rewards', label: 'Rewards' },
+    { value: 'limited-time', label: 'Limited Time' }
+  ],
+  travelType: [
+    { value: 'group-travel', label: 'Group Travel' },
+    { value: 'solo-travel', label: 'Solo Travel' },
+    { value: 'family-friendly', label: 'Family Friendly' },
+    { value: 'corporate-travel', label: 'Corporate Travel' },
+    { value: 'adventure', label: 'Adventure' }
+  ]
+} as const;
+
+export const MAX_CAMPAIGN_TAGS = 5;
+export const MAX_CAMPAIGN_IMAGES = 5;

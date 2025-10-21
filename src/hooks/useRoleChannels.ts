@@ -129,7 +129,6 @@ export const useRoleChannels = (tripId: string, userRole: string) => {
         senderId: 'current-user',
         senderName: 'You',
         content,
-        messageType: 'text',
         createdAt: new Date().toISOString()
       };
       setMessages(prev => [...prev, newMessage]);
