@@ -3,7 +3,7 @@ import { roleChannelService, RoleChannel, RoleChannelMessage } from '../services
 import { getDemoChannelsForTrip } from '../data/demoChannelData';
 import { TripChannel, ChannelMessage } from '../types/roleChannels';
 
-const DEMO_TRIP_IDS = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026'];
+const DEMO_TRIP_IDS = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026', '13', '14', '15', '16'];
 
 // Convert TripChannel to RoleChannel
 const convertToRoleChannel = (channel: TripChannel): RoleChannel => ({

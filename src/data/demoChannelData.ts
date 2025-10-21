@@ -252,17 +252,19 @@ export const getDemoChannelsForTrip = (tripId: string): { channels: TripChannel[
   
   let demoData: DemoChannelData[] = [];
   
-  // Map trip IDs to demo channels
-  if (tripId === '13' || tripId === 'lakers-road-trip') {
+  // Map trip IDs to demo channels (handle both numeric and string IDs)
+  const tripIdStr = String(tripId);
+  
+  if (tripIdStr === '13' || tripIdStr === 'lakers-road-trip') {
     demoData = lakersChannels;
   } 
-  else if (tripId === '14' || tripId === 'tesla-cybertruck-roadshow-2025') {
+  else if (tripIdStr === '14' || tripIdStr === 'tesla-cybertruck-roadshow-2025') {
     demoData = teslaChannels;
   }
-  else if (tripId === '15' || tripId === 'beyonce-cowboy-carter-tour') {
+  else if (tripIdStr === '15' || tripIdStr === 'beyonce-cowboy-carter-tour') {
     demoData = beyonceChannels;
   }
-  else if (tripId === '16' || tripId === 'eli-lilly-c-suite-retreat-2026') {
+  else if (tripIdStr === '16' || tripIdStr === 'eli-lilly-c-suite-retreat-2026') {
     demoData = eliLillyChannels;
   }
   

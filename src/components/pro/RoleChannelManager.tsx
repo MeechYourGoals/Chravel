@@ -39,11 +39,18 @@ export const RoleChannelManager = ({
   useEffect(() => {
     if (isOpen) {
       // Auto-enable demo mode for specific trips
-      const autoDemoTrips = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026', '13', '14', '15'];
+      const autoDemoTrips = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026', '13', '14', '15', '16'];
+      
       if (autoDemoTrips.includes(tripId)) {
+        // SYNCHRONOUSLY load demo channels to avoid race condition
+        const { channels: demoChannels } = getDemoChannelsForTrip(tripId);
+        setChannels(demoChannels);
         setDemoMode(true);
+        setLoading(false);
+      } else {
+        loadChannels();
       }
-      loadChannels();
+      
       checkAdminStatus();
     }
   }, [isOpen, tripId]);
@@ -55,21 +62,28 @@ export const RoleChannelManager = ({
 
   const loadChannels = async () => {
     setLoading(true);
-    if (demoMode) {
-      // Load demo data
+    
+    // Check if this is a demo trip
+    const autoDemoTrips = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026', '13', '14', '15', '16'];
+    const shouldUseDemoData = demoMode || autoDemoTrips.includes(tripId);
+    
+    if (shouldUseDemoData) {
       const { channels: demoChannels } = getDemoChannelsForTrip(tripId);
       setChannels(demoChannels);
+      setDemoMode(true);
     } else {
       const accessibleChannels = await channelService.getAccessibleChannels(tripId);
       setChannels(accessibleChannels);
     }
+    
     setLoading(false);
   };
 
   const enterDemoMode = () => {
+    const { channels: demoChannels } = getDemoChannelsForTrip(tripId);
+    setChannels(demoChannels);
     setDemoMode(true);
     setSelectedChannel(null);
-    loadChannels();
   };
 
   const exitDemoMode = () => {
@@ -128,42 +142,20 @@ export const RoleChannelManager = ({
             ) : (
               <div className="space-y-6">
                 {/* Demo Mode Banner */}
-                {demoMode && (
+                {(demoMode || ['13', '14', '15', '16', 'lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026'].includes(tripId)) && (
                   <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
                     <div className="flex items-center justify-between">
                       <p className="text-blue-400 text-sm">
-                        <strong>Demo Mode:</strong> Viewing sample channels with mock messages
+                        <strong>Demo Mode:</strong> Viewing sample channels with mock messages. Click any channel to see it in action!
                       </p>
-                      <Button
-                        onClick={exitDemoMode}
-                        size="sm"
-                        variant="outline"
-                        className="border-blue-500 text-blue-400 hover:bg-blue-500/10"
-                      >
-                        Exit Demo
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Info Banner */}
-                {!demoMode && (
-                  <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-red-400 text-sm">
-                        <strong>Role-Based Channels:</strong> Private channels for specific team roles. 
-                        Only members with assigned roles can access their channels.
-                      </p>
-                      {(tripId === '13' || tripId === '14' || tripId === '15' || 
-                        tripId === 'lakers-road-trip' || tripId === 'beyonce-cowboy-carter-tour' || 
-                        tripId === 'eli-lilly-c-suite-retreat-2026') && (
+                      {!['13', '14', '15', '16', 'lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026'].includes(tripId) && (
                         <Button
-                          onClick={enterDemoMode}
+                          onClick={exitDemoMode}
                           size="sm"
                           variant="outline"
-                          className="border-blue-500 text-blue-400 hover:bg-blue-500/10 flex-shrink-0 ml-4"
+                          className="border-blue-500 text-blue-400 hover:bg-blue-500/10"
                         >
-                          View Demo
+                          Exit Demo
                         </Button>
                       )}
                     </div>
