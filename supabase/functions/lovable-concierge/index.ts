@@ -34,15 +34,31 @@ serve(async (req) => {
   }
 
   try {
+    // 🔧 Enhanced API key validation with specific error
     if (!LOVABLE_API_KEY) {
-      throw new Error('Lovable API key not configured')
+      console.error('❌ LOVABLE_API_KEY not configured in Supabase secrets')
+      return new Response(
+        JSON.stringify({
+          response: "⚙️ **Configuration Error**\n\nThe AI service is not properly configured. Please ensure LOVABLE_API_KEY is set in Supabase edge function secrets.\n\nTo fix this:\n1. Go to Supabase Dashboard > Edge Functions > Secrets\n2. Add LOVABLE_API_KEY with your Lovable AI Gateway key\n3. Redeploy the edge function",
+          error: 'missing_api_key',
+          success: false,
+          diagnostic: {
+            issue: 'LOVABLE_API_KEY environment variable not found',
+            solution: 'Configure LOVABLE_API_KEY in Supabase edge function secrets'
+          }
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
     }
 
-    const { 
-      message, 
-      tripContext, 
+    const {
+      message,
+      tripContext,
       tripId,
-      chatHistory = [], 
+      chatHistory = [],
       isDemoMode = false,
       config = {}
     }: LovableConciergeRequest = await req.json()
@@ -184,7 +200,30 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      
+      console.error('❌ Lovable API Error:', { status: response.status, errorData })
+
+      // Handle unauthorized (invalid API key)
+      if (response.status === 401) {
+        return new Response(
+          JSON.stringify({
+            response: "🔐 **Authentication Failed**\n\nThe LOVABLE_API_KEY is invalid or expired. Please update the API key in Supabase edge function secrets and redeploy.\n\n**Steps to fix:**\n1. Verify your Lovable API key at https://lovable.dev\n2. Update LOVABLE_API_KEY in Supabase Dashboard > Edge Functions > Secrets\n3. Redeploy the lovable-concierge function",
+            usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+            sources: [],
+            success: false,
+            error: 'invalid_api_key',
+            diagnostic: {
+              issue: 'API key authentication failed',
+              statusCode: 401,
+              solution: 'Verify and update LOVABLE_API_KEY in Supabase secrets'
+            }
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          }
+        );
+      }
+
       // Handle rate limiting
       if (response.status === 429) {
         return new Response(
@@ -193,33 +232,67 @@ serve(async (req) => {
             usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
             sources: [],
             success: false,
-            error: 'rate_limit'
+            error: 'rate_limit',
+            diagnostic: {
+              issue: 'API rate limit exceeded',
+              statusCode: 429,
+              solution: 'Wait a moment before trying again'
+            }
           }),
-          { 
+          {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200
           }
         );
       }
-      
+
       // Handle payment required
       if (response.status === 402) {
         return new Response(
           JSON.stringify({
-            response: "💳 **Additional credits required**\n\nThe AI service requires additional credits. Please contact support.",
+            response: "💳 **Additional credits required**\n\nThe AI service requires additional credits. Please contact support or add credits to your Lovable account.",
             usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
             sources: [],
             success: false,
-            error: 'payment_required'
+            error: 'payment_required',
+            diagnostic: {
+              issue: 'Insufficient API credits',
+              statusCode: 402,
+              solution: 'Add credits to your Lovable account'
+            }
           }),
-          { 
+          {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200
           }
         );
       }
-      
-      throw new Error(`Lovable AI Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`)
+
+      // Handle server errors
+      if (response.status >= 500) {
+        return new Response(
+          JSON.stringify({
+            response: "🔧 **Service Temporarily Unavailable**\n\nThe Lovable AI Gateway is experiencing technical difficulties. Please try again in a few minutes.",
+            usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+            sources: [],
+            success: false,
+            error: 'server_error',
+            diagnostic: {
+              issue: 'Lovable API server error',
+              statusCode: response.status,
+              solution: 'Wait a few minutes and try again'
+            }
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          }
+        );
+      }
+
+      // Generic error with details
+      const errorMessage = errorData.error?.message || errorData.message || 'Unknown error'
+      throw new Error(`Lovable AI Error: ${response.status} - ${errorMessage}`)
     }
 
     const data = await response.json()
@@ -289,12 +362,66 @@ serve(async (req) => {
       },
     )
   } catch (error) {
-    console.error('Lovable concierge error:', error)
+    console.error('❌ Lovable concierge error:', error)
+
+    // Provide specific error messages based on error type
+    let userMessage = "I'm having trouble connecting right now. Please try again in a moment."
+    let errorType = 'unknown_error'
+    let diagnostic = {
+      issue: error.message,
+      solution: 'Check server logs for details'
+    }
+
+    // Network/connectivity errors
+    if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('ECONNREFUSED')) {
+      userMessage = "🌐 **Network Error**\n\nUnable to connect to the Lovable AI Gateway. Please check your internet connection and try again.\n\nIf the issue persists, the Lovable API service may be temporarily down."
+      errorType = 'network_error'
+      diagnostic = {
+        issue: 'Network connectivity issue',
+        solution: 'Check internet connection and Lovable API status'
+      }
+    }
+
+    // JSON parsing errors
+    if (error.message.includes('JSON') || error.message.includes('parse')) {
+      userMessage = "📄 **Invalid Response**\n\nReceived an unexpected response from the AI service. This is likely a temporary issue.\n\nPlease try again in a moment."
+      errorType = 'parse_error'
+      diagnostic = {
+        issue: 'Failed to parse API response',
+        solution: 'Check API response format and try again'
+      }
+    }
+
+    // Context building errors
+    if (error.message.includes('context') || error.message.includes('Context')) {
+      userMessage = "📋 **Context Error**\n\nFailed to load trip context data. The AI concierge may have limited information about your trip.\n\nTrying to continue with basic functionality..."
+      errorType = 'context_error'
+      diagnostic = {
+        issue: 'Trip context aggregation failed',
+        solution: 'Check database connectivity and trip data availability'
+      }
+    }
+
+    // Database errors
+    if (error.message.includes('database') || error.message.includes('supabase')) {
+      userMessage = "💾 **Database Error**\n\nFailed to access trip data. Please ensure you're connected to the internet and try again."
+      errorType = 'database_error'
+      diagnostic = {
+        issue: 'Database connectivity or query failed',
+        solution: 'Check Supabase connection and database status'
+      }
+    }
+
     return new Response(
-      JSON.stringify({ 
-        response: "I'm having trouble connecting right now. Please try again in a moment.",
-        error: error.message, 
-        success: false 
+      JSON.stringify({
+        response: userMessage,
+        error: errorType,
+        success: false,
+        diagnostic: {
+          ...diagnostic,
+          timestamp: new Date().toISOString(),
+          errorMessage: error.message
+        }
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

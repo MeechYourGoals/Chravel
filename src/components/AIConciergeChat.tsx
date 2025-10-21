@@ -148,7 +148,42 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         }
       });
 
-      if (error) throw error;
+      // 🔧 Enhanced error handling - check for specific error types
+      if (error) {
+        console.error('❌ Supabase function invocation error:', error);
+        throw error;
+      }
+
+      // 🔧 Check if response indicates an error (even with 200 status)
+      if (data && !data.success && data.error) {
+        console.error('❌ AI Concierge returned error:', data);
+
+        // Create user-friendly error message with diagnostic info
+        let errorContent = data.response || 'An error occurred while processing your request.';
+
+        // Add diagnostic information if available
+        if (data.diagnostic) {
+          errorContent += `\n\n**Diagnostic Information:**\n`;
+          errorContent += `- Issue: ${data.diagnostic.issue}\n`;
+          errorContent += `- Solution: ${data.diagnostic.solution}`;
+
+          if (data.diagnostic.statusCode) {
+            errorContent += `\n- Status Code: ${data.diagnostic.statusCode}`;
+          }
+        }
+
+        const diagnosticMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          type: 'assistant',
+          content: errorContent,
+          timestamp: new Date().toISOString()
+        };
+
+        setMessages(prev => [...prev, diagnosticMessage]);
+        setAiStatus('error');
+        setIsTyping(false);
+        return;
+      }
 
       setAiStatus('connected');
 
@@ -177,14 +212,36 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
     } catch (error) {
       console.error('❌ AI Concierge error:', error);
       setAiStatus('error');
-      
+
+      // 🔧 Enhanced error message with troubleshooting steps
+      let errorContent = `I'm having trouble connecting to my AI services right now.\n\n`;
+
+      // Add specific guidance based on error type
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        errorContent += `**Network Issue Detected:**\n`;
+        errorContent += `- Check your internet connection\n`;
+        errorContent += `- The AI service may be temporarily unavailable\n`;
+        errorContent += `- Try refreshing the page\n\n`;
+      } else if (error.message?.includes('Function not found')) {
+        errorContent += `**Configuration Issue:**\n`;
+        errorContent += `- The lovable-concierge edge function may not be deployed\n`;
+        errorContent += `- Contact your administrator\n\n`;
+      } else {
+        errorContent += `**Troubleshooting Steps:**\n`;
+        errorContent += `1. Refresh the page and try again\n`;
+        errorContent += `2. Check your internet connection\n`;
+        errorContent += `3. If the issue persists, contact support\n\n`;
+      }
+
+      errorContent += `Error details: ${error.message || 'Unknown error'}`;
+
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: `I'm having trouble connecting to my AI services right now. Please try again in a moment.`,
+        content: errorContent,
         timestamp: new Date().toISOString()
       };
-      
+
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
