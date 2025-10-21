@@ -113,31 +113,31 @@ export const ChannelChatView = ({ channel, onBack }: ChannelChatViewProps) => {
   return (
     <div className="flex flex-col h-full bg-gray-900">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-700 bg-gray-800">
+      <div className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 border-b border-gray-700 bg-gray-800">
         {onBack && (
           <Button
             onClick={onBack}
             variant="ghost"
             size="sm"
-            className="lg:hidden"
+            className="lg:hidden p-1 md:p-2 h-auto"
           >
             <ArrowLeft size={18} />
           </Button>
         )}
-        <div className="flex items-center gap-2 flex-1">
-          {channel.isPrivate && <Lock size={16} className="text-purple-400" />}
-          <div>
-            <h3 className="font-semibold text-white">#{channel.channelSlug}</h3>
-            <p className="text-xs text-gray-400">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          {channel.isPrivate && <Lock size={16} className="text-purple-400 flex-shrink-0" />}
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-white text-sm md:text-base truncate">#{channel.channelSlug}</h3>
+            <p className="text-xs text-gray-400 truncate">
               {channel.requiredRoleName} • {channel.memberCount || 0} members
             </p>
           </div>
         </div>
-        <Users size={18} className="text-gray-400" />
+        <Users size={18} className="text-gray-400 flex-shrink-0" />
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4">
         {loading ? (
           <div className="text-center text-gray-400 py-8">
             Loading messages...
@@ -188,20 +188,20 @@ export const ChannelChatView = ({ channel, onBack }: ChannelChatViewProps) => {
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-gray-700 bg-gray-800">
+      <div className="p-2 md:p-4 border-t border-gray-700 bg-gray-800 safe-bottom">
         <div className="flex gap-2">
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder={`Message #${channel.channelSlug}...`}
-            className="flex-1 bg-gray-900 border-gray-600 text-white"
+            className="flex-1 bg-gray-900 border-gray-600 text-white text-sm md:text-base min-h-[44px]"
             disabled={sending}
           />
           <Button
             onClick={handleSend}
             disabled={!newMessage.trim() || sending}
-            className="bg-red-600 hover:bg-red-700"
+            className="bg-red-600 hover:bg-red-700 min-w-[44px] min-h-[44px] p-2"
           >
             <Send size={18} />
           </Button>

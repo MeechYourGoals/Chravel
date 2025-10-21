@@ -108,28 +108,28 @@ export const RoleChannelManager = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MessageSquare size={20} className="text-red-400" />
-                Role Channels
+        <DialogContent className="bg-gray-900 border-gray-700 text-white w-full h-full max-h-screen md:max-w-4xl md:max-h-[90vh] md:h-auto overflow-hidden flex flex-col p-0 md:p-6">
+          <DialogHeader className="px-4 pt-4 md:px-0 md:pt-0">
+            <DialogTitle className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <MessageSquare size={20} className="text-red-400 flex-shrink-0" />
+                <span className="truncate">Role Channels</span>
               </div>
               {isAdmin && (
                 <Button
                   onClick={() => setShowAdminPanel(true)}
                   size="sm"
                   variant="outline"
-                  className="border-red-600 text-red-400 hover:bg-red-600/10"
+                  className="border-red-600 text-red-400 hover:bg-red-600/10 flex-shrink-0"
                 >
-                  <Shield size={14} className="mr-2" />
-                  Admin Controls
+                  <Shield size={14} className="md:mr-2" />
+                  <span className="hidden md:inline">Admin Controls</span>
                 </Button>
               )}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden px-4 md:px-0">
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-gray-400">Loading channels...</div>
@@ -140,20 +140,20 @@ export const RoleChannelManager = ({
                 onBack={handleBackToList}
               />
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4 md:space-y-6 py-4 md:py-0">
                 {/* Demo Mode Banner */}
                 {(demoMode || ['13', '14', '15', '16', 'lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026'].includes(tripId)) && (
-                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-blue-400 text-sm">
-                        <strong>Demo Mode:</strong> Viewing sample channels with mock messages. Click any channel to see it in action!
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 md:p-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0 sm:justify-between">
+                      <p className="text-blue-400 text-xs md:text-sm">
+                        <strong>Demo Mode:</strong> Sample channels with mock messages. Click any to explore!
                       </p>
                       {!['13', '14', '15', '16', 'lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026'].includes(tripId) && (
                         <Button
                           onClick={exitDemoMode}
                           size="sm"
                           variant="outline"
-                          className="border-blue-500 text-blue-400 hover:bg-blue-500/10"
+                          className="border-blue-500 text-blue-400 hover:bg-blue-500/10 flex-shrink-0"
                         >
                           Exit Demo
                         </Button>
@@ -179,8 +179,8 @@ export const RoleChannelManager = ({
                 </div>
 
                 {/* How It Works */}
-                <div className="bg-white/5 border border-gray-700 rounded-lg p-4">
-                  <p className="text-sm font-medium text-white mb-2">How it works:</p>
+                <div className="bg-white/5 border border-gray-700 rounded-lg p-3 md:p-4">
+                  <p className="text-xs md:text-sm font-medium text-white mb-2">How it works:</p>
                   <ul className="text-xs text-gray-400 space-y-1">
                     <li>• Main trip chat remains for everyone</li>
                     <li>• Role channels are private - only visible to members with that role</li>

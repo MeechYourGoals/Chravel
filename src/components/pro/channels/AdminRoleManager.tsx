@@ -154,7 +154,7 @@ export const AdminRoleManager = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-gray-900 border-gray-700 text-white w-full h-full md:max-w-4xl max-h-screen md:max-h-[90vh] overflow-y-auto p-4 md:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield size={20} className="text-red-400" />
@@ -261,7 +261,7 @@ export const AdminRoleManager = ({
         {/* Role Assignment Modal */}
         {assigningRole && (
           <Dialog open={true} onOpenChange={() => setAssigningRole(null)}>
-            <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-2xl">
+            <DialogContent className="bg-gray-900 border-gray-700 text-white w-full h-full md:max-w-2xl max-h-screen md:max-h-[90vh] p-4 md:p-6">
               <DialogHeader>
                 <DialogTitle>Assign Members to {assigningRole.roleName}</DialogTitle>
               </DialogHeader>

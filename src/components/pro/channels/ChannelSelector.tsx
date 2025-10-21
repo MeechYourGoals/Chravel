@@ -23,15 +23,15 @@ export const ChannelSelector = ({
   }
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       {channels.map((channel) => (
         <button
           key={channel.id}
           onClick={() => onSelectChannel(channel)}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+          className={`w-full flex items-center gap-2 md:gap-3 px-3 py-3 md:py-2 rounded-lg transition-colors min-h-[56px] md:min-h-0 ${
             selectedChannel?.id === channel.id
               ? 'bg-red-600/20 text-red-400 border border-red-600/30'
-              : 'hover:bg-white/5 text-gray-300'
+              : 'hover:bg-white/5 text-gray-300 active:bg-white/10'
           }`}
         >
           {channel.isPrivate ? (
