@@ -93,6 +93,7 @@ export interface CreateChannelRequest {
 export interface SendMessageRequest {
   channelId: string;
   content: string;
-  messageType?: 'text' | 'file' | 'system';
+  messageType?: 'text' | 'file' | 'system' | 'regular' | 'broadcast';
   metadata?: Record<string, any>;
+  broadcastCategory?: 'chill' | 'logistics' | 'urgent';
 }

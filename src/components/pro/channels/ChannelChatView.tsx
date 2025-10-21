@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Lock, Users, ArrowLeft } from 'lucide-react';
+import { Send, Lock, Users, ArrowLeft, Radio } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { TripChannel, ChannelMessage } from '../../../types/roleChannels';
@@ -7,17 +7,22 @@ import { channelService } from '../../../services/channelService';
 import { useToast } from '../../../hooks/use-toast';
 import { format } from 'date-fns';
 import { getDemoChannelsForTrip } from '../../../data/demoChannelData';
+import { ChannelHeaderDropdown } from './ChannelHeaderDropdown';
 
 interface ChannelChatViewProps {
   channel: TripChannel;
+  availableChannels?: TripChannel[];
   onBack?: () => void;
+  onChannelChange?: (channel: TripChannel | null) => void;
 }
 
-export const ChannelChatView = ({ channel, onBack }: ChannelChatViewProps) => {
+export const ChannelChatView = ({ channel, availableChannels = [], onBack, onChannelChange }: ChannelChatViewProps) => {
   const [messages, setMessages] = useState<ChannelMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [messageType, setMessageType] = useState<'regular' | 'broadcast'>('regular');
+  const [broadcastCategory, setBroadcastCategory] = useState<'chill' | 'logistics' | 'urgent'>('chill');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -78,22 +83,30 @@ export const ChannelChatView = ({ channel, onBack }: ChannelChatViewProps) => {
         senderId: 'current-user',
         senderName: 'You',
         content: newMessage.trim(),
-        messageType: 'text',
+        messageType: messageType === 'broadcast' ? 'system' : 'text',
+        metadata: messageType === 'broadcast' ? { 
+          isBroadcast: true, 
+          category: broadcastCategory 
+        } : undefined,
         createdAt: new Date().toISOString()
       };
       setMessages(prev => [...prev, newMsg]);
       setNewMessage('');
+      setMessageType('regular');
       setSending(false);
       return;
     }
     
     const sent = await channelService.sendMessage({
       channelId: channel.id,
-      content: newMessage.trim()
+      content: newMessage.trim(),
+      messageType: messageType,
+      broadcastCategory: messageType === 'broadcast' ? broadcastCategory : undefined
     });
 
     if (sent) {
       setNewMessage('');
+      setMessageType('regular');
     } else {
       toast({
         title: 'Failed to send message',
@@ -119,19 +132,29 @@ export const ChannelChatView = ({ channel, onBack }: ChannelChatViewProps) => {
             onClick={onBack}
             variant="ghost"
             size="sm"
-            className="lg:hidden p-1 md:p-2 h-auto"
+            className="p-1 md:p-2 h-auto"
           >
             <ArrowLeft size={18} />
           </Button>
         )}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          {channel.isPrivate && <Lock size={16} className="text-purple-400 flex-shrink-0" />}
-          <div className="min-w-0 flex-1">
-            <h3 className="font-semibold text-white text-sm md:text-base truncate">#{channel.channelSlug}</h3>
-            <p className="text-xs text-gray-400 truncate">
-              {channel.requiredRoleName} • {channel.memberCount || 0} members
-            </p>
-          </div>
+          {availableChannels.length > 0 && onChannelChange ? (
+            <ChannelHeaderDropdown
+              currentChannel={channel}
+              availableChannels={availableChannels}
+              onChannelChange={onChannelChange}
+            />
+          ) : (
+            <>
+              {channel.isPrivate && <Lock size={16} className="text-purple-400 flex-shrink-0" />}
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-white text-sm md:text-base truncate">#{channel.channelSlug}</h3>
+                <p className="text-xs text-gray-400 truncate">
+                  {channel.requiredRoleName} • {channel.memberCount || 0} members
+                </p>
+              </div>
+            </>
+          )}
         </div>
         <Users size={18} className="text-gray-400 flex-shrink-0" />
       </div>
@@ -148,64 +171,142 @@ export const ChannelChatView = ({ channel, onBack }: ChannelChatViewProps) => {
             <p className="text-sm">No messages yet. Start the conversation!</p>
           </div>
         ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex gap-3 ${
-                msg.messageType === 'system' ? 'justify-center' : ''
-              }`}
-            >
-              {msg.messageType === 'system' ? (
-                <div className="text-xs text-gray-500 bg-gray-800/50 px-3 py-1 rounded-full">
-                  {msg.content}
-                </div>
-              ) : (
-                <>
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white text-sm font-semibold">
-                      {msg.senderName?.[0] || 'U'}
-                    </div>
+          messages.map((msg) => {
+            const isBroadcast = msg.metadata?.isBroadcast || msg.messageType === 'system';
+            const category = msg.metadata?.category as 'chill' | 'logistics' | 'urgent' | undefined;
+            
+            return (
+              <div
+                key={msg.id}
+                className={`flex gap-3 ${
+                  msg.messageType === 'system' && !isBroadcast ? 'justify-center' : ''
+                }`}
+              >
+                {msg.messageType === 'system' && !isBroadcast ? (
+                  <div className="text-xs text-gray-500 bg-gray-800/50 px-3 py-1 rounded-full">
+                    {msg.content}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span className="font-medium text-white text-sm">
-                        {msg.senderName || 'User'}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {format(new Date(msg.createdAt), 'h:mm a')}
-                      </span>
+                ) : (
+                  <>
+                    <div className="flex-shrink-0">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold ${
+                        isBroadcast ? 'bg-gradient-to-br from-orange-500 to-orange-700' : 'bg-gradient-to-br from-red-500 to-red-700'
+                      }`}>
+                        {isBroadcast ? <Radio size={16} /> : (msg.senderName?.[0] || 'U')}
+                      </div>
                     </div>
-                    <p className="text-gray-300 text-sm break-words">
-                      {msg.content}
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-          ))
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2 mb-1 flex-wrap">
+                        <span className="font-medium text-white text-sm">
+                          {msg.senderName || 'User'}
+                        </span>
+                        {isBroadcast && category && (
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            category === 'urgent' ? 'bg-red-600 text-white' :
+                            category === 'logistics' ? 'bg-yellow-600 text-white' :
+                            'bg-blue-600 text-white'
+                          }`}>
+                            {category.toUpperCase()}
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-500">
+                          {format(new Date(msg.createdAt), 'h:mm a')}
+                        </span>
+                      </div>
+                      <p className={`text-sm break-words ${
+                        isBroadcast 
+                          ? 'bg-orange-900/20 border-l-4 border-orange-500 pl-3 py-2 text-gray-200' 
+                          : 'text-gray-300'
+                      }`}>
+                        {msg.content}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
-      <div className="p-2 md:p-4 border-t border-gray-700 bg-gray-800 safe-bottom">
+      <div className="p-2 md:p-4 border-t border-gray-700 bg-gray-800 safe-bottom space-y-2">
+        {/* Message Type Selector */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setMessageType('regular')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors ${
+              messageType === 'regular'
+                ? 'bg-gray-700 text-white'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            💬 Regular
+          </button>
+          <button
+            onClick={() => setMessageType('broadcast')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors ${
+              messageType === 'broadcast'
+                ? 'bg-orange-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            📢 Broadcast
+          </button>
+        </div>
+
+        {/* Broadcast Category (only if broadcast selected) */}
+        {messageType === 'broadcast' && (
+          <div className="flex gap-2">
+            {(['chill', 'logistics', 'urgent'] as const).map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setBroadcastCategory(cat)}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                  broadcastCategory === cat
+                    ? cat === 'urgent' ? 'bg-red-600 text-white' :
+                      cat === 'logistics' ? 'bg-yellow-600 text-white' :
+                      'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Input Row */}
         <div className="flex gap-2">
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={`Message #${channel.channelSlug}...`}
+            placeholder={messageType === 'broadcast' 
+              ? `📢 Broadcast to #${channel.channelSlug}...` 
+              : `Message #${channel.channelSlug}...`}
             className="flex-1 bg-gray-900 border-gray-600 text-white text-sm md:text-base min-h-[44px]"
             disabled={sending}
+            maxLength={messageType === 'broadcast' ? 140 : undefined}
           />
           <Button
             onClick={handleSend}
             disabled={!newMessage.trim() || sending}
-            className="bg-red-600 hover:bg-red-700 min-w-[44px] min-h-[44px] p-2"
+            className={`min-w-[44px] min-h-[44px] p-2 ${
+              messageType === 'broadcast' 
+                ? 'bg-orange-600 hover:bg-orange-700' 
+                : 'bg-red-600 hover:bg-red-700'
+            }`}
           >
             <Send size={18} />
           </Button>
         </div>
+        {messageType === 'broadcast' && (
+          <p className="text-xs text-gray-500">
+            {newMessage.length}/140 characters
+          </p>
+        )}
       </div>
     </div>
   );

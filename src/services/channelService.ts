@@ -100,12 +100,37 @@ class ChannelService {
     } catch { return []; }
   }
 
-  async sendMessage(request: SendMessageRequest): Promise<ChannelMessage | null> {
+  async sendMessage(request: SendMessageRequest & { 
+    messageType?: 'regular' | 'broadcast';
+    broadcastCategory?: 'chill' | 'logistics' | 'urgent';
+  }): Promise<ChannelMessage | null> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
-      const { data } = await supabase.from('channel_messages').insert({ channel_id: request.channelId, sender_id: user.id, content: request.content, message_type: request.messageType || 'text', metadata: request.metadata || {} }).select().single();
-      return { id: data.id, channelId: data.channel_id, senderId: data.sender_id, content: data.content, messageType: data.message_type as 'text' | 'file' | 'system', metadata: (data.metadata || {}) as Record<string, any>, createdAt: data.created_at };
+      
+      const insertData: any = {
+        channel_id: request.channelId,
+        sender_id: user.id,
+        content: request.content,
+        message_type: request.messageType === 'broadcast' ? 'broadcast' : (request.messageType || 'text'),
+        metadata: request.metadata || {}
+      };
+      
+      if (request.messageType === 'broadcast' && request.broadcastCategory) {
+        insertData.broadcast_category = request.broadcastCategory;
+        insertData.metadata = { ...insertData.metadata, category: request.broadcastCategory };
+      }
+      
+      const { data } = await supabase.from('channel_messages').insert(insertData).select().single();
+      return { 
+        id: data.id, 
+        channelId: data.channel_id, 
+        senderId: data.sender_id, 
+        content: data.content, 
+        messageType: data.message_type as 'text' | 'file' | 'system', 
+        metadata: (data.metadata || {}) as Record<string, any>, 
+        createdAt: data.created_at 
+      };
     } catch { return null; }
   }
 

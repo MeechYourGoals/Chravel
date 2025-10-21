@@ -379,6 +379,8 @@ export type Database = {
       }
       channel_messages: {
         Row: {
+          broadcast_category: string | null
+          broadcast_priority: string | null
           channel_id: string
           content: string
           created_at: string | null
@@ -390,6 +392,8 @@ export type Database = {
           sender_id: string
         }
         Insert: {
+          broadcast_category?: string | null
+          broadcast_priority?: string | null
           channel_id: string
           content: string
           created_at?: string | null
@@ -401,6 +405,8 @@ export type Database = {
           sender_id: string
         }
         Update: {
+          broadcast_category?: string | null
+          broadcast_priority?: string | null
           channel_id?: string
           content?: string
           created_at?: string | null

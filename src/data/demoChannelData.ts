@@ -4,6 +4,8 @@ interface DemoMessage {
   senderName: string;
   content: string;
   timestamp: string;
+  isBroadcast?: boolean;
+  category?: 'chill' | 'logistics' | 'urgent';
 }
 
 interface DemoChannelData {
@@ -37,6 +39,13 @@ const lakersChannels: DemoChannelData[] = [
         timestamp: '2:32 PM'
       },
       {
+        senderName: 'Head Coach',
+        content: '🚨 URGENT: Bus departure moved to 5:45 AM sharp. NO exceptions.',
+        timestamp: '4:30 PM',
+        isBroadcast: true,
+        category: 'urgent'
+      },
+      {
         senderName: 'Austin Reaves',
         content: 'Practice tomorrow 2pm at the arena 🏀',
         timestamp: '4:45 PM'
@@ -65,6 +74,13 @@ const lakersChannels: DemoChannelData[] = [
         senderName: 'Assistant Coach',
         content: 'Defense needs work on pick and roll coverage',
         timestamp: '11:20 AM'
+      },
+      {
+        senderName: 'Head Coach',
+        content: 'Strategy session after practice. All coaches required.',
+        timestamp: '12:00 PM',
+        isBroadcast: true,
+        category: 'logistics'
       }
     ]
   }
@@ -96,6 +112,13 @@ const beyonceChannels: DemoChannelData[] = [
         timestamp: '2:10 PM'
       },
       {
+        senderName: 'Tour Manager',
+        content: 'Showtime in 90 minutes. All crew report to positions NOW.',
+        timestamp: '2:20 PM',
+        isBroadcast: true,
+        category: 'urgent'
+      },
+      {
         senderName: 'Stage Manager',
         content: 'All pyro tested and ready for tonight',
         timestamp: '2:30 PM'
@@ -119,6 +142,13 @@ const beyonceChannels: DemoChannelData[] = [
         senderName: 'Security Chief',
         content: 'VIP entrance secured. Meet & greet at 6pm',
         timestamp: '10:00 AM'
+      },
+      {
+        senderName: 'Security Chief',
+        content: 'Reminder: Backstage credentials must be visible at all times',
+        timestamp: '10:15 AM',
+        isBroadcast: true,
+        category: 'logistics'
       },
       {
         senderName: 'Head of Security',
@@ -148,6 +178,13 @@ const eliLillyChannels: DemoChannelData[] = [
         senderName: 'David Ricks',
         content: 'Strategic planning session moved to 3pm today',
         timestamp: '9:00 AM'
+      },
+      {
+        senderName: 'Executive Assistant',
+        content: 'Board meeting materials now available in shared drive',
+        timestamp: '9:10 AM',
+        isBroadcast: true,
+        category: 'chill'
       },
       {
         senderName: 'Anat Ashkenazi',
@@ -183,6 +220,13 @@ const eliLillyChannels: DemoChannelData[] = [
         senderName: 'Meeting Planner',
         content: 'AV equipment tested in all conference rooms',
         timestamp: '11:20 AM'
+      },
+      {
+        senderName: 'Event Coordinator',
+        content: 'Transportation departing hotel lobby at 7:00pm sharp',
+        timestamp: '11:45 AM',
+        isBroadcast: true,
+        category: 'logistics'
       }
     ]
   }
@@ -286,7 +330,8 @@ export const getDemoChannelsForTrip = (tripId: string): { channels: TripChannel[
       senderId: `demo-sender-${msgIndex}`,
       senderName: msg.senderName,
       content: msg.content,
-      messageType: 'text' as const,
+      messageType: msg.isBroadcast ? 'system' as const : 'text' as const,
+      metadata: msg.isBroadcast ? { isBroadcast: true, category: msg.category } : undefined,
       createdAt: now,
       editedAt: undefined,
       deletedAt: undefined

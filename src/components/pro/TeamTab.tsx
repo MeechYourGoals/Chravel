@@ -8,8 +8,7 @@ import { BulkRoleAssignmentModal } from './BulkRoleAssignmentModal';
 import { QuickContactMenu } from './QuickContactMenu';
 import { RoleContactSheet } from './RoleContactSheet';
 import { ExportTeamDirectoryModal } from './ExportTeamDirectoryModal';
-import { RoleChannelManager } from './RoleChannelManager';
-import { DirectChannelView } from './channels/DirectChannelView';
+import { InlineChannelList } from './channels/InlineChannelList';
 import { extractUniqueRoles, getRoleColorClass } from '../../utils/roleUtils';
 import { Button } from '../ui/button';
 
@@ -29,7 +28,6 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [roleContactSheet, setRoleContactSheet] = useState<{ role: string; members: ProParticipant[] } | null>(null);
-  const [showChannelManager, setShowChannelManager] = useState(false);
 
   const { terminology: { teamLabel }, roles: categoryRoles } = getCategoryConfig(category);
 
@@ -109,19 +107,6 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
               <Users size={16} className="mr-2" />
               Team Members
             </Button>
-
-            {/* Channels Button */}
-            {tripId && (
-              <Button
-                onClick={() => setShowChannelManager(true)}
-                variant="outline"
-                className="border-gray-600 hover:bg-white/10 hover:border-gray-500 transition-all duration-200 min-w-[140px]"
-                title="Manage role-based chat channels"
-              >
-                <MessageSquare size={16} className="mr-2" />
-                Channels
-              </Button>
-            )}
           </div>
 
           {/* Secondary Action Buttons */}
@@ -272,15 +257,15 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
         </div>
       )}
 
-      {/* Direct Channel View for Demo Trips */}
-      {tripId && ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026'].includes(tripId) && (
+      {/* Inline Channel View - Replaces button/modal approach */}
+      {tripId && (
         <div className="mt-8">
           <div className="border-t border-gray-700 pt-8">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <MessageSquare size={20} className="text-purple-400" />
               Role-Based Channels
             </h3>
-            <DirectChannelView tripId={tripId} userRole={userRole} />
+            <InlineChannelList tripId={tripId} userRole={userRole} />
           </div>
         </div>
       )}
@@ -326,18 +311,6 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
         category={category}
         existingRoles={existingRoles}
       />
-
-      {/* Role Channel Manager */}
-      {tripId && (
-        <RoleChannelManager
-          isOpen={showChannelManager}
-          onClose={() => setShowChannelManager(false)}
-          tripId={tripId}
-          roster={roster}
-          userRole={userRole}
-          existingRoles={existingRoles}
-        />
-      )}
     </div>
   );
 };
