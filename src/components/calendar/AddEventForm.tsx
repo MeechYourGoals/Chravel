@@ -12,9 +12,10 @@ interface AddEventFormProps {
   onSubmit: () => void;
   onCancel: () => void;
   isSubmitting?: boolean;
+  isEditing?: boolean;
 }
 
-export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSubmitting = false }: AddEventFormProps) => {
+export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSubmitting = false, isEditing = false }: AddEventFormProps) => {
   return (
     <div className="space-y-4">
       <div>
@@ -76,7 +77,7 @@ export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSu
 
       <div className="flex gap-2">
         <Button onClick={onSubmit} disabled={!newEvent.title || isSubmitting}>
-          {isSubmitting ? 'Saving...' : 'Add Event'}
+          {isSubmitting ? 'Saving...' : isEditing ? 'Update Event' : 'Add Event'}
         </Button>
         <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancel</Button>
       </div>
