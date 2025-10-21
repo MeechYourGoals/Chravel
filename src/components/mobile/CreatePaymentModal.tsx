@@ -13,6 +13,9 @@ interface CreatePaymentModalProps {
 export const CreatePaymentModal = ({ isOpen, onClose, tripId, onPaymentCreated }: CreatePaymentModalProps) => {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState('USD');
+  const [splitCount, setSplitCount] = useState(2);
+  const [paymentMethods, setPaymentMethods] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -25,17 +28,20 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, onPaymentCreated }
       // Create demo payment with proper format
       demoModeService.addSessionPayment(tripId, {
         amount: parseFloat(amount),
-        currency: 'USD',
+        currency,
         description,
-        splitCount: 2,
-        splitParticipants: ['user1', 'user2'],
-        paymentMethods: ['Venmo']
+        splitCount,
+        splitParticipants: Array.from({ length: splitCount }, (_, i) => `user${i + 1}`),
+        paymentMethods: paymentMethods.length > 0 ? paymentMethods : ['Venmo']
       });
-      
+
       // Reset form
       setDescription('');
       setAmount('');
-      
+      setCurrency('USD');
+      setSplitCount(2);
+      setPaymentMethods([]);
+
       // Trigger callback and close
       onPaymentCreated?.();
       onClose();
@@ -103,6 +109,67 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, onPaymentCreated }
                 className="w-full pl-8 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
                 required
               />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Currency
+            </label>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50"
+            >
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="JPY">JPY (¥)</option>
+              <option value="CAD">CAD ($)</option>
+              <option value="AUD">AUD ($)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Split Between People
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="20"
+              value={splitCount}
+              onChange={(e) => setSplitCount(parseInt(e.target.value) || 1)}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50"
+              required
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              {amount && splitCount > 0 ? `$${(parseFloat(amount) / splitCount).toFixed(2)} per person` : ''}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Preferred Payment Methods
+            </label>
+            <div className="space-y-2">
+              {['Venmo', 'Cash App', 'Zelle', 'PayPal', 'Apple Cash'].map((method) => (
+                <label key={method} className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={paymentMethods.includes(method)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setPaymentMethods([...paymentMethods, method]);
+                      } else {
+                        setPaymentMethods(paymentMethods.filter(m => m !== method));
+                      }
+                    }}
+                    className="w-5 h-5 rounded border-white/10 bg-white/5 text-green-600 focus:ring-2 focus:ring-green-500/50"
+                  />
+                  <span className="text-white">{method}</span>
+                </label>
+              ))}
             </div>
           </div>
 

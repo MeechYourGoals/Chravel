@@ -36,10 +36,9 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
   onLocationSet
 }) => {
   const { user } = useAuth();
-  const { basecamp: tripBasecamp, setBasecamp: setTripBasecampRoute } = useBasecamp();
+  const { basecamp: tripBasecamp } = useBasecamp();
   const [personalAccommodation, setPersonalAccommodation] = useState<PersonalAccommodation | null>(null);
   const [showPersonalSelector, setShowPersonalSelector] = useState(false);
-  const [showTripSelector, setShowTripSelector] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -99,12 +98,6 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
     setShowPersonalSelector(false);
   };
 
-  const handleTripLocationSet = (location: any) => {
-    setTripBasecampRoute(location);
-    onLocationSet?.(location, 'trip');
-    setShowTripSelector(false);
-  };
-
   const handleDeletePersonalAccommodation = async () => {
     if (!personalAccommodation) return;
 
@@ -152,37 +145,34 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Trip Base Camp Section */}
+      {/* Trip Base Camp Section - Display Only */}
       <Card className="bg-glass-slate-card border border-glass-slate-border shadow-enterprise-lg rounded-2xl">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-white flex items-center gap-2">
-              <MapPin size={20} className="text-blue-400" />
-              Trip Base Camp
-            </CardTitle>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setShowTripSelector(true)}
-              className="border-glass-slate-border text-white hover:bg-white/10"
-            >
-              {tripBasecamp ? <Edit size={16} /> : <Plus size={16} />}
-              {tripBasecamp ? 'Edit' : 'Set Location'}
-            </Button>
-          </div>
+          <CardTitle className="text-white flex items-center gap-2">
+            <MapPin size={20} className="text-blue-400" />
+            Trip Base Camp
+          </CardTitle>
           <p className="text-sm text-gray-300">
             Main meeting point for group activities and shared recommendations
           </p>
         </CardHeader>
-        {tripBasecamp && (
+        {tripBasecamp ? (
           <CardContent className="pt-0">
-            <div className="flex items-center gap-2 text-white">
-              <MapPin size={16} className="text-blue-400" />
-              <span className="font-medium">{tripBasecamp.name}</span>
+            <div className="flex items-start gap-2 text-white">
+              <MapPin size={16} className="text-blue-400 mt-1 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="font-medium block">{tripBasecamp.name}</span>
+                {tripBasecamp.address && (
+                  <p className="text-sm text-gray-300 mt-1 break-words">{tripBasecamp.address}</p>
+                )}
+              </div>
             </div>
-            {tripBasecamp.address && (
-              <p className="text-sm text-gray-300 mt-1">{tripBasecamp.address}</p>
-            )}
+          </CardContent>
+        ) : (
+          <CardContent className="pt-0">
+            <p className="text-sm text-gray-400 italic">
+              No basecamp set. Set it in the "Places & Activities" tab.
+            </p>
           </CardContent>
         )}
       </Card>
@@ -190,47 +180,48 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
       {/* Personal Accommodation Section */}
       <Card className="bg-glass-slate-card border border-glass-slate-border shadow-enterprise-lg rounded-2xl">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-white flex items-center gap-2">
-              <Bed size={20} className="text-green-400" />
-              Your Accommodation {!user && <Badge variant="outline" className="text-xs border-green-400/30 text-green-400">Private</Badge>}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="text-white flex items-center gap-2 flex-wrap">
+              <Bed size={20} className="text-green-400 flex-shrink-0" />
+              <span>Your Accommodation</span>
+              {!user && <Badge variant="outline" className="text-xs border-green-400/30 text-green-400">Private</Badge>}
             </CardTitle>
             {personalAccommodation && user ? (
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={handleDeletePersonalAccommodation}
                   className="border-glass-slate-border text-red-400 hover:bg-red-500/10"
                 >
                   <Trash2 size={16} />
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => setShowPersonalSelector(true)}
                   className="border-glass-slate-border text-white hover:bg-white/10"
                 >
                   <Edit size={16} />
-                  Edit
+                  <span className="hidden sm:inline">Edit</span>
                 </Button>
               </div>
             ) : (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => setShowPersonalSelector(true)}
                 disabled={!user}
-                className="border-glass-slate-border text-white hover:bg-white/10 disabled:opacity-50"
+                className="border-glass-slate-border text-white hover:bg-white/10 disabled:opacity-50 w-full sm:w-auto flex-shrink-0"
               >
                 <Plus size={16} />
-                Set Your Location
+                <span>Set Your Location</span>
               </Button>
             )}
           </div>
-          <p className="text-sm text-gray-300">
-            {user 
-              ? "Where you're staying for personalized recommendations and local insights" 
+          <p className="text-sm text-gray-300 mt-2">
+            {user
+              ? "Where you're staying for personalized recommendations and local insights"
               : "Sign in to save your private accommodation for personalized directions"}
           </p>
         </CardHeader>
@@ -264,15 +255,7 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
         )}
       </Card>
 
-      {/* Location Selector Modals */}
-      {showTripSelector && (
-        <BasecampSelector
-          isOpen={showTripSelector}
-          onClose={() => setShowTripSelector(false)}
-          onBasecampSet={handleTripLocationSet}
-        />
-      )}
-
+      {/* Location Selector Modal */}
       {showPersonalSelector && (
         <BasecampSelector
           isOpen={showPersonalSelector}

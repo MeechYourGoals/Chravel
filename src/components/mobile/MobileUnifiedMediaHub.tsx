@@ -11,11 +11,13 @@ import { MediaGridItem } from './MediaGridItem';
 
 interface MediaItem {
   id: string;
-  type: 'image' | 'video';
+  type: 'image' | 'video' | 'file' | 'link';
   url: string;
   thumbnail?: string;
   uploadedBy: string;
   uploadedAt: Date;
+  filename?: string;
+  fileSize?: string;
 }
 
 interface MobileUnifiedMediaHubProps {
@@ -25,7 +27,7 @@ interface MobileUnifiedMediaHubProps {
 export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) => {
   const { isDemoMode } = useDemoMode();
   const { mediaItems: realMediaItems, loading, refetch } = useMediaManagement(tripId);
-  const [selectedTab, setSelectedTab] = useState<'all' | 'photos' | 'videos'>('all');
+  const [selectedTab, setSelectedTab] = useState<'all' | 'photos' | 'videos' | 'files' | 'links'>('all');
 
   const { isPulling, isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: async () => {
@@ -48,6 +50,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
     if (selectedTab === 'all') return true;
     if (selectedTab === 'photos') return item.type === 'image';
     if (selectedTab === 'videos') return item.type === 'video';
+    if (selectedTab === 'files') return item.type === 'file';
+    if (selectedTab === 'links') return item.type === 'link';
     return true;
   });
 
@@ -111,8 +115,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 px-4 py-3 border-b border-white/10 safe-container overflow-x-auto native-scroll">
-        {(['all', 'photos', 'videos'] as const).map((tab) => (
+      <div className="flex gap-2 px-4 py-3 border-b border-white/10 safe-container overflow-x-auto native-scroll scrollbar-hide">
+        {(['all', 'photos', 'videos', 'files', 'links'] as const).map((tab) => (
           <button
             key={tab}
             onClick={async () => {
@@ -120,7 +124,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
               setSelectedTab(tab);
             }}
             className={`
-              native-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap
+              native-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap flex-shrink-0
               ${
                 selectedTab === tab
                   ? 'bg-blue-600 text-white shadow-md'
