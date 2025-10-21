@@ -308,7 +308,13 @@ export const TripChat = ({
       )}
 
       {/* Unified Chat Shell - Teams-like container */}
-      <div className="mx-4 mb-6 rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col" style={{ maxHeight: '72vh' }}>
+      <div
+        className="mx-4 mb-6 rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col"
+        style={{
+          minHeight: '360px',
+          maxHeight: 'max(360px, 78vh)'
+        }}
+      >
         {isLoading ? (
           <div className="flex-1 overflow-y-auto p-4">
             <div className="space-y-4">
