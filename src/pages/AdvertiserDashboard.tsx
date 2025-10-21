@@ -148,7 +148,7 @@ export const AdvertiserDashboard = () => {
 
   useEffect(() => {
     if (isDemoMode) {
-      // Load demo data immediately in demo mode
+      // In demo mode, bypass authentication and load mock data immediately
       setAdvertiser(mockAdvertiser);
       setCampaigns(mockCampaigns);
       setIsLoading(false);
@@ -197,9 +197,14 @@ export const AdvertiserDashboard = () => {
     );
   }
 
-  if (!advertiser && !isDemoMode) {
+  // NEVER show onboarding in demo mode - bypass authentication wall for investors/demos
+  if (!isDemoMode && !advertiser) {
     return <AdvertiserOnboarding onComplete={handleOnboardingComplete} />;
   }
+
+  // Use mock data directly in demo mode if advertiser isn't set yet
+  const activeAdvertiser = isDemoMode ? (advertiser || mockAdvertiser) : advertiser;
+  const activeCampaigns = isDemoMode ? (campaigns.length > 0 ? campaigns : mockCampaigns) : campaigns;
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -221,7 +226,7 @@ export const AdvertiserDashboard = () => {
                 Chravel Advertiser Hub
               </h1>
               <span className="text-sm text-gray-400">
-                {advertiser?.company_name || 'Loading...'}
+                {activeAdvertiser?.company_name || 'Loading...'}
               </span>
             </div>
             <div className="flex items-center space-x-4">
@@ -280,18 +285,18 @@ export const AdvertiserDashboard = () => {
             </div>
 
             <CampaignList 
-              campaigns={campaigns} 
+              campaigns={activeCampaigns} 
               onRefresh={loadAdvertiserData}
             />
           </TabsContent>
 
           <TabsContent value="analytics">
-            <CampaignAnalytics campaigns={campaigns} />
+            <CampaignAnalytics campaigns={activeCampaigns} />
           </TabsContent>
 
           <TabsContent value="settings">
             <AdvertiserSettings 
-              advertiser={advertiser} 
+              advertiser={activeAdvertiser} 
               onUpdate={setAdvertiser}
             />
           </TabsContent>
