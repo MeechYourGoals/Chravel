@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { X, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
+import { calendarService } from '@/services/calendarService';
+import { toast } from 'sonner';
 
 interface CreateEventModalProps {
   isOpen: boolean;
@@ -26,32 +28,47 @@ export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEven
     setIsSubmitting(true);
 
     try {
-      // Create demo event
-      const event = {
-        id: `event-${Date.now()}`,
+      // Combine date and time into ISO string for start_time
+      const [hours, minutes] = time.split(':');
+      const startTime = new Date(selectedDate);
+      startTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+      // Create event via calendar service
+      const createdEvent = await calendarService.createEvent({
+        trip_id: tripId,
         title,
-        date: selectedDate,
-        time,
-        location,
-        category,
-        description,
-        participants: 1,
-        color: 'from-blue-500 to-blue-600',
-        createdAt: new Date().toISOString()
-      };
+        description: description || undefined,
+        start_time: startTime.toISOString(),
+        location: location || undefined,
+        event_category: category,
+        include_in_itinerary: true,
+        source_type: 'manual',
+        source_data: { created_from: 'mobile' }
+      });
 
-      // Trigger callback
-      onEventCreated?.(event);
+      if (createdEvent) {
+        toast.success('Event created', {
+          description: `${title} has been added to your calendar`
+        });
 
-      // Reset form
-      setTitle('');
-      setTime('12:00');
-      setLocation('');
-      setCategory('activity');
-      setDescription('');
-      onClose();
+        // Trigger callback for UI update
+        onEventCreated?.(createdEvent);
+
+        // Reset form
+        setTitle('');
+        setTime('12:00');
+        setLocation('');
+        setCategory('activity');
+        setDescription('');
+        onClose();
+      } else {
+        throw new Error('Failed to create event');
+      }
     } catch (error) {
       console.error('Failed to create event:', error);
+      toast.error('Failed to create event', {
+        description: 'Please try again or contact support if the issue persists'
+      });
     } finally {
       setIsSubmitting(false);
     }

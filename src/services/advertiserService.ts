@@ -349,7 +349,7 @@ export class AdvertiserService {
   static async uploadCampaignImage(file: File): Promise<string | null> {
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `campaign-images/${fileName}`;
 
       const { error: uploadError } = await supabase.storage

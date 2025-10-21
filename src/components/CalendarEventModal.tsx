@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -16,7 +16,7 @@ import { AddToCalendarData, CalendarEvent } from '../types/calendar';
 interface CalendarEventModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onEventAdded: (eventData: AddToCalendarData) => void;
+  onEventAdded: (eventData: AddToCalendarData, eventId?: string) => void;
   prefilledData?: Partial<AddToCalendarData>;
   editEvent?: CalendarEvent;
 }
@@ -38,11 +38,37 @@ export const CalendarEventModal = ({
     include_in_itinerary: prefilledData?.include_in_itinerary ?? editEvent?.include_in_itinerary ?? true
   });
 
+  // Update form data when editEvent changes
+  useEffect(() => {
+    if (editEvent) {
+      setFormData({
+        title: editEvent.title,
+        date: editEvent.date,
+        time: editEvent.time,
+        location: editEvent.location || '',
+        description: editEvent.description || '',
+        category: editEvent.event_category || 'activity',
+        include_in_itinerary: editEvent.include_in_itinerary ?? true
+      });
+    } else if (prefilledData) {
+      setFormData({
+        title: prefilledData.title || '',
+        date: prefilledData.date || new Date(),
+        time: prefilledData.time || '',
+        location: prefilledData.location || '',
+        description: prefilledData.description || '',
+        category: prefilledData.category || 'activity',
+        include_in_itinerary: prefilledData.include_in_itinerary ?? true
+      });
+    }
+  }, [editEvent, prefilledData]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.time) return;
-    
-    onEventAdded(formData);
+
+    // Pass event ID if editing, otherwise undefined for new event
+    onEventAdded(formData, editEvent?.id);
     handleClose();
   };
 

@@ -9,6 +9,7 @@ export const useCalendarManagement = (tripId: string) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [showAddEvent, setShowAddEvent] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const [newEvent, setNewEvent] = useState<AddToCalendarData>({
     title: '',
@@ -127,6 +128,47 @@ export const useCalendarManagement = (tripId: string) => {
     }
   };
 
+  const updateEvent = async (eventId: string, eventData: AddToCalendarData) => {
+    if (!tripId) return;
+
+    try {
+      setIsSaving(true);
+      const startDate = new Date(eventData.date);
+      const [hours, minutes] = eventData.time.split(':');
+      startDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
+
+      const updated = await calendarService.updateEvent(eventId, {
+        title: eventData.title,
+        description: eventData.description,
+        start_time: startDate.toISOString(),
+        location: eventData.location,
+        event_category: eventData.category,
+        include_in_itinerary: eventData.include_in_itinerary ?? true
+      });
+
+      if (updated) {
+        // Reload events to get the updated data
+        const tripEvents = await calendarService.getTripEvents(tripId);
+        const formatted = tripEvents.map(calendarService.convertToCalendarEvent);
+        setEvents(formatted);
+        setEditingEvent(null);
+        toast({
+          title: 'Event updated',
+          description: 'Your changes have been saved.'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update event:', error);
+      toast({
+        title: 'Unable to update event',
+        description: 'Please try again later.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const updateEventField = <K extends keyof AddToCalendarData>(
     field: K,
     value: AddToCalendarData[K]
@@ -158,6 +200,8 @@ export const useCalendarManagement = (tripId: string) => {
     setEvents,
     showAddEvent,
     setShowAddEvent,
+    editingEvent,
+    setEditingEvent,
     viewMode,
     setViewMode,
     toggleViewMode,
@@ -165,6 +209,7 @@ export const useCalendarManagement = (tripId: string) => {
     updateEventField,
     getEventsForDate,
     handleAddEvent,
+    updateEvent,
     deleteEvent,
     resetForm,
     isLoading,
