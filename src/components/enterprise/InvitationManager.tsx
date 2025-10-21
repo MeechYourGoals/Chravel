@@ -51,8 +51,8 @@ export const InvitationManager = ({
           body: {
             email: member.email,
             phone: member.phone,
-            organization_name: 'Your Organization', // TODO: Get from org context
-            organization_id: 'org-id', // TODO: Get from org context
+            organization_name: organizationName || 'Chravel Organization',
+            organization_id: organizationId || 'default-org'
             role: member.role,
             invite_token: generateInviteToken(),
             custom_message: batch.message,

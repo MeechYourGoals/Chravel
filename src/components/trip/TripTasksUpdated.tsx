@@ -6,6 +6,7 @@ import { Plus } from 'lucide-react';
 import { TaskCreateModal } from '@/components/todo/TaskCreateModal';
 import { TaskRow } from '@/components/todo/TaskRow';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface TripTasksUpdatedProps {
   tripId: string;
@@ -14,6 +15,7 @@ interface TripTasksUpdatedProps {
 export const TripTasksUpdated = ({ tripId }: TripTasksUpdatedProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { tasks, isLoading, createTaskMutation, toggleTaskMutation } = useTripTasks(tripId);
+  const { user } = useAuth();
 
   if (isLoading) {
     return (
@@ -27,7 +29,7 @@ export const TripTasksUpdated = ({ tripId }: TripTasksUpdatedProps) => {
   // Helper function to check if current user has completed a task
   const isTaskCompleted = (task: any) => {
     return task.task_status?.some((status: any) => 
-      status.user_id === 'current-user' && status.completed // TODO: Get actual user ID
+      status.user_id === user?.id && status.completed
     ) || false;
   };
 
