@@ -17,12 +17,12 @@ class EventChannelService {
 
       if (error) throw error;
       
-      // Map database columns to TripChannel type
+      // Map database columns to TripChannel type - support both naming conventions
       const channels = (data || []).map(ch => ({
         id: ch.id,
         trip_id: ch.trip_id,
-        name: ch.channel_name,
-        slug: ch.channel_slug,
+        name: ch.name || ch.channel_name,  // Support both 'name' and 'channel_name'
+        slug: ch.slug || ch.channel_slug,  // Support both 'slug' and 'channel_slug'
         description: ch.description,
         channel_type: ch.is_private ? 'role' : 'custom',
         role_filter: null,
@@ -31,7 +31,7 @@ class EventChannelService {
         updated_at: ch.updated_at,
         is_archived: ch.is_archived || false
       }));
-      
+
       return channels as TripChannel[];
     } catch (error) {
       console.error('Failed to fetch channels:', error);
