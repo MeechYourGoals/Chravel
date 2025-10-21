@@ -22,7 +22,6 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [messageType, setMessageType] = useState<'regular' | 'broadcast'>('regular');
-  const [broadcastCategory, setBroadcastCategory] = useState<'chill' | 'logistics' | 'urgent'>('chill');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -84,9 +83,8 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
         senderName: 'You',
         content: newMessage.trim(),
         messageType: messageType === 'broadcast' ? 'system' : 'text',
-        metadata: messageType === 'broadcast' ? { 
-          isBroadcast: true, 
-          category: broadcastCategory 
+        metadata: messageType === 'broadcast' ? {
+          isBroadcast: true
         } : undefined,
         createdAt: new Date().toISOString()
       };
@@ -96,12 +94,11 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
       setSending(false);
       return;
     }
-    
+
     const sent = await channelService.sendMessage({
       channelId: channel.id,
       content: newMessage.trim(),
-      messageType: messageType,
-      broadcastCategory: messageType === 'broadcast' ? broadcastCategory : undefined
+      messageType: messageType
     });
 
     if (sent) {
@@ -173,8 +170,7 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
         ) : (
           messages.map((msg) => {
             const isBroadcast = msg.metadata?.isBroadcast || msg.messageType === 'system';
-            const category = msg.metadata?.category as 'chill' | 'logistics' | 'urgent' | undefined;
-            
+
             return (
               <div
                 key={msg.id}
@@ -200,22 +196,13 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
                         <span className="font-medium text-white text-sm">
                           {msg.senderName || 'User'}
                         </span>
-                        {isBroadcast && category && (
-                          <span className={`text-xs px-2 py-0.5 rounded ${
-                            category === 'urgent' ? 'bg-red-600 text-white' :
-                            category === 'logistics' ? 'bg-yellow-600 text-white' :
-                            'bg-blue-600 text-white'
-                          }`}>
-                            {category.toUpperCase()}
-                          </span>
-                        )}
                         <span className="text-xs text-gray-500">
                           {format(new Date(msg.createdAt), 'h:mm a')}
                         </span>
                       </div>
                       <p className={`text-sm break-words ${
-                        isBroadcast 
-                          ? 'bg-orange-900/20 border-l-4 border-orange-500 pl-3 py-2 text-gray-200' 
+                        isBroadcast
+                          ? 'bg-orange-900/20 border-l-4 border-orange-500 pl-3 py-2 text-gray-200'
                           : 'text-gray-300'
                       }`}>
                         {msg.content}
@@ -255,27 +242,6 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
             📢 Broadcast
           </button>
         </div>
-
-        {/* Broadcast Category (only if broadcast selected) */}
-        {messageType === 'broadcast' && (
-          <div className="flex gap-2">
-            {(['chill', 'logistics', 'urgent'] as const).map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setBroadcastCategory(cat)}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                  broadcastCategory === cat
-                    ? cat === 'urgent' ? 'bg-red-600 text-white' :
-                      cat === 'logistics' ? 'bg-yellow-600 text-white' :
-                      'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Input Row */}
         <div className="flex gap-2">
