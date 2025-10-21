@@ -161,7 +161,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           </div>
         ) : (
           <div className="media-grid animate-fade-in">
-            {filteredMedia.map((item, index) => (
+            {filteredMedia
+              .filter((item): item is MediaItem & { type: 'image' | 'video' } => 
+                item.type === 'image' || item.type === 'video'
+              )
+              .map((item, index) => (
               <div 
                 key={item.id}
                 style={{ 
