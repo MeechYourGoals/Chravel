@@ -11,7 +11,6 @@ import { ChatInput } from './chat/ChatInput';
 import { MessageList } from './chat/MessageList';
 import { MessageFilters } from './chat/MessageFilters';
 import { InlineReplyComponent } from './chat/InlineReplyComponent';
-import { ChannelSwitcher } from './chat/ChannelSwitcher';
 import { VirtualizedMessageContainer } from './chat/VirtualizedMessageContainer';
 import { MessageItem } from './chat/MessageItem';
 import { PullToRefreshIndicator } from './mobile/PullToRefreshIndicator';
@@ -20,7 +19,6 @@ import { getMockAvatar } from '../utils/mockAvatars';
 import { useTripMembers } from '../hooks/useTripMembers';
 import { useTripChat } from '@/hooks/useTripChat';
 import { useAuth } from '@/hooks/useAuth';
-import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { PaymentData } from '@/types/payments';
 import { hapticService } from '../services/hapticService';
 
@@ -79,15 +77,6 @@ export const TripChat = ({
     hasMore,
     isLoadingMore
   } = useTripChat(resolvedTripId);
-
-  // 🆕 Role channels for enterprise trips
-  const {
-    availableChannels,
-    activeChannel,
-    messages: channelMessages,
-    setActiveChannel,
-    sendMessage: sendChannelMessage
-  } = useRoleChannels(resolvedTripId, userRole);
 
   const {
     inputMessage,
@@ -160,15 +149,6 @@ export const TripChat = ({
   }, [liveMessages, shouldUseDemoData]);
 
   const handleSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: any) => {
-    // If we're in a role channel, send to that channel instead
-    if (isPro && activeChannel) {
-      const success = await sendChannelMessage(inputMessage);
-      if (success) {
-        setInputMessage('');
-      }
-      return;
-    }
-
     // Transform paymentData if needed to match useChatComposer expectations
     let transformedPaymentData;
     if (isPayment && paymentData) {
@@ -295,36 +275,17 @@ export const TripChat = ({
   }, [shouldUseDemoData, isEvent, resolvedTripId, liveFormattedMessages.length]);
 
   // Determine which messages to show:
-  // 1. If in a role channel: show channel messages
-  // 2. Demo mode OR no tripId: show demo messages
-  // 3. Consumer trip (1-12) with no live messages: show demo messages as fallback
-  // 4. Otherwise: show live messages
+  // 1. Demo mode OR no tripId: show demo messages
+  // 2. Consumer trip (1-12) with no live messages: show demo messages as fallback
+  // 3. Otherwise: show live messages
   const tripIdNum = parseInt(resolvedTripId);
-  const isConsumerTripWithNoMessages = 
+  const isConsumerTripWithNoMessages =
     tripIdNum >= 1 && tripIdNum <= 12 && liveFormattedMessages.length === 0 && !shouldUseDemoData;
-  
-  let messagesToShow: MockMessage[];
-  if (isPro && activeChannel) {
-    // Show channel messages for enterprise trips when channel is selected
-    messagesToShow = channelMessages.map(msg => ({
-      id: msg.id,
-      text: msg.content,
-      sender: {
-        id: msg.senderId,
-        name: msg.senderName || 'Unknown',
-        avatar: msg.senderAvatar || getMockAvatar(msg.senderName || 'Unknown')
-      },
-      createdAt: msg.createdAt,
-      isBroadcast: false,
-      isPayment: false,
-      tags: [] as string[]
-    }));
-  } else {
-    messagesToShow = (shouldUseDemoData || isConsumerTripWithNoMessages) 
-      ? demoMessages 
-      : liveFormattedMessages;
-  }
-  
+
+  const messagesToShow = (shouldUseDemoData || isConsumerTripWithNoMessages)
+    ? demoMessages
+    : liveFormattedMessages;
+
   const filteredMessages = filterMessages(messagesToShow);
 
   const isLoading = shouldUseDemoData ? demoLoading : liveLoading;
@@ -335,34 +296,7 @@ export const TripChat = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Channel Switcher for Enterprise Trips */}
-      {isPro && availableChannels.length > 0 && (
-        <div className="p-4 border-b border-gray-700">
-          <div className="flex items-center gap-3 mb-3">
-            <ChannelSwitcher
-              activeChannel={activeChannel?.id || 'main'}
-              roleChannels={availableChannels}
-              onChannelChange={(channelId) => {
-                if (channelId === 'main') {
-                  setActiveChannel(null);
-                } else {
-                  const channel = availableChannels.find(ch => ch.id === channelId);
-                  if (channel) setActiveChannel(channel);
-                }
-              }}
-              className="flex-1"
-            />
-            {activeChannel && (
-              <div className="bg-purple-500/10 border border-purple-500/20 rounded px-3 py-1.5">
-                <p className="text-xs text-purple-400 font-medium">
-                  Private channel - Only {activeChannel.roleName} members
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      
+      {/* Message Filters */}
       {filteredMessages.length > 0 && (
         <div className="p-4 border-b border-gray-700">
           <MessageFilters
@@ -399,8 +333,8 @@ export const TripChat = ({
                 onReaction={handleReaction}
               />
             )}
-            onLoadMore={(shouldUseDemoData || isConsumerTripWithNoMessages || (isPro && activeChannel)) ? () => {} : loadMoreMessages}
-            hasMore={(shouldUseDemoData || isConsumerTripWithNoMessages || (isPro && activeChannel)) ? false : hasMore}
+            onLoadMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? () => {} : loadMoreMessages}
+            hasMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? false : hasMore}
             isLoading={isLoadingMore}
             initialVisibleCount={10}
             className="chat-scroll-container native-scroll"
@@ -432,7 +366,7 @@ export const TripChat = ({
             isTyping={isSendingMessage}
             tripMembers={tripMembers}
             hidePayments={true}
-            isInChannelMode={isPro && !!activeChannel}
+            isPro={isPro}
             tripId={resolvedTripId}
           />
         </div>

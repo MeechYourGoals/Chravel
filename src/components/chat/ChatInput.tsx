@@ -18,19 +18,21 @@ interface ChatInputProps {
   tripMembers?: Array<{ id: string; name: string; avatar?: string }>;
   hidePayments?: boolean;
   isInChannelMode?: boolean; // 🆕 Flag to indicate we're in a role channel
+  isPro?: boolean; // 🆕 Flag for pro/enterprise trips
   tripId: string; // Add tripId for asset sharing
 }
 
-export const ChatInput = ({ 
-  inputMessage, 
-  onInputChange, 
-  onSendMessage, 
-  onKeyPress, 
+export const ChatInput = ({
+  inputMessage,
+  onInputChange,
+  onSendMessage,
+  onKeyPress,
   onFileUpload,
   isTyping,
   tripMembers = [],
   hidePayments = false,
   isInChannelMode = false,
+  isPro = false,
   tripId
 }: ChatInputProps) => {
   const [isBroadcastMode, setIsBroadcastMode] = useState(false);
