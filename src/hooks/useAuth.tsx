@@ -244,45 +244,75 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log('[Auth] Attempting sign in with email:', email);
+
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        console.error('[Auth] Sign in error:', error);
         setIsLoading(false);
+
+        // Provide more specific error messages
+        if (error.message.includes('Invalid login credentials')) {
+          return { error: 'Invalid email or password. Please check your credentials and try again.' };
+        }
+        if (error.message.includes('Email not confirmed')) {
+          return { error: 'Please confirm your email address before signing in. Check your inbox for the confirmation link.' };
+        }
+
         return { error: error.message };
       }
 
+      console.log('[Auth] Sign in successful:', data.user?.email);
       return {};
     } catch (error) {
+      console.error('[Auth] Unexpected sign in error:', error);
       setIsLoading(false);
-      return { error: 'An unexpected error occurred' };
+      return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
 
   const signInWithPhone = async (phone: string): Promise<{ error?: string }> => {
     try {
       setIsLoading(true);
+      console.log('[Auth] Attempting phone OTP sign in:', phone);
+
       const { error } = await supabase.auth.signInWithOtp({
         phone,
       });
 
       if (error) {
+        console.error('[Auth] Phone OTP error:', error);
         setIsLoading(false);
+
+        // Provide more specific error messages
+        if (error.message.includes('not configured') || error.message.includes('SMS provider')) {
+          return { error: 'Phone authentication is not configured. Please use email to sign in.' };
+        }
+        if (error.message.includes('Invalid phone number')) {
+          return { error: 'Please enter a valid phone number with country code (e.g., +1234567890).' };
+        }
+
         return { error: error.message };
       }
 
       setIsLoading(false);
+      console.log('[Auth] Phone OTP sent successfully');
       return {};
     } catch (error) {
+      console.error('[Auth] Unexpected phone OTP error:', error);
       setIsLoading(false);
-      return { error: 'An unexpected error occurred' };
+      return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
 
   const signInWithGoogle = async (): Promise<{ error?: string }> => {
     try {
+      console.log('[Auth] Attempting Google sign in');
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -291,17 +321,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
+        console.error('[Auth] Google sign in error:', error);
+
+        // Provide more specific error messages
+        if (error.message.includes('not configured') || error.message.includes('OAuth')) {
+          return { error: 'Google sign-in is not configured. Please use email to sign in or contact support.' };
+        }
+
         return { error: error.message };
       }
 
+      console.log('[Auth] Google sign in initiated, redirecting...');
       return {};
     } catch (error) {
-      return { error: 'An unexpected error occurred' };
+      console.error('[Auth] Unexpected Google sign in error:', error);
+      return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
 
   const signInWithApple = async (): Promise<{ error?: string }> => {
     try {
+      console.log('[Auth] Attempting Apple sign in');
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
@@ -310,19 +351,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
+        console.error('[Auth] Apple sign in error:', error);
+
+        // Provide more specific error messages
+        if (error.message.includes('not configured') || error.message.includes('OAuth')) {
+          return { error: 'Apple sign-in is not configured. Please use email to sign in or contact support.' };
+        }
+
         return { error: error.message };
       }
 
+      console.log('[Auth] Apple sign in initiated, redirecting...');
       return {};
     } catch (error) {
-      return { error: 'An unexpected error occurred' };
+      console.error('[Auth] Unexpected Apple sign in error:', error);
+      return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string): Promise<{ error?: string }> => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signUp({
+      console.log('[Auth] Attempting sign up with email:', email);
+
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -331,20 +383,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             first_name: firstName,
             last_name: lastName,
             full_name: `${firstName} ${lastName}`.trim()
-          }
+          },
+          // Disable email confirmation for development/testing
+          emailRedirectTo: `${window.location.origin}/`
         }
       });
 
       if (error) {
+        console.error('[Auth] Sign up error:', error);
         setIsLoading(false);
+
+        // Provide more specific error messages
+        if (error.message.includes('already registered')) {
+          return { error: 'This email is already registered. Please sign in instead.' };
+        }
+        if (error.message.includes('password')) {
+          return { error: 'Password must be at least 6 characters long.' };
+        }
+
         return { error: error.message };
+      }
+
+      console.log('[Auth] Sign up successful:', data.user?.email);
+
+      // Check if email confirmation is required
+      if (data.user && !data.session) {
+        console.log('[Auth] Email confirmation required');
+        setIsLoading(false);
+        return { error: 'Account created! Please check your email to confirm your account.' };
       }
 
       setIsLoading(false);
       return {};
     } catch (error) {
+      console.error('[Auth] Unexpected sign up error:', error);
       setIsLoading(false);
-      return { error: 'An unexpected error occurred' };
+      return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
 
