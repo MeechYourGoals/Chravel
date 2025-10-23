@@ -556,5 +556,62 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* 🆕 Mobile Portrait Optimizations - Zero impact on desktop/landscape */
+  @media screen and (max-width: 768px) and (orientation: portrait) {
+    /* Chat message density improvements */
+    .chat-scroll-container {
+      padding: 8px 12px !important;
+    }
+
+    /* Message spacing optimization for 5+ visible messages */
+    .group.flex.items-start {
+      margin-bottom: 8px !important;
+    }
+
+    /* Compressed top navigation elements */
+    .sticky.top-\[73px\] {
+      /* Tab bar height optimization */
+      padding-top: 8px !important;
+      padding-bottom: 8px !important;
+    }
+
+    /* Message filter buttons compression */
+    .flex.justify-center.gap-2 button {
+      font-size: 14px !important;
+      padding: 8px 12px !important;
+      height: 40px !important;
+    }
+
+    /* Horizontal scroll menu - persistent, compact */
+    .flex.overflow-x-auto.scrollbar-hide {
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Viewport height optimization for chat container */
+    .rounded-2xl.border.border-white\/10.bg-black\/40 {
+      /* Maximize visible chat area: ~75% viewport */
+      max-height: calc(100vh - 90px - 60px - 56px) !important;
+    }
+
+    /* Input field compression */
+    .border-t.border-white\/10.bg-black\/30.p-3 {
+      padding: 12px !important;
+      min-height: 60px !important;
+    }
+
+    /* Touch target optimization (minimum 44px per iOS guidelines) */
+    button[data-tab],
+    .flex.items-center.gap-1\.5 {
+      min-height: 44px !important;
+      min-width: 44px !important;
+    }
+  }
+
+  /* Desktop/Tablet Landscape - Preserve all existing styles */
+  @media screen and (min-width: 769px), (orientation: landscape) {
+    /* No changes - existing desktop behavior unchanged */
+  }
 }
 
