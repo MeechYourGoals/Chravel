@@ -101,11 +101,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   // Helper function to transform Supabase user to app User
-  const transformUser = useCallback(async (supabaseUser: SupabaseUser, profile?: UserProfile | null): Promise<User> => {
+  const transformUser = useCallback(async (supabaseUser: SupabaseUser, profile?: UserProfile | null): Promise<User | null> => {
     // CRITICAL: Validate that we have a valid user ID before proceeding
     if (!supabaseUser || !supabaseUser.id) {
       console.error('[transformUser] Invalid Supabase user - missing ID', { supabaseUser });
-      throw new Error('Invalid Supabase user - missing ID');
+      return null;
     }
     
     const userProfile = profile || await fetchUserProfile(supabaseUser.id);
@@ -204,9 +204,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           setTimeout(async () => {
             if (!mounted) return;
-            const transformedUser = await transformUser(session.user);
-            setUser(transformedUser);
-            setIsLoading(false);
+            try {
+              const transformedUser = await transformUser(session.user);
+              setUser(transformedUser);
+            } catch (error) {
+              console.error('[Auth] Error transforming user:', error);
+              setUser(null);
+            } finally {
+              setIsLoading(false);
+            }
           }, 0);
         } else {
           setUser(null);
@@ -224,12 +230,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Phase 4: Start prefetching trips immediately
         prefetchTrips();
         
-        transformUser(session.user).then(transformedUser => {
-          if (mounted) {
-            setUser(transformedUser);
-            setIsLoading(false);
-          }
-        });
+        transformUser(session.user)
+          .then(transformedUser => {
+            if (mounted) {
+              setUser(transformedUser);
+              setIsLoading(false);
+            }
+          })
+          .catch(error => {
+            console.error('[Auth] Error transforming user on init:', error);
+            if (mounted) {
+              setUser(null);
+              setIsLoading(false);
+            }
+          });
       } else {
         setIsLoading(false);
       }
@@ -383,9 +397,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             first_name: firstName,
             last_name: lastName,
             full_name: `${firstName} ${lastName}`.trim()
-          },
-          // Disable email confirmation for development/testing
-          emailRedirectTo: `${window.location.origin}/`
+          }
         }
       });
 

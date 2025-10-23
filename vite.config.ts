@@ -40,6 +40,7 @@ export default defineConfig(({ mode }) => ({
           return `assets/js/${facadeModuleId}-[hash].js`;
         },
         assetFileNames: (assetInfo) => {
+          if (!assetInfo.name) return 'assets/[name]-[hash][extname]';
           const info = assetInfo.name.split('.');
           const ext = info[info.length - 1];
           if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext)) {
