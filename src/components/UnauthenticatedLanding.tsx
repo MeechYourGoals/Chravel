@@ -9,7 +9,7 @@ interface UnauthenticatedLandingProps {
 
 export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLandingProps) => {
   return (
-    <div className="flex flex-col items-center justify-start px-4 pt-2 pb-16 md:pt-4 md:pb-20">
+    <div className="flex flex-col items-center justify-start px-4 pt-16 pb-16 md:pt-4 md:pb-20">
       {/* Hero Section */}
       <div className="max-w-5xl mx-auto space-y-4 animate-fade-in">
         {/* Headline - Centered */}

@@ -52,8 +52,8 @@ const testimonials: Testimonial[] = [
 
 
 const metrics: Metric[] = [
-  { value: "Instantly See", label: "Itinerary Conflicts", icon: <MapPin size={16} />, trend: "Automatically flags double-bookings before they happen" },
-  { value: "Automated", label: "Payment Tracking", icon: <Clock size={16} />, trend: "See who's paid and who hasn't, all in one place" },
+  { value: "Instant See", label: "Itinerary Conflicts", icon: <MapPin size={16} />, trend: "Automatically flags double-bookings before they happen" },
+  { value: "Automatic", label: "Payment Tracking", icon: <Clock size={16} />, trend: "See who's paid and who hasn't, all in one place" },
   { value: "Real-Time", label: "Updates", icon: <Star size={16} />, trend: "Everyone gets instant alerts when plans change" },
   { value: "Proven for", label: "Complex Travel", icon: <TrendingUp size={16} />, trend: "Successfully handles sports teams, tours, and family reunions" }
 ];
@@ -69,10 +69,10 @@ export const SocialProofSection = () => {
               <div className="flex items-center justify-center mb-2 text-primary">
                 {metric.icon}
               </div>
-              <div className="text-2xl font-bold text-foreground">{metric.value}</div>
-              <div className="text-sm text-muted-foreground">{metric.label}</div>
+              <div className="text-2xl font-bold text-foreground break-words">{metric.value}</div>
+              <div className="text-sm text-muted-foreground break-words">{metric.label}</div>
               {metric.trend && (
-                <div className="text-xs text-accent mt-1">{metric.trend}</div>
+                <div className="text-xs text-accent mt-1 break-words">{metric.trend}</div>
               )}
             </CardContent>
           </Card>
