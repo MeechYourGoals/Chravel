@@ -298,7 +298,7 @@ export const TripChat = ({
     <div className="flex flex-col h-full">
       {/* Message Filters */}
       {filteredMessages.length > 0 && (
-        <div className="p-4 border-b border-gray-700">
+        <div className="p-3 border-b border-gray-700">
           <MessageFilters
             activeFilter={messageFilter}
             onFilterChange={setMessageFilter}

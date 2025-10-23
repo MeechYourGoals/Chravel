@@ -89,12 +89,17 @@ export const MobileTripTabs = ({
 
   return (
     <>
-      {/* Horizontal Scrollable Tab Bar - Sticky */}
+      {/* Horizontal Scrollable Tab Bar - Sticky, Compressed for Mobile Portrait */}
       <div className="sticky top-[73px] z-40 bg-black/95 backdrop-blur-md border-b border-white/10">
         <div
           ref={tabsContainerRef}
-          className="flex overflow-x-auto scrollbar-hide gap-2 px-4 py-3"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="flex overflow-x-auto scrollbar-hide gap-2 px-4 py-2"
+          style={{ 
+            scrollbarWidth: 'none', 
+            msOverflowStyle: 'none',
+            scrollSnapType: 'x mandatory',
+            WebkitOverflowScrolling: 'touch'
+          }}
         >
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -107,11 +112,12 @@ export const MobileTripTabs = ({
                 onClick={() => handleTabPress(tab.id)}
                 className={`
                   flex items-center justify-center gap-2 
-                  px-4 py-2.5 min-w-max min-h-[44px]
+                  px-4 py-2 min-w-max h-[44px]
                   rounded-lg font-medium text-sm
                   transition-all duration-200
                   flex-shrink-0
                   active:scale-95
+                  scroll-snap-align-start
                   ${
                     isActive
                       ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-lg`
@@ -119,18 +125,22 @@ export const MobileTripTabs = ({
                   }
                 `}
               >
-                <Icon size={18} className="flex-shrink-0" />
-                <span className="whitespace-nowrap">{tab.label}</span>
+                <Icon size={16} className="flex-shrink-0" />
+                <span className="whitespace-nowrap text-sm">{tab.label}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Tab Content - Full height with padding for bottom nav */}
+      {/* Tab Content - Optimized height for mobile portrait (~75% viewport) */}
       <div
         ref={contentRef}
-        className="min-h-[calc(100vh-240px)] bg-black"
+        className="bg-black"
+        style={{
+          minHeight: 'calc(100vh - 73px - 60px - 60px - 56px)', // Header + Filters + Tabs + BottomNav
+          maxHeight: 'calc(100vh - 73px - 60px - 60px - 56px)'
+        }}
       >
         {renderTabContent()}
       </div>
