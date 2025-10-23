@@ -53,11 +53,19 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   const [aiStatus, setAiStatus] = useState<'checking' | 'connected' | 'limited' | 'error' | 'thinking'>('connected');
   const [remainingQueries, setRemainingQueries] = useState<number>(Infinity);
 
+  // Helper to convert isPlus boolean to tier string
+  const getUserTier = (): 'free' | 'plus' | 'pro' => {
+    if (user?.isPro) return 'pro';
+    if (isPlus) return 'plus';
+    return 'free';
+  };
+
   // Initialize remaining queries for events
   useEffect(() => {
     if (isEvent && user) {
-      const remaining = conciergeRateLimitService.getRemainingQueries(user.id, tripId, isPlus);
-      setRemainingQueries(remaining);
+      conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier())
+        .then(remaining => setRemainingQueries(remaining))
+        .catch(err => console.error('Failed to get remaining queries:', err));
     }
   }, [isEvent, user, tripId, isPlus]);
 
@@ -66,10 +74,10 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
 
     // 🆕 Rate limit check for events
     if (isEvent && user) {
-      const canQuery = conciergeRateLimitService.canQuery(user.id, tripId, isPlus);
+      const canQuery = await conciergeRateLimitService.canQuery(user.id, tripId, getUserTier());
       if (!canQuery) {
-        const remaining = conciergeRateLimitService.getRemainingQueries(user.id, tripId, isPlus);
-        const resetTime = conciergeRateLimitService.getTimeUntilReset(user.id, tripId, isPlus);
+        const remaining = await conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier());
+        const resetTime = await conciergeRateLimitService.getTimeUntilReset(user.id, tripId, getUserTier());
         
         setMessages(prev => [...prev, {
           id: Date.now().toString(),
@@ -155,8 +163,9 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       // 🆕 Increment usage for events
       if (isEvent && user) {
         try {
-          const usage = conciergeRateLimitService.incrementUsage(user.id, tripId, isPlus);
-          setRemainingQueries(conciergeRateLimitService.getRemainingQueries(user.id, tripId, isPlus));
+          await conciergeRateLimitService.incrementUsage(user.id, tripId, getUserTier());
+          const remaining = await conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier());
+          setRemainingQueries(remaining);
         } catch (error) {
           console.error('Failed to increment usage:', error);
         }

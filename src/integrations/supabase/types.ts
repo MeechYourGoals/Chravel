@@ -463,6 +463,33 @@ export type Database = {
           },
         ]
       }
+      concierge_usage: {
+        Row: {
+          context_id: string
+          context_type: string
+          created_at: string
+          id: string
+          query_count: number
+          user_id: string
+        }
+        Insert: {
+          context_id: string
+          context_type: string
+          created_at?: string
+          id?: string
+          query_count?: number
+          user_id: string
+        }
+        Update: {
+          context_id?: string
+          context_type?: string
+          created_at?: string
+          id?: string
+          query_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       event_qa_questions: {
         Row: {
           answer: string | null
@@ -1116,6 +1143,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          app_role: string | null
           avatar_url: string | null
           bio: string | null
           created_at: string
@@ -1134,6 +1162,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          app_role?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
@@ -1152,6 +1181,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          app_role?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string

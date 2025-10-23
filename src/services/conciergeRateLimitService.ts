@@ -156,18 +156,18 @@ class ConciergeRateLimitService {
   /**
    * Get remaining queries for user
    */
-  getRemainingQueries(userId: string, eventId: string, isChravelPlus: boolean): number {
-    if (isChravelPlus) return Infinity;
+  async getRemainingQueries(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro'): Promise<number> {
+    if (userTier === 'pro') return Infinity;
     
-    const usage = this.getUsage(userId, eventId, isChravelPlus);
+    const usage = await this.getUsage(userId, eventId, userTier);
     return Math.max(0, usage.dailyLimit - usage.queriesUsed);
   }
 
   /**
    * Get time until limit resets
    */
-  getTimeUntilReset(userId: string, eventId: string, isChravelPlus: boolean): string {
-    const usage = this.getUsage(userId, eventId, isChravelPlus);
+  async getTimeUntilReset(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro'): Promise<string> {
+    const usage = await this.getUsage(userId, eventId, userTier);
     const now = new Date();
     const reset = new Date(usage.resetAt);
     const hoursLeft = Math.ceil((reset.getTime() - now.getTime()) / (1000 * 60 * 60));
