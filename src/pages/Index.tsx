@@ -174,25 +174,12 @@ const Index = () => {
   if (!user && !isDemoMode) {
     return (
       <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
-        {/* Demo Mode Toggle - Top Right for All Logged Out Users */}
-        <div 
-          className="fixed z-[9999] w-full flex justify-center px-4"
-          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
-        >
-          <div className="max-w-[180px] w-full bg-card/80 backdrop-blur-sm p-2.5 rounded-xl border border-border shadow-lg">
+        {/* Demo Mode Toggle - Flow, centered above hero */}
+        <div className="w-full flex justify-center px-4 pt-3">
+          <div className="max-w-[200px] w-full">
             <DemoModeToggle />
           </div>
         </div>
-        {/* Spacer to prevent overlap with hero content */}
-        <div className="h-[64px] md:h-0" />
-        {/* Animated background elements (disabled on mobile portrait) */}
-        {!isMobilePortrait && (
-          <div className="fixed inset-0 overflow-hidden pointer-events-none animated-bg">
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-float"></div>
-            <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-accent/5 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
-            <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-primary/3 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
-          </div>
-        )}
         <div className="container mx-auto px-4 pt-2 pb-6 max-w-7xl relative z-10">
           {/* Hero Section */}
           <UnauthenticatedLanding 
