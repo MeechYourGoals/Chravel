@@ -559,12 +559,14 @@
 
   /* Mobile portrait chat container utility */
   .mobile-portrait-chat-container {
-    max-height: max(360px, 75vh);
+    height: 100%;
+    max-height: none;
   }
   
   @media screen and (max-width: 768px) and (orientation: portrait) {
     .mobile-portrait-chat-container {
-      max-height: calc(100vh - 180px) !important;
+      height: 100% !important;
+      max-height: none !important;
     }
   }
 }

@@ -136,10 +136,10 @@ export const MobileTripTabs = ({
       {/* Tab Content - Optimized height for mobile portrait */}
       <div
         ref={contentRef}
-        className="bg-black"
-          style={{
-            minHeight: 'calc(100vh - 73px - 52px)'
-          }}
+        className="bg-background flex flex-col min-h-0"
+        style={{
+          height: 'calc(100dvh - 73px - 52px)'
+        }}
       >
         {renderTabContent()}
       </div>

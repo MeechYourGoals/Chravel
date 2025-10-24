@@ -143,10 +143,7 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
         ref={containerRef}
         onScroll={handleScroll}
         className={`flex-1 overflow-y-auto chat-scroll-container native-scroll ${className}`}
-        style={{
-          minHeight: 'min(max(360px, 55vh), 720px)',
-          ...style
-        }}
+        style={style}
       >
         {/* Load More Indicator at Top */}
         <LoadMoreIndicator
