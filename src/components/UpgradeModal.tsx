@@ -297,7 +297,6 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
               </ul>
             </div>
           </div>
-          </div>
         ) : selectedPlan === 'pro' ? (
           <div>
             <div className="text-center mb-8">
