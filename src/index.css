@@ -569,12 +569,23 @@
       display: none !important;
     }
 
-    /* iOS viewport height fix */
+    /* Kill any full-screen fixed decorative layers */
+    .fixed.inset-0.pointer-events-none {
+      display: none !important;
+    }
+
+    /* Force true visual viewport height and allow scrolling */
+    html, body, #root {
+      min-height: 100svh !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
+
+    /* iOS viewport height fix utility */
     .min-h-mobile-screen {
       min-height: 100svh;
     }
   }
-
   /* Scrollbar hide utility */
   .scrollbar-hide {
     -ms-overflow-style: none;

@@ -30,7 +30,7 @@ import { eventsMockData } from '../data/eventsMockData';
 import { tripsData } from '../data/tripsData';
 import { calculateTripStats, calculateProTripStats, calculateEventStats, filterItemsByStatus } from '../utils/tripStatsCalculator';
 import { useLocation } from 'react-router-dom';
-
+import { useMobilePortrait } from '../hooks/useMobilePortrait';
 const Index = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -48,7 +48,7 @@ const Index = () => {
   const isMobile = useIsMobile();
   const location = useLocation();
   const { isDemoMode } = useDemoMode();
-
+  const isMobilePortrait = useMobilePortrait();
   // Marketing content should always show to unauthenticated users
   const showMarketingContent = !user;
 
@@ -176,21 +176,23 @@ const Index = () => {
       <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
         {/* Demo Mode Toggle - Top Right for All Logged Out Users */}
         <div 
-          className="fixed right-2 md:top-6 md:right-6 z-[9999]" 
-          style={{ top: window.innerWidth <= 768 ? 'calc(env(safe-area-inset-top, 0px) + 96px)' : undefined }}
+          className="fixed z-[9999] w-full flex justify-center px-4"
+          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
         >
-          <div className="w-[140px] bg-card/80 backdrop-blur-sm p-2.5 rounded-xl border border-border shadow-lg">
+          <div className="max-w-[180px] w-full bg-card/80 backdrop-blur-sm p-2.5 rounded-xl border border-border shadow-lg">
             <DemoModeToggle />
           </div>
         </div>
-
-        {/* Animated background elements */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none animated-bg">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-float"></div>
-          <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-accent/5 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
-          <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-primary/3 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
-        </div>
-
+        {/* Spacer to prevent overlap with hero content */}
+        <div className="h-[64px] md:h-0" />
+        {/* Animated background elements (disabled on mobile portrait) */}
+        {!isMobilePortrait && (
+          <div className="fixed inset-0 overflow-hidden pointer-events-none animated-bg">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-float"></div>
+            <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-accent/5 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
+            <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-primary/3 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
+          </div>
+        )}
         <div className="container mx-auto px-4 pt-2 pb-6 max-w-7xl relative z-10">
           {/* Hero Section */}
           <UnauthenticatedLanding 
@@ -226,15 +228,16 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background font-sans geometric-bg wireframe-overlay">
+    <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
 
-      {/* Enhanced animated background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none animated-bg">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/8 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-accent/8 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-primary/6 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
-      </div>
-
+      {/* Enhanced animated background elements (disabled on mobile portrait) */}
+      {!isMobilePortrait && (
+        <div className="fixed inset-0 overflow-hidden pointer-events-none animated-bg">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/8 rounded-full blur-3xl animate-float"></div>
+          <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-accent/8 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-primary/6 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
+        </div>
+      )}
       <div className="container mx-auto px-4 py-6 max-w-7xl relative z-10">
         {/* Mobile Header */}
         <MobileHeader
