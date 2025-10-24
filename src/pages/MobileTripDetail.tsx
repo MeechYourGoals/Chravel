@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MoreVertical, Users } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Info } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
-import { TripHeader } from '../components/TripHeader';
+import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
@@ -16,6 +16,7 @@ export const MobileTripDetail = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('chat');
   const [tripDescription, setTripDescription] = useState<string>('');
+  const [showTripInfo, setShowTripInfo] = useState(false);
 
   // Keyboard handling for mobile inputs
   useKeyboardHandler({
@@ -89,33 +90,28 @@ export const MobileTripDetail = () => {
               {trip.title}
             </h1>
             <p className="text-xs text-gray-400 truncate px-2">
-              {trip.location}
+              {trip.location} • {trip.participants.length} travelers
             </p>
           </div>
           
-          <button
-            onClick={() => hapticService.light()}
-            className="p-2 -mr-2 active:scale-95 transition-transform"
-          >
-            <MoreVertical size={24} className="text-white" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                hapticService.light();
+                setShowTripInfo(true);
+              }}
+              className="p-2 active:scale-95 transition-transform"
+            >
+              <Info size={20} className="text-white" />
+            </button>
+            <button
+              onClick={() => hapticService.light()}
+              className="p-2 -mr-2 active:scale-95 transition-transform"
+            >
+              <MoreVertical size={24} className="text-white" />
+            </button>
+          </div>
         </div>
-      </div>
-
-      {/* Trip Cover & Info */}
-      <div className="px-4 pt-4">
-        <TripHeader 
-          trip={tripWithUpdatedDescription} 
-          onDescriptionUpdate={setTripDescription}
-        />
-      </div>
-
-      {/* Participants Preview */}
-      <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10">
-        <Users size={16} className="text-gray-400" />
-        <span className="text-sm text-gray-300">
-          {trip.participants.length} travelers
-        </span>
       </div>
 
       {/* Mobile Tabs - Swipeable */}
@@ -124,6 +120,17 @@ export const MobileTripDetail = () => {
         onTabChange={handleTabChange}
         tripId={tripId || '1'}
         basecamp={basecamp}
+      />
+
+      {/* Trip Info Drawer */}
+      <MobileTripInfoDrawer
+        trip={tripWithUpdatedDescription}
+        isOpen={showTripInfo}
+        onClose={() => {
+          hapticService.light();
+          setShowTripInfo(false);
+        }}
+        onDescriptionUpdate={setTripDescription}
       />
       </div>
     </MobileErrorBoundary>
