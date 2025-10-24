@@ -48,7 +48,7 @@ export const MobileTripTabs = ({
     if (tabsContainerRef.current) {
       const activeButton = tabsContainerRef.current.querySelector(`[data-tab="${activeTab}"]`);
       if (activeButton) {
-        activeButton.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        activeButton.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
       }
     }
   }, [activeTab]);
@@ -138,8 +138,7 @@ export const MobileTripTabs = ({
         ref={contentRef}
         className="bg-black"
           style={{
-            minHeight: 'calc(100vh - 73px - 40px - 52px - 56px)', // Header(73) + Filters(40) + Tabs(52) + BottomNav(56)
-            maxHeight: 'calc(100vh - 73px - 40px - 52px - 56px)'
+            minHeight: 'calc(100vh - 73px - 52px - 56px)'
           }}
       >
         {renderTabContent()}

@@ -74,7 +74,7 @@ export const MobileTripDetail = () => {
 
   return (
     <MobileErrorBoundary>
-      <div className="min-h-screen bg-black pb-mobile-nav-height">
+      <div className="min-h-screen bg-black pb-20">
       {/* Mobile Header - Sticky */}
       <div className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10">
         <div className="flex items-center justify-between px-4 py-3">

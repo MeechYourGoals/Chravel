@@ -25,7 +25,12 @@ export const OptimizedImage = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [triedFallback, setTriedFallback] = useState(false);
-  const [currentSrc, setCurrentSrc] = useState(() => getOptimizedImageUrl(src, width, quality));
+  
+  // Skip optimization for local assets (imported as ES modules)
+  const isLocalAsset = src.startsWith('/') || src.startsWith('data:') || !src.includes('http');
+  const [currentSrc, setCurrentSrc] = useState(() => 
+    isLocalAsset ? src : getOptimizedImageUrl(src, width, quality)
+  );
   const blurDataUrl = generateBlurDataUrl();
 
   const handleLoad = () => {
