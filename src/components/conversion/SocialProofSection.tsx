@@ -62,17 +62,17 @@ export const SocialProofSection = () => {
   return (
     <div className="w-full space-y-8">
       {/* Metrics Banner */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {metrics.map((metric, index) => (
           <Card key={index} className="bg-card/50 backdrop-blur-sm border border-border/50">
-            <CardContent className="p-4 text-center">
+            <CardContent className="p-3 md:p-4 text-center">
               <div className="flex items-center justify-center mb-2 text-primary">
                 {metric.icon}
               </div>
-              <div className="text-2xl font-bold text-foreground break-words">{metric.value}</div>
-              <div className="text-sm text-muted-foreground break-words">{metric.label}</div>
+              <div className="text-lg md:text-2xl font-bold text-foreground leading-tight">{metric.value}</div>
+              <div className="text-xs md:text-sm text-muted-foreground leading-tight mt-1">{metric.label}</div>
               {metric.trend && (
-                <div className="text-xs text-accent mt-1 break-words">{metric.trend}</div>
+                <div className="text-[10px] md:text-xs text-accent mt-1 leading-tight">{metric.trend}</div>
               )}
             </CardContent>
           </Card>
