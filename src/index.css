@@ -563,6 +563,16 @@
     .wireframe-overlay {
       background-image: none !important;
     }
+
+    /* Hide animated background layers that cause black box on iOS */
+    .animated-bg {
+      display: none !important;
+    }
+
+    /* iOS viewport height fix */
+    .min-h-mobile-screen {
+      min-height: 100svh;
+    }
   }
 
   /* Scrollbar hide utility */

@@ -173,16 +173,19 @@ const Index = () => {
   // Show full marketing landing ONLY when logged out AND demo mode is OFF
   if (!user && !isDemoMode) {
     return (
-      <div className="min-h-screen bg-background font-outfit">
+      <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
         {/* Demo Mode Toggle - Top Right for All Logged Out Users */}
-        <div className="fixed top-20 right-2 md:top-6 md:right-6 z-[9999]">
+        <div 
+          className="fixed right-2 md:top-6 md:right-6 z-[9999]" 
+          style={{ top: window.innerWidth <= 768 ? 'calc(env(safe-area-inset-top, 0px) + 96px)' : undefined }}
+        >
           <div className="w-[140px] bg-card/80 backdrop-blur-sm p-2.5 rounded-xl border border-border shadow-lg">
             <DemoModeToggle />
           </div>
         </div>
 
         {/* Animated background elements */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="fixed inset-0 overflow-hidden pointer-events-none animated-bg">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-float"></div>
           <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-accent/5 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
           <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-primary/3 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
@@ -226,7 +229,7 @@ const Index = () => {
     <div className="min-h-screen bg-background font-sans geometric-bg wireframe-overlay">
 
       {/* Enhanced animated background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none animated-bg">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/8 rounded-full blur-3xl animate-float"></div>
         <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-accent/8 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
         <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-primary/6 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
