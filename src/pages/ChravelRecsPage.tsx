@@ -6,7 +6,7 @@ import { useRecommendations } from '@/hooks/useRecommendations';
 import { useSavedRecommendations } from '@/hooks/useSavedRecommendations';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-export const CravelRecsPage = () => {
+export const ChravelRecsPage = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const { recommendations } = useRecommendations(activeFilter);
   const { toggleSave, isSaved } = useSavedRecommendations();
@@ -84,4 +84,4 @@ export const CravelRecsPage = () => {
   );
 };
 
-export default CravelRecsPage;
+export default ChravelRecsPage;

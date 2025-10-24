@@ -4,6 +4,9 @@ import uberBlack from '@/assets/recommendations/uber-black.png';
 import lyftCar from '@/assets/recommendations/lyft-car.png';
 import hotelsCom from '@/assets/recommendations/hotels-com.png';
 import orbitzPackages from '@/assets/recommendations/orbitz-packages.png';
+import airbnbHome from '@/assets/recommendations/airbnb-home.png';
+import navanBusiness from '@/assets/recommendations/navan-business.png';
+import bookingInterface from '@/assets/recommendations/booking-interface.png';
 
 export const transportationRecommendations: Recommendation[] = [
   // American Airlines
@@ -278,7 +281,7 @@ export const transportationRecommendations: Recommendation[] = [
     rating: 4.6,
     priceLevel: 2,
     images: [
-      'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&h=400&fit=crop'
+      airbnbHome
     ],
     tags: ['Lodging', 'Unique Stays', 'Local Experiences'],
     isSponsored: true,
@@ -305,7 +308,7 @@ export const transportationRecommendations: Recommendation[] = [
     rating: 4.6,
     priceLevel: 3,
     images: [
-      'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=600&h=400&fit=crop'
+      navanBusiness
     ],
     tags: ['Corporate Travel', 'Business Management', 'Expense Tracking'],
     isSponsored: true,
@@ -330,7 +333,7 @@ export const transportationRecommendations: Recommendation[] = [
     rating: 4.5,
     priceLevel: 2,
     images: [
-      'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=600&h=400&fit=crop'
+      bookingInterface
     ],
     tags: ['Lodging', 'Global Booking', 'Free Cancellation'],
     isSponsored: true,
