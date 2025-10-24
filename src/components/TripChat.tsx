@@ -309,10 +309,9 @@ export const TripChat = ({
 
       {/* Unified Chat Shell - Teams-like container */}
       <div
-        className="mx-4 mb-6 rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col"
+        className="mx-4 mb-6 rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col mobile-portrait-chat-container"
         style={{
-          minHeight: '360px',
-          maxHeight: 'max(360px, 78vh)'
+          minHeight: '360px'
         }}
       >
         {isLoading ? (

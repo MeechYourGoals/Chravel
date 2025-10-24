@@ -556,5 +556,152 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Mobile portrait chat container utility */
+  .mobile-portrait-chat-container {
+    max-height: max(360px, 78vh);
+  }
+  
+  @media screen and (max-width: 768px) and (orientation: portrait) {
+    .mobile-portrait-chat-container {
+      max-height: calc(100vh - 221px) !important;
+    }
+  }
+}
+
+/* ============================================
+   MOBILE PORTRAIT OPTIMIZATION
+   Target: iOS Safari/WebKit, Android Chrome
+   Conditions: width ≤ 768px AND portrait orientation
+   Goal: 5+ visible messages, compressed UI
+   ============================================ */
+@media screen and (max-width: 768px) and (orientation: portrait) {
+  
+  /* ========== CHAT MESSAGE DENSITY ========== */
+  .chat-scroll-container {
+    padding: 8px 12px !important;
+  }
+  
+  .group.flex.items-start {
+    margin-bottom: 8px !important;
+  }
+  
+  .rounded-xl.px-3.py-2 {
+    padding: 8px 12px !important;
+    line-height: 1.4 !important;
+  }
+  
+  .max-w-\[75vw\] {
+    max-width: 75vw !important;
+  }
+  
+  /* ========== TOP NAVIGATION COMPRESSION ========== */
+  .border-b.border-gray-700 {
+    padding: 8px 12px !important;
+  }
+  
+  .flex.justify-center.gap-2 button,
+  .flex.justify-center.gap-4 button {
+    font-size: 14px !important;
+    padding: 8px 12px !important;
+    height: 40px !important;
+    gap: 6px !important;
+  }
+  
+  .flex.items-center.gap-1\.5 svg,
+  .flex.items-center.gap-2 svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  
+  .sticky.top-\[73px\] {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+  
+  .flex.overflow-x-auto.scrollbar-hide button {
+    height: 44px !important;
+    padding: 0 12px !important;
+    font-size: 14px !important;
+  }
+  
+  .flex.items-center.justify-center.gap-2 svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  
+  /* ========== CHAT CONTAINER HEIGHT OPTIMIZATION ========== */
+  .rounded-2xl.border.border-white\/10.bg-black\/40 {
+    max-height: calc(100vh - 90px - 60px - 56px) !important;
+    min-height: 360px !important;
+  }
+  
+  .flex-1.overflow-y-auto {
+    max-height: calc(100vh - 165px - 116px) !important;
+  }
+  
+  /* ========== INPUT FIELD OPTIMIZATION ========== */
+  .border-t.border-white\/10.bg-black\/30.p-3 {
+    padding: 12px !important;
+    min-height: 60px !important;
+  }
+  
+  .border-t.border-white\/10.bg-black\/30 {
+    padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+  }
+  
+  /* ========== TOUCH TARGETS ========== */
+  button[data-tab],
+  .flex.items-center.gap-1\.5,
+  .flex.items-center.gap-2 {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+  
+  /* ========== SCROLL BEHAVIOR ========== */
+  .overflow-x-auto,
+  .overflow-y-auto {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain;
+  }
+  
+  .flex.overflow-x-auto.scrollbar-hide {
+    scroll-snap-type: x mandatory !important;
+  }
+  
+  .flex.overflow-x-auto.scrollbar-hide button {
+    scroll-snap-align: start !important;
+  }
+  
+  /* ========== MESSAGE METADATA ========== */
+  .flex.items-center.gap-2.mb-1 {
+    margin-bottom: 4px !important;
+    gap: 8px !important;
+  }
+  
+  .font-semibold.text-xs {
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+  }
+  
+  .text-\[11px\] {
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+  
+  .text-\[10px\] {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+    line-height: 1.2 !important;
+  }
+  
+  /* ========== PERFORMANCE OPTIMIZATIONS ========== */
+  .chat-scroll-container,
+  .overflow-y-auto {
+    will-change: scroll-position;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
 }
 

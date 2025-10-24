@@ -59,133 +59,104 @@ export const MessageBubble = ({
     return 'bg-card/50 border-border shadow-sm';
   };
 
-  // Mobile Portrait: Render metadata outside bubble
-  if (isMobilePortrait) {
-    return (
-      <div
-        className="group flex items-start gap-3 mb-2"
-        onTouchStart={() => setShowReactions(true)}
-        onTouchEnd={() => setTimeout(() => setShowReactions(false), 3000)}
-      >
-        <img
-          src={senderAvatar || getMockAvatar(senderName)}
-          alt={senderName}
-          className="w-10 h-10 rounded-full object-cover border-2 border-border/50 flex-shrink-0"
-        />
-        
-        <div className="flex-1 min-w-0">
-          {/* Metadata above bubble - mobile portrait only */}
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-semibold text-xs text-foreground">{senderName}</span>
-            <span className="text-[11px] text-muted-foreground opacity-70">{formatTime(timestamp)}</span>
-            {isBroadcast && (
-              <span className="text-[10px] bg-orange-600/20 text-orange-400 px-1.5 py-0.5 rounded-full">
-                📢 Broadcast
-              </span>
-            )}
-            {isPayment && (
-              <span className="text-[10px] bg-green-600/20 text-green-400 px-1.5 py-0.5 rounded-full">
-                💳 Payment
-              </span>
-            )}
-          </div>
-          
-          {/* Message bubble - content only */}
-          <div 
-            className={cn('rounded-xl px-3 py-2 backdrop-blur-sm border transition-all max-w-[75vw]', getBubbleClasses())}
-            style={{ lineHeight: '1.4' }}
-          >
-            <p className={cn('text-sm', getTextColorClass())}>{text}</p>
-          </div>
-          
-          {/* Grounding widgets */}
-          {grounding?.googleMapsWidget && (
-            <div className="mt-2">
-              <GoogleMapsWidget widgetToken={grounding.googleMapsWidget} height={200} />
-            </div>
-          )}
-          
-          {grounding?.sources && grounding.sources.length > 0 && (
-            <div className="mt-2 space-y-1">
-              <div className="text-[10px] font-medium text-muted-foreground flex items-center gap-2">
-                <span>Sources:</span>
-                {grounding.sources.some(s => s.source === 'google_maps_grounding') && (
-                  <span className="bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded text-[9px]">
-                    Verified by Google Maps
-                  </span>
-                )}
-              </div>
-              <div className="space-y-1">
-                {grounding.sources.map((source, idx) => (
-                  <a
-                    key={source.id || idx}
-                    href={source.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-1 p-1.5 bg-blue-500/10 rounded-lg transition-colors"
-                  >
-                    <ExternalLink size={8} />
-                    <span className="truncate">{source.title}</span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          <div className={cn('mt-1 transition-opacity', showReactions ? 'opacity-100' : 'opacity-0')}>
-            <MessageReactionBar messageId={id} reactions={reactions} onReaction={onReaction} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Desktop/Tablet Landscape: Original layout unchanged
+  // Unified layout: Metadata above bubble for both mobile and desktop (consistency)
   return (
     <div
-      className="group flex items-start gap-3"
+      className={cn(
+        "group flex items-start gap-3",
+        isMobilePortrait ? "mb-2" : "mb-3"
+      )}
       onMouseEnter={() => setShowReactions(true)}
       onMouseLeave={() => setShowReactions(false)}
+      onTouchStart={() => setShowReactions(true)}
+      onTouchEnd={() => setTimeout(() => setShowReactions(false), 3000)}
     >
       <img
         src={senderAvatar || getMockAvatar(senderName)}
         alt={senderName}
-        className="w-10 h-10 rounded-full object-cover border-2 border-border/50"
+        className={cn(
+          "rounded-full object-cover border-2 border-border/50 flex-shrink-0",
+          isMobilePortrait ? "w-10 h-10" : "w-10 h-10"
+        )}
       />
       
-      <div className="flex-1">
-        <div className={cn('rounded-xl px-4 py-3 backdrop-blur-sm border transition-all', getBubbleClasses())}>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="font-semibold text-sm text-foreground">{senderName}</span>
-            <span className="text-xs text-muted-foreground">{formatTime(timestamp)}</span>
-            {isBroadcast && (
-              <span className="text-xs bg-orange-600/20 text-orange-400 px-2 py-0.5 rounded-full">
-                📢 Broadcast
-              </span>
-            )}
-            {isPayment && (
-              <span className="text-xs bg-green-600/20 text-green-400 px-2 py-0.5 rounded-full">
-                💳 Payment
-              </span>
-            )}
-          </div>
-          <p className={cn('text-sm leading-relaxed', getTextColorClass())}>{text}</p>
+      <div className="flex-1 min-w-0">
+        {/* Metadata above bubble - all versions */}
+        <div className={cn(
+          "flex items-center gap-2 mb-1",
+          isMobilePortrait ? "text-xs" : "text-sm"
+        )}>
+          <span className={cn(
+            "font-semibold text-foreground",
+            isMobilePortrait ? "text-xs" : "text-sm"
+          )}>
+            {senderName}
+          </span>
+          <span className={cn(
+            "text-muted-foreground opacity-70",
+            isMobilePortrait ? "text-[11px]" : "text-xs"
+          )}>
+            {formatTime(timestamp)}
+          </span>
+          {isBroadcast && (
+            <span className={cn(
+              "bg-orange-600/20 text-orange-400 px-1.5 py-0.5 rounded-full",
+              isMobilePortrait ? "text-[10px]" : "text-xs"
+            )}>
+              📢 Broadcast
+            </span>
+          )}
+          {isPayment && (
+            <span className={cn(
+              "bg-green-600/20 text-green-400 px-1.5 py-0.5 rounded-full",
+              isMobilePortrait ? "text-[10px]" : "text-xs"
+            )}>
+              💳 Payment
+            </span>
+          )}
         </div>
         
-        {/* 🆕 Google Maps Widget */}
+        {/* Message bubble - content only */}
+        <div 
+          className={cn(
+            'rounded-xl backdrop-blur-sm border transition-all',
+            getBubbleClasses(),
+            isMobilePortrait ? 'px-3 py-2 max-w-[75vw]' : 'px-4 py-3'
+          )}
+          style={{ lineHeight: isMobilePortrait ? '1.4' : '1.5' }}
+        >
+          <p className={cn(
+            'text-sm',
+            getTextColorClass(),
+            isMobilePortrait ? 'leading-snug' : 'leading-relaxed'
+          )}>
+            {text}
+          </p>
+        </div>
+        
+        {/* Google Maps Widget */}
         {grounding?.googleMapsWidget && (
-          <div className="mt-3">
-            <GoogleMapsWidget widgetToken={grounding.googleMapsWidget} height={250} />
+          <div className={cn(isMobilePortrait ? "mt-2" : "mt-3")}>
+            <GoogleMapsWidget 
+              widgetToken={grounding.googleMapsWidget} 
+              height={isMobilePortrait ? 200 : 250} 
+            />
           </div>
         )}
         
-        {/* 🆕 Grounding Sources */}
+        {/* Grounding Sources */}
         {grounding?.sources && grounding.sources.length > 0 && (
-          <div className="mt-3 space-y-2">
-            <div className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+          <div className={cn("space-y-2", isMobilePortrait ? "mt-2" : "mt-3")}>
+            <div className={cn(
+              "font-medium text-muted-foreground flex items-center gap-2",
+              isMobilePortrait ? "text-[10px]" : "text-xs"
+            )}>
               <span>Sources:</span>
               {grounding.sources.some(s => s.source === 'google_maps_grounding') && (
-                <span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-[10px]">
+                <span className={cn(
+                  "bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded",
+                  isMobilePortrait ? "text-[9px]" : "text-[10px]"
+                )}>
                   Verified by Google Maps
                 </span>
               )}
@@ -197,9 +168,12 @@ export const MessageBubble = ({
                   href={source.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 p-2 bg-blue-500/10 rounded-lg transition-colors"
+                  className={cn(
+                    "block text-blue-400 hover:text-blue-300 flex items-center gap-1 bg-blue-500/10 rounded-lg transition-colors",
+                    isMobilePortrait ? "text-[10px] p-1.5" : "text-xs p-2"
+                  )}
                 >
-                  <ExternalLink size={10} />
+                  <ExternalLink size={isMobilePortrait ? 8 : 10} />
                   <span className="truncate">{source.title}</span>
                 </a>
               ))}
@@ -207,7 +181,11 @@ export const MessageBubble = ({
           </div>
         )}
         
-        <div className={cn('mt-2 transition-opacity', showReactions ? 'opacity-100' : 'opacity-0')}>
+        <div className={cn(
+          'transition-opacity',
+          isMobilePortrait ? 'mt-1' : 'mt-2',
+          showReactions ? 'opacity-100' : 'opacity-0'
+        )}>
           <MessageReactionBar messageId={id} reactions={reactions} onReaction={onReaction} />
         </div>
       </div>

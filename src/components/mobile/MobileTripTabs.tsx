@@ -137,10 +137,10 @@ export const MobileTripTabs = ({
       <div
         ref={contentRef}
         className="bg-black"
-        style={{
-          minHeight: 'calc(100vh - 73px - 60px - 60px - 56px)', // Header + Filters + Tabs + BottomNav
-          maxHeight: 'calc(100vh - 73px - 60px - 60px - 56px)'
-        }}
+          style={{
+            minHeight: 'calc(100vh - 73px - 40px - 52px - 56px)', // Header(73) + Filters(40) + Tabs(52) + BottomNav(56)
+            maxHeight: 'calc(100vh - 73px - 40px - 52px - 56px)'
+          }}
       >
         {renderTabContent()}
       </div>
