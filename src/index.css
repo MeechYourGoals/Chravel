@@ -218,10 +218,10 @@
   }
 }
 
-/* iOS Keyboard Handling */
+/* iOS Keyboard Handling + dynamic viewport fix */
 .keyboard-visible {
-  /* Adjust layout when keyboard is visible */
-  height: calc(100vh - var(--keyboard-height, 0px));
+  /* Use dynamic viewport units to avoid bottom gap and adjust when keyboard shows */
+  height: calc(100dvh - var(--keyboard-height, 0px));
 }
 
 /* Improved iOS animations */
@@ -559,12 +559,14 @@
 
   /* Mobile portrait chat container utility */
   .mobile-portrait-chat-container {
-    max-height: max(360px, 78vh);
+    /* Prefer dynamic viewport units to prevent iOS bottom black bar */
+    max-height: max(360px, 78dvh);
   }
   
   @media screen and (max-width: 768px) and (orientation: portrait) {
     .mobile-portrait-chat-container {
-      max-height: calc(100vh - 221px) !important;
+      /* Deduct header, tabs, and bottom nav using d**vh to avoid oversizing */
+      max-height: calc(100dvh - 221px) !important;
     }
   }
 }

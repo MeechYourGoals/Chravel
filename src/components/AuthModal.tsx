@@ -215,7 +215,7 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end tablet:items-center justify-center p-0 tablet:p-4 animate-fade-in">
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-t-3xl tablet:rounded-3xl p-6 tablet:p-8 max-w-md w-full safe-bottom animate-slide-in-bottom tablet:animate-scale-in">
+      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-t-3xl tablet:rounded-3xl p-6 tablet:p-8 max-w-md w-full ios-safe-bottom animate-slide-in-bottom tablet:animate-scale-in">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white">
             {mode === 'phone' ? 'Sign in with Phone' : mode === 'signup' ? 'Create Account' : 'Welcome Back'}

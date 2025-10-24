@@ -218,7 +218,7 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
       </div>
 
       {/* Input */}
-      <div className="p-2 md:p-4 border-t border-gray-700 bg-gray-800 safe-bottom space-y-2">
+      <div className="p-2 md:p-4 border-t border-gray-700 bg-gray-800 ios-safe-bottom space-y-2">
         {/* Message Type Selector */}
         <div className="flex gap-2">
           <button

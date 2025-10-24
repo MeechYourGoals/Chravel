@@ -262,7 +262,7 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
           </div>
         )}
 
-        <div className="mt-6 flex flex-col h-[calc(100vh-120px)]">
+        <div className="mt-6 flex flex-col h-[calc(100dvh-120px)]">
           <div className="flex-1 space-y-4 mb-4 overflow-y-auto">
             {messages.length === 0 ? (
               <div className="text-center py-8">

@@ -311,7 +311,9 @@ export const TripChat = ({
       <div
         className="mx-4 mb-6 rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col mobile-portrait-chat-container"
         style={{
-          minHeight: '360px'
+          // Ensure the container never overshoots viewport height on iOS
+          minHeight: '360px',
+          maxHeight: 'max(360px, 78dvh)'
         }}
       >
         {isLoading ? (

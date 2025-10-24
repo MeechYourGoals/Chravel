@@ -32,7 +32,13 @@ export const MobileAppLayout = ({ children, className }: MobileAppLayoutProps) =
   }
 
   return (
-    <div className={cn("flex flex-col min-h-screen bg-gray-900", className)}>
+    <div
+      className={cn("flex flex-col min-h-screen bg-gray-900", className)}
+      style={{
+        // Use dynamic viewport to avoid iOS 100vh bottom gap
+        minHeight: '100dvh'
+      }}
+    >
       {/* Main content area with bottom padding for nav */}
       <main 
         className="flex-1 pb-mobile-nav-height overflow-y-auto"

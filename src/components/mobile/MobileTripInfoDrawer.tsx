@@ -45,7 +45,7 @@ export const MobileTripInfoDrawer = ({
           </div>
         </DrawerHeader>
 
-        <div className="px-4 py-4 max-h-[70vh] overflow-y-auto">
+        <div className="px-4 py-4 max-h-[70dvh] overflow-y-auto">
           <TripHeader 
             trip={trip} 
             onDescriptionUpdate={onDescriptionUpdate}

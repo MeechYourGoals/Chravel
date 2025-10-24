@@ -138,7 +138,8 @@ export const MobileTripTabs = ({
         ref={contentRef}
         className="bg-black"
           style={{
-            minHeight: 'calc(100vh - 73px - 52px - 56px)'
+            // Use dynamic viewport to avoid iOS bottom safe-area black gap
+            minHeight: 'calc(100dvh - 73px - 52px - 56px)'
           }}
       >
         {renderTabContent()}

@@ -95,6 +95,7 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
     // File upload logic will be handled by ChatInput
   };
 
+  // Use dynamic viewport height to avoid iOS 100vh bugs that create a black bar
   const baseMaxHeight = orientation === 'portrait'
     ? (isKeyboardVisible ? 'calc(100dvh - 240px)' : 'calc(100dvh - 220px)')
     : (isKeyboardVisible ? 'calc(100dvh - 180px)' : 'calc(100dvh - 160px)');
@@ -142,7 +143,7 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
         )}
 
         {/* Input Area */}
-        <div className="border-t border-white/10 bg-black/30 p-3 safe-bottom">
+        <div className="border-t border-white/10 bg-black/30 p-3 ios-safe-bottom">
           <ChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}

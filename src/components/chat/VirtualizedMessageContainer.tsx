@@ -144,7 +144,8 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
         onScroll={handleScroll}
         className={`flex-1 overflow-y-auto chat-scroll-container native-scroll ${className}`}
         style={{
-          minHeight: 'min(max(360px, 55vh), 720px)',
+          // Use dynamic viewport units to prevent iOS bottom black space
+          minHeight: 'min(max(360px, 55dvh), 720px)',
           ...style
         }}
       >
