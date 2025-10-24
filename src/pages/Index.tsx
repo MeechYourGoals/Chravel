@@ -175,7 +175,7 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-background font-outfit">
         {/* Demo Mode Toggle - Top Right for All Logged Out Users */}
-        <div className="fixed top-2 right-2 md:top-6 md:right-6 z-[9999]">
+        <div className="fixed top-20 right-2 md:top-6 md:right-6 z-[9999]">
           <div className="w-[140px] bg-card/80 backdrop-blur-sm p-2.5 rounded-xl border border-border shadow-lg">
             <DemoModeToggle />
           </div>

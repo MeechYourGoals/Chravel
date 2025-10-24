@@ -539,20 +539,30 @@
     pointer-events: none;
   }
 
-  /* Hide geometric backgrounds on mobile portrait to prevent visual clutter */
-  @media screen and (max-width: 768px) and (orientation: portrait) {
-    .geometric-bg::before,
-    .geometric-bg::after {
-      display: none;
-    }
-  }
-
   /* Wireframe grid overlay */
   .wireframe-overlay {
     background-image: 
       linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
     background-size: 50px 50px;
+  }
+
+  /* Completely disable geometric backgrounds and overlays on mobile portrait */
+  @media screen and (max-width: 768px) and (orientation: portrait) {
+    .geometric-bg {
+      position: static !important;
+      overflow: visible !important;
+    }
+    
+    .geometric-bg::before,
+    .geometric-bg::after {
+      display: none !important;
+      content: none !important;
+    }
+    
+    .wireframe-overlay {
+      background-image: none !important;
+    }
   }
 
   /* Scrollbar hide utility */
