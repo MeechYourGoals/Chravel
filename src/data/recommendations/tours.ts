@@ -1,5 +1,9 @@
 
 import { Recommendation } from './types';
+import evergladesBoat from '@/assets/recommendations/everglades-boat.png';
+import evergladesWildlife from '@/assets/recommendations/everglades-wildlife.png';
+import littleHavanaFood from '@/assets/recommendations/little-havana-food.png';
+import littleHavanaStreet from '@/assets/recommendations/little-havana-street.png';
 
 export const tourRecommendations: Recommendation[] = [
   {
@@ -13,8 +17,8 @@ export const tourRecommendations: Recommendation[] = [
     rating: 4.6,
     priceLevel: 2,
     images: [
-      'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=600&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1548366086-7f1b76106622?w=600&h=400&fit=crop'
+      evergladesBoat,
+      evergladesWildlife
     ],
     tags: ['Wildlife', 'Adventure', 'Nature', 'Airboat'],
     isSponsored: true,
@@ -42,8 +46,8 @@ export const tourRecommendations: Recommendation[] = [
     rating: 4.8,
     priceLevel: 2,
     images: [
-      'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=600&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=600&h=400&fit=crop'
+      littleHavanaFood,
+      littleHavanaStreet
     ],
     tags: ['Cuban Culture', 'Food Tour', 'Live Music', 'Authentic'],
     isSponsored: true,

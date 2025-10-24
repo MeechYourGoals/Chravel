@@ -145,6 +145,7 @@ export const TripGrid = ({
             <LocationSearchBar
               onLocationSelect={setManualLocation}
               currentLocation={manualLocation}
+              autoFromBasecamp={false}
             />
             {activeLocation && (
               <Alert className="border-info/50 bg-info/10">

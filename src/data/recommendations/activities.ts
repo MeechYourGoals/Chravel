@@ -1,5 +1,9 @@
 
 import { Recommendation } from './types';
+import speedboatExterior from '@/assets/recommendations/speedboat-exterior.png';
+import speedboatAction from '@/assets/recommendations/speedboat-action.png';
+import wynwoodMurals from '@/assets/recommendations/wynwood-murals.png';
+import wynwoodGallery from '@/assets/recommendations/wynwood-gallery.png';
 
 export const activityRecommendations: Recommendation[] = [
   {
@@ -13,8 +17,8 @@ export const activityRecommendations: Recommendation[] = [
     rating: 4.7,
     priceLevel: 2,
     images: [
-      'https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?w=600&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=400&fit=crop'
+      speedboatExterior,
+      speedboatAction
     ],
     tags: ['Adventure', 'Sightseeing', 'Water Sports', 'Speedboat'],
     isSponsored: true,
@@ -42,8 +46,8 @@ export const activityRecommendations: Recommendation[] = [
     rating: 4.6,
     priceLevel: 2,
     images: [
-      'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=600&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=400&fit=crop'
+      wynwoodMurals,
+      wynwoodGallery
     ],
     tags: ['Street Art', 'Cultural', 'Walking Tour', 'Photography'],
     isSponsored: true,
