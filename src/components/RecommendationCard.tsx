@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import { MapPin, Star, ChevronLeft, ChevronRight, Users, Bookmark } from 'lucide-react';
 import { Recommendation } from '../data/recommendations';
 import { useIsMobile } from '../hooks/use-mobile';
+import { OptimizedImage } from './mobile/OptimizedImage';
 
 interface RecommendationCardProps {
   recommendation: Recommendation;
@@ -76,13 +77,16 @@ export const RecommendationCard = ({
       </div>
 
       {/* Image Carousel */}
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative h-48 overflow-hidden bg-muted/50">
         {recommendation.images.length > 0 && (
           <>
-            <img
+            <OptimizedImage
               src={recommendation.images[currentImageIndex]}
               alt={recommendation.title}
+              width={600}
+              height={400}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
             />
             {recommendation.images.length > 1 && (
               <>
