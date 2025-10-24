@@ -8,10 +8,13 @@ import { toast } from 'sonner';
 
 interface ConsumerSubscriptionContextType {
   subscription: ConsumerSubscription | null;
-  isPlus: boolean;
+  tier: 'free' | 'starter' | 'explorer' | 'unlimited';
+  isPlus: boolean; // Legacy - true for any paid tier
+  isSubscribed: boolean;
   isLoading: boolean;
   checkSubscription: () => Promise<void>;
-  upgradeToPlus: () => Promise<void>;
+  upgradeToPlus: () => Promise<void>; // Legacy
+  upgradeToTier: (tier: 'starter' | 'explorer' | 'unlimited', billingCycle: 'monthly' | 'annual') => Promise<void>;
 }
 
 const ConsumerSubscriptionContext = createContext<ConsumerSubscriptionContextType | undefined>(undefined);
@@ -36,13 +39,22 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
       
       if (error) throw error;
 
-      const { subscribed, product_id, subscription_end } = data;
+      const { subscribed, product_id, tier, subscription_end } = data;
       
-      // Check if user has Consumer Plus
-      const isConsumerPlus = product_id === STRIPE_PRODUCTS['consumer-plus'].product_id;
+      // Map tier from backend or detect from product_id
+      let userTier: 'free' | 'starter' | 'explorer' | 'unlimited' = 'free';
+      if (tier) {
+        userTier = tier;
+      } else if (product_id) {
+        // Fallback detection for legacy/unmapped products
+        if (product_id === STRIPE_PRODUCTS['consumer-starter'].product_id) userTier = 'starter';
+        else if (product_id === STRIPE_PRODUCTS['consumer-explorer'].product_id) userTier = 'explorer';
+        else if (product_id === STRIPE_PRODUCTS['consumer-unlimited'].product_id) userTier = 'unlimited';
+        else if (product_id === STRIPE_PRODUCTS['consumer-plus'].product_id) userTier = 'starter'; // Legacy mapping
+      }
       
       setSubscription({
-        tier: isConsumerPlus ? 'plus' : 'free',
+        tier: userTier,
         status: subscribed ? 'active' : 'expired',
         subscriptionEndsAt: subscription_end,
         stripeCustomerId: data.stripe_customer_id,
@@ -56,6 +68,11 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
   };
 
   const upgradeToPlus = async () => {
+    // Legacy function - defaults to Starter tier
+    await upgradeToTier('starter', 'annual');
+  };
+
+  const upgradeToTier = async (tier: 'starter' | 'explorer' | 'unlimited', billingCycle: 'monthly' | 'annual') => {
     if (!user) {
       toast.error('Please sign in to upgrade');
       return;
@@ -63,8 +80,17 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
 
     setIsLoading(true);
     try {
+      const tierMap = {
+        starter: 'consumer-starter',
+        explorer: 'consumer-explorer',
+        unlimited: 'consumer-unlimited'
+      };
+      
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { tier: 'consumer-plus' }
+        body: { 
+          tier: tierMap[tier],
+          billing_cycle: billingCycle 
+        }
       });
       
       if (error) throw error;
@@ -80,15 +106,20 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
     }
   };
 
-  const isPlus = subscription?.tier === 'plus' && subscription?.status === 'active';
+  const currentTier = subscription?.tier || 'free';
+  const isPlus = subscription?.status === 'active' && currentTier !== 'free'; // Any paid tier
+  const isSubscribed = subscription?.status === 'active' && currentTier !== 'free';
 
   return (
     <ConsumerSubscriptionContext.Provider value={{
       subscription,
+      tier: currentTier,
       isPlus,
+      isSubscribed,
       isLoading,
       checkSubscription,
-      upgradeToPlus
+      upgradeToPlus,
+      upgradeToTier
     }}>
       {children}
     </ConsumerSubscriptionContext.Provider>

@@ -45,7 +45,7 @@ interface PricingTier {
   ctaAction?: () => void;
 }
 
-// Consumer Pricing Tiers
+// Consumer Pricing Tiers - UPDATED TO NEW STRUCTURE
 const consumerTiers: PricingTier[] = [
   {
     id: 'free',
@@ -65,45 +65,54 @@ const consumerTiers: PricingTier[] = [
     category: 'consumer'
   },
   {
-    id: 'starter-bundle',
-    name: 'Starter Bundle',
-    price: '$19.99',
-    description: 'One-time yearly purchase for occasional travelers',
+    id: 'starter',
+    name: 'Starter',
+    price: '$9.99',
+    annualPrice: '$99.99',
+    originalPrice: '$119.88',
+    description: 'Perfect for occasional travelers and weekend getaways',
     icon: <Star size={24} />,
     features: [
-      '10 trips per year',
+      '12 trips per year',
+      'Everything in Free',
       'AI trip assistant',
       'Advanced recommendations',
       'Expense tracking',
-      'Priority support',
-      'All bundle features'
+      'Priority support'
     ],
-    cta: 'Buy Starter Bundle',
-    category: 'consumer'
+    cta: 'Start Free Trial',
+    category: 'consumer',
+    savings: 'Save $19.89/year (17%)'
   },
   {
-    id: 'explorer-bundle',
-    name: 'Explorer Bundle',
-    price: '$39.99',
+    id: 'explorer',
+    name: 'Explorer',
+    price: '$19.99',
+    annualPrice: '$199.99',
+    originalPrice: '$239.88',
     description: 'Perfect for frequent travelers and families',
     icon: <Globe size={24} />,
     features: [
-      '25 trips per year',
+      '50 trips per year',
       'Everything in Starter',
       'Advanced trip insights',
       'Multi-trip planning',
       'Enhanced AI features',
-      'Premium support'
+      'Premium support',
+      'Early access to features'
     ],
-    cta: 'Buy Explorer Bundle',
+    cta: 'Start Free Trial',
     popular: true,
     category: 'consumer',
-    badge: 'Most Popular'
+    badge: 'Most Popular',
+    savings: 'Save $39.89/year (17%)'
   },
   {
-    id: 'unlimited-bundle',
-    name: 'Unlimited Bundle',
-    price: '$79.99',
+    id: 'unlimited',
+    name: 'Unlimited',
+    price: '$39.99',
+    annualPrice: '$399.99',
+    originalPrice: '$479.88',
     description: 'For travel enthusiasts who never stop exploring',
     icon: <Sparkles size={24} />,
     features: [
@@ -111,46 +120,13 @@ const consumerTiers: PricingTier[] = [
       'Everything in Explorer',
       'Premium AI responses',
       'VIP support',
-      'Early feature access'
-    ],
-    cta: 'Buy Unlimited Bundle',
-    category: 'consumer'
-  },
-  {
-    id: 'pro-monthly',
-    name: 'Pro Monthly',
-    price: '$9.99',
-    annualPrice: '$99',
-    originalPrice: '$119.88',
-    description: 'Ultimate flexibility with monthly billing',
-    icon: <Crown size={24} />,
-    features: [
-      'Everything in Unlimited',
-      'Priority AI responses',
-      'Auto-itinerary generation',
-      'Trip insights dashboard',
-      'Early access to features'
+      'Early feature access',
+      'Custom integrations',
+      'Priority feature requests'
     ],
     cta: 'Start Free Trial',
     category: 'consumer',
-    savings: 'Save 17% annually'
-  },
-  {
-    id: 'family-plan',
-    name: 'Family Plan',
-    price: '$119',
-    description: 'Perfect for families traveling together',
-    icon: <Users size={24} />,
-    features: [
-      '4 linked accounts',
-      'Unlimited trips for all',
-      'Shared family trip history',
-      'Parental controls',
-      'Teen account management',
-      'Family dashboard'
-    ],
-    cta: 'Start Family Plan',
-    category: 'consumer'
+    savings: 'Save $79.89/year (17%)'
   }
 ];
 
@@ -359,6 +335,12 @@ export const PricingSection = () => {
     return tier.price;
   };
 
+  const getAnnualMonthlyEquivalent = (tier: PricingTier) => {
+    if (!tier.annualPrice || billingCycle !== 'annual') return null;
+    const annual = parseFloat(tier.annualPrice.replace('$', ''));
+    return `$${(annual / 12).toFixed(2)}/month`;
+  };
+
   const { timeSaved, annualSavings, roi } = calculateROI();
 
   return (
@@ -418,7 +400,7 @@ export const PricingSection = () => {
             </span>
             {billingCycle === 'annual' && (
               <Badge variant="secondary" className="bg-green-500/20 text-green-400">
-                Save 20%
+                Save 17%
               </Badge>
             )}
           </div>
@@ -469,11 +451,19 @@ export const PricingSection = () => {
                   {tier.category === 'consumer' && tier.annualPrice && billingCycle === 'monthly' && (
                     <span className="text-lg text-muted-foreground font-normal">/month</span>
                   )}
-                  {tier.category === 'consumer' && !tier.price.includes('$0') && billingCycle === 'annual' && !tier.annualPrice && (
+                  {tier.category === 'consumer' && tier.annualPrice && billingCycle === 'annual' && (
                     <span className="text-lg text-muted-foreground font-normal">/year</span>
                   )}
                 </div>
                 
+                {/* Show monthly equivalent for annual plans */}
+                {billingCycle === 'annual' && tier.annualPrice && tier.category === 'consumer' && getAnnualMonthlyEquivalent(tier) && (
+                  <div className="text-sm text-muted-foreground">
+                    {getAnnualMonthlyEquivalent(tier)} when billed annually
+                  </div>
+                )}
+                
+                {/* Show original price and savings */}
                 {tier.originalPrice && billingCycle === 'annual' && (
                   <div className="text-sm text-muted-foreground line-through">
                     Originally {tier.originalPrice}/year

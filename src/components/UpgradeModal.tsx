@@ -12,15 +12,15 @@ interface UpgradeModalProps {
 }
 
 export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
-  const [selectedPlan, setSelectedPlan] = useState<'plus' | 'pro' | 'events'>('plus');
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
-  const { upgradeToPlus, isLoading } = useConsumerSubscription();
+  const [selectedPlan, setSelectedPlan] = useState<'starter' | 'explorer' | 'unlimited' | 'pro' | 'events'>('explorer');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  const { upgradeToTier, isLoading } = useConsumerSubscription();
 
   if (!isOpen) return null;
 
   const handleUpgrade = async () => {
-    if (selectedPlan === 'plus') {
-      await upgradeToPlus();
+    if (['starter', 'explorer', 'unlimited'].includes(selectedPlan)) {
+      await upgradeToTier(selectedPlan as 'starter' | 'explorer' | 'unlimited', billingCycle);
       onClose();
     } else if (selectedPlan === 'pro') {
       // Handle Pro upgrade - use Pro Starter by default
@@ -71,17 +71,39 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
 
         {/* Plan Toggle */}
         <div className="flex justify-center mb-8">
-          <div className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-2 flex">
+          <div className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-2 flex gap-1">
             <button
-              onClick={() => setSelectedPlan('plus')}
-              className={`px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
-                selectedPlan === 'plus'
+              onClick={() => setSelectedPlan('starter')}
+              className={`px-3 py-2 rounded-xl font-medium transition-all flex items-center gap-2 text-sm ${
+                selectedPlan === 'starter'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                  : 'text-gray-300 hover:text-white'
+              }`}
+            >
+              <Star size={16} />
+              Starter
+            </button>
+            <button
+              onClick={() => setSelectedPlan('explorer')}
+              className={`px-3 py-2 rounded-xl font-medium transition-all flex items-center gap-2 text-sm ${
+                selectedPlan === 'explorer'
                   ? 'bg-gradient-to-r from-glass-orange to-glass-yellow text-white'
                   : 'text-gray-300 hover:text-white'
               }`}
             >
-              <Crown size={18} />
-              Plus
+              <Crown size={16} />
+              Explorer
+            </button>
+            <button
+              onClick={() => setSelectedPlan('unlimited')}
+              className={`px-3 py-2 rounded-xl font-medium transition-all flex items-center gap-2 text-sm ${
+                selectedPlan === 'unlimited'
+                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                  : 'text-gray-300 hover:text-white'
+              }`}
+            >
+              <Sparkles size={16} />
+              Unlimited
             </button>
             <button
               onClick={() => setSelectedPlan('pro')}
@@ -109,91 +131,172 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
         </div>
 
         {/* Plan Content */}
-        {selectedPlan === 'plus' ? (
+        {['starter', 'explorer', 'unlimited'].includes(selectedPlan) ? (
           <div>
+            {/* Tier Info */}
             <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-full flex items-center justify-center mx-auto mb-4">
-                <Crown size={32} className="text-white" />
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                selectedPlan === 'starter' ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
+                selectedPlan === 'explorer' ? 'bg-gradient-to-r from-glass-orange to-glass-yellow' :
+                'bg-gradient-to-r from-purple-500 to-purple-600'
+              }`}>
+                {selectedPlan === 'starter' && <Star size={32} className="text-white" />}
+                {selectedPlan === 'explorer' && <Crown size={32} className="text-white" />}
+                {selectedPlan === 'unlimited' && <Sparkles size={32} className="text-white" />}
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Plus</h3>
-              <p className="text-gray-300">AI-powered travel planning for smarter trips</p>
-            </div>
-
-            {/* Features Grid */}
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
-              <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
-                  <Sparkles size={24} className="text-white" />
-                </div>
-                <h4 className="text-lg font-bold text-white mb-2">Concierge</h4>
-                <p className="text-gray-300 text-sm">Chat with AI for personalized recommendations based on your location and preferences.</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-green-500/10 to-teal-500/10 border border-green-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl flex items-center justify-center mb-4">
-                  <Settings size={24} className="text-white" />
-                </div>
-                <h4 className="text-lg font-bold text-white mb-2">Smart Preferences</h4>
-                <p className="text-gray-300 text-sm">Set dietary, vibe, budget, and time preferences to get tailored suggestions for your entire group.</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center mb-4">
-                  <Zap size={24} className="text-white" />
-                </div>
-                <h4 className="text-lg font-bold text-white mb-2">Basecamp Intelligence</h4>
-                <p className="text-gray-300 text-sm">Get location-aware recommendations within walking distance or perfect travel time from your basecamp.</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4">
-                  <MessageCircle size={24} className="text-white" />
-                </div>
-                <h4 className="text-lg font-bold text-white mb-2">Contextual Chat</h4>
-                <p className="text-gray-300 text-sm">Real-time assistance for planning activities, finding restaurants, and making the most of your trip.</p>
-              </div>
+              <h3 className="text-2xl font-bold text-white mb-2 capitalize">{selectedPlan}</h3>
+              <p className="text-gray-300">
+                {selectedPlan === 'starter' && 'Perfect for occasional travelers and weekend getaways'}
+                {selectedPlan === 'explorer' && 'Perfect for frequent travelers and families'}
+                {selectedPlan === 'unlimited' && 'For travel enthusiasts who never stop exploring'}
+              </p>
             </div>
 
             {/* Billing Toggle */}
-            {selectedPlan === 'plus' && (
-              <div className="flex items-center justify-center gap-4 mb-6">
-                <span className={`text-sm ${billingCycle === 'monthly' ? 'text-white font-medium' : 'text-gray-400'}`}>
-                  Monthly
-                </span>
-                <button
-                  onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'annual' : 'monthly')}
-                  className="relative w-12 h-6 bg-gray-700 rounded-full transition-colors"
-                >
-                  <div className={`absolute top-1 w-4 h-4 bg-glass-orange rounded-full transition-transform ${
-                    billingCycle === 'annual' ? 'translate-x-7' : 'translate-x-1'
-                  }`} />
-                </button>
-                <span className={`text-sm ${billingCycle === 'annual' ? 'text-white font-medium' : 'text-gray-400'}`}>
-                  Annual
-                </span>
-                {billingCycle === 'annual' && (
-                  <div className="bg-green-500/20 text-green-400 px-2 py-1 rounded-lg text-xs font-medium">
-                    Save {calculateSavings()}%
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <span className={`text-sm ${billingCycle === 'monthly' ? 'text-white font-medium' : 'text-gray-400'}`}>
+                Monthly
+              </span>
+              <button
+                onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'annual' : 'monthly')}
+                className="relative w-12 h-6 bg-gray-700 rounded-full transition-colors"
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-glass-orange rounded-full transition-transform ${
+                  billingCycle === 'annual' ? 'translate-x-7' : 'translate-x-1'
+                }`} />
+              </button>
+              <span className={`text-sm ${billingCycle === 'annual' ? 'text-white font-medium' : 'text-gray-400'}`}>
+                Annual
+              </span>
+              {billingCycle === 'annual' && (
+                <div className="bg-green-500/20 text-green-400 px-2 py-1 rounded-lg text-xs font-medium">
+                  Save 17%
+                </div>
+              )}
+            </div>
 
             {/* Pricing */}
             <div className="text-center">
               <div className="bg-gradient-to-r from-glass-orange/20 to-glass-yellow/20 backdrop-blur-sm border border-glass-orange/30 rounded-2xl p-6 mb-6">
                 <div className="text-4xl font-bold text-white mb-2">
-                  ${getPlusPrice()}{billingCycle === 'monthly' ? '/month' : '/year'}
+                  ${billingCycle === 'monthly' 
+                    ? (selectedPlan === 'starter' ? '9.99' : selectedPlan === 'explorer' ? '19.99' : '39.99')
+                    : (selectedPlan === 'starter' ? '99.99' : selectedPlan === 'explorer' ? '199.99' : '399.99')}
+                  {billingCycle === 'monthly' ? '/month' : '/year'}
                 </div>
                 {billingCycle === 'annual' && (
-                  <div className="text-green-400 text-sm mb-2">Save {calculateSavings()}% with annual billing</div>
+                  <>
+                    <div className="text-sm text-gray-300 mb-1">
+                      ${selectedPlan === 'starter' ? '8.33' : selectedPlan === 'explorer' ? '16.67' : '33.33'}/month when billed annually
+                    </div>
+                    <div className="text-green-400 text-sm mb-2">
+                      Save ${selectedPlan === 'starter' ? '19.89' : selectedPlan === 'explorer' ? '39.89' : '79.89'}/year (17% off)
+                    </div>
+                  </>
                 )}
-                <p className="text-gray-300 mb-4">7-day free trial • Cancel anytime</p>
-                <div className="text-sm text-glass-yellow">
-                  No credit card required for trial
-                </div>
+                <p className="text-gray-300 mb-4">14-day free trial • Cancel anytime</p>
               </div>
             </div>
+
+            {/* Features */}
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+              <h4 className="text-lg font-bold text-white mb-4">What's Included:</h4>
+              <ul className="space-y-3 text-sm text-gray-300">
+                {selectedPlan === 'starter' && (
+                  <>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      12 trips per year
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Everything in Free
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      AI trip assistant
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Advanced recommendations
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Expense tracking
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Priority support
+                    </li>
+                  </>
+                )}
+                {selectedPlan === 'explorer' && (
+                  <>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      50 trips per year
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Everything in Starter
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Advanced trip insights
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Multi-trip planning
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Enhanced AI features
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Premium support
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Early access to features
+                    </li>
+                  </>
+                )}
+                {selectedPlan === 'unlimited' && (
+                  <>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Unlimited trips
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Everything in Explorer
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Premium AI responses
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      VIP support
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Early feature access
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Custom integrations
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Priority feature requests
+                    </li>
+                  </>
+                )}
+              </ul>
+            </div>
+          </div>
           </div>
         ) : selectedPlan === 'pro' ? (
           <div>

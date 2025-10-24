@@ -78,16 +78,27 @@ serve(async (req) => {
       logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
       
       productId = subscription.items.data[0].price.product as string;
-      logStep("Determined subscription tier", { productId });
+      
+      // Determine tier from product ID
+      let tier = 'free';
+      if (productId === 'prod_TBD_STARTER') tier = 'starter';
+      else if (productId === 'prod_TBD_EXPLORER') tier = 'explorer';
+      else if (productId === 'prod_TBD_UNLIMITED') tier = 'unlimited';
+      else if (productId === 'prod_TBIgoaG5RiY45u') tier = 'starter'; // Legacy Plus -> Starter
+      else if (productId.startsWith('prod_TBIi')) tier = 'pro'; // Pro products
+      
+      logStep("Determined subscription tier", { productId, tier });
 
       // Update profile with subscription info
       await supabaseClient
         .from('profiles')
-        .update({ subscription_product_id: productId })
+        .update({ 
+          subscription_product_id: productId,
+        })
         .eq('user_id', user.id);
 
       // Grant pro role if it's a pro product
-      if (productId.startsWith('prod_TBIi')) { // All Pro products start with this
+      if (tier === 'pro') {
         await supabaseClient
           .from('user_roles')
           .insert({ user_id: user.id, role: 'pro' })
@@ -95,6 +106,13 @@ serve(async (req) => {
           .select();
         logStep("Pro role granted");
       }
+      
+      return createSecureResponse({
+        subscribed: hasActiveSub,
+        product_id: productId,
+        tier: tier,
+        subscription_end: subscriptionEnd
+      });
     } else {
       logStep("No active subscription found");
       
@@ -103,13 +121,14 @@ serve(async (req) => {
         .from('profiles')
         .update({ subscription_product_id: null })
         .eq('user_id', user.id);
+        
+      return createSecureResponse({
+        subscribed: false,
+        product_id: null,
+        tier: 'free',
+        subscription_end: null
+      });
     }
-
-    return createSecureResponse({
-      subscribed: hasActiveSub,
-      product_id: productId,
-      subscription_end: subscriptionEnd
-    });
   } catch (error) {
     logError('CHECK_SUBSCRIPTION', error);
     return createErrorResponse(sanitizeErrorForClient(error), 500);
