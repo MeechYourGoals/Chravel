@@ -12,18 +12,18 @@ interface UpgradeModalProps {
 }
 
 export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
-  const [selectedPlan, setSelectedPlan] = useState<'starter' | 'explorer' | 'unlimited' | 'pro' | 'events'>('explorer');
+  const [selectedPlan, setSelectedPlan] = useState<'explorer' | 'pro' | 'travel-pro' | 'events'>('explorer');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const { upgradeToTier, isLoading } = useConsumerSubscription();
 
   if (!isOpen) return null;
 
   const handleUpgrade = async () => {
-    if (['starter', 'explorer', 'unlimited'].includes(selectedPlan)) {
-      await upgradeToTier(selectedPlan as 'starter' | 'explorer' | 'unlimited', billingCycle);
+    if (['explorer', 'pro'].includes(selectedPlan)) {
+      await upgradeToTier(selectedPlan as 'explorer' | 'pro', billingCycle);
       onClose();
-    } else if (selectedPlan === 'pro') {
-      // Handle Pro upgrade - use Pro Starter by default
+    } else if (selectedPlan === 'travel-pro') {
+      // Handle Travel Pro upgrade - use Pro Starter by default
       try {
         const { data, error } = await supabase.functions.invoke('create-checkout', {
           body: { tier: 'pro-starter' }
@@ -73,17 +73,6 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
         <div className="flex justify-center mb-8">
           <div className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-2 flex gap-1">
             <button
-              onClick={() => setSelectedPlan('starter')}
-              className={`px-3 py-2 rounded-xl font-medium transition-all flex items-center gap-2 text-sm ${
-                selectedPlan === 'starter'
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                  : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              <Star size={16} />
-              Starter
-            </button>
-            <button
               onClick={() => setSelectedPlan('explorer')}
               className={`px-3 py-2 rounded-xl font-medium transition-all flex items-center gap-2 text-sm ${
                 selectedPlan === 'explorer'
@@ -91,24 +80,24 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   : 'text-gray-300 hover:text-white'
               }`}
             >
-              <Crown size={16} />
+              <Globe size={16} />
               Explorer
             </button>
             <button
-              onClick={() => setSelectedPlan('unlimited')}
+              onClick={() => setSelectedPlan('pro')}
               className={`px-3 py-2 rounded-xl font-medium transition-all flex items-center gap-2 text-sm ${
-                selectedPlan === 'unlimited'
+                selectedPlan === 'pro'
                   ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
                   : 'text-gray-300 hover:text-white'
               }`}
             >
               <Sparkles size={16} />
-              Unlimited
+              Pro
             </button>
             <button
-              onClick={() => setSelectedPlan('pro')}
+              onClick={() => setSelectedPlan('travel-pro')}
               className={`px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
-                selectedPlan === 'pro'
+                selectedPlan === 'travel-pro'
                   ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black'
                   : 'text-gray-300 hover:text-white'
               }`}
@@ -131,24 +120,21 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
         </div>
 
         {/* Plan Content */}
-        {['starter', 'explorer', 'unlimited'].includes(selectedPlan) ? (
+        {['explorer', 'pro'].includes(selectedPlan) ? (
           <div>
             {/* Tier Info */}
             <div className="text-center mb-8">
               <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                selectedPlan === 'starter' ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
                 selectedPlan === 'explorer' ? 'bg-gradient-to-r from-glass-orange to-glass-yellow' :
                 'bg-gradient-to-r from-purple-500 to-purple-600'
               }`}>
-                {selectedPlan === 'starter' && <Star size={32} className="text-white" />}
-                {selectedPlan === 'explorer' && <Crown size={32} className="text-white" />}
-                {selectedPlan === 'unlimited' && <Sparkles size={32} className="text-white" />}
+                {selectedPlan === 'explorer' && <Globe size={32} className="text-white" />}
+                {selectedPlan === 'pro' && <Sparkles size={32} className="text-white" />}
               </div>
               <h3 className="text-2xl font-bold text-white mb-2 capitalize">{selectedPlan}</h3>
               <p className="text-gray-300">
-                {selectedPlan === 'starter' && 'Perfect for occasional travelers and weekend getaways'}
-                {selectedPlan === 'explorer' && 'Perfect for frequent travelers and families'}
-                {selectedPlan === 'unlimited' && 'For travel enthusiasts who never stop exploring'}
+                {selectedPlan === 'explorer' && 'Never lose a trip memory'}
+                {selectedPlan === 'pro' && 'For travel pros and adventure enthusiasts'}
               </p>
             </div>
 
@@ -180,17 +166,17 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
               <div className="bg-gradient-to-r from-glass-orange/20 to-glass-yellow/20 backdrop-blur-sm border border-glass-orange/30 rounded-2xl p-6 mb-6">
                 <div className="text-4xl font-bold text-white mb-2">
                   ${billingCycle === 'monthly' 
-                    ? (selectedPlan === 'starter' ? '9.99' : selectedPlan === 'explorer' ? '19.99' : '39.99')
-                    : (selectedPlan === 'starter' ? '99.99' : selectedPlan === 'explorer' ? '199.99' : '399.99')}
+                    ? (selectedPlan === 'explorer' ? '9.99' : '19.99')
+                    : (selectedPlan === 'explorer' ? '99' : '199')}
                   {billingCycle === 'monthly' ? '/month' : '/year'}
                 </div>
                 {billingCycle === 'annual' && (
                   <>
                     <div className="text-sm text-gray-300 mb-1">
-                      ${selectedPlan === 'starter' ? '8.33' : selectedPlan === 'explorer' ? '16.67' : '33.33'}/month when billed annually
+                      ${selectedPlan === 'explorer' ? '8.25' : '16.58'}/month when billed annually
                     </div>
                     <div className="text-green-400 text-sm mb-2">
-                      Save ${selectedPlan === 'starter' ? '19.89' : selectedPlan === 'explorer' ? '39.89' : '79.89'}/year (17% off)
+                      Save ${selectedPlan === 'explorer' ? '20' : '40'}/year (17% off)
                     </div>
                   </>
                 )}
@@ -202,27 +188,27 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
               <h4 className="text-lg font-bold text-white mb-4">What's Included:</h4>
               <ul className="space-y-3 text-sm text-gray-300">
-                {selectedPlan === 'starter' && (
+                {selectedPlan === 'explorer' && (
                   <>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      12 trips per year
+                      Unlimited saved trips - keep every memory forever
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Everything in Free
+                      Unlimited AI queries - your 24/7 travel concierge
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      AI trip assistant
+                      Location-aware AI suggestions
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Advanced recommendations
+                      Calendar sync (Google, Apple, Outlook)
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Expense tracking
+                      PDF trip export
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
@@ -230,74 +216,42 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                     </li>
                   </>
                 )}
-                {selectedPlan === 'explorer' && (
+                {selectedPlan === 'pro' && (
                   <>
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      50 trips per year
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Everything in Starter
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Advanced trip insights
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Multi-trip planning
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Enhanced AI features
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Premium support
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Early access to features
-                    </li>
-                  </>
-                )}
-                {selectedPlan === 'unlimited' && (
-                  <>
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Unlimited trips
-                    </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
                       Everything in Explorer
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Premium AI responses
+                      Bulk trip management
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      VIP support
+                      Advanced analytics
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      External calendar publishing
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Team workspaces
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                      Multi-stop route optimization
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
                       Early feature access
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Custom integrations
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Priority feature requests
                     </li>
                   </>
                 )}
               </ul>
             </div>
           </div>
-        ) : selectedPlan === 'pro' ? (
+        ) : selectedPlan === 'travel-pro' ? (
           <div>
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">

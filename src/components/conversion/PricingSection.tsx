@@ -23,7 +23,15 @@ import {
   Quote,
   TrendingUp,
   Clock,
-  MessageSquare
+  MessageSquare,
+  Heart,
+  Calendar,
+  FileText,
+  Bell,
+  Search,
+  Briefcase,
+  MapPin,
+  Settings
 } from 'lucide-react';
 
 interface PricingTier {
@@ -43,90 +51,76 @@ interface PricingTier {
   badge?: string;
   savings?: string;
   ctaAction?: () => void;
+  limitation?: string;
 }
 
-// Consumer Pricing Tiers - UPDATED TO NEW STRUCTURE
+// Consumer Pricing Tiers - NEW 3-TIER STRUCTURE
 const consumerTiers: PricingTier[] = [
   {
     id: 'free',
     name: 'Free Plan',
     price: '$0',
-    description: 'Perfect for trying Chravel with your first few trips',
+    description: 'Perfect for trying Chravel with your crew',
     icon: <Users size={24} />,
     features: [
-      '3 trips per year',
-      'Core group chat',
-      'Shared calendar',
+      'Create unlimited trip participants',
+      'Core group chat & collaboration',
+      'Shared calendar (manual entry)',
+      'Photo & video sharing',
       'Basic itinerary planning',
-      'Photo sharing',
-      'All trip invitees join free'
+      'Expense tracking',
+      'Polls & decision making',
+      'AI Trip Assistant (5 queries per user per trip)',
+      'Save up to 3 active trips'
     ],
     cta: 'Get Started Free',
-    category: 'consumer'
-  },
-  {
-    id: 'starter',
-    name: 'Starter',
-    price: '$9.99',
-    annualPrice: '$99.99',
-    originalPrice: '$119.88',
-    description: 'Perfect for occasional travelers and weekend getaways',
-    icon: <Star size={24} />,
-    features: [
-      '12 trips per year',
-      'Everything in Free',
-      'AI trip assistant',
-      'Advanced recommendations',
-      'Expense tracking',
-      'Priority support'
-    ],
-    cta: 'Start Free Trial',
     category: 'consumer',
-    savings: 'Save $19.89/year (17%)'
+    limitation: 'To create a new trip after 3, you\'ll need to delete an old one'
   },
   {
     id: 'explorer',
     name: 'Explorer',
-    price: '$19.99',
-    annualPrice: '$199.99',
-    originalPrice: '$239.88',
-    description: 'Perfect for frequent travelers and families',
+    price: '$9.99',
+    annualPrice: '$99',
+    originalPrice: '$119.88',
+    description: 'Never lose a trip memory',
     icon: <Globe size={24} />,
     features: [
-      '50 trips per year',
-      'Everything in Starter',
-      'Advanced trip insights',
-      'Multi-trip planning',
-      'Enhanced AI features',
-      'Premium support',
-      'Early access to features'
+      'Unlimited saved trips - keep every memory forever',
+      'Unlimited AI queries - your 24/7 travel concierge',
+      'Location-aware AI suggestions - personalized recs based on where you are',
+      'Calendar sync - Google, Apple, Outlook integration',
+      'PDF trip export - one-click beautiful itineraries',
+      'Smart notifications - never miss important updates',
+      'Search past trips - find that perfect restaurant again',
+      'Priority support - we\'ve got your back'
     ],
     cta: 'Start Free Trial',
     popular: true,
     category: 'consumer',
     badge: 'Most Popular',
-    savings: 'Save $39.89/year (17%)'
+    savings: 'Save $20/year'
   },
   {
-    id: 'unlimited',
-    name: 'Unlimited',
-    price: '$39.99',
-    annualPrice: '$399.99',
-    originalPrice: '$479.88',
-    description: 'For travel enthusiasts who never stop exploring',
+    id: 'pro',
+    name: 'Pro',
+    price: '$19.99',
+    annualPrice: '$199',
+    originalPrice: '$239.88',
+    description: 'For travel pros and adventure enthusiasts',
     icon: <Sparkles size={24} />,
     features: [
-      'Unlimited trips',
-      'Everything in Explorer',
-      'Premium AI responses',
-      'VIP support',
-      'Early feature access',
-      'Custom integrations',
-      'Priority feature requests'
+      'Bulk trip management - plan multiple trips simultaneously',
+      'Advanced analytics - spending patterns & travel insights',
+      'External calendar publishing - share trips to any calendar app',
+      'Team workspaces - separate personal/business travel',
+      'Advanced location features - multi-stop route optimization',
+      'Early feature access - shape the future of Chravel',
+      'Custom trip categories - organize by type (work/leisure/family)'
     ],
     cta: 'Start Free Trial',
     category: 'consumer',
-    savings: 'Save $79.89/year (17%)'
+    savings: 'Save $40/year'
   }
 ];
 
@@ -250,6 +244,66 @@ const eventsTiers: PricingTier[] = [
   }
 ];
 
+const valuePropItems = [
+  {
+    icon: <Heart size={20} />,
+    title: 'The average trip costs $2,000+',
+    description: 'Your memories are worth more than $9.99/month'
+  },
+  {
+    icon: <Camera size={20} />,
+    title: 'Never delete another trip',
+    description: 'That sunset in Santorini? Keep it forever.'
+  },
+  {
+    icon: <MessageSquare size={20} />,
+    title: 'Unlimited AI assistance',
+    description: 'From "what\'s near me?" to complex itinerary planning'
+  },
+  {
+    icon: <MapPin size={20} />,
+    title: 'Location-aware suggestions',
+    description: '"Find coffee shops within walking distance" - your AI knows where you are'
+  },
+  {
+    icon: <Calendar size={20} />,
+    title: 'Seamless calendar sync',
+    description: 'Your trips, automatically in your calendar'
+  },
+  {
+    icon: <FileText size={20} />,
+    title: 'Professional PDF exports',
+    description: 'Share beautiful itineraries with one click'
+  }
+];
+
+const faqItems = [
+  {
+    question: "What happens when I hit my 3-trip limit?",
+    answer: "You'll need to delete an old trip to create a new one. Or upgrade to Explorer to keep unlimited trips!"
+  },
+  {
+    question: "How do AI queries work on the free plan?",
+    answer: "Each user gets 5 AI queries per trip. A counter shows how many you have left. Resets with each new trip."
+  },
+  {
+    question: "Can I change plans anytime?",
+    answer: "Yes! Upgrade, downgrade, or cancel anytime. No contracts, no hassles."
+  },
+  {
+    question: "What's an AI query?",
+    answer: "Any question you ask the AI Trip Assistant (\"Find restaurants near our hotel\", \"Plan our day in Rome\", etc.)"
+  },
+  {
+    question: "Is my data safe?",
+    answer: "Bank-level encryption. Your trips are private unless you choose to share them."
+  },
+  {
+    question: "Do all trip members need to pay?",
+    answer: "Nope! Only one person needs Explorer/Pro to unlock premium features for the whole trip."
+  }
+];
+
 const testimonials = [
   {
     quote: "Chravel replaced 8 different apps we were using. Our team coordination improved by 300% and we save 15 hours per tour.",
@@ -271,52 +325,14 @@ const testimonials = [
   }
 ];
 
-const faqItems = [
-  {
-    question: "How does the free plan work?",
-    answer: "Everyone starts with 3 free trips per year. All trip invitees can join and participate for free. Upgrade to paid plans for unlimited trips and premium features like AI assistance and priority support."
-  },
-  {
-    question: "Can I switch between plans?",
-    answer: "Yes, you can upgrade or downgrade at any time. Pro plans include 14-day free trials."
-  },
-  {
-    question: "What happens if I exceed my trip limit?",
-    answer: "You can archive old trips or upgrade to a higher tier. We'll never delete your data."
-  },
-  {
-    question: "Is there a cancellation fee?",
-    answer: "No cancellation fees ever. You can cancel anytime and keep access until your billing period ends."
-  },
-  {
-    question: "Do you offer enterprise discounts?",
-    answer: "Yes! Enterprise plans start at $499/month with volume discounts available for teams over 500 members. Contact sales for custom pricing."
-  }
-];
-
-
 export const PricingSection = () => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const [activeTab, setActiveTab] = useState<'consumer' | 'pro' | 'events'>('consumer');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [roiCalculator, setRoiCalculator] = useState({
-    teamSize: 10,
-    tripsPerYear: 12,
-    hoursSavedPerTrip: 8,
-    hourlyRate: 75
-  });
 
   const handlePlanSelect = (planId: string) => {
     console.log(`Selected plan: ${planId}`);
     // Handle plan selection logic
-  };
-
-  const calculateROI = () => {
-    const timeSaved = roiCalculator.teamSize * roiCalculator.tripsPerYear * roiCalculator.hoursSavedPerTrip;
-    const annualSavings = timeSaved * roiCalculator.hourlyRate;
-    const chravaelCost = activeTab === 'pro' ? 4788 : 999; // Rough annual costs
-    const roi = ((annualSavings - chravaelCost) / chravaelCost) * 100;
-    return { timeSaved, annualSavings, roi };
   };
 
   const getCurrentTiers = () => {
@@ -341,21 +357,38 @@ export const PricingSection = () => {
     return `$${(annual / 12).toFixed(2)}/month`;
   };
 
-  const { timeSaved, annualSavings, roi } = calculateROI();
-
   return (
     <div className="w-full space-y-16">
       {/* Header with Value Prop */}
       <div className="text-center space-y-6">
         <div className="space-y-4">
           <h2 className="text-4xl md:text-5xl font-bold text-foreground">
-            Replace 8-10 travel apps with one powerful solution
+            Start planning better trips today
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Save 70% of trip planning time with enterprise-grade security and consumer-friendly design. 
-            <span className="text-accent font-semibold"> Start with 3 free trips per year, upgrade for unlimited access and premium features.</span>
+            Your crew is waiting. <span className="text-accent font-semibold">Save 23 hours per trip</span> with the world's first AI-native travel collaboration platform.
           </p>
         </div>
+
+        {/* Why Upgrade Section */}
+        {activeTab === 'consumer' && (
+          <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-8 max-w-5xl mx-auto">
+            <h3 className="text-2xl font-bold text-foreground mb-6">Why Upgrade?</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {valuePropItems.map((item, index) => (
+                <div key={index} className="text-left">
+                  <div className="flex items-start gap-3">
+                    <div className="text-primary mt-0.5">{item.icon}</div>
+                    <div>
+                      <h4 className="font-semibold text-foreground text-sm mb-1">{item.title}</h4>
+                      <p className="text-xs text-muted-foreground">{item.description}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Category Tabs */}
         <div className="flex justify-center">
@@ -408,7 +441,7 @@ export const PricingSection = () => {
       </div>
 
       {/* Pricing Cards */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+      <div className={`grid gap-8 max-w-7xl mx-auto ${activeTab === 'consumer' ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
         {getCurrentTiers().map((tier) => (
           <Card 
             key={tier.id} 
@@ -481,6 +514,12 @@ export const PricingSection = () => {
             </CardHeader>
 
             <CardContent className="space-y-6">
+              {tier.limitation && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 text-xs text-yellow-400">
+                  {tier.limitation}
+                </div>
+              )}
+              
               <ul className="space-y-3">
                 {tier.features.map((feature, index) => (
                   <li key={index} className="flex items-start gap-3">
@@ -491,6 +530,7 @@ export const PricingSection = () => {
               </ul>
 
               <Button 
+                onClick={tier.ctaAction || (() => handlePlanSelect(tier.id))}
                 className={`w-full h-12 font-medium ${
                   tier.popular || tier.recommended
                     ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
@@ -498,117 +538,48 @@ export const PricingSection = () => {
                     ? 'bg-accent hover:bg-accent/90 text-accent-foreground' 
                     : 'bg-secondary hover:bg-secondary/80'
                 }`}
-                onClick={tier.ctaAction || (() => handlePlanSelect(tier.id))}
               >
                 {tier.cta}
-                {(tier.cta.includes('Trial') || tier.cta.includes('Free')) && (
-                  <Badge variant="outline" className="ml-2 bg-background/50">
-                    14-day trial
-                  </Badge>
-                )}
               </Button>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* ROI Calculator */}
-      {activeTab === 'pro' && (
-        <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-2xl p-8 border border-primary/20">
-          <div className="text-center mb-8">
-            <Calculator className="w-12 h-12 mx-auto text-primary mb-4" />
-            <h3 className="text-2xl font-bold mb-2">ROI Calculator</h3>
-            <p className="text-muted-foreground">See how much Chravel Pro can save your organization</p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Team Size</label>
-                <input
-                  type="number"
-                  value={roiCalculator.teamSize}
-                  onChange={(e) => setRoiCalculator(prev => ({ ...prev, teamSize: parseInt(e.target.value) || 0 }))}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Trips Per Year</label>
-                <input
-                  type="number"
-                  value={roiCalculator.tripsPerYear}
-                  onChange={(e) => setRoiCalculator(prev => ({ ...prev, tripsPerYear: parseInt(e.target.value) || 0 }))}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Hours Saved Per Trip</label>
-                <input
-                  type="number"
-                  value={roiCalculator.hoursSavedPerTrip}
-                  onChange={(e) => setRoiCalculator(prev => ({ ...prev, hoursSavedPerTrip: parseInt(e.target.value) || 0 }))}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Average Hourly Rate ($)</label>
-                <input
-                  type="number"
-                  value={roiCalculator.hourlyRate}
-                  onChange={(e) => setRoiCalculator(prev => ({ ...prev, hourlyRate: parseInt(e.target.value) || 0 }))}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-md"
-                />
-              </div>
-            </div>
-            
-            <div className="bg-card/50 rounded-xl p-6 space-y-4">
-              <h4 className="text-lg font-bold">Your Annual Savings</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span>Time Saved:</span>
-                  <span className="font-bold text-primary">{timeSaved.toLocaleString()} hours</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Cost Savings:</span>
-                  <span className="font-bold text-green-400">${annualSavings.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-lg font-bold pt-2 border-t border-border/50">
-                  <span>ROI:</span>
-                  <span className="text-accent">{Math.round(roi)}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* FAQ Section */}
-      <div className="max-w-3xl mx-auto space-y-8">
-        <div className="text-center">
-          <h3 className="text-2xl font-bold mb-2">Frequently Asked Questions</h3>
-          <p className="text-muted-foreground">Get answers to common questions about our pricing</p>
-        </div>
-        
+      <div className="max-w-3xl mx-auto">
+        <h3 className="text-3xl font-bold text-foreground text-center mb-8">Frequently Asked Questions</h3>
         <div className="space-y-4">
-          {faqItems.map((faq, index) => (
+          {faqItems.map((item, index) => (
             <Collapsible key={index} open={openFaq === index} onOpenChange={() => setOpenFaq(openFaq === index ? null : index)}>
-              <CollapsibleTrigger className="w-full text-left">
-                <Card className="bg-card/50 border-border/50 hover:bg-card/80 transition-colors cursor-pointer">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-center">
-                      <h4 className="font-medium">{faq.question}</h4>
-                      <ChevronDown className={`w-5 h-5 transition-transform ${openFaq === index ? 'rotate-180' : ''}`} />
-                    </div>
-                  </CardContent>
-                </Card>
+              <CollapsibleTrigger className="w-full">
+                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-4 hover:bg-card/70 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-left font-semibold text-foreground">{item.question}</h4>
+                    <ChevronDown className={`text-muted-foreground transition-transform ${openFaq === index ? 'rotate-180' : ''}`} size={20} />
+                  </div>
+                </div>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="px-6 pb-4 text-muted-foreground">
-                  {faq.answer}
+                <div className="bg-card/30 border border-border/30 border-t-0 rounded-b-lg p-4 -mt-1">
+                  <p className="text-muted-foreground">{item.answer}</p>
                 </div>
               </CollapsibleContent>
             </Collapsible>
           ))}
+        </div>
+      </div>
+
+      {/* Final CTA */}
+      <div className="text-center space-y-6 bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-2xl p-12 max-w-4xl mx-auto">
+        <h3 className="text-3xl font-bold text-foreground">Start planning better trips today. Your crew is waiting.</h3>
+        <div className="flex gap-4 justify-center flex-wrap">
+          <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground px-8">
+            Get Started Free
+          </Button>
+          <Button size="lg" variant="outline" className="px-8">
+            See Plans
+          </Button>
         </div>
       </div>
     </div>

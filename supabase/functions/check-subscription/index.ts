@@ -81,11 +81,12 @@ serve(async (req) => {
       
       // Determine tier from product ID
       let tier = 'free';
-      if (productId === 'prod_TBD_STARTER') tier = 'starter';
-      else if (productId === 'prod_TBD_EXPLORER') tier = 'explorer';
-      else if (productId === 'prod_TBD_UNLIMITED') tier = 'unlimited';
-      else if (productId === 'prod_TBIgoaG5RiY45u') tier = 'starter'; // Legacy Plus -> Starter
-      else if (productId.startsWith('prod_TBIi')) tier = 'pro'; // Pro products
+      if (productId === 'prod_TBD_EXPLORER') tier = 'explorer';
+      else if (productId === 'prod_TBD_PRO') tier = 'pro';
+      else if (productId === 'prod_TBD_UNLIMITED') tier = 'pro'; // Legacy Unlimited -> Pro
+      else if (productId === 'prod_TBIgoaG5RiY45u') tier = 'explorer'; // Legacy Plus -> Explorer
+      else if (productId === 'prod_TBD_STARTER') tier = 'explorer'; // Legacy Starter -> Explorer
+      else if (productId.startsWith('prod_TBIi')) tier = 'pro'; // Travel Pro products
       
       logStep("Determined subscription tier", { productId, tier });
 

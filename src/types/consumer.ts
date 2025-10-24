@@ -1,6 +1,6 @@
 
 export interface ConsumerSubscription {
-  tier: 'free' | 'starter' | 'explorer' | 'unlimited';
+  tier: 'free' | 'explorer' | 'pro';
   status: 'active' | 'trial' | 'expired' | 'cancelled';
   trialEndsAt?: string;
   subscriptionEndsAt?: string;
@@ -73,34 +73,27 @@ export const LIFESTYLE_OPTIONS = [
   'Sightseeing', 'Volunteering', 'Night Owls', 'Farmer\'s Markets'
 ];
 
-// Consumer subscription pricing - NEW STRUCTURE
+// Consumer subscription pricing - NEW 3-TIER STRUCTURE
 export const CONSUMER_PRICING = {
-  starter: {
-    monthly: 9.99,
-    annual: 99.99,
-    trips: 12,
-    savings: 19.89,
-    savingsPercent: 17
-  },
   explorer: {
-    monthly: 19.99,
-    annual: 199.99,
-    trips: 50,
-    savings: 39.89,
+    monthly: 9.99,
+    annual: 99,
+    trips: Infinity,
+    savings: 20,
     savingsPercent: 17
   },
-  unlimited: {
-    monthly: 39.99,
-    annual: 399.99,
+  pro: {
+    monthly: 19.99,
+    annual: 199,
     trips: Infinity,
-    savings: 79.89,
+    savings: 40,
     savingsPercent: 17
   }
 } as const;
 
-// Legacy exports for backward compatibility (map to Starter)
-export const TRIPS_PLUS_PRICE = CONSUMER_PRICING.starter.monthly;
-export const TRIPS_PLUS_ANNUAL_PRICE = CONSUMER_PRICING.starter.annual;
+// Legacy exports for backward compatibility (map to Explorer)
+export const TRIPS_PLUS_PRICE = CONSUMER_PRICING.explorer.monthly;
+export const TRIPS_PLUS_ANNUAL_PRICE = CONSUMER_PRICING.explorer.annual;
 
 // Storage quotas (in MB)
 export const FREE_STORAGE_QUOTA_MB = 500;

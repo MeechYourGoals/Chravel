@@ -64,7 +64,7 @@ export const StorageQuotaBar: React.FC<StorageQuotaBarProps> = ({ tripId, showDe
               You've reached your 500 MB storage limit. Upgrade for unlimited storage.
             </p>
             <button
-              onClick={() => upgradeToTier('starter', 'annual')}
+              onClick={() => upgradeToTier('explorer', 'annual')}
               className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-4 py-1.5 rounded-lg text-xs font-bold hover:scale-105 transition-transform"
             >
               <Crown size={14} className="inline mr-1" />
@@ -83,7 +83,7 @@ export const StorageQuotaBar: React.FC<StorageQuotaBarProps> = ({ tripId, showDe
               You've used {quota.percentUsed.toFixed(0)}% of your storage. Upgrade for unlimited storage.
             </p>
             <button
-              onClick={() => upgradeToTier('starter', 'annual')}
+              onClick={() => upgradeToTier('explorer', 'annual')}
               className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-4 py-1.5 rounded-lg text-xs font-bold hover:scale-105 transition-transform"
             >
               <Crown size={14} className="inline mr-1" />

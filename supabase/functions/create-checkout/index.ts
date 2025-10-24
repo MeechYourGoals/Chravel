@@ -8,17 +8,15 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
-// Price ID mapping - UPDATED CONSUMER STRUCTURE
+// Price ID mapping - NEW 3-TIER STRUCTURE
 const PRICE_IDS = {
   // Consumer Plans - NEW STRUCTURE
-  'consumer-starter-monthly': 'price_starter_monthly_9_99',
-  'consumer-starter-annual': 'price_starter_annual_99_99',
-  'consumer-explorer-monthly': 'price_explorer_monthly_19_99',
-  'consumer-explorer-annual': 'price_explorer_annual_199_99',
-  'consumer-unlimited-monthly': 'price_unlimited_monthly_39_99',
-  'consumer-unlimited-annual': 'price_unlimited_annual_399_99',
+  'consumer-explorer-monthly': 'price_explorer_monthly_9_99',
+  'consumer-explorer-annual': 'price_explorer_annual_99',
+  'consumer-pro-monthly': 'price_pro_monthly_19_99',
+  'consumer-pro-annual': 'price_pro_annual_199',
   
-  // Legacy Consumer Plus (map to starter)
+  // Legacy Consumer Plus (map to explorer)
   'consumer-plus': 'price_1SEw5402kHnoJKm0cVP4HlOh',
   
   // Pro Plans (unchanged)

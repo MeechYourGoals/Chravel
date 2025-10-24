@@ -8,13 +8,13 @@ import { toast } from 'sonner';
 
 interface ConsumerSubscriptionContextType {
   subscription: ConsumerSubscription | null;
-  tier: 'free' | 'starter' | 'explorer' | 'unlimited';
+  tier: 'free' | 'explorer' | 'pro';
   isPlus: boolean; // Legacy - true for any paid tier
   isSubscribed: boolean;
   isLoading: boolean;
   checkSubscription: () => Promise<void>;
   upgradeToPlus: () => Promise<void>; // Legacy
-  upgradeToTier: (tier: 'starter' | 'explorer' | 'unlimited', billingCycle: 'monthly' | 'annual') => Promise<void>;
+  upgradeToTier: (tier: 'explorer' | 'pro', billingCycle: 'monthly' | 'annual') => Promise<void>;
 }
 
 const ConsumerSubscriptionContext = createContext<ConsumerSubscriptionContextType | undefined>(undefined);
@@ -42,15 +42,14 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
       const { subscribed, product_id, tier, subscription_end } = data;
       
       // Map tier from backend or detect from product_id
-      let userTier: 'free' | 'starter' | 'explorer' | 'unlimited' = 'free';
+      let userTier: 'free' | 'explorer' | 'pro' = 'free';
       if (tier) {
-        userTier = tier;
+        userTier = tier as 'free' | 'explorer' | 'pro';
       } else if (product_id) {
         // Fallback detection for legacy/unmapped products
-        if (product_id === STRIPE_PRODUCTS['consumer-starter'].product_id) userTier = 'starter';
-        else if (product_id === STRIPE_PRODUCTS['consumer-explorer'].product_id) userTier = 'explorer';
-        else if (product_id === STRIPE_PRODUCTS['consumer-unlimited'].product_id) userTier = 'unlimited';
-        else if (product_id === STRIPE_PRODUCTS['consumer-plus'].product_id) userTier = 'starter'; // Legacy mapping
+        if (product_id === STRIPE_PRODUCTS['consumer-explorer'].product_id) userTier = 'explorer';
+        else if (product_id === STRIPE_PRODUCTS['consumer-pro'].product_id) userTier = 'pro';
+        else if (product_id === STRIPE_PRODUCTS['consumer-plus'].product_id) userTier = 'explorer'; // Legacy Plus -> Explorer
       }
       
       setSubscription({
@@ -68,11 +67,11 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
   };
 
   const upgradeToPlus = async () => {
-    // Legacy function - defaults to Starter tier
-    await upgradeToTier('starter', 'annual');
+    // Legacy function - defaults to Explorer tier
+    await upgradeToTier('explorer', 'annual');
   };
 
-  const upgradeToTier = async (tier: 'starter' | 'explorer' | 'unlimited', billingCycle: 'monthly' | 'annual') => {
+  const upgradeToTier = async (tier: 'explorer' | 'pro', billingCycle: 'monthly' | 'annual') => {
     if (!user) {
       toast.error('Please sign in to upgrade');
       return;
@@ -81,9 +80,8 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
     setIsLoading(true);
     try {
       const tierMap = {
-        starter: 'consumer-starter',
         explorer: 'consumer-explorer',
-        unlimited: 'consumer-unlimited'
+        pro: 'consumer-pro'
       };
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {

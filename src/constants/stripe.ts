@@ -1,29 +1,21 @@
 // Stripe product and price mapping
 export const STRIPE_PRODUCTS = {
-  // Consumer Plans - NEW STRUCTURE
-  'consumer-starter': {
-    product_id: 'prod_TBD_STARTER', // To be created in Stripe
-    price_monthly_id: 'price_starter_monthly_9_99',
-    price_annual_id: 'price_starter_annual_99_99',
-    name: 'Starter',
-    monthly_price: 9.99,
-    annual_price: 99.99,
-  },
+  // Consumer Plans - NEW 3-TIER STRUCTURE
   'consumer-explorer': {
     product_id: 'prod_TBD_EXPLORER', // To be created in Stripe
-    price_monthly_id: 'price_explorer_monthly_19_99',
-    price_annual_id: 'price_explorer_annual_199_99',
+    price_monthly_id: 'price_explorer_monthly_9_99',
+    price_annual_id: 'price_explorer_annual_99',
     name: 'Explorer',
-    monthly_price: 19.99,
-    annual_price: 199.99,
+    monthly_price: 9.99,
+    annual_price: 99,
   },
-  'consumer-unlimited': {
-    product_id: 'prod_TBD_UNLIMITED', // To be created in Stripe
-    price_monthly_id: 'price_unlimited_monthly_39_99',
-    price_annual_id: 'price_unlimited_annual_399_99',
-    name: 'Unlimited',
-    monthly_price: 39.99,
-    annual_price: 399.99,
+  'consumer-pro': {
+    product_id: 'prod_TBD_PRO', // To be created in Stripe
+    price_monthly_id: 'price_pro_monthly_19_99',
+    price_annual_id: 'price_pro_annual_199',
+    name: 'Pro',
+    monthly_price: 19.99,
+    annual_price: 199,
   },
   // Legacy - Keep for backward compatibility
   'consumer-plus': {

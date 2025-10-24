@@ -53,26 +53,14 @@ export const ConsumerBillingSection = () => {
       price: 0,
       icon: Crown,
       features: [
-        '3 trips per year',
+        'Up to 3 active trips',
+        'Unlimited participants',
         'Core group chat',
-        'Shared calendar',
+        'Shared calendar (manual)',
+        'Photo & video sharing',
         'Basic itinerary planning',
-        'Photo sharing',
-        'All trip invitees join free'
-      ]
-    },
-    starter: {
-      name: 'Starter',
-      price: CONSUMER_PRICING.starter.monthly,
-      annualPrice: CONSUMER_PRICING.starter.annual,
-      icon: Star,
-      features: [
-        '12 trips per year',
-        'Everything in Free',
-        'AI trip assistant',
-        'Advanced recommendations',
         'Expense tracking',
-        'Priority support'
+        'AI Trip Assistant (5 queries/user/trip)'
       ]
     },
     explorer: {
@@ -81,27 +69,30 @@ export const ConsumerBillingSection = () => {
       annualPrice: CONSUMER_PRICING.explorer.annual,
       icon: Globe,
       features: [
-        '50 trips per year',
-        'Everything in Starter',
-        'Advanced trip insights',
-        'Multi-trip planning',
-        'Enhanced AI features',
-        'Premium support',
-        'Early access to features'
+        'Unlimited saved trips',
+        'Unlimited AI queries',
+        'Location-aware AI suggestions',
+        'Calendar sync (Google, Apple, Outlook)',
+        'PDF trip export',
+        'Smart notifications',
+        'Search past trips',
+        'Priority support'
       ]
     },
-    unlimited: {
-      name: 'Unlimited',
-      price: CONSUMER_PRICING.unlimited.monthly,
-      annualPrice: CONSUMER_PRICING.unlimited.annual,
+    pro: {
+      name: 'Pro',
+      price: CONSUMER_PRICING.pro.monthly,
+      annualPrice: CONSUMER_PRICING.pro.annual,
       icon: Sparkles,
       features: [
-        'Unlimited trips',
         'Everything in Explorer',
-        'Premium AI responses',
-        'VIP support',
+        'Bulk trip management',
+        'Advanced analytics',
+        'External calendar publishing',
+        'Team workspaces',
+        'Multi-stop route optimization',
         'Early feature access',
-        'Custom integrations'
+        'Custom trip categories'
       ]
     }
   } as const;
@@ -228,7 +219,7 @@ export const ConsumerBillingSection = () => {
                     </ul>
                     {key !== 'free' && key !== tier && (
                       <button 
-                        onClick={() => upgradeToTier(key as 'starter' | 'explorer' | 'unlimited', 'annual')}
+                        onClick={() => upgradeToTier(key as 'explorer' | 'pro', 'annual')}
                         disabled={isLoading}
                         className="mt-4 bg-gradient-to-r from-glass-orange to-glass-yellow hover:from-glass-orange/80 hover:to-glass-yellow/80 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                       >

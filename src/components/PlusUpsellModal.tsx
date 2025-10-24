@@ -10,7 +10,7 @@ interface PlusUpsellModalProps {
 
 export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
   const { upgradeToTier, isLoading } = useConsumerSubscription();
-  const [selectedTier, setSelectedTier] = useState<'starter' | 'explorer' | 'unlimited'>('explorer');
+  const [selectedTier, setSelectedTier] = useState<'explorer' | 'pro'>('explorer');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
 
   if (!isOpen) return null;
@@ -39,20 +39,17 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-              selectedTier === 'starter' ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
               selectedTier === 'explorer' ? 'bg-gradient-to-r from-glass-orange to-glass-yellow' :
               'bg-gradient-to-r from-purple-500 to-purple-600'
             }`}>
-              {selectedTier === 'starter' && <Star size={24} className="text-white" />}
-              {selectedTier === 'explorer' && <Crown size={24} className="text-white" />}
-              {selectedTier === 'unlimited' && <Sparkles size={24} className="text-white" />}
+              {selectedTier === 'explorer' && <Globe size={24} className="text-white" />}
+              {selectedTier === 'pro' && <Sparkles size={24} className="text-white" />}
             </div>
             <div>
               <h2 className="text-3xl font-bold text-white capitalize">Upgrade to {selectedTier}</h2>
               <p className="text-gray-400">
-                {selectedTier === 'starter' && 'Perfect for occasional travelers'}
-                {selectedTier === 'explorer' && 'Perfect for frequent travelers'}
-                {selectedTier === 'unlimited' && 'For travel enthusiasts'}
+                {selectedTier === 'explorer' && 'Never lose a trip memory'}
+                {selectedTier === 'pro' && 'For travel pros and adventure enthusiasts'}
               </p>
             </div>
           </div>
@@ -66,7 +63,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
 
         {/* Tier Selector */}
         <div className="flex justify-center gap-2 mb-6">
-          {(['starter', 'explorer', 'unlimited'] as const).map((tier) => (
+          {(['explorer', 'pro'] as const).map((tier) => (
             <button
               key={tier}
               onClick={() => setSelectedTier(tier)}
@@ -126,30 +123,41 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
 
         {/* Comparison */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 mb-8">
-          <h3 className="text-lg font-bold text-white mb-4">Free vs. Plus</h3>
+          <h3 className="text-lg font-bold text-white mb-4">Free vs. {selectedTier === 'explorer' ? 'Explorer' : 'Pro'}</h3>
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <h4 className="text-white font-medium mb-3">Free Plan</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>• Up to 5 trips (delete to add new)</li>
+                <li>• Up to 3 active trips</li>
                 <li>• Basic group chat</li>
-                <li>• Group to-do list</li>
-                <li>• Shared trip calendar</li>
-                <li>• Up to 10 participants</li>
+                <li>• Shared calendar (manual)</li>
+                <li>• Photo & video sharing</li>
+                <li>• 5 AI queries per user per trip</li>
               </ul>
             </div>
             <div>
-              <h4 className="text-white font-medium mb-3">Plus</h4>
-              <ul className="space-y-2 text-sm text-green-300">
-                <li>• Unlimited trips & participants</li>
-                <li>• Photo sharing</li>
-                <li>• AI-powered recommendations</li>
-                <li>• Smart preference matching</li>
-                <li>• Basecamp-aware suggestions</li>
-                <li>• Concierge AI chat</li>
-                <li>• Personalized itinerary building</li>
-                <li>• Group preference management</li>
-              </ul>
+              <h4 className="text-white font-medium mb-3">{selectedTier === 'explorer' ? 'Explorer' : 'Pro'}</h4>
+              {selectedTier === 'explorer' ? (
+                <ul className="space-y-2 text-sm text-green-300">
+                  <li>• Unlimited saved trips</li>
+                  <li>• Unlimited AI queries</li>
+                  <li>• Location-aware AI</li>
+                  <li>• Calendar sync</li>
+                  <li>• PDF trip export</li>
+                  <li>• Smart notifications</li>
+                  <li>• Priority support</li>
+                </ul>
+              ) : (
+                <ul className="space-y-2 text-sm text-purple-300">
+                  <li>• Everything in Explorer</li>
+                  <li>• Bulk trip management</li>
+                  <li>• Advanced analytics</li>
+                  <li>• External calendar publishing</li>
+                  <li>• Team workspaces</li>
+                  <li>• Route optimization</li>
+                  <li>• Early feature access</li>
+                </ul>
+              )}
             </div>
           </div>
         </div>
