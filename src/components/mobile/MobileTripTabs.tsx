@@ -88,9 +88,9 @@ export const MobileTripTabs = ({
   };
 
   return (
-    <>
+    <div className="flex flex-col flex-1">
       {/* Horizontal Scrollable Tab Bar - Sticky, Compressed for Mobile Portrait */}
-      <div className="sticky top-[73px] z-40 bg-black/95 backdrop-blur-md border-b border-white/10">
+      <div className="sticky top-[73px] z-40 bg-black/95 backdrop-blur-md border-b border-white/10 flex-shrink-0">
         <div
           ref={tabsContainerRef}
           className="flex overflow-x-auto scrollbar-hide gap-2 px-4 py-2"
@@ -133,16 +133,13 @@ export const MobileTripTabs = ({
         </div>
       </div>
 
-      {/* Tab Content - Optimized height for mobile portrait */}
+      {/* Tab Content - Fills remaining viewport */}
       <div
         ref={contentRef}
-        className="bg-black"
-          style={{
-            minHeight: 'calc(100vh - 73px - 52px)'
-          }}
+        className="bg-black flex-1 flex flex-col overflow-hidden"
       >
         {renderTabContent()}
       </div>
-    </>
+    </div>
   );
 };

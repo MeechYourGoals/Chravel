@@ -74,9 +74,9 @@ export const MobileTripDetail = () => {
 
   return (
     <MobileErrorBoundary>
-      <div className="min-h-screen bg-black">
+      <div className="flex flex-col min-h-screen bg-black">
       {/* Mobile Header - Sticky */}
-      <div className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10">
+      <div className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 flex-shrink-0">
         <div className="flex items-center justify-between px-4 py-3">
           <button
             onClick={handleBack}
