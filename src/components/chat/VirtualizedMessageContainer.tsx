@@ -215,7 +215,7 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
         />
 
         {/* Messages */}
-        <div className="space-y-4 p-4">
+        <div className="space-y-3 p-4">
           {visibleMessages.map((message, index) => (
             <React.Fragment key={message.id}>
               {renderMessage(message, index)}

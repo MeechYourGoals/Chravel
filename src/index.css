@@ -630,3 +630,24 @@
 }
 
 
+/* Desktop chat container heights */
+@media screen and (min-width: 1025px) {
+  .desktop-chat-full {
+    height: calc(100vh - 320px);
+    max-height: 1000px;
+    min-height: 500px;
+  }
+  
+  .desktop-chat-messages {
+    min-height: 500px;
+  }
+}
+
+/* Ensure iOS handles dynamic viewport correctly */
+@supports (-webkit-touch-callout: none) {
+  .mobile-chat-container {
+    height: calc(100dvh - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px));
+    min-height: 400px;
+  }
+}
+

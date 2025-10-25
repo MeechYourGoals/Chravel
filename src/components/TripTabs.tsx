@@ -137,7 +137,7 @@ export const TripTabs = ({
       </div>
 
       {/* Tab Content */}
-      <div className="h-[calc(100vh-200px)] max-h-[900px] min-h-[400px]">
+      <div className="h-[calc(100vh-320px)] max-h-[1000px] min-h-[500px]">
         {renderTabContent()}
       </div>
     </>
