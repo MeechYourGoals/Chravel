@@ -16,6 +16,7 @@ export interface MessageBubbleProps {
   timestamp: string;
   isBroadcast?: boolean;
   isPayment?: boolean;
+  isOwnMessage?: boolean;
   reactions?: Record<string, { count: number; userReacted: boolean }>;
   onReaction: (messageId: string, reactionType: string) => void;
   // 🆕 Grounding support
@@ -33,6 +34,7 @@ export const MessageBubble = ({
   timestamp,
   isBroadcast,
   isPayment,
+  isOwnMessage = false,
   reactions,
   onReaction,
   grounding
@@ -73,67 +75,77 @@ export const MessageBubble = ({
   return (
     <div
       className={cn(
-        "group flex items-start gap-2",
+        "group flex gap-2 w-full",
+        isOwnMessage ? "flex-row-reverse justify-start" : "flex-row items-start",
         "mb-0"
       )}
       {...longPressHandlers}
     >
-      <img
-        src={senderAvatar || getMockAvatar(senderName)}
-        alt={senderName}
-        className={cn(
-          "rounded-full object-cover border-2 border-border/50 flex-shrink-0",
-          isMobilePortrait ? "w-10 h-10" : "w-10 h-10"
-        )}
-      />
+      {!isOwnMessage && (
+        <img
+          src={senderAvatar || getMockAvatar(senderName)}
+          alt={senderName}
+          className={cn(
+            "rounded-full object-cover border-2 border-border/50 flex-shrink-0",
+            isMobilePortrait ? "w-10 h-10" : "w-10 h-10"
+          )}
+        />
+      )}
       
-      <div className="flex flex-col items-start max-w-full">
+      <div className={cn(
+        "flex flex-col max-w-full",
+        isOwnMessage ? "items-end" : "items-start"
+      )}>
         {/* Metadata above bubble - all versions */}
-        <div className={cn(
-          "flex items-center gap-1 mb-0.5",
-          isMobilePortrait ? "text-xs" : "text-sm"
-        )}>
-          <span className={cn(
-            "font-semibold text-foreground",
+        {!isOwnMessage && (
+          <div className={cn(
+            "flex items-center gap-1 mb-0.5",
             isMobilePortrait ? "text-xs" : "text-sm"
           )}>
-            {senderName}
-          </span>
-          <span className={cn(
-            "text-muted-foreground opacity-70",
-            isMobilePortrait ? "text-[11px]" : "text-xs"
-          )}>
-            {formatTime(timestamp)}
-          </span>
-          {isBroadcast && (
             <span className={cn(
-              "bg-orange-600/20 text-orange-400 px-1.5 py-0.5 rounded-full",
-              isMobilePortrait ? "text-[10px]" : "text-xs"
+              "font-semibold text-foreground",
+              isMobilePortrait ? "text-xs" : "text-sm"
             )}>
-              📢 Broadcast
+              {senderName}
             </span>
-          )}
-          {isPayment && (
             <span className={cn(
-              "bg-green-600/20 text-green-400 px-1.5 py-0.5 rounded-full",
-              isMobilePortrait ? "text-[10px]" : "text-xs"
+              "text-muted-foreground opacity-70",
+              isMobilePortrait ? "text-[11px]" : "text-xs"
             )}>
-              💳 Payment
+              {formatTime(timestamp)}
             </span>
-          )}
-        </div>
+            {isBroadcast && (
+              <span className={cn(
+                "bg-orange-600/20 text-orange-400 px-1.5 py-0.5 rounded-full",
+                isMobilePortrait ? "text-[10px]" : "text-xs"
+              )}>
+                📢 Broadcast
+              </span>
+            )}
+            {isPayment && (
+              <span className={cn(
+                "bg-green-600/20 text-green-400 px-1.5 py-0.5 rounded-full",
+                isMobilePortrait ? "text-[10px]" : "text-xs"
+              )}>
+                💳 Payment
+              </span>
+            )}
+          </div>
+        )}
         
         {/* Message bubble - content only */}
         <div 
           className={cn(
-            'inline-flex rounded-xl backdrop-blur-sm border transition-all px-3 py-2',
+            'inline-flex rounded-2xl backdrop-blur-sm border transition-all px-3 py-2',
             'max-w-[85%] sm:max-w-[75%] md:max-w-[70%]',
-            getBubbleClasses()
+            isOwnMessage 
+              ? 'bg-gradient-to-br from-[#007AFF] to-[#005FCC] text-white border-[#007AFF]/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-md'
+              : getBubbleClasses()
           )}
         >
           <p className={cn(
             'text-sm leading-snug break-words whitespace-pre-wrap',
-            getTextColorClass()
+            isOwnMessage ? 'text-white' : getTextColorClass()
           )}>
             {text}
           </p>

@@ -2,6 +2,7 @@ import React from 'react';
 import { ChatMessage } from '@/hooks/useChatComposer';
 import { ChatMessageWithGrounding } from '@/types/grounding';
 import { MessageBubble } from './MessageBubble';
+import { useAuth } from '@/hooks/useAuth';
 
 interface MessageItemProps {
   message: ChatMessage;
@@ -10,7 +11,9 @@ interface MessageItemProps {
 }
 
 export const MessageItem = ({ message, reactions, onReaction }: MessageItemProps) => {
+  const { user } = useAuth();
   const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
+  const isOwnMessage = user?.id === message.sender.id;
   
   return (
     <MessageBubble
@@ -21,6 +24,7 @@ export const MessageItem = ({ message, reactions, onReaction }: MessageItemProps
       timestamp={message.createdAt}
       isBroadcast={message.isBroadcast}
       isPayment={message.isPayment || message.tags?.includes('payment')}
+      isOwnMessage={isOwnMessage}
       reactions={reactions}
       onReaction={onReaction}
       // 🆕 Pass grounding data
