@@ -87,7 +87,7 @@ export const MessageBubble = ({
         )}
       />
       
-      <div className="flex-1 min-w-0">
+      <div className="flex flex-col items-start max-w-full">
         {/* Metadata above bubble - all versions */}
         <div className={cn(
           "flex items-center gap-1 mb-0.5",
@@ -126,14 +126,13 @@ export const MessageBubble = ({
         {/* Message bubble - content only */}
         <div 
           className={cn(
-            'rounded-xl backdrop-blur-sm border transition-all',
-            getBubbleClasses(),
-            isMobilePortrait ? 'px-3 py-2 max-w-[75vw]' : 'px-3 py-2'
+            'inline-flex rounded-xl backdrop-blur-sm border transition-all px-3 py-2',
+            'max-w-[85%] sm:max-w-[75%] md:max-w-[70%]',
+            getBubbleClasses()
           )}
-          style={{ lineHeight: isMobilePortrait ? '1.4' : '1.5' }}
         >
           <p className={cn(
-            'text-sm leading-snug',
+            'text-sm leading-snug break-words whitespace-pre-wrap',
             getTextColorClass()
           )}>
             {text}
