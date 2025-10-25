@@ -209,7 +209,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
 
   return (
     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-4">
         <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
           <Search size={20} className="text-white" />
         </div>
@@ -286,9 +286,9 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
 
       {/* Empty State */}
       {messages.length === 0 && !(isFreeUser && usage?.isLimitReached) && (
-        <div className="text-center py-8 mb-6">
+        <div className="text-center py-4 mb-4">
           <h4 className="text-white font-medium mb-3">Your AI Travel Concierge</h4>
-          <div className="text-sm text-gray-300 space-y-2 max-w-md mx-auto">
+          <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
             <p>Ask me anything about your trip:</p>
             <div className="text-xs text-gray-400 space-y-1">
               <p>• "What are the best restaurants for our group?"</p>
@@ -304,7 +304,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       )}
 
       {/* Chat Messages */}
-      <div className="space-y-2 mb-6 h-[60vh] min-h-[400px] overflow-y-auto">
+      <div className="space-y-2 mb-4 max-h-[300px] overflow-y-auto">
         <ChatMessages 
           messages={messages} 
           isTyping={isTyping}
