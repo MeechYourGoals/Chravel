@@ -6,6 +6,7 @@ import { ChatMessageWithGrounding } from '@/types/grounding';
 import { ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMobilePortrait } from '@/hooks/useMobilePortrait';
+import { useLongPress } from '@/hooks/useLongPress';
 
 export interface MessageBubbleProps {
   id: string;
@@ -60,16 +61,22 @@ export const MessageBubble = ({
   };
 
   // Unified layout: Metadata above bubble for both mobile and desktop (consistency)
+  const longPressHandlers = useLongPress({
+    onLongPress: () => {
+      setShowReactions(true);
+      // Auto-hide after 5 seconds
+      setTimeout(() => setShowReactions(false), 5000);
+    },
+    threshold: 500
+  });
+
   return (
     <div
       className={cn(
         "group flex items-start gap-2",
         "mb-0"
       )}
-      onMouseEnter={() => setShowReactions(true)}
-      onMouseLeave={() => setShowReactions(false)}
-      onTouchStart={() => setShowReactions(true)}
-      onTouchEnd={() => setTimeout(() => setShowReactions(false), 3000)}
+      {...longPressHandlers}
     >
       <img
         src={senderAvatar || getMockAvatar(senderName)}

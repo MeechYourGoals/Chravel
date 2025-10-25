@@ -1,5 +1,6 @@
 import React from 'react';
 import { getInitials, isValidAvatarUrl } from '../../utils/avatarUtils';
+import { formatCollaboratorName, shouldShowFullNameInAvatar } from '../../utils/nameFormatUtils';
 
 export interface CollaboratorItem {
   id: number | string;
@@ -14,6 +15,7 @@ interface CollaboratorsGridProps {
   maxRows?: number; // approximate rows to show before clamping
   minColWidth?: number; // min width for each grid item
   onShowAll: () => void;
+  tripType?: 'consumer' | 'pro' | 'event';
 }
 
 export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
@@ -22,6 +24,7 @@ export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
   maxRows = 1,
   minColWidth = 140,
   onShowAll,
+  tripType = 'consumer',
 }) => {
   // Approximate clamp height: each row ~ 52px with compact sizing
   const clampHeight = Math.max(52, Math.min(160, maxRows * 52));
@@ -46,20 +49,20 @@ export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
               role="listitem"
               title={c.role ? `${c.name} • ${c.role}` : c.name}
             >
-              {isValidAvatarUrl(c.avatar) ? (
-                <img
-                  src={c.avatar}
-                  alt={c.name}
-                  className="h-7 w-7 rounded-full object-cover border border-white/20"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="h-7 w-7 rounded-full bg-white/10 text-white/80 grid place-items-center text-[10px] font-semibold border border-white/20">
-                  {getInitials(c.name)}
-                </div>
-              )}
-              <div className="flex-1 min-w-0 text-left">
-                <div className="truncate text-xs font-medium text-white">{c.name}</div>
+            {isValidAvatarUrl(c.avatar) && shouldShowFullNameInAvatar(tripType) ? (
+              <img
+                src={c.avatar}
+                alt={c.name}
+                className="h-7 w-7 rounded-full object-cover border border-white/20"
+                loading="lazy"
+              />
+            ) : (
+              <div className="h-7 w-7 rounded-full bg-white/10 text-white/80 grid place-items-center text-[10px] font-semibold border border-white/20">
+                {getInitials(c.name)}
+              </div>
+            )}
+            <div className="flex-1 min-w-0 text-left">
+              <div className="truncate text-xs font-medium text-white">{formatCollaboratorName(c.name, tripType)}</div>
                 {c.role && (
                   <div className="truncate text-[10px] text-gray-400">{c.role}</div>
                 )}

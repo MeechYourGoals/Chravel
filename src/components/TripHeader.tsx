@@ -30,6 +30,7 @@ interface TripHeaderProps {
       role?: string;
     }>;
     coverPhoto?: string;
+    trip_type?: 'consumer' | 'pro' | 'event';
   };
   onManageUsers?: () => void;
   onDescriptionUpdate?: (description: string) => void;
@@ -183,6 +184,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
               onShowAll={() => setShowAllCollaborators(true)}
               maxRows={1}
               minColWidth={140}
+              tripType={trip.trip_type || 'consumer'}
             />
 
             <button
@@ -221,6 +223,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
         open={showAllCollaborators}
         onOpenChange={setShowAllCollaborators}
         participants={trip.participants}
+        tripType={trip.trip_type || 'consumer'}
       />
 
       <EditTripModal
