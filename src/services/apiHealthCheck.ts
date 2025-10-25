@@ -129,7 +129,20 @@ class ApiHealthCheckService {
       const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
       
       if (!apiKey) {
-        throw new Error('Google Maps API key not configured');
+        // No API key: mark as degraded (embed-only mode) but not offline
+        const status: HealthStatus = {
+          service: serviceName,
+          status: 'degraded',
+          message: 'Embed-only mode (keyless)',
+          lastCheck: new Date(),
+          details: { embedMode: true }
+        };
+        
+        this.healthStatus.set(serviceName, status);
+        this.retryAttempts.set(serviceName, 0);
+        console.log('⚠️ Google Maps: DEGRADED (embed-only, no API key)');
+        
+        return status;
       }
 
       // Validate key format
@@ -157,7 +170,7 @@ class ApiHealthCheckService {
       const status: HealthStatus = {
         service: serviceName,
         status: 'healthy',
-        message: 'Google Maps is online and authorized',
+        message: 'Google Maps is online with API key',
         lastCheck: new Date(),
         details: { apiKeyValid: true }
       };

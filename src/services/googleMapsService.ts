@@ -97,34 +97,55 @@ export class GoogleMapsService {
   }
 
   /**
-   * Build classic embeddable Google Maps URL (output=embed format)
-   * This format works reliably in iframes without CSP/API key issues
+   * Build stable embeddable Google Maps URL
+   * Uses www.google.com (more stable) with keyless embed or Embed API v1 if key present
    */
   static buildEmbeddableUrl(
     basecampAddress?: string,
     coords?: { lat: number; lng: number },
     destination?: string
   ): string {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    
+    // With API key: use official Embed API v1 (more stable)
+    if (apiKey) {
+      if (destination && basecampAddress) {
+        const origin = encodeURIComponent(basecampAddress);
+        const dest = encodeURIComponent(destination);
+        return `https://www.google.com/maps/embed/v1/directions?key=${apiKey}&origin=${origin}&destination=${dest}`;
+      }
+      
+      if (basecampAddress) {
+        const query = encodeURIComponent(basecampAddress);
+        return `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${query}`;
+      }
+      
+      if (coords) {
+        return `https://www.google.com/maps/embed/v1/view?key=${apiKey}&center=${coords.lat},${coords.lng}&zoom=12&maptype=roadmap`;
+      }
+      
+      // Fallback: NYC
+      return `https://www.google.com/maps/embed/v1/view?key=${apiKey}&center=40.7580,-73.9855&zoom=12&maptype=roadmap`;
+    }
+    
+    // Without API key: use keyless embed (www.google.com is more stable than maps.google.com)
     if (destination && basecampAddress) {
-      // Directions from Base Camp to destination
       const s = encodeURIComponent(basecampAddress);
       const d = encodeURIComponent(destination);
-      return `https://maps.google.com/maps?output=embed&saddr=${s}&daddr=${d}`;
+      return `https://www.google.com/maps?output=embed&saddr=${s}&daddr=${d}`;
     }
     
     if (basecampAddress) {
-      // Show Base Camp location
       const q = encodeURIComponent(basecampAddress);
-      return `https://maps.google.com/maps?output=embed&q=${q}`;
+      return `https://www.google.com/maps?output=embed&q=${q}`;
     }
     
     if (coords) {
-      // Show specific coordinates
-      return `https://maps.google.com/maps?output=embed&ll=${coords.lat},${coords.lng}&z=12`;
+      return `https://www.google.com/maps?output=embed&ll=${coords.lat},${coords.lng}&z=12`;
     }
     
     // Fallback: NYC default
-    return `https://maps.google.com/maps?output=embed&ll=40.7580,-73.9855&z=12`;
+    return `https://www.google.com/maps?output=embed&ll=40.7580,-73.9855&z=12`;
   }
 
   // Fallback geocoding using OpenStreetMap Nominatim
