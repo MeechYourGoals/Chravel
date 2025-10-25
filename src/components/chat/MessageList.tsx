@@ -29,7 +29,7 @@ export const MessageList = ({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {messages.map((message) => (
         <MessageItem
           key={message.id}

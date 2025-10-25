@@ -63,8 +63,8 @@ export const MessageBubble = ({
   return (
     <div
       className={cn(
-        "group flex items-start gap-3",
-        isMobilePortrait ? "mb-2" : "mb-3"
+        "group flex items-start gap-2",
+        "mb-0"
       )}
       onMouseEnter={() => setShowReactions(true)}
       onMouseLeave={() => setShowReactions(false)}
@@ -83,7 +83,7 @@ export const MessageBubble = ({
       <div className="flex-1 min-w-0">
         {/* Metadata above bubble - all versions */}
         <div className={cn(
-          "flex items-center gap-2 mb-1",
+          "flex items-center gap-1 mb-0.5",
           isMobilePortrait ? "text-xs" : "text-sm"
         )}>
           <span className={cn(
@@ -121,14 +121,13 @@ export const MessageBubble = ({
           className={cn(
             'rounded-xl backdrop-blur-sm border transition-all',
             getBubbleClasses(),
-            isMobilePortrait ? 'px-3 py-2 max-w-[75vw]' : 'px-4 py-3'
+            isMobilePortrait ? 'px-3 py-2 max-w-[75vw]' : 'px-3 py-2'
           )}
           style={{ lineHeight: isMobilePortrait ? '1.4' : '1.5' }}
         >
           <p className={cn(
-            'text-sm',
-            getTextColorClass(),
-            isMobilePortrait ? 'leading-snug' : 'leading-relaxed'
+            'text-sm leading-snug',
+            getTextColorClass()
           )}>
             {text}
           </p>
@@ -136,7 +135,7 @@ export const MessageBubble = ({
         
         {/* Google Maps Widget */}
         {grounding?.googleMapsWidget && (
-          <div className={cn(isMobilePortrait ? "mt-2" : "mt-3")}>
+          <div className="mt-2">
             <GoogleMapsWidget 
               widgetToken={grounding.googleMapsWidget} 
               height={isMobilePortrait ? 200 : 250} 
@@ -146,7 +145,7 @@ export const MessageBubble = ({
         
         {/* Grounding Sources */}
         {grounding?.sources && grounding.sources.length > 0 && (
-          <div className={cn("space-y-2", isMobilePortrait ? "mt-2" : "mt-3")}>
+          <div className={cn("space-y-2", "mt-2")}>
             <div className={cn(
               "font-medium text-muted-foreground flex items-center gap-2",
               isMobilePortrait ? "text-[10px]" : "text-xs"
@@ -181,13 +180,13 @@ export const MessageBubble = ({
           </div>
         )}
         
-        <div className={cn(
-          'transition-opacity',
-          isMobilePortrait ? 'mt-1' : 'mt-2',
-          showReactions ? 'opacity-100' : 'opacity-0'
-        )}>
-          <MessageReactionBar messageId={id} reactions={reactions} onReaction={onReaction} />
-        </div>
+        {showReactions && (
+          <div className={cn(
+            isMobilePortrait ? 'mt-1' : 'mt-1'
+          )}>
+            <MessageReactionBar messageId={id} reactions={reactions} onReaction={onReaction} />
+          </div>
+        )}
       </div>
     </div>
   );
