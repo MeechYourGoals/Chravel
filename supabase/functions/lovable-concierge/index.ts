@@ -290,11 +290,32 @@ serve(async (req) => {
     )
   } catch (error) {
     console.error('Lovable concierge error:', error)
+    
+    // Provide specific error messages based on error type
+    let userMessage = "I'm having trouble connecting right now. Please try again in a moment.";
+    let errorType = 'unknown';
+    
+    if (error.message?.includes('Lovable API key')) {
+      userMessage = "⚙️ **Configuration Error**\n\nThe AI service needs to be configured. Please contact support.";
+      errorType = 'config_error';
+    } else if (error.message?.includes('not authenticated')) {
+      userMessage = "🔐 **Authentication Required**\n\nPlease sign in to use the AI Concierge.";
+      errorType = 'auth_error';
+    } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+      userMessage = "🌐 **Network Error**\n\nCheck your internet connection and try again.";
+      errorType = 'network_error';
+    } else if (error.message?.includes('timeout')) {
+      userMessage = "⏱️ **Request Timeout**\n\nThe AI service is taking too long. Try a simpler query.";
+      errorType = 'timeout_error';
+    }
+    
     return new Response(
       JSON.stringify({ 
-        response: "I'm having trouble connecting right now. Please try again in a moment.",
-        error: error.message, 
-        success: false 
+        response: userMessage,
+        error: error.message,
+        errorType,
+        success: false,
+        retryable: errorType !== 'config_error' && errorType !== 'auth_error'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

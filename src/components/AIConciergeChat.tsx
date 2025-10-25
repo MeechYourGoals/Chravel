@@ -144,19 +144,50 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         address: basecamp.address
       } : undefined);
 
-      // Send to Lovable AI Concierge
-      const { data, error } = await supabase.functions.invoke('lovable-concierge', {
-        body: {
-          message: currentInput,
-          tripContext,
-          basecampLocation,
-          preferences,
-          chatHistory,
-          isDemoMode
-        }
-      });
+      // Send to Lovable AI Concierge with retry logic
+      let retryCount = 0;
+      const MAX_RETRIES = 2;
+      let data, error;
+      
+      while (retryCount <= MAX_RETRIES) {
+        try {
+          const response = await supabase.functions.invoke('lovable-concierge', {
+            body: {
+              message: currentInput,
+              tripContext,
+              basecampLocation,
+              preferences,
+              chatHistory,
+              isDemoMode
+            }
+          });
 
-      if (error) throw error;
+          data = response.data;
+          error = response.error;
+
+          // Check if response indicates a retryable error
+          if (error && retryCount < MAX_RETRIES) {
+            retryCount++;
+            console.log(`🔄 Retry attempt ${retryCount}/${MAX_RETRIES} for AI Concierge...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+            continue;
+          }
+
+          if (error) throw error;
+
+          // Success - exit retry loop
+          break;
+
+        } catch (attemptError) {
+          if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            console.log(`🔄 Retry attempt ${retryCount}/${MAX_RETRIES} after error:`, attemptError);
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+            continue;
+          }
+          throw attemptError; // Max retries exceeded
+        }
+      }
 
       setAiStatus('connected');
 

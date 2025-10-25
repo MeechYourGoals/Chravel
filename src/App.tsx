@@ -14,6 +14,7 @@ import { performanceService } from "./services/performanceService";
 import { useDemoModeStore } from "./store/demoModeStore";
 import { errorTracking } from "./services/errorTracking";
 import { supabase } from "./integrations/supabase/client";
+import { AppInitializer } from "./components/app/AppInitializer";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -72,10 +73,11 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ConsumerSubscriptionProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
+            <AppInitializer>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
                 <MobileAppLayout>
                   <Routes>
                     <Route path="/" element={
@@ -167,6 +169,7 @@ const App = () => {
                 </MobileAppLayout>
               </BrowserRouter>
             </TooltipProvider>
+            </AppInitializer>
           </ConsumerSubscriptionProvider>
         </AuthProvider>
       </QueryClientProvider>
