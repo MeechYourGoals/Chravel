@@ -103,10 +103,11 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
     <div className="flex flex-col h-full bg-black relative p-4">
       {/* Unified Chat Shell - Teams-like container */}
       <div
-        className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col"
+        className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col mobile-portrait-chat-container"
         style={{
-          minHeight: '360px',
-          maxHeight: `max(360px, ${baseMaxHeight})`
+          height: '480px',
+          maxHeight: '480px',
+          minHeight: '360px'
         }}
       >
         {isLoading ? (
@@ -142,7 +143,7 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
         )}
 
         {/* Input Area */}
-        <div className="border-t border-white/10 bg-black/30 p-3 safe-bottom">
+        <div className="border-t border-white/10 bg-black/30 p-3">
           <ChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}

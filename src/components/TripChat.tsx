@@ -311,6 +311,8 @@ export const TripChat = ({
       <div
         className="mx-4 mb-0 sm:mb-2 rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col mobile-portrait-chat-container"
         style={{
+          height: '480px',
+          maxHeight: '480px',
           minHeight: '360px'
         }}
       >
@@ -361,7 +363,7 @@ export const TripChat = ({
         )}
         
         {/* Input Area */}
-        <div className="border-t border-white/10 bg-black/30 p-3 safe-container-bottom">
+        <div className="border-t border-white/10 bg-black/30 p-3">
           <ChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}
