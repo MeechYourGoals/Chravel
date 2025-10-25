@@ -113,7 +113,9 @@ export const EventDetailContent = ({
       </div>
 
       {/* Tab Content */}
-      {renderTabContent()}
+      <div className="h-[calc(100vh-320px)] max-h-[1000px] min-h-[500px] overflow-hidden flex flex-col">
+        {renderTabContent()}
+      </div>
     </>
   );
 };
