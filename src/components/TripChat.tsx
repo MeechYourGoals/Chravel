@@ -7,6 +7,7 @@ import { useOrientation } from '../hooks/useOrientation';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { useSwipeGesture } from '../hooks/useSwipeGesture';
+import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { ChatInput } from './chat/ChatInput';
 import { MessageList } from './chat/MessageList';
 import { MessageFilters } from './chat/MessageFilters';
@@ -21,6 +22,8 @@ import { useTripChat } from '@/hooks/useTripChat';
 import { useAuth } from '@/hooks/useAuth';
 import { PaymentData } from '@/types/payments';
 import { hapticService } from '../services/hapticService';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { WifiOff } from 'lucide-react';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -60,7 +63,8 @@ export const TripChat = ({
   const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
   const [demoLoading, setDemoLoading] = useState(true);
   const [reactions, setReactions] = useState<{ [messageId: string]: { [reaction: string]: { count: number; userReacted: boolean } } }>({});
-
+  
+  const { isOffline } = useOfflineStatus();
   const params = useParams<{ tripId?: string; proTripId?: string; eventId?: string }>();
   const resolvedTripId = useMemo(() => {
     return tripIdProp || params.tripId || params.proTripId || params.eventId || '';
@@ -296,6 +300,16 @@ export const TripChat = ({
 
   return (
     <div className="flex flex-col min-h-0 h-full">
+      {/* Offline Mode Banner */}
+      {isOffline && (
+        <Alert className="mx-4 mt-2 mb-0 border-warning/50 bg-warning/10">
+          <WifiOff className="h-4 w-4" />
+          <AlertDescription className="text-sm">
+            Offline Mode – viewing cached messages
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Message Filters */}
       {filteredMessages.length > 0 && (
         <div className="p-3 border-b border-gray-700">
@@ -308,14 +322,8 @@ export const TripChat = ({
       )}
 
       {/* Unified Chat Shell - Teams-like container */}
-      <div
-        className="mx-4 mb-0 sm:mb-2 rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col mobile-portrait-chat-container"
-        style={{
-          height: '480px',
-          maxHeight: '480px',
-          minHeight: '360px'
-        }}
-      >
+      <div className="mx-4 mb-0 sm:mb-2 rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1 min-h-0">
+
         {isLoading ? (
           <div className="flex-1 overflow-y-auto p-4">
             <div className="space-y-4">
@@ -345,6 +353,9 @@ export const TripChat = ({
             isLoading={isLoadingMore}
             initialVisibleCount={10}
             className="chat-scroll-container native-scroll"
+            autoScroll={true}
+            restoreScroll={true}
+            scrollKey={`chat-scroll-${resolvedTripId}`}
           />
         )}
         

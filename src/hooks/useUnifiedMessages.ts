@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { unifiedMessagingService, Message, SendMessageOptions } from '@/services/unifiedMessagingService';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { saveMessagesToCache, loadMessagesFromCache } from '@/services/chatStorage';
 
 interface UseUnifiedMessagesOptions {
   tripId: string;
@@ -35,10 +36,20 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
 
     const initMessaging = async () => {
       try {
-        // Load initial messages (last 10)
+        // Load from cache first for instant display
+        const cachedMessages = await loadMessagesFromCache(tripId);
+        if (cachedMessages.length > 0) {
+          setMessages(cachedMessages as any);
+          setIsLoading(false);
+        }
+
+        // Load initial messages from server (last 10)
         const initialMessages = await unifiedMessagingService.getMessages(tripId, 10);
         setMessages(initialMessages);
         setHasMore(initialMessages.length === 10);
+        
+        // Cache the fresh messages
+        await saveMessagesToCache(tripId, initialMessages as any);
 
         // Subscribe to real-time updates
         const unsubscribe = await unifiedMessagingService.subscribeToTrip(
@@ -89,12 +100,15 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
     setIsSending(true);
     try {
       const userName = user.email?.split('@')[0] || 'Unknown User';
-      await unifiedMessagingService.sendMessage({
+      const message = await unifiedMessagingService.sendMessage({
         content,
         tripId,
         userName,
         userId: user.id
       });
+      
+      // Update cache with new message
+      await saveMessagesToCache(tripId, [message as any]);
     } catch (error) {
       console.error('Failed to send message:', error);
       toast({

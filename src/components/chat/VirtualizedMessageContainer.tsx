@@ -12,6 +12,9 @@ interface VirtualizedMessageContainerProps {
   loadMoreThreshold?: number;
   className?: string;
   style?: React.CSSProperties;
+  autoScroll?: boolean;
+  restoreScroll?: boolean;
+  scrollKey?: string;
 }
 
 export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerProps> = ({
@@ -23,7 +26,10 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
   initialVisibleCount = 10,
   loadMoreThreshold = 3,
   className = '',
-  style
+  style,
+  autoScroll = true,
+  restoreScroll = true,
+  scrollKey = 'chat-scroll'
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -43,6 +49,73 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
   const visibleMessages = messages.slice(visibleStartIndex);
   const localHasMore = visibleStartIndex > 0;
 
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    if (!autoScroll) return;
+    
+    const container = containerRef.current;
+    if (!container) return;
+
+    const newMessageCount = messages.length;
+    const oldMessageCount = previousMessageCountRef.current;
+    
+    if (newMessageCount > oldMessageCount) {
+      // Check if user was at bottom before new messages arrived
+      const wasAtBottom = !userIsScrolledUp;
+      
+      if (wasAtBottom) {
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    }
+  }, [messages.length, autoScroll, userIsScrolledUp]);
+
+  // Restore scroll position on mount
+  useEffect(() => {
+    if (!restoreScroll) return;
+    
+    const container = containerRef.current;
+    if (!container) return;
+
+    const savedScroll = localStorage.getItem(scrollKey);
+    if (savedScroll) {
+      container.scrollTop = parseInt(savedScroll, 10);
+    } else {
+      // If no saved position, scroll to bottom
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      }, 100);
+    }
+  }, [scrollKey, restoreScroll]);
+
+  // Save scroll position periodically
+  useEffect(() => {
+    if (!restoreScroll) return;
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const saveScrollPosition = () => {
+      if (container) {
+        localStorage.setItem(scrollKey, container.scrollTop.toString());
+      }
+    };
+
+    let scrollTimer: NodeJS.Timeout;
+    const handleScrollSave = () => {
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(saveScrollPosition, 500);
+    };
+
+    container.addEventListener('scroll', handleScrollSave, { passive: true });
+    return () => {
+      clearTimeout(scrollTimer);
+      saveScrollPosition();
+      container.removeEventListener('scroll', handleScrollSave);
+    };
+  }, [scrollKey, restoreScroll]);
+
   // Update visible start index when messages change
   useEffect(() => {
     const newMessageCount = messages.length;
@@ -53,9 +126,6 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
       if (!userIsScrolledUp) {
         // User at bottom - keep showing last N messages
         setVisibleStartIndex(Math.max(0, newMessageCount - initialVisibleCount));
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 50);
         setShowNewMessagesBadge(false);
       } else {
         // User scrolled up - maintain current view, show badge
@@ -68,15 +138,6 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
     
     previousMessageCountRef.current = newMessageCount;
   }, [messages.length, userIsScrolledUp, initialVisibleCount]);
-
-  // Initial scroll to bottom on mount
-  useEffect(() => {
-    if (containerRef.current && messages.length > 0) {
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-      }, 100);
-    }
-  }, []);
 
   // Handle scroll events
   const handleScroll = useCallback(() => {
@@ -142,8 +203,8 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className={`flex-1 overflow-y-auto chat-scroll-container native-scroll ${className}`}
-        style={style}
+        className={`flex-1 overflow-y-auto scroll-smooth ${className}`}
+        style={{ WebkitOverflowScrolling: 'touch', ...style }}
       >
         {/* Load More Indicator at Top */}
         <LoadMoreIndicator
