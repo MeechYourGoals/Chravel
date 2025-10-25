@@ -75,8 +75,8 @@ export const MessageBubble = ({
   return (
     <div
       className={cn(
-        "group flex gap-2 w-full",
-        isOwnMessage ? "flex-row-reverse justify-start" : "flex-row items-start",
+        "group flex gap-2",
+        isOwnMessage ? "flex-row-reverse justify-end" : "flex-row items-start",
         "mb-0"
       )}
       {...longPressHandlers}

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useChatMessageParser } from './useChatMessageParser';
 import { getMockAvatar } from '../utils/mockAvatars';
+import { useAuth } from './useAuth';
 
 export interface ChatMessage {
   id: string;
@@ -41,6 +42,7 @@ export const useChatComposer = ({ tripId, demoMode = false, isEvent = false }: U
   const [replyingTo, setReplyingTo] = useState<ReplyContext | null>(null);
   const [messageFilter, setMessageFilter] = useState<'all' | 'broadcast' | 'payments'>('all');
   
+  const { user } = useAuth();
   const { parseMessage } = useChatMessageParser();
 
   const createMessage = useCallback((
@@ -61,7 +63,7 @@ export const useChatComposer = ({ tripId, demoMode = false, isEvent = false }: U
       return {
         id: messageId,
         text: `${paymentData.description} - ${paymentData.currency} ${paymentData.amount.toFixed(2)} (split ${paymentData.splitCount} ways) • Pay me $${perPersonAmount} via ${preferredPaymentMethod}`,
-        sender: { id: 'user1', name: 'You', avatar: getMockAvatar('You') },
+        sender: { id: user?.id || 'user1', name: 'You', avatar: user?.avatar || getMockAvatar('You') },
         createdAt: new Date().toISOString(),
         isBroadcast: false,
         isPayment: true,
@@ -78,7 +80,7 @@ export const useChatComposer = ({ tripId, demoMode = false, isEvent = false }: U
     return {
       id: messageId,
       text: content,
-      sender: { id: 'user1', name: 'You', avatar: getMockAvatar('You') },
+      sender: { id: user?.id || 'user1', name: 'You', avatar: user?.avatar || getMockAvatar('You') },
       createdAt: new Date().toISOString(),
       isBroadcast,
       reactions: {},

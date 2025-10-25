@@ -15,6 +15,14 @@ export const MessageItem = ({ message, reactions, onReaction }: MessageItemProps
   const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
   const isOwnMessage = user?.id === message.sender.id;
   
+  // Debug logging for alignment verification
+  console.log('MessageItem:', {
+    currentUserId: user?.id,
+    messageSenderId: message.sender.id,
+    isOwnMessage,
+    messageText: message.text.substring(0, 30)
+  });
+  
   return (
     <MessageBubble
       id={message.id}
