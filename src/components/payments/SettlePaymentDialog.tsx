@@ -40,29 +40,55 @@ export const SettlePaymentDialog = ({
     setSettling(true);
 
     try {
-      // Get all payment split IDs for this balance
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const youOweThem = balance.amountOwed < 0;
       const splitIds = balance.unsettledPayments.map(p => p.paymentId);
 
-      // Mark all relevant splits as settled
-      const { error } = await supabase
-        .from('payment_splits')
-        .update({
-          is_settled: true,
-          settled_at: new Date().toISOString(),
-          settlement_method: balance.preferredPaymentMethod?.type || 'other'
-        })
-        .in('payment_message_id', splitIds);
+      // If you're the payer (you owe them), mark as pending confirmation
+      if (youOweThem) {
+        const { error: updateError } = await supabase
+          .from('payment_splits')
+          .update({
+            confirmation_status: 'pending',
+            settlement_method: balance.preferredPaymentMethod?.type || 'other'
+          })
+          .in('payment_message_id', splitIds)
+          .eq('debtor_user_id', user.id)
+          .eq('is_settled', false);
 
-      if (error) throw error;
+        if (updateError) throw updateError;
 
-      toast({
-        title: 'Payment Settled',
-        description: `Marked ${formatCurrency(Math.abs(balance.amountOwed))} as settled with ${balance.userName}`,
-      });
+        toast({
+          title: 'Payment Marked as Paid',
+          description: `${balance.userName} will be notified to confirm receipt`,
+        });
+      } else {
+        // If they owe you, you're marking as settled (immediate)
+        const { error: updateError } = await supabase
+          .from('payment_splits')
+          .update({
+            is_settled: true,
+            settled_at: new Date().toISOString(),
+            confirmation_status: 'confirmed',
+            confirmed_by: user.id,
+            confirmed_at: new Date().toISOString(),
+            settlement_method: balance.preferredPaymentMethod?.type || 'other'
+          })
+          .in('payment_message_id', splitIds)
+          .eq('debtor_user_id', balance.userId)
+          .eq('is_settled', false);
+
+        if (updateError) throw updateError;
+
+        toast({
+          title: 'Payment Settled',
+          description: `Marked payment from ${balance.userName} as settled`,
+        });
+      }
 
       onOpenChange(false);
-      
-      // Reload the page to refresh balances
       window.location.reload();
     } catch (error) {
       console.error('Error settling payment:', error);

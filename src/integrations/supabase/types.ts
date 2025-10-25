@@ -1068,6 +1068,9 @@ export type Database = {
       payment_splits: {
         Row: {
           amount_owed: number
+          confirmation_status: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
           created_at: string
           debtor_user_id: string
           id: string
@@ -1079,6 +1082,9 @@ export type Database = {
         }
         Insert: {
           amount_owed: number
+          confirmation_status?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           created_at?: string
           debtor_user_id: string
           id?: string
@@ -1090,6 +1096,9 @@ export type Database = {
         }
         Update: {
           amount_owed?: number
+          confirmation_status?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           created_at?: string
           debtor_user_id?: string
           id?: string

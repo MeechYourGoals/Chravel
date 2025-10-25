@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink, Clock } from 'lucide-react';
 import { PersonalBalance } from '../../services/paymentBalanceService';
 import { SettlePaymentDialog } from './SettlePaymentDialog';
+import { ConfirmPaymentDialog } from './ConfirmPaymentDialog';
 
 interface PersonBalanceCardProps {
   balance: PersonalBalance;
@@ -14,6 +15,9 @@ interface PersonBalanceCardProps {
 export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) => {
   const [showDetails, setShowDetails] = useState(false);
   const [showSettleDialog, setShowSettleDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  const isPendingConfirmation = balance.confirmationStatus === 'pending';
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -86,7 +90,16 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
             </div>
 
             {/* Middle: Action Button */}
-            {youOweThem ? (
+            {isPendingConfirmation && !youOweThem ? (
+              <Button 
+                size="sm" 
+                className="text-xs px-3 py-1.5 h-auto flex-shrink-0 bg-orange-600 hover:bg-orange-700"
+                onClick={() => setShowConfirmDialog(true)}
+              >
+                <Clock className="w-3 h-3 mr-1" />
+                Confirm Payment
+              </Button>
+            ) : youOweThem ? (
               <div className="flex gap-2 flex-shrink-0">
                 {paymentLink && (
                   <Button 
@@ -104,7 +117,7 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
                   className="text-xs px-3 py-1.5 h-auto"
                   onClick={() => setShowSettleDialog(true)}
                 >
-                  Mark as Settled
+                  Mark as Paid
                 </Button>
               </div>
             ) : (
@@ -165,6 +178,13 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
       <SettlePaymentDialog
         open={showSettleDialog}
         onOpenChange={setShowSettleDialog}
+        balance={balance}
+        tripId={tripId}
+      />
+
+      <ConfirmPaymentDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
         balance={balance}
         tripId={tripId}
       />
