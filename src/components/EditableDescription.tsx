@@ -8,17 +8,22 @@ interface EditableDescriptionProps {
   description: string;
   onUpdate: (newDescription: string) => void;
   className?: string;
+  maxLines?: number;
+  collapsible?: boolean;
 }
 
 export const EditableDescription = ({ 
   tripId, 
   description, 
   onUpdate, 
-  className = "text-gray-300 text-lg leading-relaxed" 
+  className = "text-gray-300 text-lg leading-relaxed",
+  maxLines = 2,
+  collapsible = true
 }: EditableDescriptionProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(description);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleSave = async () => {
     if (editValue.trim() === description) {
@@ -94,17 +99,28 @@ export const EditableDescription = ({
     );
   }
 
+  const shouldTruncate = collapsible && description.length > 150;
+  const lineClampClass = shouldTruncate && !isExpanded ? `line-clamp-${maxLines}` : '';
+
   return (
-    <div className="relative pb-12">
-      <p className={className}>
+    <div className="relative pb-10">
+      <p className={`${className} ${lineClampClass}`}>
         {description || 'No description added yet. Click to add one.'}
       </p>
+      {shouldTruncate && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="text-xs text-gray-400 hover:text-white underline mt-1"
+        >
+          {isExpanded ? 'Read less' : 'Read more'}
+        </button>
+      )}
       <button
         onClick={() => setIsEditing(true)}
-        className="absolute bottom-2 left-0 p-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-all duration-200 text-gray-400 hover:text-white"
+        className="absolute bottom-1 left-0 p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-all duration-200 text-gray-400 hover:text-white"
         title="Edit description"
       >
-        <Edit size={16} />
+        <Edit size={14} />
       </button>
     </div>
   );

@@ -107,10 +107,10 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       ) : null}
 
       {/* Main Trip Info Section */}
-      <div className="relative bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-8 mb-8">
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+      <div className="relative bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-4 mb-4">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
           {/* Trip Info */}
-          <div className="flex-1">
+          <div className="flex-1 max-w-2xl">
             {!coverPhoto && (
               <div className="flex items-center gap-3 mb-4">
                 <h1 className="text-4xl font-bold text-white">{trip.title}</h1>
@@ -146,8 +146,8 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
           </div>
 
           {/* Collaborators */}
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 min-w-[280px] lg:flex-1">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-3 min-w-[240px] lg:flex-1">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Users size={20} className={`text-${accentColors.primary}`} />
                 <h3 className="text-white font-semibold">Trip Collaborators</h3>
@@ -181,11 +181,13 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
               participants={trip.participants}
               countLabel={`${trip.participants.length} collaborators`}
               onShowAll={() => setShowAllCollaborators(true)}
+              maxRows={1}
+              minColWidth={140}
             />
 
             <button
               onClick={() => setShowInvite(true)}
-              className={`mt-4 w-full flex items-center justify-center gap-2 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white font-medium py-3 rounded-xl transition-all duration-200 hover:scale-105`}
+              className={`mt-3 w-full flex items-center justify-center gap-2 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white font-medium py-2 rounded-xl transition-all duration-200 hover:scale-105`}
               title="Invite people to this trip"
             >
                 <Plus size={16} />
