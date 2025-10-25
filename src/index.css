@@ -565,14 +565,39 @@
 
   /* Mobile portrait chat container utility */
   .mobile-portrait-chat-container {
-    height: 100%;
-    max-height: none;
+    height: 480px;
+    max-height: 480px;
   }
   
-  @media screen and (max-width: 768px) and (orientation: portrait) {
+  /* iPad and tablet portrait - slightly taller */
+  @media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
     .mobile-portrait-chat-container {
-      height: 100% !important;
-      max-height: none !important;
+      height: 520px !important;
+      max-height: 520px !important;
+    }
+  }
+  
+  /* iPad and tablet landscape - more width available */
+  @media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+    .mobile-portrait-chat-container {
+      height: 400px !important;
+      max-height: 400px !important;
+    }
+  }
+  
+  /* Mobile portrait */
+  @media screen and (max-width: 767px) and (orientation: portrait) {
+    .mobile-portrait-chat-container {
+      height: 480px !important;
+      max-height: 480px !important;
+    }
+  }
+  
+  /* Mobile landscape - smallest height due to limited screen real estate */
+  @media screen and (max-width: 767px) and (orientation: landscape) {
+    .mobile-portrait-chat-container {
+      height: 280px !important;
+      max-height: 280px !important;
     }
   }
 }
