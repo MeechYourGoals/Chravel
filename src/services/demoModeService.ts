@@ -5,6 +5,7 @@ interface MockMessage {
   id: string;
   trip_type?: string;
   sender_name: string;
+  sender_id?: string;
   message_content: string;
   delay_seconds?: number;
   timestamp_offset_days?: number;
@@ -242,6 +243,71 @@ class DemoModeService {
     return allMessages.sort((a, b) => 
       (b.timestamp_offset_days || 0) - (a.timestamp_offset_days || 0)
     );
+  }
+
+  async getProMockMessages(tripType: 'pro' | 'event', currentUserId: string): Promise<MockMessage[]> {
+    const proMessages: MockMessage[] = [
+      {
+        id: 'pro-msg-1',
+        trip_type: tripType,
+        sender_name: 'Tour Manager',
+        message_content: 'Meeting at hotel lobby at 9 AM sharp tomorrow for our group activity!',
+        timestamp_offset_days: 2,
+        tags: ['broadcast', 'logistics']
+      },
+      {
+        id: 'pro-msg-2',
+        trip_type: tripType,
+        sender_name: 'Alex Kim',
+        message_content: 'Weather alert: Rain expected this afternoon. Bring umbrellas or jackets!',
+        timestamp_offset_days: 2,
+        tags: ['broadcast']
+      },
+      {
+        id: 'pro-msg-3',
+        trip_type: tripType,
+        sender_name: 'David Thompson',
+        message_content: 'URGENT: Flight departure gate changed to B12. All passengers report immediately!',
+        timestamp_offset_days: 2,
+        tags: ['broadcast', 'urgent']
+      },
+      {
+        id: 'pro-msg-4',
+        trip_type: tripType,
+        sender_name: 'Maya Williams',
+        message_content: 'The sunset views from our hotel room are incredible! 🌅',
+        timestamp_offset_days: 1,
+        tags: []
+      },
+      {
+        id: 'pro-msg-5',
+        trip_type: tripType,
+        sender_name: 'Jordan Lee',
+        message_content: 'Does anyone want to split an Uber to the downtown area?',
+        timestamp_offset_days: 1,
+        tags: []
+      },
+      {
+        id: currentUserId + '-msg-1',
+        trip_type: tripType,
+        sender_name: 'You',
+        sender_id: currentUserId,
+        message_content: 'Just checked in! Room 502 if anyone needs anything 👍',
+        timestamp_offset_days: 0,
+        tags: []
+      },
+      {
+        id: currentUserId + '-msg-2',
+        trip_type: tripType,
+        sender_name: 'You',
+        sender_id: currentUserId,
+        message_content: 'See you all at dinner!',
+        timestamp_offset_days: 0,
+        tags: []
+      }
+    ];
+
+    return proMessages;
   }
 
   private getTripSpecificMessages(tripType: string): MockMessage[] {

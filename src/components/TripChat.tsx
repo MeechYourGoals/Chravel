@@ -214,14 +214,29 @@ export const TripChat = ({
     const loadDemoData = async () => {
       if (shouldUseDemoData) {
         setDemoLoading(true);
-        // Exclude payment messages from chat
-        const demoMessagesData = await demoModeService.getMockMessages('friends-trip', true);
+        
+        // Detect if this is a Pro or Event trip
+        const isProTrip = isPro || params.proTripId;
+        const isEventTrip = isEvent || params.eventId;
+        
+        let demoMessagesData;
+        
+        if (isProTrip) {
+          // Load Pro-specific demo messages
+          demoMessagesData = await demoModeService.getProMockMessages('pro', user?.id || 'demo-user');
+        } else if (isEventTrip) {
+          // Load Event-specific demo messages
+          demoMessagesData = await demoModeService.getProMockMessages('event', user?.id || 'demo-user');
+        } else {
+          // Load consumer trip demo messages (existing logic)
+          demoMessagesData = await demoModeService.getMockMessages('friends-trip', true);
+        }
 
         const formattedMessages = demoMessagesData.map(msg => ({
           id: msg.id,
           text: msg.message_content || '',
           sender: {
-            id: msg.id,
+            id: msg.sender_id || msg.id,
             name: msg.sender_name || 'Unknown',
             avatar: getMockAvatar(msg.sender_name || 'Unknown')
           },
@@ -252,7 +267,7 @@ export const TripChat = ({
             id: msg.id,
             text: msg.message_content || '',
             sender: {
-              id: msg.id,
+              id: msg.sender_id || msg.id,
               name: msg.sender_name || 'Unknown',
               avatar: getMockAvatar(msg.sender_name || 'Unknown')
             },
@@ -276,7 +291,7 @@ export const TripChat = ({
     };
 
     loadDemoData();
-  }, [shouldUseDemoData, isEvent, resolvedTripId, liveFormattedMessages.length]);
+  }, [shouldUseDemoData, isEvent, isPro, resolvedTripId, liveFormattedMessages.length, user?.id]);
 
   // Determine which messages to show:
   // 1. Demo mode OR no tripId: show demo messages
