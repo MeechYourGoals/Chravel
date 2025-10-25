@@ -19,6 +19,7 @@ interface EditTripModalProps {
     location: string;
     dateRange: string;
     coverPhoto?: string;
+    trip_type?: 'consumer' | 'pro' | 'event';
   };
   onUpdate?: (updates: Partial<Trip>) => void;
 }
@@ -147,7 +148,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
               <ImageIcon size={16} />
-              Cover Photo
+              Cover Photo {trip.trip_type && trip.trip_type !== 'consumer' && '(Background Overlay)'}
             </label>
             <TripCoverPhotoUpload
               tripId={trip.id.toString()}
@@ -155,6 +156,16 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
               onPhotoUploaded={(url) => setCoverPhoto(url)}
               className="h-48 w-full"
             />
+            {trip.trip_type === 'pro' && (
+              <p className="text-xs text-gray-400 mt-2">
+                For Enterprise trips, your photo will appear subtly in the background of the header with a professional overlay.
+              </p>
+            )}
+            {trip.trip_type === 'event' && (
+              <p className="text-xs text-gray-400 mt-2">
+                For Events, your photo will appear as a darker cinematic backdrop behind the event details for poster-style impact.
+              </p>
+            )}
           </div>
 
           {/* Trip Name */}

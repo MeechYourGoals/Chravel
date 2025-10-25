@@ -15,6 +15,8 @@ import { CollaboratorsModal } from './trip/CollaboratorsModal';
 import { EditTripModal } from './EditTripModal';
 import { Trip } from '@/services/tripService';
 import { formatDateRange } from '@/utils/dateFormatters';
+import { cn } from '@/lib/utils';
+
 
 interface TripHeaderProps {
   trip: {
@@ -67,10 +69,14 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
     }
   };
 
+  const isProOrEvent = trip.trip_type === 'pro' || trip.trip_type === 'event';
+  const isEvent = trip.trip_type === 'event';
+  const hasCoverPhoto = Boolean(coverPhoto);
+
   return (
     <>
-      {/* Cover Photo Section */}
-      {coverPhoto ? (
+      {/* Cover Photo Hero (Consumer Only) */}
+      {coverPhoto && !isProOrEvent ? (
         <div className="relative mb-8 rounded-3xl overflow-hidden">
           <div 
             className="h-64 bg-cover bg-center"
@@ -107,11 +113,39 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
         </div>
       ) : null}
 
-      {/* Main Trip Info Section */}
-      <div className="relative bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-4 mb-4">
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-          {/* Trip Info */}
-          <div className="flex-1 max-w-2xl">
+      {/* Main Trip Info Section - With or Without Background Overlay */}
+      <div 
+        className={cn(
+          "relative rounded-3xl p-6 mb-4 overflow-hidden border border-white/20",
+          hasCoverPhoto && isProOrEvent 
+            ? "shadow-2xl" 
+            : "bg-white/10 backdrop-blur-md"
+        )}
+      >
+        {/* Background Cover Photo for Pro/Events */}
+        {hasCoverPhoto && isProOrEvent && (
+          <>
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-all duration-500"
+              style={{
+                backgroundImage: `url(${coverPhoto})`,
+                filter: isEvent ? 'brightness(0.25)' : 'brightness(0.35)',
+              }}
+            />
+            <div
+              className={cn(
+                'absolute inset-0',
+                isEvent
+                  ? 'bg-gradient-to-t from-black/90 via-black/50 to-transparent'
+                  : 'bg-gradient-to-t from-black/70 via-black/40 to-transparent'
+              )}
+            />
+          </>
+        )}
+
+        <div className={cn("flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6", hasCoverPhoto && isProOrEvent && "relative z-10")}>
+          {/* Left: Trip Details */}
+          <div className="flex-1 space-y-4">
             {!coverPhoto && (
               <div className="flex items-center gap-3 mb-4">
                 <h1 className="text-4xl font-bold text-white">{trip.title}</h1>
@@ -146,12 +180,21 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
             />
           </div>
 
-          {/* Collaborators */}
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-3 min-w-[240px] lg:flex-1">
+          {/* Right: Collaborators Panel */}
+          <div 
+            className={cn(
+              "rounded-2xl p-4 min-w-[280px] lg:w-[40%] border border-white/10",
+              hasCoverPhoto && isProOrEvent 
+                ? "bg-black/50 backdrop-blur-md" 
+                : "bg-white/5 backdrop-blur-sm"
+            )}
+          >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Users size={20} className={`text-${accentColors.primary}`} />
-                <h3 className="text-white font-semibold">Trip Collaborators</h3>
+                <h3 className="text-white font-semibold text-sm">
+                  {isEvent ? 'Event Team' : 'Trip Collaborators'}
+                </h3>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-gray-400 text-sm">{trip.participants.length}</span>
@@ -198,12 +241,17 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
           </div>
         </div>
 
-        {/* Edit Trip Button - Bottom right for non-cover version */}
-        {!coverPhoto && (
-          <div className="absolute bottom-6 right-6">
+        {/* Edit Trip Button - Positioned for all layouts except consumer with cover */}
+        {!(coverPhoto && !isProOrEvent) && (
+          <div className="absolute bottom-4 right-4 z-20">
             <button
               onClick={() => setShowEditModal(true)}
-              className="p-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition-all text-gray-400 hover:text-white shadow-lg backdrop-blur-sm"
+              className={cn(
+                "p-3 border border-white/20 rounded-xl transition-all shadow-lg backdrop-blur-sm",
+                hasCoverPhoto && isProOrEvent
+                  ? "bg-black/40 hover:bg-black/60 text-white/80 hover:text-white"
+                  : "bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white"
+              )}
               title="Edit trip details"
             >
               <Edit size={20} />
