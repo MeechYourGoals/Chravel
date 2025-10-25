@@ -477,7 +477,13 @@
   }
   
   .safe-container-bottom {
-    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  @media (display-mode: standalone) {
+    .safe-container-bottom {
+      padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    }
   }
 
   /* Chat scroll container with smooth scrolling */

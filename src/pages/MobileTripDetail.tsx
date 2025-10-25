@@ -17,7 +17,8 @@ export const MobileTripDetail = () => {
   const [activeTab, setActiveTab] = useState('chat');
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
-
+  const headerRef = React.useRef<HTMLDivElement>(null);
+ 
   // Keyboard handling for mobile inputs
   useKeyboardHandler({
     preventZoom: true,
@@ -33,6 +34,29 @@ export const MobileTripDetail = () => {
       setTripDescription(trip.description);
     }
   }, [trip, tripDescription]);
+  
+  // Measure header height and expose as CSS var for sticky offsets
+  React.useEffect(() => {
+    const setHeaderHeightVar = () => {
+      const h = headerRef.current?.offsetHeight || 73;
+      document.documentElement.style.setProperty('--mobile-header-h', `${h}px`);
+    };
+    const debounce = (fn: () => void, delay = 100) => {
+      let t: any;
+      return () => {
+        clearTimeout(t);
+        t = setTimeout(fn, delay);
+      };
+    };
+    const handler = debounce(setHeaderHeightVar, 100);
+    setHeaderHeightVar();
+    window.addEventListener('resize', handler);
+    window.addEventListener('orientationchange', handler);
+    return () => {
+      window.removeEventListener('resize', handler);
+      window.removeEventListener('orientationchange', handler);
+    };
+  }, []);
   
   const tripWithUpdatedDescription = trip ? {
     ...trip,
@@ -76,7 +100,7 @@ export const MobileTripDetail = () => {
     <MobileErrorBoundary>
       <div className="min-h-screen bg-black">
       {/* Mobile Header - Sticky */}
-      <div className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10">
+      <div ref={headerRef} className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10">
         <div className="flex items-center justify-between px-4 py-3">
           <button
             onClick={handleBack}

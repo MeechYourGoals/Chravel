@@ -43,7 +43,7 @@ export const MobileTripTabs = ({
     { id: 'tasks', label: 'Tasks', icon: ClipboardList }
   ];
 
-  // Scroll active tab into view
+  // Scroll active tab into view and set CSS var for tabs height
   useEffect(() => {
     if (tabsContainerRef.current) {
       const activeButton = tabsContainerRef.current.querySelector(`[data-tab="${activeTab}"]`);
@@ -51,6 +51,28 @@ export const MobileTripTabs = ({
         activeButton.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
       }
     }
+
+    const setTabsHeightVar = () => {
+      const el = tabsContainerRef.current;
+      const barEl = el?.parentElement as HTMLElement | null;
+      const h = (barEl?.offsetHeight ?? el?.offsetHeight) || 52;
+      document.documentElement.style.setProperty('--mobile-tabs-h', `${h}px`);
+    };
+
+    // simple debounce
+    let t: any;
+    const handler = () => {
+      clearTimeout(t);
+      t = setTimeout(setTabsHeightVar, 100);
+    };
+
+    setTabsHeightVar();
+    window.addEventListener('resize', handler);
+    window.addEventListener('orientationchange', handler);
+    return () => {
+      window.removeEventListener('resize', handler);
+      window.removeEventListener('orientationchange', handler);
+    };
   }, [activeTab]);
 
   const handleTabPress = async (tabId: string) => {
@@ -90,7 +112,7 @@ export const MobileTripTabs = ({
   return (
     <>
       {/* Horizontal Scrollable Tab Bar - Sticky, Compressed for Mobile Portrait */}
-      <div className="sticky top-[73px] z-40 bg-black/95 backdrop-blur-md border-b border-white/10">
+      <div className="sticky top-[var(--mobile-header-h,73px)] z-40 bg-black/95 backdrop-blur-md border-b border-white/10">
         <div
           ref={tabsContainerRef}
           className="flex overflow-x-auto scrollbar-hide gap-2 px-4 py-2"
@@ -138,7 +160,7 @@ export const MobileTripTabs = ({
         ref={contentRef}
         className="bg-background flex flex-col min-h-0"
         style={{
-          height: 'calc(100dvh - 73px - 52px)'
+          height: 'calc(100dvh - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px))'
         }}
       >
         {renderTabContent()}
