@@ -295,10 +295,10 @@ export const TripChat = ({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Message Filters */}
       {filteredMessages.length > 0 && (
-        <div className="p-3 border-b border-gray-700">
+        <div className="p-3 border-b border-gray-700 flex-shrink-0">
           <MessageFilters
             activeFilter={messageFilter}
             onFilterChange={setMessageFilter}
@@ -309,10 +309,7 @@ export const TripChat = ({
 
       {/* Unified Chat Shell - Teams-like container */}
       <div
-        className="mx-4 mb-2 flex-1 rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col"
-        style={{
-          minHeight: '360px'
-        }}
+        className="mx-4 my-2 flex-1 rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col"
       >
         {isLoading ? (
           <div className="flex-1 overflow-y-auto p-4">
@@ -361,7 +358,7 @@ export const TripChat = ({
         )}
         
         {/* Input Area */}
-        <div className="border-t border-white/10 bg-black/30 p-3">
+        <div className="border-t border-white/10 bg-black/30 p-2">
           <ChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}

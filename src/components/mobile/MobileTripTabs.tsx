@@ -88,9 +88,9 @@ export const MobileTripTabs = ({
   };
 
   return (
-    <div className="flex flex-col flex-1">
-      {/* Horizontal Scrollable Tab Bar - Sticky, Compressed for Mobile Portrait */}
-      <div className="sticky top-[73px] z-40 bg-black/95 backdrop-blur-md border-b border-white/10 flex-shrink-0">
+    <div className="flex flex-col flex-1 overflow-hidden">
+      {/* Horizontal Scrollable Tab Bar */}
+      <div className="flex-shrink-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/10">
         <div
           ref={tabsContainerRef}
           className="flex overflow-x-auto scrollbar-hide gap-2 px-4 py-2"

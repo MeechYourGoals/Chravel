@@ -122,10 +122,10 @@ export const ChatInput = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Header Row - Only show mode toggles if not in channel mode */}
       {!isInChannelMode && (
-        <div className="flex justify-center gap-4">
+        <div className="flex justify-center gap-2">
           <button
             onClick={() => {
               setIsBroadcastMode(false);
