@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, CheckCircle, Search, AlertCircle, Crown, Clock } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { TripPreferences } from '../types/consumer';
@@ -53,6 +53,9 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   const [aiStatus, setAiStatus] = useState<'checking' | 'connected' | 'limited' | 'error' | 'thinking'>('connected');
   const [remainingQueries, setRemainingQueries] = useState<number>(Infinity);
 
+  // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
+  const isMounted = useRef(true);
+
   // Helper to convert isPlus boolean to tier string
   const getUserTier = (): 'free' | 'plus' | 'pro' => {
     if (user?.isPro) return 'pro';
@@ -60,11 +63,24 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
     return 'free';
   };
 
+  // PHASE 1 BUG FIX #7: Set up cleanup to track component mount state
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   // Initialize remaining queries for events
   useEffect(() => {
     if (isEvent && user) {
       conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier())
-        .then(remaining => setRemainingQueries(remaining))
+        .then(remaining => {
+          // PHASE 1 BUG FIX #7: Only update state if component is still mounted
+          if (isMounted.current) {
+            setRemainingQueries(remaining);
+          }
+        })
         .catch(err => console.error('Failed to get remaining queries:', err));
     }
   }, [isEvent, user, tripId, isPlus]);
@@ -196,7 +212,10 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         try {
           await conciergeRateLimitService.incrementUsage(user.id, tripId, getUserTier());
           const remaining = await conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier());
-          setRemainingQueries(remaining);
+          // PHASE 1 BUG FIX #7: Only update state if component is still mounted
+          if (isMounted.current) {
+            setRemainingQueries(remaining);
+          }
         } catch (error) {
           console.error('Failed to increment usage:', error);
         }

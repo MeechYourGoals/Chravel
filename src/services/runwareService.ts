@@ -46,8 +46,17 @@ export class RunwareService {
 
       this.ws.onmessage = (event) => {
         console.log("WebSocket message received:", event.data);
-        const response = JSON.parse(event.data);
-        
+
+        // PHASE 1 BUG FIX #1: Add try-catch around JSON.parse to prevent crashes
+        let response;
+        try {
+          response = JSON.parse(event.data);
+        } catch (error) {
+          console.error("Invalid JSON received from WebSocket:", error, "Data:", event.data);
+          toast.error("Received invalid data from image service");
+          return;
+        }
+
         if (response.error || response.errors) {
           console.error("WebSocket error response:", response);
           const errorMessage = response.errorMessage || response.errors?.[0]?.message || "An error occurred";
@@ -105,10 +114,17 @@ export class RunwareService {
       
       // Set up a one-time authentication callback
       const authCallback = (event: MessageEvent) => {
-        const response = JSON.parse(event.data);
-        if (response.data?.[0]?.taskType === "authentication") {
+        // PHASE 1 BUG FIX #1: Add try-catch around JSON.parse
+        try {
+          const response = JSON.parse(event.data);
+          if (response.data?.[0]?.taskType === "authentication") {
+            this.ws?.removeEventListener("message", authCallback);
+            resolve();
+          }
+        } catch (error) {
+          console.error("Invalid JSON during authentication:", error);
           this.ws?.removeEventListener("message", authCallback);
-          resolve();
+          reject(new Error("Invalid authentication response"));
         }
       };
       
