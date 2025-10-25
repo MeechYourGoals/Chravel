@@ -68,68 +68,69 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
     <>
       <Card className={youOweThem ? 'border-orange-600/30' : 'border-green-600/30'}>
         <CardContent className="pt-6">
-          <div className="flex items-start justify-between gap-4">
-            {/* User Info */}
-            <div className="flex items-center gap-3 flex-1">
-              <Avatar className="w-12 h-12">
+          {/* Single row layout with all info inline */}
+          <div className="flex items-center justify-between gap-3">
+            {/* Left: User Info */}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <Avatar className="w-10 h-10 flex-shrink-0">
                 <AvatarImage src={balance.avatar} alt={balance.userName} />
                 <AvatarFallback>{balance.userName.charAt(0)}</AvatarFallback>
               </Avatar>
               
-              <div className="flex-1">
-                <h4 className="font-semibold text-foreground">{balance.userName}</h4>
-                <p className="text-sm text-muted-foreground">
+              <div className="min-w-0">
+                <h4 className="font-semibold text-foreground truncate">{balance.userName}</h4>
+                <p className="text-xs text-muted-foreground truncate">
                   {getPaymentMethodDisplay()}
                 </p>
               </div>
             </div>
 
-            {/* Amount */}
-            <div className="text-right">
-              <p className={`text-2xl font-bold ${youOweThem ? 'text-orange-600' : 'text-green-600'}`}>
-                {youOweThem ? 'You owe' : 'Owes you'}
-              </p>
-              <p className="text-xl font-semibold">{formatCurrency(amount)}</p>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-2 mt-4">
+            {/* Middle: Action Button */}
             {youOweThem ? (
-              <>
+              <div className="flex gap-2 flex-shrink-0">
                 {paymentLink && (
                   <Button 
                     size="sm" 
-                    className="flex-1"
+                    className="text-xs px-3 py-1.5 h-auto"
                     onClick={() => window.open(paymentLink, '_blank')}
                   >
-                    <ExternalLink className="w-4 h-4 mr-2" />
+                    <ExternalLink className="w-3 h-3 mr-1" />
                     Pay Now
                   </Button>
                 )}
                 <Button 
                   size="sm" 
                   variant="outline"
-                  className="flex-1"
+                  className="text-xs px-3 py-1.5 h-auto"
                   onClick={() => setShowSettleDialog(true)}
                 >
                   Mark as Settled
                 </Button>
-              </>
+              </div>
             ) : (
               <Button 
                 size="sm" 
                 variant="outline"
-                className="flex-1"
+                className="text-xs px-3 py-1.5 h-auto flex-shrink-0"
                 onClick={() => setShowSettleDialog(true)}
               >
                 Mark as Paid
               </Button>
             )}
+
+            {/* Right: Amount */}
+            <div className="text-right flex-shrink-0">
+              <p className={`text-sm font-semibold ${youOweThem ? 'text-orange-600' : 'text-green-600'}`}>
+                {youOweThem ? 'You owe' : 'Owes you'}
+              </p>
+              <p className="text-lg font-bold">{formatCurrency(amount)}</p>
+            </div>
             
+            {/* Chevron toggle */}
             <Button 
               size="sm" 
               variant="ghost"
+              className="flex-shrink-0 h-auto p-1"
               onClick={() => setShowDetails(!showDetails)}
             >
               {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
