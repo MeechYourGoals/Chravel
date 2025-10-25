@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { demoModeService } from './demoModeService';
-import { mockConsumerTrips } from '@/mockData/trips';
+import { tripsData } from '@/data/tripsData';
+import { adaptTripsDataToTripSchema } from '@/utils/schemaAdapters';
 
 export interface Trip {
   id: string;
@@ -86,7 +87,11 @@ export const tripService = {
       // Phase 3: Accept isDemoMode as parameter to avoid repeated checks
       const demoEnabled = isDemoMode ?? await demoModeService.isDemoModeEnabled();
       if (demoEnabled) {
-        return mockConsumerTrips;
+        // PHASE 0A: Use schema adapter to convert tripsData to Trip interface
+        // This ensures all 12 consumer trips are returned in the correct format
+        const adaptedTrips = adaptTripsDataToTripSchema(tripsData);
+        console.log(`[tripService] Demo mode enabled - returning ${adaptedTrips.length} adapted consumer trips`);
+        return adaptedTrips;
       }
 
       const { data: { user } } = await supabase.auth.getUser();

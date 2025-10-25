@@ -222,32 +222,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      
-      setSession(session);
-      if (session?.user) {
-        // Phase 4: Start prefetching trips immediately
-        prefetchTrips();
-        
-        transformUser(session.user)
-          .then(transformedUser => {
-            if (mounted) {
-              setUser(transformedUser);
-              setIsLoading(false);
-            }
-          })
-          .catch(error => {
-            console.error('[Auth] Error transforming user on init:', error);
-            if (mounted) {
-              setUser(null);
-              setIsLoading(false);
-            }
-          });
-      } else {
-        setIsLoading(false);
-      }
-    });
+    // PHASE 1 BUG FIX #2: Add .catch() handler to prevent unhandled promise rejection
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!mounted) return;
+
+        setSession(session);
+        if (session?.user) {
+          // Phase 4: Start prefetching trips immediately
+          prefetchTrips();
+
+          transformUser(session.user)
+            .then(transformedUser => {
+              if (mounted) {
+                setUser(transformedUser);
+                setIsLoading(false);
+              }
+            })
+            .catch(error => {
+              console.error('[Auth] Error transforming user on init:', error);
+              if (mounted) {
+                setUser(null);
+                setIsLoading(false);
+              }
+            });
+        } else {
+          setIsLoading(false);
+        }
+      })
+      .catch(error => {
+        console.error('[Auth] Error getting session:', error);
+        if (mounted) {
+          setUser(null);
+          setIsLoading(false);
+        }
+      });
 
     return () => {
       mounted = false;
