@@ -51,8 +51,8 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
         // Fallback detection for legacy/unmapped products
         if (product_id === STRIPE_PRODUCTS['consumer-explorer'].product_id) userTier = 'explorer';
         else if (product_id === STRIPE_PRODUCTS['consumer-frequent-chraveler']?.product_id) userTier = 'frequent-chraveler';
-        else if (product_id === STRIPE_PRODUCTS['consumer-pro']?.product_id) userTier = 'frequent-chraveler'; // Legacy Pro -> Frequent Chraveler
         else if (product_id === STRIPE_PRODUCTS['consumer-plus'].product_id) userTier = 'explorer'; // Legacy Plus -> Explorer
+        // Note: 'consumer-pro' was renamed to 'consumer-frequent-chraveler' above
       }
       
       setSubscription({

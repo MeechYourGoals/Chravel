@@ -82,11 +82,12 @@ serve(async (req) => {
       // Determine tier from product ID
       let tier = 'free';
       if (productId === 'prod_TBD_EXPLORER') tier = 'explorer';
-      else if (productId === 'prod_TBD_PRO') tier = 'pro';
-      else if (productId === 'prod_TBD_UNLIMITED') tier = 'pro'; // Legacy Unlimited -> Pro
+      else if (productId === 'prod_TBD_FREQUENT_CHRAVELER') tier = 'frequent-chraveler';
+      else if (productId === 'prod_TBD_PRO') tier = 'frequent-chraveler'; // Legacy consumer Pro -> Frequent Chraveler
+      else if (productId === 'prod_TBD_UNLIMITED') tier = 'frequent-chraveler'; // Legacy Unlimited -> Frequent Chraveler
       else if (productId === 'prod_TBIgoaG5RiY45u') tier = 'explorer'; // Legacy Plus -> Explorer
       else if (productId === 'prod_TBD_STARTER') tier = 'explorer'; // Legacy Starter -> Explorer
-      else if (productId.startsWith('prod_TBIi')) tier = 'pro'; // Travel Pro products
+      else if (productId.startsWith('prod_TBIi')) tier = 'pro'; // Organization Pro products (separate from consumer tier)
       
       logStep("Determined subscription tier", { productId, tier });
 
