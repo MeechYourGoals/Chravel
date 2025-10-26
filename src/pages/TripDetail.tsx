@@ -6,6 +6,7 @@ import { MessageInbox } from '../components/MessageInbox';
 import { TripDetailHeader } from '../components/trip/TripDetailHeader';
 import { TripDetailContent } from '../components/trip/TripDetailContent';
 import { TripDetailModals } from '../components/trip/TripDetailModals';
+import { TripExportModal } from '../components/trip/TripExportModal';
 import { useAuth } from '../hooks/useAuth';
 import { getTripById, generateTripMockData } from '../data/tripsData';
 import { Trip } from '../services/tripService';
@@ -13,6 +14,16 @@ import { Message } from '../types/messages';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/use-mobile';
 import { MobileTripDetail } from './MobileTripDetail';
+import { ExportSection } from '../types/tripExport';
+import { supabase } from '../integrations/supabase/client';
+import { generateTripPDF } from '../utils/pdfGenerator';
+import {
+  buildCalendarSection,
+  buildPaymentsSection,
+  buildPollsSection,
+  buildPlacesSection,
+  buildTasksSection,
+} from '../utils/exportSectionBuilders';
 
 const TripDetail = () => {
   const isMobile = useIsMobile();
@@ -26,6 +37,7 @@ const TripDetail = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [showTripSettings, setShowTripSettings] = useState(false);
   const [showTripsPlusModal, setShowTripsPlusModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [tripDescription, setTripDescription] = useState<string>('');
   const [tripData, setTripData] = useState<{
     title?: string;
@@ -108,6 +120,61 @@ const TripDetail = () => {
     isPro: false
   };
 
+  // Handle export functionality
+  const handleExport = async (sections: ExportSection[]) => {
+    try {
+      // Call the edge function to get trip data
+      const { data, error } = await supabase.functions.invoke('export-trip-summary', {
+        body: {
+          tripId: tripId,
+          includeSections: sections,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to export trip summary');
+      }
+
+      if (!data || !data.success) {
+        throw new Error('Failed to generate export data');
+      }
+
+      // Build formatted sections for PDF
+      const formattedSections = [];
+
+      if (sections.includes('calendar') && data.sections.calendar) {
+        formattedSections.push(buildCalendarSection(data.sections.calendar));
+      }
+
+      if (sections.includes('payments') && data.sections.payments) {
+        formattedSections.push(buildPaymentsSection(data.sections.payments));
+      }
+
+      if (sections.includes('polls') && data.sections.polls) {
+        formattedSections.push(buildPollsSection(data.sections.polls));
+      }
+
+      if (sections.includes('places') && data.sections.places) {
+        formattedSections.push(buildPlacesSection(data.sections.places));
+      }
+
+      if (sections.includes('tasks') && data.sections.tasks) {
+        formattedSections.push(buildTasksSection(data.sections.tasks));
+      }
+
+      // Generate PDF
+      await generateTripPDF({
+        trip: data.trip,
+        sections: formattedSections,
+        metadata: data.metadata,
+      });
+
+    } catch (error) {
+      console.error('Export error:', error);
+      throw error;
+    }
+  };
+
   // Mobile-first conditional render - Zero impact on desktop
   if (isMobile) {
     return <MobileTripDetail />;
@@ -125,6 +192,7 @@ const TripDetail = () => {
           onShowInvite={() => setShowInvite(true)}
           onShowTripSettings={() => setShowTripSettings(true)}
           onShowAuth={() => setShowAuth(true)}
+          onShowExport={() => setShowExportModal(true)}
         />
 
         {/* Message Inbox */}
@@ -167,6 +235,14 @@ const TripDetail = () => {
         tripName={tripWithUpdatedData.title}
         tripId={tripId || '1'}
         userId={user?.id}
+      />
+
+      {/* Export Modal */}
+      <TripExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        tripName={tripWithUpdatedData.title}
       />
     </div>
   );
