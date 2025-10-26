@@ -23,13 +23,12 @@ export const ReplacesGrid = () => {
       {/* Header */}
       <div className="text-center mb-8 sm:mb-12">
         <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4">
-          Replaces your trip's app stack
+          Chravel — The Operating System for Group Travel
         </h2>
         <p className="text-xl sm:text-3xl text-foreground max-w-3xl mx-auto leading-relaxed">
-          Recognize these? We bundle their best bits into one shared workspace—chat, calendar, polls, tasks, payments, files, maps, and an AI concierge.
-          <span className="block sm:inline text-lg italic text-foreground/80 mt-2 sm:mt-0 sm:ml-2">
-            *AI Concierge runs on Google Gemini.
-          </span>
+          Chravel consolidates the core functions of your most-used apps when traveling — chat, calendars, polls, payments, and files and more— into one shared planning space built for your group.
+          It's how travelers keep every plan, person, and payment perfectly in sync.
+          No app switching. No chaos. Just Chravel.
         </p>
       </div>
 
@@ -45,10 +44,6 @@ export const ReplacesGrid = () => {
         ))}
       </div>
 
-      {/* Disclaimer */}
-      <p className="text-base text-foreground/60 text-center mt-8 max-w-4xl mx-auto leading-relaxed">
-        Logos and brands for illustration only; no affiliation implied. Metrics (MAU/DAU/installs/registered/enrolled) are labeled when shown. Android installs via Google Play; iOS ratings from US App Store.
-      </p>
     </section>
   );
 };
