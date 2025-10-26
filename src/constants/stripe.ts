@@ -9,11 +9,11 @@ export const STRIPE_PRODUCTS = {
     monthly_price: 9.99,
     annual_price: 99,
   },
-  'consumer-pro': {
-    product_id: 'prod_TBD_PRO', // To be created in Stripe
-    price_monthly_id: 'price_pro_monthly_19_99',
-    price_annual_id: 'price_pro_annual_199',
-    name: 'Pro',
+  'consumer-frequent-chraveler': {
+    product_id: 'prod_TBD_FREQUENT_CHRAVELER', // To be created in Stripe
+    price_monthly_id: 'price_fc_monthly_19_99',
+    price_annual_id: 'price_fc_annual_199',
+    name: 'Frequent Chraveler',
     monthly_price: 19.99,
     annual_price: 199,
   },
