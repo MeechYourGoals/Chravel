@@ -39,12 +39,23 @@ export const TripCategorySelector = ({
     
     setIsSaving(true);
     try {
-      // Store categories in localStorage temporarily until migration runs
+      // Optimistic update
       onCategoriesChange(newCategories);
+
+      // Persist to database
+      const { error } = await supabase
+        .from('trips')
+        .update({ categories: newCategories })
+        .eq('id', tripId);
+
+      if (error) throw error;
+
       toast.success('Categories updated');
     } catch (error) {
       console.error('Error updating categories:', error);
       toast.error('Failed to update categories');
+      // Revert on error
+      onCategoriesChange(selectedCategories);
     } finally {
       setIsSaving(false);
     }
