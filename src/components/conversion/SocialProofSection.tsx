@@ -69,8 +69,8 @@ export const SocialProofSection = () => {
               <div className="flex items-center justify-center mb-2 text-primary">
                 {metric.icon}
               </div>
-              <div className="text-5xl md:text-7xl font-bold text-foreground leading-tight">{metric.value}</div>
-              <div className="text-xl md:text-3xl text-foreground leading-tight mt-1">{metric.label}</div>
+              <div className="text-3xl md:text-4xl font-bold text-foreground leading-tight break-words">{metric.value}</div>
+              <div className="text-lg md:text-xl text-foreground leading-tight mt-1 break-words">{metric.label}</div>
               {metric.trend && (
                 <div className="text-lg md:text-xl text-accent mt-1 leading-tight">{metric.trend}</div>
               )}
