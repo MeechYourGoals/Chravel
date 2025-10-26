@@ -69,10 +69,10 @@ export const SocialProofSection = () => {
               <div className="flex items-center justify-center mb-2 text-primary">
                 {metric.icon}
               </div>
-              <div className="text-lg md:text-2xl font-bold text-foreground leading-tight">{metric.value}</div>
-              <div className="text-xs md:text-sm text-muted-foreground leading-tight mt-1">{metric.label}</div>
+              <div className="text-2xl md:text-4xl font-bold text-foreground leading-tight">{metric.value}</div>
+              <div className="text-base md:text-lg text-muted-foreground leading-tight mt-1">{metric.label}</div>
               {metric.trend && (
-                <div className="text-[10px] md:text-xs text-accent mt-1 leading-tight">{metric.trend}</div>
+                <div className="text-sm md:text-base text-accent mt-1 leading-tight">{metric.trend}</div>
               )}
             </CardContent>
           </Card>
