@@ -122,6 +122,13 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-trick
 
 ## 🚀 **Developer Resources**
 
+**🆕 AGENCY HANDOFF DOCUMENTATION (START HERE):**
+- **[AGENCY_HANDOFF.md](AGENCY_HANDOFF.md)** - 📘 **COMPREHENSIVE** agency onboarding guide (600+ lines)
+- **[AGENCY_ACCESS_CHECKLIST.md](AGENCY_ACCESS_CHECKLIST.md)** - ✅ Quick checklist for day-1 setup
+- **[AGENCY_HANDOFF_SUMMARY.md](AGENCY_HANDOFF_SUMMARY.md)** - 📋 Executive summary for client
+- **[SUPABASE_LOCAL_SETUP.md](SUPABASE_LOCAL_SETUP.md)** - 🛢️ Supabase development guide
+- **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** - 📚 Complete documentation index (60+ files)
+
 **For comprehensive development documentation, see:**
 - **[DEVELOPER_HANDBOOK.md](DEVELOPER_HANDBOOK.md)** - Complete developer guide
 - **[PRODUCTION_CLEANUP_SUMMARY.md](PRODUCTION_CLEANUP_SUMMARY.md)** - Recent improvements
