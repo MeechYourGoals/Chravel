@@ -65,7 +65,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   if (!isOpen) return null;
 
   // Check if user has access to PDF export feature
-  const hasAccess = tier === 'frequent-chraveler' || tier === 'enterprise';
+  const hasAccess = isSubscribed || tier === 'explorer';
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">

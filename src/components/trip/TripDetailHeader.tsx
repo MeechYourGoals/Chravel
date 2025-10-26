@@ -31,8 +31,8 @@ export const TripDetailHeader = ({
   const { isPlus, tier } = useConsumerSubscription();
   const { variant, accentColors } = useTripVariant();
 
-  // Show export button for frequent-chraveler tier and above
-  const canExport = tier === 'frequent-chraveler' || tier === 'enterprise';
+  // Show export button for explorer tier and above (or Plus subscribers)
+  const canExport = isPlus || tier === 'explorer';
 
   return (
     <div className="flex items-center justify-between mb-8">

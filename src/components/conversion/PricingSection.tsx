@@ -192,62 +192,91 @@ const proTiers: PricingTier[] = [
   }
 ];
 
-// Events Tiers
+// Events Tiers - NEW STRUCTURE
 const eventsTiers: PricingTier[] = [
   {
     id: 'basic-events',
     name: 'Basic Events',
-    price: '$2.99',
-    description: 'One-time events: weddings, conferences, festivals',
+    price: '$0',
+    description: 'For 3–50 attendees per event',
     icon: <CalendarPlus size={24} />,
     features: [
-      'Per attendee pricing',
-      'All core event features',
-      'RSVP management',
+      'Event page & RSVP management',
+      'Shared group chat',
+      'Photo & media sharing',
+      'Polls & simple itinerary',
       'Basic customization',
-      'Event check-in',
+      '"Made with Chravel" footer',
       'Email support'
     ],
-    cta: 'Start Planning Event',
+    cta: 'Start Free',
     category: 'events'
   },
   {
     id: 'premium-events',
     name: 'Premium Events',
-    price: '$5.99',
-    description: 'Advanced features for professional events',
+    price: '$0.99',
+    description: 'For 51–149 attendees • hard cap $150',
     icon: <Star size={24} />,
     features: [
-      'Per attendee pricing',
-      'Advanced sponsorship tools',
-      'Custom branding',
-      'Detailed analytics',
-      'VIP management',
-      'Priority support'
+      'Everything in Basic',
+      'Custom branding (remove footer, theme colors)',
+      'Higher media limits',
+      'Advanced polls (ranked choice)',
+      'CSV export (guest list & RSVPs)',
+      'VIP tags (e.g., staff, speakers)'
     ],
-    cta: 'Start Planning Event',
+    cta: 'Upgrade This Event',
+    category: 'events'
+  },
+  {
+    id: 'premium-plus',
+    name: 'Premium Plus',
+    price: '$0.49',
+    description: 'For 150–500 attendees',
+    icon: <Zap size={24} />,
+    features: [
+      'Everything in Premium',
+      'Optimized for larger crowds',
+      'No per-attendee charge for Host Pass events'
+    ],
+    cta: 'Upgrade This Event',
+    category: 'events'
+  },
+  {
+    id: 'host-pass',
+    name: 'Host Pass',
+    price: '$9.99',
+    description: '2 events/month • up to 149 attendees each • no per-attendee fees',
+    icon: <Crown size={24} />,
+    features: [
+      'All Premium features on covered events',
+      'Ideal for monthly shows & series',
+      '3 organizer seats included',
+      'Priority email support',
+      'Add another Host Pass for more covered events'
+    ],
+    cta: 'Get Host Pass',
     popular: true,
     category: 'events',
     badge: 'Recommended'
   },
   {
-    id: 'annual-license',
-    name: 'Annual License',
-    price: '$19,999',
-    description: 'Unlimited attendees across multiple events',
-    icon: <Crown size={24} />,
+    id: 'enterprise-events',
+    name: 'Enterprise',
+    price: 'Custom',
+    description: '501+ attendees per event or higher-volume organizers',
+    icon: <Shield size={24} />,
     features: [
-      'Unlimited attendees',
-      'Multiple events',
-      'White-label option (+$20k)',
-      'Custom development',
-      'Dedicated account manager',
-      '24/7 support'
+      'Larger attendee caps & advanced permissions',
+      'Security reviews & DPA/SOC2 roadmap',
+      'Onboarding & support aligned to your scale',
+      'Annual contract'
     ],
     cta: 'Contact Sales',
     category: 'events',
     enterprise: true,
-    ctaAction: () => window.location.href = 'mailto:christian@chravelapp.com?subject=Events%20Annual%20License'
+    ctaAction: () => window.location.href = 'mailto:christian@chravelapp.com?subject=Enterprise%20Events%20Inquiry'
   }
 ];
 
@@ -337,13 +366,24 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
   const [activeTab, setActiveTab] = useState<'consumer' | 'pro' | 'events'>('consumer');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  const handlePlanSelect = (planId: string) => {
+  const handlePlanSelect = (planId: string, tier?: PricingTier) => {
+    // If tier has custom action, use it
+    if (tier?.ctaAction) {
+      tier.ctaAction();
+      return;
+    }
+    
     // For consumer plans, trigger sign-up modal
     if (activeTab === 'consumer' && onSignUp) {
       onSignUp();
     } else if (activeTab === 'events') {
-      // For events, open email
-      window.location.href = 'mailto:christian@chravelapp.com?subject=Event%20Planning%20Inquiry';
+      // For basic events, trigger sign-up
+      if (planId === 'basic-events' && onSignUp) {
+        onSignUp();
+      } else {
+        // For paid events, open email
+        window.location.href = 'mailto:christian@chravelapp.com?subject=Event%20Planning%20Inquiry';
+      }
     }
   };
 
@@ -459,7 +499,13 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
       </div>
 
       {/* Pricing Cards */}
-      <div className={`grid gap-8 max-w-7xl mx-auto ${activeTab === 'consumer' ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
+      <div className={`grid gap-8 max-w-7xl mx-auto ${
+        activeTab === 'consumer' 
+          ? 'md:grid-cols-3' 
+          : activeTab === 'events'
+          ? 'md:grid-cols-2 lg:grid-cols-5'
+          : 'md:grid-cols-2 lg:grid-cols-3'
+      }`}>
         {getCurrentTiers().map((tier) => (
           <Card 
             key={tier.id} 
@@ -495,12 +541,19 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
               <div className="space-y-2 md:space-y-3">
                 <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
                   {getPrice(tier)}
-                  {tier.category === 'events' && tier.price.includes('$') && !tier.price.includes('999') && (
+                  {/* Events per-attendee pricing */}
+                  {tier.category === 'events' && ['premium-events', 'premium-plus'].includes(tier.id) && (
                     <span className="text-base sm:text-lg md:text-xl text-foreground font-normal">/attendee</span>
                   )}
+                  {/* Events Host Pass monthly pricing */}
+                  {tier.category === 'events' && tier.id === 'host-pass' && (
+                    <span className="text-base sm:text-lg md:text-xl text-foreground font-normal">/month</span>
+                  )}
+                  {/* Pro monthly pricing */}
                   {tier.category === 'pro' && tier.price.includes('$') && !tier.price.includes('Starting') && (
                     <span className="text-base sm:text-lg md:text-xl text-foreground font-normal">/month</span>
                   )}
+                  {/* Consumer monthly/annual pricing */}
                   {tier.category === 'consumer' && tier.annualPrice && billingCycle === 'monthly' && (
                     <span className="text-base sm:text-lg md:text-xl text-foreground font-normal">/month</span>
                   )}
@@ -565,6 +618,33 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
           </Card>
         ))}
       </div>
+
+      {/* How Billing Works (Events only) */}
+      {activeTab === 'events' && (
+        <div className="max-w-4xl mx-auto rounded-xl border border-border/40 bg-card/20 backdrop-blur-sm p-4 md:p-6">
+          <div className="text-base sm:text-lg font-semibold mb-3 text-foreground">How billing works</div>
+          <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground list-disc pl-5">
+            <li>
+              "Joiner" = attendee who accepts the invite and enters the event space. Unopened/declined invites aren't billed.
+            </li>
+            <li>
+              <strong>Premium</strong>: $0.99 per joiner for 51–149 attendees, <strong>capped at $150 per event</strong>.
+            </li>
+            <li>
+              <strong>Premium Plus</strong>: $0.49 per joiner for 150–500 attendees.
+            </li>
+            <li>
+              <strong>Host Pass</strong>: covers <strong>2 events/month</strong> up to <strong>149 attendees each</strong> with <strong>no per-attendee fees</strong>. Extra events that month use Premium pricing or you can add another Host Pass.
+            </li>
+            <li>
+              Final charge occurs when you lock the event or 24h after the end date (whichever comes first).
+            </li>
+          </ul>
+          <p className="mt-3 text-[10px] sm:text-[11px] text-muted-foreground/60">
+            Prices USD. Features subject to fair-use. See Terms.
+          </p>
+        </div>
+      )}
 
       {/* FAQ Section */}
       <div className="max-w-3xl mx-auto">
