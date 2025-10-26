@@ -68,9 +68,9 @@ const CategoryRow: React.FC<CategoryRowProps> = ({ category, isExpanded, onToggl
   const hasMore = additionalCount > 0;
 
   return (
-    <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-4 sm:p-6 transition-all duration-200">
+    <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-3 sm:p-4 transition-all duration-200">
       {/* Category Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <h3 className="text-3xl sm:text-4xl font-semibold text-foreground">
           {category.title}
         </h3>
@@ -96,11 +96,11 @@ const CategoryRow: React.FC<CategoryRowProps> = ({ category, isExpanded, onToggl
       </div>
 
       {/* App Chips */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {visibleApps.map((app, index) => (
           <div
             key={`${app.name}-${index}`}
-            className="bg-background/80 hover:bg-background border border-border/30 rounded-lg px-3 py-2 text-lg text-foreground transition-colors duration-150"
+            className="bg-background/80 hover:bg-background border border-border/30 rounded-lg px-2.5 py-1.5 text-base text-foreground transition-colors duration-150"
           >
             {app.name}
           </div>
