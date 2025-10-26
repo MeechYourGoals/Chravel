@@ -22,6 +22,30 @@ export const TripCategorySelector = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
+  // Load categories from database on mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('trips')
+          .select('categories')
+          .eq('id', tripId)
+          .single();
+
+        if (error) throw error;
+
+        if (data?.categories && Array.isArray(data.categories)) {
+          onCategoriesChange(data.categories);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        // Silent fail - categories will be empty array
+      }
+    };
+
+    loadCategories();
+  }, [tripId]);
+  
   // Check if user can edit categories (Explorer+ for consumer, any authenticated for Pro trips)
   const canEdit = tier === 'explorer' || tier === 'frequent-chraveler' || isPro;
   
@@ -37,14 +61,28 @@ export const TripCategorySelector = ({
       ? selectedCategories.filter(id => id !== categoryId)
       : [...selectedCategories, categoryId];
     
+    // Store previous categories for revert on error
+    const previousCategories = [...selectedCategories];
+    
     setIsSaving(true);
     try {
-      // Store categories in localStorage temporarily until migration runs
+      // Optimistic update
       onCategoriesChange(newCategories);
+      
+      // Persist to database
+      const { error } = await supabase
+        .from('trips')
+        .update({ categories: newCategories })
+        .eq('id', tripId);
+      
+      if (error) throw error;
+      
       toast.success('Categories updated');
     } catch (error) {
       console.error('Error updating categories:', error);
       toast.error('Failed to update categories');
+      // Revert optimistic update
+      onCategoriesChange(previousCategories);
     } finally {
       setIsSaving(false);
     }
