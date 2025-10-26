@@ -54,6 +54,10 @@ interface PricingTier {
   limitation?: string;
 }
 
+interface PricingSectionProps {
+  onSignUp?: () => void;
+}
+
 // Consumer Pricing Tiers - NEW 3-TIER STRUCTURE
 const consumerTiers: PricingTier[] = [
   {
@@ -143,7 +147,8 @@ const proTiers: PricingTier[] = [
     ],
     cta: 'Start 14-Day Trial',
     category: 'pro',
-    enterprise: true
+    enterprise: true,
+    ctaAction: () => window.location.href = 'mailto:christian@chravelapp.com?subject=Starter%20Pro%2014-Day%20Trial'
   },
   {
     id: 'growth-pro',
@@ -163,7 +168,8 @@ const proTiers: PricingTier[] = [
     popular: true,
     category: 'pro',
     enterprise: true,
-    badge: 'Most Popular'
+    badge: 'Most Popular',
+    ctaAction: () => window.location.href = 'mailto:christian@chravelapp.com?subject=Growth%20Pro%2014-Day%20Trial'
   },
   {
     id: 'enterprise',
@@ -326,14 +332,19 @@ const testimonials = [
   }
 ];
 
-export const PricingSection = () => {
+export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const [activeTab, setActiveTab] = useState<'consumer' | 'pro' | 'events'>('consumer');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const handlePlanSelect = (planId: string) => {
-    console.log(`Selected plan: ${planId}`);
-    // Handle plan selection logic
+    // For consumer plans, trigger sign-up modal
+    if (activeTab === 'consumer' && onSignUp) {
+      onSignUp();
+    } else if (activeTab === 'events') {
+      // For events, open email
+      window.location.href = 'mailto:christian@chravelapp.com?subject=Event%20Planning%20Inquiry';
+    }
   };
 
   const getCurrentTiers = () => {
@@ -579,18 +590,6 @@ export const PricingSection = () => {
         </div>
       </div>
 
-      {/* Final CTA */}
-      <div className="text-center space-y-4 md:space-y-6 bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-2xl p-6 md:p-12 max-w-4xl mx-auto">
-        <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground break-words">Start planning better trips today. Your crew is waiting.</h3>
-        <div className="flex gap-3 md:gap-4 justify-center flex-wrap">
-          <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 md:px-8 text-sm sm:text-base">
-            Get Started Free
-          </Button>
-          <Button size="lg" variant="outline" className="px-6 md:px-8 text-sm sm:text-base">
-            See Plans
-          </Button>
-        </div>
-      </div>
     </div>
   );
 };

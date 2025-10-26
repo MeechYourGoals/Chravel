@@ -206,7 +206,7 @@ const Index = () => {
 
             {/* Pricing Section */}
             <div id="pricing-section" className="animate-fade-in" style={{ animationDelay: '0.5s' }}>
-              <PricingSection />
+              <PricingSection onSignUp={() => setIsAuthModalOpen(true)} />
             </div>
           </div>
         </div>
