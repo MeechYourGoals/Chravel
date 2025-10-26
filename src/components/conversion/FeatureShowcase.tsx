@@ -105,35 +105,35 @@ export const FeatureShowcase = () => {
     <div className="w-full space-y-8">
       {/* Before/After Comparison */}
       <div className="space-y-6">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-foreground mb-4">
+        <div className="text-center space-y-4">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
             From chaos to coordination
           </h2>
-          <p className="text-3xl text-foreground">
+          <p className="text-sm sm:text-base md:text-lg text-foreground break-words">
             See how Chravel transforms trip planning experiences
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-4 md:gap-6">
           {beforeAfterScenarios.map((scenario, index) => (
             <Card key={index} className="bg-card/80 backdrop-blur-sm border border-border/50">
-              <CardHeader>
-                <CardTitle className="text-5xl">{scenario.title}</CardTitle>
+              <CardHeader className="p-4 md:p-6">
+                <CardTitle className="text-xl sm:text-2xl md:text-3xl break-words">{scenario.title}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 md:space-y-4 p-4 md:p-6">
                 <div className="space-y-2">
-                  <div className="text-3xl font-medium text-red-400">Before Chravel:</div>
-                  <p className="text-3xl text-foreground bg-red-500/10 p-3 rounded-lg border-l-4 border-red-500">
+                  <div className="text-sm sm:text-base md:text-lg font-medium text-red-400">Before Chravel:</div>
+                  <p className="text-xs sm:text-sm md:text-base text-foreground bg-red-500/10 p-2.5 md:p-3 rounded-lg border-l-4 border-red-500 break-words">
                     {scenario.before}
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <div className="text-3xl font-medium text-green-400">After Chravel:</div>
-                  <p className="text-3xl text-foreground bg-green-500/10 p-3 rounded-lg border-l-4 border-green-500">
+                  <div className="text-sm sm:text-base md:text-lg font-medium text-green-400">After Chravel:</div>
+                  <p className="text-xs sm:text-sm md:text-base text-foreground bg-green-500/10 p-2.5 md:p-3 rounded-lg border-l-4 border-green-500 break-words">
                     {scenario.after}
                   </p>
                 </div>
-                <Badge variant="secondary" className="bg-accent/20 text-accent">
+                <Badge variant="secondary" className="bg-accent/20 text-accent text-xs">
                   {scenario.savings}
                 </Badge>
               </CardContent>
@@ -144,26 +144,28 @@ export const FeatureShowcase = () => {
 
       {/* Feature Grid */}
       <div className="space-y-6">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-foreground mb-4">
+        <div className="text-center space-y-4">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
             Powerful features for every type of trip
           </h2>
-          <p className="text-3xl text-foreground">
+          <p className="text-sm sm:text-base md:text-lg text-foreground break-words">
             Everything you need for seamless trip coordination
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {features.map((feature) => (
             <Card 
               key={feature.id} 
               className="bg-card/80 backdrop-blur-sm border border-border/50 hover:border-primary/50 transition-all cursor-pointer hover:scale-105"
               onClick={() => handleFeatureClick(feature.id)}
             >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
-                    {feature.icon}
+              <CardContent className="p-4 md:p-6">
+                <div className="flex items-start justify-between mb-3 md:mb-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
+                    {React.cloneElement(feature.icon as React.ReactElement, { 
+                      size: 18
+                    })}
                   </div>
                   <div className="flex gap-1">
                     {feature.isNew && (
@@ -179,18 +181,18 @@ export const FeatureShowcase = () => {
                   </div>
                 </div>
                 
-                <h3 className="font-semibold text-3xl text-foreground mb-2">{feature.title}</h3>
-                <p className="text-3xl text-foreground mb-4 leading-relaxed">
+                <h3 className="font-semibold text-base sm:text-lg md:text-xl text-foreground mb-2 break-words">{feature.title}</h3>
+                <p className="text-xs sm:text-sm md:text-base text-foreground mb-3 md:mb-4 leading-relaxed break-words">
                   {feature.description}
                 </p>
                 
                 {feature.demo && (
-                  <Button variant="ghost" size="sm" className="w-full justify-between p-0 h-auto text-primary hover:text-primary">
-                    <span className="flex items-center gap-2">
-                      <Play size={14} />
+                  <Button variant="ghost" size="sm" className="w-full justify-between p-0 h-auto text-primary hover:text-primary text-xs">
+                    <span className="flex items-center gap-1.5">
+                      <Play size={12} />
                       See demo
                     </span>
-                    <ChevronRight size={14} />
+                    <ChevronRight size={12} />
                   </Button>
                 )}
               </CardContent>

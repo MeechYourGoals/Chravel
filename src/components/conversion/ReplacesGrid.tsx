@@ -21,11 +21,11 @@ export const ReplacesGrid = () => {
   return (
     <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
       {/* Header */}
-      <div className="text-center mb-8 sm:mb-12">
-        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4">
+      <div className="text-center mb-6 sm:mb-8 md:mb-12">
+        <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-3 md:mb-4 break-words">
           Chravel — The Operating System for Group Travel
         </h2>
-        <p className="text-xl sm:text-3xl text-foreground max-w-3xl mx-auto leading-relaxed">
+        <p className="text-sm sm:text-base md:text-lg lg:text-xl text-foreground max-w-3xl mx-auto leading-relaxed break-words">
           Chravel consolidates the core functions of your most-used apps when traveling — chat, calendars, polls, payments, and files and more— into one shared planning space built for your group.
           It's how travelers keep every plan, person, and payment perfectly in sync.
           No app switching. No chaos. Just Chravel.
@@ -66,14 +66,14 @@ const CategoryRow: React.FC<CategoryRowProps> = ({ category, isExpanded, onToggl
     <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-3 sm:p-4 transition-all duration-200">
       {/* Category Header */}
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-3xl sm:text-4xl font-semibold text-foreground">
+        <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-foreground break-words">
           {category.title}
         </h3>
         
         {hasMore && (
           <button
             onClick={onToggle}
-            className="flex items-center gap-2 text-lg text-primary hover:text-primary/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md px-2 py-1"
+            className="flex items-center gap-1.5 md:gap-2 text-xs sm:text-sm text-primary hover:text-primary/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md px-2 py-1 flex-shrink-0"
             aria-expanded={isExpanded}
             aria-label={isExpanded ? 'Show fewer apps' : `See ${additionalCount} more apps`}
           >
@@ -82,7 +82,7 @@ const CategoryRow: React.FC<CategoryRowProps> = ({ category, isExpanded, onToggl
             </span>
             <ChevronDown 
               className={cn(
-                "w-4 h-4 transition-transform duration-200",
+                "w-3 h-3 md:w-4 md:h-4 transition-transform duration-200",
                 isExpanded && "rotate-180"
               )}
             />
@@ -95,7 +95,7 @@ const CategoryRow: React.FC<CategoryRowProps> = ({ category, isExpanded, onToggl
         {visibleApps.map((app, index) => (
           <div
             key={`${app.name}-${index}`}
-            className="bg-background/80 hover:bg-background border border-border/30 rounded-lg px-2.5 py-1.5 text-base text-foreground transition-colors duration-150"
+            className="bg-background/80 hover:bg-background border border-border/30 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm text-foreground transition-colors duration-150 break-words"
           >
             {app.name}
           </div>

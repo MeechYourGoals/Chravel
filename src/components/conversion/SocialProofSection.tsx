@@ -67,12 +67,14 @@ export const SocialProofSection = () => {
           <Card key={index} className="bg-card/50 backdrop-blur-sm border border-border/50">
             <CardContent className="p-3 md:p-4 text-center">
               <div className="flex items-center justify-center mb-2 text-primary">
-                {metric.icon}
+                {React.cloneElement(metric.icon as React.ReactElement, { 
+                  size: 14
+                })}
               </div>
-              <div className="text-3xl md:text-4xl font-bold text-foreground leading-tight break-words">{metric.value}</div>
-              <div className="text-lg md:text-xl text-foreground leading-tight mt-1 break-words">{metric.label}</div>
+              <div className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-foreground leading-tight break-words">{metric.value}</div>
+              <div className="text-xs sm:text-sm md:text-base text-foreground leading-tight mt-1 break-words">{metric.label}</div>
               {metric.trend && (
-                <div className="text-lg md:text-xl text-accent mt-1 leading-tight">{metric.trend}</div>
+                <div className="text-xs sm:text-sm md:text-base text-accent mt-1 leading-tight break-words">{metric.trend}</div>
               )}
             </CardContent>
           </Card>

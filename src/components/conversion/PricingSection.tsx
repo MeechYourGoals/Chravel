@@ -363,26 +363,30 @@ export const PricingSection = () => {
       {/* Header with Value Prop */}
       <div className="text-center space-y-6">
         <div className="space-y-4">
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
             Start planning better trips today
           </h2>
-          <p className="text-3xl text-foreground max-w-3xl mx-auto leading-relaxed">
+          <p className="text-sm sm:text-base md:text-lg text-foreground max-w-3xl mx-auto leading-relaxed break-words">
             Your crew is waiting. <span className="text-accent font-semibold">Save 23 hours per trip</span> with the world's first AI-native travel collaboration platform.
           </p>
         </div>
 
         {/* Why Upgrade Section */}
         {activeTab === 'consumer' && (
-          <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-8 max-w-5xl mx-auto">
-            <h3 className="text-5xl font-bold text-foreground mb-6">Why Upgrade?</h3>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-5 md:p-8 max-w-5xl mx-auto">
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-4 md:mb-6">Why Upgrade?</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {valuePropItems.map((item, index) => (
                 <div key={index} className="text-left">
-                  <div className="flex items-start gap-3">
-                    <div className="text-primary mt-0.5">{item.icon}</div>
+                  <div className="flex items-start gap-2 md:gap-3">
+                    <div className="text-primary mt-0.5">
+                      {React.cloneElement(item.icon as React.ReactElement, { 
+                        size: 16
+                      })}
+                    </div>
                     <div>
-                      <h4 className="font-semibold text-foreground text-lg mb-1">{item.title}</h4>
-                      <p className="text-base text-foreground">{item.description}</p>
+                      <h4 className="font-semibold text-foreground text-sm sm:text-base md:text-lg mb-1 break-words">{item.title}</h4>
+                      <p className="text-xs sm:text-sm md:text-base text-foreground break-words">{item.description}</p>
                     </div>
                   </div>
                 </div>
@@ -402,13 +406,15 @@ export const PricingSection = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-6 py-3 rounded-md text-lg font-medium transition-all flex items-center gap-2 ${
+                className={`px-4 py-2 md:px-6 md:py-3 rounded-md text-sm sm:text-base md:text-lg font-medium transition-all flex items-center gap-1.5 md:gap-2 ${
                   activeTab === tab.id
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-foreground hover:text-foreground'
                 }`}
               >
-                {tab.icon}
+                {React.cloneElement(tab.icon as React.ReactElement, { 
+                  size: 14
+                })}
                 {tab.label}
               </button>
             ))}
@@ -417,8 +423,8 @@ export const PricingSection = () => {
 
         {/* Billing Toggle for applicable plans */}
         {activeTab === 'consumer' && (
-          <div className="flex items-center justify-center gap-4">
-            <span className={`text-lg ${billingCycle === 'monthly' ? 'text-foreground font-medium' : 'text-foreground'}`}>
+          <div className="flex items-center justify-center gap-3 md:gap-4">
+            <span className={`text-sm sm:text-base ${billingCycle === 'monthly' ? 'text-foreground font-medium' : 'text-foreground'}`}>
               Monthly
             </span>
             <button
@@ -429,11 +435,11 @@ export const PricingSection = () => {
                 billingCycle === 'annual' ? 'translate-x-7' : 'translate-x-1'
               }`} />
             </button>
-            <span className={`text-lg ${billingCycle === 'annual' ? 'text-foreground font-medium' : 'text-foreground'}`}>
+            <span className={`text-sm sm:text-base ${billingCycle === 'annual' ? 'text-foreground font-medium' : 'text-foreground'}`}>
               Annual
             </span>
             {billingCycle === 'annual' && (
-              <Badge variant="secondary" className="bg-green-500/20 text-green-400">
+              <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-xs">
                 Save 17%
               </Badge>
             )}
@@ -462,77 +468,79 @@ export const PricingSection = () => {
               </div>
             )}
             
-            <CardHeader className="text-center pb-6">
-              <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 ${
+            <CardHeader className="text-center pb-4 md:pb-6 p-4 md:p-6">
+              <div className={`w-12 h-12 md:w-16 md:h-16 mx-auto rounded-full flex items-center justify-center mb-3 md:mb-4 ${
                 tier.popular || tier.recommended
                   ? 'bg-primary/20 text-primary' 
                   : tier.enterprise 
                   ? 'bg-accent/20 text-accent' 
                   : 'bg-muted/50 text-muted-foreground'
               }`}>
-                {tier.icon}
+                {React.cloneElement(tier.icon as React.ReactElement, { 
+                  size: 20
+                })}
               </div>
-              <CardTitle className="text-3xl font-bold">{tier.name}</CardTitle>
-              <div className="space-y-3">
-                <div className="text-7xl font-bold text-foreground">
+              <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold break-words">{tier.name}</CardTitle>
+              <div className="space-y-2 md:space-y-3">
+                <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
                   {getPrice(tier)}
                   {tier.category === 'events' && tier.price.includes('$') && !tier.price.includes('999') && (
-                    <span className="text-3xl text-foreground font-normal">/attendee</span>
+                    <span className="text-base sm:text-lg md:text-xl text-foreground font-normal">/attendee</span>
                   )}
                   {tier.category === 'pro' && tier.price.includes('$') && !tier.price.includes('Starting') && (
-                    <span className="text-3xl text-foreground font-normal">/month</span>
+                    <span className="text-base sm:text-lg md:text-xl text-foreground font-normal">/month</span>
                   )}
                   {tier.category === 'consumer' && tier.annualPrice && billingCycle === 'monthly' && (
-                    <span className="text-3xl text-foreground font-normal">/month</span>
+                    <span className="text-base sm:text-lg md:text-xl text-foreground font-normal">/month</span>
                   )}
                   {tier.category === 'consumer' && tier.annualPrice && billingCycle === 'annual' && (
-                    <span className="text-3xl text-foreground font-normal">/year</span>
+                    <span className="text-base sm:text-lg md:text-xl text-foreground font-normal">/year</span>
                   )}
                 </div>
                 
                 {/* Show monthly equivalent for annual plans */}
                 {billingCycle === 'annual' && tier.annualPrice && tier.category === 'consumer' && getAnnualMonthlyEquivalent(tier) && (
-                  <div className="text-lg text-foreground">
+                  <div className="text-xs sm:text-sm md:text-base text-foreground break-words">
                     {getAnnualMonthlyEquivalent(tier)} when billed annually
                   </div>
                 )}
                 
                 {/* Show original price and savings */}
                 {tier.originalPrice && billingCycle === 'annual' && (
-                  <div className="text-lg text-foreground line-through">
+                  <div className="text-xs sm:text-sm md:text-base text-foreground line-through break-words">
                     Originally {tier.originalPrice}/year
                   </div>
                 )}
                 
                 {tier.savings && billingCycle === 'annual' && (
-                  <div className="text-lg text-green-400 font-medium">
+                  <div className="text-xs sm:text-sm md:text-base text-green-400 font-medium">
                     {tier.savings}
                   </div>
                 )}
                 
-                <p className="text-lg text-foreground leading-relaxed">{tier.description}</p>
+                <p className="text-xs sm:text-sm md:text-base text-foreground leading-relaxed break-words">{tier.description}</p>
               </div>
             </CardHeader>
 
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6">
               {tier.limitation && (
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 text-base text-yellow-400">
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2.5 md:p-3 text-xs sm:text-sm md:text-base text-yellow-400 break-words">
                   {tier.limitation}
                 </div>
               )}
               
-              <ul className="space-y-3">
+              <ul className="space-y-2 md:space-y-3">
                 {tier.features.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <Check size={16} className="text-green-400 mt-0.5 flex-shrink-0" />
-                    <span className="text-lg text-foreground">{feature}</span>
+                  <li key={index} className="flex items-start gap-2 md:gap-3">
+                    <Check size={14} className="text-green-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm md:text-base text-foreground break-words">{feature}</span>
                   </li>
                 ))}
               </ul>
 
               <Button 
                 onClick={tier.ctaAction || (() => handlePlanSelect(tier.id))}
-                className={`w-full h-12 font-medium ${
+                className={`w-full h-10 md:h-12 font-medium text-sm sm:text-base ${
                   tier.popular || tier.recommended
                     ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
                     : tier.enterprise 
@@ -549,21 +557,21 @@ export const PricingSection = () => {
 
       {/* FAQ Section */}
       <div className="max-w-3xl mx-auto">
-        <h3 className="text-6xl font-bold text-foreground text-center mb-8">Frequently Asked Questions</h3>
-        <div className="space-y-4">
+        <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground text-center mb-6 md:mb-8">Frequently Asked Questions</h3>
+        <div className="space-y-3 md:space-y-4">
           {faqItems.map((item, index) => (
             <Collapsible key={index} open={openFaq === index} onOpenChange={() => setOpenFaq(openFaq === index ? null : index)}>
               <CollapsibleTrigger className="w-full">
-                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-4 hover:bg-card/70 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-left font-semibold text-foreground">{item.question}</h4>
-                    <ChevronDown className={`text-foreground transition-transform ${openFaq === index ? 'rotate-180' : ''}`} size={20} />
+                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-3 md:p-4 hover:bg-card/70 transition-colors">
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="text-left font-semibold text-foreground text-sm sm:text-base md:text-lg break-words">{item.question}</h4>
+                    <ChevronDown className={`text-foreground transition-transform flex-shrink-0 ${openFaq === index ? 'rotate-180' : ''}`} size={18} />
                   </div>
                 </div>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="bg-card/30 border border-border/30 border-t-0 rounded-b-lg p-4 -mt-1">
-                  <p className="text-foreground">{item.answer}</p>
+                <div className="bg-card/30 border border-border/30 border-t-0 rounded-b-lg p-3 md:p-4 -mt-1">
+                  <p className="text-foreground text-xs sm:text-sm md:text-base break-words">{item.answer}</p>
                 </div>
               </CollapsibleContent>
             </Collapsible>
@@ -572,13 +580,13 @@ export const PricingSection = () => {
       </div>
 
       {/* Final CTA */}
-      <div className="text-center space-y-6 bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-2xl p-12 max-w-4xl mx-auto">
-        <h3 className="text-6xl font-bold text-foreground">Start planning better trips today. Your crew is waiting.</h3>
-        <div className="flex gap-4 justify-center flex-wrap">
-          <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground px-8">
+      <div className="text-center space-y-4 md:space-y-6 bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-2xl p-6 md:p-12 max-w-4xl mx-auto">
+        <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground break-words">Start planning better trips today. Your crew is waiting.</h3>
+        <div className="flex gap-3 md:gap-4 justify-center flex-wrap">
+          <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 md:px-8 text-sm sm:text-base">
             Get Started Free
           </Button>
-          <Button size="lg" variant="outline" className="px-8">
+          <Button size="lg" variant="outline" className="px-6 md:px-8 text-sm sm:text-base">
             See Plans
           </Button>
         </div>
