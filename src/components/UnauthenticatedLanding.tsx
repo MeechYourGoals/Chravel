@@ -18,7 +18,7 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
         </h1>
 
         {/* Subheadline */}
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-center">
+        <p className="text-3xl text-foreground max-w-2xl mx-auto text-center">
           The AI-powered platform for collaborative trip planning, real-time coordination, and unforgettable group experiences.
         </p>
 
@@ -26,19 +26,19 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
         <div className="flex flex-wrap justify-center gap-3 pt-2">
           <div className="bg-background/50 backdrop-blur-sm border border-border rounded-full px-4 py-2 flex items-center gap-2">
             <Users size={16} className="text-primary" />
-            <span className="text-sm">Group Planning</span>
+            <span className="text-lg">Group Planning</span>
           </div>
           <div className="bg-background/50 backdrop-blur-sm border border-border rounded-full px-4 py-2 flex items-center gap-2">
             <Calendar size={16} className="text-accent" />
-            <span className="text-sm">Smart Itineraries</span>
+            <span className="text-lg">Smart Itineraries</span>
           </div>
           <div className="bg-background/50 backdrop-blur-sm border border-border rounded-full px-4 py-2 flex items-center gap-2">
             <MapPin size={16} className="text-primary" />
-            <span className="text-sm">Real-Time Maps</span>
+            <span className="text-lg">Real-Time Maps</span>
           </div>
           <div className="bg-background/50 backdrop-blur-sm border border-border rounded-full px-4 py-2 flex items-center gap-2">
             <Sparkles size={16} className="text-accent" />
-            <span className="text-sm">AI Concierge</span>
+            <span className="text-lg">AI Concierge</span>
           </div>
         </div>
 
@@ -54,7 +54,7 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
         </div>
 
         {/* Trust Badge */}
-        <p className="text-sm text-muted-foreground pt-6 text-center">
+        <p className="text-lg text-foreground pt-6 text-center">
           Join thousands of travelers coordinating trips worldwide
         </p>
       </div>
@@ -65,8 +65,8 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
           <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
             <Users className="text-primary" size={24} />
           </div>
-          <h3 className="font-semibold text-2xl mb-2">Collaborate in Real-Time</h3>
-          <p className="text-lg text-muted-foreground">
+          <h3 className="font-semibold text-5xl mb-2">Collaborate in Real-Time</h3>
+          <p className="text-3xl text-foreground">
             Plan together with live updates, chat, and shared itineraries
           </p>
         </div>
@@ -75,8 +75,8 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
           <div className="bg-accent/10 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
             <Sparkles className="text-accent" size={24} />
           </div>
-          <h3 className="font-semibold text-2xl mb-2">AI-Powered Assistance</h3>
-          <p className="text-lg text-muted-foreground">
+          <h3 className="font-semibold text-5xl mb-2">AI-Powered Assistance</h3>
+          <p className="text-3xl text-foreground">
             Get smart recommendations verified by Google Maps
           </p>
         </div>
@@ -85,8 +85,8 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
           <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
             <MapPin className="text-primary" size={24} />
           </div>
-          <h3 className="font-semibold text-2xl mb-2">Everything in One Place</h3>
-          <p className="text-lg text-muted-foreground">
+          <h3 className="font-semibold text-5xl mb-2">Everything in One Place</h3>
+          <p className="text-3xl text-foreground">
             Maps, schedules, expenses, and memories—all organized
           </p>
         </div>
