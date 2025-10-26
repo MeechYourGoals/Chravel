@@ -189,19 +189,19 @@ const Index = () => {
 
           {/* Marketing Content - Always show to unauthenticated users */}
           <div className="mt-6 space-y-8">
-            {/* Replaces Grid Section */}
-            <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              <ReplacesGrid />
-            </div>
-
             {/* Social Proof Section */}
-            <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+            <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
               <SocialProofSection />
             </div>
 
             {/* Feature Showcase */}
-            <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
+            <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
               <FeatureShowcase />
+            </div>
+
+            {/* Replaces Grid Section - Drives home the consolidation value prop */}
+            <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
+              <ReplacesGrid />
             </div>
 
             {/* Pricing Section */}
