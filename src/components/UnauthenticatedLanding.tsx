@@ -65,8 +65,8 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
           <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
             <Users className="text-primary" size={24} />
           </div>
-          <h3 className="font-semibold text-lg mb-2">Collaborate in Real-Time</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="font-semibold text-2xl mb-2">Collaborate in Real-Time</h3>
+          <p className="text-lg text-muted-foreground">
             Plan together with live updates, chat, and shared itineraries
           </p>
         </div>
@@ -75,8 +75,8 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
           <div className="bg-accent/10 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
             <Sparkles className="text-accent" size={24} />
           </div>
-          <h3 className="font-semibold text-lg mb-2">AI-Powered Assistance</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="font-semibold text-2xl mb-2">AI-Powered Assistance</h3>
+          <p className="text-lg text-muted-foreground">
             Get smart recommendations verified by Google Maps
           </p>
         </div>
@@ -85,8 +85,8 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
           <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4">
             <MapPin className="text-primary" size={24} />
           </div>
-          <h3 className="font-semibold text-lg mb-2">Everything in One Place</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="font-semibold text-2xl mb-2">Everything in One Place</h3>
+          <p className="text-lg text-muted-foreground">
             Maps, schedules, expenses, and memories—all organized
           </p>
         </div>

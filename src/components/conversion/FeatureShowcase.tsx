@@ -118,18 +118,18 @@ export const FeatureShowcase = () => {
           {beforeAfterScenarios.map((scenario, index) => (
             <Card key={index} className="bg-card/80 backdrop-blur-sm border border-border/50">
               <CardHeader>
-                <CardTitle className="text-lg">{scenario.title}</CardTitle>
+                <CardTitle className="text-2xl">{scenario.title}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <div className="text-sm font-medium text-red-400">Before Chravel:</div>
-                  <p className="text-sm text-muted-foreground bg-red-500/10 p-3 rounded-lg border-l-4 border-red-500">
+                  <div className="text-lg font-medium text-red-400">Before Chravel:</div>
+                  <p className="text-lg text-muted-foreground bg-red-500/10 p-3 rounded-lg border-l-4 border-red-500">
                     {scenario.before}
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <div className="text-sm font-medium text-green-400">After Chravel:</div>
-                  <p className="text-sm text-muted-foreground bg-green-500/10 p-3 rounded-lg border-l-4 border-green-500">
+                  <div className="text-lg font-medium text-green-400">After Chravel:</div>
+                  <p className="text-lg text-muted-foreground bg-green-500/10 p-3 rounded-lg border-l-4 border-green-500">
                     {scenario.after}
                   </p>
                 </div>
@@ -179,8 +179,8 @@ export const FeatureShowcase = () => {
                   </div>
                 </div>
                 
-                <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                <h3 className="font-semibold text-xl text-foreground mb-2">{feature.title}</h3>
+                <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
                   {feature.description}
                 </p>
                 
