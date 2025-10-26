@@ -27,6 +27,28 @@ export const TripCategorySelector = ({
   
   const availableCategories = isPro ? PRO_TRIP_CATEGORIES : CONSUMER_TRIP_CATEGORIES;
   
+  // Load categories from database on mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('trips')
+          .select('categories')
+          .eq('id', tripId)
+          .single();
+
+        if (error) throw error;
+        if (data?.categories) {
+          onCategoriesChange(data.categories);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+
+    loadCategories();
+  }, [tripId]);
+  
   const toggleCategory = async (categoryId: string) => {
     if (!canEdit) {
       toast.error('Upgrade to Explorer to add trip categories');
