@@ -1,0 +1,258 @@
+{
+  "validation_timestamp": "2025-10-26T18:30:00Z",
+  "repository": "MeechYourGoals/Chravel",
+  "branch": "claude/tier-migration-audit-011CUWHLd4sfTx2u9yq4PoTz",
+  "audit_summary": {
+    "status": "⚠️ CRITICAL ISSUES FOUND",
+    "critical_errors": 3,
+    "warnings": 4,
+    "info": 6,
+    "ready_for_cursor": false
+  },
+
+  "critical_errors": [
+    {
+      "severity": "CRITICAL",
+      "category": "TYPE_MISMATCH",
+      "location": "src/constants/stripe.ts:12-19",
+      "issue": "Stripe product key uses 'consumer-pro' instead of 'consumer-frequent-chraveler'",
+      "current_code": "'consumer-pro': {\n  product_id: 'prod_TBD_PRO',\n  price_monthly_id: 'price_pro_monthly_19_99',\n  price_annual_id: 'price_pro_annual_199',\n  name: 'Pro',\n  monthly_price: 19.99,\n  annual_price: 199,\n}",
+      "expected_code": "'consumer-frequent-chraveler': {\n  product_id: 'prod_TBD_FREQUENT_CHRAVELER',\n  price_monthly_id: 'price_fc_monthly_19_99',\n  price_annual_id: 'price_fc_annual_199',\n  name: 'Frequent Chraveler',\n  monthly_price: 19.99,\n  annual_price: 199,\n}",
+      "impact": "This causes type mismatch with useConsumerSubscription hook which expects 'consumer-frequent-chraveler'. Will break tier detection and billing flows.",
+      "blocking": true
+    },
+    {
+      "severity": "CRITICAL",
+      "category": "WEBHOOK_TIER_MAPPING",
+      "location": "supabase/functions/check-subscription/index.ts:84-89",
+      "issue": "Webhook still maps to 'pro' tier instead of 'frequent-chraveler'",
+      "current_code": "let tier = 'free';\nif (productId === 'prod_TBD_EXPLORER') tier = 'explorer';\nelse if (productId === 'prod_TBD_PRO') tier = 'pro';\nelse if (productId === 'prod_TBD_UNLIMITED') tier = 'pro';",
+      "expected_code": "let tier = 'free';\nif (productId === 'prod_TBD_EXPLORER') tier = 'explorer';\nelse if (productId === 'prod_TBD_FREQUENT_CHRAVELER') tier = 'frequent-chraveler';\nelse if (productId === 'prod_TBD_PRO') tier = 'frequent-chraveler'; // Legacy mapping",
+      "impact": "Subscriptions from Stripe will return wrong tier value, breaking all tier-based feature gating",
+      "blocking": true
+    },
+    {
+      "severity": "CRITICAL",
+      "category": "MISSING_DATABASE_SCHEMA",
+      "location": "supabase/migrations/",
+      "issue": "Missing 'categories' column on trips table",
+      "details": "The trips table (defined in 20250907200017_09851b32-6961-48a0-a97e-571f6bd12c43.sql) does not have a 'categories' JSONB column. TripCategorySelector component expects this field but it doesn't exist in the database.",
+      "migration_needed": true,
+      "proposed_migration": "ALTER TABLE trips ADD COLUMN IF NOT EXISTS categories JSONB DEFAULT '[]'::jsonb;",
+      "impact": "TripCategorySelector will fail to save categories. Currently saves to localStorage only.",
+      "blocking": true
+    }
+  ],
+
+  "warnings": [
+    {
+      "severity": "WARNING",
+      "category": "DEPRECATED_REFERENCE",
+      "location": "useConsumerSubscription.tsx:54",
+      "issue": "Hook references STRIPE_PRODUCTS['consumer-pro'] which will be renamed",
+      "note": "This is in a fallback mapping so it won't break immediately, but should be updated for consistency",
+      "blocking": false
+    },
+    {
+      "severity": "WARNING",
+      "category": "MISSING_QUOTA_TABLE",
+      "location": "Database schema",
+      "issue": "No user_pro_trip_quota table found to track Frequent Chraveler's 1 Pro trip/month limit",
+      "details": "While useConsumerSubscription defines proTripQuota, there's no database table to track actual usage",
+      "migration_needed": true,
+      "blocking": false
+    },
+    {
+      "severity": "WARNING",
+      "category": "MISSING_RLS_POLICY",
+      "location": "Database migrations",
+      "issue": "No RLS policy found specifically for trip categories editing based on tier",
+      "details": "TripCategorySelector checks tier client-side, but should have server-side RLS enforcement",
+      "blocking": false
+    },
+    {
+      "severity": "WARNING",
+      "category": "ENVIRONMENT_VARIABLES",
+      "location": ".env.example",
+      "issue": "No Stripe product IDs documented in .env.example",
+      "note": "Consider adding VITE_STRIPE_EXPLORER_PRODUCT_ID and VITE_STRIPE_FC_PRODUCT_ID for clarity",
+      "blocking": false
+    }
+  ],
+
+  "info": [
+    {
+      "category": "TYPE_DEFINITIONS",
+      "status": "✅ CORRECT",
+      "location": "src/types/consumer.ts:3",
+      "note": "ConsumerSubscription type correctly defines tier as 'free' | 'explorer' | 'frequent-chraveler'"
+    },
+    {
+      "category": "FRONTEND_COMPONENTS",
+      "status": "✅ CORRECT",
+      "location": "src/components/consumer/ConsumerBillingSection.tsx",
+      "note": "Correctly uses 'frequent-chraveler' tier throughout"
+    },
+    {
+      "category": "PRICING_UI",
+      "status": "✅ CORRECT",
+      "location": "src/components/conversion/PricingSection.tsx:104",
+      "note": "PricingSection correctly displays 'Frequent Chraveler' tier"
+    },
+    {
+      "category": "TRIP_CATEGORIES",
+      "status": "✅ IMPLEMENTED",
+      "location": "src/components/trip/TripCategorySelector.tsx",
+      "note": "Component properly implemented with tier gating (Explorer+)"
+    },
+    {
+      "category": "PRICING_CONSTANTS",
+      "status": "✅ CORRECT",
+      "location": "src/types/consumer.ts:118-128",
+      "note": "CONSUMER_PRICING correctly defines 'frequent-chraveler' tier with all features"
+    },
+    {
+      "category": "FEATURE_ACCESS",
+      "status": "✅ CORRECT",
+      "location": "src/types/consumer.ts:139-151",
+      "note": "FEATURE_ACCESS constants properly reference 'frequent-chraveler' for premium features"
+    }
+  ],
+
+  "type_errors": [],
+
+  "runtime_warnings": [
+    {
+      "location": "TripCategorySelector.tsx:42-44",
+      "issue": "Categories saved to localStorage only - no DB persistence yet",
+      "severity": "HIGH",
+      "note": "Will lose data on browser clear. Needs migration to be applied first."
+    },
+    {
+      "location": "useConsumerSubscription.tsx:53",
+      "issue": "Accesses potentially undefined STRIPE_PRODUCTS['consumer-frequent-chraveler']",
+      "severity": "MEDIUM",
+      "note": "Uses optional chaining but will fail when constant is renamed"
+    }
+  ],
+
+  "missing_env": [
+    {
+      "variable": "STRIPE_FREQUENT_CHRAVELER_PRODUCT_ID",
+      "status": "NOT_REQUIRED",
+      "note": "Product IDs are hardcoded in stripe.ts constants. Consider making them env variables for easier Stripe product management."
+    }
+  ],
+
+  "deprecated_refs": [
+    {
+      "pattern": "'pro'",
+      "count": 53,
+      "files_affected": 53,
+      "note": "Many references to 'pro' tier found. Most are for organization/enterprise Pro tier which is separate from consumer 'frequent-chraveler' tier.",
+      "requires_action": false,
+      "explanation": "Chravel has TWO 'Pro' concepts: (1) Consumer 'Frequent Chraveler' tier (formerly called Pro), (2) Chravel Pro organization tier. Only consumer tier references need updating."
+    },
+    {
+      "pattern": "'consumer-pro'",
+      "count": 3,
+      "files_affected": 2,
+      "locations": [
+        "src/constants/stripe.ts:12",
+        "src/hooks/useConsumerSubscription.tsx:54"
+      ],
+      "requires_action": true,
+      "blocking": true
+    }
+  ],
+
+  "migration_conflicts": [],
+
+  "database_schema_analysis": {
+    "trips_table": {
+      "has_categories_column": false,
+      "action_required": "ADD categories JSONB column",
+      "migration_file_needed": true
+    },
+    "concierge_usage_table": {
+      "exists": true,
+      "location": "20251023235412_1ccd7f78-a92d-4f19-84c0-272a2ed3fabe.sql",
+      "note": "Tracks AI query usage per user/context. Suitable for tier-based limits."
+    },
+    "user_pro_trip_quota": {
+      "exists": false,
+      "action_required": "CREATE table to track Frequent Chraveler's 1 Pro trip/month quota",
+      "migration_file_needed": true
+    },
+    "profiles_table": {
+      "has_subscription_tier": false,
+      "has_subscription_product_id": false,
+      "note": "Subscription info was removed in security migration 20251009200510. Tier is now determined from Stripe webhook response only.",
+      "action_required": "None - intentional design"
+    }
+  },
+
+  "stripe_integration_status": {
+    "constants_file": "src/constants/stripe.ts",
+    "issues": [
+      "Uses 'consumer-pro' key instead of 'consumer-frequent-chraveler'",
+      "Product IDs are placeholders (prod_TBD_*) - need real Stripe products created"
+    ],
+    "webhook_function": "supabase/functions/check-subscription/index.ts",
+    "webhook_issues": [
+      "Maps to 'pro' tier instead of 'frequent-chraveler'"
+    ]
+  },
+
+  "tailwind_color_tokens": {
+    "status": "✅ COMPLETE",
+    "note": "TripCategorySelector defines all color mappings inline. No missing Tailwind tokens detected.",
+    "colors_used": ["blue", "green", "purple", "pink", "orange", "teal", "yellow", "red", "emerald", "indigo", "rose", "fuchsia", "cyan", "violet", "amber", "slate", "sky", "lime", "coral"]
+  },
+
+  "recommended_actions_before_cursor": [
+    {
+      "priority": 1,
+      "action": "Fix stripe.ts constant key",
+      "file": "src/constants/stripe.ts",
+      "change": "Rename 'consumer-pro' to 'consumer-frequent-chraveler' and update all nested fields"
+    },
+    {
+      "priority": 2,
+      "action": "Fix webhook tier mapping",
+      "file": "supabase/functions/check-subscription/index.ts",
+      "change": "Update lines 84-89 to return 'frequent-chraveler' instead of 'pro'"
+    },
+    {
+      "priority": 3,
+      "action": "Create database migration for trip categories",
+      "file": "supabase/migrations/YYYYMMDD_add_trip_categories.sql",
+      "sql": "ALTER TABLE trips ADD COLUMN IF NOT EXISTS categories JSONB DEFAULT '[]'::jsonb;"
+    },
+    {
+      "priority": 4,
+      "action": "Create database migration for Pro trip quota tracking",
+      "file": "supabase/migrations/YYYYMMDD_add_pro_trip_quota.sql",
+      "sql": "CREATE TABLE user_pro_trip_quota (...)"
+    },
+    {
+      "priority": 5,
+      "action": "Add RLS policy for trip category editing",
+      "file": "Migration file",
+      "sql": "CREATE POLICY for trip categories based on subscription tier"
+    },
+    {
+      "priority": 6,
+      "action": "Update TripCategorySelector to use database persistence",
+      "file": "src/components/trip/TripCategorySelector.tsx",
+      "change": "Replace localStorage with Supabase mutation after migration applied"
+    }
+  ],
+
+  "handoff_status": {
+    "ready_for_cursor": false,
+    "blocking_issues": 3,
+    "estimated_fix_time": "30 minutes",
+    "message": "⚠️ Repository NOT ready for Cursor execution. 3 critical issues must be resolved first:\n1. Stripe constant key mismatch\n2. Webhook tier mapping incorrect\n3. Missing database schema for categories\n\nRecommendation: Fix critical issues, then run validation again before handing off to Cursor."
+  }
+}
