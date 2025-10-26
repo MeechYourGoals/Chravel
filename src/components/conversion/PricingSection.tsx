@@ -87,13 +87,12 @@ const consumerTiers: PricingTier[] = [
     icon: <Globe size={24} />,
     features: [
       'Unlimited saved trips - keep every memory forever',
-      'Unlimited AI queries - your 24/7 travel concierge',
+      '10 AI queries per trip - double the free tier',
       'Location-aware AI suggestions - personalized recs based on where you are',
-      'Calendar sync - Google, Apple, Outlook integration',
-      'PDF trip export - one-click beautiful itineraries',
       'Smart notifications - never miss important updates',
       'Search past trips - find that perfect restaurant again',
-      'Priority support - we\'ve got your back'
+      'Priority support - we\'ve got your back',
+      'Custom trip categories - tag trips by type'
     ],
     cta: 'Start Free Trial',
     popular: true,
@@ -102,21 +101,23 @@ const consumerTiers: PricingTier[] = [
     savings: 'Save $20/year'
   },
   {
-    id: 'pro',
-    name: 'Pro',
+    id: 'frequent-chraveler',
+    name: 'Frequent Chraveler',
     price: '$19.99',
     annualPrice: '$199',
     originalPrice: '$239.88',
     description: 'For travel pros and adventure enthusiasts',
     icon: <Sparkles size={24} />,
     features: [
-      'Bulk trip management - plan multiple trips simultaneously',
-      'Advanced analytics - spending patterns & travel insights',
-      'External calendar publishing - share trips to any calendar app',
-      'Team workspaces - separate personal/business travel',
-      'Advanced location features - multi-stop route optimization',
+      'Everything in Explorer',
+      'Unlimited AI queries - your 24/7 concierge with no limits',
+      'Calendar sync - Google, Apple, Outlook integration',
+      'PDF trip export - one-click beautiful itineraries',
+      'Create 1 Chravel Pro trip per month - invite up to 50 people',
+      'Role-based channels & pro features on your Pro trip',
+      'Custom trip categories - tag by type (work/leisure/family/etc.)',
       'Early feature access - shape the future of Chravel',
-      'Custom trip categories - organize by type (work/leisure/family)'
+      'Multi-stop route optimization'
     ],
     cta: 'Start Free Trial',
     category: 'consumer',

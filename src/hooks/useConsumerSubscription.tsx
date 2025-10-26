@@ -8,13 +8,15 @@ import { toast } from 'sonner';
 
 interface ConsumerSubscriptionContextType {
   subscription: ConsumerSubscription | null;
-  tier: 'free' | 'explorer' | 'pro';
+  tier: 'free' | 'explorer' | 'frequent-chraveler';
   isPlus: boolean; // Legacy - true for any paid tier
   isSubscribed: boolean;
   isLoading: boolean;
   checkSubscription: () => Promise<void>;
   upgradeToPlus: () => Promise<void>; // Legacy
-  upgradeToTier: (tier: 'explorer' | 'pro', billingCycle: 'monthly' | 'annual') => Promise<void>;
+  upgradeToTier: (tier: 'explorer' | 'frequent-chraveler', billingCycle: 'monthly' | 'annual') => Promise<void>;
+  canCreateProTrip: boolean;
+  proTripQuota: number;
 }
 
 const ConsumerSubscriptionContext = createContext<ConsumerSubscriptionContextType | undefined>(undefined);
@@ -42,13 +44,14 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
       const { subscribed, product_id, tier, subscription_end } = data;
       
       // Map tier from backend or detect from product_id
-      let userTier: 'free' | 'explorer' | 'pro' = 'free';
+      let userTier: 'free' | 'explorer' | 'frequent-chraveler' = 'free';
       if (tier) {
-        userTier = tier as 'free' | 'explorer' | 'pro';
+        userTier = tier as 'free' | 'explorer' | 'frequent-chraveler';
       } else if (product_id) {
         // Fallback detection for legacy/unmapped products
         if (product_id === STRIPE_PRODUCTS['consumer-explorer'].product_id) userTier = 'explorer';
-        else if (product_id === STRIPE_PRODUCTS['consumer-pro'].product_id) userTier = 'pro';
+        else if (product_id === STRIPE_PRODUCTS['consumer-frequent-chraveler']?.product_id) userTier = 'frequent-chraveler';
+        else if (product_id === STRIPE_PRODUCTS['consumer-pro']?.product_id) userTier = 'frequent-chraveler'; // Legacy Pro -> Frequent Chraveler
         else if (product_id === STRIPE_PRODUCTS['consumer-plus'].product_id) userTier = 'explorer'; // Legacy Plus -> Explorer
       }
       
@@ -71,7 +74,7 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
     await upgradeToTier('explorer', 'annual');
   };
 
-  const upgradeToTier = async (tier: 'explorer' | 'pro', billingCycle: 'monthly' | 'annual') => {
+  const upgradeToTier = async (tier: 'explorer' | 'frequent-chraveler', billingCycle: 'monthly' | 'annual') => {
     if (!user) {
       toast.error('Please sign in to upgrade');
       return;
@@ -81,7 +84,7 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
     try {
       const tierMap = {
         explorer: 'consumer-explorer',
-        pro: 'consumer-pro'
+        'frequent-chraveler': 'consumer-frequent-chraveler'
       };
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {
@@ -107,6 +110,8 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
   const currentTier = subscription?.tier || 'free';
   const isPlus = subscription?.status === 'active' && currentTier !== 'free'; // Any paid tier
   const isSubscribed = subscription?.status === 'active' && currentTier !== 'free';
+  const canCreateProTrip = currentTier === 'frequent-chraveler';
+  const proTripQuota = currentTier === 'frequent-chraveler' ? 1 : 0;
 
   return (
     <ConsumerSubscriptionContext.Provider value={{
@@ -117,7 +122,9 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
       isLoading,
       checkSubscription,
       upgradeToPlus,
-      upgradeToTier
+      upgradeToTier,
+      canCreateProTrip,
+      proTripQuota
     }}>
       {children}
     </ConsumerSubscriptionContext.Provider>

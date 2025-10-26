@@ -10,7 +10,7 @@ interface PlusUpsellModalProps {
 
 export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
   const { upgradeToTier, isLoading } = useConsumerSubscription();
-  const [selectedTier, setSelectedTier] = useState<'explorer' | 'pro'>('explorer');
+  const [selectedTier, setSelectedTier] = useState<'explorer' | 'frequent-chraveler'>('explorer');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
 
   if (!isOpen) return null;
@@ -43,13 +43,13 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
               'bg-gradient-to-r from-purple-500 to-purple-600'
             }`}>
               {selectedTier === 'explorer' && <Globe size={24} className="text-white" />}
-              {selectedTier === 'pro' && <Sparkles size={24} className="text-white" />}
+              {selectedTier === 'frequent-chraveler' && <Sparkles size={24} className="text-white" />}
             </div>
             <div>
               <h2 className="text-3xl font-bold text-white capitalize">Upgrade to {selectedTier}</h2>
               <p className="text-gray-400">
                 {selectedTier === 'explorer' && 'Never lose a trip memory'}
-                {selectedTier === 'pro' && 'For travel pros and adventure enthusiasts'}
+                {selectedTier === 'frequent-chraveler' && 'For travel pros and adventure enthusiasts'}
               </p>
             </div>
           </div>
@@ -63,7 +63,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
 
         {/* Tier Selector */}
         <div className="flex justify-center gap-2 mb-6">
-          {(['explorer', 'pro'] as const).map((tier) => (
+          {(['explorer', 'frequent-chraveler'] as const).map((tier) => (
             <button
               key={tier}
               onClick={() => setSelectedTier(tier)}
@@ -73,7 +73,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
                   : 'text-gray-300 hover:text-white bg-white/5'
               }`}
             >
-              {tier}
+              {tier === 'frequent-chraveler' ? 'Frequent Chraveler' : tier}
             </button>
           ))}
         </div>
@@ -123,7 +123,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
 
         {/* Comparison */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 mb-8">
-          <h3 className="text-lg font-bold text-white mb-4">Free vs. {selectedTier === 'explorer' ? 'Explorer' : 'Pro'}</h3>
+          <h3 className="text-lg font-bold text-white mb-4">Free vs. {selectedTier === 'explorer' ? 'Explorer' : 'Frequent Chraveler'}</h3>
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <h4 className="text-white font-medium mb-3">Free Plan</h4>
@@ -136,24 +136,23 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
               </ul>
             </div>
             <div>
-              <h4 className="text-white font-medium mb-3">{selectedTier === 'explorer' ? 'Explorer' : 'Pro'}</h4>
+              <h4 className="text-white font-medium mb-3">{selectedTier === 'explorer' ? 'Explorer' : 'Frequent Chraveler'}</h4>
               {selectedTier === 'explorer' ? (
                 <ul className="space-y-2 text-sm text-green-300">
                   <li>• Unlimited saved trips</li>
-                  <li>• Unlimited AI queries</li>
+                  <li>• 10 AI queries per trip</li>
                   <li>• Location-aware AI</li>
-                  <li>• Calendar sync</li>
-                  <li>• PDF trip export</li>
+                  <li>• Custom trip categories</li>
                   <li>• Smart notifications</li>
                   <li>• Priority support</li>
                 </ul>
               ) : (
                 <ul className="space-y-2 text-sm text-purple-300">
                   <li>• Everything in Explorer</li>
-                  <li>• Bulk trip management</li>
-                  <li>• Advanced analytics</li>
-                  <li>• External calendar publishing</li>
-                  <li>• Team workspaces</li>
+                  <li>• Unlimited AI queries</li>
+                  <li>• Calendar sync & PDF export</li>
+                  <li>• 1 Chravel Pro trip/month</li>
+                  <li>• Role-based channels</li>
                   <li>• Route optimization</li>
                   <li>• Early feature access</li>
                 </ul>

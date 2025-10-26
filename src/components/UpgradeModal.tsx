@@ -12,15 +12,15 @@ interface UpgradeModalProps {
 }
 
 export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
-  const [selectedPlan, setSelectedPlan] = useState<'explorer' | 'pro' | 'travel-pro' | 'events'>('explorer');
+  const [selectedPlan, setSelectedPlan] = useState<'explorer' | 'frequent-chraveler' | 'travel-pro' | 'events'>('explorer');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const { upgradeToTier, isLoading } = useConsumerSubscription();
 
   if (!isOpen) return null;
 
   const handleUpgrade = async () => {
-    if (['explorer', 'pro'].includes(selectedPlan)) {
-      await upgradeToTier(selectedPlan as 'explorer' | 'pro', billingCycle);
+    if (['explorer', 'frequent-chraveler'].includes(selectedPlan)) {
+      await upgradeToTier(selectedPlan as 'explorer' | 'frequent-chraveler', billingCycle);
       onClose();
     } else if (selectedPlan === 'travel-pro') {
       // Handle Travel Pro upgrade - use Pro Starter by default
@@ -84,15 +84,15 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
               Explorer
             </button>
             <button
-              onClick={() => setSelectedPlan('pro')}
+              onClick={() => setSelectedPlan('frequent-chraveler')}
               className={`px-3 py-2 rounded-xl font-medium transition-all flex items-center gap-2 text-sm ${
-                selectedPlan === 'pro'
+                selectedPlan === 'frequent-chraveler'
                   ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
                   : 'text-gray-300 hover:text-white'
               }`}
             >
               <Sparkles size={16} />
-              Pro
+              Frequent Chraveler
             </button>
             <button
               onClick={() => setSelectedPlan('travel-pro')}
@@ -120,7 +120,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
         </div>
 
         {/* Plan Content */}
-        {['explorer', 'pro'].includes(selectedPlan) ? (
+        {['explorer', 'frequent-chraveler'].includes(selectedPlan) ? (
           <div>
             {/* Tier Info */}
             <div className="text-center mb-8">
@@ -129,12 +129,14 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 'bg-gradient-to-r from-purple-500 to-purple-600'
               }`}>
                 {selectedPlan === 'explorer' && <Globe size={32} className="text-white" />}
-                {selectedPlan === 'pro' && <Sparkles size={32} className="text-white" />}
+                {selectedPlan === 'frequent-chraveler' && <Sparkles size={32} className="text-white" />}
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2 capitalize">{selectedPlan}</h3>
+              <h3 className="text-2xl font-bold text-white mb-2 capitalize">
+                {selectedPlan === 'frequent-chraveler' ? 'Frequent Chraveler' : selectedPlan}
+              </h3>
               <p className="text-gray-300">
                 {selectedPlan === 'explorer' && 'Never lose a trip memory'}
-                {selectedPlan === 'pro' && 'For travel pros and adventure enthusiasts'}
+                {selectedPlan === 'frequent-chraveler' && 'For travel pros and adventure enthusiasts'}
               </p>
             </div>
 
@@ -216,7 +218,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                     </li>
                   </>
                 )}
-                {selectedPlan === 'pro' && (
+                {selectedPlan === 'frequent-chraveler' && (
                   <>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
@@ -224,19 +226,19 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Bulk trip management
+                      Unlimited AI queries
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Advanced analytics
+                      Calendar sync & PDF export
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      External calendar publishing
+                      Create 1 Chravel Pro trip per month (50-seat limit)
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Team workspaces
+                      Role-based channels on Pro trips
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>

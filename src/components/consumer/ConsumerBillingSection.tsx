@@ -60,7 +60,7 @@ export const ConsumerBillingSection = () => {
         'Photo & video sharing',
         'Basic itinerary planning',
         'Expense tracking',
-        'AI Trip Assistant (5 queries/user/trip)'
+        'AI Trip Assistant (5 queries per trip)'
       ]
     },
     explorer: {
@@ -70,29 +70,29 @@ export const ConsumerBillingSection = () => {
       icon: Globe,
       features: [
         'Unlimited saved trips',
-        'Unlimited AI queries',
+        '10 AI queries per trip',
         'Location-aware AI suggestions',
-        'Calendar sync (Google, Apple, Outlook)',
-        'PDF trip export',
         'Smart notifications',
         'Search past trips',
-        'Priority support'
+        'Priority support',
+        'Custom trip categories & tagging'
       ]
     },
-    pro: {
-      name: 'Pro',
-      price: CONSUMER_PRICING.pro.monthly,
-      annualPrice: CONSUMER_PRICING.pro.annual,
+    'frequent-chraveler': {
+      name: 'Frequent Chraveler',
+      price: CONSUMER_PRICING['frequent-chraveler'].monthly,
+      annualPrice: CONSUMER_PRICING['frequent-chraveler'].annual,
       icon: Sparkles,
       features: [
         'Everything in Explorer',
-        'Bulk trip management',
-        'Advanced analytics',
-        'External calendar publishing',
-        'Team workspaces',
+        'Unlimited AI queries',
+        'Calendar sync (Google, Apple, Outlook)',
+        'PDF trip export',
+        'Create 1 Chravel Pro trip per month (50-seat limit)',
+        'Role-based channels on Pro trips',
+        'Custom trip categories & tagging',
         'Multi-stop route optimization',
-        'Early feature access',
-        'Custom trip categories'
+        'Early feature access'
       ]
     }
   } as const;
@@ -219,7 +219,7 @@ export const ConsumerBillingSection = () => {
                     </ul>
                     {key !== 'free' && key !== tier && (
                       <button 
-                        onClick={() => upgradeToTier(key as 'explorer' | 'pro', 'annual')}
+                        onClick={() => upgradeToTier(key as 'explorer' | 'frequent-chraveler', 'annual')}
                         disabled={isLoading}
                         className="mt-4 bg-gradient-to-r from-glass-orange to-glass-yellow hover:from-glass-orange/80 hover:to-glass-yellow/80 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                       >
