@@ -16,7 +16,7 @@ import { DemoModeToggle } from '../components/DemoModeToggle';
 
 // New conversion components
 import { PersistentCTABar } from '../components/conversion/PersistentCTABar';
-
+import { ReplacesGrid } from '../components/conversion/ReplacesGrid';
 import { SocialProofSection } from '../components/conversion/SocialProofSection';
 import { FeatureShowcase } from '../components/conversion/FeatureShowcase';
 import { PricingSection } from '../components/conversion/PricingSection';
@@ -189,6 +189,11 @@ const Index = () => {
 
           {/* Marketing Content - Always show to unauthenticated users */}
           <div className="mt-6 space-y-8">
+            {/* Replaces Grid Section */}
+            <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+              <ReplacesGrid />
+            </div>
+
             {/* Social Proof Section */}
             <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
               <SocialProofSection />
