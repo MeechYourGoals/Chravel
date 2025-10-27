@@ -58,8 +58,8 @@ export async function getTripData(
   };
 
   // Fetch sections based on request
-  if (sections.includes('roster') && layout === 'ops') {
-    data.roster = await fetchRoster(supabase, tripId);
+  if (sections.includes('roster') && layout === 'pro') {
+    data.roster = await fetchRoster(supabase, tripId, privacyRedaction);
   }
 
   if (sections.includes('calendar')) {
@@ -84,18 +84,18 @@ export async function getTripData(
     data.places = await fetchPlaces(supabase, tripId);
   }
 
-  if (sections.includes('broadcasts') && layout === 'ops') {
+  if (sections.includes('broadcasts') && layout === 'pro') {
     data.broadcasts = await fetchBroadcasts(supabase, tripId);
   }
 
-  if (sections.includes('attachments') && layout === 'ops') {
+  if (sections.includes('attachments') && layout === 'pro') {
     data.attachments = await fetchAttachments(supabase, tripId);
   }
 
   return data;
 }
 
-async function fetchRoster(supabase: SupabaseClient, tripId: string): Promise<Member[]> {
+async function fetchRoster(supabase: SupabaseClient, tripId: string, privacyRedaction: boolean): Promise<Member[]> {
   const { data } = await supabase
     .from('trip_members')
     .select(`
@@ -113,8 +113,8 @@ async function fetchRoster(supabase: SupabaseClient, tripId: string): Promise<Me
     id: m.user_id,
     name: m.profiles?.display_name || 'Unknown',
     role: m.role,
-    email: m.profiles?.email,
-    phone: m.profiles?.phone,
+    email: privacyRedaction ? undefined : m.profiles?.email,
+    phone: privacyRedaction ? undefined : m.profiles?.phone,
   }));
 }
 
@@ -212,12 +212,16 @@ async function fetchPolls(supabase: SupabaseClient, tripId: string): Promise<Pol
 async function fetchTasks(supabase: SupabaseClient, tripId: string): Promise<TaskItem[]> {
   const { data: tasks } = await supabase
     .from('trip_tasks')
-    .select('*')
+    .select(`
+      *,
+      owner:profiles(display_name)
+    `)
     .eq('trip_id', tripId)
     .order('completed', { ascending: true });
 
-  return (tasks || []).map(t => ({
+  return (tasks || []).map((t: any) => ({
     title: t.title,
+    owner: t.owner?.display_name,
     due: t.due_at ? formatDate(t.due_at) : undefined,
     status: t.completed ? 'Done' : 'Open',
   }));
@@ -258,8 +262,23 @@ async function fetchBroadcasts(supabase: SupabaseClient, tripId: string) {
 }
 
 async function fetchAttachments(supabase: SupabaseClient, tripId: string) {
-  // Placeholder - implement when trip_files table is defined
-  return [];
+  const { data: files } = await supabase
+    .from('trip_files')
+    .select(`
+      filename,
+      filetype,
+      created_at,
+      uploader:profiles(display_name)
+    `)
+    .eq('trip_id', tripId)
+    .order('created_at', { ascending: false });
+
+  return (files || []).map((f: any) => ({
+    name: f.filename || 'Unknown',
+    type: f.filetype || 'file',
+    uploaded_by: f.uploader?.display_name,
+    date: f.created_at ? formatDateTime(f.created_at) : undefined,
+  }));
 }
 
 // Date formatting helpers

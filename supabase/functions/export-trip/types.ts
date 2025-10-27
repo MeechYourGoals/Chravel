@@ -2,7 +2,7 @@
  * Type definitions for PDF Export
  */
 
-export type ExportLayout = 'onepager' | 'ops';
+export type ExportLayout = 'onepager' | 'pro';
 export type ExportSection = 
   | 'calendar'
   | 'payments'

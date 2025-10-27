@@ -9,6 +9,7 @@ import { createSecureResponse, createErrorResponse, createOptionsResponse } from
 import { sanitizeErrorForClient, logError } from "../_shared/errorHandling.ts";
 import { getTripData } from './data.ts';
 import { renderTemplate } from './template.ts';
+import { slug, formatTimestamp } from './util.ts';
 import type { ExportRequest, ExportLayout, ExportSection } from './types.ts';
 
 const logStep = (step: string, details?: unknown) => {
@@ -54,6 +55,11 @@ serve(async (req) => {
       paper = 'letter'
     } = body;
 
+    // Validate layout
+    if (layout !== 'onepager' && layout !== 'pro') {
+      return createErrorResponse('Invalid layout. Must be "onepager" or "pro"', 400);
+    }
+
     if (!tripId || !Array.isArray(sections)) {
       return createErrorResponse('Invalid request: tripId and sections required', 400);
     }
@@ -93,10 +99,12 @@ serve(async (req) => {
     // This requires Puppeteer/Chrome setup in Deno which needs additional configuration
     
     // Temporary: Return HTML for testing
+    const filename = `Trip_${slug(exportData.tripTitle)}_${layout}_${formatTimestamp()}`;
+    
     return new Response(html, {
       headers: {
         'Content-Type': 'text/html',
-        'Content-Disposition': `attachment; filename="${slug(exportData.tripTitle)}_${layout}_${fmtTs()}.html"`,
+        'Content-Disposition': `attachment; filename="${filename}.html"`,
       },
     });
 
@@ -132,10 +140,3 @@ serve(async (req) => {
   }
 });
 
-function slug(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-}
-
-function fmtTs(): string {
-  return new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
-}

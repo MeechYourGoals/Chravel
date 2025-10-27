@@ -26,6 +26,8 @@ export type ExportSection =
   | 'broadcasts'
   | 'attachments';
 
+export type ExportLayout = 'onepager' | 'pro';
+
 /**
  * Request payload for trip export
  */

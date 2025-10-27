@@ -25,18 +25,18 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [layout, setLayout] = useState<'onepager' | 'ops'>('onepager');
+  const [layout, setLayout] = useState<'onepager' | 'pro'>('onepager');
   const [privacyRedaction, setPrivacyRedaction] = useState(false);
 
   const sections = [
-    { id: 'calendar' as ExportSection, label: 'Calendar', icon: '🗓', description: 'Events and itinerary' },
-    { id: 'payments' as ExportSection, label: 'Payments', icon: '💸', description: 'Expenses and splits' },
-    { id: 'polls' as ExportSection, label: 'Polls', icon: '📊', description: 'Voting results' },
-    { id: 'places' as ExportSection, label: 'Places', icon: '📍', description: 'Saved locations' },
-    { id: 'tasks' as ExportSection, label: 'Tasks', icon: '✅', description: 'To-do items' },
-    { id: 'roster' as ExportSection, label: 'Roster & Contacts', icon: '👥', description: 'Team members (Chravel Pro Only)' },
-    { id: 'broadcasts' as ExportSection, label: 'Broadcast Log', icon: '📢', description: 'Important updates (Chravel Pro Only)' },
-    { id: 'attachments' as ExportSection, label: 'Attachments', icon: '📎', description: 'Files and documents (Chravel Pro Only)' },
+    { id: 'calendar' as ExportSection, label: 'Calendar', icon: '', description: 'Events and itinerary' },
+    { id: 'payments' as ExportSection, label: 'Payments', icon: '', description: 'Expenses and splits' },
+    { id: 'polls' as ExportSection, label: 'Polls', icon: '', description: 'Voting results' },
+    { id: 'places' as ExportSection, label: 'Places', icon: '', description: 'Saved locations' },
+    { id: 'tasks' as ExportSection, label: 'Tasks', icon: '', description: 'To-do items' },
+    { id: 'roster' as ExportSection, label: 'Roster & Contacts', icon: '', description: 'Team members (Chravel Pro Only)' },
+    { id: 'broadcasts' as ExportSection, label: 'Broadcast Log', icon: '', description: 'Important updates (Chravel Pro Only)' },
+    { id: 'attachments' as ExportSection, label: 'Attachments', icon: '', description: 'Files and documents (Chravel Pro Only)' },
   ];
 
   const toggleSection = (sectionId: ExportSection) => {
@@ -134,9 +134,9 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                     <div className="text-xs mt-1">Quick summary (1-2 pages)</div>
                   </button>
                   <button
-                    onClick={() => setLayout('ops')}
+                    onClick={() => setLayout('pro')}
                     className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${
-                      layout === 'ops'
+                      layout === 'pro'
                         ? 'bg-blue-900/30 border-blue-500 text-white'
                         : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
                     }`}
@@ -164,8 +164,8 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
               {/* Section Selection */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {sections.map((section) => {
-                  const isOpsOnly = ['roster', 'broadcasts', 'attachments'].includes(section.id);
-                  const disabled = isOpsOnly && layout === 'onepager';
+                  const isProOnly = ['roster', 'broadcasts', 'attachments'].includes(section.id);
+                  const disabled = isProOnly && layout === 'onepager';
                   
                   return (
                     <label
@@ -185,14 +185,11 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                         disabled={disabled}
                         className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900 disabled:cursor-not-allowed"
                       />
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <span className="text-lg">{section.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-white text-sm font-medium truncate">{section.label}</div>
-                          {disabled && (
-                            <div className="text-xs text-gray-500">Pro only</div>
-                          )}
-                        </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white text-sm font-medium truncate">{section.label}</div>
+                        {disabled && (
+                          <div className="text-xs text-gray-500">Pro only</div>
+                        )}
                       </div>
                     </label>
                   );
