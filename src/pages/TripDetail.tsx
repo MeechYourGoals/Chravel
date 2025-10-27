@@ -142,6 +142,14 @@ const TripDetail = () => {
             layout,
             privacyRedaction,
             paper,
+            // Pass trip data from frontend (for mock trips that don't exist in DB)
+            tripData: {
+              title: tripWithUpdatedData.title,
+              destination: tripWithUpdatedData.location,
+              startDate: tripWithUpdatedData.dateRange,
+              endDate: '',
+              description: tripWithUpdatedData.description,
+            },
           }),
         }
       );

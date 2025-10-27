@@ -21,33 +21,53 @@ export async function getTripData(
   tripId: string,
   sections: ExportSection[],
   layout: ExportLayout,
-  privacyRedaction: boolean
+  privacyRedaction: boolean,
+  providedTripData?: { title: string; destination?: string; startDate?: string; endDate?: string; description?: string; }
 ): Promise<TripExportData> {
-  // Fetch trip details
-  const { data: trip } = await supabase
-    .from('trips')
-    .select('*')
-    .eq('id', tripId)
-    .single();
+  let tripTitle: string;
+  let destination: string | undefined;
+  let startDate: string;
+  let endDate: string;
+  let subtitle: string | undefined;
 
-  if (!trip) {
-    throw new Error('Trip not found');
+  // Use provided trip data if available (for mock trips), otherwise query database
+  if (providedTripData) {
+    tripTitle = providedTripData.title;
+    destination = providedTripData.destination;
+    startDate = providedTripData.startDate || '';
+    endDate = providedTripData.endDate || '';
+    subtitle = providedTripData.description;
+  } else {
+    // Fetch trip details from database
+    const { data: trip } = await supabase
+      .from('trips')
+      .select('*')
+      .eq('id', tripId)
+      .single();
+
+    if (!trip) {
+      throw new Error('Trip not found');
+    }
+
+    tripTitle = trip.name;
+    destination = trip.destination || undefined;
+    startDate = trip.start_date ? formatDate(trip.start_date) : '';
+    endDate = trip.end_date ? formatDate(trip.end_date) : '';
+    subtitle = trip.description || undefined;
   }
 
   // Generate deeplink QR
   const deeplink = `https://chravelapp.com/trip/${tripId}`;
   const deeplinkQrSvg = generateQRSvg(deeplink, 96);
 
-  // Format dates
-  const startDate = trip.start_date ? formatDate(trip.start_date) : '';
-  const endDate = trip.end_date ? formatDate(trip.end_date) : '';
+  // Generated timestamp
   const generatedAtLocal = formatDateTime(new Date().toISOString());
 
   const data: TripExportData = {
     tripId,
-    tripTitle: trip.name,
-    subtitle: trip.description || undefined,
-    destination: trip.destination || undefined,
+    tripTitle,
+    subtitle,
+    destination,
     startDate,
     endDate,
     deeplinkQrSvg,
@@ -56,39 +76,79 @@ export async function getTripData(
     privacyRedaction,
   };
 
-  // Fetch sections based on request
+  // Fetch sections based on request (gracefully handle missing data)
   if (sections.includes('roster') && layout === 'pro') {
-    data.roster = await fetchRoster(supabase, tripId, privacyRedaction);
+    try {
+      data.roster = await fetchRoster(supabase, tripId, privacyRedaction);
+    } catch (error) {
+      console.error('Error fetching roster:', error);
+      data.roster = [];
+    }
   }
 
   if (sections.includes('calendar')) {
-    data.calendar = await fetchCalendar(supabase, tripId);
+    try {
+      data.calendar = await fetchCalendar(supabase, tripId);
+    } catch (error) {
+      console.error('Error fetching calendar:', error);
+      data.calendar = [];
+    }
   }
 
   if (sections.includes('payments')) {
-    const payments = await fetchPayments(supabase, tripId);
-    data.payments = payments.items;
-    data.totals = payments.totals;
+    try {
+      const payments = await fetchPayments(supabase, tripId);
+      data.payments = payments.items;
+      data.totals = payments.totals;
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      data.payments = [];
+    }
   }
 
   if (sections.includes('polls')) {
-    data.polls = await fetchPolls(supabase, tripId);
+    try {
+      data.polls = await fetchPolls(supabase, tripId);
+    } catch (error) {
+      console.error('Error fetching polls:', error);
+      data.polls = [];
+    }
   }
 
   if (sections.includes('tasks')) {
-    data.tasks = await fetchTasks(supabase, tripId);
+    try {
+      data.tasks = await fetchTasks(supabase, tripId);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      data.tasks = [];
+    }
   }
 
   if (sections.includes('places')) {
-    data.places = await fetchPlaces(supabase, tripId);
+    try {
+      data.places = await fetchPlaces(supabase, tripId);
+    } catch (error) {
+      console.error('Error fetching places:', error);
+      data.places = [];
+    }
   }
 
   if (sections.includes('broadcasts') && layout === 'pro') {
-    data.broadcasts = await fetchBroadcasts(supabase, tripId);
+    try {
+      data.broadcasts = await fetchBroadcasts(supabase, tripId);
+    } catch (error) {
+      console.error('Error fetching broadcasts:', error);
+      data.broadcasts = [];
+    }
   }
 
   if (sections.includes('attachments') && layout === 'pro') {
-    data.attachments = await fetchAttachments(supabase, tripId);
+    try {
+      data.attachments = await fetchAttachments(supabase, tripId);
+    } catch (error) {
+      console.error('Error fetching attachments:', error);
+      data.attachments = [];
+    }
   }
 
   return data;

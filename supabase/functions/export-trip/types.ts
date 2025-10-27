@@ -118,4 +118,12 @@ export interface ExportRequest {
   layout: ExportLayout;
   privacyRedaction: boolean;
   paper: 'letter' | 'a4';
+  // Optional: pass trip data from frontend to avoid database lookup
+  tripData?: {
+    title: string;
+    destination?: string;
+    startDate?: string;
+    endDate?: string;
+    description?: string;
+  };
 }

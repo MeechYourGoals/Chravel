@@ -44,7 +44,8 @@ serve(async (req) => {
       sections = [],
       layout = 'onepager' as ExportLayout,
       privacyRedaction = false,
-      paper = 'letter'
+      paper = 'letter',
+      tripData
     } = body;
 
     logStep("Request parsed", { tripId, sections, layout, privacyRedaction, paper });
@@ -75,13 +76,14 @@ serve(async (req) => {
     }
 
     // Fetch and transform trip data
-    logStep("Fetching trip data");
+    logStep("Fetching trip data", { hasTripData: !!tripData });
     const exportData = await getTripData(
       supabaseClient,
       tripId,
       sections as ExportSection[],
       layout,
-      privacyRedaction
+      privacyRedaction,
+      tripData
     );
     logStep("Trip data fetched successfully", { 
       sectionsWithData: Object.keys(exportData).filter(k => Array.isArray(exportData[k as keyof typeof exportData]))
