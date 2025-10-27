@@ -230,27 +230,24 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
         console.log('✓ Got coords from OSM suggestion');
       }
       
-      // 🆕 Cascade 2.5: Google Text Search (NEW - handles venue names)
+      // 🆕 Cascade 2.5: Google Text Search (handles all natural language queries)
       if (!coordinates) {
-        const queryType = GoogleMapsService.detectQueryType(address);
-        if (queryType === 'venue') {
-          console.log('Cascade 2.5: Attempting Google Text Search (venue query)...');
-          try {
-            const textSearchResult = await GoogleMapsService.searchPlacesByText(address);
-            if (textSearchResult?.results?.[0]?.geometry?.location) {
-              const topResult = textSearchResult.results[0];
-              coordinates = {
-                lat: topResult.geometry.location.lat,
-                lng: topResult.geometry.location.lng
-              };
-              if (!inferredName && topResult.name) {
-                inferredName = topResult.name;
-              }
-              console.log('✓ Cascade 2.5 success: Got coords from Text Search');
+        console.log('Cascade 2.5: Attempting Google Text Search for natural language query...');
+        try {
+          const textSearchResult = await GoogleMapsService.searchPlacesByText(address);
+          if (textSearchResult?.results?.[0]?.geometry?.location) {
+            const topResult = textSearchResult.results[0];
+            coordinates = {
+              lat: topResult.geometry.location.lat,
+              lng: topResult.geometry.location.lng
+            };
+            if (!inferredName && topResult.name) {
+              inferredName = topResult.name;
             }
-          } catch (error) {
-            console.error('Cascade 2.5 failed:', error);
+            console.log('✓ Cascade 2.5 success: Got coords from Text Search');
           }
+        } catch (error) {
+          console.error('Cascade 2.5 failed:', error);
         }
       }
       
@@ -296,19 +293,13 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
         onBasecampSet(basecamp);
         onClose();
       } else {
-        // Enhanced error message based on query type
-        const queryType = GoogleMapsService.detectQueryType(address);
-        let errorMsg = `We couldn't find "${address}". `;
-        
-        if (queryType === 'venue') {
-          errorMsg += `Please try:\n• Adding city/country (e.g., "${address}, [City], [Country]")\n• Checking spelling\n• Selecting from dropdown suggestions above`;
-        } else if (queryType === 'address') {
-          errorMsg += `Please add:\n• City and state/country\n• Or select from dropdown suggestions`;
-        } else {
-          errorMsg += `Please try:\n• Adding more detail\n• Selecting from suggestions\n• Using a more specific location`;
-        }
-        
-        alert(errorMsg);
+        // Friendly error message with helpful suggestions
+        alert(
+          `We couldn't find "${address}". Please try:\n\n` +
+          `• Adding city/country (e.g., "${address}, [City], [Country]")\n` +
+          `• Checking spelling\n` +
+          `• Selecting from dropdown suggestions above`
+        );
       }
     } catch (error) {
       console.error('Error setting basecamp:', error);
