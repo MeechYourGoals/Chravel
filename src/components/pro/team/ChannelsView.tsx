@@ -8,8 +8,22 @@ interface ChannelsViewProps {
 }
 
 export const ChannelsView = ({ tripId, userRole }: ChannelsViewProps) => {
+  // DEBUG: Log what ChannelsView receives
+  console.log('[ChannelsView] Rendering with:', { tripId, userRole });
+
   return (
     <div className="space-y-6">
+      {/* DEBUG PANEL - Remove after testing */}
+      <div className="bg-green-900/50 border-2 border-green-500 rounded-lg p-4">
+        <h3 className="text-green-300 font-bold mb-2">🔍 CHANNELS VIEW DEBUG</h3>
+        <div className="text-xs text-green-200 space-y-1">
+          <p><strong>ChannelsView Rendered:</strong> ✅</p>
+          <p><strong>Trip ID:</strong> {tripId}</p>
+          <p><strong>User Role:</strong> {userRole}</p>
+          <p><strong>InlineChannelList will render below:</strong> ↓</p>
+        </div>
+      </div>
+
       {/* Header with Info */}
       <div className="bg-gradient-to-br from-white/5 via-white/3 to-transparent backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 shadow-xl">
         <div className="flex items-center gap-3 mb-4">

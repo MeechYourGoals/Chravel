@@ -19,8 +19,30 @@ type TeamSubTab = 'channels' | 'roles';
 export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId, onUpdateMemberRole }: TeamTabProps) => {
   const [activeSubTab, setActiveSubTab] = useState<TeamSubTab>('channels');
 
+  // DEBUG: Log what TeamTab receives
+  console.log('[TeamTab] Rendering with:', { 
+    tripId, 
+    userRole, 
+    rosterCount: roster?.length, 
+    category,
+    activeSubTab 
+  });
+
   return (
     <div className="space-y-6">
+      {/* DEBUG PANEL - Remove after testing */}
+      <div className="bg-blue-900/50 border-2 border-blue-500 rounded-lg p-4 mb-4">
+        <h3 className="text-blue-300 font-bold mb-2">🔍 DEBUG INFO</h3>
+        <div className="text-xs text-blue-200 space-y-1">
+          <p><strong>TeamTab Rendered:</strong> ✅</p>
+          <p><strong>Trip ID:</strong> {tripId || '❌ MISSING'}</p>
+          <p><strong>Active Sub-Tab:</strong> {activeSubTab}</p>
+          <p><strong>User Role:</strong> {userRole}</p>
+          <p><strong>Roster Count:</strong> {roster?.length || 0}</p>
+          <p><strong>Category:</strong> {category}</p>
+        </div>
+      </div>
+
       {/* Sub-Tab Navigation */}
       <div className="bg-white/5 backdrop-blur-sm border border-gray-700/50 rounded-xl overflow-hidden">
         <div className="flex">

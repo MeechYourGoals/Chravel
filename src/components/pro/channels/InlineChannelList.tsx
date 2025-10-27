@@ -17,26 +17,42 @@ export const InlineChannelList = ({ tripId, userRole }: InlineChannelListProps) 
   const [selectedChannel, setSelectedChannel] = useState<TripChannel | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // DEBUG: Log props
+  console.log('[InlineChannelList] Component rendered with:', { tripId, userRole });
+
   useEffect(() => {
+    console.log('[InlineChannelList] useEffect running for tripId:', tripId);
+    
     const loadChannels = async () => {
       setLoading(true);
+      console.log('[InlineChannelList] Loading channels...');
       
       const isDemoTrip = DEMO_TRIP_IDS.includes(tripId);
+      console.log('[InlineChannelList] Is demo trip?', isDemoTrip, 'tripId:', tripId);
+      
       if (isDemoTrip) {
-        const { channels } = getDemoChannelsForTrip(tripId);
-        setChannels(channels);
+        const { channels: demoChannels } = getDemoChannelsForTrip(tripId);
+        console.log('[InlineChannelList] Got demo channels:', demoChannels.length, demoChannels);
+        setChannels(demoChannels);
       } else {
+        console.log('[InlineChannelList] Fetching from channelService...');
         const accessibleChannels = await channelService.getAccessibleChannels(tripId);
+        console.log('[InlineChannelList] Got channels from service:', accessibleChannels.length);
         setChannels(accessibleChannels);
       }
       
       setLoading(false);
+      console.log('[InlineChannelList] Loading complete');
     };
 
     loadChannels();
   }, [tripId]);
 
+  // DEBUG: Log render state
+  console.log('[InlineChannelList] Render state:', { loading, channelsCount: channels.length });
+
   if (loading) {
+    console.log('[InlineChannelList] Rendering loading state');
     return (
       <div className="text-center py-8 text-gray-400">
         <MessageSquare size={24} className="mx-auto mb-2 animate-pulse" />
@@ -46,6 +62,7 @@ export const InlineChannelList = ({ tripId, userRole }: InlineChannelListProps) 
   }
 
   if (channels.length === 0) {
+    console.log('[InlineChannelList] Rendering empty state - NO CHANNELS');
     return (
       <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6 text-center">
         <MessageSquare size={32} className="mx-auto mb-2 text-gray-500" />
@@ -53,6 +70,23 @@ export const InlineChannelList = ({ tripId, userRole }: InlineChannelListProps) 
       </div>
     );
   }
+
+  console.log('[InlineChannelList] Rendering channels grid with', channels.length, 'channels');
+
+  // DEBUG PANEL
+  const debugInfo = (
+    <div className="bg-purple-900/50 border-2 border-purple-500 rounded-lg p-4 mb-4">
+      <h3 className="text-purple-300 font-bold mb-2">🔍 INLINE CHANNEL LIST DEBUG</h3>
+      <div className="text-xs text-purple-200 space-y-1">
+        <p><strong>Component Rendered:</strong> ✅</p>
+        <p><strong>Trip ID:</strong> {tripId}</p>
+        <p><strong>Is Demo Trip:</strong> {DEMO_TRIP_IDS.includes(tripId) ? '✅ YES' : '❌ NO'}</p>
+        <p><strong>Loading:</strong> {loading ? '⏳ YES' : '✅ NO'}</p>
+        <p><strong>Channels Count:</strong> {channels.length}</p>
+        <p><strong>Channels:</strong> {channels.map(c => c.channelSlug).join(', ') || 'None'}</p>
+      </div>
+    </div>
+  );
 
   // If channel selected, show full-screen chat on mobile, inline on desktop
   if (selectedChannel) {
@@ -72,7 +106,9 @@ export const InlineChannelList = ({ tripId, userRole }: InlineChannelListProps) 
 
   // Channel list view
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div>
+      {debugInfo}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {channels.map((channel) => (
         <button
           key={channel.id}
@@ -121,6 +157,7 @@ export const InlineChannelList = ({ tripId, userRole }: InlineChannelListProps) 
           </div>
         </button>
       ))}
+      </div>
     </div>
   );
 };
