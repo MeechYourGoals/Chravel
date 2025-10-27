@@ -128,22 +128,14 @@ const TripDetail = () => {
         paper,
       });
 
-      // Get auth token if available
-      const { data: { session } } = await supabase.auth.getSession();
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-
-      // Call export-trip edge function directly
+      // Call export-trip edge function directly (no auth required)
       const response = await fetch(
         `https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/export-trip?tripId=${tripId}&${params}`,
         {
           method: 'POST',
-          headers,
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({
             tripId,
             sections,
