@@ -46,11 +46,10 @@ export async function getTripData(
   const data: TripExportData = {
     tripId,
     tripTitle: trip.name,
-    subtitle: trip.description,
-    destination: trip.destination,
+    subtitle: trip.description || undefined,
+    destination: trip.destination || undefined,
     startDate,
     endDate,
-    coverImageUrl: trip.cover_image_url,
     deeplinkQrSvg,
     generatedAtLocal,
     layout,

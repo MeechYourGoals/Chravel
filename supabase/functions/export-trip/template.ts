@@ -1,6 +1,6 @@
 /**
- * HTML Template Renderer for PDF Export (Text-Only)
- * NO ICONS, NO EMOJIS - Production-ready output with proper fonts
+ * HTML Template Renderer for PDF Export (Text-Only, No Cover Image)
+ * Simple, straightforward text-based export with no icons or emojis
  */
 
 import type { TripExportData } from './types.ts';
@@ -14,11 +14,9 @@ export function renderTemplate(data: TripExportData): string {
     destination,
     startDate,
     endDate,
-    coverImageUrl,
     deeplinkQrSvg,
     generatedAtLocal,
     layout,
-    privacyRedaction,
     totals,
     roster,
     calendar,
@@ -39,7 +37,7 @@ export function renderTemplate(data: TripExportData): string {
   <style>${getStyles()}</style>
 </head>
 <body>
-  ${renderCoverHeader(data)}
+  ${renderHeader(data)}
 
   ${roster && roster.length > 0 && layout === 'pro' ? renderRoster(roster) : ''}
   ${calendar && calendar.length > 0 ? renderCalendar(calendar) : ''}
@@ -57,8 +55,11 @@ export function renderTemplate(data: TripExportData): string {
 </html>`;
 }
 
-function renderCoverHeader(data: TripExportData): string {
-  const { tripTitle, subtitle, destination, startDate, endDate, coverImageUrl, deeplinkQrSvg } = data;
+/**
+ * Simple Text Header (No Cover Image)
+ */
+function renderHeader(data: TripExportData): string {
+  const { tripTitle, subtitle, destination, startDate, endDate, deeplinkQrSvg } = data;
   
   const hasMeta = destination || (startDate && endDate);
   const metaText = [
@@ -66,31 +67,19 @@ function renderCoverHeader(data: TripExportData): string {
     startDate && endDate ? `${escapeHtml(startDate)} – ${escapeHtml(endDate)}` : null,
   ].filter(Boolean).join(' &nbsp;•&nbsp; ');
 
-  if (coverImageUrl) {
-    // Full-bleed image with gradient overlay
-    return `
-  <div class="cover-header" style="background-image: url('${escapeHtml(coverImageUrl)}');">
-    <div class="cover-overlay">
-      <div class="cover-content">
-        <h1 class="cover-title">${escapeHtml(tripTitle)}</h1>
-        ${subtitle ? `<p class="cover-subtitle">${escapeHtml(subtitle)}</p>` : ''}
-        ${hasMeta ? `<div class="cover-meta">${metaText}</div>` : ''}
-        ${deeplinkQrSvg ? `<div class="cover-qr">${deeplinkQrSvg}</div>` : ''}
-      </div>
+  return `
+  <div class="header">
+    <div class="header-content">
+      <h1>${escapeHtml(tripTitle)}</h1>
+      ${subtitle ? `<p class="subtitle">${escapeHtml(subtitle)}</p>` : ''}
+      ${hasMeta ? `<div class="meta">${metaText}</div>` : ''}
     </div>
+    ${deeplinkQrSvg ? `
+    <div class="header-qr">
+      ${deeplinkQrSvg}
+      <div class="qr-label">Scan to open live trip</div>
+    </div>` : ''}
   </div>`;
-  } else {
-    // Solid color banner fallback
-    return `
-  <div class="cover-header cover-solid">
-    <div class="cover-content">
-      <h1 class="cover-title">${escapeHtml(tripTitle)}</h1>
-      ${subtitle ? `<p class="cover-subtitle">${escapeHtml(subtitle)}</p>` : ''}
-      ${hasMeta ? `<div class="cover-meta">${metaText}</div>` : ''}
-      ${deeplinkQrSvg ? `<div class="cover-qr">${deeplinkQrSvg}</div>` : ''}
-    </div>
-  </div>`;
-  }
 }
 
 function renderRoster(roster: any[]): string {
@@ -491,67 +480,62 @@ hr.hair {
   page-break-before: always;
 }
 
-/* Cover Header */
-.cover-header {
-  position: relative;
-  width: 100%;
-  min-height: 280pt;
-  background-size: cover;
-  background-position: center;
-  margin-bottom: 24pt;
-}
-
-.cover-header.cover-solid {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-}
-
-.cover-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.75));
+/* Simple Text Header */
+.header {
+  padding: 24pt;
+  border-bottom: 2pt solid var(--hair);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: flex-start;
+  page-break-after: avoid;
 }
 
-.cover-content {
-  text-align: center;
-  color: white;
-  padding: 32pt;
-  max-width: 520pt;
+.header-content {
+  flex: 1;
+  max-width: 450pt;
 }
 
-.cover-title {
-  font-size: 32pt;
+.header h1 {
+  font-size: 26pt;
   font-weight: 700;
-  margin-bottom: 12pt;
-  color: white;
-  text-shadow: 0 2pt 8pt rgba(0,0,0,0.3);
+  line-height: 1.2;
+  margin-bottom: 8pt;
+  color: var(--primary);
 }
 
-.cover-subtitle {
-  font-size: 14pt;
-  color: rgba(255,255,255,0.9);
-  margin-bottom: 16pt;
-  line-height: 1.4;
-}
-
-.cover-meta {
+.header .subtitle {
   font-size: 12pt;
-  color: rgba(255,255,255,0.85);
-  margin-top: 12pt;
+  line-height: 1.4;
+  color: var(--muted);
+  margin: 0 0 8pt 0;
+}
+
+.header .meta {
+  font-size: 10pt;
+  color: var(--muted);
   font-weight: 500;
 }
 
-.cover-qr {
-  margin-top: 20pt;
-  display: inline-block;
+.header-qr {
+  flex-shrink: 0;
+  text-align: center;
+  padding: 10pt;
+  border: 1pt solid var(--hair);
+  border-radius: 6pt;
+  background: #FAFAFB;
 }
 
-.cover-qr svg {
+.header-qr svg {
   width: 96pt;
   height: 96pt;
-  filter: drop-shadow(0 4pt 12pt rgba(0,0,0,0.3));
+  display: block;
+}
+
+.qr-label {
+  margin-top: 6pt;
+  font-size: 8pt;
+  color: var(--muted);
+  font-weight: 500;
 }
 
 /* QR Codes */

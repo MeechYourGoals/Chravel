@@ -22,32 +22,22 @@ serve(async (req) => {
     return createOptionsResponse();
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
+  // Use anon client to respect RLS
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  
+  const authHeader = req.headers.get("Authorization");
+  const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false },
+    global: { headers: authHeader ? { Authorization: authHeader } : {} }
+  });
 
   try {
-    logStep("Function started");
-
-    // Authenticate user
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return createErrorResponse('Authentication required', 401);
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !userData.user) {
-      return createErrorResponse('Unauthorized', 401);
-    }
-    const user = userData.user;
-    logStep("User authenticated", { userId: user.id });
+    logStep("Function started", { hasAuth: !!authHeader });
 
     // Parse request
     const body: ExportRequest = await req.json();
-    const {
+    let {
       tripId,
       sections = [],
       layout = 'onepager' as ExportLayout,
@@ -63,23 +53,54 @@ serve(async (req) => {
     if (!tripId || !Array.isArray(sections)) {
       return createErrorResponse('Invalid request: tripId and sections required', 400);
     }
-    logStep("Request parsed", { tripId, sections, layout });
 
-    // Verify user has access to this trip
-    const { data: tripMember } = await supabaseClient
-      .from('trip_members')
-      .select('role')
-      .eq('trip_id', tripId)
-      .eq('user_id', user.id)
-      .single();
+    // Handle authentication modes
+    let userId: string | null = null;
+    let isAuthenticated = false;
 
-    if (!tripMember) {
-      return createErrorResponse('Access denied: You are not a member of this trip', 403);
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+      
+      if (userData?.user) {
+        userId = userData.user.id;
+        isAuthenticated = true;
+        logStep("User authenticated", { userId });
+
+        // Verify trip membership for authenticated users
+        const { data: tripMember } = await supabaseClient
+          .from('trip_members')
+          .select('role')
+          .eq('trip_id', tripId)
+          .eq('user_id', userId)
+          .single();
+
+        if (!tripMember) {
+          return createErrorResponse('Access denied: You are not a member of this trip', 403);
+        }
+        logStep("Trip access verified", { role: tripMember.role });
+      } else {
+        logStep("Invalid token, proceeding as unauthenticated");
+      }
     }
-    logStep("Trip access verified");
 
-    // Export is now available to everyone - no tier check needed
-    logStep("PDF export access granted (no tier restriction)");
+    // Demo/Unauthenticated mode: force safety restrictions
+    if (!isAuthenticated) {
+      privacyRedaction = true;
+      layout = 'onepager'; // Force one-pager for unauthenticated
+      // Strip Pro-only sections
+      sections = sections.filter(s => !['roster', 'broadcasts', 'attachments'].includes(s));
+      logStep("Unauthenticated mode", { forcedRedaction: true, layout, sections });
+    }
+
+    // Default sections if none provided
+    if (sections.length === 0) {
+      sections = layout === 'pro' 
+        ? ['calendar', 'payments', 'places', 'tasks', 'polls', 'roster', 'broadcasts', 'attachments']
+        : ['calendar', 'payments', 'places', 'tasks', 'polls'];
+    }
+
+    logStep("Request parsed", { tripId, sections, layout, privacyRedaction });
 
     // Fetch and transform trip data
     const exportData = await getTripData(
@@ -95,44 +116,19 @@ serve(async (req) => {
     const html = renderTemplate(exportData);
     logStep("HTML template rendered");
 
-    // For now, return the HTML (in production, use Puppeteer to convert to PDF)
-    // This requires Puppeteer/Chrome setup in Deno which needs additional configuration
+    // Generate filename
+    const filename = `Trip_${slug(exportData.tripTitle)}_${layout}_${formatTimestamp()}.pdf`;
     
-    // Temporary: Return HTML for testing
-    const filename = `Trip_${slug(exportData.tripTitle)}_${layout}_${formatTimestamp()}`;
+    // For now, return HTML until Puppeteer is configured
+    // TODO: Add Puppeteer for PDF generation
+    logStep("Returning HTML (PDF generation pending Puppeteer setup)");
     
     return new Response(html, {
       headers: {
         'Content-Type': 'text/html',
-        'Content-Disposition': `attachment; filename="${filename}.html"`,
+        'Content-Disposition': `attachment; filename="${filename.replace('.pdf', '.html')}"`,
       },
     });
-
-    // TODO: Production implementation with Puppeteer
-    // const browser = await puppeteer.launch({ args: ["--no-sandbox"], headless: true });
-    // const page = await browser.newPage();
-    // await page.setContent(html, { waitUntil: "networkidle0" });
-    // await page.emulateMediaType("print");
-    // const pdf = await page.pdf({
-    //   printBackground: true,
-    //   format: paper === "a4" ? "A4" : "Letter",
-    //   displayHeaderFooter: true,
-    //   headerTemplate: `<span></span>`,
-    //   footerTemplate: `
-    //     <div style="font-size:8pt; width:100%; padding:0 24pt; display:flex; justify-content:space-between;">
-    //       <div>Generated by Chravel • ${exportData.generatedAtLocal}</div>
-    //       <div>Trip ID: ${exportData.tripId} • <span class="pageNumber"></span>/<span class="totalPages"></span></div>
-    //     </div>`,
-    //   margin: { top: "12mm", right: "12mm", bottom: "14mm", left: "12mm" },
-    // });
-    // await browser.close();
-    // 
-    // return new Response(pdf, {
-    //   headers: {
-    //     "Content-Type": "application/pdf",
-    //     "Content-Disposition": `attachment; filename="${slug(exportData.tripTitle)}_${layout}_${fmtTs()}.pdf"`,
-    //   },
-    // });
 
   } catch (error) {
     logError('EXPORT_TRIP', error);
