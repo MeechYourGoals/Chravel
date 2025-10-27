@@ -509,12 +509,18 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
         {getCurrentTiers().map((tier) => (
           <Card 
             key={tier.id} 
-            className={`relative bg-card/80 backdrop-blur-sm border transition-all hover:scale-105 hover:shadow-lg ${
-              tier.popular || tier.recommended
-                ? 'border-primary/50 shadow-lg ring-1 ring-primary/20' 
-                : tier.enterprise 
-                ? 'border-accent/50' 
-                : 'border-border/50'
+            className={`relative backdrop-blur-sm border transition-all hover:scale-105 hover:shadow-lg ${
+              activeTab === 'events' 
+                ? tier.popular || tier.recommended
+                  ? 'bg-blue-950/40 border-blue-500/40 shadow-lg ring-1 ring-blue-500/40'
+                  : tier.enterprise
+                  ? 'bg-gray-900/80 border-amber-500/30'
+                  : 'bg-gray-900/80 border-gray-700/50'
+                : tier.popular || tier.recommended
+                  ? 'bg-card/80 border-primary/50 shadow-lg ring-1 ring-primary/20' 
+                  : tier.enterprise 
+                  ? 'bg-card/80 border-accent/50' 
+                  : 'bg-card/80 border-border/50'
             }`}
           >
             {(tier.popular || tier.recommended) && (
@@ -527,11 +533,17 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
             
             <CardHeader className="text-center pb-4 md:pb-6 p-4 md:p-6">
               <div className={`w-12 h-12 md:w-16 md:h-16 mx-auto rounded-full flex items-center justify-center mb-3 md:mb-4 ${
-                tier.popular || tier.recommended
-                  ? 'bg-primary/20 text-primary' 
-                  : tier.enterprise 
-                  ? 'bg-accent/20 text-accent' 
-                  : 'bg-muted/50 text-muted-foreground'
+                activeTab === 'events'
+                  ? tier.popular || tier.recommended
+                    ? 'bg-blue-600/30 text-blue-400'
+                    : tier.enterprise
+                    ? 'bg-amber-600/20 text-amber-500'
+                    : 'bg-gray-700/50 text-gray-300'
+                  : tier.popular || tier.recommended
+                    ? 'bg-primary/20 text-primary' 
+                    : tier.enterprise 
+                    ? 'bg-accent/20 text-accent' 
+                    : 'bg-muted/50 text-muted-foreground'
               }`}>
                 {React.cloneElement(tier.icon as React.ReactElement, { 
                   size: 20
@@ -605,11 +617,17 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
               <Button 
                 onClick={tier.ctaAction || (() => handlePlanSelect(tier.id))}
                 className={`w-full h-10 md:h-12 font-medium text-sm sm:text-base ${
-                  tier.popular || tier.recommended
-                    ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
-                    : tier.enterprise 
-                    ? 'bg-accent hover:bg-accent/90 text-accent-foreground' 
-                    : 'bg-secondary hover:bg-secondary/80'
+                  activeTab === 'events'
+                    ? tier.popular || tier.recommended
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : tier.enterprise
+                      ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : tier.popular || tier.recommended
+                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
+                      : tier.enterprise 
+                      ? 'bg-accent hover:bg-accent/90 text-accent-foreground' 
+                      : 'bg-secondary hover:bg-secondary/80'
                 }`}
               >
                 {tier.cta}
