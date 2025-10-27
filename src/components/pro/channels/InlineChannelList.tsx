@@ -16,25 +16,25 @@ export const InlineChannelList = ({ tripId, userRole }: InlineChannelListProps) 
   const [channels, setChannels] = useState<TripChannel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<TripChannel | null>(null);
   const [loading, setLoading] = useState(true);
-  const isDemoTrip = DEMO_TRIP_IDS.includes(tripId);
 
   useEffect(() => {
+    const loadChannels = async () => {
+      setLoading(true);
+      
+      const isDemoTrip = DEMO_TRIP_IDS.includes(tripId);
+      if (isDemoTrip) {
+        const { channels } = getDemoChannelsForTrip(tripId);
+        setChannels(channels);
+      } else {
+        const accessibleChannels = await channelService.getAccessibleChannels(tripId);
+        setChannels(accessibleChannels);
+      }
+      
+      setLoading(false);
+    };
+
     loadChannels();
   }, [tripId]);
-
-  const loadChannels = async () => {
-    setLoading(true);
-    
-    if (isDemoTrip) {
-      const { channels } = getDemoChannelsForTrip(tripId);
-      setChannels(channels);
-    } else {
-      const accessibleChannels = await channelService.getAccessibleChannels(tripId);
-      setChannels(accessibleChannels);
-    }
-    
-    setLoading(false);
-  };
 
   if (loading) {
     return (
