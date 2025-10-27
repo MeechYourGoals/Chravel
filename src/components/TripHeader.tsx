@@ -1,8 +1,6 @@
 
 import React, { useState } from 'react';
 import { Calendar, MapPin, Users, Plus, Settings, Edit, FileDown } from 'lucide-react';
-import { useDemoMode } from '../hooks/useDemoMode';
-import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { InviteModal } from './InviteModal';
 import { TripCoverPhotoUpload } from './TripCoverPhotoUpload';
 import { EditableDescription } from './EditableDescription';
@@ -54,9 +52,8 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
   const { variant, accentColors } = useTripVariant();
   const { coverPhoto, updateCoverPhoto } = useTripCoverPhoto(trip);
   const isPro = variant === 'pro';
-  const { isDemoMode } = useDemoMode();
-  const { tier } = useConsumerSubscription();
-  const canExport = isDemoMode || tier === 'frequent-chraveler';
+  // Export is now available to everyone
+  const canExport = true;
 
   // Handle trip updates from modal
   const handleTripUpdate = (updates: Partial<Trip>) => {
@@ -261,9 +258,6 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 Export Trip to PDF
               </button>
             </div>
-            {!isDemoMode && !canExport && (
-              <p className="mt-2 text-xs text-gray-400">Upgrade to Frequent Chraveler for PDF export</p>
-            )}
           </div>
         </div>
 

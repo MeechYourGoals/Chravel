@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { X, Download, Loader2, FileText } from 'lucide-react';
 import { ExportSection } from '@/types/tripExport';
-import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
-import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface TripExportModalProps {
   isOpen: boolean;
@@ -17,8 +15,6 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   onExport,
   tripName,
 }) => {
-  const { tier } = useConsumerSubscription();
-  const { isDemoMode } = useDemoMode();
   const [selectedSections, setSelectedSections] = useState<ExportSection[]>([
     'calendar',
     'payments',
@@ -72,8 +68,8 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Check if user has access to PDF export feature
-  const hasAccess = isDemoMode || tier === 'frequent-chraveler';
+  // Export is now available to everyone
+  const hasAccess = true;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">

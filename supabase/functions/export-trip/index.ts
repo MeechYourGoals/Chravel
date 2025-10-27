@@ -72,16 +72,8 @@ serve(async (req) => {
     }
     logStep("Trip access verified");
 
-    // Check subscription tier
-    const subscriptionCheckResponse = await supabaseClient.functions.invoke('check-subscription', {
-      headers: { Authorization: authHeader }
-    });
-
-    const tier = subscriptionCheckResponse.data?.tier || 'free';
-    if (tier !== 'frequent-chraveler' && tier !== 'enterprise') {
-      return createErrorResponse('Upgrade required: PDF Export is available for Frequent Chraveler and Enterprise tiers', 403);
-    }
-    logStep("Subscription tier verified", { tier });
+    // Export is now available to everyone - no tier check needed
+    logStep("PDF export access granted (no tier restriction)");
 
     // Fetch and transform trip data
     const exportData = await getTripData(
