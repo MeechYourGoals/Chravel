@@ -29,12 +29,18 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [layout, setLayout] = useState<'onepager' | 'ops'>('onepager');
+  const [privacyRedaction, setPrivacyRedaction] = useState(false);
+
   const sections = [
     { id: 'calendar' as ExportSection, label: 'Calendar', icon: '🗓', description: 'Events and itinerary' },
     { id: 'payments' as ExportSection, label: 'Payments', icon: '💸', description: 'Expenses and splits' },
     { id: 'polls' as ExportSection, label: 'Polls', icon: '📊', description: 'Voting results' },
     { id: 'places' as ExportSection, label: 'Places', icon: '📍', description: 'Saved locations' },
     { id: 'tasks' as ExportSection, label: 'Tasks', icon: '✅', description: 'To-do items' },
+    { id: 'roster' as ExportSection, label: 'Roster & Contacts', icon: '👥', description: 'Team members (Ops Pack only)' },
+    { id: 'broadcasts' as ExportSection, label: 'Broadcast Log', icon: '📢', description: 'Important updates (Ops Pack only)' },
+    { id: 'attachments' as ExportSection, label: 'Attachments', icon: '📎', description: 'Files and documents (Ops Pack only)' },
   ];
 
   const toggleSection = (sectionId: ExportSection) => {
@@ -114,37 +120,85 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
             <>
               <div className="mb-6">
                 <h3 className="text-white font-semibold mb-2">Trip: {tripName}</h3>
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-400 text-sm mb-4">
                   Select the sections you'd like to include in your PDF export
                 </p>
+                
+                {/* Layout Preset */}
+                <div className="flex gap-3 mb-4">
+                  <button
+                    onClick={() => setLayout('onepager')}
+                    className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${
+                      layout === 'onepager'
+                        ? 'bg-blue-900/30 border-blue-500 text-white'
+                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="font-medium">One-Pager</div>
+                    <div className="text-xs mt-1">Quick summary (1-2 pages)</div>
+                  </button>
+                  <button
+                    onClick={() => setLayout('ops')}
+                    className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${
+                      layout === 'ops'
+                        ? 'bg-blue-900/30 border-blue-500 text-white'
+                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="font-medium">Ops Pack</div>
+                    <div className="text-xs mt-1">Full details for teams</div>
+                  </button>
+                </div>
+
+                {/* Privacy Redaction */}
+                <label className="flex items-center gap-3 p-3 rounded-lg bg-gray-800 border border-gray-700 mb-4 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={privacyRedaction}
+                    onChange={(e) => setPrivacyRedaction(e.target.checked)}
+                    className="w-5 h-5 rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900"
+                  />
+                  <div className="flex-1">
+                    <div className="text-white font-medium">Privacy Redaction</div>
+                    <div className="text-sm text-gray-400">Hide emails and phone numbers</div>
+                  </div>
+                </label>
               </div>
 
               {/* Section Selection */}
               <div className="space-y-3 mb-6">
-                {sections.map((section) => (
-                  <label
-                    key={section.id}
-                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                      selectedSections.includes(section.id)
-                        ? 'bg-blue-900/30 border-blue-500'
-                        : 'bg-gray-800 border-gray-700 hover:border-gray-600'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedSections.includes(section.id)}
-                      onChange={() => toggleSection(section.id)}
-                      className="w-5 h-5 rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{section.icon}</span>
-                        <span className="text-white font-medium">{section.label}</span>
+                {sections.map((section) => {
+                  const isOpsOnly = ['roster', 'broadcasts', 'attachments'].includes(section.id);
+                  const disabled = isOpsOnly && layout === 'onepager';
+                  
+                  return (
+                    <label
+                      key={section.id}
+                      className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                        disabled
+                          ? 'bg-gray-800/50 border-gray-700/50 cursor-not-allowed opacity-50'
+                          : selectedSections.includes(section.id)
+                          ? 'bg-blue-900/30 border-blue-500 cursor-pointer'
+                          : 'bg-gray-800 border-gray-700 hover:border-gray-600 cursor-pointer'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedSections.includes(section.id) && !disabled}
+                        onChange={() => !disabled && toggleSection(section.id)}
+                        disabled={disabled}
+                        className="w-5 h-5 rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{section.icon}</span>
+                          <span className="text-white font-medium">{section.label}</span>
+                        </div>
+                        <p className="text-sm text-gray-400 mt-1">{section.description}</p>
                       </div>
-                      <p className="text-sm text-gray-400 mt-1">{section.description}</p>
-                    </div>
-                  </label>
-                ))}
+                    </label>
+                  );
+                })}
               </div>
 
               {error && (

@@ -16,7 +16,15 @@ export type Trip = Database['public']['Tables']['trips']['Row'];
 /**
  * Available sections for export
  */
-export type ExportSection = 'calendar' | 'payments' | 'polls' | 'places' | 'tasks';
+export type ExportSection = 
+  | 'calendar' 
+  | 'payments' 
+  | 'polls' 
+  | 'places' 
+  | 'tasks'
+  | 'roster'
+  | 'broadcasts'
+  | 'attachments';
 
 /**
  * Request payload for trip export
