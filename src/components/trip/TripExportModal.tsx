@@ -34,9 +34,9 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     { id: 'polls' as ExportSection, label: 'Polls', icon: '📊', description: 'Voting results' },
     { id: 'places' as ExportSection, label: 'Places', icon: '📍', description: 'Saved locations' },
     { id: 'tasks' as ExportSection, label: 'Tasks', icon: '✅', description: 'To-do items' },
-    { id: 'roster' as ExportSection, label: 'Roster & Contacts', icon: '👥', description: 'Team members (Ops Pack only)' },
-    { id: 'broadcasts' as ExportSection, label: 'Broadcast Log', icon: '📢', description: 'Important updates (Ops Pack only)' },
-    { id: 'attachments' as ExportSection, label: 'Attachments', icon: '📎', description: 'Files and documents (Ops Pack only)' },
+    { id: 'roster' as ExportSection, label: 'Roster & Contacts', icon: '👥', description: 'Team members (Chravel Pro Only)' },
+    { id: 'broadcasts' as ExportSection, label: 'Broadcast Log', icon: '📢', description: 'Important updates (Chravel Pro Only)' },
+    { id: 'attachments' as ExportSection, label: 'Attachments', icon: '📎', description: 'Files and documents (Chravel Pro Only)' },
   ];
 
   const toggleSection = (sectionId: ExportSection) => {
