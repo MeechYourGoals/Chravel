@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
 import { useDemoMode } from './useDemoMode';
 import { mockPolls } from '@/mockData/polls';
+import { pollStorageService } from '@/services/pollStorageService';
 
 interface TripPoll {
   id: string;
@@ -43,7 +44,11 @@ export const useTripPolls = (tripId: string) => {
     queryKey: ['tripPolls', tripId],
     queryFn: async (): Promise<TripPoll[]> => {
       if (isDemoMode) {
-        return mockPolls.filter(p => p.trip_id === tripId).map(poll => ({
+        // Get storage polls (user-created in demo mode)
+        const storagePolls = await pollStorageService.getPolls(tripId);
+
+        // Get mock polls (pre-defined demo data)
+        const formattedMockPolls = mockPolls.filter(p => p.trip_id === tripId).map(poll => ({
           id: poll.id,
           trip_id: poll.trip_id,
           question: poll.question,
@@ -59,6 +64,9 @@ export const useTripPolls = (tripId: string) => {
           created_at: poll.created_at,
           updated_at: poll.updated_at
         }));
+
+        // Merge storage polls with mock polls (storage polls first, as they're newer)
+        return [...storagePolls, ...formattedMockPolls];
       }
 
       const { data, error } = await supabase
@@ -68,7 +76,7 @@ export const useTripPolls = (tripId: string) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
+
       // Transform the data to handle JSON types
       return (data || []).map(poll => ({
         ...poll,
@@ -82,6 +90,12 @@ export const useTripPolls = (tripId: string) => {
   // Create poll mutation
   const createPollMutation = useMutation({
     mutationFn: async (poll: CreatePollRequest) => {
+      // Handle demo mode - use local storage
+      if (isDemoMode) {
+        return await pollStorageService.createPoll(tripId, poll);
+      }
+
+      // Handle authenticated mode - use database
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
@@ -127,6 +141,13 @@ export const useTripPolls = (tripId: string) => {
   // Vote on poll mutation
   const votePollMutation = useMutation({
     mutationFn: async ({ pollId, optionId }: VotePollRequest) => {
+      // Handle demo mode - use local storage
+      if (isDemoMode) {
+        await pollStorageService.voteOnPoll(tripId, pollId, optionId);
+        return { pollId, optionId };
+      }
+
+      // Handle authenticated mode - use database
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
