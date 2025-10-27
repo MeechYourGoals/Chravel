@@ -91,6 +91,7 @@ function renderRoster(roster: any[]): string {
         <tr>
           <th>Name</th>
           <th>Role</th>
+          <th>Dept</th>
           <th>Email</th>
           <th>Phone</th>
         </tr>
@@ -99,7 +100,8 @@ function renderRoster(roster: any[]): string {
         ${roster.map(m => `
           <tr>
             <td>${escapeHtml(m.name)}</td>
-            <td>${escapeHtml(m.role || '—')}</td>
+            <td>${m.role ? escapeHtml(m.role) : '—'}</td>
+            <td>${m.dept ? escapeHtml(m.dept) : '—'}</td>
             <td>${m.email ? escapeHtml(m.email) : '—'}</td>
             <td>${m.phone ? escapeHtml(m.phone) : '—'}</td>
           </tr>
@@ -278,7 +280,7 @@ function renderBroadcasts(broadcasts: any[]): string {
             <td>${escapeHtml(b.ts)}</td>
             <td><span class="chip ${b.priority === 'High' ? 'warn' : ''}">${b.priority || 'Normal'}</span></td>
             <td>${escapeHtml(b.message)}</td>
-            <td>${escapeHtml(b.readRate || '—')}</td>
+            <td>${b.readRate ? escapeHtml(b.readRate) : '—'}</td>
           </tr>
         `).join('')}
       </tbody>
@@ -315,8 +317,10 @@ function renderAttachments(attachments: any[]): string {
 
 function getStyles(): string {
   return `
-/* Embedded fonts via Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Sans+3:wght@400;600&family=Roboto+Mono:wght@400;600&display=swap');
+/* Embedded fonts - no external dependencies for glyph safety */
+@font-face{font-family:'Inter';src:url('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Source Sans 3';src:url('https://fonts.gstatic.com/s/sourcesans3/v15/nwpBtKy2OAdR1K-IwhWudF-R9QMylBJAV3Bo8Kw461EN_io6npfB.woff2') format('woff2');font-weight:200 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Roboto Mono';src:url('https://fonts.gstatic.com/s/robotomono/v23/L0x5DF4xlVMF-BfR8bXMIjhGq3-cXbKDO1w.woff2') format('woff2');font-weight:100 700;font-style:normal;font-display:swap;}
 
 :root {
   --primary: #1E3A8A;

@@ -49,4 +49,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.export-trip]
-verify_jwt = true
+verify_jwt = false
