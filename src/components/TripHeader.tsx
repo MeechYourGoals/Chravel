@@ -1,21 +1,34 @@
 
 import React, { useState } from 'react';
-import { Calendar, MapPin, Users, Plus, Settings, Edit } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, Settings, Edit, FileDown } from 'lucide-react';
 import { InviteModal } from './InviteModal';
 import { TripCoverPhotoUpload } from './TripCoverPhotoUpload';
 import { EditableDescription } from './EditableDescription';
 import { useAuth } from '../hooks/useAuth';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { useTripCoverPhoto } from '../hooks/useTripCoverPhoto';
+import { useDemoMode } from '../hooks/useDemoMode';
+import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { CategorySelector } from './pro/CategorySelector';
 import { CategoryTags } from './pro/CategoryTags';
 import { ProTripCategory } from '../types/proCategories';
 import { CollaboratorsGrid } from './trip/CollaboratorsGrid';
 import { CollaboratorsModal } from './trip/CollaboratorsModal';
 import { EditTripModal } from './EditTripModal';
+import { TripExportModal } from './trip/TripExportModal';
 import { Trip } from '@/services/tripService';
 import { formatDateRange } from '@/utils/dateFormatters';
 import { cn } from '@/lib/utils';
+import { ExportSection } from '@/types/tripExport';
+import { supabase } from '@/integrations/supabase/client';
+import { generateTripPDF } from '@/utils/pdfGenerator';
+import {
+  buildCalendarSection,
+  buildPaymentsSection,
+  buildPollsSection,
+  buildPlacesSection,
+  buildTasksSection,
+} from '@/utils/exportSectionBuilders';
 
 
 interface TripHeaderProps {
@@ -48,9 +61,17 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
   const [showInvite, setShowInvite] = useState(false);
   const [showAllCollaborators, setShowAllCollaborators] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const { variant, accentColors } = useTripVariant();
   const { coverPhoto, updateCoverPhoto } = useTripCoverPhoto(trip);
+  const { isDemoMode } = useDemoMode();
+  const { tier } = useConsumerSubscription();
   const isPro = variant === 'pro';
+
+  // Determine if export button should be enabled
+  // In demo mode: always enabled
+  // In production: only for frequent-chraveler and enterprise tiers
+  const canExport = isDemoMode || tier === 'frequent-chraveler' || tier === 'enterprise';
 
   // Handle trip updates from modal
   const handleTripUpdate = (updates: Partial<Trip>) => {
@@ -66,6 +87,154 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       } else {
         onTripUpdate(updates);
       }
+    }
+  };
+
+  // Handle export functionality
+  const handleExport = async (sections: ExportSection[]) => {
+    try {
+      if (isDemoMode) {
+        // In demo mode, generate a sample PDF with mock data
+        const mockData = {
+          trip: {
+            name: trip.title,
+            description: trip.description,
+            destination: trip.location,
+            startDate: new Date().toISOString(),
+            endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+          sections: [] as any[],
+          metadata: {
+            exportedAt: new Date().toISOString(),
+            exportedBy: 'demo-user',
+            generatedBy: 'Chravel',
+          },
+        };
+
+        // Add mock sections based on selection
+        if (sections.includes('calendar')) {
+          mockData.sections.push({
+            type: 'calendar',
+            title: 'Calendar',
+            icon: '🗓',
+            items: [
+              { title: 'Team Dinner', date: 'Mon, Dec 15, 2024', time: '7:00 PM', location: 'Restaurant XYZ' },
+              { title: 'City Tour', date: 'Tue, Dec 16, 2024', time: '10:00 AM', location: 'Downtown' },
+            ],
+          });
+        }
+
+        if (sections.includes('payments')) {
+          mockData.sections.push({
+            type: 'payments',
+            title: 'Payments',
+            icon: '💸',
+            items: [
+              { description: 'Hotel Booking', amount: '$500.00', currency: 'USD', payer: 'John', participants: 4, settled: true, date: 'Dec 10, 2024' },
+              { description: 'Group Dinner', amount: '$120.00', currency: 'USD', payer: 'Jane', participants: 4, settled: false, date: 'Dec 14, 2024' },
+            ],
+            totalAmount: '$620.00',
+          });
+        }
+
+        if (sections.includes('polls')) {
+          mockData.sections.push({
+            type: 'polls',
+            title: 'Polls',
+            icon: '📊',
+            items: [
+              {
+                question: 'Where should we eat tonight?',
+                options: [
+                  { text: 'Italian Restaurant', votes: 8, percentage: 50 },
+                  { text: 'Sushi Bar', votes: 5, percentage: 31 },
+                  { text: 'Mexican Grill', votes: 3, percentage: 19 },
+                ],
+                totalVotes: 16,
+                status: 'closed',
+                winner: 'Italian Restaurant',
+              },
+            ],
+          });
+        }
+
+        if (sections.includes('places')) {
+          mockData.sections.push({
+            type: 'places',
+            title: 'Places',
+            icon: '📍',
+            items: [
+              { name: 'Central Park', url: 'https://maps.google.com', description: 'Beautiful city park', votes: 12 },
+              { name: 'Art Museum', url: 'https://maps.google.com', description: 'World-class art collection', votes: 8 },
+            ],
+          });
+        }
+
+        if (sections.includes('tasks')) {
+          mockData.sections.push({
+            type: 'tasks',
+            title: 'Tasks',
+            icon: '✅',
+            items: [
+              { title: 'Book flights', completed: true, completedDate: 'Dec 1, 2024' },
+              { title: 'Reserve restaurant', completed: false, dueDate: 'Dec 14, 2024' },
+              { title: 'Pack luggage', completed: false, dueDate: 'Dec 15, 2024' },
+            ],
+            stats: { total: 3, completed: 1, pending: 2 },
+          });
+        }
+
+        await generateTripPDF(mockData);
+      } else {
+        // Production mode: call the actual API
+        const { data, error } = await supabase.functions.invoke('export-trip-summary', {
+          body: {
+            tripId: trip.id.toString(),
+            includeSections: sections,
+          },
+        });
+
+        if (error) {
+          throw new Error(error.message || 'Failed to export trip summary');
+        }
+
+        if (!data || !data.success) {
+          throw new Error('Failed to generate export data');
+        }
+
+        // Build formatted sections for PDF
+        const formattedSections = [];
+
+        if (sections.includes('calendar') && data.sections.calendar) {
+          formattedSections.push(buildCalendarSection(data.sections.calendar));
+        }
+
+        if (sections.includes('payments') && data.sections.payments) {
+          formattedSections.push(buildPaymentsSection(data.sections.payments));
+        }
+
+        if (sections.includes('polls') && data.sections.polls) {
+          formattedSections.push(buildPollsSection(data.sections.polls));
+        }
+
+        if (sections.includes('places') && data.sections.places) {
+          formattedSections.push(buildPlacesSection(data.sections.places));
+        }
+
+        if (sections.includes('tasks') && data.sections.tasks) {
+          formattedSections.push(buildTasksSection(data.sections.tasks));
+        }
+
+        // Generate PDF
+        await generateTripPDF({
+          trip: data.trip,
+          sections: formattedSections,
+          metadata: data.metadata,
+        });
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      throw error;
     }
   };
 
@@ -230,14 +399,39 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
               tripType={trip.trip_type || 'consumer'}
             />
 
-            <button
-              onClick={() => setShowInvite(true)}
-              className={`mt-3 w-full flex items-center justify-center gap-2 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white font-medium py-2 rounded-xl transition-all duration-200 hover:scale-105`}
-              title="Invite people to this trip"
-            >
+            {/* Action Buttons - Invite (left) and Export (right) */}
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                onClick={() => setShowInvite(true)}
+                className={`flex-1 flex items-center justify-center gap-2 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white font-medium py-2 rounded-xl transition-all duration-200 hover:scale-105`}
+                title="Invite people to this trip"
+              >
                 <Plus size={16} />
-                Invite to Trip
+                <span>Invite to Trip</span>
               </button>
+
+              <button
+                onClick={() => canExport ? setShowExportModal(true) : null}
+                disabled={!canExport}
+                className={cn(
+                  `flex-1 flex items-center justify-center gap-2 font-medium py-2 rounded-xl transition-all duration-200`,
+                  canExport
+                    ? `bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white hover:scale-105`
+                    : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/50'
+                )}
+                title={canExport ? 'Export trip to PDF' : 'Upgrade for PDF export'}
+              >
+                <FileDown size={16} />
+                <span>Export Trip to PDF</span>
+              </button>
+            </div>
+
+            {/* Upgrade prompt for free users */}
+            {!canExport && !isDemoMode && (
+              <p className="mt-2 text-xs text-gray-400 text-center">
+                Upgrade to Frequent Chraveler for PDF export
+              </p>
+            )}
           </div>
         </div>
 
@@ -279,6 +473,13 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
         onClose={() => setShowEditModal(false)}
         trip={trip}
         onUpdate={handleTripUpdate}
+      />
+
+      <TripExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        tripName={trip.title}
       />
     </>
   );
