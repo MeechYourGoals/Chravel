@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
-import { Calendar, MapPin, Users, Plus, Settings, Edit } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, Settings, Edit, FileDown } from 'lucide-react';
+import { useDemoMode } from '../hooks/useDemoMode';
+import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { InviteModal } from './InviteModal';
 import { TripCoverPhotoUpload } from './TripCoverPhotoUpload';
 import { EditableDescription } from './EditableDescription';
@@ -37,13 +39,14 @@ interface TripHeaderProps {
   onManageUsers?: () => void;
   onDescriptionUpdate?: (description: string) => void;
   onTripUpdate?: (updates: Partial<Trip>) => void;
+  onShowExport?: () => void;
   // Pro-specific props
   category?: ProTripCategory;
   tags?: string[];
   onCategoryChange?: (category: ProTripCategory) => void;
 }
 
-export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpdate, category, tags = [], onCategoryChange }: TripHeaderProps) => {
+export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpdate, onShowExport, category, tags = [], onCategoryChange }: TripHeaderProps) => {
   const { user } = useAuth();
   const [showInvite, setShowInvite] = useState(false);
   const [showAllCollaborators, setShowAllCollaborators] = useState(false);
@@ -51,6 +54,9 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
   const { variant, accentColors } = useTripVariant();
   const { coverPhoto, updateCoverPhoto } = useTripCoverPhoto(trip);
   const isPro = variant === 'pro';
+  const { isDemoMode } = useDemoMode();
+  const { tier } = useConsumerSubscription();
+  const canExport = isDemoMode || tier === 'frequent-chraveler';
 
   // Handle trip updates from modal
   const handleTripUpdate = (updates: Partial<Trip>) => {
@@ -230,14 +236,34 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
               tripType={trip.trip_type || 'consumer'}
             />
 
-            <button
-              onClick={() => setShowInvite(true)}
-              className={`mt-3 w-full flex items-center justify-center gap-2 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white font-medium py-2 rounded-xl transition-all duration-200 hover:scale-105`}
-              title="Invite people to this trip"
-            >
+            <div className="mt-3 flex gap-3">
+              <button
+                onClick={() => setShowInvite(true)}
+                className={`flex-1 flex items-center justify-center gap-2 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white font-medium py-2 rounded-xl transition-all duration-200 hover:scale-105`}
+                title="Invite people to this trip"
+              >
                 <Plus size={16} />
                 Invite to Trip
               </button>
+              <button
+                onClick={() => canExport && onShowExport?.()}
+                disabled={!canExport}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 font-medium py-2 rounded-xl transition-all duration-200",
+                  canExport
+                    ? `bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white hover:scale-105`
+                    : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/50'
+                )}
+                title={canExport ? 'Export Trip to PDF' : 'Upgrade for PDF export'}
+                aria-label="Export Trip to PDF"
+              >
+                <FileDown size={16} />
+                Export Trip to PDF
+              </button>
+            </div>
+            {!isDemoMode && !canExport && (
+              <p className="mt-2 text-xs text-gray-400">Upgrade to Frequent Chraveler for PDF export</p>
+            )}
           </div>
         </div>
 

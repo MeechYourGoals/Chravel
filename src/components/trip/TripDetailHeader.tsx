@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MessageCircle, Settings, UserPlus, Crown, FileDown } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Settings, UserPlus, Crown } from 'lucide-react';
 
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -14,7 +14,6 @@ interface TripDetailHeaderProps {
   onShowInvite: () => void;
   onShowTripSettings: () => void;
   onShowAuth: () => void;
-  onShowExport?: () => void;
 }
 
 export const TripDetailHeader = ({
@@ -23,16 +22,11 @@ export const TripDetailHeader = ({
   onToggleInbox,
   onShowInvite,
   onShowTripSettings,
-  onShowAuth,
-  onShowExport
+  onShowAuth
 }: TripDetailHeaderProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isPlus, tier } = useConsumerSubscription();
   const { variant, accentColors } = useTripVariant();
-
-  // Show export button for explorer tier and above (or Plus subscribers)
-  const canExport = isPlus || tier === 'explorer';
 
   return (
     <div className="flex items-center justify-between mb-8">
@@ -64,17 +58,6 @@ export const TripDetailHeader = ({
               <MessageCircle size={16} />
               <span className="hidden sm:inline">{showInbox ? 'Hide Inbox' : 'Messages'}</span>
             </button>
-
-            {canExport && onShowExport && (
-              <button
-                onClick={onShowExport}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl transition-colors flex items-center gap-2"
-                title="Export Trip Summary"
-              >
-                <FileDown size={16} />
-                <span className="hidden sm:inline">Export</span>
-              </button>
-            )}
 
             <button
               onClick={onShowTripSettings}

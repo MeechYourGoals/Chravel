@@ -8,6 +8,7 @@ import { TripDetailContent } from '../components/trip/TripDetailContent';
 import { TripDetailModals } from '../components/trip/TripDetailModals';
 import { TripExportModal } from '../components/trip/TripExportModal';
 import { useAuth } from '../hooks/useAuth';
+import { useDemoMode } from '../hooks/useDemoMode';
 import { getTripById, generateTripMockData } from '../data/tripsData';
 import { Trip } from '../services/tripService';
 import { Message } from '../types/messages';
@@ -30,6 +31,7 @@ const TripDetail = () => {
   const { tripId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const [activeTab, setActiveTab] = useState('chat');
   const [showInbox, setShowInbox] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -123,52 +125,159 @@ const TripDetail = () => {
   // Handle export functionality
   const handleExport = async (sections: ExportSection[]) => {
     try {
-      // Call the edge function to get trip data
-      const { data, error } = await supabase.functions.invoke('export-trip-summary', {
-        body: {
-          tripId: tripId,
-          includeSections: sections,
-        },
-      });
+      if (isDemoMode) {
+        // Demo mode: generate sample PDF without API calls
+        const formattedSections = [];
 
-      if (error) {
-        throw new Error(error.message || 'Failed to export trip summary');
+        if (sections.includes('calendar')) {
+          formattedSections.push(buildCalendarSection([
+            {
+              id: 'demo-1',
+              trip_id: tripId || '1',
+              title: 'Team Dinner',
+              description: 'Welcome dinner at the hotel restaurant',
+              location: 'Hotel Restaurant',
+              start_time: new Date().toISOString(),
+              end_time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+              event_category: null,
+              created_by: 'demo',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            } as any,
+          ]));
+        }
+
+        if (sections.includes('payments')) {
+          formattedSections.push(buildPaymentsSection([
+            {
+              id: 'demo-pay-1',
+              trip_id: tripId || '1',
+              amount: 500,
+              currency: 'USD',
+              description: 'Hotel Booking',
+              split_count: 4,
+              split_participants: ['user1', 'user2', 'user3', 'user4'],
+              is_settled: false,
+              created_by: 'demo',
+              created_at: new Date().toISOString(),
+            } as any,
+          ]));
+        }
+
+        if (sections.includes('polls')) {
+          formattedSections.push(buildPollsSection([
+            {
+              id: 'demo-poll-1',
+              trip_id: tripId || '1',
+              question: 'Where should we eat tonight?',
+              options: [
+                { id: '1', text: 'Italian Restaurant', votes: 5 },
+                { id: '2', text: 'Sushi Bar', votes: 3 },
+              ] as any,
+              total_votes: 8,
+              status: 'active',
+              created_by: 'demo',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              version: 1,
+            } as any,
+          ]));
+        }
+
+        if (sections.includes('places')) {
+          formattedSections.push(buildPlacesSection([
+            {
+              id: 'demo-link-1',
+              trip_id: tripId || '1',
+              url: 'https://example.com',
+              title: 'Central Park',
+              description: 'Must-visit landmark',
+              category: 'attraction',
+              votes: 12,
+              created_by: 'demo',
+              created_at: new Date().toISOString(),
+            } as any,
+          ]));
+        }
+
+        if (sections.includes('tasks')) {
+          formattedSections.push(buildTasksSection([
+            {
+              id: 'demo-task-1',
+              trip_id: tripId || '1',
+              title: 'Book flights',
+              description: 'Find best deals',
+              completed: true,
+              completed_at: new Date().toISOString(),
+              due_at: null,
+              created_by: 'demo',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              version: 1,
+            } as any,
+          ]));
+        }
+
+        await generateTripPDF({
+          trip: {
+            name: tripWithUpdatedData.title,
+            description: tripWithUpdatedData.description,
+            destination: tripWithUpdatedData.location,
+            startDate: new Date().toISOString(),
+            endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+          sections: formattedSections,
+          metadata: {
+            exportedAt: new Date().toISOString(),
+            exportedBy: 'demo',
+            generatedBy: 'Chravel',
+          },
+        });
+      } else {
+        // Production mode: call edge function
+        const { data, error } = await supabase.functions.invoke('export-trip-summary', {
+          body: {
+            tripId: tripId,
+            includeSections: sections,
+          },
+        });
+
+        if (error) {
+          throw new Error(error.message || 'Failed to export trip summary');
+        }
+
+        if (!data || !data.success) {
+          throw new Error('Failed to generate export data');
+        }
+
+        const formattedSections = [];
+
+        if (sections.includes('calendar') && data.sections.calendar) {
+          formattedSections.push(buildCalendarSection(data.sections.calendar));
+        }
+
+        if (sections.includes('payments') && data.sections.payments) {
+          formattedSections.push(buildPaymentsSection(data.sections.payments));
+        }
+
+        if (sections.includes('polls') && data.sections.polls) {
+          formattedSections.push(buildPollsSection(data.sections.polls));
+        }
+
+        if (sections.includes('places') && data.sections.places) {
+          formattedSections.push(buildPlacesSection(data.sections.places));
+        }
+
+        if (sections.includes('tasks') && data.sections.tasks) {
+          formattedSections.push(buildTasksSection(data.sections.tasks));
+        }
+
+        await generateTripPDF({
+          trip: data.trip,
+          sections: formattedSections,
+          metadata: data.metadata,
+        });
       }
-
-      if (!data || !data.success) {
-        throw new Error('Failed to generate export data');
-      }
-
-      // Build formatted sections for PDF
-      const formattedSections = [];
-
-      if (sections.includes('calendar') && data.sections.calendar) {
-        formattedSections.push(buildCalendarSection(data.sections.calendar));
-      }
-
-      if (sections.includes('payments') && data.sections.payments) {
-        formattedSections.push(buildPaymentsSection(data.sections.payments));
-      }
-
-      if (sections.includes('polls') && data.sections.polls) {
-        formattedSections.push(buildPollsSection(data.sections.polls));
-      }
-
-      if (sections.includes('places') && data.sections.places) {
-        formattedSections.push(buildPlacesSection(data.sections.places));
-      }
-
-      if (sections.includes('tasks') && data.sections.tasks) {
-        formattedSections.push(buildTasksSection(data.sections.tasks));
-      }
-
-      // Generate PDF
-      await generateTripPDF({
-        trip: data.trip,
-        sections: formattedSections,
-        metadata: data.metadata,
-      });
-
     } catch (error) {
       console.error('Export error:', error);
       throw error;
@@ -192,7 +301,6 @@ const TripDetail = () => {
           onShowInvite={() => setShowInvite(true)}
           onShowTripSettings={() => setShowTripSettings(true)}
           onShowAuth={() => setShowAuth(true)}
-          onShowExport={() => setShowExportModal(true)}
         />
 
         {/* Message Inbox */}
@@ -207,6 +315,7 @@ const TripDetail = () => {
           trip={tripWithUpdatedData} 
           onDescriptionUpdate={setTripDescription}
           onTripUpdate={handleTripUpdate}
+          onShowExport={() => setShowExportModal(true)}
         />
 
         {/* Main Content */}
