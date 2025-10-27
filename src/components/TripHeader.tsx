@@ -73,6 +73,18 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
   // In production: only for frequent-chraveler and enterprise tiers
   const canExport = isDemoMode || tier === 'frequent-chraveler' || tier === 'enterprise';
 
+  // Debug logging to help diagnose issues
+  React.useEffect(() => {
+    console.log('[TripHeader Debug] Export Button Configuration:', {
+      isDemoMode,
+      tier,
+      canExport,
+      user: user?.email || 'no user',
+      tripId: trip.id,
+      tripType: trip.trip_type,
+    });
+  }, [isDemoMode, tier, canExport, user, trip.id, trip.trip_type]);
+
   // Handle trip updates from modal
   const handleTripUpdate = (updates: Partial<Trip>) => {
     if (onTripUpdate) {
