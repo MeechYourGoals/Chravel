@@ -141,7 +141,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                         : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
                     }`}
                   >
-                    <div className="font-medium">Ops Pack</div>
+                    <div className="font-medium">Chravel Pro Summary</div>
                     <div className="text-xs mt-1">Full details for teams</div>
                   </button>
                 </div>
@@ -162,7 +162,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
               </div>
 
               {/* Section Selection */}
-              <div className="space-y-3 mb-6">
+              <div className="grid grid-cols-2 gap-3 mb-4">
                 {sections.map((section) => {
                   const isOpsOnly = ['roster', 'broadcasts', 'attachments'].includes(section.id);
                   const disabled = isOpsOnly && layout === 'onepager';
@@ -170,12 +170,12 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                   return (
                     <label
                       key={section.id}
-                      className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
                         disabled
-                          ? 'bg-gray-800/50 border-gray-700/50 cursor-not-allowed opacity-50'
+                          ? 'bg-gray-800/50 border-gray-700/50 opacity-50 cursor-not-allowed'
                           : selectedSections.includes(section.id)
-                          ? 'bg-blue-900/30 border-blue-500 cursor-pointer'
-                          : 'bg-gray-800 border-gray-700 hover:border-gray-600 cursor-pointer'
+                          ? 'bg-blue-900/30 border-blue-500'
+                          : 'bg-gray-800 border-gray-700 hover:border-gray-600'
                       }`}
                     >
                       <input
@@ -183,14 +183,16 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                         checked={selectedSections.includes(section.id) && !disabled}
                         onChange={() => !disabled && toggleSection(section.id)}
                         disabled={disabled}
-                        className="w-5 h-5 rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900 disabled:cursor-not-allowed"
                       />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{section.icon}</span>
-                          <span className="text-white font-medium">{section.label}</span>
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-lg">{section.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white text-sm font-medium truncate">{section.label}</div>
+                          {disabled && (
+                            <div className="text-xs text-gray-500">Pro only</div>
+                          )}
                         </div>
-                        <p className="text-sm text-gray-400 mt-1">{section.description}</p>
                       </div>
                     </label>
                   );
