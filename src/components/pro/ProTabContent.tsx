@@ -169,7 +169,7 @@ export const ProTabContent = ({
   };
 
   return (
-    <div className="h-[calc(100vh-320px)] max-h-[1000px] min-h-[500px] overflow-hidden flex flex-col">
+    <div className="h-[calc(100vh-320px)] max-h-[1000px] min-h-[500px] overflow-y-auto flex flex-col">
       {renderTabContent()}
     </div>
   );
