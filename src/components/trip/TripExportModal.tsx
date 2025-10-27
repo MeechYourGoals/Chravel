@@ -5,8 +5,9 @@ import { ExportSection } from '@/types/tripExport';
 interface TripExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onExport: (sections: ExportSection[]) => Promise<void>;
+  onExport: (sections: ExportSection[], layout: 'onepager' | 'pro', privacyRedaction: boolean, paper: 'letter' | 'a4') => Promise<void>;
   tripName: string;
+  tripId: string;
 }
 
 export const TripExportModal: React.FC<TripExportModalProps> = ({
@@ -27,6 +28,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
   const [layout, setLayout] = useState<'onepager' | 'pro'>('onepager');
   const [privacyRedaction, setPrivacyRedaction] = useState(false);
+  const [paper, setPaper] = useState<'letter' | 'a4'>('letter');
 
   const sections = [
     { id: 'calendar' as ExportSection, label: 'Calendar', icon: '', description: 'Events and itinerary' },
@@ -57,7 +59,8 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     setError(null);
 
     try {
-      await onExport(selectedSections);
+      // Pass all export parameters to parent
+      await onExport(selectedSections, layout, privacyRedaction, paper);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to export trip summary');

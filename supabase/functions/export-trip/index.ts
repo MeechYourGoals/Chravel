@@ -1,12 +1,11 @@
 /**
- * Export Trip PDF Edge Function
- * Generates production-quality PDFs with embedded fonts and proper encoding
+ * Export Trip PDF Edge Function v2.2
+ * Text-only, real data, embedded fonts, Puppeteer PDF generation
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { createSecureResponse, createErrorResponse, createOptionsResponse } from "../_shared/securityHeaders.ts";
-import { sanitizeErrorForClient, logError } from "../_shared/errorHandling.ts";
+import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
 import { getTripData } from './data.ts';
 import { renderTemplate } from './template.ts';
 import { slug, formatTimestamp } from './util.ts';
@@ -17,12 +16,16 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[EXPORT-TRIP] ${step}${detailsStr}`);
 };
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return createOptionsResponse();
+    return new Response(null, { headers: corsHeaders });
   }
 
-  // Use anon client to respect RLS
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
   
@@ -33,7 +36,7 @@ serve(async (req) => {
   });
 
   try {
-    logStep("Function started", { hasAuth: !!authHeader });
+    logStep("Export started", { hasAuth: !!authHeader, method: req.method });
 
     // Parse request
     const body: ExportRequest = await req.json();
@@ -45,13 +48,23 @@ serve(async (req) => {
       paper = 'letter'
     } = body;
 
+    logStep("Request parsed", { tripId, sections, layout, privacyRedaction, paper });
+
     // Validate layout
     if (layout !== 'onepager' && layout !== 'pro') {
-      return createErrorResponse('Invalid layout. Must be "onepager" or "pro"', 400);
+      logStep("Invalid layout", { layout });
+      return new Response(
+        JSON.stringify({ error: 'Invalid layout. Must be "onepager" or "pro"' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     if (!tripId || !Array.isArray(sections)) {
-      return createErrorResponse('Invalid request: tripId and sections required', 400);
+      logStep("Invalid request", { tripId, sectionsType: typeof sections });
+      return new Response(
+        JSON.stringify({ error: 'Invalid request: tripId and sections required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Handle authentication modes
@@ -76,9 +89,13 @@ serve(async (req) => {
           .single();
 
         if (!tripMember) {
-          return createErrorResponse('Access denied: You are not a member of this trip', 403);
+          logStep("Access denied - not a trip member", { userId, tripId });
+          return new Response(
+            JSON.stringify({ error: 'Access denied: You are not a member of this trip' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
         }
-        logStep("Trip access verified", { role: tripMember.role });
+        logStep("Trip membership verified", { role: tripMember.role });
       } else {
         logStep("Invalid token, proceeding as unauthenticated");
       }
@@ -90,7 +107,11 @@ serve(async (req) => {
       layout = 'onepager'; // Force one-pager for unauthenticated
       // Strip Pro-only sections
       sections = sections.filter(s => !['roster', 'broadcasts', 'attachments'].includes(s));
-      logStep("Unauthenticated mode", { forcedRedaction: true, layout, sections });
+      logStep("Unauthenticated mode restrictions applied", { 
+        forcedRedaction: true, 
+        forcedLayout: 'onepager',
+        allowedSections: sections 
+      });
     }
 
     // Default sections if none provided
@@ -98,11 +119,11 @@ serve(async (req) => {
       sections = layout === 'pro' 
         ? ['calendar', 'payments', 'places', 'tasks', 'polls', 'roster', 'broadcasts', 'attachments']
         : ['calendar', 'payments', 'places', 'tasks', 'polls'];
+      logStep("Using default sections", { sections });
     }
 
-    logStep("Request parsed", { tripId, sections, layout, privacyRedaction });
-
     // Fetch and transform trip data
+    logStep("Fetching trip data");
     const exportData = await getTripData(
       supabaseClient,
       tripId,
@@ -110,29 +131,66 @@ serve(async (req) => {
       layout,
       privacyRedaction
     );
-    logStep("Trip data fetched and transformed");
+    logStep("Trip data fetched successfully", { 
+      sectionsWithData: Object.keys(exportData).filter(k => Array.isArray(exportData[k as keyof typeof exportData]))
+    });
 
     // Render HTML
+    logStep("Rendering HTML template");
     const html = renderTemplate(exportData);
-    logStep("HTML template rendered");
+    logStep("HTML rendered", { htmlLength: html.length });
+
+    // Generate PDF with Puppeteer
+    logStep("Launching Puppeteer");
+    const browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+
+    const page = await browser.newPage();
+    logStep("Loading HTML into page");
+    await page.setContent(html, { waitUntil: 'networkidle2' });
+
+    logStep("Generating PDF", { format: paper });
+    const pdfBuffer = await page.pdf({
+      format: paper === 'a4' ? 'A4' : 'Letter',
+      printBackground: true,
+      displayHeaderFooter: true,
+      headerTemplate: '<span></span>',
+      footerTemplate: `
+        <div style="font-size:8pt;width:100%;padding:0 24pt;display:flex;justify-content:space-between;">
+          <div>Generated by Chravel • ${exportData.generatedAtLocal}</div>
+          <div>Trip ID: ${exportData.tripId} • <span class="pageNumber"></span>/<span class="totalPages"></span></div>
+        </div>
+      `,
+      margin: { top: '10mm', right: '12mm', bottom: '14mm', left: '12mm' }
+    });
+
+    await browser.close();
+    logStep("PDF generated successfully", { size: pdfBuffer.length });
 
     // Generate filename
     const filename = `Trip_${slug(exportData.tripTitle)}_${layout}_${formatTimestamp()}.pdf`;
-    
-    // For now, return HTML until Puppeteer is configured
-    // TODO: Add Puppeteer for PDF generation
-    logStep("Returning HTML (PDF generation pending Puppeteer setup)");
-    
-    return new Response(html, {
+    logStep("Returning PDF", { filename, size: pdfBuffer.length });
+
+    return new Response(pdfBuffer, {
       headers: {
-        'Content-Type': 'text/html',
-        'Content-Disposition': `attachment; filename="${filename.replace('.pdf', '.html')}"`,
+        ...corsHeaders,
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
       },
     });
 
   } catch (error) {
-    logError('EXPORT_TRIP', error);
-    return createErrorResponse(sanitizeErrorForClient(error), 500);
+    logStep("ERROR", { 
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return new Response(
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Export failed',
+        details: error instanceof Error ? error.stack : String(error)
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
-

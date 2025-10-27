@@ -315,6 +315,9 @@ function renderAttachments(attachments: any[]): string {
 
 function getStyles(): string {
   return `
+/* Embedded fonts via Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Sans+3:wght@400;600&family=Roboto+Mono:wght@400;600&display=swap');
+
 :root {
   --primary: #1E3A8A;
   --accent: #2563EB;
@@ -498,37 +501,141 @@ hr.hair {
 .header h1 {
   font-size: 26pt;
   font-weight: 700;
-  line-height: 1.2;
-  margin-bottom: 8pt;
-  color: var(--primary);
+  margin-bottom: 6pt;
 }
 
-.header .subtitle {
+.subtitle {
   font-size: 12pt;
-  line-height: 1.4;
   color: var(--muted);
-  margin: 0 0 8pt 0;
+  margin-bottom: 8pt;
 }
 
-.header .meta {
+.meta {
   font-size: 10pt;
   color: var(--muted);
-  font-weight: 500;
 }
 
 .header-qr {
-  flex-shrink: 0;
   text-align: center;
-  padding: 10pt;
-  border: 1pt solid var(--hair);
-  border-radius: 6pt;
-  background: #FAFAFB;
+  padding-top: 4pt;
 }
 
 .header-qr svg {
   width: 96pt;
   height: 96pt;
   display: block;
+  margin: 0 auto;
+}
+
+.qr-label {
+  font-size: 8pt;
+  color: var(--muted);
+  margin-top: 4pt;
+}
+
+.qr-small svg {
+  width: 48pt;
+  height: 48pt;
+  display: inline-block;
+}
+
+.day-header {
+  font-weight: 600;
+  color: var(--primary);
+  margin-top: 12pt;
+  padding-bottom: 4pt;
+  border-bottom: 1px solid var(--hair);
+}
+
+.event-item {
+  margin: 8pt 0;
+  padding-left: 12pt;
+}
+
+.payment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4pt;
+}
+
+.payment-amount {
+  font-size: 14pt;
+  font-weight: 600;
+}
+
+.payment-split {
+  margin-top: 8pt;
+  font-size: 10pt;
+}
+
+.net-settlement {
+  padding: 8pt;
+  background: #F0F9FF;
+  border-left: 3pt solid var(--accent);
+  margin-top: 8pt;
+}
+
+.poll-table {
+  margin-top: 8pt;
+}
+
+.place-card {
+  page-break-inside: avoid;
+}
+
+.place-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6pt;
+}
+
+.link-url {
+  color: var(--accent);
+  word-break: break-all;
+  margin-top: 4pt;
+}
+
+.footer-text {
+  font-size: 8pt;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 24pt;
+  padding: 12pt 24pt;
+  border-top: 1px solid var(--hair);
+}
+
+@page {
+  margin: 12mm;
+}
+
+@media print {
+  body {
+    max-width: 100%;
+  }
+  
+  .section {
+    page-break-inside: avoid;
+  }
+  
+  .table tr {
+    page-break-inside: avoid;
+  }
+}
+
+/**
+ * Escape HTML special characters
+ */
+function escapeHtml(text: string): string {
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return String(text).replace(/[&<>"']/g, m => map[m]);
 }
 
 .qr-label {
