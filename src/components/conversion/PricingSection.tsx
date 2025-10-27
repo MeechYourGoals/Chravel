@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
@@ -499,30 +499,33 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
       </div>
 
       {/* Pricing Cards */}
-      <div className={`grid gap-8 max-w-7xl mx-auto ${
+      <div className={`grid gap-4 md:gap-6 max-w-7xl mx-auto ${
         activeTab === 'consumer' 
           ? 'md:grid-cols-3' 
           : activeTab === 'events'
-          ? 'md:grid-cols-2 lg:grid-cols-5'
+          ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5'
           : 'md:grid-cols-2 lg:grid-cols-3'
       }`}>
         {getCurrentTiers().map((tier) => (
-          <Card 
-            key={tier.id} 
-            className={`relative backdrop-blur-sm border transition-all hover:scale-105 hover:shadow-lg ${
-              activeTab === 'events' 
-                ? tier.popular || tier.recommended
-                  ? 'bg-blue-950/40 border-blue-500/40 shadow-lg ring-1 ring-blue-500/40'
-                  : tier.enterprise
-                  ? 'bg-gray-900/80 border-amber-500/30'
-                  : 'bg-gray-900/80 border-gray-700/50'
-                : tier.popular || tier.recommended
-                  ? 'bg-card/80 border-primary/50 shadow-lg ring-1 ring-primary/20' 
-                  : tier.enterprise 
-                  ? 'bg-card/80 border-accent/50' 
-                  : 'bg-card/80 border-border/50'
-            }`}
+          <div 
+            key={tier.id}
+            className={activeTab === 'events' && tier.enterprise ? 'col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-1' : ''}
           >
+            <Card 
+              className={`relative backdrop-blur-sm border transition-all hover:scale-105 hover:shadow-lg min-h-[480px] flex flex-col ${
+                activeTab === 'events' 
+                  ? tier.popular || tier.recommended
+                    ? 'bg-blue-950/40 border-blue-500/40 shadow-lg ring-1 ring-blue-500/40'
+                    : tier.enterprise
+                    ? 'bg-gray-900/80 border-amber-500/30'
+                    : 'bg-gray-900/80 border-gray-700/50'
+                  : tier.popular || tier.recommended
+                    ? 'bg-card/80 border-primary/50 shadow-lg ring-1 ring-primary/20' 
+                    : tier.enterprise 
+                    ? 'bg-card/80 border-accent/50' 
+                    : 'bg-card/80 border-border/50'
+              }`}
+            >
             {(tier.popular || tier.recommended) && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                 <Badge className="bg-primary text-primary-foreground px-4 py-2 font-medium">
@@ -549,72 +552,88 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
                   size: 20
                 })}
               </div>
-              <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold break-words">{tier.name}</CardTitle>
-              <div className="space-y-2 md:space-y-3">
-                <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
-                  {getPrice(tier)}
+              <CardTitle className="text-xl md:text-2xl mb-2 font-bold break-words whitespace-normal">{tier.name}</CardTitle>
+              <div className="space-y-2">
+                <div className="break-words whitespace-normal overflow-hidden text-center">
+                  <div className="text-3xl md:text-4xl font-bold text-foreground">
+                    {getPrice(tier)}
+                  </div>
                   {/* Events per-attendee pricing */}
                   {tier.category === 'events' && ['premium-events', 'premium-plus'].includes(tier.id) && (
-                    <span className="text-base sm:text-lg md:text-xl text-foreground font-normal">/attendee</span>
+                    <div className="text-sm sm:text-base md:text-lg text-foreground font-normal mt-1">
+                      /attendee
+                    </div>
                   )}
                   {/* Events Host Pass monthly pricing */}
                   {tier.category === 'events' && tier.id === 'host-pass' && (
-                    <span className="text-base sm:text-lg md:text-xl text-foreground font-normal">/month</span>
+                    <div className="text-sm sm:text-base md:text-lg text-foreground font-normal mt-1">
+                      /month
+                    </div>
                   )}
                   {/* Pro monthly pricing */}
                   {tier.category === 'pro' && tier.price.includes('$') && !tier.price.includes('Starting') && (
-                    <span className="text-base sm:text-lg md:text-xl text-foreground font-normal">/month</span>
+                    <div className="text-sm sm:text-base md:text-lg text-foreground font-normal mt-1">
+                      /month
+                    </div>
                   )}
                   {/* Consumer monthly/annual pricing */}
                   {tier.category === 'consumer' && tier.annualPrice && billingCycle === 'monthly' && (
-                    <span className="text-base sm:text-lg md:text-xl text-foreground font-normal">/month</span>
+                    <div className="text-sm sm:text-base md:text-lg text-foreground font-normal mt-1">
+                      /month
+                    </div>
                   )}
                   {tier.category === 'consumer' && tier.annualPrice && billingCycle === 'annual' && (
-                    <span className="text-base sm:text-lg md:text-xl text-foreground font-normal">/year</span>
+                    <div className="text-sm sm:text-base md:text-lg text-foreground font-normal mt-1">
+                      /year
+                    </div>
                   )}
                 </div>
                 
                 {/* Show monthly equivalent for annual plans */}
                 {billingCycle === 'annual' && tier.annualPrice && tier.category === 'consumer' && getAnnualMonthlyEquivalent(tier) && (
-                  <div className="text-xs sm:text-sm md:text-base text-foreground break-words">
+                  <div className="text-sm text-muted-foreground break-words whitespace-normal text-center px-2">
                     {getAnnualMonthlyEquivalent(tier)} when billed annually
                   </div>
                 )}
                 
                 {/* Show original price and savings */}
                 {tier.originalPrice && billingCycle === 'annual' && (
-                  <div className="text-xs sm:text-sm md:text-base text-foreground line-through break-words">
+                  <div className="text-sm text-muted-foreground line-through break-words whitespace-normal text-center">
                     Originally {tier.originalPrice}/year
                   </div>
                 )}
                 
                 {tier.savings && billingCycle === 'annual' && (
-                  <div className="text-xs sm:text-sm md:text-base text-green-400 font-medium">
+                  <div className="text-sm text-green-400 font-medium break-words whitespace-normal text-center">
                     {tier.savings}
                   </div>
                 )}
                 
-                <p className="text-xs sm:text-sm md:text-base text-foreground leading-relaxed break-words">{tier.description}</p>
+                <p className="text-sm text-muted-foreground min-h-[2.5rem] flex items-center justify-center break-words whitespace-normal overflow-hidden text-center px-2">
+                  {tier.description}
+                </p>
               </div>
             </CardHeader>
 
-            <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6">
+            <CardContent className="space-y-3 md:space-y-4 px-4 md:px-6 pb-4 md:pb-6 flex-1">
               {tier.limitation && (
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2.5 md:p-3 text-xs sm:text-sm md:text-base text-yellow-400 break-words">
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2.5 md:p-3 text-xs sm:text-sm text-yellow-400 break-words">
                   {tier.limitation}
                 </div>
               )}
               
               <ul className="space-y-2 md:space-y-3">
                 {tier.features.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-2 md:gap-3">
+                  <li key={index} className="flex items-start gap-2">
                     <Check size={14} className="text-green-400 mt-0.5 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm md:text-base text-foreground break-words">{feature}</span>
+                    <span className="text-sm text-foreground break-words">{feature}</span>
                   </li>
                 ))}
               </ul>
-
-              <Button 
+            </CardContent>
+            
+            <CardFooter className="px-4 md:px-6 pb-4 md:pb-6 pt-0 mt-auto">
+              <Button
                 onClick={tier.ctaAction || (() => handlePlanSelect(tier.id))}
                 className={`w-full h-10 md:h-12 font-medium text-sm sm:text-base ${
                   activeTab === 'events'
@@ -632,8 +651,9 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
               >
                 {tier.cta}
               </Button>
-            </CardContent>
+            </CardFooter>
           </Card>
+          </div>
         ))}
       </div>
 
