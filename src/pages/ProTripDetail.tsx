@@ -5,13 +5,16 @@ import { MessageInbox } from '../components/MessageInbox';
 import { ProTripDetailHeader } from '../components/pro/ProTripDetailHeader';
 import { ProTripDetailContent } from '../components/pro/ProTripDetailContent';
 import { TripDetailModals } from '../components/trip/TripDetailModals';
+import { TripExportModal } from '../components/trip/TripExportModal';
 import { TripVariantProvider } from '../contexts/TripVariantContext';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { proTripMockData } from '../data/proTripMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
-
 import { ProTripCategory } from '../types/proCategories';
+import { ExportSection } from '../types/tripExport';
+import { generateClientPDF } from '../utils/exportPdfClient';
+import { toast } from 'sonner';
 
 const ProTripDetail = () => {
   const { proTripId } = useParams<{ proTripId?: string }>();
@@ -24,6 +27,7 @@ const ProTripDetail = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [showTripSettings, setShowTripSettings] = useState(false);
   const [showTripsPlusModal, setShowTripsPlusModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Gate demo content
   if (!isDemoMode) {
@@ -96,6 +100,90 @@ const ProTripDetail = () => {
     sponsors: tripData.sponsors
   };
 
+  // Handle export functionality - use same handler as consumer trips
+  const handleExport = async (
+    sections: ExportSection[],
+    layout: 'onepager' | 'pro',
+    privacyRedaction: boolean,
+    paper: 'letter' | 'a4'
+  ) => {
+    try {
+      let blob: Blob;
+
+      // Pro trips in demo mode use client-side export
+      // Real Pro trips would call the edge function with their UUID
+      if (isDemoMode) {
+        toast.info('Generating demo PDF...');
+        blob = await generateClientPDF(
+          {
+            tripId: proTripId || '',
+            tripTitle: tripData.title,
+            destination: tripData.location,
+            dateRange: tripData.dateRange,
+            description: tripData.description || '',
+          },
+          sections,
+          layout,
+          paper
+        );
+      } else {
+        // Call edge function for real Supabase trips
+        const response = await fetch(
+          `https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/export-trip`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              tripId: proTripId,
+              sections,
+              layout,
+              privacyRedaction,
+              paper,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          // If edge function fails, fallback to client export
+          console.warn(`Edge function failed (${response.status}), using client fallback`);
+          toast.info('Using demo export mode...');
+          blob = await generateClientPDF(
+            {
+              tripId: proTripId || '',
+              tripTitle: tripData.title,
+              destination: tripData.location,
+              dateRange: tripData.dateRange,
+              description: tripData.description || '',
+            },
+            sections,
+            layout,
+            paper
+          );
+        } else {
+          blob = await response.blob();
+        }
+      }
+
+      // Download the PDF
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Trip_${tripData.title.replace(/[^a-z0-9]/gi, '_')}_${layout}_${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success('PDF exported successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export PDF');
+      throw error;
+    }
+  };
+
   return (
     <TripVariantProvider variant="pro">
       <div className="min-h-screen bg-black text-white">
@@ -124,6 +212,7 @@ const ProTripDetail = () => {
           category={tripData.proTripCategory as ProTripCategory}
           tags={tripData.tags}
           onCategoryChange={() => {}}
+          onShowExport={() => setShowExportModal(true)}
         />
 
         <ProTripDetailContent
@@ -150,6 +239,15 @@ const ProTripDetail = () => {
           tripName={tripData.title}
           tripId={proTripId}
           userId={user?.id}
+        />
+
+        {/* Export Modal - Unified for both trip types */}
+        <TripExportModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          onExport={handleExport}
+          tripName={tripData.title}
+          tripId={proTripId || ''}
         />
       </div>
     </TripVariantProvider>

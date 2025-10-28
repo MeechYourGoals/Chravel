@@ -23,16 +23,21 @@ export async function getTripData(
   layout: ExportLayout,
   privacyRedaction: boolean
 ): Promise<TripExportData> {
+  console.log('[EXPORT-DATA] Fetching trip:', tripId, 'layout:', layout);
+  
   // Fetch trip details
-  const { data: trip } = await supabase
+  const { data: trip, error } = await supabase
     .from('trips')
     .select('*')
     .eq('id', tripId)
     .single();
 
   if (!trip) {
+    console.error('[EXPORT-DATA] Trip not found:', tripId, 'error:', error);
     throw new Error('Trip not found');
   }
+  
+  console.log('[EXPORT-DATA] Trip found:', trip.name, 'trip_type:', trip.trip_type);
 
   // Generate deeplink QR
   const deeplink = `https://chravelapp.com/trip/${tripId}`;
@@ -57,7 +62,10 @@ export async function getTripData(
   };
 
   // Fetch sections based on request
+  console.log('[EXPORT-DATA] Fetching sections:', sections);
+  
   if (sections.includes('roster') && layout === 'pro') {
+    console.log('[EXPORT-DATA] Fetching roster (Pro only)');
     data.roster = await fetchRoster(supabase, tripId, privacyRedaction);
   }
 
@@ -84,13 +92,17 @@ export async function getTripData(
   }
 
   if (sections.includes('broadcasts') && layout === 'pro') {
+    console.log('[EXPORT-DATA] Fetching broadcasts (Pro only)');
     data.broadcasts = await fetchBroadcasts(supabase, tripId);
   }
 
   if (sections.includes('attachments') && layout === 'pro') {
+    console.log('[EXPORT-DATA] Fetching attachments (Pro only)');
     data.attachments = await fetchAttachments(supabase, tripId);
   }
 
+  console.log('[EXPORT-DATA] Data fetching complete. Sections with data:', Object.keys(data).filter(k => Array.isArray(data[k as keyof typeof data])));
+  
   return data;
 }
 

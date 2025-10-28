@@ -49,6 +49,29 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     );
   };
 
+  // Auto-include Pro sections when switching to Pro layout
+  const handleLayoutChange = (newLayout: 'onepager' | 'pro') => {
+    setLayout(newLayout);
+    if (newLayout === 'pro') {
+      // Add Pro sections if not already selected
+      setSelectedSections(prev => {
+        const proSections: ExportSection[] = ['roster', 'broadcasts', 'attachments'];
+        const newSections = [...prev];
+        proSections.forEach(section => {
+          if (!newSections.includes(section)) {
+            newSections.push(section);
+          }
+        });
+        return newSections;
+      });
+    } else {
+      // Remove Pro sections when switching back to onepager
+      setSelectedSections(prev => 
+        prev.filter(s => !['roster', 'broadcasts', 'attachments'].includes(s))
+      );
+    }
+  };
+
   const handleExport = async () => {
     if (selectedSections.length === 0) {
       setError('Please select at least one section to export');
@@ -126,7 +149,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                 {/* Layout Preset */}
                 <div className="flex gap-3 mb-4">
                   <button
-                    onClick={() => setLayout('onepager')}
+                    onClick={() => handleLayoutChange('onepager')}
                     className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${
                       layout === 'onepager'
                         ? 'bg-blue-900/30 border-blue-500 text-white'
@@ -137,7 +160,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                     <div className="text-xs mt-1">Quick summary (1-2 pages)</div>
                   </button>
                   <button
-                    onClick={() => setLayout('pro')}
+                    onClick={() => handleLayoutChange('pro')}
                     className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${
                       layout === 'pro'
                         ? 'bg-blue-900/30 border-blue-500 text-white'
