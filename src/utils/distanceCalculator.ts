@@ -15,6 +15,11 @@ export class DistanceCalculator {
       return null;
     }
 
+    if (!basecamp.coordinates) {
+      console.warn('Basecamp has no coordinates - cannot calculate distance');
+      return null;
+    }
+
     const cacheKey = `${basecamp.coordinates.lat},${basecamp.coordinates.lng}-${place.coordinates?.lat || place.address}-${settings.preferredMode}`;
     
     if (this.cache.has(cacheKey)) {
@@ -70,6 +75,10 @@ export class DistanceCalculator {
     place: PlaceWithDistance,
     mode: 'driving' | 'walking'
   ): Promise<number | null> {
+    if (!basecamp.coordinates) {
+      return null;
+    }
+
     const origin = `${basecamp.coordinates.lat},${basecamp.coordinates.lng}`;
     const destination = place.coordinates 
       ? `${place.coordinates.lat},${place.coordinates.lng}`

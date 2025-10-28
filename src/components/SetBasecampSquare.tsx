@@ -113,7 +113,7 @@ export const SetBasecampSquare = ({ basecamp: propBasecamp, onBasecampSet: propO
                   <p className="text-green-300 text-sm leading-relaxed mb-2">
                     {formatAddress(basecamp.address)}
                   </p>
-                  {showCoordinates && (
+                  {showCoordinates && basecamp.coordinates && (
                     <p className="text-green-400/60 text-xs font-mono">
                       {basecamp.coordinates.lat.toFixed(6)}, {basecamp.coordinates.lng.toFixed(6)}
                     </p>
