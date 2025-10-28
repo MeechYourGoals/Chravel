@@ -89,8 +89,21 @@ export interface SessionPayment {
   is_settled: boolean;
 }
 
+export interface SessionPersonalBasecamp {
+  id: string;
+  trip_id: string;
+  user_id: string;
+  name?: string;
+  address: string;
+  latitude?: number;
+  longitude?: number;
+  created_at: string;
+  updated_at: string;
+}
+
 class DemoModeService {
   private sessionPayments: Map<string, SessionPayment[]> = new Map();
+  private sessionPersonalBasecamps: Map<string, SessionPersonalBasecamp> = new Map();
   getTripType(trip: any): string {
     if (!trip) return 'demo';
     if (trip.category === 'pro') return 'pro-trip';
@@ -614,6 +627,74 @@ class DemoModeService {
       this.sessionPayments.delete(tripId);
     } else {
       this.sessionPayments.clear();
+    }
+  }
+
+  // ============================================
+  // Personal Basecamp Methods (Demo Mode)
+  // ============================================
+
+  /**
+   * Get personal basecamp for a trip in demo mode
+   */
+  getSessionPersonalBasecamp(tripId: string, sessionUserId: string): SessionPersonalBasecamp | null {
+    const key = `${tripId}:${sessionUserId}`;
+    return this.sessionPersonalBasecamps.get(key) || null;
+  }
+
+  /**
+   * Set personal basecamp for a trip in demo mode
+   */
+  setSessionPersonalBasecamp(payload: {
+    trip_id: string;
+    user_id: string;
+    name?: string;
+    address: string;
+    latitude?: number;
+    longitude?: number;
+  }): SessionPersonalBasecamp {
+    const key = `${payload.trip_id}:${payload.user_id}`;
+    const basecamp: SessionPersonalBasecamp = {
+      id: `demo-personal-basecamp-${Date.now()}`,
+      trip_id: payload.trip_id,
+      user_id: payload.user_id,
+      name: payload.name,
+      address: payload.address,
+      latitude: payload.latitude,
+      longitude: payload.longitude,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    this.sessionPersonalBasecamps.set(key, basecamp);
+    console.log('✅ Demo personal basecamp set (session-only):', basecamp);
+    return basecamp;
+  }
+
+  /**
+   * Delete personal basecamp in demo mode
+   */
+  deleteSessionPersonalBasecamp(tripId: string, sessionUserId: string): boolean {
+    const key = `${tripId}:${sessionUserId}`;
+    const existed = this.sessionPersonalBasecamps.has(key);
+    this.sessionPersonalBasecamps.delete(key);
+    return existed;
+  }
+
+  /**
+   * Clear all session personal basecamps (called when demo mode is toggled off)
+   */
+  clearSessionPersonalBasecamps(tripId?: string) {
+    if (tripId) {
+      // Clear only basecamps for specific trip
+      const keys = Array.from(this.sessionPersonalBasecamps.keys());
+      keys.forEach(key => {
+        if (key.startsWith(`${tripId}:`)) {
+          this.sessionPersonalBasecamps.delete(key);
+        }
+      });
+    } else {
+      this.sessionPersonalBasecamps.clear();
     }
   }
 }

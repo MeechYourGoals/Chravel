@@ -4,7 +4,9 @@ import { AddPlaceModal } from './AddPlaceModal';
 import { WorkingGoogleMaps } from './WorkingGoogleMaps';
 import { SetBasecampSquare } from './SetBasecampSquare';
 import { TripPinsCard } from './TripPinsCard';
-import { AccommodationSelector } from './AccommodationSelector';
+import { TripBaseCampCard } from './places/TripBaseCampCard';
+import { PersonalBaseCampCard } from './places/PersonalBaseCampCard';
+import { SearchContextSwitch } from './places/SearchContextSwitch';
 import { BasecampLocation, PlaceWithDistance, DistanceCalculationSettings } from '../types/basecamp';
 import { DistanceCalculator } from '../utils/distanceCalculator';
 import { useTripVariant } from '../contexts/TripVariantContext';
@@ -14,6 +16,7 @@ import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
 import { Home, MapPin, Bed } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 import { useBasecamp } from '@/contexts/BasecampContext';
 
@@ -26,6 +29,7 @@ interface PlacesSectionProps {
 export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSectionProps) => {
   const { variant } = useTripVariant();
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const { isFeatureEnabled } = useFeatureToggle({ 
     trip_type: variant === 'consumer' ? 'consumer' : 'pro',
     enabled_features: [...DEFAULT_FEATURES] 
@@ -33,6 +37,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   const { basecamp: contextBasecamp, setBasecamp: setContextBasecamp, isBasecampSet } = useBasecamp();
   const [isAddPlaceModalOpen, setIsAddPlaceModalOpen] = useState(false);
   const [places, setPlaces] = useState<PlaceWithDistance[]>([]);
+  const [searchContext, setSearchContext] = useState<'trip' | 'personal'>('trip');
   const [distanceSettings] = useState<DistanceCalculationSettings>({
     preferredMode: 'driving',
     unit: 'miles',
@@ -160,13 +165,23 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
         </div>
       </div>
       
-      {/* Base Camp Context Indicator */}
-      {isBasecampSet && contextBasecamp && (
-        <div className="mb-8 bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+      {/* Search Context Indicator */}
+      {searchContext === 'trip' && isBasecampSet && contextBasecamp && (
+        <div className="mb-8 bg-sky-500/10 border border-sky-500/30 rounded-xl p-4">
           <div className="flex items-center gap-2">
-            <Home size={16} className="text-green-400 flex-shrink-0" />
-            <span className="text-sm text-green-300">
-              All searches use <strong>{contextBasecamp.name || contextBasecamp.address}</strong> as your starting point
+            <Home size={16} className="text-sky-400 flex-shrink-0" />
+            <span className="text-sm text-sky-300">
+              All searches use <strong>{contextBasecamp.name || contextBasecamp.address.split(',')[0]}</strong> as your starting point
+            </span>
+          </div>
+        </div>
+      )}
+      {searchContext === 'personal' && (
+        <div className="mb-8 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <MapPin size={16} className="text-emerald-400 flex-shrink-0" />
+            <span className="text-sm text-emerald-300">
+              All searches use your <strong>Personal Base Camp</strong> as your starting point
             </span>
           </div>
         </div>
@@ -186,15 +201,28 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
         </TabsList>
         
         <TabsContent value="accommodations" className="space-y-6">
-          <AccommodationSelector 
-            tripId={tripId}
-            onLocationSet={(location, mode) => {
-              if (mode === 'trip') {
-                handleBasecampSet(location);
-              }
-              // Personal accommodation is handled internally by AccommodationSelector
-            }}
+          {/* Search Context Switch */}
+          <SearchContextSwitch
+            activeContext={searchContext}
+            onContextChange={setSearchContext}
           />
+
+          {/* Dual Basecamp Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Trip Base Camp Card */}
+            <TripBaseCampCard
+              tripId={tripId}
+              basecamp={contextBasecamp}
+              onBasecampSet={handleBasecampSet}
+              isDemo={isDemoMode}
+            />
+
+            {/* Personal Base Camp Card */}
+            <PersonalBaseCampCard
+              tripId={tripId}
+              tripBasecampCity={contextBasecamp?.name || contextBasecamp?.address.split(',')[0]}
+            />
+          </div>
         </TabsContent>
         
         <TabsContent value="places" className="space-y-6">
