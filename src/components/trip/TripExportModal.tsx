@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { X, Download, Loader2, FileText } from 'lucide-react';
 import { ExportSection } from '@/types/tripExport';
+import { isConsumerTrip } from '@/utils/tripTierDetector';
 
 interface TripExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onExport: (sections: ExportSection[], layout: 'onepager' | 'pro', privacyRedaction: boolean, paper: 'letter' | 'a4') => Promise<void>;
+  onExport: (sections: ExportSection[]) => Promise<void>;
   tripName: string;
   tripId: string;
 }
@@ -15,7 +16,10 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   onClose,
   onExport,
   tripName,
+  tripId,
 }) => {
+  const isConsumer = isConsumerTrip(tripId);
+  
   const [selectedSections, setSelectedSections] = useState<ExportSection[]>([
     'calendar',
     'payments',
@@ -26,20 +30,15 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [layout, setLayout] = useState<'onepager' | 'pro'>('onepager');
-  const [privacyRedaction, setPrivacyRedaction] = useState(false);
-  const [paper, setPaper] = useState<'letter' | 'a4'>('letter');
-  const exportMethod = 'Download';
-
   const sections = [
-    { id: 'calendar' as ExportSection, label: 'Calendar', icon: '', description: 'Events and itinerary' },
-    { id: 'payments' as ExportSection, label: 'Payments', icon: '', description: 'Expenses and splits' },
-    { id: 'polls' as ExportSection, label: 'Polls', icon: '', description: 'Voting results' },
-    { id: 'places' as ExportSection, label: 'Places', icon: '', description: 'Saved locations' },
-    { id: 'tasks' as ExportSection, label: 'Tasks', icon: '', description: 'To-do items' },
-    { id: 'roster' as ExportSection, label: 'Roster & Contacts', icon: '', description: 'Team members (Chravel Pro Only)' },
-    { id: 'broadcasts' as ExportSection, label: 'Broadcast Log', icon: '', description: 'Important updates (Chravel Pro Only)' },
-    { id: 'attachments' as ExportSection, label: 'Attachments', icon: '', description: 'Files and documents (Chravel Pro Only)' },
+    { id: 'calendar' as ExportSection, label: 'Calendar', icon: '📅' },
+    { id: 'payments' as ExportSection, label: 'Payments', icon: '💰' },
+    { id: 'polls' as ExportSection, label: 'Polls', icon: '📊' },
+    { id: 'places' as ExportSection, label: 'Places', icon: '📍' },
+    { id: 'tasks' as ExportSection, label: 'Tasks', icon: '✅' },
+    { id: 'broadcasts' as ExportSection, label: 'Broadcast Log', icon: '📢', proOnly: true },
+    { id: 'roster' as ExportSection, label: 'Roster & Contacts', icon: '👥', proOnly: true },
+    { id: 'attachments' as ExportSection, label: 'Attachments', icon: '📎', proOnly: true },
   ];
 
   const toggleSection = (sectionId: ExportSection) => {
@@ -48,29 +47,6 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
         ? prev.filter((id) => id !== sectionId)
         : [...prev, sectionId]
     );
-  };
-
-  // Auto-include Pro sections when switching to Pro layout
-  const handleLayoutChange = (newLayout: 'onepager' | 'pro') => {
-    setLayout(newLayout);
-    if (newLayout === 'pro') {
-      // Add Pro sections if not already selected
-      setSelectedSections(prev => {
-        const proSections: ExportSection[] = ['roster', 'broadcasts', 'attachments'];
-        const newSections = [...prev];
-        proSections.forEach(section => {
-          if (!newSections.includes(section)) {
-            newSections.push(section);
-          }
-        });
-        return newSections;
-      });
-    } else {
-      // Remove Pro sections when switching back to onepager
-      setSelectedSections(prev => 
-        prev.filter(s => !['roster', 'broadcasts', 'attachments'].includes(s))
-      );
-    }
   };
 
   const handleExport = async () => {
@@ -83,8 +59,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     setError(null);
 
     try {
-      // Pass all export parameters to parent
-      await onExport(selectedSections, layout, privacyRedaction, paper);
+      await onExport(selectedSections);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to export trip summary');
@@ -146,92 +121,22 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                 <p className="text-gray-400 text-sm mb-4">
                   Select the sections you'd like to include in your PDF export
                 </p>
-                
-                {/* Layout Preset */}
-                <div className="flex gap-3 mb-4">
-                  <button
-                    onClick={() => handleLayoutChange('onepager')}
-                    className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${
-                      layout === 'onepager'
-                        ? 'bg-blue-900/30 border-blue-500 text-white'
-                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
-                    }`}
-                  >
-                    <div className="font-medium">One-Pager</div>
-                    <div className="text-xs mt-1">Quick summary (1-2 pages)</div>
-                  </button>
-                  <button
-                    onClick={() => handleLayoutChange('pro')}
-                    className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${
-                      layout === 'pro'
-                        ? 'bg-blue-900/30 border-blue-500 text-white'
-                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
-                    }`}
-                  >
-                    <div className="font-medium">Chravel Pro Summary</div>
-                    <div className="text-xs mt-1">Full details for teams</div>
-                  </button>
-                </div>
-
-                {/* Privacy Redaction */}
-                <label className="flex items-center gap-3 p-3 rounded-lg bg-gray-800 border border-gray-700 mb-4 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={privacyRedaction}
-                    onChange={(e) => setPrivacyRedaction(e.target.checked)}
-                    className="w-5 h-5 rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900"
-                  />
-                  <div className="flex-1">
-                    <div className="text-white font-medium">Privacy Redaction</div>
-                    <div className="text-sm text-gray-400">Hide emails and phone numbers</div>
-                  </div>
-                </label>
-
-                {/* Paper Size Selection */}
-                <div className="mb-4">
-                  <label className="text-white text-sm font-medium mb-2 block">Paper Size</label>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setPaper('letter')}
-                      className={`flex-1 py-2 px-4 rounded-lg border transition-all ${
-                        paper === 'letter'
-                          ? 'bg-blue-900/30 border-blue-500 text-white'
-                          : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
-                      }`}
-                    >
-                      <div className="font-medium">Letter</div>
-                      <div className="text-xs mt-1">8.5" × 11" (US)</div>
-                    </button>
-                    <button
-                      onClick={() => setPaper('a4')}
-                      className={`flex-1 py-2 px-4 rounded-lg border transition-all ${
-                        paper === 'a4'
-                          ? 'bg-blue-900/30 border-blue-500 text-white'
-                          : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
-                      }`}
-                    >
-                      <div className="font-medium">A4</div>
-                      <div className="text-xs mt-1">210mm × 297mm (Intl)</div>
-                    </button>
-                  </div>
-                </div>
               </div>
 
               {/* Section Selection */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {sections.map((section) => {
-                  const isProOnly = ['roster', 'broadcasts', 'attachments'].includes(section.id);
-                  const disabled = isProOnly && layout === 'onepager';
+                  const disabled = section.proOnly && isConsumer;
                   
                   return (
                     <label
                       key={section.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
                         disabled
                           ? 'bg-gray-800/50 border-gray-700/50 opacity-50 cursor-not-allowed'
                           : selectedSections.includes(section.id)
-                          ? 'bg-blue-900/30 border-blue-500'
-                          : 'bg-gray-800 border-gray-700 hover:border-gray-600'
+                          ? 'bg-blue-900/30 border-blue-500 cursor-pointer hover:border-blue-400'
+                          : 'bg-gray-800 border-gray-700 cursor-pointer hover:border-gray-600'
                       }`}
                     >
                       <input
@@ -242,9 +147,12 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                         className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900 disabled:cursor-not-allowed"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="text-white text-sm font-medium truncate">{section.label}</div>
+                        <div className="text-white text-sm font-medium flex items-center gap-2">
+                          <span>{section.icon}</span>
+                          <span className="truncate">{section.label}</span>
+                        </div>
                         {disabled && (
-                          <div className="text-xs text-gray-500">Pro only</div>
+                          <div className="text-xs text-gray-500 mt-1">Pro trips only</div>
                         )}
                       </div>
                     </label>
@@ -259,9 +167,9 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
               )}
 
               {/* Info Banner */}
-              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
+              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-6">
                 <p className="text-gray-300 text-sm">
-                  <strong>Note:</strong> Chat messages and AI Concierge history are never included in exports for privacy.
+                  <strong>🔒 Privacy Protected:</strong> Emails and phone numbers are automatically hidden in all exports. Chat messages and AI Concierge history are never included.
                 </p>
               </div>
             </>
