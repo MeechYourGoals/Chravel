@@ -13,6 +13,17 @@ interface ExportData {
   destination?: string;
   dateRange?: string;
   description?: string;
+  mockData?: {
+    payments?: any[];
+    polls?: any[];
+    tasks?: any[];
+    places?: any[];
+    roster?: any[];
+    broadcasts?: any[];
+    attachments?: any[];
+    schedule?: any[];
+    participants?: any[];
+  };
 }
 
 export async function generateClientPDF(
@@ -83,28 +94,100 @@ export async function generateClientPDF(
 
   // Payments section
   if (sections.includes('payments')) {
-    checkPageBreak(doc, yPos, 40);
+    yPos = checkPageBreak(doc, yPos, 60);
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0);
     doc.text('Payments', margin, yPos);
     yPos += 20;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('No payment records available in demo mode', margin, yPos);
-    yPos += 30;
+
+    const payments = data.mockData?.payments || [];
+    if (payments.length > 0) {
+      const paymentRows = payments.map((p: any) => [
+        p.description || 'N/A',
+        `${p.currency || 'USD'} ${p.amount?.toFixed(2) || '0.00'}`,
+        `${p.split_count || 0} people`,
+        p.is_settled ? 'Settled' : 'Pending'
+      ]);
+
+      (doc as any).autoTable({
+        startY: yPos,
+        head: [['Description', 'Amount', 'Split', 'Status']],
+        body: paymentRows,
+        theme: 'striped',
+        headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 9 }
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 20;
+
+      // Calculate total
+      const total = payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Total: ${payments[0]?.currency || 'USD'} ${total.toFixed(2)}`, margin, yPos);
+      yPos += 30;
+    } else {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(120);
+      doc.text('No payment records available in demo mode', margin, yPos);
+      yPos += 30;
+    }
   }
 
   // Polls section
   if (sections.includes('polls')) {
-    checkPageBreak(doc, yPos, 40);
+    yPos = checkPageBreak(doc, yPos, 60);
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0);
     doc.text('Polls', margin, yPos);
     yPos += 20;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('No polls available in demo mode', margin, yPos);
-    yPos += 30;
+
+    const polls = data.mockData?.polls || [];
+    if (polls.length > 0) {
+      polls.forEach((poll: any, index: number) => {
+        yPos = checkPageBreak(doc, yPos, 80);
+
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0);
+        doc.text(`${index + 1}. ${poll.question}`, margin, yPos);
+        yPos += 15;
+
+        if (poll.options && poll.options.length > 0) {
+          const pollRows = poll.options.map((opt: any) => [
+            opt.text || 'N/A',
+            `${opt.votes || 0} votes`,
+            `${((opt.votes / poll.total_votes) * 100).toFixed(1)}%`
+          ]);
+
+          (doc as any).autoTable({
+            startY: yPos,
+            body: pollRows,
+            theme: 'plain',
+            margin: { left: margin + 20, right: margin },
+            styles: { fontSize: 9, cellPadding: 3 }
+          });
+
+          yPos = (doc as any).lastAutoTable.finalY + 10;
+        }
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(100);
+        doc.text(`Total votes: ${poll.total_votes || 0}`, margin + 20, yPos);
+        yPos += 20;
+      });
+    } else {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(120);
+      doc.text('No polls available in demo mode', margin, yPos);
+      yPos += 30;
+    }
   }
 
   // Places section
@@ -122,53 +205,153 @@ export async function generateClientPDF(
 
   // Tasks section
   if (sections.includes('tasks')) {
-    checkPageBreak(doc, yPos, 40);
+    yPos = checkPageBreak(doc, yPos, 60);
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0);
     doc.text('Tasks', margin, yPos);
     yPos += 20;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('No tasks available in demo mode', margin, yPos);
-    yPos += 30;
+
+    const tasks = data.mockData?.tasks || [];
+    if (tasks.length > 0) {
+      const taskRows = tasks.map((task: any) => [
+        task.title || task.description || 'N/A',
+        task.assigned_to || 'Unassigned',
+        task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date',
+        task.completed ? 'Done' : 'Pending'
+      ]);
+
+      (doc as any).autoTable({
+        startY: yPos,
+        head: [['Task', 'Assigned To', 'Due Date', 'Status']],
+        body: taskRows,
+        theme: 'striped',
+        headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 9 }
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 30;
+    } else {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(120);
+      doc.text('No tasks available in demo mode', margin, yPos);
+      yPos += 30;
+    }
   }
 
   // Pro sections
   if (layout === 'pro') {
     if (sections.includes('roster')) {
-      checkPageBreak(doc, yPos, 40);
+      yPos = checkPageBreak(doc, yPos, 60);
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0);
       doc.text('Roster & Contacts', margin, yPos);
       yPos += 20;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text('No roster data available in demo mode', margin, yPos);
-      yPos += 30;
+
+      const roster = data.mockData?.roster || data.mockData?.participants || [];
+      if (roster.length > 0) {
+        const rosterRows = roster.map((member: any) => [
+          member.name || 'N/A',
+          member.email || 'N/A',
+          member.role || 'N/A',
+          member.credentialLevel || 'N/A'
+        ]);
+
+        (doc as any).autoTable({
+          startY: yPos,
+          head: [['Name', 'Email', 'Role', 'Credential Level']],
+          body: rosterRows,
+          theme: 'striped',
+          headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 9 }
+        });
+
+        yPos = (doc as any).lastAutoTable.finalY + 30;
+      } else {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(120);
+        doc.text('No roster data available in demo mode', margin, yPos);
+        yPos += 30;
+      }
     }
 
     if (sections.includes('broadcasts')) {
-      checkPageBreak(doc, yPos, 40);
+      yPos = checkPageBreak(doc, yPos, 60);
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0);
       doc.text('Broadcast Log', margin, yPos);
       yPos += 20;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text('No broadcasts available in demo mode', margin, yPos);
-      yPos += 30;
+
+      const broadcasts = data.mockData?.broadcasts || [];
+      if (broadcasts.length > 0) {
+        const broadcastRows = broadcasts.map((broadcast: any) => [
+          broadcast.timestamp ? new Date(broadcast.timestamp).toLocaleString() : 'N/A',
+          broadcast.message || 'N/A',
+          broadcast.channel || 'N/A',
+          broadcast.sender || 'N/A'
+        ]);
+
+        (doc as any).autoTable({
+          startY: yPos,
+          head: [['Timestamp', 'Message', 'Channel', 'Sender']],
+          body: broadcastRows,
+          theme: 'striped',
+          headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 9 }
+        });
+
+        yPos = (doc as any).lastAutoTable.finalY + 30;
+      } else {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(120);
+        doc.text('No broadcasts available in demo mode', margin, yPos);
+        yPos += 30;
+      }
     }
 
     if (sections.includes('attachments')) {
-      checkPageBreak(doc, yPos, 40);
+      yPos = checkPageBreak(doc, yPos, 60);
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0);
       doc.text('Attachments', margin, yPos);
       yPos += 20;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text('No attachments available in demo mode', margin, yPos);
-      yPos += 30;
+
+      const attachments = data.mockData?.attachments || [];
+      if (attachments.length > 0) {
+        const attachmentRows = attachments.map((attachment: any) => [
+          attachment.name || 'N/A',
+          attachment.type || 'N/A',
+          attachment.size || 'N/A',
+          attachment.uploaded_at ? new Date(attachment.uploaded_at).toLocaleDateString() : 'N/A'
+        ]);
+
+        (doc as any).autoTable({
+          startY: yPos,
+          head: [['File Name', 'Type', 'Size', 'Uploaded']],
+          body: attachmentRows,
+          theme: 'striped',
+          headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 9 }
+        });
+
+        yPos = (doc as any).lastAutoTable.finalY + 30;
+      } else {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(120);
+        doc.text('No attachments available in demo mode', margin, yPos);
+        yPos += 30;
+      }
     }
   }
 
