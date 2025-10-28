@@ -62,6 +62,8 @@ serve(async (req) => {
     }
 
     logStep("Request parsed", { tripId, sections, layout, privacyRedaction, paper });
+    console.log('[EXPORT-TRIP] Trip ID type:', typeof tripId, 'value:', tripId);
+    console.log('[EXPORT-TRIP] Layout:', layout, 'Sections:', sections);
 
     // Validate layout
     if (layout !== 'onepager' && layout !== 'pro') {
