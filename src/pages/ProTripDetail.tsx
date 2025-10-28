@@ -113,7 +113,7 @@ const ProTripDetail = () => {
       // Pro trips in demo mode use client-side export
       // Real Pro trips would call the edge function with their UUID
       if (isDemoMode) {
-        toast.info('Generating demo PDF...');
+        toast.info('Generating demo PDF with mock data...');
         blob = await generateClientPDF(
           {
             tripId: proTripId || '',
@@ -121,6 +121,17 @@ const ProTripDetail = () => {
             destination: tripData.location,
             dateRange: tripData.dateRange,
             description: tripData.description || '',
+            mockData: {
+              payments: tripData.settlement || [],
+              polls: [],
+              tasks: tripData.schedule || [],
+              places: [],
+              roster: tripData.roster || [],
+              broadcasts: tripData.broadcasts || [],
+              attachments: [],
+              schedule: tripData.schedule || [],
+              participants: tripData.participants || [],
+            },
           },
           sections,
           layout,
@@ -156,6 +167,17 @@ const ProTripDetail = () => {
               destination: tripData.location,
               dateRange: tripData.dateRange,
               description: tripData.description || '',
+              mockData: {
+                payments: tripData.settlement || [],
+                polls: [],
+                tasks: tripData.schedule || [],
+                places: [],
+                roster: tripData.roster || [],
+                broadcasts: tripData.broadcasts || [],
+                attachments: [],
+                schedule: tripData.schedule || [],
+                participants: tripData.participants || [],
+              },
             },
             sections,
             layout,

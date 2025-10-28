@@ -18,6 +18,7 @@ import { ExportSection } from '../types/tripExport';
 import { supabase } from '../integrations/supabase/client';
 import { generateClientPDF } from '../utils/exportPdfClient';
 import { toast } from 'sonner';
+import { demoModeService } from '../services/demoModeService';
 
 const TripDetail = () => {
   const isMobile = useIsMobile();
@@ -129,7 +130,13 @@ const TripDetail = () => {
 
       if (isMockTrip) {
         // Use client-side export for mock trips
-        toast.info('Generating demo PDF...');
+        toast.info('Generating demo PDF with mock data...');
+
+        // Fetch mock data for this trip
+        const mockPayments = await demoModeService.getMockPayments(tripId || '1');
+        const mockPolls = await demoModeService.getMockPolls(tripId || '1');
+        const mockMembers = await demoModeService.getMockMembers(tripId || '1');
+
         blob = await generateClientPDF(
           {
             tripId: tripId || '1',
@@ -137,6 +144,11 @@ const TripDetail = () => {
             destination: tripWithUpdatedData.location,
             dateRange: tripWithUpdatedData.dateRange,
             description: tripWithUpdatedData.description,
+            mockData: {
+              payments: mockPayments,
+              polls: mockPolls,
+              roster: mockMembers,
+            },
           },
           sections,
           layout,
@@ -165,6 +177,12 @@ const TripDetail = () => {
           // If edge function fails, fallback to client export
           console.warn(`Edge function failed (${response.status}), using client fallback`);
           toast.info('Using demo export mode...');
+
+          // Fetch mock data for fallback
+          const mockPayments = await demoModeService.getMockPayments(tripId || '1');
+          const mockPolls = await demoModeService.getMockPolls(tripId || '1');
+          const mockMembers = await demoModeService.getMockMembers(tripId || '1');
+
           blob = await generateClientPDF(
             {
               tripId: tripId || '1',
@@ -172,6 +190,11 @@ const TripDetail = () => {
               destination: tripWithUpdatedData.location,
               dateRange: tripWithUpdatedData.dateRange,
               description: tripWithUpdatedData.description,
+              mockData: {
+                payments: mockPayments,
+                polls: mockPolls,
+                roster: mockMembers,
+              },
             },
             sections,
             layout,
