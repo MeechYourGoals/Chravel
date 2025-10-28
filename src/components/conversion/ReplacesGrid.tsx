@@ -30,6 +30,9 @@ export const ReplacesGrid = () => {
           It's how travelers keep every plan, person, and payment perfectly in sync.
           No app switching. No chaos. Just Chravel.
         </p>
+        <p className="text-white/80 font-medium text-sm md:text-base mt-4 md:mt-6 text-center max-w-3xl mx-auto">
+          Chravel simplifies the workflows travelers juggle across 30+ apps.
+        </p>
       </div>
 
       {/* Grid */}

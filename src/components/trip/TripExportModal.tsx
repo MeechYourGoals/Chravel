@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { X, Download, Loader2, FileText, Share2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Download, Loader2, FileText } from 'lucide-react';
 import { ExportSection } from '@/types/tripExport';
-import { getExportMethodName } from '@/utils/pdfExport';
 
 interface TripExportModalProps {
   isOpen: boolean;
@@ -30,12 +29,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   const [layout, setLayout] = useState<'onepager' | 'pro'>('onepager');
   const [privacyRedaction, setPrivacyRedaction] = useState(false);
   const [paper, setPaper] = useState<'letter' | 'a4'>('letter');
-  const [exportMethod, setExportMethod] = useState<string>('Download');
-
-  useEffect(() => {
-    // Get platform-specific export method on mount
-    setExportMethod(getExportMethodName());
-  }, []);
+  const exportMethod = 'Download';
 
   const sections = [
     { id: 'calendar' as ExportSection, label: 'Calendar', icon: '', description: 'Events and itinerary' },
@@ -296,8 +290,8 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                 </>
               ) : (
                 <>
-                  {exportMethod === 'Share' ? <Share2 size={18} /> : <Download size={18} />}
-                  {exportMethod} PDF
+                  <Download size={18} />
+                  Download PDF
                 </>
               )}
             </button>
