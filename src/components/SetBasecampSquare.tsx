@@ -207,7 +207,8 @@ export const SetBasecampSquare = ({ basecamp: propBasecamp, onBasecampSet: propO
               </button>
               <button
                 onClick={() => {
-                  const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(basecamp.address)}`;
+                  // Open Google Maps with basecamp as the ORIGIN (starting point)
+                  const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(basecamp.address)}`;
                   window.open(mapsUrl, '_blank');
                 }}
                 className="bg-gray-800/50 hover:bg-gray-800 text-gray-300 py-2 px-3 rounded-lg transition-colors border border-gray-700 text-xs flex items-center justify-center gap-2"
