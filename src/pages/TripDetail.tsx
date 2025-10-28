@@ -16,6 +16,8 @@ import { useIsMobile } from '../hooks/use-mobile';
 import { MobileTripDetail } from './MobileTripDetail';
 import { ExportSection } from '../types/tripExport';
 import { supabase } from '../integrations/supabase/client';
+import { generateClientPDF } from '../utils/exportPdfClient';
+import { toast } from 'sonner';
 
 const TripDetail = () => {
   const isMobile = useIsMobile();
@@ -112,47 +114,75 @@ const TripDetail = () => {
     isPro: false
   };
 
-  // Handle export functionality - call edge function directly
+  // Handle export functionality - detect mock trips and use appropriate export method
   const handleExport = async (
     sections: ExportSection[],
     layout: 'onepager' | 'pro',
     privacyRedaction: boolean,
     paper: 'letter' | 'a4'
   ) => {
-    try {
-      // Build query params
-      const params = new URLSearchParams({
-        layout,
-        sections: sections.join(','),
-        privacy_redaction: privacyRedaction.toString(),
-        paper,
-      });
+    // Detect mock trip IDs (numeric vs UUID)
+    const isMockTrip = tripId && /^\d+$/.test(tripId);
 
-      // Call export-trip edge function directly (no auth required)
-      const response = await fetch(
-        `https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/export-trip?tripId=${tripId}&${params}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+    try {
+      let blob: Blob;
+
+      if (isMockTrip) {
+        // Use client-side export for mock trips
+        toast.info('Generating demo PDF...');
+        blob = await generateClientPDF(
+          {
+            tripId: tripId || '1',
+            tripTitle: tripWithUpdatedData.title,
+            destination: tripWithUpdatedData.location,
+            dateRange: tripWithUpdatedData.dateRange,
+            description: tripWithUpdatedData.description,
           },
-          body: JSON.stringify({
-            tripId,
+          sections,
+          layout,
+          paper
+        );
+      } else {
+        // Call edge function for real Supabase trips
+        const response = await fetch(
+          `https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/export-trip`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              tripId,
+              sections,
+              layout,
+              privacyRedaction,
+              paper,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          // If edge function fails, fallback to client export
+          console.warn(`Edge function failed (${response.status}), using client fallback`);
+          toast.info('Using demo export mode...');
+          blob = await generateClientPDF(
+            {
+              tripId: tripId || '1',
+              tripTitle: tripWithUpdatedData.title,
+              destination: tripWithUpdatedData.location,
+              dateRange: tripWithUpdatedData.dateRange,
+              description: tripWithUpdatedData.description,
+            },
             sections,
             layout,
-            privacyRedaction,
-            paper,
-          }),
+            paper
+          );
+        } else {
+          blob = await response.blob();
         }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Export failed: ${response.status} - ${errorText}`);
       }
 
       // Download the PDF
-      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -161,8 +191,11 @@ const TripDetail = () => {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      toast.success('PDF exported successfully!');
     } catch (error) {
       console.error('Export error:', error);
+      toast.error('Failed to export PDF');
       throw error;
     }
   };

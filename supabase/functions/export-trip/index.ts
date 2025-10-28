@@ -37,15 +37,29 @@ serve(async (req) => {
   try {
     logStep("Export started", { method: req.method });
 
-    // Parse request
-    const body: ExportRequest = await req.json();
-    let {
-      tripId,
-      sections = [],
-      layout = 'onepager' as ExportLayout,
-      privacyRedaction = false,
-      paper = 'letter'
-    } = body;
+    // Parse request - support both GET and POST
+    let tripId: string;
+    let sections: ExportSection[] = [];
+    let layout: ExportLayout = 'onepager';
+    let privacyRedaction = false;
+    let paper: 'letter' | 'a4' = 'letter';
+
+    if (req.method === 'GET') {
+      const url = new URL(req.url);
+      tripId = url.searchParams.get('tripId') || '';
+      const sectionsParam = url.searchParams.get('sections');
+      sections = sectionsParam ? sectionsParam.split(',') as ExportSection[] : [];
+      layout = (url.searchParams.get('layout') || 'onepager') as ExportLayout;
+      privacyRedaction = url.searchParams.get('privacy_redaction') === 'true';
+      paper = (url.searchParams.get('paper') || 'letter') as 'letter' | 'a4';
+    } else {
+      const body: ExportRequest = await req.json();
+      tripId = body.tripId;
+      sections = body.sections || [];
+      layout = body.layout || 'onepager';
+      privacyRedaction = body.privacyRedaction || false;
+      paper = body.paper || 'letter';
+    }
 
     logStep("Request parsed", { tripId, sections, layout, privacyRedaction, paper });
 
@@ -76,16 +90,28 @@ serve(async (req) => {
 
     // Fetch and transform trip data
     logStep("Fetching trip data");
-    const exportData = await getTripData(
-      supabaseClient,
-      tripId,
-      sections as ExportSection[],
-      layout,
-      privacyRedaction
-    );
-    logStep("Trip data fetched successfully", { 
-      sectionsWithData: Object.keys(exportData).filter(k => Array.isArray(exportData[k as keyof typeof exportData]))
-    });
+    let exportData;
+    try {
+      exportData = await getTripData(
+        supabaseClient,
+        tripId,
+        sections as ExportSection[],
+        layout,
+        privacyRedaction
+      );
+      logStep("Trip data fetched successfully", { 
+        sectionsWithData: Object.keys(exportData).filter(k => Array.isArray(exportData[k as keyof typeof exportData]))
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Trip not found') {
+        logStep("Trip not found", { tripId });
+        return new Response(
+          JSON.stringify({ error: 'Trip not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      throw error;
+    }
 
     // Render HTML
     logStep("Rendering HTML template");
