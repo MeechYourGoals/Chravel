@@ -116,12 +116,7 @@ const TripDetail = () => {
   };
 
   // Handle export functionality - detect mock trips and use appropriate export method
-  const handleExport = async (
-    sections: ExportSection[],
-    layout: 'onepager' | 'pro',
-    privacyRedaction: boolean,
-    paper: 'letter' | 'a4'
-  ) => {
+  const handleExport = async (sections: ExportSection[]) => {
     // Detect mock trip IDs (numeric vs UUID)
     const isMockTrip = tripId && /^\d+$/.test(tripId);
 
@@ -150,9 +145,7 @@ const TripDetail = () => {
               roster: mockMembers,
             },
           },
-          sections,
-          layout,
-          paper
+          sections
         );
       } else {
         // Call edge function for real Supabase trips
@@ -166,9 +159,6 @@ const TripDetail = () => {
             body: JSON.stringify({
               tripId,
               sections,
-              layout,
-              privacyRedaction,
-              paper,
             }),
           }
         );
@@ -196,9 +186,7 @@ const TripDetail = () => {
                 roster: mockMembers,
               },
             },
-            sections,
-            layout,
-            paper
+            sections
           );
         } else {
           blob = await response.blob();

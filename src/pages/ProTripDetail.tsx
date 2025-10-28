@@ -101,12 +101,7 @@ const ProTripDetail = () => {
   };
 
   // Handle export functionality - use same handler as consumer trips
-  const handleExport = async (
-    sections: ExportSection[],
-    layout: 'onepager' | 'pro',
-    privacyRedaction: boolean,
-    paper: 'letter' | 'a4'
-  ) => {
+  const handleExport = async (sections: ExportSection[]) => {
     try {
       let blob: Blob;
 
@@ -133,9 +128,7 @@ const ProTripDetail = () => {
               participants: tripData.participants || [],
             },
           },
-          sections,
-          layout,
-          paper
+          sections
         );
       } else {
         // Call edge function for real Supabase trips
@@ -149,9 +142,6 @@ const ProTripDetail = () => {
             body: JSON.stringify({
               tripId: proTripId,
               sections,
-              layout,
-              privacyRedaction,
-              paper,
             }),
           }
         );

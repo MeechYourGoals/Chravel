@@ -4,8 +4,18 @@
  */
 
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { ExportSection } from '@/types/tripExport';
+
+// Type declaration for jsPDF with autoTable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: typeof autoTable;
+    lastAutoTable?: {
+      finalY: number;
+    };
+  }
+}
 
 interface ExportData {
   tripId: string;
@@ -28,10 +38,10 @@ interface ExportData {
 
 export async function generateClientPDF(
   data: ExportData,
-  sections: ExportSection[],
-  layout: 'onepager' | 'pro',
-  paper: 'letter' | 'a4' = 'letter'
+  sections: ExportSection[]
 ): Promise<Blob> {
+  // Always use letter size and privacy is enforced server-side
+  const paper = 'letter';
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'pt',
@@ -110,7 +120,7 @@ export async function generateClientPDF(
         p.is_settled ? 'Settled' : 'Pending'
       ]);
 
-      (doc as any).autoTable({
+      doc.autoTable({
         startY: yPos,
         head: [['Description', 'Amount', 'Split', 'Status']],
         body: paymentRows,
@@ -120,7 +130,7 @@ export async function generateClientPDF(
         styles: { fontSize: 9 }
       });
 
-      yPos = (doc as any).lastAutoTable.finalY + 20;
+      yPos = doc.lastAutoTable?.finalY || yPos + 20;
 
       // Calculate total
       const total = payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
@@ -164,7 +174,7 @@ export async function generateClientPDF(
             `${((opt.votes / poll.total_votes) * 100).toFixed(1)}%`
           ]);
 
-          (doc as any).autoTable({
+          doc.autoTable({
             startY: yPos,
             body: pollRows,
             theme: 'plain',
@@ -172,7 +182,7 @@ export async function generateClientPDF(
             styles: { fontSize: 9, cellPadding: 3 }
           });
 
-          yPos = (doc as any).lastAutoTable.finalY + 10;
+          yPos = doc.lastAutoTable?.finalY || yPos + 10;
         }
 
         doc.setFontSize(9);
@@ -221,7 +231,7 @@ export async function generateClientPDF(
         task.completed ? 'Done' : 'Pending'
       ]);
 
-      (doc as any).autoTable({
+      doc.autoTable({
         startY: yPos,
         head: [['Task', 'Assigned To', 'Due Date', 'Status']],
         body: taskRows,
@@ -231,7 +241,7 @@ export async function generateClientPDF(
         styles: { fontSize: 9 }
       });
 
-      yPos = (doc as any).lastAutoTable.finalY + 30;
+      yPos = doc.lastAutoTable?.finalY || yPos + 30;
     } else {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
@@ -241,117 +251,115 @@ export async function generateClientPDF(
     }
   }
 
-  // Pro sections
-  if (layout === 'pro') {
-    if (sections.includes('roster')) {
-      yPos = checkPageBreak(doc, yPos, 60);
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0);
-      doc.text('Roster & Contacts', margin, yPos);
-      yPos += 20;
+  // Pro sections (always available if selected)
+  if (sections.includes('roster')) {
+    yPos = checkPageBreak(doc, yPos, 60);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0);
+    doc.text('Roster & Contacts', margin, yPos);
+    yPos += 20;
 
-      const roster = data.mockData?.roster || data.mockData?.participants || [];
-      if (roster.length > 0) {
-        const rosterRows = roster.map((member: any) => [
-          member.name || 'N/A',
-          member.email || 'N/A',
-          member.role || 'N/A',
-          member.credentialLevel || 'N/A'
-        ]);
+    const roster = data.mockData?.roster || data.mockData?.participants || [];
+    if (roster.length > 0) {
+      const rosterRows = roster.map((member: any) => [
+        member.name || 'N/A',
+        member.email || 'N/A',
+        member.role || 'N/A',
+        member.credentialLevel || 'N/A'
+      ]);
 
-        (doc as any).autoTable({
-          startY: yPos,
-          head: [['Name', 'Email', 'Role', 'Credential Level']],
-          body: rosterRows,
-          theme: 'striped',
-          headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
-          margin: { left: margin, right: margin },
-          styles: { fontSize: 9 }
-        });
+      doc.autoTable({
+        startY: yPos,
+        head: [['Name', 'Email', 'Role', 'Credential Level']],
+        body: rosterRows,
+        theme: 'striped',
+        headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 9 }
+      });
 
-        yPos = (doc as any).lastAutoTable.finalY + 30;
-      } else {
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(120);
-        doc.text('No roster data available in demo mode', margin, yPos);
-        yPos += 30;
-      }
+      yPos = doc.lastAutoTable?.finalY || yPos + 30;
+    } else {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(120);
+      doc.text('No roster data available in demo mode', margin, yPos);
+      yPos += 30;
     }
+  }
 
-    if (sections.includes('broadcasts')) {
-      yPos = checkPageBreak(doc, yPos, 60);
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0);
-      doc.text('Broadcast Log', margin, yPos);
-      yPos += 20;
+  if (sections.includes('broadcasts')) {
+    yPos = checkPageBreak(doc, yPos, 60);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0);
+    doc.text('Broadcast Log', margin, yPos);
+    yPos += 20;
 
-      const broadcasts = data.mockData?.broadcasts || [];
-      if (broadcasts.length > 0) {
-        const broadcastRows = broadcasts.map((broadcast: any) => [
-          broadcast.timestamp ? new Date(broadcast.timestamp).toLocaleString() : 'N/A',
-          broadcast.message || 'N/A',
-          broadcast.channel || 'N/A',
-          broadcast.sender || 'N/A'
-        ]);
+    const broadcasts = data.mockData?.broadcasts || [];
+    if (broadcasts.length > 0) {
+      const broadcastRows = broadcasts.map((broadcast: any) => [
+        broadcast.timestamp ? new Date(broadcast.timestamp).toLocaleString() : 'N/A',
+        broadcast.message || 'N/A',
+        broadcast.channel || 'N/A',
+        broadcast.sender || 'N/A'
+      ]);
 
-        (doc as any).autoTable({
-          startY: yPos,
-          head: [['Timestamp', 'Message', 'Channel', 'Sender']],
-          body: broadcastRows,
-          theme: 'striped',
-          headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
-          margin: { left: margin, right: margin },
-          styles: { fontSize: 9 }
-        });
+      doc.autoTable({
+        startY: yPos,
+        head: [['Timestamp', 'Message', 'Channel', 'Sender']],
+        body: broadcastRows,
+        theme: 'striped',
+        headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 9 }
+      });
 
-        yPos = (doc as any).lastAutoTable.finalY + 30;
-      } else {
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(120);
-        doc.text('No broadcasts available in demo mode', margin, yPos);
-        yPos += 30;
-      }
+      yPos = doc.lastAutoTable?.finalY || yPos + 30;
+    } else {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(120);
+      doc.text('No broadcasts available in demo mode', margin, yPos);
+      yPos += 30;
     }
+  }
 
-    if (sections.includes('attachments')) {
-      yPos = checkPageBreak(doc, yPos, 60);
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0);
-      doc.text('Attachments', margin, yPos);
-      yPos += 20;
+  if (sections.includes('attachments')) {
+    yPos = checkPageBreak(doc, yPos, 60);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0);
+    doc.text('Attachments', margin, yPos);
+    yPos += 20;
 
-      const attachments = data.mockData?.attachments || [];
-      if (attachments.length > 0) {
-        const attachmentRows = attachments.map((attachment: any) => [
-          attachment.name || 'N/A',
-          attachment.type || 'N/A',
-          attachment.size || 'N/A',
-          attachment.uploaded_at ? new Date(attachment.uploaded_at).toLocaleDateString() : 'N/A'
-        ]);
+    const attachments = data.mockData?.attachments || [];
+    if (attachments.length > 0) {
+      const attachmentRows = attachments.map((attachment: any) => [
+        attachment.name || 'N/A',
+        attachment.type || 'N/A',
+        attachment.size || 'N/A',
+        attachment.uploaded_at ? new Date(attachment.uploaded_at).toLocaleDateString() : 'N/A'
+      ]);
 
-        (doc as any).autoTable({
-          startY: yPos,
-          head: [['File Name', 'Type', 'Size', 'Uploaded']],
-          body: attachmentRows,
-          theme: 'striped',
-          headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
-          margin: { left: margin, right: margin },
-          styles: { fontSize: 9 }
-        });
+      doc.autoTable({
+        startY: yPos,
+        head: [['File Name', 'Type', 'Size', 'Uploaded']],
+        body: attachmentRows,
+        theme: 'striped',
+        headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 9 }
+      });
 
-        yPos = (doc as any).lastAutoTable.finalY + 30;
-      } else {
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(120);
-        doc.text('No attachments available in demo mode', margin, yPos);
-        yPos += 30;
-      }
+      yPos = doc.lastAutoTable?.finalY || yPos + 30;
+    } else {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(120);
+      doc.text('No attachments available in demo mode', margin, yPos);
+      yPos += 30;
     }
   }
 
