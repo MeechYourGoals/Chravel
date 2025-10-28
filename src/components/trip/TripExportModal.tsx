@@ -90,6 +90,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     setError(null);
 
     try {
+      // Pass all export parameters to parent
       await onExport(selectedSections, layout, privacyRedaction, paper);
       onClose();
     } catch (err) {
