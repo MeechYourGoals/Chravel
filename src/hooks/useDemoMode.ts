@@ -9,9 +9,10 @@ export const useDemoMode = () => {
     const wasEnabled = isDemoMode;
     toggle();
     
-    // Clear session payments when turning demo mode OFF
+    // Clear session data when turning demo mode OFF
     if (wasEnabled) {
       demoModeService.clearSessionPayments();
+      demoModeService.clearSessionPersonalBasecamps();
     }
   }, [isDemoMode, toggle]);
 
