@@ -123,7 +123,12 @@ const TripDetail = () => {
   };
 
   // Handle export functionality
-  const handleExport = async (sections: ExportSection[]) => {
+  const handleExport = async (
+    sections: ExportSection[], 
+    layout: 'onepager' | 'pro', 
+    privacyRedaction: boolean, 
+    paper: 'letter' | 'a4'
+  ) => {
     try {
       if (isDemoMode) {
         // Demo mode: generate sample PDF without API calls
@@ -239,6 +244,9 @@ const TripDetail = () => {
           body: {
             tripId: tripId,
             includeSections: sections,
+            layout: layout,
+            privacyRedaction: privacyRedaction,
+            paper: paper,
           },
         });
 
@@ -352,6 +360,7 @@ const TripDetail = () => {
         onClose={() => setShowExportModal(false)}
         onExport={handleExport}
         tripName={tripWithUpdatedData.title}
+        tripId={tripId || ''}
       />
     </div>
   );

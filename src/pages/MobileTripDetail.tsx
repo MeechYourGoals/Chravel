@@ -108,7 +108,12 @@ export const MobileTripDetail = () => {
     setActiveTab(tab);
   };
 
-  const handleExportPDF = async (sections: ExportSection[]) => {
+  const handleExportPDF = async (
+    sections: ExportSection[], 
+    layout: 'onepager' | 'pro', 
+    privacyRedaction: boolean, 
+    paper: 'letter' | 'a4'
+  ) => {
     try {
       // Mock mode check
       const isDemoMode = !user;
@@ -174,6 +179,9 @@ export const MobileTripDetail = () => {
           body: {
             tripId: tripId,
             includeSections: sections,
+            layout: layout,
+            privacyRedaction: privacyRedaction,
+            paper: paper,
           },
         });
 
@@ -299,6 +307,7 @@ export const MobileTripDetail = () => {
         }}
         onExport={handleExportPDF}
         tripName={tripWithUpdatedDescription.title}
+        tripId={tripId || ''}
       />
       </div>
     </MobileErrorBoundary>

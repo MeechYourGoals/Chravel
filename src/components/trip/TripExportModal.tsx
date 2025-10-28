@@ -28,6 +28,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
   const [layout, setLayout] = useState<'onepager' | 'pro'>('onepager');
   const [privacyRedaction, setPrivacyRedaction] = useState(false);
+  const [paper, setPaper] = useState<'letter' | 'a4'>('letter');
   const [exportMethod, setExportMethod] = useState<string>('Download');
 
   useEffect(() => {
@@ -166,6 +167,35 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                     <div className="text-sm text-gray-400">Hide emails and phone numbers</div>
                   </div>
                 </label>
+
+                {/* Paper Size Selection */}
+                <div className="mb-4">
+                  <label className="text-white text-sm font-medium mb-2 block">Paper Size</label>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setPaper('letter')}
+                      className={`flex-1 py-2 px-4 rounded-lg border transition-all ${
+                        paper === 'letter'
+                          ? 'bg-blue-900/30 border-blue-500 text-white'
+                          : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="font-medium">Letter</div>
+                      <div className="text-xs mt-1">8.5" × 11" (US)</div>
+                    </button>
+                    <button
+                      onClick={() => setPaper('a4')}
+                      className={`flex-1 py-2 px-4 rounded-lg border transition-all ${
+                        paper === 'a4'
+                          ? 'bg-blue-900/30 border-blue-500 text-white'
+                          : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="font-medium">A4</div>
+                      <div className="text-xs mt-1">210mm × 297mm (Intl)</div>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Section Selection */}
