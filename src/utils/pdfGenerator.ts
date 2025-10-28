@@ -2,6 +2,7 @@
  * PDF Generation Utility
  *
  * Generates PDF from trip export data using jsPDF
+ * Platform-aware: Works on web, mobile browsers, and native apps (iOS/Android)
  */
 
 import jsPDF from 'jspdf';
@@ -13,6 +14,7 @@ import {
   buildPlacesSection,
   buildTasksSection,
 } from './exportSectionBuilders';
+import { exportPDF } from './pdfExport';
 
 /**
  * Format date for display
@@ -307,7 +309,19 @@ export async function generateTripPDF(exportData: TripExportData): Promise<void>
     url: 'https://chravel.com',
   });
 
-  // Save the PDF
+  // Export the PDF using platform-aware method
   const filename = `${exportData.trip.name.replace(/[^a-z0-9]/gi, '_')}_Summary.pdf`;
-  doc.save(filename);
+  
+  // Get PDF as blob
+  const pdfBlob = doc.output('blob');
+  
+  // Use platform-aware export
+  const result = await exportPDF({
+    filename,
+    blob: pdfBlob
+  });
+
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to export PDF');
+  }
 }

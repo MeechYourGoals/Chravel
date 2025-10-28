@@ -1,12 +1,23 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MoreVertical, Info } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Info, FileText } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
+import { TripExportModal } from '../components/trip/TripExportModal';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
+import { supabase } from '../integrations/supabase/client';
+import { generateTripPDF } from '../utils/pdfGenerator';
+import { ExportSection } from '../types/tripExport';
+import {
+  buildCalendarSection,
+  buildPaymentsSection,
+  buildPollsSection,
+  buildPlacesSection,
+  buildTasksSection,
+} from '../utils/exportSectionBuilders';
 
 import { getTripById, generateTripMockData } from '../data/tripsData';
 
@@ -17,6 +28,7 @@ export const MobileTripDetail = () => {
   const [activeTab, setActiveTab] = useState('chat');
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const headerRef = React.useRef<HTMLDivElement>(null);
  
   // Keyboard handling for mobile inputs
@@ -96,6 +108,117 @@ export const MobileTripDetail = () => {
     setActiveTab(tab);
   };
 
+  const handleExportPDF = async (sections: ExportSection[]) => {
+    try {
+      // Mock mode check
+      const isDemoMode = !user;
+
+      if (isDemoMode) {
+        // Generate demo data
+        const formattedSections = [];
+
+        if (sections.includes('calendar')) {
+          formattedSections.push(buildCalendarSection([
+            {
+              id: 'demo-event-1',
+              trip_id: tripId || '1',
+              title: 'Welcome Dinner',
+              description: 'Group dinner at hotel restaurant',
+              start_time: new Date().toISOString(),
+              end_time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+              location: tripWithUpdatedDescription.location,
+              created_by: 'demo',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              version: 1,
+            } as any,
+          ]));
+        }
+
+        if (sections.includes('tasks')) {
+          formattedSections.push(buildTasksSection([
+            {
+              id: 'demo-task-1',
+              trip_id: tripId || '1',
+              title: 'Book flights',
+              description: 'Find best deals',
+              completed: true,
+              completed_at: new Date().toISOString(),
+              due_at: null,
+              created_by: 'demo',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              version: 1,
+            } as any,
+          ]));
+        }
+
+        await generateTripPDF({
+          trip: {
+            name: tripWithUpdatedDescription.title,
+            description: tripWithUpdatedDescription.description,
+            destination: tripWithUpdatedDescription.location,
+            startDate: new Date().toISOString(),
+            endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+          sections: formattedSections,
+          metadata: {
+            exportedAt: new Date().toISOString(),
+            exportedBy: 'demo',
+            generatedBy: 'Chravel',
+          },
+        });
+      } else {
+        // Production mode: call edge function
+        const { data, error } = await supabase.functions.invoke('export-trip-summary', {
+          body: {
+            tripId: tripId,
+            includeSections: sections,
+          },
+        });
+
+        if (error) {
+          throw new Error(error.message || 'Failed to export trip summary');
+        }
+
+        if (!data || !data.success) {
+          throw new Error('Failed to generate export data');
+        }
+
+        const formattedSections = [];
+
+        if (sections.includes('calendar') && data.sections.calendar) {
+          formattedSections.push(buildCalendarSection(data.sections.calendar));
+        }
+
+        if (sections.includes('payments') && data.sections.payments) {
+          formattedSections.push(buildPaymentsSection(data.sections.payments));
+        }
+
+        if (sections.includes('polls') && data.sections.polls) {
+          formattedSections.push(buildPollsSection(data.sections.polls));
+        }
+
+        if (sections.includes('places') && data.sections.places) {
+          formattedSections.push(buildPlacesSection(data.sections.places));
+        }
+
+        if (sections.includes('tasks') && data.sections.tasks) {
+          formattedSections.push(buildTasksSection(data.sections.tasks));
+        }
+
+        await generateTripPDF({
+          trip: data.trip,
+          sections: formattedSections,
+          metadata: data.metadata,
+        });
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      throw error;
+    }
+  };
+
   return (
     <MobileErrorBoundary>
       <div className="min-h-screen bg-black">
@@ -119,6 +242,16 @@ export const MobileTripDetail = () => {
           </div>
           
           <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                hapticService.light();
+                setShowExportModal(true);
+              }}
+              className="p-2 active:scale-95 transition-transform"
+              title="Export PDF"
+            >
+              <FileText size={20} className="text-white" />
+            </button>
             <button
               onClick={() => {
                 hapticService.light();
@@ -155,6 +288,17 @@ export const MobileTripDetail = () => {
           setShowTripInfo(false);
         }}
         onDescriptionUpdate={setTripDescription}
+      />
+
+      {/* Export PDF Modal */}
+      <TripExportModal
+        isOpen={showExportModal}
+        onClose={() => {
+          hapticService.light();
+          setShowExportModal(false);
+        }}
+        onExport={handleExportPDF}
+        tripName={tripWithUpdatedDescription.title}
       />
       </div>
     </MobileErrorBoundary>

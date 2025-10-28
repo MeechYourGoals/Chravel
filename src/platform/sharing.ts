@@ -1,14 +1,18 @@
 /**
  * Platform-agnostic sharing
  * Web: Uses Web Share API with fallback
- * Mobile: Would use native Share module
+ * Mobile: Uses Capacitor Share API for native sharing
  */
+
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
 
 export interface ShareOptions {
   title?: string;
   text?: string;
   url?: string;
   files?: File[];
+  dialogTitle?: string;
 }
 
 export interface ShareResult {
@@ -16,8 +20,14 @@ export interface ShareResult {
   error?: string;
 }
 
-class WebSharing {
+class PlatformSharing {
   async canShare(options: ShareOptions): Promise<boolean> {
+    // Native apps always support sharing via Capacitor
+    if (Capacitor.isNativePlatform()) {
+      return true;
+    }
+
+    // Web: check for Web Share API
     if (!navigator.share) {
       return false;
     }
@@ -35,6 +45,18 @@ class WebSharing {
 
   async share(options: ShareOptions): Promise<ShareResult> {
     try {
+      // Native platforms: Use Capacitor Share
+      if (Capacitor.isNativePlatform()) {
+        await Share.share({
+          title: options.title,
+          text: options.text,
+          url: options.url,
+          dialogTitle: options.dialogTitle || options.title
+        });
+        return { success: true };
+      }
+
+      // Web: Use Web Share API
       if (!navigator.share) {
         // Fallback: copy to clipboard
         const shareText = [options.title, options.text, options.url]
@@ -45,7 +67,12 @@ class WebSharing {
         return { success: true };
       }
 
-      await navigator.share(options);
+      await navigator.share({
+        title: options.title,
+        text: options.text,
+        url: options.url,
+        files: options.files
+      });
       return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Share failed';
@@ -55,4 +82,4 @@ class WebSharing {
   }
 }
 
-export const platformSharing = new WebSharing();
+export const platformSharing = new PlatformSharing();
