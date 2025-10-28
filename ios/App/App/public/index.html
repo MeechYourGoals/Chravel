@@ -5,19 +5,26 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="/chravel-logo.png" type="image/png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <title>Chravel</title>
     <!-- Cache buster: demo badges removed 20250814 -->
     
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://maps.googleapis.com https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://*.stream-io-cdn.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.stream-io-api.com wss://*.stream-io-api.com https://api.openai.com https://maps.googleapis.com https://api.stripe.com; frame-src 'self' https://*.google.com https://*.gstatic.com https://js.stripe.com https://checkout.stripe.com; child-src 'self' https://*.google.com https://*.gstatic.com https://js.stripe.com https://checkout.stripe.com;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
     
     <!-- iOS PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Chravel" />
     <meta name="mobile-web-app-capable" content="yes" />
     
@@ -30,18 +37,43 @@
     <meta name="theme-color" content="#3A60D0" />
     <meta name="msapplication-TileColor" content="#3A60D0" />
     
-    <!-- Fonts -->
+    <!-- Fonts - Modern font loading with multiple weights -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- iOS Safari viewport fixes -->
     <meta name="format-detection" content="telephone=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-touch-fullscreen" content="yes" />
-    <script type="module" crossorigin src="/assets/index-CAsyng-G.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-jbo_OdjT.css">
-  </head>
+    <meta property="og:title" content="Chravel">
+  <meta name="twitter:title" content="Chravel">
+  <meta name="description" content="The Group Chat App for Group Travel. 
+
+Calming the Chaos of Coordinating.
+
+An AI Co-pilot during your Travels 365 for when you're Out Of Office 365.">
+  <meta property="og:description" content="The Group Chat App for Group Travel. 
+
+Calming the Chaos of Coordinating.
+
+An AI Co-pilot during your Travels 365 for when you&#39;re Out Of Office 365.">
+  <meta name="twitter:description" content="The Group Chat App for Group Travel. 
+
+Calming the Chaos of Coordinating.
+
+An AI Co-pilot during your Travels 365 for when you&#39;re Out Of Office 365.">
+  <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/dNsG7Wi3WIUflQjr6sCRnplAXbj2/social-images/social-1760841171469-IMG_2460 2.jpg">
+  <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/dNsG7Wi3WIUflQjr6sCRnplAXbj2/social-images/social-1760841171469-IMG_2460 2.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta property="og:type" content="website">
+  <script type="module" crossorigin src="/assets/index-C69Cv9fm.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/js/chunk-CHPtWMTz.js">
+  <link rel="modulepreload" crossorigin href="/assets/js/chunk-DE8J_P3a.js">
+  <link rel="modulepreload" crossorigin href="/assets/js/chunk-DN5ISW2H.js">
+  <link rel="modulepreload" crossorigin href="/assets/js/chunk-CbEMFF6w.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-BTBA-ZGg.css">
+</head>
   <body>
     <div id="root"></div>
   </body>

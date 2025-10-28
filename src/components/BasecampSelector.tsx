@@ -7,7 +7,7 @@ import { GoogleMapsService } from '../services/googleMapsService';
 interface BasecampSelectorProps {
   isOpen: boolean;
   onClose: () => void;
-  onBasecampSet: (basecamp: BasecampLocation) => void;
+  onBasecampSet: (basecamp: BasecampLocation) => Promise<void> | void;
   currentBasecamp?: BasecampLocation;
 }
 
@@ -290,7 +290,9 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
           type
         };
         
-        onBasecampSet(basecamp);
+        // Wait for basecamp to be saved before closing modal
+        // This is critical on mobile to prevent interruption of async storage operations
+        await Promise.resolve(onBasecampSet(basecamp));
         onClose();
       } else {
         // Friendly error message with helpful suggestions

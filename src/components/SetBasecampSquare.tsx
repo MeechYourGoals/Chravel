@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 interface SetBasecampSquareProps {
   // Optional props for backward compatibility
   basecamp?: BasecampLocation;
-  onBasecampSet?: (basecamp: BasecampLocation) => void;
+  onBasecampSet?: (basecamp: BasecampLocation) => Promise<void> | void;
 }
 
 export const SetBasecampSquare = ({ basecamp: propBasecamp, onBasecampSet: propOnBasecampSet }: SetBasecampSquareProps) => {
@@ -18,11 +18,13 @@ export const SetBasecampSquare = ({ basecamp: propBasecamp, onBasecampSet: propO
   // Use context basecamp if available, otherwise fall back to props
   const basecamp = contextBasecamp || propBasecamp;
   
-  const handleBasecampSet = (newBasecamp: BasecampLocation) => {
+  const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
     // Always update context
-    setContextBasecamp(newBasecamp);
+    await setContextBasecamp(newBasecamp);
     // Also call prop callback if provided (for backward compatibility)
-    propOnBasecampSet?.(newBasecamp);
+    if (propOnBasecampSet) {
+      await Promise.resolve(propOnBasecampSet(newBasecamp));
+    }
   };
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
