@@ -3,6 +3,9 @@ import { Plus, DollarSign, CheckCircle, Clock, AlertCircle } from 'lucide-react'
 import { hapticService } from '@/services/hapticService';
 import { CreatePaymentModal } from './CreatePaymentModal';
 import { demoModeService } from '@/services/demoModeService';
+import { supabase } from '@/integrations/supabase/client';
+import { getTripById } from '@/data/tripsData';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface Payment {
   id: string;
@@ -26,6 +29,8 @@ interface MobileTripPaymentsProps {
  */
 export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [tripMembers, setTripMembers] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
+  const { isDemoMode, isLoading: demoLoading } = useDemoMode();
   // Mock data - replace with real data from backend
   const [payments, setPayments] = useState<Payment[]>([
     {
@@ -62,6 +67,69 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
       date: '2024-03-17'
     }
   ]);
+
+  // Load trip members
+  useEffect(() => {
+    if (demoLoading) return;
+    
+    const loadMembers = async () => {
+      const tripIdNum = parseInt(tripId);
+      
+      // Consumer trips (1-12): use tripsData
+      if (tripIdNum >= 1 && tripIdNum <= 12) {
+        const trip = getTripById(tripIdNum);
+        if (trip?.participants) {
+          const formattedMembers = trip.participants.map(p => ({
+            id: p.id.toString(),
+            name: p.name,
+            avatar: p.avatar
+          }));
+          setTripMembers(formattedMembers);
+          return;
+        }
+      }
+      
+      // Other trips: fetch from database
+      try {
+        const { data: memberIds, error: memberError } = await supabase
+          .from('trip_members')
+          .select('user_id')
+          .eq('trip_id', tripId);
+
+        if (memberError || !memberIds || memberIds.length === 0) {
+          console.warn('No trip members found or error:', memberError);
+          setTripMembers([]);
+          return;
+        }
+
+        const userIds = memberIds.map(m => m.user_id);
+
+        const { data: profiles, error: profileError } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, avatar_url')
+          .in('user_id', userIds);
+
+        if (profileError) {
+          console.warn('Error fetching profiles:', profileError);
+          setTripMembers([]);
+          return;
+        }
+
+        const formattedMembers = (profiles || []).map(p => ({
+          id: p.user_id,
+          name: p.display_name || 'Unknown User',
+          avatar: p.avatar_url || undefined
+        }));
+
+        setTripMembers(formattedMembers);
+      } catch (error) {
+        console.error('Error loading trip members:', error);
+        setTripMembers([]);
+      }
+    };
+
+    loadMembers();
+  }, [tripId, demoLoading]);
 
   // Load session payments on mount
   useEffect(() => {
@@ -236,6 +304,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         tripId={tripId}
+        tripMembers={tripMembers}
         onPaymentCreated={handlePaymentCreated}
       />
     </div>
