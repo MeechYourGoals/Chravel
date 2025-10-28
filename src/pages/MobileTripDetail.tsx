@@ -4,6 +4,7 @@ import { ArrowLeft, MoreVertical, Info } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
+import { MobileBottomNav } from '../components/mobile/MobileBottomNav';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
@@ -98,7 +99,7 @@ export const MobileTripDetail = () => {
 
   return (
     <MobileErrorBoundary>
-      <div className="min-h-screen bg-black">
+      <div className="flex flex-col min-h-screen bg-black">
       {/* Mobile Header - Sticky */}
       <div ref={headerRef} className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10">
         <div className="flex items-center justify-between px-4 py-3">
@@ -124,9 +125,10 @@ export const MobileTripDetail = () => {
                 hapticService.light();
                 setShowTripInfo(true);
               }}
-              className="p-2 active:scale-95 transition-transform"
+              className="flex items-center gap-1.5 p-2 active:scale-95 transition-transform md:hidden"
             >
               <Info size={20} className="text-white" />
+              <span className="text-sm text-white font-medium">More details</span>
             </button>
             <button
               onClick={() => hapticService.light()}
@@ -156,6 +158,9 @@ export const MobileTripDetail = () => {
         }}
         onDescriptionUpdate={setTripDescription}
       />
+
+      {/* Fixed Bottom Navigation - Always visible on mobile */}
+      <MobileBottomNav />
       </div>
     </MobileErrorBoundary>
   );
