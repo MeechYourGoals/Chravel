@@ -1,22 +1,45 @@
 import React, { useState } from 'react';
-import { X, DollarSign } from 'lucide-react';
+import { X, DollarSign, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { demoModeService } from '@/services/demoModeService';
+import { usePaymentSplits } from '@/hooks/usePaymentSplits';
 
 interface CreatePaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   tripId: string;
+  tripMembers: Array<{ id: string; name: string; avatar?: string }>;
   onPaymentCreated?: () => void;
 }
 
-export const CreatePaymentModal = ({ isOpen, onClose, tripId, onPaymentCreated }: CreatePaymentModalProps) => {
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState('USD');
-  const [splitCount, setSplitCount] = useState(2);
-  const [paymentMethods, setPaymentMethods] = useState<string[]>([]);
+export const CreatePaymentModal = ({ isOpen, onClose, tripId, tripMembers, onPaymentCreated }: CreatePaymentModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const {
+    amount,
+    currency,
+    description,
+    selectedParticipants,
+    selectedPaymentMethods,
+    perPersonAmount,
+    allParticipantsSelected,
+    setAmount,
+    setCurrency,
+    setDescription,
+    toggleParticipant,
+    togglePaymentMethod,
+    selectAllParticipants,
+    getPaymentData,
+    resetForm
+  } = usePaymentSplits(tripMembers);
+
+  const paymentMethodOptions = [
+    { id: 'venmo', label: 'Venmo' },
+    { id: 'cashapp', label: 'Cash App' },
+    { id: 'zelle', label: 'Zelle' },
+    { id: 'paypal', label: 'PayPal' },
+    { id: 'applecash', label: 'Apple Cash' }
+  ];
 
   if (!isOpen) return null;
 
@@ -25,22 +48,17 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, onPaymentCreated }
     setIsSubmitting(true);
 
     try {
+      const paymentData = getPaymentData();
+      if (!paymentData) {
+        setIsSubmitting(false);
+        return;
+      }
+
       // Create demo payment with proper format
-      demoModeService.addSessionPayment(tripId, {
-        amount: parseFloat(amount),
-        currency,
-        description,
-        splitCount,
-        splitParticipants: Array.from({ length: splitCount }, (_, i) => `user${i + 1}`),
-        paymentMethods: paymentMethods.length > 0 ? paymentMethods : ['Venmo']
-      });
+      demoModeService.addSessionPayment(tripId, paymentData);
 
       // Reset form
-      setDescription('');
-      setAmount('');
-      setCurrency('USD');
-      setSplitCount(2);
-      setPaymentMethods([]);
+      resetForm();
 
       // Trigger callback and close
       onPaymentCreated?.();
@@ -103,8 +121,8 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, onPaymentCreated }
               <input
                 type="number"
                 step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                value={amount || ''}
+                onChange={(e) => setAmount(Number(e.target.value))}
                 placeholder="0.00"
                 className="w-full pl-8 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
                 required
@@ -131,21 +149,53 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, onPaymentCreated }
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Split Between People
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="20"
-              value={splitCount}
-              onChange={(e) => setSplitCount(parseInt(e.target.value) || 1)}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50"
-              required
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              {amount && splitCount > 0 ? `$${(parseFloat(amount) / splitCount).toFixed(2)} per person` : ''}
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                <Users size={16} />
+                Split between {selectedParticipants.length} people
+              </label>
+              <button
+                type="button"
+                onClick={selectAllParticipants}
+                className="text-xs text-green-400 hover:text-green-300 font-medium px-2 py-1 rounded bg-white/5 hover:bg-white/10 transition-colors"
+              >
+                {allParticipantsSelected ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
+            <div className="max-h-32 overflow-y-auto space-y-2 p-3 bg-white/5 border border-white/10 rounded-xl native-scroll">
+              {tripMembers.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-2">No trip members found</p>
+              ) : (
+                tripMembers.map(member => (
+                  <label 
+                    key={member.id}
+                    className="flex items-center gap-3 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedParticipants.includes(member.id)}
+                      onChange={() => toggleParticipant(member.id)}
+                      className="w-5 h-5 rounded border-white/20 bg-white/5 text-green-600 focus:ring-2 focus:ring-green-500/50"
+                    />
+                    <div className="flex items-center gap-2 flex-1">
+                      {member.avatar && (
+                        <img 
+                          src={member.avatar} 
+                          alt={member.name}
+                          className="w-6 h-6 rounded-full"
+                        />
+                      )}
+                      <span className="text-white text-sm">{member.name}</span>
+                    </div>
+                  </label>
+                ))
+              )}
+            </div>
+            {perPersonAmount > 0 && selectedParticipants.length > 0 && (
+              <p className="text-xs text-gray-400 mt-2">
+                ${perPersonAmount.toFixed(2)} per person
+              </p>
+            )}
           </div>
 
           <div>
@@ -153,21 +203,15 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, onPaymentCreated }
               Preferred Payment Methods
             </label>
             <div className="space-y-2">
-              {['Venmo', 'Cash App', 'Zelle', 'PayPal', 'Apple Cash'].map((method) => (
-                <label key={method} className="flex items-center gap-3 cursor-pointer">
+              {paymentMethodOptions.map((method) => (
+                <label key={method.id} className="flex items-center gap-3 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors">
                   <input
                     type="checkbox"
-                    checked={paymentMethods.includes(method)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setPaymentMethods([...paymentMethods, method]);
-                      } else {
-                        setPaymentMethods(paymentMethods.filter(m => m !== method));
-                      }
-                    }}
+                    checked={selectedPaymentMethods.includes(method.id as any)}
+                    onChange={() => togglePaymentMethod(method.id as any)}
                     className="w-5 h-5 rounded border-white/10 bg-white/5 text-green-600 focus:ring-2 focus:ring-green-500/50"
                   />
-                  <span className="text-white">{method}</span>
+                  <span className="text-white">{method.label}</span>
                 </label>
               ))}
             </div>
@@ -185,8 +229,8 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, onPaymentCreated }
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
-              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+              disabled={isSubmitting || selectedParticipants.length === 0 || !amount || !description}
+              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Creating...' : 'Create Payment'}
             </Button>
