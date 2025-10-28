@@ -1,7 +1,7 @@
 
 export interface BasecampLocation {
   address: string;
-  coordinates: { lat: number; lng: number };
+  coordinates?: { lat: number; lng: number };
   name?: string;
   type: 'hotel' | 'airbnb' | 'other';
 }
