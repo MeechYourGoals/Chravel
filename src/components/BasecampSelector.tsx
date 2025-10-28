@@ -61,7 +61,14 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
           // Strategy 2: If venue query OR autocomplete failed, try Text Search
           if (!foundSuggestions) {
             console.log('Autocomplete returned no results, trying Text Search...');
-            const textSearchResponse = await GoogleMapsService.searchPlacesByText(value);
+            
+            // Use enhanced Text Search with optional location bias
+            const textSearchResponse = await GoogleMapsService.searchPlacesByText(value, {
+              // Location bias: If there's an existing basecamp, search near it
+              ...(currentBasecamp?.coordinates && {
+                location: `${currentBasecamp.coordinates.lat},${currentBasecamp.coordinates.lng}`
+              })
+            });
             
             if (textSearchResponse?.results?.length > 0) {
               // Transform Text Search results to autocomplete format
@@ -231,10 +238,16 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
       
       // 🆕 Cascade 3: Google Text Search (handles ALL natural language queries like Google Maps)
       // This is the key method that makes it work like Google Maps search
+      // Per Google docs: https://developers.google.com/maps/documentation/places/web-service/text-search
       if (!coordinates) {
         console.log('Attempting Google Text Search for:', address);
         try {
-          const textSearchResult = await GoogleMapsService.searchPlacesByText(address);
+          const textSearchResult = await GoogleMapsService.searchPlacesByText(address, {
+            // Location bias: If there's an existing basecamp, prioritize results near it
+            ...(currentBasecamp?.coordinates && {
+              location: `${currentBasecamp.coordinates.lat},${currentBasecamp.coordinates.lng}`
+            })
+          });
           console.log('Text Search result:', textSearchResult);
           
           if (textSearchResult?.results?.[0]?.geometry?.location) {

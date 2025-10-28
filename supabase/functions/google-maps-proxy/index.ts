@@ -139,25 +139,56 @@ serve(async (req) => {
           throw new Error(validation.error || 'Invalid input');
         }
         
-        const { query, location } = validation.sanitized!;
+        const { query, location, language, region, type } = validation.sanitized!;
         if (!query) {
           throw new Error('Query parameter is required');
         }
 
-        console.log('Text Search request for:', query, location ? `near ${location}` : '');
+        console.log('Text Search request:', { query, location, language, region, type });
         
         // Use Places API Text Search (supports natural language)
+        // Docs: https://developers.google.com/maps/documentation/places/web-service/text-search
         let apiUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}`;
         
-        // Optional: Add location bias if provided (e.g., basecamp coords)
+        // Optional: Add location bias if provided (prioritizes results near this location)
         if (location) {
           apiUrl += `&location=${location}&radius=50000`; // 50km radius
+        }
+        
+        // Optional: Language for localized results (e.g., 'en', 'es', 'fr')
+        if (language) {
+          apiUrl += `&language=${language}`;
+        }
+        
+        // Optional: Region biasing (ccTLD format, e.g., 'us', 'uk', 'fr')
+        if (region) {
+          apiUrl += `&region=${region}`;
+        }
+        
+        // Optional: Type filter (e.g., 'restaurant', 'lodging', 'stadium')
+        if (type) {
+          apiUrl += `&type=${type}`;
         }
         
         const apiResponse = await fetch(apiUrl);
         const apiData = await apiResponse.json();
         
-        console.log('Text Search API response:', apiData);
+        // Enhanced error handling for API responses
+        if (apiData.status === 'REQUEST_DENIED') {
+          console.error('Google Maps API request denied:', apiData.error_message);
+          throw new Error(`API access denied: ${apiData.error_message}`);
+        }
+        
+        if (apiData.status === 'OVER_QUERY_LIMIT') {
+          console.error('Google Maps API quota exceeded');
+          throw new Error('API quota exceeded - please try again later');
+        }
+        
+        console.log('Text Search API response:', {
+          status: apiData.status,
+          resultCount: apiData.results?.length || 0,
+          firstResult: apiData.results?.[0]?.name
+        });
         
         const result = new Response(
           JSON.stringify(apiData),

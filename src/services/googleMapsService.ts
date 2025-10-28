@@ -210,12 +210,33 @@ export class GoogleMapsService {
     }
   }
 
-  // New: Text Search for natural language queries
-  static async searchPlacesByText(query: string, location?: string): Promise<any> {
+  /**
+   * Text Search for natural language queries
+   * Docs: https://developers.google.com/maps/documentation/places/web-service/text-search
+   * 
+   * @param query - Natural language search query (e.g., "Mercedes-Benz Stadium Atlanta")
+   * @param options - Optional parameters for location bias, language, region, type filtering
+   * @returns Text Search API response with places array
+   */
+  static async searchPlacesByText(
+    query: string, 
+    options?: {
+      location?: string;      // Lat,lng for location bias (e.g., "33.7554,-84.4008")
+      language?: string;      // Language code (e.g., "en", "es", "fr")
+      region?: string;        // Region bias ccTLD (e.g., "us", "uk", "fr")
+      type?: string;          // Place type filter (e.g., "restaurant", "lodging")
+    }
+  ): Promise<any> {
     try {
+      // Auto-detect browser language if not provided
+      const language = options?.language || navigator.language.split('-')[0];
+      
       return await this.callProxy('text-search', { 
         query,
-        ...(location && { location })
+        language,
+        ...(options?.location && { location: options.location }),
+        ...(options?.region && { region: options.region }),
+        ...(options?.type && { type: options.type })
       });
     } catch (error) {
       console.error('Text search error:', error);
