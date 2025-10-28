@@ -90,12 +90,13 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
 
       if (accommodation) {
         setPersonalAccommodation(accommodation);
-        onLocationSet?.(location, 'personal');
+        if (onLocationSet) {
+          await Promise.resolve(onLocationSet(location, 'personal'));
+        }
       }
     } catch (error) {
       console.error('Failed to set personal accommodation:', error);
     }
-    setShowPersonalSelector(false);
   };
 
   const handleDeletePersonalAccommodation = async () => {

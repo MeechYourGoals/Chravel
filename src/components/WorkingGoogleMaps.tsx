@@ -64,9 +64,8 @@ export const WorkingGoogleMaps = ({ className = '' }: WorkingGoogleMapsProps) =>
     setIsBasecampSelectorOpen(true);
   };
 
-  const handleBasecampSet = (newBasecamp: BasecampLocation) => {
-    setBasecamp(newBasecamp);
-    setIsBasecampSelectorOpen(false);
+  const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
+    await setBasecamp(newBasecamp);
   };
 
   const handleIframeLoad = () => {
