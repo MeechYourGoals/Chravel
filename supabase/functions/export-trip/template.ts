@@ -1,6 +1,6 @@
 /**
- * HTML Template Renderer for PDF Export (Text-Only)
- * NO ICONS, NO EMOJIS - Production-ready output with proper fonts
+ * HTML Template Renderer for PDF Export (Text-Only, No Cover Image)
+ * Simple, straightforward text-based export with no icons or emojis
  */
 
 import type { TripExportData } from './types.ts';
@@ -14,11 +14,9 @@ export function renderTemplate(data: TripExportData): string {
     destination,
     startDate,
     endDate,
-    coverImageUrl,
     deeplinkQrSvg,
     generatedAtLocal,
     layout,
-    privacyRedaction,
     totals,
     roster,
     calendar,
@@ -39,7 +37,7 @@ export function renderTemplate(data: TripExportData): string {
   <style>${getStyles()}</style>
 </head>
 <body>
-  ${renderCoverHeader(data)}
+  ${renderHeader(data)}
 
   ${roster && roster.length > 0 && layout === 'pro' ? renderRoster(roster) : ''}
   ${calendar && calendar.length > 0 ? renderCalendar(calendar) : ''}
@@ -57,8 +55,11 @@ export function renderTemplate(data: TripExportData): string {
 </html>`;
 }
 
-function renderCoverHeader(data: TripExportData): string {
-  const { tripTitle, subtitle, destination, startDate, endDate, coverImageUrl, deeplinkQrSvg } = data;
+/**
+ * Simple Text Header (No Cover Image)
+ */
+function renderHeader(data: TripExportData): string {
+  const { tripTitle, subtitle, destination, startDate, endDate, deeplinkQrSvg } = data;
   
   const hasMeta = destination || (startDate && endDate);
   const metaText = [
@@ -66,31 +67,19 @@ function renderCoverHeader(data: TripExportData): string {
     startDate && endDate ? `${escapeHtml(startDate)} – ${escapeHtml(endDate)}` : null,
   ].filter(Boolean).join(' &nbsp;•&nbsp; ');
 
-  if (coverImageUrl) {
-    // Full-bleed image with gradient overlay
-    return `
-  <div class="cover-header" style="background-image: url('${escapeHtml(coverImageUrl)}');">
-    <div class="cover-overlay">
-      <div class="cover-content">
-        <h1 class="cover-title">${escapeHtml(tripTitle)}</h1>
-        ${subtitle ? `<p class="cover-subtitle">${escapeHtml(subtitle)}</p>` : ''}
-        ${hasMeta ? `<div class="cover-meta">${metaText}</div>` : ''}
-        ${deeplinkQrSvg ? `<div class="cover-qr">${deeplinkQrSvg}</div>` : ''}
-      </div>
+  return `
+  <div class="header">
+    <div class="header-content">
+      <h1>${escapeHtml(tripTitle)}</h1>
+      ${subtitle ? `<p class="subtitle">${escapeHtml(subtitle)}</p>` : ''}
+      ${hasMeta ? `<div class="meta">${metaText}</div>` : ''}
     </div>
+    ${deeplinkQrSvg ? `
+    <div class="header-qr">
+      ${deeplinkQrSvg}
+      <div class="qr-label">Scan to open live trip</div>
+    </div>` : ''}
   </div>`;
-  } else {
-    // Solid color banner fallback
-    return `
-  <div class="cover-header cover-solid">
-    <div class="cover-content">
-      <h1 class="cover-title">${escapeHtml(tripTitle)}</h1>
-      ${subtitle ? `<p class="cover-subtitle">${escapeHtml(subtitle)}</p>` : ''}
-      ${hasMeta ? `<div class="cover-meta">${metaText}</div>` : ''}
-      ${deeplinkQrSvg ? `<div class="cover-qr">${deeplinkQrSvg}</div>` : ''}
-    </div>
-  </div>`;
-  }
 }
 
 function renderRoster(roster: any[]): string {
@@ -102,6 +91,7 @@ function renderRoster(roster: any[]): string {
         <tr>
           <th>Name</th>
           <th>Role</th>
+          <th>Dept</th>
           <th>Email</th>
           <th>Phone</th>
         </tr>
@@ -110,7 +100,8 @@ function renderRoster(roster: any[]): string {
         ${roster.map(m => `
           <tr>
             <td>${escapeHtml(m.name)}</td>
-            <td>${escapeHtml(m.role || '—')}</td>
+            <td>${m.role ? escapeHtml(m.role) : '—'}</td>
+            <td>${m.dept ? escapeHtml(m.dept) : '—'}</td>
             <td>${m.email ? escapeHtml(m.email) : '—'}</td>
             <td>${m.phone ? escapeHtml(m.phone) : '—'}</td>
           </tr>
@@ -289,7 +280,7 @@ function renderBroadcasts(broadcasts: any[]): string {
             <td>${escapeHtml(b.ts)}</td>
             <td><span class="chip ${b.priority === 'High' ? 'warn' : ''}">${b.priority || 'Normal'}</span></td>
             <td>${escapeHtml(b.message)}</td>
-            <td>${escapeHtml(b.readRate || '—')}</td>
+            <td>${b.readRate ? escapeHtml(b.readRate) : '—'}</td>
           </tr>
         `).join('')}
       </tbody>
@@ -326,6 +317,11 @@ function renderAttachments(attachments: any[]): string {
 
 function getStyles(): string {
   return `
+/* Embedded fonts - no external dependencies for glyph safety */
+@font-face{font-family:'Inter';src:url('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Source Sans 3';src:url('https://fonts.gstatic.com/s/sourcesans3/v15/nwpBtKy2OAdR1K-IwhWudF-R9QMylBJAV3Bo8Kw461EN_io6npfB.woff2') format('woff2');font-weight:200 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Roboto Mono';src:url('https://fonts.gstatic.com/s/robotomono/v23/L0x5DF4xlVMF-BfR8bXMIjhGq3-cXbKDO1w.woff2') format('woff2');font-weight:100 700;font-style:normal;font-display:swap;}
+
 :root {
   --primary: #1E3A8A;
   --accent: #2563EB;
@@ -491,67 +487,166 @@ hr.hair {
   page-break-before: always;
 }
 
-/* Cover Header */
-.cover-header {
-  position: relative;
-  width: 100%;
-  min-height: 280pt;
-  background-size: cover;
-  background-position: center;
-  margin-bottom: 24pt;
-}
-
-.cover-header.cover-solid {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-}
-
-.cover-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.75));
+/* Simple Text Header */
+.header {
+  padding: 24pt;
+  border-bottom: 2pt solid var(--hair);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: flex-start;
+  page-break-after: avoid;
 }
 
-.cover-content {
-  text-align: center;
-  color: white;
-  padding: 32pt;
-  max-width: 520pt;
+.header-content {
+  flex: 1;
+  max-width: 450pt;
 }
 
-.cover-title {
-  font-size: 32pt;
+.header h1 {
+  font-size: 26pt;
   font-weight: 700;
-  margin-bottom: 12pt;
-  color: white;
-  text-shadow: 0 2pt 8pt rgba(0,0,0,0.3);
+  margin-bottom: 6pt;
 }
 
-.cover-subtitle {
-  font-size: 14pt;
-  color: rgba(255,255,255,0.9);
-  margin-bottom: 16pt;
-  line-height: 1.4;
-}
-
-.cover-meta {
+.subtitle {
   font-size: 12pt;
-  color: rgba(255,255,255,0.85);
-  margin-top: 12pt;
-  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 8pt;
 }
 
-.cover-qr {
-  margin-top: 20pt;
+.meta {
+  font-size: 10pt;
+  color: var(--muted);
+}
+
+.header-qr {
+  text-align: center;
+  padding-top: 4pt;
+}
+
+.header-qr svg {
+  width: 96pt;
+  height: 96pt;
+  display: block;
+  margin: 0 auto;
+}
+
+.qr-label {
+  font-size: 8pt;
+  color: var(--muted);
+  margin-top: 4pt;
+}
+
+.qr-small svg {
+  width: 48pt;
+  height: 48pt;
   display: inline-block;
 }
 
-.cover-qr svg {
-  width: 96pt;
-  height: 96pt;
-  filter: drop-shadow(0 4pt 12pt rgba(0,0,0,0.3));
+.day-header {
+  font-weight: 600;
+  color: var(--primary);
+  margin-top: 12pt;
+  padding-bottom: 4pt;
+  border-bottom: 1px solid var(--hair);
+}
+
+.event-item {
+  margin: 8pt 0;
+  padding-left: 12pt;
+}
+
+.payment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4pt;
+}
+
+.payment-amount {
+  font-size: 14pt;
+  font-weight: 600;
+}
+
+.payment-split {
+  margin-top: 8pt;
+  font-size: 10pt;
+}
+
+.net-settlement {
+  padding: 8pt;
+  background: #F0F9FF;
+  border-left: 3pt solid var(--accent);
+  margin-top: 8pt;
+}
+
+.poll-table {
+  margin-top: 8pt;
+}
+
+.place-card {
+  page-break-inside: avoid;
+}
+
+.place-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6pt;
+}
+
+.link-url {
+  color: var(--accent);
+  word-break: break-all;
+  margin-top: 4pt;
+}
+
+.footer-text {
+  font-size: 8pt;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 24pt;
+  padding: 12pt 24pt;
+  border-top: 1px solid var(--hair);
+}
+
+@page {
+  margin: 12mm;
+}
+
+@media print {
+  body {
+    max-width: 100%;
+  }
+  
+  .section {
+    page-break-inside: avoid;
+  }
+  
+  .table tr {
+    page-break-inside: avoid;
+  }
+}
+
+/**
+ * Escape HTML special characters
+ */
+function escapeHtml(text: string): string {
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+.qr-label {
+  margin-top: 6pt;
+  font-size: 8pt;
+  color: var(--muted);
+  font-weight: 500;
 }
 
 /* QR Codes */

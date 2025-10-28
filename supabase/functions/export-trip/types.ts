@@ -94,7 +94,6 @@ export interface TripExportData {
   destination?: string;
   startDate: string;
   endDate: string;
-  coverImageUrl?: string;
   deeplinkQrSvg: string;
   generatedAtLocal: string;
   layout: ExportLayout;

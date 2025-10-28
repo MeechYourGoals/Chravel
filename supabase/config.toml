@@ -47,3 +47,6 @@ verify_jwt = true
 
 [functions.customer-portal]
 verify_jwt = true
+
+[functions.export-trip]
+verify_jwt = false

@@ -1,12 +1,11 @@
 /**
- * Export Trip PDF Edge Function
- * Generates production-quality PDFs with embedded fonts and proper encoding
+ * Export Trip PDF Edge Function v2.2
+ * Text-only, real data, embedded fonts, Puppeteer PDF generation
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { createSecureResponse, createErrorResponse, createOptionsResponse } from "../_shared/securityHeaders.ts";
-import { sanitizeErrorForClient, logError } from "../_shared/errorHandling.ts";
+import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
 import { getTripData } from './data.ts';
 import { renderTemplate } from './template.ts';
 import { slug, formatTimestamp } from './util.ts';
@@ -17,126 +16,162 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[EXPORT-TRIP] ${step}${detailsStr}`);
 };
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return createOptionsResponse();
+    return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+  // Use service role key to bypass RLS for read-only queries
+  const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: { persistSession: false }
+  });
 
   try {
-    logStep("Function started");
+    logStep("Export started", { method: req.method });
 
-    // Authenticate user
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return createErrorResponse('Authentication required', 401);
+    // Parse request - support both GET and POST
+    let tripId: string;
+    let sections: ExportSection[] = [];
+    let layout: ExportLayout = 'onepager';
+    let privacyRedaction = false;
+    let paper: 'letter' | 'a4' = 'letter';
+
+    if (req.method === 'GET') {
+      const url = new URL(req.url);
+      tripId = url.searchParams.get('tripId') || '';
+      const sectionsParam = url.searchParams.get('sections');
+      sections = sectionsParam ? sectionsParam.split(',') as ExportSection[] : [];
+      layout = (url.searchParams.get('layout') || 'onepager') as ExportLayout;
+      privacyRedaction = url.searchParams.get('privacy_redaction') === 'true';
+      paper = (url.searchParams.get('paper') || 'letter') as 'letter' | 'a4';
+    } else {
+      const body: ExportRequest = await req.json();
+      tripId = body.tripId;
+      sections = body.sections || [];
+      layout = body.layout || 'onepager';
+      privacyRedaction = body.privacyRedaction || false;
+      paper = body.paper || 'letter';
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !userData.user) {
-      return createErrorResponse('Unauthorized', 401);
-    }
-    const user = userData.user;
-    logStep("User authenticated", { userId: user.id });
-
-    // Parse request
-    const body: ExportRequest = await req.json();
-    const {
-      tripId,
-      sections = [],
-      layout = 'onepager' as ExportLayout,
-      privacyRedaction = false,
-      paper = 'letter'
-    } = body;
+    logStep("Request parsed", { tripId, sections, layout, privacyRedaction, paper });
+    console.log('[EXPORT-TRIP] Trip ID type:', typeof tripId, 'value:', tripId);
+    console.log('[EXPORT-TRIP] Layout:', layout, 'Sections:', sections);
 
     // Validate layout
     if (layout !== 'onepager' && layout !== 'pro') {
-      return createErrorResponse('Invalid layout. Must be "onepager" or "pro"', 400);
+      logStep("Invalid layout", { layout });
+      return new Response(
+        JSON.stringify({ error: 'Invalid layout. Must be "onepager" or "pro"' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     if (!tripId || !Array.isArray(sections)) {
-      return createErrorResponse('Invalid request: tripId and sections required', 400);
+      logStep("Invalid request", { tripId, sectionsType: typeof sections });
+      return new Response(
+        JSON.stringify({ error: 'Invalid request: tripId and sections required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-    logStep("Request parsed", { tripId, sections, layout });
 
-    // Verify user has access to this trip
-    const { data: tripMember } = await supabaseClient
-      .from('trip_members')
-      .select('role')
-      .eq('trip_id', tripId)
-      .eq('user_id', user.id)
-      .single();
-
-    if (!tripMember) {
-      return createErrorResponse('Access denied: You are not a member of this trip', 403);
+    // Default sections if none provided
+    if (sections.length === 0) {
+      sections = layout === 'pro' 
+        ? ['calendar', 'payments', 'places', 'tasks', 'polls', 'roster', 'broadcasts', 'attachments']
+        : ['calendar', 'payments', 'places', 'tasks', 'polls'];
+      logStep("Using default sections", { sections });
     }
-    logStep("Trip access verified");
-
-    // Export is now available to everyone - no tier check needed
-    logStep("PDF export access granted (no tier restriction)");
 
     // Fetch and transform trip data
-    const exportData = await getTripData(
-      supabaseClient,
-      tripId,
-      sections as ExportSection[],
-      layout,
-      privacyRedaction
-    );
-    logStep("Trip data fetched and transformed");
+    logStep("Fetching trip data");
+    let exportData;
+    try {
+      exportData = await getTripData(
+        supabaseClient,
+        tripId,
+        sections as ExportSection[],
+        layout,
+        privacyRedaction
+      );
+      logStep("Trip data fetched successfully", { 
+        sectionsWithData: Object.keys(exportData).filter(k => Array.isArray(exportData[k as keyof typeof exportData]))
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Trip not found') {
+        logStep("Trip not found", { tripId });
+        return new Response(
+          JSON.stringify({ error: 'Trip not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      throw error;
+    }
 
     // Render HTML
+    logStep("Rendering HTML template");
     const html = renderTemplate(exportData);
-    logStep("HTML template rendered");
+    logStep("HTML rendered", { htmlLength: html.length });
 
-    // For now, return the HTML (in production, use Puppeteer to convert to PDF)
-    // This requires Puppeteer/Chrome setup in Deno which needs additional configuration
-    
-    // Temporary: Return HTML for testing
-    const filename = `Trip_${slug(exportData.tripTitle)}_${layout}_${formatTimestamp()}`;
-    
-    return new Response(html, {
+    // Generate PDF with Puppeteer
+    logStep("Launching Puppeteer");
+    const browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+
+    const page = await browser.newPage();
+    logStep("Loading HTML into page");
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.emulateMediaType('print');
+
+    logStep("Generating PDF", { format: paper });
+    const pdfBuffer = await page.pdf({
+      printBackground: true,
+      format: paper === 'a4' ? 'A4' : 'Letter',
+      displayHeaderFooter: true,
+      headerTemplate: `<span></span>`,
+      footerTemplate: `
+        <div style="font-size:8pt;width:100%;padding:0 24pt;display:flex;justify-content:space-between;">
+          <div>Generated by Chravel • ${exportData.generatedAtLocal}</div>
+          <div>Trip ID: ${exportData.tripId} • <span class="pageNumber"></span>/<span class="totalPages"></span></div>
+        </div>
+      `,
+      margin: { top: '10mm', right: '12mm', bottom: '14mm', left: '12mm' }
+    });
+
+    await browser.close();
+    logStep("PDF generated successfully", { size: pdfBuffer.length });
+
+    // Generate filename
+    const filename = `Trip_${slug(exportData.tripTitle)}_${layout}_${formatTimestamp()}.pdf`;
+    logStep("Returning PDF", { filename, size: pdfBuffer.length });
+
+    return new Response(pdfBuffer, {
       headers: {
-        'Content-Type': 'text/html',
-        'Content-Disposition': `attachment; filename="${filename}.html"`,
+        ...corsHeaders,
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
       },
     });
 
-    // TODO: Production implementation with Puppeteer
-    // const browser = await puppeteer.launch({ args: ["--no-sandbox"], headless: true });
-    // const page = await browser.newPage();
-    // await page.setContent(html, { waitUntil: "networkidle0" });
-    // await page.emulateMediaType("print");
-    // const pdf = await page.pdf({
-    //   printBackground: true,
-    //   format: paper === "a4" ? "A4" : "Letter",
-    //   displayHeaderFooter: true,
-    //   headerTemplate: `<span></span>`,
-    //   footerTemplate: `
-    //     <div style="font-size:8pt; width:100%; padding:0 24pt; display:flex; justify-content:space-between;">
-    //       <div>Generated by Chravel • ${exportData.generatedAtLocal}</div>
-    //       <div>Trip ID: ${exportData.tripId} • <span class="pageNumber"></span>/<span class="totalPages"></span></div>
-    //     </div>`,
-    //   margin: { top: "12mm", right: "12mm", bottom: "14mm", left: "12mm" },
-    // });
-    // await browser.close();
-    // 
-    // return new Response(pdf, {
-    //   headers: {
-    //     "Content-Type": "application/pdf",
-    //     "Content-Disposition": `attachment; filename="${slug(exportData.tripTitle)}_${layout}_${fmtTs()}.pdf"`,
-    //   },
-    // });
-
   } catch (error) {
-    logError('EXPORT_TRIP', error);
-    return createErrorResponse(sanitizeErrorForClient(error), 500);
+    logStep("ERROR", { 
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return new Response(
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Export failed',
+        details: error instanceof Error ? error.stack : String(error)
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
-

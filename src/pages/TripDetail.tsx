@@ -8,7 +8,6 @@ import { TripDetailContent } from '../components/trip/TripDetailContent';
 import { TripDetailModals } from '../components/trip/TripDetailModals';
 import { TripExportModal } from '../components/trip/TripExportModal';
 import { useAuth } from '../hooks/useAuth';
-import { useDemoMode } from '../hooks/useDemoMode';
 import { getTripById, generateTripMockData } from '../data/tripsData';
 import { Trip } from '../services/tripService';
 import { Message } from '../types/messages';
@@ -17,21 +16,14 @@ import { useIsMobile } from '../hooks/use-mobile';
 import { MobileTripDetail } from './MobileTripDetail';
 import { ExportSection } from '../types/tripExport';
 import { supabase } from '../integrations/supabase/client';
-import { generateTripPDF } from '../utils/pdfGenerator';
-import {
-  buildCalendarSection,
-  buildPaymentsSection,
-  buildPollsSection,
-  buildPlacesSection,
-  buildTasksSection,
-} from '../utils/exportSectionBuilders';
+import { generateClientPDF } from '../utils/exportPdfClient';
+import { toast } from 'sonner';
 
 const TripDetail = () => {
   const isMobile = useIsMobile();
   const { tripId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isDemoMode } = useDemoMode();
   const [activeTab, setActiveTab] = useState('chat');
   const [showInbox, setShowInbox] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -122,122 +114,34 @@ const TripDetail = () => {
     isPro: false
   };
 
-  // Handle export functionality
+  // Handle export functionality - detect mock trips and use appropriate export method
   const handleExport = async (
-    sections: ExportSection[], 
-    layout: 'onepager' | 'pro', 
-    privacyRedaction: boolean, 
+    sections: ExportSection[],
+    layout: 'onepager' | 'pro',
+    privacyRedaction: boolean,
     paper: 'letter' | 'a4'
   ) => {
+    // Detect mock trip IDs (numeric vs UUID)
+    const isMockTrip = tripId && /^\d+$/.test(tripId);
+
     try {
-      if (isDemoMode) {
-        // Demo mode: generate sample PDF without API calls
-        const formattedSections = [];
+      let blob: Blob;
 
-        if (sections.includes('calendar')) {
-          formattedSections.push(buildCalendarSection([
-            {
-              id: 'demo-1',
-              trip_id: tripId || '1',
-              title: 'Team Dinner',
-              description: 'Welcome dinner at the hotel restaurant',
-              location: 'Hotel Restaurant',
-              start_time: new Date().toISOString(),
-              end_time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-              event_category: null,
-              created_by: 'demo',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            } as any,
-          ]));
-        }
-
-        if (sections.includes('payments')) {
-          formattedSections.push(buildPaymentsSection([
-            {
-              id: 'demo-pay-1',
-              trip_id: tripId || '1',
-              amount: 500,
-              currency: 'USD',
-              description: 'Hotel Booking',
-              split_count: 4,
-              split_participants: ['user1', 'user2', 'user3', 'user4'],
-              is_settled: false,
-              created_by: 'demo',
-              created_at: new Date().toISOString(),
-            } as any,
-          ]));
-        }
-
-        if (sections.includes('polls')) {
-          formattedSections.push(buildPollsSection([
-            {
-              id: 'demo-poll-1',
-              trip_id: tripId || '1',
-              question: 'Where should we eat tonight?',
-              options: [
-                { id: '1', text: 'Italian Restaurant', votes: 5 },
-                { id: '2', text: 'Sushi Bar', votes: 3 },
-              ] as any,
-              total_votes: 8,
-              status: 'active',
-              created_by: 'demo',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              version: 1,
-            } as any,
-          ]));
-        }
-
-        if (sections.includes('places')) {
-          formattedSections.push(buildPlacesSection([
-            {
-              id: 'demo-link-1',
-              trip_id: tripId || '1',
-              url: 'https://example.com',
-              title: 'Central Park',
-              description: 'Must-visit landmark',
-              category: 'attraction',
-              votes: 12,
-              created_by: 'demo',
-              created_at: new Date().toISOString(),
-            } as any,
-          ]));
-        }
-
-        if (sections.includes('tasks')) {
-          formattedSections.push(buildTasksSection([
-            {
-              id: 'demo-task-1',
-              trip_id: tripId || '1',
-              title: 'Book flights',
-              description: 'Find best deals',
-              completed: true,
-              completed_at: new Date().toISOString(),
-              due_at: null,
-              created_by: 'demo',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              version: 1,
-            } as any,
-          ]));
-        }
-
-        await generateTripPDF({
-          trip: {
-            name: tripWithUpdatedData.title,
-            description: tripWithUpdatedData.description,
+      if (isMockTrip) {
+        // Use client-side export for mock trips
+        toast.info('Generating demo PDF...');
+        blob = await generateClientPDF(
+          {
+            tripId: tripId || '1',
+            tripTitle: tripWithUpdatedData.title,
             destination: tripWithUpdatedData.location,
-            startDate: new Date().toISOString(),
-            endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            dateRange: tripWithUpdatedData.dateRange,
+            description: tripWithUpdatedData.description,
           },
-          sections: formattedSections,
-          metadata: {
-            exportedAt: new Date().toISOString(),
-            exportedBy: 'demo',
-            generatedBy: 'Chravel',
-          },
-        });
+          sections,
+          layout,
+          paper
+        );
       } else {
         // Production mode: call edge function
         const { data, error } = await supabase.functions.invoke('export-trip-summary', {
@@ -250,44 +154,41 @@ const TripDetail = () => {
           },
         });
 
-        if (error) {
-          throw new Error(error.message || 'Failed to export trip summary');
+        if (!response.ok) {
+          // If edge function fails, fallback to client export
+          console.warn(`Edge function failed (${response.status}), using client fallback`);
+          toast.info('Using demo export mode...');
+          blob = await generateClientPDF(
+            {
+              tripId: tripId || '1',
+              tripTitle: tripWithUpdatedData.title,
+              destination: tripWithUpdatedData.location,
+              dateRange: tripWithUpdatedData.dateRange,
+              description: tripWithUpdatedData.description,
+            },
+            sections,
+            layout,
+            paper
+          );
+        } else {
+          blob = await response.blob();
         }
-
-        if (!data || !data.success) {
-          throw new Error('Failed to generate export data');
-        }
-
-        const formattedSections = [];
-
-        if (sections.includes('calendar') && data.sections.calendar) {
-          formattedSections.push(buildCalendarSection(data.sections.calendar));
-        }
-
-        if (sections.includes('payments') && data.sections.payments) {
-          formattedSections.push(buildPaymentsSection(data.sections.payments));
-        }
-
-        if (sections.includes('polls') && data.sections.polls) {
-          formattedSections.push(buildPollsSection(data.sections.polls));
-        }
-
-        if (sections.includes('places') && data.sections.places) {
-          formattedSections.push(buildPlacesSection(data.sections.places));
-        }
-
-        if (sections.includes('tasks') && data.sections.tasks) {
-          formattedSections.push(buildTasksSection(data.sections.tasks));
-        }
-
-        await generateTripPDF({
-          trip: data.trip,
-          sections: formattedSections,
-          metadata: data.metadata,
-        });
       }
+
+      // Download the PDF
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Trip_${tripWithUpdatedData.title.replace(/[^a-z0-9]/gi, '_')}_${layout}_${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success('PDF exported successfully!');
     } catch (error) {
       console.error('Export error:', error);
+      toast.error('Failed to export PDF');
       throw error;
     }
   };

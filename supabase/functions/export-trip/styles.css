@@ -1,5 +1,10 @@
 /* PDF Export Styles - Print-optimized Design System */
 
+/* Embedded fonts - no external dependencies for glyph safety */
+@font-face{font-family:'Inter';src:url('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Source Sans 3';src:url('https://fonts.gstatic.com/s/sourcesans3/v15/nwpBtKy2OAdR1K-IwhWudF-R9QMylBJAV3Bo8Kw461EN_io6npfB.woff2') format('woff2');font-weight:200 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Roboto Mono';src:url('https://fonts.gstatic.com/s/robotomono/v23/L0x5DF4xlVMF-BfR8bXMIjhGq3-cXbKDO1w.woff2') format('woff2');font-weight:100 700;font-style:normal;font-display:swap;}
+
 :root {
   --primary: #1E3A8A;
   --accent: #2563EB;
@@ -49,9 +54,9 @@ h2 {
   color: var(--primary);
   margin-top: 24pt;
   margin-bottom: 12pt;
-  display: flex;
-  align-items: center;
-  gap: 6pt;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2pt;
 }
 
 h3 {

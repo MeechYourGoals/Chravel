@@ -155,13 +155,14 @@ export const MobileTripTabs = ({
         </div>
       </div>
 
-      {/* Tab Content - Optimized height for mobile portrait */}
+      {/* Tab Content - Optimized height for mobile portrait, accounting for bottom nav */}
       <div
         ref={contentRef}
-        className="bg-background flex flex-col min-h-0"
+        className="bg-background flex flex-col min-h-0 flex-1 mb-[calc(80px+env(safe-area-inset-bottom))]"
         style={{
-          height: 'calc(100dvh - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px))',
+          height: 'calc(100dvh - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px) - 80px - env(safe-area-inset-bottom))',
           minHeight: '400px',
+          maxHeight: 'calc(100dvh - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px) - 80px - env(safe-area-inset-bottom))',
           WebkitOverflowScrolling: 'touch'
         }}
       >
