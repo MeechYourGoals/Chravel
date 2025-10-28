@@ -102,40 +102,41 @@ export const MobileTripDetail = () => {
       <div className="flex flex-col min-h-screen bg-black">
       {/* Mobile Header - Sticky */}
       <div ref={headerRef} className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10">
-        <div className="flex items-center justify-between px-4 py-3">
-          <button
-            onClick={handleBack}
-            className="p-2 -ml-2 active:scale-95 transition-transform"
-          >
-            <ArrowLeft size={24} className="text-white" />
-          </button>
-          
-          <div className="flex-1 text-center">
-            <h1 className="text-lg font-semibold text-white truncate px-2">
-              {trip.title}
-            </h1>
-            <p className="text-xs text-gray-400 truncate px-2">
-              {trip.location} • {trip.participants.length} travelers
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-1">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
             <button
-              onClick={() => {
-                hapticService.light();
-                setShowTripInfo(true);
-              }}
-              className="flex items-center gap-1.5 p-2 active:scale-95 transition-transform md:hidden"
+              onClick={handleBack}
+              className="p-2 -ml-2 active:scale-95 transition-transform"
             >
-              <Info size={20} className="text-white" />
-              <span className="text-sm text-white font-medium">More details</span>
+              <ArrowLeft size={24} className="text-white" />
             </button>
+            
             <button
               onClick={() => hapticService.light()}
               className="p-2 -mr-2 active:scale-95 transition-transform"
             >
               <MoreVertical size={24} className="text-white" />
             </button>
+          </div>
+          
+          <div className="text-center px-2">
+            <h1 className="text-lg font-semibold text-white leading-tight mb-1.5 break-words">
+              {trip.title}
+            </h1>
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+              <span>{trip.location} • {trip.participants.length} travelers</span>
+              <button
+                onClick={() => {
+                  hapticService.light();
+                  setShowTripInfo(true);
+                }}
+                className="flex items-center gap-1 active:scale-95 transition-transform text-blue-400 hover:text-blue-300"
+                aria-label="View trip details"
+              >
+                <Info size={16} />
+                <span className="font-medium">More Details</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
