@@ -314,7 +314,7 @@ export const TripChat = ({
   }
 
   return (
-    <div className="flex flex-col min-h-0 h-full">
+    <div className="flex flex-col h-full">
       {/* Offline Mode Banner */}
       {isOffline && (
         <Alert className="mx-4 mt-2 mb-0 border-warning/50 bg-warning/10">
@@ -337,7 +337,7 @@ export const TripChat = ({
       )}
 
       {/* Unified Chat Shell - Teams-like container */}
-      <div className="mx-4 mb-0 sm:mb-2 rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1 min-h-[500px]">
+      <div className="mx-4 mb-2 rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1 min-h-[400px]">
 
         {isLoading ? (
           <div className="flex-1 overflow-y-auto p-4">
