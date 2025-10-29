@@ -204,11 +204,15 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   const handleContextChange = (context: 'trip' | 'personal') => {
+    console.log(`Search context set to: ${context}`);
+
+    // Always update the search context for proper toggle highlighting
+    setSearchContext(context);
+
+    // If personal basecamp is not set, also open the selector
     if (context === 'personal' && !personalBasecamp) {
       setShowPersonalBasecampSelector(true);
-      return;
     }
-    setSearchContext(context);
   };
 
   const toBasecampLocation = (pb: PersonalBasecamp): BasecampLocation => ({
@@ -225,9 +229,9 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
         <h2 className="text-3xl font-bold text-white">Places</h2>
       </div>
 
-      {/* Single Map with Overlays - Sticky at top */}
-      <div className="sticky top-[72px] z-30 mb-6">
-        <div className="relative h-[500px] rounded-2xl overflow-hidden shadow-2xl">
+      {/* Single Map with Overlays - Pinned at top */}
+      <div className="mb-6">
+        <div className="relative h-[50vh] md:h-[400px] rounded-2xl overflow-hidden shadow-2xl">
           <MapCanvas
             ref={mapRef}
             activeContext={searchContext}
@@ -256,7 +260,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
       </div>
 
       {/* Segmented Control Navigation */}
-      <div className="mb-6">
+      <div className="mb-6 flex justify-center">
         <div className="bg-white/5 backdrop-blur-sm rounded-xl p-1 inline-flex gap-1">
           {(['overview', 'basecamps', 'links'] as TabView[]).map(tab => (
             <button
