@@ -82,7 +82,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
   }
 
   return (
-    <Card className="bg-gradient-to-br from-gray-900/90 via-gray-900/70 to-emerald-900/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] transition-all duration-300 hover:border-emerald-400/20 hover:shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
+    <Card className="bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 border border-white/10 rounded-2xl shadow-2xl">
       <CardContent className="p-6">
         <div className="flex items-center gap-2 mb-6">
           <DollarSign size={20} className="text-emerald-400" />
@@ -90,67 +90,63 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Amount, Currency & Description - 2 Column Layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Left Column: Amount + Currency */}
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="amount" className="text-sm font-medium text-gray-300 mb-1.5 block">Amount</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  value={amount || ''}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                  placeholder="0.00"
-                  className="w-full h-12 rounded-xl bg-gray-800/70 border border-white/10 text-white px-4 focus:ring-2 focus:ring-emerald-500 focus:outline-none placeholder-gray-500 transition-all"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="currency" className="text-sm font-medium text-gray-300 mb-1.5 block">Currency</Label>
-                <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger className="w-full h-12 rounded-xl bg-gray-800/70 border border-white/10 text-white px-4 focus:ring-2 focus:ring-emerald-500 transition-all">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-white/10">
-                    <SelectItem value="USD">USD ($)</SelectItem>
-                    <SelectItem value="EUR">EUR (€)</SelectItem>
-                    <SelectItem value="GBP">GBP (£)</SelectItem>
-                    <SelectItem value="CAD">CAD ($)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Amount, Currency & Description - 3 Column Grid with Equal Heights */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex flex-col space-y-1">
+              <Label htmlFor="amount" className="text-sm font-medium text-gray-300">Amount</Label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                value={amount || ''}
+                onChange={(e) => setAmount(Number(e.target.value))}
+                placeholder="0.00"
+                className="w-full h-12 rounded-xl bg-gray-900/40 border border-white/10 text-white px-4 focus:ring-2 focus:ring-emerald-400/40 focus:outline-none placeholder-gray-500 transition-all"
+                required
+              />
             </div>
 
-            {/* Right Column: Description (taller textarea) */}
-            <div className="flex flex-col">
-              <Label htmlFor="description" className="text-sm font-medium text-gray-300 mb-1.5">What's this for?</Label>
+            <div className="flex flex-col space-y-1">
+              <Label htmlFor="currency" className="text-sm font-medium text-gray-300">Currency</Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger className="w-full h-12 rounded-xl bg-gray-900/40 border border-white/10 text-white px-4 focus:ring-2 focus:ring-emerald-400/40 transition-all">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-white/10">
+                  <SelectItem value="USD">USD ($)</SelectItem>
+                  <SelectItem value="EUR">EUR (€)</SelectItem>
+                  <SelectItem value="GBP">GBP (£)</SelectItem>
+                  <SelectItem value="CAD">CAD ($)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col space-y-1">
+              <Label htmlFor="description" className="text-sm font-medium text-gray-300">What's this for?</Label>
               <textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Dinner, taxi, tickets, etc."
-                rows={5}
-                className="w-full flex-1 min-h-[7rem] rounded-xl bg-gray-800/70 border border-white/10 text-white px-4 py-3 resize-none focus:ring-2 focus:ring-emerald-500 focus:outline-none placeholder-gray-500 transition-all"
+                className="w-full h-12 resize-none rounded-xl bg-gray-900/40 border border-white/10 text-white px-4 py-2 focus:ring-2 focus:ring-emerald-400/40 focus:outline-none placeholder-gray-500 transition-all"
                 required
               />
             </div>
           </div>
 
-          {/* Split Between People - 3 Column Grid */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
+          {/* Split Between People - Unified Box with 2-Column Grid */}
+          <div className="bg-gray-900/40 border border-white/10 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Users size={16} className="text-emerald-400" />
-                <Label className="text-sm font-medium text-gray-300">
+                <h4 className="text-sm font-semibold text-gray-200">
                   Split between {selectedParticipants.length} people
                   {amountPerPerson > 0 && (
                     <span className="text-emerald-400 font-semibold ml-1.5">
                       (${amountPerPerson.toFixed(2)} each)
                     </span>
                   )}
-                </Label>
+                </h4>
               </div>
               <button
                 type="button"
@@ -160,38 +156,39 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
                 {allParticipantsSelected ? 'Deselect All' : 'Select All'}
               </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-48 overflow-y-auto">
+            
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3 max-h-48 overflow-y-auto">
               {tripMembers.map(member => (
                 <label
                   key={member.id}
                   htmlFor={`participant-${member.id}`}
-                  className="flex items-center gap-2.5 bg-gray-800/60 border border-white/10 rounded-xl px-3 py-2.5 hover:border-emerald-500/30 hover:bg-gray-800/80 cursor-pointer transition-all group"
+                  className="flex items-center space-x-2 bg-gray-800/50 hover:bg-gray-800/70 rounded-lg px-3 py-2 cursor-pointer transition-all"
                 >
                   <Checkbox
                     id={`participant-${member.id}`}
                     checked={selectedParticipants.includes(member.id)}
                     onCheckedChange={() => toggleParticipant(member.id)}
-                    className="accent-emerald-500"
+                    className="h-4 w-4 text-emerald-400 focus:ring-emerald-500 rounded"
                   />
                   {member.avatar && (
                     <img
                       src={member.avatar}
                       alt={member.name}
-                      className="w-6 h-6 rounded-full object-cover ring-1 ring-white/10 group-hover:ring-emerald-400/30 transition-all"
+                      className="w-6 h-6 rounded-full object-cover"
                     />
                   )}
-                  <span className="text-white text-sm truncate">{member.name}</span>
+                  <span className="text-sm text-gray-300 truncate">{member.name}</span>
                 </label>
               ))}
             </div>
           </div>
 
-          {/* Preferred Payment Methods - Grid Layout */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
+          {/* Preferred Payment Methods - Consistent Grid Layout */}
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <CheckSquare size={16} className="text-emerald-400" />
-                <Label className="text-sm font-medium text-gray-300">Preferred payment methods</Label>
+                <h4 className="text-sm font-semibold text-gray-200">Preferred payment methods</h4>
               </div>
               <button
                 type="button"
@@ -201,20 +198,21 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
                 {allPaymentMethodsSelected ? 'Deselect All' : 'Select All'}
               </button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3">
               {paymentMethodOptions.map(method => (
                 <label
                   key={method.id}
                   htmlFor={`payment-${method.id}`}
-                  className="flex items-center gap-2.5 bg-gray-800/60 border border-white/10 rounded-xl px-3 py-2.5 hover:border-emerald-500/30 hover:bg-gray-800/80 cursor-pointer transition-all"
+                  className="flex items-center justify-center space-x-2 bg-gray-900/40 border border-white/10 hover:bg-gray-800/60 rounded-lg h-10 cursor-pointer transition-all focus-within:ring-2 focus-within:ring-emerald-400/30"
                 >
                   <Checkbox
                     id={`payment-${method.id}`}
                     checked={selectedPaymentMethods.includes(method.id)}
                     onCheckedChange={() => togglePaymentMethod(method.id)}
-                    className="accent-emerald-500"
+                    className="h-4 w-4 text-emerald-400 focus:ring-emerald-500 rounded"
                   />
-                  <span className="text-white text-sm">{method.label}</span>
+                  <span className="text-gray-200 text-sm">{method.label}</span>
                 </label>
               ))}
             </div>
