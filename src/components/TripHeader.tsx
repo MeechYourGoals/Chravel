@@ -236,17 +236,17 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
             <div className="mt-3 flex gap-3">
               <button
                 onClick={() => setShowInvite(true)}
-                className={`flex-1 flex items-center justify-center gap-2 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white font-medium py-2 rounded-xl transition-all duration-200 hover:scale-105`}
+                className={`flex-1 flex items-center justify-center gap-2 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white text-sm font-medium py-2.5 px-4 rounded-xl transition-all duration-200 hover:scale-105`}
                 title="Invite people to this trip"
               >
                 <Plus size={16} />
-                Invite to Trip
+                <span>Invite to Trip</span>
               </button>
               <button
                 onClick={() => canExport && onShowExport?.()}
                 disabled={!canExport}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2 font-medium py-2 rounded-xl transition-all duration-200",
+                  "flex-1 flex items-center justify-center gap-2 text-sm font-medium py-2.5 px-4 rounded-xl transition-all duration-200",
                   canExport
                     ? `bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white hover:scale-105`
                     : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/50'
@@ -255,7 +255,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 aria-label="Export Trip to PDF"
               >
                 <FileDown size={16} />
-                Export to PDF
+                <span>Export to PDF</span>
               </button>
             </div>
           </div>
