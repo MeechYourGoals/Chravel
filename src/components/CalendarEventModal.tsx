@@ -33,6 +33,7 @@ export const CalendarEventModal = ({
     time: prefilledData?.time || editEvent?.time || '',
     location: prefilledData?.location || editEvent?.location || '',
     description: prefilledData?.description || editEvent?.description || '',
+    category: prefilledData?.category || editEvent?.event_category || 'other',
     include_in_itinerary: prefilledData?.include_in_itinerary ?? editEvent?.include_in_itinerary ?? true
   });
 
@@ -45,6 +46,7 @@ export const CalendarEventModal = ({
         time: editEvent.time,
         location: editEvent.location || '',
         description: editEvent.description || '',
+        category: editEvent.event_category || 'other',
         include_in_itinerary: editEvent.include_in_itinerary ?? true
       });
     } else if (prefilledData) {
@@ -54,6 +56,7 @@ export const CalendarEventModal = ({
         time: prefilledData.time || '',
         location: prefilledData.location || '',
         description: prefilledData.description || '',
+        category: prefilledData.category || 'other',
         include_in_itinerary: prefilledData.include_in_itinerary ?? true
       });
     }
@@ -75,6 +78,7 @@ export const CalendarEventModal = ({
       time: '',
       location: '',
       description: '',
+      category: 'other',
       include_in_itinerary: true
     });
     onClose();

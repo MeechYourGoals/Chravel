@@ -167,7 +167,6 @@ export class UniversalMockDataService {
       domain: 'airbnb.com',
       image_url: '/mock/images/airbnb-listing.jpg',
       created_at: new Date(Date.now() - 3600000).toISOString(),
-      source: 'chat',
       source: 'places' as const
     },
     {
@@ -178,7 +177,6 @@ export class UniversalMockDataService {
       domain: 'opentable.com',
       image_url: '/mock/images/restaurant-rooftop.jpg',
       created_at: new Date(Date.now() - 7200000).toISOString(),
-      source: 'manual',
       source: 'places' as const
     },
     {
@@ -198,7 +196,6 @@ export class UniversalMockDataService {
       description: 'Don\'t miss this incredible live performance. Group rates available for 6+ people.',
       domain: 'eventbrite.com',
       created_at: new Date(Date.now() - 14400000).toISOString(),
-      source: 'chat',
       source: 'places' as const
     }
   ];

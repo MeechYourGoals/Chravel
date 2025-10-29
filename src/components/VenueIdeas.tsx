@@ -11,6 +11,7 @@ interface LinkPost {
   url: string;
   description: string;
   category: 'housing' | 'eats' | 'day-activities' | 'nightlife' | 'fitness' | 'reservations' | 'transportation' | 'essentials' | 'other';
+  source: 'chat' | 'manual' | 'places';
   imageUrl?: string;
   postedBy: string;
   postedAt: string;
@@ -28,6 +29,7 @@ const mockLinks: LinkPost[] = [
     url: 'https://airbnb.com/rooms/123',
     description: 'Beautiful apartment with Eiffel Tower views, perfect for groups',
     category: 'housing',
+    source: 'manual',
     imageUrl: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=200&fit=crop',
     postedBy: 'Emma',
     postedAt: '2 hours ago',
@@ -40,6 +42,7 @@ const mockLinks: LinkPost[] = [
     url: 'https://example.com/restaurant',
     description: 'Saved from Places: 27 Rue Malar, 75007 Paris, France',
     category: 'eats',
+    source: 'places',
     imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=200&fit=crop',
     postedBy: 'You',
     postedAt: 'just now',
@@ -54,6 +57,7 @@ const mockLinks: LinkPost[] = [
     url: 'https://example.com/cruise',
     description: 'Evening cruise with dinner and city lights',
     category: 'day-activities',
+    source: 'manual',
     imageUrl: 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=400&h=200&fit=crop',
     postedBy: 'Sarah',
     postedAt: '1 day ago',
@@ -66,6 +70,7 @@ const mockLinks: LinkPost[] = [
     url: 'https://opentable.com/restaurant',
     description: 'Confirmed reservation for 6 people at 8pm on July 16th',
     category: 'reservations',
+    source: 'manual',
     postedBy: 'Emma',
     postedAt: '3 hours ago',
     upvotes: 4,
@@ -77,6 +82,7 @@ const mockLinks: LinkPost[] = [
     url: 'https://airfrance.com/booking',
     description: 'Return flights booked for July 21st departure',
     category: 'transportation',
+    source: 'manual',
     postedBy: 'Jake',
     postedAt: '1 day ago',
     upvotes: 7,
@@ -88,6 +94,7 @@ const mockLinks: LinkPost[] = [
     url: 'https://example.com/packing',
     description: 'Essential items to pack for summer in Paris',
     category: 'essentials',
+    source: 'manual',
     postedBy: 'Sarah',
     postedAt: '2 days ago',
     upvotes: 3,
