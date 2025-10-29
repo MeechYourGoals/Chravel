@@ -1,43 +1,47 @@
-
-import React, { useState, useEffect } from 'react';
-import { AddPlaceModal } from './AddPlaceModal';
-import { WorkingGoogleMaps } from './WorkingGoogleMaps';
-import { SetBasecampSquare } from './SetBasecampSquare';
-import { TripPinsCard } from './TripPinsCard';
-import { TripBaseCampCard } from './places/TripBaseCampCard';
-import { PersonalBaseCampCard } from './places/PersonalBaseCampCard';
-import { SearchContextSwitch } from './places/SearchContextSwitch';
+import React, { useState, useEffect, useRef } from 'react';
+import { MapCanvas, MapCanvasRef } from './places/MapCanvas';
+import { MapOverlayChips } from './places/MapOverlayChips';
+import { GreenNotice } from './places/GreenNotice';
+import { BasecampsPanel } from './places/BasecampsPanel';
+import { PlacesPanel } from './places/PlacesPanel';
+import { PinsPanel } from './places/PinsPanel';
 import { BasecampLocation, PlaceWithDistance, DistanceCalculationSettings } from '../types/basecamp';
 import { DistanceCalculator } from '../utils/distanceCalculator';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { AddToCalendarData } from '../types/calendar';
 import { useFeatureToggle, DEFAULT_FEATURES } from '../hooks/useFeatureToggle';
 import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
-import { Home, MapPin, Bed } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { useDemoMode } from '@/hooks/useDemoMode';
-
 import { useBasecamp } from '@/contexts/BasecampContext';
-
+import { basecampService, PersonalBasecamp } from '@/services/basecampService';
+import { demoModeService } from '@/services/demoModeService';
 
 interface PlacesSectionProps {
   tripId?: string;
   tripName?: string;
 }
 
+type TabView = 'overview' | 'basecamps' | 'places' | 'pins';
+
 export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSectionProps) => {
   const { variant } = useTripVariant();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
-  const { isFeatureEnabled } = useFeatureToggle({ 
-    trip_type: variant === 'consumer' ? 'consumer' : 'pro',
-    enabled_features: [...DEFAULT_FEATURES] 
-  });
   const { basecamp: contextBasecamp, setBasecamp: setContextBasecamp, isBasecampSet } = useBasecamp();
-  const [isAddPlaceModalOpen, setIsAddPlaceModalOpen] = useState(false);
+  const mapRef = useRef<MapCanvasRef>(null);
+
+  // State
+  const [activeTab, setActiveTab] = useState<TabView>('basecamps');
   const [places, setPlaces] = useState<PlaceWithDistance[]>([]);
   const [searchContext, setSearchContext] = useState<'trip' | 'personal'>('trip');
+  const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
+  const [layers, setLayers] = useState({
+    pins: true,
+    places: true,
+    saved: true,
+    venues: true
+  });
   const [distanceSettings] = useState<DistanceCalculationSettings>({
     preferredMode: 'driving',
     unit: 'miles',
@@ -45,6 +49,37 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   });
 
   const { createLinkFromPlace, removeLinkByPlaceId, updateLinkByPlaceId } = usePlacesLinkSync();
+
+  // Generate demo user ID
+  const getDemoUserId = () => {
+    let demoId = sessionStorage.getItem('demo-user-id');
+    if (!demoId) {
+      demoId = `demo-user-${Date.now()}`;
+      sessionStorage.setItem('demo-user-id', demoId);
+    }
+    return demoId;
+  };
+
+  const effectiveUserId = user?.id || getDemoUserId();
+
+  // Load personal basecamp
+  useEffect(() => {
+    const loadPersonalBasecamp = async () => {
+      try {
+        if (isDemoMode) {
+          const sessionBasecamp = demoModeService.getSessionPersonalBasecamp(tripId, effectiveUserId);
+          setPersonalBasecamp(sessionBasecamp);
+        } else if (user) {
+          const dbBasecamp = await basecampService.getPersonalBasecamp(tripId, user.id);
+          setPersonalBasecamp(dbBasecamp);
+        }
+      } catch (error) {
+        console.error('Failed to load personal basecamp:', error);
+      }
+    };
+
+    loadPersonalBasecamp();
+  }, [tripId, user, isDemoMode, effectiveUserId]);
 
   // Recalculate distances for existing places when basecamp changes
   useEffect(() => {
@@ -151,111 +186,145 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     console.log('Event added to calendar:', eventData);
   };
 
+  const handleCenterMap = (coords: { lat: number; lng: number }, type?: 'trip' | 'personal') => {
+    mapRef.current?.centerOn(coords, 15);
+    if (type) {
+      setSearchContext(type);
+    }
+  };
+
+  const handleLayerToggle = (layerKey: keyof typeof layers, enabled: boolean) => {
+    setLayers(prev => ({ ...prev, [layerKey]: enabled }));
+  };
+
+  const handlePlaceSelect = (place: PlaceWithDistance) => {
+    if (place.coordinates) {
+      handleCenterMap(place.coordinates);
+    }
+  };
+
+  const toBasecampLocation = (pb: PersonalBasecamp): BasecampLocation => ({
+    address: pb.address || '',
+    name: pb.name,
+    type: 'other',
+    coordinates: pb.latitude && pb.longitude ? { lat: pb.latitude, lng: pb.longitude } : undefined
+  });
+
   return (
     <div className="mb-12">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h2 className="text-3xl font-bold text-white">Places</h2>
       </div>
 
-      {/* Hero Map Section - Full Width */}
-      <div className="mb-4 hero-map-section">
-        <div className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden shadow-2xl shadow-black/50 h-96">
-          <WorkingGoogleMaps className="w-full h-full" />
+      {/* Single Map with Overlays - Sticky at top */}
+      <div className="sticky top-[72px] z-30 mb-6">
+        <div className="relative h-[500px] rounded-2xl overflow-hidden shadow-2xl">
+          <MapCanvas
+            ref={mapRef}
+            activeContext={searchContext}
+            tripBasecamp={contextBasecamp}
+            personalBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : null}
+            layers={layers}
+            className="w-full h-full"
+          />
+
+          {/* Map Overlay Chips - floating on map */}
+          <MapOverlayChips
+            activeContext={searchContext}
+            onContextChange={setSearchContext}
+            layers={layers}
+            onLayerToggle={handleLayerToggle}
+            tripBasecampSet={isBasecampSet}
+            personalBasecampSet={!!personalBasecamp}
+          />
+        </div>
+
+        {/* Green Notice - below map */}
+        <div className="mt-4">
+          <GreenNotice
+            activeContext={searchContext}
+            tripBasecamp={contextBasecamp}
+            personalBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : null}
+          />
         </div>
       </div>
-      
-      {/* Search Context Indicator */}
-      {searchContext === 'trip' && isBasecampSet && contextBasecamp && (
-        <div className="mb-8 bg-sky-500/10 border border-sky-500/30 rounded-xl p-4">
-          <div className="flex items-center gap-2">
-            <Home size={16} className="text-sky-400 flex-shrink-0" />
-            <span className="text-sm text-sky-300">
-              All searches use <strong>{contextBasecamp.name || contextBasecamp.address.split(',')[0]}</strong> as your starting point
-            </span>
-          </div>
-        </div>
-      )}
-      {searchContext === 'personal' && (
-        <div className="mb-8 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4">
-          <div className="flex items-center gap-2">
-            <MapPin size={16} className="text-emerald-400 flex-shrink-0" />
-            <span className="text-sm text-emerald-300">
-              All searches use your <strong>Personal Base Camp</strong> as your starting point
-            </span>
-          </div>
-        </div>
-      )}
 
-      {/* Accommodation and Places Tabs */}
-      <Tabs defaultValue="accommodations" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="accommodations" className="flex items-center gap-2">
-            <Bed size={16} />
-            Accommodations
-          </TabsTrigger>
-          <TabsTrigger value="places" className="flex items-center gap-2">
-            <MapPin size={16} />
-            Places & Activities
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="accommodations" className="space-y-6">
-          {/* Search Context Switch */}
-          <SearchContextSwitch
+      {/* Segmented Control Navigation */}
+      <div className="mb-6">
+        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-1 inline-flex gap-1">
+          {(['overview', 'basecamps', 'places', 'pins'] as TabView[]).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all capitalize ${
+                activeTab === tab
+                  ? 'bg-white/10 text-white shadow-lg'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {tab === 'places' ? 'Places & Activities' : tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="space-y-6">
+        {activeTab === 'overview' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-6 shadow-lg">
+                <h4 className="text-gray-400 text-sm mb-1">Active Context</h4>
+                <p className="text-white text-xl font-semibold capitalize">{searchContext} Base Camp</p>
+              </div>
+              <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-6 shadow-lg">
+                <h4 className="text-gray-400 text-sm mb-1">Saved Pins</h4>
+                <p className="text-white text-xl font-semibold">{places.length}</p>
+              </div>
+              <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-6 shadow-lg">
+                <h4 className="text-gray-400 text-sm mb-1">Basecamps Set</h4>
+                <p className="text-white text-xl font-semibold">
+                  {(isBasecampSet ? 1 : 0) + (personalBasecamp ? 1 : 0)} / 2
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'basecamps' && (
+          <BasecampsPanel
+            tripId={tripId}
+            tripBasecamp={contextBasecamp}
+            onTripBasecampSet={handleBasecampSet}
+            onCenterMap={handleCenterMap}
             activeContext={searchContext}
             onContextChange={setSearchContext}
           />
+        )}
 
-          {/* Dual Basecamp Cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Trip Base Camp Card */}
-            <TripBaseCampCard
-              tripId={tripId}
-              basecamp={contextBasecamp}
-              onBasecampSet={handleBasecampSet}
-              isDemo={isDemoMode}
-            />
+        {activeTab === 'places' && (
+          <PlacesPanel
+            places={places}
+            basecamp={contextBasecamp}
+            onPlaceSelect={handlePlaceSelect}
+            onCenterMap={handleCenterMap}
+          />
+        )}
 
-            {/* Personal Base Camp Card */}
-            <PersonalBaseCampCard
-              tripId={tripId}
-              tripBasecampCity={contextBasecamp?.name || contextBasecamp?.address.split(',')[0]}
-            />
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="places" className="space-y-6">
-          {/* Basecamp and Trip Pins Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Set Basecamp Square */}
-            <SetBasecampSquare 
-              basecamp={contextBasecamp} 
-              onBasecampSet={handleBasecampSet} 
-            />
-
-            {/* Trip Pins Card */}
-            <TripPinsCard
-              places={places}
-              basecamp={contextBasecamp}
-              onPlaceAdded={handlePlaceAdded}
-              onPlaceRemoved={handlePlaceRemoved}
-              onEventAdded={handleEventAdded}
-              distanceUnit={distanceSettings.unit}
-              preferredMode={distanceSettings.preferredMode}
-            />
-          </div>
-        </TabsContent>
-      </Tabs>
-
-
-      {/* Modals */}
-      <AddPlaceModal 
-        isOpen={isAddPlaceModalOpen}
-        onClose={() => setIsAddPlaceModalOpen(false)}
-        onPlaceAdded={handlePlaceAdded}
-        basecamp={contextBasecamp}
-      />
+        {activeTab === 'pins' && (
+          <PinsPanel
+            places={places}
+            basecamp={contextBasecamp}
+            onPlaceAdded={handlePlaceAdded}
+            onPlaceRemoved={handlePlaceRemoved}
+            onEventAdded={handleEventAdded}
+            onCenterMap={handleCenterMap}
+            distanceUnit={distanceSettings.unit}
+            preferredMode={distanceSettings.preferredMode}
+          />
+        )}
+      </div>
     </div>
   );
 };
