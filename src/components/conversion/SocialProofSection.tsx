@@ -62,7 +62,7 @@ export const SocialProofSection = () => {
   return (
     <div className="w-full space-y-8">
       {/* Metrics Banner */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {metrics.map((metric, index) => (
           <Card key={index} className="bg-card/50 backdrop-blur-sm border border-border/50">
             <CardContent className="p-3 md:p-4 text-center">

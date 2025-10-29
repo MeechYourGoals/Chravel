@@ -114,7 +114,7 @@ export const FeatureShowcase = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {beforeAfterScenarios.map((scenario, index) => (
             <Card key={index} className="bg-card/80 backdrop-blur-sm border border-border/50">
               <CardHeader className="p-4 md:p-6">
@@ -153,7 +153,7 @@ export const FeatureShowcase = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {features.map((feature) => (
             <Card 
               key={feature.id} 
