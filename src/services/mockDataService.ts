@@ -409,7 +409,14 @@ class MockDataService {
   }
 
   static isUsingMockData(): boolean {
-    return this.USE_MOCK_DATA;
+    const result = this.USE_MOCK_DATA;
+    console.log('[MockDataService] isUsingMockData check:', {
+      result,
+      VITE_USE_MOCK_DATA: import.meta.env.VITE_USE_MOCK_DATA,
+      DEV: import.meta.env.DEV,
+      MODE: import.meta.env.MODE
+    });
+    return result;
   }
 
   static getStorageKey(tripId: string, type: 'media' | 'links'): string {
@@ -428,17 +435,27 @@ class MockDataService {
   }
 
   static async getMockPlaceItems(tripId: string): Promise<MockPlaceItem[]> {
-    if (!this.USE_MOCK_DATA) return [];
+    console.log('[MockDataService] getMockPlaceItems called for tripId:', tripId);
+    console.log('[MockDataService] USE_MOCK_DATA:', this.USE_MOCK_DATA);
+
+    if (!this.USE_MOCK_DATA) {
+      console.log('[MockDataService] ⚠️ Not using mock data, returning empty array');
+      return [];
+    }
 
     const storageKey = `${this.STORAGE_PREFIX}${tripId}_places`;
+    console.log('[MockDataService] Storage key:', storageKey);
+
     const stored = await getStorageItem<MockPlaceItem[]>(storageKey);
 
     if (stored) {
+      console.log('[MockDataService] ✅ Found stored places:', stored.length);
       return stored;
     }
 
     // First time - initialize with mock data
     const mockData = this.getMockPlacesData();
+    console.log('[MockDataService] 🆕 Initializing with fresh mock data:', mockData.length);
     await setStorageItem(storageKey, mockData);
     return mockData;
   }
