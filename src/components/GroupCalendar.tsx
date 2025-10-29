@@ -101,63 +101,65 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:h-[600px]">
-          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4 flex items-start">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              className="w-full"
-              modifiers={{
-                hasEvents: datesWithEvents
-              }}
-              modifiersStyles={{
-                hasEvents: {
-                  backgroundColor: 'hsl(var(--primary) / 0.3)',
-                  color: 'hsl(var(--primary-foreground))',
-                  fontWeight: 'bold'
-                }
-              }}
-            />
-          </div>
+        <>
+          {showAddEvent && (
+            <div className="mb-6 bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4">
+              <h3 className="text-lg font-medium text-foreground mb-4">
+                {editingEvent ? 'Edit Event' : `Add Event ${selectedDate ? `for ${format(selectedDate, 'MMM d')}` : ''}`}
+              </h3>
+              <AddEventForm
+                newEvent={newEvent}
+                onUpdateField={updateEventField}
+                onSubmit={handleFormSubmit}
+                onCancel={handleFormCancel}
+                isSubmitting={isSaving}
+                isEditing={!!editingEvent}
+              />
+            </div>
+          )}
 
-          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4 flex flex-col overflow-hidden">
-            {showAddEvent && (
-              <div className="mb-4 pb-4 border-b border-border">
-                <h3 className="text-lg font-medium text-foreground mb-4">
-                  {editingEvent ? 'Edit Event' : `Add Event ${selectedDate ? `for ${format(selectedDate, 'MMM d')}` : ''}`}
-                </h3>
-                <AddEventForm
-                  newEvent={newEvent}
-                  onUpdateField={updateEventField}
-                  onSubmit={handleFormSubmit}
-                  onCancel={handleFormCancel}
-                  isSubmitting={isSaving}
-                  isEditing={!!editingEvent}
-                />
-              </div>
-            )}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4 flex items-center justify-center lg:h-[600px]">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                className="w-full"
+                modifiers={{
+                  hasEvents: datesWithEvents
+                }}
+                modifiersStyles={{
+                  hasEvents: {
+                    backgroundColor: 'hsl(var(--primary) / 0.3)',
+                    color: 'hsl(var(--primary-foreground))',
+                    fontWeight: 'bold'
+                  }
+                }}
+              />
+            </div>
 
-            <div className="flex-1">
+            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4 flex flex-col lg:h-[600px]">
               <h3 className="text-lg font-medium text-foreground mb-4">
                 {selectedDate
                   ? `Events for ${format(selectedDate, 'EEEE, MMM d')}`
                   : 'Select a date to view events'}
               </h3>
 
-              <EventList
-                events={selectedDateEvents}
-                onEdit={handleEdit}
-                onDelete={deleteEvent}
-                emptyMessage={selectedDate
-                  ? 'No events scheduled for this day'
-                  : 'Select a date to view events'
-                }
-                isDeleting={isSaving}
-              />
+              <div className="flex-1 overflow-y-auto">
+                <EventList
+                  events={selectedDateEvents}
+                  onEdit={handleEdit}
+                  onDelete={deleteEvent}
+                  emptyMessage={selectedDate
+                    ? 'No events scheduled for this day'
+                    : 'Select a date to view events'
+                  }
+                  isDeleting={isSaving}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
