@@ -178,7 +178,7 @@ export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPl
             <CheckCircle size={48} className="text-green-400" />
           </div>
           <h3 className="text-xl font-semibold text-white mb-2">Pin saved!</h3>
-          <p className="text-slate-300">Added to your trip links and visible in Media tab.</p>
+          <p className="text-slate-300">Added to your trip links and visible in Places > Links tab.</p>
         </div>
       </div>
     );

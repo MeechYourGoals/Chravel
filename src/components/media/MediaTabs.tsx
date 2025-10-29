@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, Video, FileText, Link, Loader2 } from 'lucide-react';
+import { Camera, Video, FileText, Loader2 } from 'lucide-react';
 import { useMediaSync } from '@/hooks/useMediaSync';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -8,12 +8,12 @@ import { MediaFilters } from './MediaFilters';
 
 interface MediaTabsProps {
   tripId: string;
-  onAddMedia?: (type: 'image' | 'video' | 'file' | 'link') => void;
+  onAddMedia?: (type: 'image' | 'video' | 'file') => void;
 }
 
 export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
-  const { images, videos, files, links, mediaCounts, isLoading, error, refreshMedia } = useMediaSync(tripId);
-  const [activeTab, setActiveTab] = React.useState<'all' | 'photos' | 'videos' | 'files' | 'links'>('all');
+  const { images, videos, files, mediaCounts, isLoading, error, refreshMedia } = useMediaSync(tripId);
+  const [activeTab, setActiveTab] = React.useState<'all' | 'photos' | 'videos' | 'files'>('all');
   const [filterQuery, setFilterQuery] = React.useState('');
 
   if (error) {
@@ -54,7 +54,6 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
   const filteredImages = filterItems(images);
   const filteredVideos = filterItems(videos);
   const filteredFiles = filterItems(files);
-  const filteredLinks = filterItems(links);
 
   return (
     <div className="space-y-4">
@@ -92,13 +91,6 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
             Files
             {mediaCounts.files > 0 && (
               <Badge variant="secondary" className="ml-1">{mediaCounts.files}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="links" className="flex items-center gap-2">
-            <Link size={16} />
-            Links
-            {mediaCounts.links > 0 && (
-              <Badge variant="secondary" className="ml-1">{mediaCounts.links}</Badge>
             )}
           </TabsTrigger>
         </TabsList>
@@ -140,20 +132,6 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
               </section>
             )}
             
-            {filteredLinks.length > 0 && (
-              <section>
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Link size={20} />
-                  Links ({filteredLinks.length})
-                </h3>
-                <div className="space-y-2">
-                  {filteredLinks.map(link => (
-                    <LinkItem key={link.id} link={link} />
-                  ))}
-                </div>
-              </section>
-            )}
-            
             {mediaCounts.all === 0 && (
               <EmptyState onAddMedia={onAddMedia} />
             )}
@@ -190,19 +168,6 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
             <EmptyState type="files" onAddMedia={onAddMedia} />
           )}
         </TabsContent>
-
-        {/* Links only */}
-        <TabsContent value="links" className="mt-6">
-          {filteredLinks.length > 0 ? (
-            <div className="space-y-2">
-              {filteredLinks.map(link => (
-                <LinkItem key={link.id} link={link} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState type="links" onAddMedia={onAddMedia} />
-          )}
-        </TabsContent>
       </Tabs>
     </div>
   );
@@ -232,49 +197,18 @@ function FileItem({ file }: { file: any }) {
   );
 }
 
-// Link item component
-function LinkItem({ link }: { link: any }) {
-  return (
-    <a
-      href={link.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors"
-    >
-      <div className="flex items-start gap-3">
-        {link.og_image_url && (
-          <img
-            src={link.og_image_url}
-            alt={link.og_title || 'Link preview'}
-            className="w-20 h-20 rounded object-cover flex-shrink-0"
-          />
-        )}
-        <div className="flex-1 min-w-0">
-          <h4 className="font-medium truncate">{link.og_title || link.domain}</h4>
-          {link.og_description && (
-            <p className="text-sm text-gray-400 mt-1 line-clamp-2">{link.og_description}</p>
-          )}
-          <p className="text-xs text-gray-500 mt-2">{link.domain}</p>
-        </div>
-        <Link className="text-gray-400 flex-shrink-0" size={16} />
-      </div>
-    </a>
-  );
-}
-
 // Empty state component
 function EmptyState({ type, onAddMedia }: { type?: string; onAddMedia?: any }) {
   const icons = {
     photos: Camera,
     videos: Video,
     files: FileText,
-    links: Link,
   };
   
   const Icon = type ? icons[type as keyof typeof icons] : Camera;
   const message = type 
     ? `No ${type} yet. Share some in the chat!`
-    : 'No media yet. Start sharing photos, videos, files, or links in the chat!';
+    : 'No media yet. Start sharing photos, videos, and files in the chat!';
 
   return (
     <div className="text-center py-12">
