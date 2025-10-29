@@ -4,7 +4,6 @@ import { ArrowLeft, MoreVertical, Info } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
-import { MobileBottomNav } from '../components/mobile/MobileBottomNav';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
@@ -159,9 +158,6 @@ export const MobileTripDetail = () => {
         }}
         onDescriptionUpdate={setTripDescription}
       />
-
-      {/* Fixed Bottom Navigation - Always visible on mobile */}
-      <MobileBottomNav />
       </div>
     </MobileErrorBoundary>
   );
