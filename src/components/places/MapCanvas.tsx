@@ -22,7 +22,7 @@ export interface MapCanvasProps {
 
 export interface MapCanvasRef {
   centerOn: (latLng: { lat: number; lng: number }, zoom?: number) => void;
-  fitBounds: (bounds: google.maps.LatLngBoundsLiteral) => void;
+  fitBounds: (bounds: { north: number; south: number; east: number; west: number }) => void;
   highlight: (markerId: string) => void;
   getMap: () => HTMLIFrameElement | null;
 }
@@ -50,7 +50,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         const newUrl = GoogleMapsService.buildEmbeddableUrl(undefined, latLng);
         setEmbedUrl(newUrl);
       },
-      fitBounds: (bounds: google.maps.LatLngBoundsLiteral) => {
+      fitBounds: (bounds: { north: number; south: number; east: number; west: number }) => {
         // Calculate center from bounds
         const centerLat = (bounds.north + bounds.south) / 2;
         const centerLng = (bounds.east + bounds.west) / 2;

@@ -45,7 +45,7 @@ export async function generateClientPDF(
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'pt',
-    format: paper === 'a4' ? 'a4' : 'letter',
+    format: 'letter',
   });
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -120,7 +120,7 @@ export async function generateClientPDF(
         p.is_settled ? 'Settled' : 'Pending'
       ]);
 
-      doc.autoTable({
+      (doc as any).autoTable({
         startY: yPos,
         head: [['Description', 'Amount', 'Split', 'Status']],
         body: paymentRows,
@@ -174,7 +174,7 @@ export async function generateClientPDF(
             `${((opt.votes / poll.total_votes) * 100).toFixed(1)}%`
           ]);
 
-          doc.autoTable({
+          (doc as any).autoTable({
             startY: yPos,
             body: pollRows,
             theme: 'plain',
@@ -231,7 +231,7 @@ export async function generateClientPDF(
         task.completed ? 'Done' : 'Pending'
       ]);
 
-      doc.autoTable({
+      (doc as any).autoTable({
         startY: yPos,
         head: [['Task', 'Assigned To', 'Due Date', 'Status']],
         body: taskRows,
@@ -269,7 +269,7 @@ export async function generateClientPDF(
         member.credentialLevel || 'N/A'
       ]);
 
-      doc.autoTable({
+      (doc as any).autoTable({
         startY: yPos,
         head: [['Name', 'Email', 'Role', 'Credential Level']],
         body: rosterRows,
@@ -306,7 +306,7 @@ export async function generateClientPDF(
         broadcast.sender || 'N/A'
       ]);
 
-      doc.autoTable({
+      (doc as any).autoTable({
         startY: yPos,
         head: [['Timestamp', 'Message', 'Channel', 'Sender']],
         body: broadcastRows,
@@ -343,7 +343,7 @@ export async function generateClientPDF(
         attachment.uploaded_at ? new Date(attachment.uploaded_at).toLocaleDateString() : 'N/A'
       ]);
 
-      doc.autoTable({
+      (doc as any).autoTable({
         startY: yPos,
         head: [['File Name', 'Type', 'Size', 'Uploaded']],
         body: attachmentRows,

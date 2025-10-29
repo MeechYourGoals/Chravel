@@ -94,7 +94,7 @@ class BasecampService {
         return null;
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('trip_personal_basecamps')
         .select('*')
         .eq('trip_id', tripId)
@@ -106,7 +106,7 @@ class BasecampService {
         return null;
       }
 
-      return data;
+      return data as PersonalBasecamp | null;
     } catch (error) {
       console.error('Error getting personal basecamp:', error);
       return null;
@@ -129,7 +129,7 @@ class BasecampService {
         throw new Error('User not authenticated');
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('trip_personal_basecamps')
         .upsert({
           trip_id: payload.trip_id,
@@ -149,7 +149,7 @@ class BasecampService {
         throw error;
       }
 
-      return data;
+      return data as PersonalBasecamp;
     } catch (error) {
       console.error('Error upserting personal basecamp:', error);
       return null;
@@ -161,7 +161,7 @@ class BasecampService {
    */
   async deletePersonalBasecamp(basecampId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('trip_personal_basecamps')
         .delete()
         .eq('id', basecampId);

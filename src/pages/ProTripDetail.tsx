@@ -169,9 +169,7 @@ const ProTripDetail = () => {
                 participants: tripData.participants || [],
               },
             },
-            sections,
-            layout,
-            paper
+            sections
           );
         } else {
           blob = await response.blob();
@@ -182,7 +180,7 @@ const ProTripDetail = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Trip_${tripData.title.replace(/[^a-z0-9]/gi, '_')}_${layout}_${Date.now()}.pdf`;
+      a.download = `Trip_${tripData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
