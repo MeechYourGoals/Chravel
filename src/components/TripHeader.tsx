@@ -255,7 +255,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 aria-label="Export Trip to PDF"
               >
                 <FileDown size={16} />
-                Export Trip to PDF
+                Export to PDF
               </button>
             </div>
           </div>

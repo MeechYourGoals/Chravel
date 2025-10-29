@@ -7,10 +7,9 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ExportSection } from '@/types/tripExport';
 
-// Type declaration for jsPDF with autoTable
+// Extend jsPDF type to include lastAutoTable property added by autoTable function
 declare module 'jspdf' {
   interface jsPDF {
-    autoTable: typeof autoTable;
     lastAutoTable?: {
       finalY: number;
     };
@@ -120,7 +119,7 @@ export async function generateClientPDF(
         p.is_settled ? 'Settled' : 'Pending'
       ]);
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: yPos,
         head: [['Description', 'Amount', 'Split', 'Status']],
         body: paymentRows,
@@ -174,7 +173,7 @@ export async function generateClientPDF(
             `${((opt.votes / poll.total_votes) * 100).toFixed(1)}%`
           ]);
 
-          (doc as any).autoTable({
+          autoTable(doc, {
             startY: yPos,
             body: pollRows,
             theme: 'plain',
@@ -231,7 +230,7 @@ export async function generateClientPDF(
         task.completed ? 'Done' : 'Pending'
       ]);
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: yPos,
         head: [['Task', 'Assigned To', 'Due Date', 'Status']],
         body: taskRows,
@@ -269,7 +268,7 @@ export async function generateClientPDF(
         member.credentialLevel || 'N/A'
       ]);
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: yPos,
         head: [['Name', 'Email', 'Role', 'Credential Level']],
         body: rosterRows,
@@ -306,7 +305,7 @@ export async function generateClientPDF(
         broadcast.sender || 'N/A'
       ]);
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: yPos,
         head: [['Timestamp', 'Message', 'Channel', 'Sender']],
         body: broadcastRows,
@@ -343,7 +342,7 @@ export async function generateClientPDF(
         attachment.uploaded_at ? new Date(attachment.uploaded_at).toLocaleDateString() : 'N/A'
       ]);
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: yPos,
         head: [['File Name', 'Type', 'Size', 'Uploaded']],
         body: attachmentRows,
