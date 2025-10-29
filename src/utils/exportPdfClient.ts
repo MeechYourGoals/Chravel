@@ -4,12 +4,20 @@
  */
 
 import jsPDF from 'jspdf';
-import { autoTable } from 'jspdf-autotable';
+import { applyPlugin } from 'jspdf-autotable';
 import { ExportSection } from '@/types/tripExport';
 
-// Type for autoTable result which includes finalY
-interface AutoTableResult {
-  finalY: number;
+// Apply the autoTable plugin to jsPDF
+applyPlugin(jsPDF);
+
+// Type declaration for jsPDF with autoTable plugin
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+    lastAutoTable?: {
+      finalY: number;
+    };
+  }
 }
 
 interface ExportData {
@@ -115,7 +123,7 @@ export async function generateClientPDF(
         p.is_settled ? 'Settled' : 'Pending'
       ]);
 
-      const result = autoTable(doc, {
+      doc.autoTable({
         startY: yPos,
         head: [['Description', 'Amount', 'Split', 'Status']],
         body: paymentRows,
@@ -123,9 +131,9 @@ export async function generateClientPDF(
         headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
         margin: { left: margin, right: margin },
         styles: { fontSize: 9 }
-      }) as unknown as AutoTableResult;
+      });
 
-      yPos = result.finalY + 10;
+      yPos = doc.lastAutoTable?.finalY || yPos + 20;
 
       // Calculate total
       const total = payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
@@ -169,15 +177,15 @@ export async function generateClientPDF(
             `${((opt.votes / poll.total_votes) * 100).toFixed(1)}%`
           ]);
 
-          const result = autoTable(doc, {
+          doc.autoTable({
             startY: yPos,
             body: pollRows,
             theme: 'plain',
             margin: { left: margin + 20, right: margin },
             styles: { fontSize: 9, cellPadding: 3 }
-          }) as unknown as AutoTableResult;
+          });
 
-          yPos = result.finalY + 5;
+          yPos = doc.lastAutoTable?.finalY || yPos + 10;
         }
 
         doc.setFontSize(9);
@@ -226,7 +234,7 @@ export async function generateClientPDF(
         task.completed ? 'Done' : 'Pending'
       ]);
 
-      const result = autoTable(doc, {
+      doc.autoTable({
         startY: yPos,
         head: [['Task', 'Assigned To', 'Due Date', 'Status']],
         body: taskRows,
@@ -234,9 +242,9 @@ export async function generateClientPDF(
         headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
         margin: { left: margin, right: margin },
         styles: { fontSize: 9 }
-      }) as unknown as AutoTableResult;
+      });
 
-      yPos = result.finalY + 10;
+      yPos = doc.lastAutoTable?.finalY || yPos + 30;
     } else {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
@@ -264,7 +272,7 @@ export async function generateClientPDF(
         member.credentialLevel || 'N/A'
       ]);
 
-      const result = autoTable(doc, {
+      doc.autoTable({
         startY: yPos,
         head: [['Name', 'Email', 'Role', 'Credential Level']],
         body: rosterRows,
@@ -272,9 +280,9 @@ export async function generateClientPDF(
         headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
         margin: { left: margin, right: margin },
         styles: { fontSize: 9 }
-      }) as unknown as AutoTableResult;
+      });
 
-      yPos = result.finalY + 10;
+      yPos = doc.lastAutoTable?.finalY || yPos + 30;
     } else {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
@@ -301,7 +309,7 @@ export async function generateClientPDF(
         broadcast.sender || 'N/A'
       ]);
 
-      const result = autoTable(doc, {
+      doc.autoTable({
         startY: yPos,
         head: [['Timestamp', 'Message', 'Channel', 'Sender']],
         body: broadcastRows,
@@ -309,9 +317,9 @@ export async function generateClientPDF(
         headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
         margin: { left: margin, right: margin },
         styles: { fontSize: 9 }
-      }) as unknown as AutoTableResult;
+      });
 
-      yPos = result.finalY + 10;
+      yPos = doc.lastAutoTable?.finalY || yPos + 30;
     } else {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
@@ -338,7 +346,7 @@ export async function generateClientPDF(
         attachment.uploaded_at ? new Date(attachment.uploaded_at).toLocaleDateString() : 'N/A'
       ]);
 
-      const result = autoTable(doc, {
+      doc.autoTable({
         startY: yPos,
         head: [['File Name', 'Type', 'Size', 'Uploaded']],
         body: attachmentRows,
@@ -346,9 +354,9 @@ export async function generateClientPDF(
         headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
         margin: { left: margin, right: margin },
         styles: { fontSize: 9 }
-      }) as unknown as AutoTableResult;
+      });
 
-      yPos = result.finalY + 10;
+      yPos = doc.lastAutoTable?.finalY || yPos + 30;
     } else {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');

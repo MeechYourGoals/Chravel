@@ -1,8 +1,21 @@
 import { jsPDF } from 'jspdf';
-import { autoTable } from 'jspdf-autotable';
+import { applyPlugin } from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { ProParticipant } from '../types/pro';
 import { ProTripCategory } from '../types/proCategories';
+
+// Apply the autoTable plugin to jsPDF
+applyPlugin(jsPDF);
+
+// Type declaration for jsPDF with autoTable plugin
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+    lastAutoTable?: {
+      finalY: number;
+    };
+  }
+}
 
 export interface ExportOptions {
   includeFields: {
@@ -111,7 +124,7 @@ class TeamDirectoryExportService {
     });
 
     // Add table
-    autoTable(doc, {
+    doc.autoTable({
       head: [columns],
       body: rows,
       startY: 45,
