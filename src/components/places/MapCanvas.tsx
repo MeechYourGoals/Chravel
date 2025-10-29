@@ -75,8 +75,16 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     useEffect(() => {
       setIsLoading(true);
 
-      const activeBasecamp =
-        activeContext === 'trip' ? tripBasecamp : personalBasecamp || tripBasecamp;
+      // Determine which basecamp to use based on context
+      let activeBasecamp: BasecampLocation | null = null;
+      
+      if (activeContext === 'trip') {
+        activeBasecamp = tripBasecamp || null;
+      } else if (activeContext === 'personal') {
+        activeBasecamp = personalBasecamp || null;
+      }
+
+      console.log(`[MapCanvas] Context: ${activeContext}, Trip: ${tripBasecamp?.name || 'Not set'}, Personal: ${personalBasecamp?.name || 'Not set'}`);
 
       if (activeBasecamp?.address) {
         // Use active basecamp

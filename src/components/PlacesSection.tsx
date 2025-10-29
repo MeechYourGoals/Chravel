@@ -231,7 +231,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
 
       {/* Single Map with Overlays - Pinned at top */}
       <div className="mb-6">
-        <div className="relative h-[50vh] md:h-[400px] rounded-2xl overflow-hidden shadow-2xl">
+        <div className="relative h-[35vh] md:h-[300px] rounded-2xl overflow-hidden shadow-2xl">
           <MapCanvas
             ref={mapRef}
             activeContext={searchContext}
@@ -260,13 +260,13 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
       </div>
 
       {/* Segmented Control Navigation */}
-      <div className="mb-6 flex justify-center">
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-1 inline-flex gap-1">
+      <div className="mb-6 flex justify-center px-4">
+        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-1 flex gap-1 w-full max-w-md mx-auto">
           {(['overview', 'basecamps', 'links'] as TabView[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all capitalize ${
+              className={`flex-1 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all capitalize ${
                 activeTab === tab
                   ? 'bg-white/10 text-white shadow-lg'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
