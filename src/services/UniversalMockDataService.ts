@@ -20,8 +20,7 @@ interface LinkItem {
   domain: string;
   image_url?: string;
   created_at: string;
-  source: 'chat' | 'manual' | 'pinned';
-  category?: 'Housing' | 'Eats' | 'Activities';
+  source: 'chat' | 'manual' | 'places';
   tags?: string[];
 }
 
@@ -169,7 +168,7 @@ export class UniversalMockDataService {
       image_url: '/mock/images/airbnb-listing.jpg',
       created_at: new Date(Date.now() - 3600000).toISOString(),
       source: 'chat',
-      category: 'Housing'
+      source: 'places' as const
     },
     {
       id: 'fallback-link-2',
@@ -180,7 +179,7 @@ export class UniversalMockDataService {
       image_url: '/mock/images/restaurant-rooftop.jpg',
       created_at: new Date(Date.now() - 7200000).toISOString(),
       source: 'manual',
-      category: 'Eats'
+      source: 'places' as const
     },
     {
       id: 'fallback-link-3',
@@ -190,8 +189,7 @@ export class UniversalMockDataService {
       domain: 'viator.com',
       image_url: '/mock/images/walking-tour.jpg',
       created_at: new Date(Date.now() - 10800000).toISOString(),
-      source: 'pinned',
-      category: 'Activities'
+      source: 'places' as const
     },
     {
       id: 'fallback-link-4',
@@ -201,7 +199,7 @@ export class UniversalMockDataService {
       domain: 'eventbrite.com',
       created_at: new Date(Date.now() - 14400000).toISOString(),
       source: 'chat',
-      category: 'Activities'
+      source: 'places' as const
     }
   ];
 

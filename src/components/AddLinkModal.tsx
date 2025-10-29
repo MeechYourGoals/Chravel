@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, Link as LinkIcon, Sparkles, AlertTriangle, MapPin, ExternalLink, Star } from 'lucide-react';
+import { X, Link as LinkIcon, AlertTriangle, MapPin, ExternalLink, Star } from 'lucide-react';
 import { Button } from './ui/button';
 import { usePlaceResolution } from '../hooks/usePlaceResolution';
 
@@ -41,17 +41,6 @@ interface ResolvedPlace {
   website?: string;
 }
 
-const categories = [
-  { id: 'housing', label: 'Housing', icon: '🏠', description: 'Hotels, Airbnbs, hostels' },
-  { id: 'eats', label: 'Eats', icon: '🍽️', description: 'Restaurants, cafes, food tours' },
-  { id: 'day-activities', label: 'Day Activities', icon: '☀️', description: 'Museums, tours, attractions' },
-  { id: 'nightlife', label: 'Nightlife', icon: '🌙', description: 'Bars, clubs, evening events' },
-  { id: 'fitness', label: 'Fitness', icon: '💪', description: 'Gyms, yoga, sports activities' },
-  { id: 'reservations', label: 'Reservations', icon: '📅', description: 'Restaurant bookings, confirmations' },
-  { id: 'transportation', label: 'Transportation', icon: '✈️', description: 'Flights, cars, rideshares' },
-  { id: 'essentials', label: 'Essentials', icon: '🎒', description: 'Packing, weather, documents' },
-  { id: 'other', label: 'Other', icon: '📎', description: 'Everything else' }
-];
 
 // Mock existing links for duplicate detection
 const existingLinks = [
@@ -75,8 +64,6 @@ export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [placeName, setPlaceName] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [useAiSorting, setUseAiSorting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
@@ -164,12 +151,6 @@ export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
       setTitle(result.place.name);
       setDescription(result.place.formatted_address);
       
-      // Auto-categorize based on place type
-      const autoCategory = categorizePlaceType(result.place.types);
-      if (!selectedCategory && !useAiSorting) {
-        setSelectedCategory(autoCategory);
-      }
-      
       setShowPlacePreview(true);
       
       // Auto-select primary link option
@@ -193,21 +174,10 @@ export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
         finalTitle = title || resolvedPlace?.name || '';
       }
 
-      let finalCategory = selectedCategory;
-      
-      if (!selectedCategory && useAiSorting) {
-        finalCategory = await classifyLink(finalUrl, finalTitle, description);
-      }
-      
-      if (!finalCategory) {
-        finalCategory = 'other';
-      }
-
       console.log('Adding link:', { 
         url: finalUrl, 
         title: finalTitle, 
-        description, 
-        category: finalCategory,
+        description,
         linkType: selectedLinkOption?.type,
         fromPlace: inputMode === 'place'
       });
@@ -221,64 +191,6 @@ export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
     }
   };
 
-  const classifyLink = async (url: string, title: string, description: string): Promise<string> => {
-    // Enhanced keyword-based classification for all categories
-    const text = `${title} ${description} ${url}`.toLowerCase();
-    
-    if (text.includes('airbnb') || text.includes('hotel') || text.includes('hostel') || 
-        text.includes('apartment') || text.includes('accommodation') || text.includes('booking.com') ||
-        text.includes('vrbo') || text.includes('stay') || text.includes('lodge')) {
-      return 'housing';
-    }
-    
-    if (text.includes('flight') || text.includes('airline') || text.includes('airport') ||
-        text.includes('uber') || text.includes('lyft') || text.includes('rental car') ||
-        text.includes('train') || text.includes('bus') || text.includes('transfer') ||
-        text.includes('expedia') || text.includes('kayak') || text.includes('car rental')) {
-      return 'transportation';
-    }
-    
-    if (text.includes('reservation') || text.includes('booking') || text.includes('opentable') ||
-        text.includes('resy') || text.includes('confirmed') || text.includes('table') ||
-        text.includes('tickets') || text.includes('seats') || text.includes('confirmation')) {
-      return 'reservations';
-    }
-    
-    if (text.includes('packing') || text.includes('checklist') || text.includes('weather') ||
-        text.includes('passport') || text.includes('visa') || text.includes('insurance') ||
-        text.includes('documents') || text.includes('emergency') || text.includes('essentials') ||
-        text.includes('what to bring') || text.includes('travel tips')) {
-      return 'essentials';
-    }
-    
-    if (text.includes('restaurant') || text.includes('cafe') || text.includes('food') || 
-        text.includes('menu') || text.includes('dining') || text.includes('michelin') ||
-        text.includes('cuisine') || text.includes('brunch') || text.includes('lunch') ||
-        text.includes('dinner') || text.includes('bakery')) {
-      return 'eats';
-    }
-    
-    if (text.includes('bar') || text.includes('club') || text.includes('nightlife') || 
-        text.includes('cocktail') || text.includes('pub') || text.includes('lounge') ||
-        text.includes('drinks') || text.includes('party') || text.includes('rooftop')) {
-      return 'nightlife';
-    }
-    
-    if (text.includes('gym') || text.includes('fitness') || text.includes('yoga') || 
-        text.includes('workout') || text.includes('sports') || text.includes('running') ||
-        text.includes('hiking') || text.includes('swimming') || text.includes('tennis')) {
-      return 'fitness';
-    }
-    
-    if (text.includes('museum') || text.includes('tour') || text.includes('attraction') || 
-        text.includes('activity') || text.includes('experience') || text.includes('sightseeing') ||
-        text.includes('gallery') || text.includes('monument') || text.includes('park') ||
-        text.includes('excursion') || text.includes('adventure')) {
-      return 'day-activities';
-    }
-    
-    return 'other';
-  };
 
   const resetForm = () => {
     setInputMode('place');
@@ -286,8 +198,6 @@ export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
     setTitle('');
     setDescription('');
     setPlaceName('');
-    setSelectedCategory('');
-    setUseAiSorting(false);
     setDuplicateMatches([]);
     setShowDuplicateWarning(false);
     setResolvedPlace(null);
@@ -485,50 +395,6 @@ export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
               className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 resize-none"
             />
           </div>
-
-          {/* AI Sorting Toggle */}
-          <div className="flex items-center gap-3 p-3 bg-slate-900/30 rounded-lg border border-slate-700/50">
-            <input
-              type="checkbox"
-              id="ai-sorting"
-              checked={useAiSorting}
-              onChange={(e) => setUseAiSorting(e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded focus:ring-blue-500"
-            />
-            <label htmlFor="ai-sorting" className="flex items-center gap-2 text-sm text-slate-300">
-              <Sparkles size={16} className="text-blue-400" />
-              Let AI categorize this link automatically
-            </label>
-          </div>
-
-          {/* Category Selection */}
-          {!useAiSorting && (
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-3">
-                Category (optional)
-              </label>
-              <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    type="button"
-                    onClick={() => setSelectedCategory(category.id === selectedCategory ? '' : category.id)}
-                    className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
-                      selectedCategory === category.id
-                        ? 'bg-blue-600/20 border-blue-600 text-white'
-                        : 'bg-slate-900/30 border-slate-700 text-slate-300 hover:border-slate-600'
-                    }`}
-                  >
-                    <span className="text-lg">{category.icon}</span>
-                    <div>
-                      <div className="font-medium">{category.label}</div>
-                      <div className="text-xs text-slate-400">{category.description}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Submit Button */}
           <div className="flex gap-3 pt-4">
