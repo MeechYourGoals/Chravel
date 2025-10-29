@@ -172,18 +172,18 @@ export const PaymentHistory = ({ tripId }: PaymentHistoryProps) => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Payment History</CardTitle>
-        <p className="text-sm text-muted-foreground mt-1">
+    <Card className="rounded-lg">
+      <CardHeader className="py-3 px-4">
+        <CardTitle className="text-base">Payment History</CardTitle>
+        <p className="text-xs text-muted-foreground mt-0.5">
           All payment requests created for this trip
         </p>
       </CardHeader>
-      <CardContent>
+      <CardContent className="py-3 px-4">
         {payments.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {payments.map(payment => (
-              <div key={payment.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+              <div key={payment.id} className="flex items-center justify-between py-1 border-b border-border last:border-0">
                 {/* Left: Title and metadata inline */}
                 <div className="flex items-baseline gap-2 flex-1 min-w-0">
                   <span className="font-medium text-foreground">{payment.description}</span>

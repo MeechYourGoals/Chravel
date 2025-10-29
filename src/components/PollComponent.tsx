@@ -63,13 +63,13 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {!showCreatePoll && (
         <Button
           onClick={() => setShowCreatePoll(true)}
-          className="w-full h-12 rounded-xl bg-gradient-to-r from-glass-enterprise-blue to-glass-enterprise-blue-light hover:from-glass-enterprise-blue-light hover:to-glass-enterprise-blue font-semibold shadow-enterprise border border-glass-enterprise-blue/50 text-white"
+          className="w-full h-10 rounded-xl bg-gradient-to-r from-glass-enterprise-blue to-glass-enterprise-blue-light hover:from-glass-enterprise-blue-light hover:to-glass-enterprise-blue font-semibold shadow-enterprise border border-glass-enterprise-blue/50 text-white text-sm"
         >
-          <BarChart3 size={20} className="mr-2" />
+          <BarChart3 size={18} className="mr-2" />
           Create Poll
         </Button>
       )}
@@ -83,11 +83,11 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-10">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <div className="flex justify-center py-6">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
         </div>
       ) : formattedPolls.length === 0 ? (
-        <div className="text-center py-10 text-muted-foreground text-sm">
+        <div className="text-center py-6 text-muted-foreground text-sm">
           No polls have been created yet.
         </div>
       ) : (
