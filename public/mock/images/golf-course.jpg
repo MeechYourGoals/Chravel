@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="golfSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#a7d7f5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#5da3d5;stop-opacity:1" />
+    </linearGradient>
+    <radialGradient id="green">
+      <stop offset="0%" style="stop-color:#4caf50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2e7d32;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1200" height="500" fill="url(#golfSky)"/>
+
+  <!-- Sun -->
+  <circle cx="1050" cy="100" r="60" fill="#FFA500" opacity="0.8"/>
+
+  <!-- Fairway -->
+  <path d="M 0 500 Q 300 480, 600 500 Q 900 520, 1200 500 L 1200 800 L 0 800 Z" fill="#4caf50"/>
+
+  <!-- Putting green -->
+  <ellipse cx="900" cy="600" rx="150" ry="100" fill="url(#green)"/>
+
+  <!-- Sand bunker -->
+  <ellipse cx="600" cy="650" rx="100" ry="60" fill="#f4a460"/>
+  <ellipse cx="650" cy="645" rx="80" ry="50" fill="#daa520"/>
+
+  <!-- Water hazard -->
+  <ellipse cx="300" cy="550" rx="120" ry="70" fill="#4682b4"/>
+  <ellipse cx="280" cy="545" rx="90" ry="55" fill="#5f9ea0" opacity="0.7"/>
+
+  <!-- Flag and hole -->
+  <line x1="900" y1="600" x2="900" y2="500" stroke="#dc143c" stroke-width="4"/>
+  <polygon points="900,500 900,530 940,515" fill="#dc143c"/>
+  <circle cx="900" cy="600" r="8" fill="#2f4f4f"/>
+
+  <!-- Golf cart -->
+  <g>
+    <!-- Cart body -->
+    <rect x="150" y="680" width="100" height="60" rx="5" fill="#f0f0f0"/>
+    <rect x="150" y="660" width="100" height="25" rx="5" fill="#e0e0e0"/>
+
+    <!-- Roof supports -->
+    <rect x="160" y="640" width="5" height="40" fill="#666"/>
+    <rect x="235" y="640" width="5" height="40" fill="#666"/>
+
+    <!-- Roof -->
+    <rect x="145" y="630" width="110" height="10" rx="3" fill="#f0f0f0"/>
+
+    <!-- Wheels -->
+    <circle cx="175" cy="740" r="18" fill="#333"/>
+    <circle cx="175" cy="740" r="10" fill="#666"/>
+    <circle cx="225" cy="740" r="18" fill="#333"/>
+    <circle cx="225" cy="740" r="10" fill="#666"/>
+
+    <!-- Windshield -->
+    <rect x="155" y="665" width="40" height="20" fill="#87CEEB" opacity="0.6"/>
+
+    <!-- Golf bag -->
+    <rect x="210" y="685" width="25" height="45" rx="3" fill="#8B4513"/>
+    <line x1="215" y1="670" x2="215" y2="690" stroke="#333" stroke-width="2"/>
+    <line x1="220" y1="665" x2="220" y2="690" stroke="#333" stroke-width="2"/>
+    <line x1="225" y1="668" x2="225" y2="690" stroke="#333" stroke-width="2"/>
+  </g>
+
+  <!-- Golfer -->
+  <g>
+    <circle cx="450" cy="620" r="20" fill="#ffb6c1"/>
+    <rect x="440" y="640" width="20" height="40" rx="5" fill="#4169e1"/>
+    <rect x="440" y="680" width="8" height="35" fill="#4169e1"/>
+    <rect x="452" y="680" width="8" height="35" fill="#4169e1"/>
+
+    <!-- Golf club -->
+    <line x1="420" y1="650" x2="380" y2="720" stroke="#8B4513" stroke-width="4"/>
+    <ellipse cx="375" cy="725" rx="12" ry="8" fill="#c0c0c0"/>
+  </g>
+
+  <!-- Trees in background -->
+  <g fill="#2e7d32">
+    <!-- Tree 1 -->
+    <rect x="95" y="480" width="10" height="40" fill="#5d4037"/>
+    <ellipse cx="100" cy="465" rx="30" ry="25"/>
+
+    <!-- Tree 2 -->
+    <rect x="1095" y="470" width="10" height="40" fill="#5d4037"/>
+    <ellipse cx="1100" cy="455" rx="30" ry="25"/>
+
+    <!-- Tree 3 -->
+    <rect x="495" y="460" width="10" height="35" fill="#5d4037"/>
+    <ellipse cx="500" cy="447" rx="25" ry="22"/>
+  </g>
+
+  <!-- Clouds -->
+  <g fill="white" opacity="0.8">
+    <ellipse cx="250" cy="100" rx="50" ry="30"/>
+    <ellipse cx="290" cy="95" rx="40" ry="25"/>
+    <ellipse cx="210" cy="95" rx="35" ry="22"/>
+
+    <ellipse cx="700" cy="130" rx="55" ry="32"/>
+    <ellipse cx="745" cy="125" rx="45" ry="28"/>
+    <ellipse cx="655" cy="125" rx="40" ry="25"/>
+  </g>
+
+  <!-- Distance markers -->
+  <g fill="white" stroke="#333" stroke-width="2">
+    <circle cx="750" cy="580" r="15"/>
+    <text x="750" y="588" font-family="Arial" font-size="18" font-weight="bold" text-anchor="middle" fill="#333">150</text>
+  </g>
+</svg>

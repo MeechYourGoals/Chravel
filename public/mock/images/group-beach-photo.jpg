@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="tropicalSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00BFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E90FF;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="600" fill="url(#tropicalSky)"/>
+  <rect y="600" width="1200" height="200" fill="#F0E68C"/>
+
+  <!-- Ocean -->
+  <rect y="450" width="1200" height="150" fill="#4169E1" opacity="0.8"/>
+
+  <!-- Group of people -->
+  <g>
+    <!-- Person 1 -->
+    <circle cx="300" cy="550" r="35" fill="#FFB6C1"/>
+    <rect x="275" y="585" width="50" height="80" rx="8" fill="#FF69B4"/>
+    <rect x="275" y="665" width="20" height="60" fill="#4169E1"/>
+    <rect x="305" y="665" width="20" height="60" fill="#4169E1"/>
+
+    <!-- Person 2 -->
+    <circle cx="420" cy="540" r="35" fill="#DEB887"/>
+    <rect x="395" y="575" width="50" height="80" rx="8" fill="#20B2AA"/>
+    <rect x="395" y="655" width="20" height="60" fill="#FFD700"/>
+    <rect x="425" y="655" width="20" height="60" fill="#FFD700"/>
+
+    <!-- Person 3 (center, taller) -->
+    <circle cx="550" cy="520" r="40" fill="#F4A460"/>
+    <rect x="520" y="560" width="60" height="90" rx="8" fill="#FF4500"/>
+    <rect x="520" y="650" width="25" height="70" fill="#2F4F4F"/>
+    <rect x="555" y="650" width="25" height="70" fill="#2F4F4F"/>
+
+    <!-- Person 4 -->
+    <circle cx="680" cy="540" r="35" fill="#FFE4B5"/>
+    <rect x="655" y="575" width="50" height="80" rx="8" fill="#9370DB"/>
+    <rect x="655" y="655" width="20" height="60" fill="#8B4513"/>
+    <rect x="685" y="655" width="20" height="60" fill="#8B4513"/>
+
+    <!-- Person 5 -->
+    <circle cx="800" cy="550" r="35" fill="#FFC0CB"/>
+    <rect x="775" y="585" width="50" height="80" rx="8" fill="#00CED1"/>
+    <rect x="775" y="665" width="20" height="60" fill="#000080"/>
+    <rect x="805" y="665" width="20" height="60" fill="#000080"/>
+  </g>
+
+  <!-- Sun -->
+  <circle cx="1000" cy="150" r="70" fill="#FFD700" opacity="0.9"/>
+
+  <!-- Palm trees -->
+  <g fill="#228B22">
+    <rect x="100" y="500" width="15" height="150" fill="#8B4513"/>
+    <ellipse cx="107" cy="485" rx="45" ry="30"/>
+    <ellipse cx="107" cy="465" rx="40" ry="28"/>
+
+    <rect x="1050" y="480" width="15" height="170" fill="#8B4513"/>
+    <ellipse cx="1057" cy="465" rx="45" ry="30"/>
+    <ellipse cx="1057" cy="445" rx="40" ry="28"/>
+  </g>
+</svg>

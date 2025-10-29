@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="beachSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4A90E2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1200" height="500" fill="url(#beachSky)"/>
+
+  <!-- Sun -->
+  <circle cx="200" cy="150" r="60" fill="#FFD700"/>
+
+  <!-- Ocean -->
+  <rect y="500" width="1200" height="200" fill="#1E90FF"/>
+
+  <!-- Sand -->
+  <rect y="700" width="1200" height="100" fill="#F5DEB3"/>
+
+  <!-- People silhouettes -->
+  <g fill="#FF6347" opacity="0.8">
+    <circle cx="400" cy="650" r="25"/>
+    <rect x="385" y="675" width="30" height="60" rx="5"/>
+    <rect x="385" y="735" width="12" height="40"/>
+    <rect x="403" y="735" width="12" height="40"/>
+  </g>
+
+  <g fill="#4169E1" opacity="0.8">
+    <circle cx="500" cy="650" r="25"/>
+    <rect x="485" y="675" width="30" height="60" rx="5"/>
+    <rect x="485" y="735" width="12" height="40"/>
+    <rect x="503" y="735" width="12" height="40"/>
+  </g>
+
+  <g fill="#32CD32" opacity="0.8">
+    <circle cx="600" cy="655" r="25"/>
+    <rect x="585" y="680" width="30" height="60" rx="5"/>
+    <rect x="585" y="740" width="12" height="40"/>
+    <rect x="603" y="740" width="12" height="40"/>
+  </g>
+
+  <!-- Beach umbrella -->
+  <line x1="800" y1="650" x2="800" y2="750" stroke="#8B4513" stroke-width="8"/>
+  <path d="M 700 650 Q 800 600, 900 650 Z" fill="#FF1493"/>
+  <path d="M 730 630 L 740 650" stroke="white" stroke-width="3"/>
+  <path d="M 790 620 L 800 650" stroke="white" stroke-width="3"/>
+  <path d="M 850 630 L 860 650" stroke="white" stroke-width="3"/>
+
+  <!-- Clouds -->
+  <g fill="white" opacity="0.7">
+    <ellipse cx="300" cy="100" rx="50" ry="30"/>
+    <ellipse cx="340" cy="95" rx="40" ry="25"/>
+    <ellipse cx="260" cy="95" rx="40" ry="25"/>
+  </g>
+</svg>

@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="weddingSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd1dc;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ffb3d9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ff9ecd;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1200" height="500" fill="url(#weddingSky)"/>
+
+  <!-- Ocean -->
+  <rect y="500" width="1200" height="200" fill="#87CEEB"/>
+
+  <!-- Beach -->
+  <rect y="700" width="1200" height="100" fill="#F5DEB3"/>
+
+  <!-- Wedding arch -->
+  <rect x="550" y="450" width="15" height="200" fill="white"/>
+  <rect x="635" y="450" width="15" height="200" fill="white"/>
+  <path d="M 550 460 Q 600 420, 650 460" fill="none" stroke="white" stroke-width="20"/>
+
+  <!-- Flowers on arch -->
+  <g fill="#ff69b4">
+    <circle cx="550" cy="460" r="15"/>
+    <circle cx="580" cy="440" r="12"/>
+    <circle cx="600" cy="430" r="15"/>
+    <circle cx="620" cy="440" r="12"/>
+    <circle cx="650" cy="460" r="15"/>
+  </g>
+
+  <!-- Bride -->
+  <circle cx="550" cy="580" r="30" fill="#FFE4B5"/>
+  <polygon points="550,610 520,700 580,700" fill="white"/>
+  <path d="M 520 650 Q 550 640, 580 650" fill="white"/>
+
+  <!-- Groom -->
+  <circle cx="650" cy="580" r="30" fill="#F4A460"/>
+  <rect x="630" y="610" width="40" height="90" rx="5" fill="#1a1a1a"/>
+  <rect x="630" y="700" width="15" height="50" fill="#1a1a1a"/>
+  <rect x="655" y="700" width="15" height="50" fill="#1a1a1a"/>
+
+  <!-- Hearts -->
+  <g fill="#ff1493" opacity="0.6">
+    <path d="M 450 350 Q 440 330, 450 320 Q 460 330, 450 350 Q 440 330, 430 320 Q 440 310, 450 320" />
+    <path d="M 750 380 Q 740 360, 750 350 Q 760 360, 750 380 Q 740 360, 730 350 Q 740 340, 750 350" />
+    <path d="M 600 250 Q 590 230, 600 220 Q 610 230, 600 250 Q 590 230, 580 220 Q 590 210, 600 220" />
+  </g>
+
+  <!-- Palm trees -->
+  <g>
+    <rect x="100" y="550" width="20" height="150" fill="#8B4513"/>
+    <ellipse cx="110" cy="535" rx="50" ry="35" fill="#228B22"/>
+    <ellipse cx="110" cy="515" rx="48" ry="32" fill="#32CD32"/>
+
+    <rect x="1050" y="530" width="20" height="170" fill="#8B4513"/>
+    <ellipse cx="1060" cy="515" rx="50" ry="35" fill="#228B22"/>
+    <ellipse cx="1060" cy="495" rx="48" ry="32" fill="#32CD32"/>
+  </g>
+
+  <!-- Sun -->
+  <circle cx="950" cy="150" r="60" fill="#FFD700" opacity="0.7"/>
+</svg>

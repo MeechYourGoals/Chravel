@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="winterSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#a8dadc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#457b9d;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1200" height="600" fill="url(#winterSky)"/>
+
+  <!-- Sun -->
+  <circle cx="950" cy="150" r="60" fill="#f1faee" opacity="0.9"/>
+
+  <!-- Mountains background -->
+  <polygon points="0,400 200,200 400,350 600,250 800,400 1000,300 1200,450 1200,600 0,600" fill="#e3e3e3"/>
+  <polygon points="100,450 300,250 500,400 700,300 900,450 1100,350 1200,500 1200,600 0,600" fill="#f5f5f5"/>
+
+  <!-- Snow on mountains -->
+  <polygon points="300,250 280,280 320,280" fill="white"/>
+  <polygon points="600,250 570,290 630,290" fill="white"/>
+  <polygon points="900,300 875,335 925,335" fill="white"/>
+
+  <!-- Ski slope -->
+  <path d="M 1150 200 Q 1000 350, 850 450 Q 700 520, 500 580 Q 300 640, 100 680"
+        fill="none" stroke="white" stroke-width="120" opacity="0.8"/>
+
+  <!-- Trees (pine trees) -->
+  <g fill="#1b4332">
+    <!-- Tree 1 -->
+    <rect x="245" y="520" width="10" height="40" fill="#2d6a4f"/>
+    <polygon points="250,520 230,540 270,540"/>
+    <polygon points="250,500 225,525 275,525"/>
+    <polygon points="250,480 220,510 280,510"/>
+
+    <!-- Tree 2 -->
+    <rect x="795" y="480" width="10" height="40" fill="#2d6a4f"/>
+    <polygon points="800,480 780,500 820,500"/>
+    <polygon points="800,460 775,485 825,485"/>
+    <polygon points="800,440 770,470 830,470"/>
+
+    <!-- Tree 3 -->
+    <rect x="395" y="560" width="10" height="40" fill="#2d6a4f"/>
+    <polygon points="400,560 380,580 420,580"/>
+    <polygon points="400,540 375,565 425,565"/>
+    <polygon points="400,520 370,550 430,550"/>
+  </g>
+
+  <!-- Skier -->
+  <g>
+    <circle cx="650" cy="400" r="20" fill="#ff006e"/>
+    <rect x="640" y="420" width="20" height="35" rx="5" fill="#1e3a8a"/>
+    <line x1="620" y1="470" x2="680" y2="455" stroke="#2d6a4f" stroke-width="6"/>
+    <line x1="640" y1="405" x2="620" y2="380" stroke="#ff006e" stroke-width="4"/>
+    <line x1="660" y1="405" x2="680" y2="385" stroke="#ff006e" stroke-width="4"/>
+  </g>
+
+  <!-- Ski lift -->
+  <g stroke="#333" stroke-width="3" fill="none">
+    <line x1="100" y1="650" x2="900" y2="250"/>
+    <circle cx="300" cy="530" r="8" fill="#666"/>
+    <circle cx="500" cy="410" r="8" fill="#666"/>
+    <circle cx="700" cy="290" r="8" fill="#666"/>
+    <rect x="480" y="420" width="40" height="30" fill="#d62828" stroke="#d62828"/>
+  </g>
+
+  <!-- Snowflakes -->
+  <g fill="white" opacity="0.6">
+    <text x="200" y="100" font-size="30" font-family="Arial">❄</text>
+    <text x="500" y="150" font-size="25" font-family="Arial">❄</text>
+    <text x="800" y="120" font-size="30" font-family="Arial">❄</text>
+    <text x="350" y="200" font-size="20" font-family="Arial">❄</text>
+    <text x="950" y="180" font-size="25" font-family="Arial">❄</text>
+  </g>
+</svg>

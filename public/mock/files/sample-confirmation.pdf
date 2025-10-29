@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000">
+  <!-- PDF Page Background -->
+  <rect width="800" height="1000" fill="white"/>
+
+  <!-- Header -->
+  <rect y="0" width="800" height="100" fill="#27ae60"/>
+  <text x="400" y="65" font-family="Arial" font-size="40" font-weight="bold" fill="white" text-anchor="middle">Booking Confirmed</text>
+
+  <!-- Checkmark -->
+  <circle cx="400" cy="200" r="60" fill="#27ae60" opacity="0.2"/>
+  <circle cx="400" cy="200" r="50" fill="#27ae60"/>
+  <polyline points="370,200 390,220 430,180" fill="none" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Confirmation details -->
+  <rect x="100" y="300" width="600" height="400" fill="#F8F9FA" stroke="#dee2e6" stroke-width="2" rx="8"/>
+
+  <text x="120" y="340" font-family="Arial" font-size="20" font-weight="bold" fill="#333">Reservation Details</text>
+
+  <text x="120" y="390" font-family="Arial" font-size="16" fill="#666">Confirmation Number:</text>
+  <text x="400" y="390" font-family="Arial" font-size="16" font-weight="bold" fill="#333">CHR-2026-XXXX</text>
+
+  <text x="120" y="430" font-family="Arial" font-size="16" fill="#666">Guest Name:</text>
+  <text x="400" y="430" font-family="Arial" font-size="16" font-weight="bold" fill="#333">John Doe</text>
+
+  <text x="120" y="470" font-family="Arial" font-size="16" fill="#666">Check-in Date:</text>
+  <text x="400" y="470" font-family="Arial" font-size="16" font-weight="bold" fill="#333">March 15, 2026</text>
+
+  <text x="120" y="510" font-family="Arial" font-size="16" fill="#666">Check-out Date:</text>
+  <text x="400" y="510" font-family="Arial" font-size="16" font-weight="bold" fill="#333">March 20, 2026</text>
+
+  <text x="120" y="550" font-family="Arial" font-size="16" fill="#666">Number of Guests:</text>
+  <text x="400" y="550" font-family="Arial" font-size="16" font-weight="bold" fill="#333">2 Adults</text>
+
+  <text x="120" y="590" font-family="Arial" font-size="16" fill="#666">Room Type:</text>
+  <text x="400" y="590" font-family="Arial" font-size="16" font-weight="bold" fill="#333">Deluxe Ocean View</text>
+
+  <text x="120" y="650" font-family="Arial" font-size="18" fill="#666">Total Amount:</text>
+  <text x="400" y="650" font-family="Arial" font-size="22" font-weight="bold" fill="#27ae60">$1,250.00</text>
+
+  <!-- Footer -->
+  <rect y="900" width="800" height="100" fill="#F8F9FA"/>
+  <text x="400" y="940" font-family="Arial" font-size="14" fill="#666" text-anchor="middle">Thank you for booking with us!</text>
+  <text x="400" y="970" font-family="Arial" font-size="12" fill="#999" text-anchor="middle">For questions, contact support@chravel.com</text>
+</svg>

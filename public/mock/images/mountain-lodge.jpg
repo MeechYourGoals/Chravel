@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="mountainSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#5e9ed6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#87CEEB;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1200" height="500" fill="url(#mountainSky)"/>
+
+  <!-- Mountains -->
+  <polygon points="0,350 300,150 600,300 800,200 1200,400 1200,500 0,500" fill="#8d99ae"/>
+  <polygon points="200,400 500,200 800,350 1000,250 1200,450 1200,500 0,500" fill="#b0b8c4"/>
+
+  <!-- Snow caps -->
+  <polygon points="300,150 280,180 320,180" fill="white"/>
+  <polygon points="500,200 470,240 530,240" fill="white"/>
+  <polygon points="800,200 775,235 825,235" fill="white"/>
+
+  <!-- Ground/Snow -->
+  <rect y="500" width="1200" height="300" fill="#f0f4f8"/>
+
+  <!-- Lodge -->
+  <g>
+    <!-- Main building -->
+    <rect x="400" y="450" width="400" height="250" fill="#8B4513"/>
+
+    <!-- Roof -->
+    <polygon points="380,450 600,350 820,450" fill="#654321"/>
+
+    <!-- Door -->
+    <rect x="575" y="600" width="50" height="100" fill="#4a2511"/>
+    <circle cx="620" cy="650" r="4" fill="#FFD700"/>
+
+    <!-- Windows -->
+    <rect x="440" y="500" width="60" height="70" fill="#87CEEB" stroke="#654321" stroke-width="4"/>
+    <line x1="470" y1="500" x2="470" y2="570" stroke="#654321" stroke-width="4"/>
+    <line x1="440" y1="535" x2="500" y2="535" stroke="#654321" stroke-width="4"/>
+
+    <rect x="520" y="500" width="60" height="70" fill="#87CEEB" stroke="#654321" stroke-width="4"/>
+    <line x1="550" y1="500" x2="550" y2="570" stroke="#654321" stroke-width="4"/>
+    <line x1="520" y1="535" x2="580" y2="535" stroke="#654321" stroke-width="4"/>
+
+    <rect x="620" y="500" width="60" height="70" fill="#87CEEB" stroke="#654321" stroke-width="4"/>
+    <line x1="650" y1="500" x2="650" y2="570" stroke="#654321" stroke-width="4"/>
+    <line x1="620" y1="535" x2="680" y2="535" stroke="#654321" stroke-width="4"/>
+
+    <rect x="700" y="500" width="60" height="70" fill="#87CEEB" stroke="#654321" stroke-width="4"/>
+    <line x1="730" y1="500" x2="730" y2="570" stroke="#654321" stroke-width="4"/>
+    <line x1="700" y1="535" x2="760" y2="535" stroke="#654321" stroke-width="4"/>
+
+    <!-- Chimney -->
+    <rect x="680" y="320" width="40" height="130" fill="#8B4513"/>
+    <rect x="675" y="315" width="50" height="15" fill="#654321"/>
+
+    <!-- Smoke -->
+    <g opacity="0.5" fill="#d3d3d3">
+      <ellipse cx="700" cy="290" rx="20" ry="15"/>
+      <ellipse cx="710" cy="270" rx="25" ry="18"/>
+      <ellipse cx="720" cy="245" rx="22" ry="16"/>
+    </g>
+
+    <!-- Balcony -->
+    <rect x="450" y="580" width="100" height="5" fill="#654321"/>
+    <line x1="460" y1="585" x2="460" y2="620" stroke="#654321" stroke-width="3"/>
+    <line x1="490" y1="585" x2="490" y2="620" stroke="#654321" stroke-width="3"/>
+    <line x1="520" y1="585" x2="520" y2="620" stroke="#654321" stroke-width="3"/>
+  </g>
+
+  <!-- Pine trees -->
+  <g fill="#1b4332">
+    <!-- Left tree -->
+    <rect x="245" y="600" width="15" height="60" fill="#2d6a4f"/>
+    <polygon points="252,600 220,630 285,630"/>
+    <polygon points="252,575 215,610 290,610"/>
+    <polygon points="252,550 210,590 295,590"/>
+
+    <!-- Right tree -->
+    <rect x="920" y="580" width="15" height="60" fill="#2d6a4f"/>
+    <polygon points="927,580 895,610 960,610"/>
+    <polygon points="927,555 890,590 965,590"/>
+    <polygon points="927,530 885,570 970,570"/>
+  </g>
+
+  <!-- Clouds -->
+  <g fill="white" opacity="0.7">
+    <ellipse cx="200" cy="120" rx="60" ry="35"/>
+    <ellipse cx="250" cy="115" rx="50" ry="30"/>
+    <ellipse cx="150" cy="115" rx="45" ry="28"/>
+
+    <ellipse cx="900" cy="150" rx="70" ry="40"/>
+    <ellipse cx="960" cy="145" rx="55" ry="32"/>
+    <ellipse cx="840" cy="145" rx="50" ry="30"/>
+  </g>
+
+  <!-- Sun -->
+  <circle cx="1050" cy="120" r="50" fill="#FFD700" opacity="0.8"/>
+</svg>

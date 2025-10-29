@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="nashvilleSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#c44569;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7b2a4f;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Night sky -->
+  <rect width="1200" height="600" fill="url(#nashvilleSky)"/>
+
+  <!-- Street -->
+  <rect y="600" width="1200" height="200" fill="#333"/>
+
+  <!-- Buildings/Honky Tonks -->
+  <!-- Building 1 -->
+  <rect x="50" y="350" width="180" height="250" fill="#8B4513"/>
+  <rect x="60" y="320" width="160" height="40" fill="#654321"/>
+  <text x="140" y="348" font-family="Arial" font-size="24" font-weight="bold" fill="#FFD700" text-anchor="middle">HONKY TONK</text>
+
+  <!-- Windows -->
+  <g fill="#FFD700" opacity="0.9">
+    <rect x="75" y="390" width="30" height="40"/>
+    <rect x="120" y="390" width="30" height="40"/>
+    <rect x="165" y="390" width="30" height="40"/>
+    <rect x="75" y="450" width="30" height="40"/>
+    <rect x="120" y="450" width="30" height="40"/>
+    <rect x="165" y="450" width="30" height="40"/>
+  </g>
+
+  <!-- Door -->
+  <rect x="115" y="540" width="50" height="60" fill="#5a3825"/>
+
+  <!-- Building 2 -->
+  <rect x="270" y="320" width="200" height="280" fill="#a0522d"/>
+  <rect x="280" y="290" width="180" height="40" fill="#8B4513"/>
+  <text x="380" y="318" font-family="Arial" font-size="20" font-weight="bold" fill="#00CED1" text-anchor="middle">LIVE MUSIC</text>
+
+  <!-- Neon sign -->
+  <g fill="#00CED1" opacity="0.8">
+    <circle cx="320" cy="360" r="6"/>
+    <circle cx="340" cy="360" r="6"/>
+    <circle cx="360" cy="360" r="6"/>
+    <circle cx="380" cy="360" r="6"/>
+    <circle cx="400" cy="360" r="6"/>
+    <circle cx="420" cy="360" r="6"/>
+    <circle cx="440" cy="360" r="6"/>
+  </g>
+
+  <!-- Windows -->
+  <g fill="#FFA500" opacity="0.9">
+    <rect x="290" y="400" width="35" height="45"/>
+    <rect x="340" y="400" width="35" height="45"/>
+    <rect x="390" y="400" width="35" height="45"/>
+    <rect x="290" y="460" width="35" height="45"/>
+    <rect x="340" y="460" width="35" height="45"/>
+    <rect x="390" y="460" width="35" height="45"/>
+  </g>
+
+  <!-- Building 3 -->
+  <rect x="510" y="340" width="190" height="260" fill="#cd853f"/>
+  <rect x="520" y="310" width="170" height="40" fill="#a0522d"/>
+  <text x="605" y="338" font-family="Arial" font-size="22" font-weight="bold" fill="#FF1493" text-anchor="middle">BAR & GRILL</text>
+
+  <!-- Windows -->
+  <g fill="#FF69B4" opacity="0.8">
+    <rect x="530" y="380" width="40" height="50"/>
+    <rect x="585" y="380" width="40" height="50"/>
+    <rect x="640" y="380" width="40" height="50"/>
+    <rect x="530" y="450" width="40" height="50"/>
+    <rect x="585" y="450" width="40" height="50"/>
+    <rect x="640" y="450" width="40" height="50"/>
+  </g>
+
+  <!-- Building 4 -->
+  <rect x="740" y="360" width="200" height="240" fill="#8B4513"/>
+  <rect x="750" y="330" width="180" height="40" fill="#654321"/>
+  <text x="840" y="358" font-family="Arial" font-size="24" font-weight="bold" fill="#7FFF00" text-anchor="middle">SALOON</text>
+
+  <!-- Windows -->
+  <g fill="#7FFF00" opacity="0.8">
+    <rect x="760" y="400" width="35" height="45"/>
+    <rect x="810" y="400" width="35" height="45"/>
+    <rect x="860" y="400" width="35" height="45"/>
+    <rect x="760" y="465" width="35" height="45"/>
+    <rect x="810" y="465" width="35" height="45"/>
+    <rect x="860" y="465" width="35" height="45"/>
+  </g>
+
+  <!-- Building 5 -->
+  <rect x="980" y="380" width="180" height="220" fill="#a0522d"/>
+  <rect x="990" y="350" width="160" height="40" fill="#8B4513"/>
+  <text x="1070" y="378" font-family="Arial" font-size="20" font-weight="bold" fill="#FF4500" text-anchor="middle">STAGE</text>
+
+  <!-- Windows -->
+  <g fill="#FF4500" opacity="0.8">
+    <rect x="1000" y="420" width="35" height="40"/>
+    <rect x="1050" y="420" width="35" height="40"/>
+    <rect x="1100" y="420" width="35" height="40"/>
+    <rect x="1000" y="480" width="35" height="40"/>
+    <rect x="1050" y="480" width="35" height="40"/>
+    <rect x="1100" y="480" width="35" height="40"/>
+  </g>
+
+  <!-- People on street -->
+  <g>
+    <circle cx="200" cy="670" r="15" fill="#ff006e"/>
+    <rect x="192" y="685" width="16" height="30" fill="#3a86ff"/>
+
+    <circle cx="350" cy="665" r="15" fill="#8338ec"/>
+    <rect x="342" y="680" width="16" height="30" fill="#ffbe0b"/>
+
+    <circle cx="500" cy="670" r="15" fill="#06ffa5"/>
+    <rect x="492" y="685" width="16" height="30" fill="#ff006e"/>
+
+    <circle cx="650" cy="668" r="15" fill="#3a86ff"/>
+    <rect x="642" y="683" width="16" height="30" fill="#8338ec"/>
+
+    <circle cx="800" cy="672" r="15" fill="#ffbe0b"/>
+    <rect x="792" y="687" width="16" height="30" fill="#06ffa5"/>
+  </g>
+
+  <!-- String lights -->
+  <g fill="#FFD700" opacity="0.8">
+    <circle cx="100" cy="280" r="5"/>
+    <circle cx="200" cy="285" r="5"/>
+    <circle cx="300" cy="280" r="5"/>
+    <circle cx="400" cy="285" r="5"/>
+    <circle cx="500" cy="280" r="5"/>
+    <circle cx="600" cy="285" r="5"/>
+    <circle cx="700" cy="280" r="5"/>
+    <circle cx="800" cy="285" r="5"/>
+    <circle cx="900" cy="280" r="5"/>
+    <circle cx="1000" cy="285" r="5"/>
+    <circle cx="1100" cy="280" r="5"/>
+  </g>
+  <line x1="50" y1="280" x2="1150" y2="285" stroke="#333" stroke-width="2"/>
+</svg>

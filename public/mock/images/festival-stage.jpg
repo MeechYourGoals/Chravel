@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="festivalSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff006e;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8338ec;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3a86ff;stop-opacity:1" />
+    </linearGradient>
+    <radialGradient id="spotlight1">
+      <stop offset="0%" style="stop-color:#ffbe0b;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#ffbe0b;stop-opacity:0" />
+    </radialGradient>
+    <radialGradient id="spotlight2">
+      <stop offset="0%" style="stop-color:#fb5607;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#fb5607;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1200" height="500" fill="url(#festivalSky)"/>
+
+  <!-- Ground -->
+  <rect y="500" width="1200" height="300" fill="#1a1a1a"/>
+
+  <!-- Stage -->
+  <rect x="200" y="350" width="800" height="250" fill="#2d2d2d"/>
+  <polygon points="200,350 1000,350 950,300 250,300" fill="#3d3d3d"/>
+
+  <!-- Stage lights -->
+  <circle cx="300" cy="320" r="15" fill="#ffbe0b"/>
+  <circle cx="450" cy="310" r="15" fill="#ff006e"/>
+  <circle cx="600" cy="305" r="15" fill="#3a86ff"/>
+  <circle cx="750" cy="310" r="15" fill="#8338ec"/>
+  <circle cx="900" cy="320" r="15" fill="#ffbe0b"/>
+
+  <!-- Spotlights -->
+  <ellipse cx="400" cy="450" rx="100" ry="200" fill="url(#spotlight1)"/>
+  <ellipse cx="800" cy="450" rx="100" ry="200" fill="url(#spotlight2)"/>
+
+  <!-- Speaker stacks -->
+  <g fill="#1a1a1a" stroke="#ffbe0b" stroke-width="3">
+    <rect x="150" y="450" width="80" height="60"/>
+    <rect x="150" y="510" width="80" height="60"/>
+    <rect x="970" y="450" width="80" height="60"/>
+    <rect x="970" y="510" width="80" height="60"/>
+    <circle cx="190" cy="480" r="15" fill="none"/>
+    <circle cx="190" cy="540" r="15" fill="none"/>
+    <circle cx="1010" cy="480" r="15" fill="none"/>
+    <circle cx="1010" cy="540" r="15" fill="none"/>
+  </g>
+
+  <!-- Crowd silhouettes -->
+  <g fill="#000000" opacity="0.8">
+    <ellipse cx="100" cy="720" rx="30" ry="80"/>
+    <ellipse cx="150" cy="710" rx="28" ry="90"/>
+    <ellipse cx="200" cy="720" rx="32" ry="80"/>
+    <ellipse cx="250" cy="705" rx="30" ry="95"/>
+    <ellipse cx="300" cy="715" rx="28" ry="85"/>
+    <ellipse cx="350" cy="710" rx="30" ry="90"/>
+    <ellipse cx="400" cy="720" rx="32" ry="80"/>
+    <ellipse cx="450" cy="715" rx="28" ry="85"/>
+    <ellipse cx="500" cy="710" rx="30" ry="90"/>
+    <ellipse cx="550" cy="720" rx="32" ry="80"/>
+    <ellipse cx="600" cy="715" rx="28" ry="85"/>
+    <ellipse cx="650" cy="710" rx="30" ry="90"/>
+    <ellipse cx="700" cy="720" rx="32" ry="80"/>
+    <ellipse cx="750" cy="715" rx="28" ry="85"/>
+    <ellipse cx="800" cy="710" rx="30" ry="90"/>
+    <ellipse cx="850" cy="720" rx="32" ry="80"/>
+    <ellipse cx="900" cy="715" rx="28" ry="85"/>
+    <ellipse cx="950" cy="710" rx="30" ry="90"/>
+    <ellipse cx="1000" cy="720" rx="32" ry="80"/>
+    <ellipse cx="1050" cy="715" rx="28" ry="85"/>
+    <ellipse cx="1100" cy="710" rx="30" ry="90"/>
+  </g>
+
+  <!-- Raised hands -->
+  <g fill="#ffbe0b" opacity="0.6">
+    <rect x="180" y="650" width="12" height="40" transform="rotate(-20 186 670)"/>
+    <rect x="380" y="660" width="12" height="40" transform="rotate(15 386 680)"/>
+    <rect x="580" y="655" width="12" height="40" transform="rotate(-10 586 675)"/>
+    <rect x="780" y="650" width="12" height="40" transform="rotate(20 786 670)"/>
+    <rect x="980" y="660" width="12" height="40" transform="rotate(-15 986 680)"/>
+  </g>
+
+  <!-- Ferris wheel in background -->
+  <circle cx="1050" cy="250" r="80" fill="none" stroke="#ff006e" stroke-width="4" opacity="0.6"/>
+  <line x1="1050" y1="170" x2="1050" y2="330" stroke="#ff006e" stroke-width="2" opacity="0.6"/>
+  <line x1="970" y1="250" x2="1130" y2="250" stroke="#ff006e" stroke-width="2" opacity="0.6"/>
+</svg>

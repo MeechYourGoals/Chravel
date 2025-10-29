@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="festDay" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd60a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffc300;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1200" height="400" fill="url(#festDay)"/>
+
+  <!-- Sun -->
+  <circle cx="200" cy="100" r="70" fill="#ff9500" opacity="0.8"/>
+
+  <!-- Festival tents -->
+  <polygon points="100,450 250,350 400,450" fill="#e63946"/>
+  <polygon points="250,350 400,450 400,600 100,600" fill="#f1faee"/>
+
+  <polygon points="800,450 950,350 1100,450" fill="#457b9d"/>
+  <polygon points="950,350 1100,450 1100,600 800,600" fill="#a8dadc"/>
+
+  <!-- Ground -->
+  <rect y="600" width="1200" height="200" fill="#52b788"/>
+
+  <!-- Crowd of people -->
+  <g>
+    <!-- Row 1 -->
+    <circle cx="150" cy="680" r="20" fill="#ff006e"/>
+    <rect x="140" y="700" width="20" height="40" fill="#ff006e"/>
+
+    <circle cx="220" cy="675" r="20" fill="#3a86ff"/>
+    <rect x="210" y="695" width="20" height="40" fill="#3a86ff"/>
+
+    <circle cx="290" cy="680" r="20" fill="#ffbe0b"/>
+    <rect x="280" y="700" width="20" height="40" fill="#ffbe0b"/>
+
+    <circle cx="360" cy="675" r="20" fill="#8338ec"/>
+    <rect x="350" y="695" width="20" height="40" fill="#8338ec"/>
+
+    <circle cx="430" cy="680" r="20" fill="#06ffa5"/>
+    <rect x="420" y="700" width="20" height="40" fill="#06ffa5"/>
+
+    <circle cx="500" cy="675" r="20" fill="#ff006e"/>
+    <rect x="490" y="695" width="20" height="40" fill="#ff006e"/>
+
+    <circle cx="570" cy="680" r="20" fill="#3a86ff"/>
+    <rect x="560" y="700" width="20" height="40" fill="#3a86ff"/>
+
+    <circle cx="640" cy="675" r="20" fill="#ffbe0b"/>
+    <rect x="630" y="695" width="20" height="40" fill="#ffbe0b"/>
+
+    <circle cx="710" cy="680" r="20" fill="#8338ec"/>
+    <rect x="700" y="700" width="20" height="40" fill="#8338ec"/>
+
+    <circle cx="780" cy="675" r="20" fill="#06ffa5"/>
+    <rect x="770" y="695" width="20" height="40" fill="#06ffa5"/>
+
+    <circle cx="850" cy="680" r="20" fill="#ff006e"/>
+    <rect x="840" y="700" width="20" height="40" fill="#ff006e"/>
+
+    <circle cx="920" cy="675" r="20" fill="#3a86ff"/>
+    <rect x="910" y="695" width="20" height="40" fill="#3a86ff"/>
+
+    <circle cx="990" cy="680" r="20" fill="#ffbe0b"/>
+    <rect x="980" y="700" width="20" height="40" fill="#ffbe0b"/>
+
+    <circle cx="1060" cy="675" r="20" fill="#8338ec"/>
+    <rect x="1050" y="695" width="20" height="40" fill="#8338ec"/>
+  </g>
+
+  <!-- Balloons -->
+  <g>
+    <ellipse cx="450" cy="520" rx="25" ry="30" fill="#ff006e" opacity="0.8"/>
+    <line x1="450" y1="550" x2="455" y2="600" stroke="#666" stroke-width="2"/>
+
+    <ellipse cx="750" cy="500" rx="25" ry="30" fill="#3a86ff" opacity="0.8"/>
+    <line x1="750" y1="530" x2="745" y2="580" stroke="#666" stroke-width="2"/>
+
+    <ellipse cx="600" cy="480" rx="25" ry="30" fill="#ffbe0b" opacity="0.8"/>
+    <line x1="600" y1="510" x2="605" y2="560" stroke="#666" stroke-width="2"/>
+  </g>
+
+  <!-- Confetti -->
+  <g opacity="0.7">
+    <rect x="200" y="300" width="8" height="15" fill="#ff006e" transform="rotate(20 204 307)"/>
+    <rect x="400" y="250" width="8" height="15" fill="#3a86ff" transform="rotate(-30 404 257)"/>
+    <rect x="600" y="280" width="8" height="15" fill="#ffbe0b" transform="rotate(45 604 287)"/>
+    <rect x="800" y="320" width="8" height="15" fill="#8338ec" transform="rotate(-15 804 327)"/>
+    <rect x="1000" y="270" width="8" height="15" fill="#06ffa5" transform="rotate(60 1004 277)"/>
+    <rect x="300" y="350" width="8" height="15" fill="#ff006e" transform="rotate(-45 304 357)"/>
+    <rect x="700" y="330" width="8" height="15" fill="#3a86ff" transform="rotate(30 704 337)"/>
+    <rect x="900" y="290" width="8" height="15" fill="#ffbe0b" transform="rotate(-60 904 297)"/>
+  </g>
+</svg>

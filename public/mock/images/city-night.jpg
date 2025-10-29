@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="nightSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F2027;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#203A43;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Night sky -->
+  <rect width="1200" height="800" fill="url(#nightSky)"/>
+
+  <!-- Stars -->
+  <circle cx="100" cy="50" r="2" fill="white" opacity="0.8"/>
+  <circle cx="300" cy="80" r="2" fill="white" opacity="0.9"/>
+  <circle cx="500" cy="40" r="2" fill="white" opacity="0.7"/>
+  <circle cx="700" cy="90" r="2" fill="white" opacity="0.8"/>
+  <circle cx="900" cy="60" r="2" fill="white" opacity="0.9"/>
+  <circle cx="1100" cy="70" r="2" fill="white" opacity="0.8"/>
+  <circle cx="200" cy="120" r="2" fill="white" opacity="0.7"/>
+  <circle cx="800" cy="110" r="2" fill="white" opacity="0.8"/>
+
+  <!-- Buildings -->
+  <!-- Building 1 -->
+  <rect x="50" y="400" width="150" height="400" fill="#1A1A2E"/>
+  <g fill="#FFD700" opacity="0.9">
+    <rect x="70" y="420" width="20" height="30"/>
+    <rect x="70" y="470" width="20" height="30"/>
+    <rect x="70" y="520" width="20" height="30"/>
+    <rect x="70" y="570" width="20" height="30"/>
+    <rect x="110" y="420" width="20" height="30"/>
+    <rect x="110" y="470" width="20" height="30"/>
+    <rect x="110" y="520" width="20" height="30"/>
+    <rect x="110" y="570" width="20" height="30"/>
+    <rect x="150" y="420" width="20" height="30"/>
+    <rect x="150" y="470" width="20" height="30"/>
+    <rect x="150" y="520" width="20" height="30"/>
+  </g>
+
+  <!-- Building 2 (tall) -->
+  <rect x="250" y="200" width="200" height="600" fill="#16213E"/>
+  <g fill="#00ADB5" opacity="0.9">
+    <rect x="270" y="220" width="30" height="40"/>
+    <rect x="270" y="280" width="30" height="40"/>
+    <rect x="270" y="340" width="30" height="40"/>
+    <rect x="270" y="400" width="30" height="40"/>
+    <rect x="270" y="460" width="30" height="40"/>
+    <rect x="320" y="220" width="30" height="40"/>
+    <rect x="320" y="280" width="30" height="40"/>
+    <rect x="320" y="340" width="30" height="40"/>
+    <rect x="320" y="400" width="30" height="40"/>
+    <rect x="320" y="460" width="30" height="40"/>
+    <rect x="370" y="220" width="30" height="40"/>
+    <rect x="370" y="280" width="30" height="40"/>
+    <rect x="370" y="340" width="30" height="40"/>
+    <rect x="370" y="400" width="30" height="40"/>
+    <rect x="370" y="460" width="30" height="40"/>
+  </g>
+
+  <!-- Building 3 -->
+  <rect x="500" y="350" width="180" height="450" fill="#0F3460"/>
+  <g fill="#FFB6C1" opacity="0.8">
+    <rect x="520" y="370" width="25" height="35"/>
+    <rect x="520" y="425" width="25" height="35"/>
+    <rect x="520" y="480" width="25" height="35"/>
+    <rect x="520" y="535" width="25" height="35"/>
+    <rect x="570" y="370" width="25" height="35"/>
+    <rect x="570" y="425" width="25" height="35"/>
+    <rect x="570" y="480" width="25" height="35"/>
+    <rect x="570" y="535" width="25" height="35"/>
+    <rect x="620" y="370" width="25" height="35"/>
+    <rect x="620" y="425" width="25" height="35"/>
+    <rect x="620" y="480" width="25" height="35"/>
+    <rect x="620" y="535" width="25" height="35"/>
+  </g>
+
+  <!-- Building 4 -->
+  <rect x="730" y="450" width="160" height="350" fill="#1A1A2E"/>
+  <g fill="#FF6B6B" opacity="0.8">
+    <rect x="750" y="470" width="22" height="32"/>
+    <rect x="750" y="520" width="22" height="32"/>
+    <rect x="750" y="570" width="22" height="32"/>
+    <rect x="790" y="470" width="22" height="32"/>
+    <rect x="790" y="520" width="22" height="32"/>
+    <rect x="790" y="570" width="22" height="32"/>
+    <rect x="830" y="470" width="22" height="32"/>
+    <rect x="830" y="520" width="22" height="32"/>
+    <rect x="830" y="570" width="22" height="32"/>
+  </g>
+
+  <!-- Building 5 -->
+  <rect x="940" y="380" width="190" height="420" fill="#16213E"/>
+  <g fill="#4ECCA3" opacity="0.9">
+    <rect x="960" y="400" width="28" height="38"/>
+    <rect x="960" y="458" width="28" height="38"/>
+    <rect x="960" y="516" width="28" height="38"/>
+    <rect x="960" y="574" width="28" height="38"/>
+    <rect x="1010" y="400" width="28" height="38"/>
+    <rect x="1010" y="458" width="28" height="38"/>
+    <rect x="1010" y="516" width="28" height="38"/>
+    <rect x="1010" y="574" width="28" height="38"/>
+    <rect x="1060" y="400" width="28" height="38"/>
+    <rect x="1060" y="458" width="28" height="38"/>
+    <rect x="1060" y="516" width="28" height="38"/>
+    <rect x="1060" y="574" width="28" height="38"/>
+  </g>
+
+  <!-- Moon -->
+  <circle cx="1000" cy="150" r="50" fill="#F0E68C" opacity="0.9"/>
+</svg>
