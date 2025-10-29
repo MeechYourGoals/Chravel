@@ -101,35 +101,6 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
   return (
     <>
       <div className="space-y-4">
-        {/* Header */}
-        <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-4 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  places.length > 0
-                    ? 'bg-gradient-to-r from-red-600 to-red-700'
-                    : 'bg-gradient-to-r from-gray-600 to-gray-700'
-                }`}
-              >
-                <MapPin size={20} className="text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">Trip Links</h3>
-                <p className="text-gray-400 text-xs">
-                  {places.length > 0 ? `${places.length} saved links` : 'Save your trip links'}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => setIsAddPlaceModalOpen(true)}
-              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-xl transition-all font-medium text-sm flex items-center gap-2 shadow-lg shadow-green-500/25"
-            >
-              <Plus size={16} />
-              Add Link
-            </button>
-          </div>
-        </div>
 
         {/* Category Filters */}
         {categories.length > 0 && (
@@ -183,9 +154,10 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
               <>
                 <button
                   onClick={() => setIsAddPlaceModalOpen(true)}
-                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-3 rounded-xl transition-all hover:scale-105 shadow-lg shadow-green-500/25 font-semibold"
+                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-3 rounded-xl transition-all hover:scale-105 shadow-lg shadow-green-500/25 font-semibold flex items-center gap-2 mx-auto"
                 >
-                  Save Your First Link
+                  <Plus size={18} />
+                  Add Link
                 </button>
                 <div className="mt-6 space-y-1 text-xs text-gray-500">
                   <p>• View distances from your basecamp</p>

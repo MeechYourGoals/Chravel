@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Home, Lock, Plus, Edit, Trash2, Navigation } from 'lucide-react';
+import { MapPin, Home, Lock, Plus, Trash2, Navigation } from 'lucide-react';
 import { BasecampLocation } from '@/types/basecamp';
 import { BasecampSelector } from '../BasecampSelector';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
@@ -145,19 +145,14 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           <div className="p-6">
             {tripBasecamp ? (
               <>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Home size={20} className="text-sky-400" />
-                    <h3 className="text-white font-semibold text-lg">Trip Base Camp</h3>
-                  </div>
-                  <button
-                    onClick={() => setShowTripSelector(true)}
-                    className="p-2 rounded-lg text-sky-400 hover:bg-sky-500/10 transition-colors"
-                    title="Edit"
-                  >
-                    <Edit size={16} />
-                  </button>
+                <div className="flex items-center gap-2 mb-2">
+                  <Home size={20} className="text-sky-400" />
+                  <h3 className="text-white font-semibold text-lg">Trip Base Camp</h3>
                 </div>
+
+                <p className="text-gray-400 text-sm mb-4">
+                  This is where the trip is staying. This changes it for the whole trip.
+                </p>
 
                 <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4">
                   <div className="flex items-start gap-2">
@@ -173,14 +168,10 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
 
                 <div className="flex gap-2">
                   <button
-                    onClick={() => onContextChange('trip')}
-                    className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
-                      activeContext === 'trip'
-                        ? 'bg-sky-500/20 text-sky-300 ring-1 ring-sky-400/30'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                    }`}
+                    onClick={() => setShowTripSelector(true)}
+                    className="flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all bg-sky-600 hover:bg-sky-700 text-white"
                   >
-                    Use for Searches
+                    Update Trip Basecamp
                   </button>
                   {tripBasecamp.coordinates && (
                     <button
@@ -223,30 +214,12 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
               </div>
             ) : personalBasecamp ? (
               <>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <MapPin size={20} className="text-emerald-400" />
-                    <h3 className="text-white font-semibold text-lg">Personal Base Camp</h3>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handlePersonalBasecampDelete}
-                      className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => setShowPersonalSelector(true)}
-                      className="p-2 rounded-lg text-emerald-400 hover:bg-emerald-500/10 transition-colors"
-                      title="Edit"
-                    >
-                      <Edit size={16} />
-                    </button>
-                  </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin size={20} className="text-emerald-400" />
+                  <h3 className="text-white font-semibold text-lg">Personal Base Camp</h3>
                 </div>
 
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-2 mb-3">
                   <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
                     <Lock size={12} />
                     Private
@@ -255,6 +228,10 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                     <span className="text-xs text-gray-500">Demo Mode: saved locally</span>
                   )}
                 </div>
+
+                <p className="text-gray-400 text-sm mb-4">
+                  Save your personal accommodations location here. Only you can see this.
+                </p>
 
                 <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4">
                   <div className="flex items-start gap-2">
@@ -270,14 +247,17 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
 
                 <div className="flex gap-2">
                   <button
-                    onClick={() => onContextChange('personal')}
-                    className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
-                      activeContext === 'personal'
-                        ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/30'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                    }`}
+                    onClick={() => setShowPersonalSelector(true)}
+                    className="flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
-                    Use for Searches
+                    Update Personal Basecamp
+                  </button>
+                  <button
+                    onClick={handlePersonalBasecampDelete}
+                    className="p-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white transition-colors"
+                    title="Delete"
+                  >
+                    <Trash2 size={16} />
                   </button>
                   {personalBasecamp.latitude && personalBasecamp.longitude && (
                     <button
@@ -301,8 +281,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   </span>
                 </div>
                 <p className="text-gray-400 text-sm mb-3">
-                  Add where you're staying (hotel/Airbnb) to center searches around you. Only you can see
-                  this.
+                  Save your personal accommodations location here. Only you can see this.
                 </p>
                 {isDemoMode && (
                   <p className="text-xs text-gray-500 mb-3">Demo Mode: saved locally for this session</p>
