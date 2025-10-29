@@ -107,7 +107,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}
-              className="w-full"
+              className="scale-110"
               modifiers={{
                 hasEvents: datesWithEvents
               }}
