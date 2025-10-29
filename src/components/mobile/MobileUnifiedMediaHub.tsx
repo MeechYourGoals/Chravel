@@ -11,7 +11,7 @@ import { MediaGridItem } from './MediaGridItem';
 
 interface MediaItem {
   id: string;
-  type: 'image' | 'video' | 'file' | 'link';
+  type: 'image' | 'video' | 'file';
   url: string;
   thumbnail?: string;
   uploadedBy: string;
