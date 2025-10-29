@@ -15,6 +15,8 @@ import { useDemoModeStore } from "./store/demoModeStore";
 import { errorTracking } from "./services/errorTracking";
 import { supabase } from "./integrations/supabase/client";
 import { AppInitializer } from "./components/app/AppInitializer";
+import BuildBadge from "./components/BuildBadge";
+import Healthz from "./pages/Healthz";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -85,6 +87,7 @@ const App = () => {
                         <Index />
                       </LazyRoute>
                     } />
+                    <Route path="/healthz" element={<Healthz />} />
                     <Route path="/trip/:tripId" element={
                       <LazyRoute>
                         <TripDetail />
@@ -168,6 +171,7 @@ const App = () => {
                   </Routes>
                 </MobileAppLayout>
               </BrowserRouter>
+              <BuildBadge />
             </TooltipProvider>
             </AppInitializer>
           </ConsumerSubscriptionProvider>

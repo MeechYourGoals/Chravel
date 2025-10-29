@@ -16,6 +16,7 @@ import { useBasecamp } from '@/contexts/BasecampContext';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
 import MockDataService from '@/services/mockDataService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PlacesSectionProps {
   tripId?: string;
@@ -58,21 +59,55 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
 
   const effectiveUserId = user?.id || getDemoUserId();
 
-  // Load mock places data on mount
+  // Load places with API first, fallback to mock data
   useEffect(() => {
-    const loadMockPlaces = async () => {
-      console.log('[PlacesSection] Checking if should load mock data...');
-      console.log('[PlacesSection] isDemoMode:', isDemoMode);
-      console.log('[PlacesSection] MockDataService.isUsingMockData():', MockDataService.isUsingMockData());
-
-      // ALWAYS load mock places for now (for testing/demo purposes)
-      // TODO: Make this conditional based on user preferences or demo mode
+    const loadPlaces = async () => {
       try {
-        console.log('[PlacesSection] Loading mock places for tripId:', tripId);
-        const mockPlaces = await MockDataService.getMockPlaceItems(tripId, true); // Force load
-        console.log('[PlacesSection] Fetched mock places:', mockPlaces.length, mockPlaces);
+        console.log('[PlacesSection] Loading places for tripId:', tripId);
+        // Attempt to load from API/database
+        const { data: apiPlaces, error } = await supabase
+          .from('trip_places')
+          .select('id, name, address, category, lat, lng, url, rating')
+          .eq('trip_id', tripId);
 
-        const placesWithDistance: PlaceWithDistance[] = mockPlaces.map(place => ({
+        if (error) {
+          console.warn('[PlacesSection] API load failed, will fallback to mock:', error.message);
+        }
+
+        let list: PlaceWithDistance[] = [];
+        if (apiPlaces && apiPlaces.length > 0) {
+          list = apiPlaces.map((p: any) => ({
+            id: String(p.id ?? `${p.name}-${p.address}`),
+            name: p.name,
+            address: p.address,
+            category: p.category,
+            rating: p.rating ?? undefined,
+            url: p.url ?? undefined,
+            coordinates: p.lat && p.lng ? { lat: p.lat, lng: p.lng } : undefined,
+          }));
+        }
+
+        if (!list || list.length === 0) {
+          console.log('[PlacesSection] Using mock fallback for places');
+          const mock = await MockDataService.getMockPlaceItems(tripId, true);
+          list = mock.map(place => ({
+            id: place.id,
+            name: place.name,
+            address: place.address,
+            coordinates: place.coordinates,
+            category: place.category,
+            rating: place.rating,
+            url: place.url,
+            distanceFromBasecamp: place.distanceFromBasecamp
+          }));
+        }
+
+        setPlaces(list);
+        console.log('[PlacesSection] ✅ Loaded places:', list.length);
+      } catch (error) {
+        console.error('[PlacesSection] ❌ Failed to load places, showing mock fallback:', error);
+        const mock = await MockDataService.getMockPlaceItems(tripId, true);
+        const list = mock.map(place => ({
           id: place.id,
           name: place.name,
           address: place.address,
@@ -82,15 +117,11 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
           url: place.url,
           distanceFromBasecamp: place.distanceFromBasecamp
         }));
-
-        setPlaces(placesWithDistance);
-        console.log('[PlacesSection] ✅ Loaded mock places:', placesWithDistance.length);
-      } catch (error) {
-        console.error('[PlacesSection] ❌ Failed to load mock places:', error);
+        setPlaces(list);
       }
     };
 
-    loadMockPlaces();
+    loadPlaces();
   }, [tripId]);
 
   // Load personal basecamp

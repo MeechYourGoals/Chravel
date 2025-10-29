@@ -174,7 +174,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       setIsSearching(true);
       setSearchError(null);
       try {
-        // Use Text Search API for better results
+        // Primary: Google Places Text Search (via proxy)
         const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
         const searchOptions = activeBasecamp?.coordinates
           ? { location: `${activeBasecamp.coordinates.lat},${activeBasecamp.coordinates.lng}` }
@@ -188,7 +188,6 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
             ? await GoogleMapsService.getPlaceDetails(place.place_id)
             : null;
 
-          // Set the selected place info
           const placeInfo: PlaceInfo = {
             name: place.name,
             address: place.formatted_address,
@@ -197,19 +196,38 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
             rating: place.rating,
             website: placeDetails?.result?.website
           };
-
           setSelectedPlace(placeInfo);
 
-          // Update map to show the place
           if (place.geometry?.location) {
             const url = GoogleMapsService.buildEmbeddableUrl(
               place.formatted_address,
               place.geometry.location
             );
             setEmbedUrl(url);
+            setIsSearching(false);
+            return;
           }
+        }
+
+        // Fallback: OpenStreetMap Nominatim geocoding
+        const fallback = await GoogleMapsService.fallbackGeocodeNominatim(query);
+        if (fallback) {
+          const placeInfo: PlaceInfo = {
+            name: query,
+            address: fallback.displayName,
+            coordinates: { lat: fallback.lat, lng: fallback.lng },
+            placeId: undefined,
+            rating: undefined,
+            website: undefined
+          };
+          setSelectedPlace(placeInfo);
+          const url = GoogleMapsService.buildEmbeddableUrl(
+            fallback.displayName,
+            { lat: fallback.lat, lng: fallback.lng }
+          );
+          setEmbedUrl(url);
         } else {
-          setSearchError('No results found. Try a different search term.');
+          setSearchError('No results found');
         }
       } catch (error) {
         console.error('Search error:', error);
