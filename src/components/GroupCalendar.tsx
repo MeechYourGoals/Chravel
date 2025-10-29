@@ -101,8 +101,8 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:h-[600px]">
+          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4 flex items-start">
             <Calendar
               mode="single"
               selected={selectedDate}
@@ -121,7 +121,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
             />
           </div>
 
-          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4 flex flex-col h-full">
+          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4 flex flex-col overflow-hidden">
             {showAddEvent && (
               <div className="mb-4 pb-4 border-b border-border">
                 <h3 className="text-lg font-medium text-foreground mb-4">
