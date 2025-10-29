@@ -258,7 +258,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   };
 
   return (
-    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4">
       <div className="flex items-center gap-3 mb-4">
         <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
           <Search size={20} className="text-white" />
@@ -336,17 +336,18 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
 
       {/* Empty State */}
       {messages.length === 0 && !(isFreeUser && usage?.isLimitReached) && (
-        <div className="text-center py-4 mb-4">
-          <h4 className="text-white font-medium mb-3">Your AI Travel Concierge</h4>
+        <div className="text-center py-2 mb-3">
+          <h4 className="text-white font-medium mb-2">Your AI Travel Concierge</h4>
           <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
             <p>Ask me anything about your trip:</p>
             <div className="text-xs text-gray-400 space-y-1">
-              <p>• "What are the best restaurants for our group?"</p>
               <p>• "Suggest activities based on our preferences"</p>
-              <p>• "Help me plan our itinerary"</p>
               <p>• "What hidden gems should we check out?"</p>
+              <p>• "What's in the calendar agenda for the rest of the week"</p>
+              <p>• "What tasks still need to be completed"</p>
+              <p>• "Can you give me a summary of the payments owed for my expenses?"</p>
             </div>
-            <div className="mt-3 text-xs text-green-400 bg-green-500/10 rounded px-3 py-2 inline-block">
+            <div className="mt-2 text-xs text-green-400 bg-green-500/10 rounded px-3 py-1.5 inline-block">
               ✨ Powered by AI - ask me anything!
             </div>
           </div>
@@ -354,7 +355,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       )}
 
       {/* Chat Messages */}
-      <div className="space-y-2 mb-4 max-h-[300px] overflow-y-auto">
+      <div className="space-y-2 mb-3 max-h-[300px] overflow-y-auto">
         <ChatMessages 
           messages={messages} 
           isTyping={isTyping}
