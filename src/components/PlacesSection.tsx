@@ -15,6 +15,7 @@ import { useDemoMode } from '@/hooks/useDemoMode';
 import { useBasecamp } from '@/contexts/BasecampContext';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
+import MockDataService from '@/services/mockDataService';
 
 interface PlacesSectionProps {
   tripId?: string;
@@ -56,6 +57,41 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   const effectiveUserId = user?.id || getDemoUserId();
+
+  // Load mock places data on mount
+  useEffect(() => {
+    const loadMockPlaces = async () => {
+      console.log('[PlacesSection] Checking if should load mock data...');
+      console.log('[PlacesSection] isDemoMode:', isDemoMode);
+      console.log('[PlacesSection] MockDataService.isUsingMockData():', MockDataService.isUsingMockData());
+
+      // ALWAYS load mock places for now (for testing/demo purposes)
+      // TODO: Make this conditional based on user preferences or demo mode
+      try {
+        console.log('[PlacesSection] Loading mock places for tripId:', tripId);
+        const mockPlaces = await MockDataService.getMockPlaceItems(tripId, true); // Force load
+        console.log('[PlacesSection] Fetched mock places:', mockPlaces.length, mockPlaces);
+
+        const placesWithDistance: PlaceWithDistance[] = mockPlaces.map(place => ({
+          id: place.id,
+          name: place.name,
+          address: place.address,
+          coordinates: place.coordinates,
+          category: place.category,
+          rating: place.rating,
+          url: place.url,
+          distanceFromBasecamp: place.distanceFromBasecamp
+        }));
+
+        setPlaces(placesWithDistance);
+        console.log('[PlacesSection] ✅ Loaded mock places:', placesWithDistance.length);
+      } catch (error) {
+        console.error('[PlacesSection] ❌ Failed to load mock places:', error);
+      }
+    };
+
+    loadMockPlaces();
+  }, [tripId]);
 
   // Load personal basecamp
   useEffect(() => {

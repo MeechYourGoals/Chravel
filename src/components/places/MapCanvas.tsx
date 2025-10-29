@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import { Search } from 'lucide-react';
+import { Search, X, Loader2 } from 'lucide-react';
 import { GoogleMapsService } from '@/services/googleMapsService';
 import { BasecampLocation } from '@/types/basecamp';
 import { PlaceInfoOverlay, PlaceInfo } from './PlaceInfoOverlay';
@@ -45,6 +45,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedPlace, setSelectedPlace] = useState<PlaceInfo | null>(null);
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
     // Expose methods via ref
@@ -169,7 +171,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       const query = searchQuery.trim();
       if (!query) return;
 
-      setIsLoading(true);
+      setIsSearching(true);
+      setSearchError(null);
       try {
         // Use Text Search API for better results
         const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
@@ -178,10 +181,10 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           : undefined;
 
         const result = await GoogleMapsService.searchPlacesByText(query, searchOptions);
-        
+
         if (result.results && result.results.length > 0) {
           const place = result.results[0];
-          const placeDetails = place.place_id 
+          const placeDetails = place.place_id
             ? await GoogleMapsService.getPlaceDetails(place.place_id)
             : null;
 
@@ -194,7 +197,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
             rating: place.rating,
             website: placeDetails?.result?.website
           };
-          
+
           setSelectedPlace(placeInfo);
 
           // Update map to show the place
@@ -205,12 +208,21 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
             );
             setEmbedUrl(url);
           }
+        } else {
+          setSearchError('No results found. Try a different search term.');
         }
       } catch (error) {
         console.error('Search error:', error);
+        setSearchError('Search failed. Please try again.');
       } finally {
-        setIsLoading(false);
+        setIsSearching(false);
       }
+    };
+
+    const handleClearSearch = () => {
+      setSearchQuery('');
+      setSearchError(null);
+      setSelectedPlace(null);
     };
 
     const handleViewDirections = () => {
@@ -227,18 +239,38 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
     return (
       <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
-        {/* Search Bar */}
-        <div className="absolute top-4 right-4 z-20 w-full max-w-sm px-4 md:px-0">
+        {/* Search Bar - Centered */}
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-md px-4">
           <form onSubmit={handleSearch} className="relative">
             <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search places..."
-              className="w-full bg-white/95 backdrop-blur-sm border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-lg text-sm"
+              placeholder="Search places on map..."
+              disabled={isSearching}
+              className="w-full bg-white/95 backdrop-blur-sm border border-gray-300 rounded-xl pl-10 pr-10 py-2.5 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-lg text-sm disabled:opacity-70 disabled:cursor-not-allowed"
             />
+            {/* Clear/Loading Button */}
+            {isSearching ? (
+              <Loader2 size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-500 animate-spin" />
+            ) : searchQuery && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Clear search"
+              >
+                <X size={16} />
+              </button>
+            )}
           </form>
+          {/* Error Message */}
+          {searchError && (
+            <div className="mt-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
+              {searchError}
+            </div>
+          )}
         </div>
 
         {/* Place Info Overlay */}
