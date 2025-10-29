@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { Search } from 'lucide-react';
 import { GoogleMapsService } from '@/services/googleMapsService';
 import { BasecampLocation } from '@/types/basecamp';
+import { PlaceInfoOverlay, PlaceInfo } from './PlaceInfoOverlay';
 
 export interface MapMarker {
   id: string;
@@ -41,6 +43,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
   ) => {
     const [embedUrl, setEmbedUrl] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedPlace, setSelectedPlace] = useState<PlaceInfo | null>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
     // Expose methods via ref
@@ -160,8 +164,92 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       }
     };
 
+    const handleSearch = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const query = searchQuery.trim();
+      if (!query) return;
+
+      setIsLoading(true);
+      try {
+        // Use Text Search API for better results
+        const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
+        const searchOptions = activeBasecamp?.coordinates
+          ? { location: `${activeBasecamp.coordinates.lat},${activeBasecamp.coordinates.lng}` }
+          : undefined;
+
+        const result = await GoogleMapsService.searchPlacesByText(query, searchOptions);
+        
+        if (result.results && result.results.length > 0) {
+          const place = result.results[0];
+          const placeDetails = place.place_id 
+            ? await GoogleMapsService.getPlaceDetails(place.place_id)
+            : null;
+
+          // Set the selected place info
+          const placeInfo: PlaceInfo = {
+            name: place.name,
+            address: place.formatted_address,
+            coordinates: place.geometry?.location,
+            placeId: place.place_id,
+            rating: place.rating,
+            website: placeDetails?.result?.website
+          };
+          
+          setSelectedPlace(placeInfo);
+
+          // Update map to show the place
+          if (place.geometry?.location) {
+            const url = GoogleMapsService.buildEmbeddableUrl(
+              place.formatted_address,
+              place.geometry.location
+            );
+            setEmbedUrl(url);
+          }
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const handleViewDirections = () => {
+      if (!selectedPlace?.coordinates) return;
+      
+      const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
+      if (activeBasecamp) {
+        const origin = activeBasecamp.address || `${activeBasecamp.coordinates?.lat},${activeBasecamp.coordinates?.lng}`;
+        const destination = selectedPlace.address || `${selectedPlace.coordinates.lat},${selectedPlace.coordinates.lng}`;
+        const url = GoogleMapsService.buildEmbeddableUrl(origin, activeBasecamp.coordinates, destination);
+        setEmbedUrl(url);
+      }
+    };
+
     return (
       <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
+        {/* Search Bar */}
+        <div className="absolute top-4 right-4 z-20 w-full max-w-sm px-4 md:px-0">
+          <form onSubmit={handleSearch} className="relative">
+            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search places..."
+              className="w-full bg-white/95 backdrop-blur-sm border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-lg text-sm"
+            />
+          </form>
+        </div>
+
+        {/* Place Info Overlay */}
+        {selectedPlace && (
+          <PlaceInfoOverlay
+            place={selectedPlace}
+            onClose={() => setSelectedPlace(null)}
+            onViewDirections={handleViewDirections}
+          />
+        )}
+
         {/* Loading State */}
         {isLoading && (
           <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-10">
