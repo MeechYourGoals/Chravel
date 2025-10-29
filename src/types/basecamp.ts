@@ -20,6 +20,9 @@ export interface PlaceWithDistance {
   };
   calculatedAt?: string;
   category?: 'restaurant' | 'attraction' | 'hotel' | 'activity' | 'fitness' | 'nightlife' | 'transportation';
+  website?: string;
+  placeId?: string;
+  rating?: number;
 }
 
 export interface DistanceCalculationSettings {

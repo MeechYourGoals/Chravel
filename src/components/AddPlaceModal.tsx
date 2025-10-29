@@ -129,7 +129,9 @@ export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPl
         ...(selectedPlace && {
           address: selectedPlace.formatted_address,
           rating: selectedPlace.rating,
-          placeId: selectedPlace.place_id
+          placeId: selectedPlace.place_id,
+          website: selectedPlace.website,
+          coordinates: selectedPlace.coordinates
         })
       };
 

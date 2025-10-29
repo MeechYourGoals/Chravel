@@ -180,19 +180,10 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
                 : 'Try selecting a different category or reset filters.'}
             </p>
             {places.length === 0 && (
-              <>
-                <button
-                  onClick={() => setIsAddPlaceModalOpen(true)}
-                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-3 rounded-xl transition-all hover:scale-105 shadow-lg shadow-green-500/25 font-semibold"
-                >
-                  Save Your First Link
-                </button>
-                <div className="mt-6 space-y-1 text-xs text-gray-500">
-                  <p>• View distances from your basecamp</p>
-                  <p>• Add events directly to calendar</p>
-                  <p>• Syncs with Links for easy access</p>
-                </div>
-              </>
+              <div className="mt-6 space-y-1 text-xs text-gray-500">
+                <p>• View distances from your basecamp</p>
+                <p>• Add events directly to calendar</p>
+              </div>
             )}
           </div>
         ) : (
