@@ -7,15 +7,13 @@ import { AddToCalendarData } from '../types/calendar';
 interface AddToCalendarButtonProps {
   placeName: string;
   placeAddress?: string;
-  category?: 'dining' | 'lodging' | 'activity' | 'transportation' | 'entertainment' | 'other';
   onEventAdded?: (eventData: AddToCalendarData) => void;
   variant?: 'default' | 'icon' | 'pill';
 }
 
-export const AddToCalendarButton = ({ 
-  placeName, 
-  placeAddress, 
-  category = 'activity',
+export const AddToCalendarButton = ({
+  placeName,
+  placeAddress,
   onEventAdded,
   variant = 'default'
 }: AddToCalendarButtonProps) => {
@@ -29,7 +27,6 @@ export const AddToCalendarButton = ({
   const prefilledData = {
     title: placeName,
     location: placeAddress || placeName,
-    category,
     include_in_itinerary: true
   };
 

@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Calendar } from './ui/calendar';
@@ -34,7 +33,6 @@ export const CalendarEventModal = ({
     time: prefilledData?.time || editEvent?.time || '',
     location: prefilledData?.location || editEvent?.location || '',
     description: prefilledData?.description || editEvent?.description || '',
-    category: prefilledData?.category || editEvent?.event_category || 'activity',
     include_in_itinerary: prefilledData?.include_in_itinerary ?? editEvent?.include_in_itinerary ?? true
   });
 
@@ -47,7 +45,6 @@ export const CalendarEventModal = ({
         time: editEvent.time,
         location: editEvent.location || '',
         description: editEvent.description || '',
-        category: editEvent.event_category || 'activity',
         include_in_itinerary: editEvent.include_in_itinerary ?? true
       });
     } else if (prefilledData) {
@@ -57,7 +54,6 @@ export const CalendarEventModal = ({
         time: prefilledData.time || '',
         location: prefilledData.location || '',
         description: prefilledData.description || '',
-        category: prefilledData.category || 'activity',
         include_in_itinerary: prefilledData.include_in_itinerary ?? true
       });
     }
@@ -79,20 +75,10 @@ export const CalendarEventModal = ({
       time: '',
       location: '',
       description: '',
-      category: 'activity',
       include_in_itinerary: true
     });
     onClose();
   };
-
-  const categoryOptions = [
-    { value: 'dining', label: 'Dining', icon: '🍽️' },
-    { value: 'lodging', label: 'Lodging', icon: '🏨' },
-    { value: 'activity', label: 'Activity', icon: '🎯' },
-    { value: 'transportation', label: 'Transportation', icon: '🚗' },
-    { value: 'entertainment', label: 'Entertainment', icon: '🎭' },
-    { value: 'other', label: 'Other', icon: '📅' }
-  ];
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -163,28 +149,6 @@ export const CalendarEventModal = ({
               onChange={(e) => setFormData({...formData, location: e.target.value})}
               placeholder="Event location"
             />
-          </div>
-
-          <div>
-            <Label>Category</Label>
-            <Select 
-              value={formData.category} 
-              onValueChange={(value: any) => setFormData({...formData, category: value})}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {categoryOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <span className="flex items-center gap-2">
-                      <span>{option.icon}</span>
-                      {option.label}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div>
