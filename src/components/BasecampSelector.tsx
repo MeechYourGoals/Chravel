@@ -91,14 +91,10 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
             }
           }
           
-          // Strategy 3: OSM fallback (final resort)
+          // No more results available
           if (!foundSuggestions) {
-            console.log('Text Search failed, trying OSM fallback...');
-            const osmSuggestions = await GoogleMapsService.fallbackSuggestNominatim(value);
-            setSuggestions(osmSuggestions);
-            if (osmSuggestions.length > 0) {
-              console.log(`✓ Found ${osmSuggestions.length} results via OSM`);
-            }
+            console.log('No autocomplete suggestions found');
+            setSuggestions([]);
           }
           
         } catch (error) {
@@ -279,21 +275,9 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
         }
       }
       
-      // Cascade 5: Try OSM Nominatim geocoding (final fallback)
+      // All geocoding attempts exhausted
       if (!coordinates) {
-        console.log('Attempting OSM Nominatim fallback...');
-        try {
-          const osmResult = await GoogleMapsService.fallbackGeocodeNominatim(address);
-          if (osmResult) {
-            coordinates = { lat: osmResult.lat, lng: osmResult.lng };
-            if (!inferredName) {
-              inferredName = osmResult.displayName.split(',')[0];
-            }
-            console.log('✓ Got coords from OSM Nominatim');
-          }
-        } catch (error) {
-          console.error('OSM Nominatim failed:', error);
-        }
+        console.log('All geocoding methods failed - coordinates will remain null');
       }
       
       // Allow setting basecamp even without coordinates (Google Maps will handle the query)
