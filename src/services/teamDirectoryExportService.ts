@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { ProParticipant } from '../types/pro';
 import { ProTripCategory } from '../types/proCategories';
+import { openOrDownloadBlob } from '../utils/download';
 
 export interface ExportOptions {
   includeFields: {
@@ -298,15 +299,8 @@ class TeamDirectoryExportService {
   /**
    * Download file helper
    */
-  downloadFile(blob: Blob, filename: string): void {
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+  async downloadFile(blob: Blob, filename: string): Promise<void> {
+    await openOrDownloadBlob(blob, filename, { mimeType: blob.type || 'application/octet-stream' });
   }
 }
 

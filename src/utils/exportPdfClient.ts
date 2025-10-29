@@ -163,11 +163,16 @@ export async function generateClientPDF(
         yPos += 15;
 
         if (poll.options && poll.options.length > 0) {
-          const pollRows = poll.options.map((opt: any) => [
-            opt.text || 'N/A',
-            `${opt.votes || 0} votes`,
-            `${((opt.votes / poll.total_votes) * 100).toFixed(1)}%`
-          ]);
+          const totalVotes = Math.max(0, Number(poll.total_votes || 0));
+          const pollRows = poll.options.map((opt: any) => {
+            const votes = Number(opt.votes || 0);
+            const pct = totalVotes > 0 ? ((votes / totalVotes) * 100).toFixed(1) : '0.0';
+            return [
+              opt.text || 'N/A',
+              `${votes} votes`,
+              `${pct}%`
+            ];
+          });
 
           const result = autoTable(doc, {
             startY: yPos,
@@ -183,7 +188,8 @@ export async function generateClientPDF(
         doc.setFontSize(9);
         doc.setFont('helvetica', 'italic');
         doc.setTextColor(100);
-        doc.text(`Total votes: ${poll.total_votes || 0}`, margin + 20, yPos);
+        const totalVotes = Math.max(0, Number(poll.total_votes || 0));
+        doc.text(`Total votes: ${totalVotes}`, margin + 20, yPos);
         yPos += 20;
       });
     } else {

@@ -14,6 +14,7 @@ import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { ProTripCategory } from '../types/proCategories';
 import { ExportSection } from '../types/tripExport';
 import { generateClientPDF } from '../utils/exportPdfClient';
+import { openOrDownloadBlob } from '../utils/download';
 import { toast } from 'sonner';
 
 const ProTripDetail = () => {
@@ -103,6 +104,26 @@ const ProTripDetail = () => {
   // Handle export functionality - use same handler as consumer trips
   const handleExport = async (sections: ExportSection[]) => {
     try {
+      // Pre-open a window on iOS Safari to avoid popup blocking for blob URLs
+      let preOpenedWindow: Window | null = null;
+      try {
+        const ua = navigator.userAgent || '';
+        const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
+        if (isIOS && isSafari) {
+          preOpenedWindow = window.open('', '_blank');
+          if (preOpenedWindow) {
+            preOpenedWindow.document.write(
+              '<html><head><title>Generating PDF…</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>' +
+              '<body style="font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial; padding: 16px; color: #e5e7eb; background: #111827">' +
+              '<div>Generating PDF…</div></body></html>'
+            );
+          }
+        }
+      } catch {
+        // Non-fatal; continue without pre-open
+      }
+
       let blob: Blob;
 
       // Pro trips in demo mode use client-side export
@@ -176,15 +197,9 @@ const ProTripDetail = () => {
         }
       }
 
-      // Download the PDF
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Trip_${tripData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Download or open the PDF with cross-platform handling
+      const filename = `Trip_${tripData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
+      await openOrDownloadBlob(blob, filename, { preOpenedWindow, mimeType: 'application/pdf' });
       
       toast.success('PDF exported successfully!');
     } catch (error) {
