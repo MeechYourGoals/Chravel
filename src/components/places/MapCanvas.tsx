@@ -17,12 +17,6 @@ export interface MapCanvasProps {
   tripBasecamp?: BasecampLocation | null;
   personalBasecamp?: BasecampLocation | null;
   markers?: MapMarker[];
-  layers?: {
-    pins: boolean;
-    places: boolean;
-    saved: boolean;
-    venues: boolean;
-  };
   onMapReady?: () => void;
 }
 
@@ -41,7 +35,6 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       tripBasecamp,
       personalBasecamp,
       markers = [],
-      layers = { pins: true, places: true, saved: true, venues: true },
       onMapReady
     },
     ref

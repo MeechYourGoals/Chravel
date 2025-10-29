@@ -226,7 +226,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <MapPin size={20} className="text-emerald-400" />
-                    <h3 className="text-white font-semibold text-lg">Your Accommodation</h3>
+                    <h3 className="text-white font-semibold text-lg">Personal Base Camp</h3>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -294,7 +294,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
               <>
                 <div className="flex items-center gap-2 mb-2">
                   <MapPin size={20} className="text-emerald-400" />
-                  <h3 className="text-white font-semibold text-lg">Your Accommodation</h3>
+                  <h3 className="text-white font-semibold text-lg">Personal Base Camp</h3>
                   <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
                     <Lock size={12} />
                     Private

@@ -3,8 +3,7 @@ import { MapCanvas, MapCanvasRef } from './places/MapCanvas';
 import { MapOverlayChips } from './places/MapOverlayChips';
 import { GreenNotice } from './places/GreenNotice';
 import { BasecampsPanel } from './places/BasecampsPanel';
-import { PlacesPanel } from './places/PlacesPanel';
-import { PinsPanel } from './places/PinsPanel';
+import { LinksPanel } from './places/LinksPanel';
 import { BasecampLocation, PlaceWithDistance, DistanceCalculationSettings } from '../types/basecamp';
 import { DistanceCalculator } from '../utils/distanceCalculator';
 import { useTripVariant } from '../contexts/TripVariantContext';
@@ -22,7 +21,7 @@ interface PlacesSectionProps {
   tripName?: string;
 }
 
-type TabView = 'overview' | 'basecamps' | 'places' | 'pins';
+type TabView = 'overview' | 'basecamps' | 'links';
 
 export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSectionProps) => {
   const { variant } = useTripVariant();
@@ -36,12 +35,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   const [places, setPlaces] = useState<PlaceWithDistance[]>([]);
   const [searchContext, setSearchContext] = useState<'trip' | 'personal'>('trip');
   const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
-  const [layers, setLayers] = useState({
-    pins: true,
-    places: true,
-    saved: true,
-    venues: true
-  });
+  const [showPersonalBasecampSelector, setShowPersonalBasecampSelector] = useState(false);
   const [distanceSettings] = useState<DistanceCalculationSettings>({
     preferredMode: 'driving',
     unit: 'miles',
@@ -193,14 +187,12 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     }
   };
 
-  const handleLayerToggle = (layerKey: keyof typeof layers, enabled: boolean) => {
-    setLayers(prev => ({ ...prev, [layerKey]: enabled }));
-  };
-
-  const handlePlaceSelect = (place: PlaceWithDistance) => {
-    if (place.coordinates) {
-      handleCenterMap(place.coordinates);
+  const handleContextChange = (context: 'trip' | 'personal') => {
+    if (context === 'personal' && !personalBasecamp) {
+      setShowPersonalBasecampSelector(true);
+      return;
     }
+    setSearchContext(context);
   };
 
   const toBasecampLocation = (pb: PersonalBasecamp): BasecampLocation => ({
@@ -225,16 +217,13 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
             activeContext={searchContext}
             tripBasecamp={contextBasecamp}
             personalBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : null}
-            layers={layers}
             className="w-full h-full"
           />
 
           {/* Map Overlay Chips - floating on map */}
           <MapOverlayChips
             activeContext={searchContext}
-            onContextChange={setSearchContext}
-            layers={layers}
-            onLayerToggle={handleLayerToggle}
+            onContextChange={handleContextChange}
             tripBasecampSet={isBasecampSet}
             personalBasecampSet={!!personalBasecamp}
           />
@@ -253,7 +242,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
       {/* Segmented Control Navigation */}
       <div className="mb-6">
         <div className="bg-white/5 backdrop-blur-sm rounded-xl p-1 inline-flex gap-1">
-          {(['overview', 'basecamps', 'places', 'pins'] as TabView[]).map(tab => (
+          {(['overview', 'basecamps', 'links'] as TabView[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -263,7 +252,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              {tab === 'places' ? 'Places & Activities' : tab}
+              {tab === 'basecamps' ? 'Base Camps' : tab}
             </button>
           ))}
         </div>
@@ -279,7 +268,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
                 <p className="text-white text-xl font-semibold capitalize">{searchContext} Base Camp</p>
               </div>
               <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-6 shadow-lg">
-                <h4 className="text-gray-400 text-sm mb-1">Saved Pins</h4>
+                <h4 className="text-gray-400 text-sm mb-1">Saved Links</h4>
                 <p className="text-white text-xl font-semibold">{places.length}</p>
               </div>
               <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-6 shadow-lg">
@@ -299,21 +288,12 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
             onTripBasecampSet={handleBasecampSet}
             onCenterMap={handleCenterMap}
             activeContext={searchContext}
-            onContextChange={setSearchContext}
+            onContextChange={handleContextChange}
           />
         )}
 
-        {activeTab === 'places' && (
-          <PlacesPanel
-            places={places}
-            basecamp={contextBasecamp}
-            onPlaceSelect={handlePlaceSelect}
-            onCenterMap={handleCenterMap}
-          />
-        )}
-
-        {activeTab === 'pins' && (
-          <PinsPanel
+        {activeTab === 'links' && (
+          <LinksPanel
             places={places}
             basecamp={contextBasecamp}
             onPlaceAdded={handlePlaceAdded}

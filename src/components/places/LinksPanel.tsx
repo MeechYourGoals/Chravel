@@ -6,7 +6,7 @@ import { AddToCalendarButton } from '../AddToCalendarButton';
 import { AddToCalendarData } from '@/types/calendar';
 import { Badge } from '../ui/badge';
 
-export interface PinsPanelProps {
+export interface LinksPanelProps {
   places: PlaceWithDistance[];
   basecamp?: BasecampLocation | null;
   onPlaceAdded: (place: PlaceWithDistance) => void;
@@ -17,7 +17,7 @@ export interface PinsPanelProps {
   preferredMode: string;
 }
 
-export const PinsPanel: React.FC<PinsPanelProps> = ({
+export const LinksPanel: React.FC<LinksPanelProps> = ({
   places,
   basecamp,
   onPlaceAdded,
@@ -77,9 +77,9 @@ export const PinsPanel: React.FC<PinsPanelProps> = ({
                 <MapPin size={20} className="text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">Trip Pins</h3>
+                <h3 className="text-lg font-bold text-white">Trip Links</h3>
                 <p className="text-gray-400 text-xs">
-                  {places.length > 0 ? `${places.length} saved locations` : 'Save your trip locations'}
+                  {places.length > 0 ? `${places.length} saved links` : 'Save your trip links'}
                 </p>
               </div>
             </div>
@@ -88,7 +88,7 @@ export const PinsPanel: React.FC<PinsPanelProps> = ({
               className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-xl transition-all font-medium text-sm flex items-center gap-2 shadow-lg shadow-green-500/25"
             >
               <Plus size={16} />
-              Add Pin
+              Add Link
             </button>
           </div>
         </div>
@@ -134,7 +134,7 @@ export const PinsPanel: React.FC<PinsPanelProps> = ({
               <MapPin size={32} className="text-gray-400" />
             </div>
             <h4 className="text-lg font-bold text-white mb-2">
-              {places.length === 0 ? 'Save Trip Pins' : 'No pins in this category'}
+              {places.length === 0 ? 'Save Trip Links' : 'No links in this category'}
             </h4>
             <p className="text-gray-400 text-sm mb-4 max-w-sm mx-auto">
               {places.length === 0
@@ -147,7 +147,7 @@ export const PinsPanel: React.FC<PinsPanelProps> = ({
                   onClick={() => setIsAddPlaceModalOpen(true)}
                   className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-3 rounded-xl transition-all hover:scale-105 shadow-lg shadow-green-500/25 font-semibold"
                 >
-                  Save Your First Pin
+                  Save Your First Link
                 </button>
                 <div className="mt-6 space-y-1 text-xs text-gray-500">
                   <p>• View distances from your basecamp</p>
