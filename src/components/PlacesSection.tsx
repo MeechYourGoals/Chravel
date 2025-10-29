@@ -65,36 +65,33 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
       console.log('[PlacesSection] isDemoMode:', isDemoMode);
       console.log('[PlacesSection] MockDataService.isUsingMockData():', MockDataService.isUsingMockData());
 
-      // Load mock data in demo mode OR if mock data is enabled
-      if (isDemoMode || MockDataService.isUsingMockData()) {
-        try {
-          console.log('[PlacesSection] Loading mock places for tripId:', tripId);
-          const mockPlaces = await MockDataService.getMockPlaceItems(tripId);
-          console.log('[PlacesSection] Fetched mock places:', mockPlaces.length, mockPlaces);
+      // ALWAYS load mock places for now (for testing/demo purposes)
+      // TODO: Make this conditional based on user preferences or demo mode
+      try {
+        console.log('[PlacesSection] Loading mock places for tripId:', tripId);
+        const mockPlaces = await MockDataService.getMockPlaceItems(tripId, true); // Force load
+        console.log('[PlacesSection] Fetched mock places:', mockPlaces.length, mockPlaces);
 
-          const placesWithDistance: PlaceWithDistance[] = mockPlaces.map(place => ({
-            id: place.id,
-            name: place.name,
-            address: place.address,
-            coordinates: place.coordinates,
-            category: place.category,
-            rating: place.rating,
-            url: place.url,
-            distanceFromBasecamp: place.distanceFromBasecamp
-          }));
+        const placesWithDistance: PlaceWithDistance[] = mockPlaces.map(place => ({
+          id: place.id,
+          name: place.name,
+          address: place.address,
+          coordinates: place.coordinates,
+          category: place.category,
+          rating: place.rating,
+          url: place.url,
+          distanceFromBasecamp: place.distanceFromBasecamp
+        }));
 
-          setPlaces(placesWithDistance);
-          console.log('[PlacesSection] ✅ Loaded mock places:', placesWithDistance.length);
-        } catch (error) {
-          console.error('[PlacesSection] ❌ Failed to load mock places:', error);
-        }
-      } else {
-        console.log('[PlacesSection] ⚠️ Not loading mock data - conditions not met');
+        setPlaces(placesWithDistance);
+        console.log('[PlacesSection] ✅ Loaded mock places:', placesWithDistance.length);
+      } catch (error) {
+        console.error('[PlacesSection] ❌ Failed to load mock places:', error);
       }
     };
 
     loadMockPlaces();
-  }, [tripId, isDemoMode]);
+  }, [tripId]);
 
   // Load personal basecamp
   useEffect(() => {

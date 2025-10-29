@@ -434,11 +434,12 @@ class MockDataService {
     return mockData;
   }
 
-  static async getMockPlaceItems(tripId: string): Promise<MockPlaceItem[]> {
+  static async getMockPlaceItems(tripId: string, forceLoad: boolean = false): Promise<MockPlaceItem[]> {
     console.log('[MockDataService] getMockPlaceItems called for tripId:', tripId);
     console.log('[MockDataService] USE_MOCK_DATA:', this.USE_MOCK_DATA);
+    console.log('[MockDataService] forceLoad:', forceLoad);
 
-    if (!this.USE_MOCK_DATA) {
+    if (!this.USE_MOCK_DATA && !forceLoad) {
       console.log('[MockDataService] ⚠️ Not using mock data, returning empty array');
       return [];
     }
