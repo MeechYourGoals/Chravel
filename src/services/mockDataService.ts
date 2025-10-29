@@ -23,6 +23,17 @@ interface MockLinkItem {
   source: 'chat' | 'manual';
 }
 
+interface MockPlaceItem {
+  id: string;
+  name: string;
+  address: string;
+  coordinates: { lat: number; lng: number };
+  category?: string;
+  rating?: number;
+  url?: string;
+  distanceFromBasecamp?: any;
+}
+
 class MockDataService {
   private static readonly STORAGE_PREFIX = 'trip_mock_data_';
   private static readonly USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true' || import.meta.env.DEV;
@@ -217,6 +228,101 @@ class MockDataService {
     ];
   }
 
+  private static getMockPlacesData(): MockPlaceItem[] {
+    return [
+      {
+        id: 'mock-place-1',
+        name: 'Central Park',
+        address: 'Central Park, New York, NY 10024',
+        coordinates: { lat: 40.785091, lng: -73.968285 },
+        category: 'attraction',
+        rating: 4.8,
+        url: 'https://www.centralparknyc.org/'
+      },
+      {
+        id: 'mock-place-2',
+        name: 'Joe\'s Pizza',
+        address: '7 Carmine St, New York, NY 10014',
+        coordinates: { lat: 40.730610, lng: -74.002080 },
+        category: 'restaurant',
+        rating: 4.6,
+        url: 'https://www.joespizzanyc.com/'
+      },
+      {
+        id: 'mock-place-3',
+        name: 'The Metropolitan Museum of Art',
+        address: '1000 5th Ave, New York, NY 10028',
+        coordinates: { lat: 40.779437, lng: -73.963244 },
+        category: 'attraction',
+        rating: 4.8,
+        url: 'https://www.metmuseum.org/'
+      },
+      {
+        id: 'mock-place-4',
+        name: 'Equinox Hudson Yards',
+        address: '30 Hudson Yards, New York, NY 10001',
+        coordinates: { lat: 40.753863, lng: -74.001904 },
+        category: 'fitness',
+        rating: 4.5,
+        url: 'https://www.equinox.com/clubs/new-york/hudson-yards'
+      },
+      {
+        id: 'mock-place-5',
+        name: 'The Standard High Line',
+        address: '848 Washington St, New York, NY 10014',
+        coordinates: { lat: 40.740753, lng: -74.008614 },
+        category: 'hotel',
+        rating: 4.4,
+        url: 'https://www.standardhotels.com/new-york/properties/high-line'
+      },
+      {
+        id: 'mock-place-6',
+        name: 'Brooklyn Bridge',
+        address: 'Brooklyn Bridge, New York, NY 10038',
+        coordinates: { lat: 40.706086, lng: -73.996864 },
+        category: 'attraction',
+        rating: 4.7,
+        url: 'https://www.nyc.gov/html/dot/html/infrastructure/brooklyn-bridge.shtml'
+      },
+      {
+        id: 'mock-place-7',
+        name: 'Le Bernardin',
+        address: '155 W 51st St, New York, NY 10019',
+        coordinates: { lat: 40.761625, lng: -73.982137 },
+        category: 'restaurant',
+        rating: 4.7,
+        url: 'https://www.le-bernardin.com/'
+      },
+      {
+        id: 'mock-place-8',
+        name: 'Madison Square Garden',
+        address: '4 Pennsylvania Plaza, New York, NY 10001',
+        coordinates: { lat: 40.750504, lng: -73.993439 },
+        category: 'activity',
+        rating: 4.5,
+        url: 'https://www.msg.com/'
+      },
+      {
+        id: 'mock-place-9',
+        name: 'The Dead Rabbit',
+        address: '30 Water St, New York, NY 10004',
+        coordinates: { lat: 40.703151, lng: -74.011330 },
+        category: 'nightlife',
+        rating: 4.6,
+        url: 'https://www.deadrabbitnyc.com/'
+      },
+      {
+        id: 'mock-place-10',
+        name: 'Times Square',
+        address: 'Manhattan, NY 10036',
+        coordinates: { lat: 40.758896, lng: -73.985130 },
+        category: 'attraction',
+        rating: 4.3,
+        url: 'https://www.timessquarenyc.org/'
+      }
+    ];
+  }
+
   private static getMockLinksData(): MockLinkItem[] {
     return [
       {
@@ -321,16 +427,32 @@ class MockDataService {
     return mockData;
   }
 
-  static async getMockLinkItems(tripId: string): Promise<MockLinkItem[]> {
+  static async getMockPlaceItems(tripId: string): Promise<MockPlaceItem[]> {
     if (!this.USE_MOCK_DATA) return [];
-    
-    const storageKey = this.getStorageKey(tripId, 'links');
-    const stored = await getStorageItem<MockLinkItem[]>(storageKey);
-    
+
+    const storageKey = `${this.STORAGE_PREFIX}${tripId}_places`;
+    const stored = await getStorageItem<MockPlaceItem[]>(storageKey);
+
     if (stored) {
       return stored;
     }
-    
+
+    // First time - initialize with mock data
+    const mockData = this.getMockPlacesData();
+    await setStorageItem(storageKey, mockData);
+    return mockData;
+  }
+
+  static async getMockLinkItems(tripId: string): Promise<MockLinkItem[]> {
+    if (!this.USE_MOCK_DATA) return [];
+
+    const storageKey = this.getStorageKey(tripId, 'links');
+    const stored = await getStorageItem<MockLinkItem[]>(storageKey);
+
+    if (stored) {
+      return stored;
+    }
+
     // First time - initialize with mock data
     const mockData = this.getMockLinksData();
     await setStorageItem(storageKey, mockData);
@@ -339,15 +461,17 @@ class MockDataService {
 
   static async reseedMockData(tripId: string): Promise<void> {
     if (!this.USE_MOCK_DATA) return;
-    
+
     // Clear existing data
     await removeStorageItem(this.getStorageKey(tripId, 'media'));
     await removeStorageItem(this.getStorageKey(tripId, 'links'));
-    
+    await removeStorageItem(`${this.STORAGE_PREFIX}${tripId}_places`);
+
     // Reinitialize
     await this.getMockMediaItems(tripId);
     await this.getMockLinkItems(tripId);
-    
+    await this.getMockPlaceItems(tripId);
+
     console.log('Mock data reseeded for trip:', tripId);
   }
 
@@ -355,6 +479,7 @@ class MockDataService {
     if (tripId) {
       await removeStorageItem(this.getStorageKey(tripId, 'media'));
       await removeStorageItem(this.getStorageKey(tripId, 'links'));
+      await removeStorageItem(`${this.STORAGE_PREFIX}${tripId}_places`);
     } else {
       // Note: platformStorage doesn't expose Object.keys() like localStorage
       // This will be handled by individual clearMockData calls per trip
@@ -364,4 +489,4 @@ class MockDataService {
 }
 
 export default MockDataService;
-export type { MockMediaItem, MockLinkItem };
+export type { MockMediaItem, MockLinkItem, MockPlaceItem };

@@ -15,6 +15,7 @@ import { useDemoMode } from '@/hooks/useDemoMode';
 import { useBasecamp } from '@/contexts/BasecampContext';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
+import MockDataService from '@/services/mockDataService';
 
 interface PlacesSectionProps {
   tripId?: string;
@@ -56,6 +57,33 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   const effectiveUserId = user?.id || getDemoUserId();
+
+  // Load mock places data on mount
+  useEffect(() => {
+    const loadMockPlaces = async () => {
+      if (MockDataService.isUsingMockData()) {
+        try {
+          const mockPlaces = await MockDataService.getMockPlaceItems(tripId);
+          const placesWithDistance: PlaceWithDistance[] = mockPlaces.map(place => ({
+            id: place.id,
+            name: place.name,
+            address: place.address,
+            coordinates: place.coordinates,
+            category: place.category,
+            rating: place.rating,
+            url: place.url,
+            distanceFromBasecamp: place.distanceFromBasecamp
+          }));
+          setPlaces(placesWithDistance);
+          console.log('Loaded mock places:', placesWithDistance.length);
+        } catch (error) {
+          console.error('Failed to load mock places:', error);
+        }
+      }
+    };
+
+    loadMockPlaces();
+  }, [tripId]);
 
   // Load personal basecamp
   useEffect(() => {
