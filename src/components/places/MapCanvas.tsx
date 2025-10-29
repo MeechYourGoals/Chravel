@@ -180,7 +180,31 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           ? { location: `${activeBasecamp.coordinates.lat},${activeBasecamp.coordinates.lng}` }
           : undefined;
 
-        const result = await GoogleMapsService.searchPlacesByText(query, searchOptions);
+        let result = await GoogleMapsService.searchPlacesByText(query, searchOptions);
+
+        // Fallback to Nominatim if Google returns no results
+        if (!result.results || result.results.length === 0) {
+          console.log('[MapCanvas] Google search returned no results, trying Nominatim fallback...');
+          const nominatimResult = await GoogleMapsService.fallbackGeocodeNominatim(query);
+          
+          if (nominatimResult) {
+            console.log('[MapCanvas] ✅ Nominatim fallback successful:', nominatimResult);
+            const placeInfo: PlaceInfo = {
+              name: query,
+              address: nominatimResult.displayName,
+              coordinates: { lat: nominatimResult.lat, lng: nominatimResult.lng }
+            };
+
+            setSelectedPlace(placeInfo);
+            const url = GoogleMapsService.buildEmbeddableUrl(
+              nominatimResult.displayName,
+              { lat: nominatimResult.lat, lng: nominatimResult.lng }
+            );
+            setEmbedUrl(url);
+            setIsSearching(false);
+            return;
+          }
+        }
 
         if (result.results && result.results.length > 0) {
           const place = result.results[0];
