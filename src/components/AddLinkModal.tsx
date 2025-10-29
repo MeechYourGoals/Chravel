@@ -7,6 +7,12 @@ import { usePlaceResolution } from '../hooks/usePlaceResolution';
 interface AddLinkModalProps {
   isOpen: boolean;
   onClose: () => void;
+  prefill?: {
+    url?: string;
+    title?: string;
+    category?: 'restaurant' | 'hotel' | 'attraction' | 'activity' | 'other';
+    note?: string;
+  };
 }
 
 interface DuplicateMatch {
@@ -58,7 +64,7 @@ const existingLinks = [
   }
 ];
 
-export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
+export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) => {
   const [inputMode, setInputMode] = useState<'url' | 'place'>('place');
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
@@ -73,6 +79,22 @@ export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
   const [showPlacePreview, setShowPlacePreview] = useState(false);
 
   const { resolvePlaceName, categorizePlaceType, isLoading: isResolving } = usePlaceResolution();
+
+  // Apply prefill when modal opens
+  React.useEffect(() => {
+    if (isOpen && prefill) {
+      if (prefill.url) {
+        setInputMode('url');
+        setUrl(prefill.url);
+      }
+      if (prefill.title) {
+        setTitle(prefill.title);
+      }
+      if (prefill.note) {
+        setDescription(prefill.note);
+      }
+    }
+  }, [isOpen, prefill]);
 
   const checkForDuplicates = (inputUrl: string, inputTitle: string) => {
     const matches: DuplicateMatch[] = [];
@@ -213,7 +235,9 @@ export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
       <div className="bg-slate-800 border border-slate-700 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-700">
-          <h2 className="text-lg font-semibold text-white">Add Link</h2>
+          <h2 className="text-lg font-semibold text-white">
+            {prefill ? 'Save to Trip Links' : 'Add Link'}
+          </h2>
           <button 
             onClick={onClose}
             className="text-slate-400 hover:text-white"
@@ -224,36 +248,47 @@ export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Input Mode Toggle */}
-          <div className="flex bg-slate-900/50 rounded-lg p-1 border border-slate-600">
-            <button
-              type="button"
-              onClick={() => setInputMode('place')}
-              className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                inputMode === 'place'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:text-slate-300'
-              }`}
-            >
-              <MapPin size={16} className="inline mr-2" />
-              Add by Place Name
-            </button>
-            <button
-              type="button"
-              onClick={() => setInputMode('url')}
-              className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                inputMode === 'url'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:text-slate-300'
-              }`}
-            >
-              <LinkIcon size={16} className="inline mr-2" />
-              Add by URL
-            </button>
-          </div>
+          {/* Input Mode Toggle - hide if prefilled with URL */}
+          {!prefill?.url && (
+            <div className="flex bg-slate-900/50 rounded-lg p-1 border border-slate-600">
+              <button
+                type="button"
+                onClick={() => setInputMode('place')}
+                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                  inputMode === 'place'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-slate-400 hover:text-slate-300'
+                }`}
+              >
+                <MapPin size={16} className="inline mr-2" />
+                Add by Place Name
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputMode('url')}
+                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                  inputMode === 'url'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-slate-400 hover:text-slate-300'
+                }`}
+              >
+                <LinkIcon size={16} className="inline mr-2" />
+                Add by URL
+              </button>
+            </div>
+          )}
+          
+          {/* Prefill indicator */}
+          {prefill?.url && (
+            <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+              <p className="text-sm text-purple-200">
+                📌 Promoting URL from Media to Trip Links
+              </p>
+            </div>
+          )}
 
           {/* Place Name Input */}
-          {inputMode === 'place' && (
+          {inputMode === 'place' && !prefill?.url && (
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Place Name *
@@ -283,7 +318,7 @@ export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
           )}
 
           {/* URL Input */}
-          {inputMode === 'url' && (
+          {(inputMode === 'url' || prefill?.url) && (
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Link URL *
@@ -295,15 +330,16 @@ export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
                   value={url}
                   onChange={(e) => handleUrlChange(e.target.value)}
                   placeholder="https://..."
-                  required={inputMode === 'url'}
-                  className="w-full bg-slate-900/50 border border-slate-600 rounded-lg pl-10 pr-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+                  required={inputMode === 'url' || !!prefill?.url}
+                  disabled={!!prefill?.url}
+                  className="w-full bg-slate-900/50 border border-slate-600 rounded-lg pl-10 pr-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
           )}
 
           {/* Place Preview */}
-          {showPlacePreview && resolvedPlace && linkOptions.length > 0 && (
+          {showPlacePreview && resolvedPlace && linkOptions.length > 0 && !prefill?.url && (
             <div className="p-4 bg-slate-900/30 rounded-lg border border-slate-700">
               <div className="flex items-start gap-3 mb-3">
                 <div className="flex-1">
@@ -408,10 +444,10 @@ export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || (inputMode === 'place' && !selectedLinkOption)}
+              disabled={isLoading || (inputMode === 'place' && !selectedLinkOption && !prefill?.url)}
               className="flex-1 bg-blue-600 hover:bg-blue-700"
             >
-              {isLoading ? 'Adding...' : 'Add Link'}
+              {isLoading ? 'Saving...' : prefill ? 'Save to Trip Links' : 'Add Link'}
             </Button>
           </div>
         </form>
