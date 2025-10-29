@@ -40,9 +40,7 @@ export const MobileAppLayout = ({ children, className }: MobileAppLayoutProps) =
           paddingBottom: `calc(80px + env(safe-area-inset-bottom))`,
           // 🆕 Mobile performance optimizations
           WebkitOverflowScrolling: 'touch',
-          overscrollBehavior: 'contain',
-          transform: 'translateZ(0)', // Hardware acceleration
-          backfaceVisibility: 'hidden'
+          overscrollBehavior: 'contain'
         }}
       >
         {children}
