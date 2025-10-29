@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { autoTable } from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { ProParticipant } from '../types/pro';
 import { ProTripCategory } from '../types/proCategories';
