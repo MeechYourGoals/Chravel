@@ -73,7 +73,7 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
       if (success) {
         toast({
           title: "Added to Links",
-          description: `${place.name} has been saved to your Media > Links section`,
+          description: `${place.name} has been saved to your Places > Links section`,
           variant: "default",
         });
       } else {

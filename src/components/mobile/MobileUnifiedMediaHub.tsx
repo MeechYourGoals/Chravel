@@ -27,7 +27,7 @@ interface MobileUnifiedMediaHubProps {
 export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) => {
   const { isDemoMode } = useDemoMode();
   const { mediaItems: realMediaItems, loading, refetch } = useMediaManagement(tripId);
-  const [selectedTab, setSelectedTab] = useState<'all' | 'photos' | 'videos' | 'files' | 'links'>('all');
+  const [selectedTab, setSelectedTab] = useState<'all' | 'photos' | 'videos' | 'files'>('all');
 
   const { isPulling, isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: async () => {
@@ -51,7 +51,6 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
     if (selectedTab === 'photos') return item.type === 'image';
     if (selectedTab === 'videos') return item.type === 'video';
     if (selectedTab === 'files') return item.type === 'file';
-    if (selectedTab === 'links') return item.type === 'link';
     return true;
   });
 
@@ -116,7 +115,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
 
       {/* Filter Tabs */}
       <div className="flex gap-2 px-4 py-3 border-b border-white/10 safe-container overflow-x-auto native-scroll scrollbar-hide">
-        {(['all', 'photos', 'videos', 'files', 'links'] as const).map((tab) => (
+        {(['all', 'photos', 'videos', 'files'] as const).map((tab) => (
           <button
             key={tab}
             onClick={async () => {

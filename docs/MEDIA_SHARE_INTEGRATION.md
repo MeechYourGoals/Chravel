@@ -18,7 +18,7 @@ The chat module now supports comprehensive media sharing with automatic categori
 - Images → Media tab > Photos filter
 - Videos → Media tab > Videos filter
 - Documents → Media tab > Files filter
-- Links → Media tab > Links filter
+- Links → Places tab > Links section
 
 ### 3. Real-time Synchronization
 - Uploads appear instantly in chat for all participants
@@ -114,7 +114,7 @@ advertiser-assets/
 1. Click Share button
 2. Select "Link"
 3. Paste URL
-4. Link preview appears in chat + Links tab
+4. Link preview appears in chat + Places > Links tab
 
 ### Drag & Drop (Desktop)
 1. Drag files into chat input area
