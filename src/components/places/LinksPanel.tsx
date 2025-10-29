@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Plus, Trash2, Navigation2, Calendar, Eye, EyeOff, Link } from 'lucide-react';
+import { MapPin, Trash2, Navigation2, Calendar, Eye, EyeOff, Link } from 'lucide-react';
 import { PlaceWithDistance, BasecampLocation } from '@/types/basecamp';
 import { AddPlaceModal } from '../AddPlaceModal';
 import { AddToCalendarButton } from '../AddToCalendarButton';
@@ -123,10 +123,9 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
             </div>
             <button
               onClick={() => setIsAddPlaceModalOpen(true)}
-              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-xl transition-all font-medium text-sm flex items-center gap-2 shadow-lg shadow-green-500/25"
+              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-xl transition-all font-medium text-sm flex items-center shadow-lg shadow-green-500/25"
             >
-              <Plus size={16} />
-              Add Link
+              +Add link
             </button>
           </div>
         </div>

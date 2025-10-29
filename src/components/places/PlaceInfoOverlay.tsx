@@ -69,10 +69,15 @@ export const PlaceInfoOverlay: React.FC<PlaceInfoOverlayProps> = ({
               href={place.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium group"
+              className="block"
             >
-              <ExternalLink size={14} className="flex-shrink-0" />
-              <span className="truncate group-hover:underline">Visit Website</span>
+              <div className="flex items-start gap-2 text-blue-600 hover:text-blue-700 group">
+                <ExternalLink size={14} className="flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium group-hover:underline block">Visit Website</span>
+                  <span className="text-xs text-gray-500 truncate block mt-0.5">{place.website}</span>
+                </div>
+              </div>
             </a>
           </div>
         )}
