@@ -165,7 +165,7 @@ export class UniversalMockDataService {
       title: 'Beautiful Downtown Loft - Perfect for Groups',
       description: 'Spacious 3BR/2BA loft in the heart of downtown. Sleeps 8 comfortably with modern amenities.',
       domain: 'airbnb.com',
-      image_url: '/mock/images/airbnb-listing.jpg',
+      image_url: '/mock/images/airbnb-home.png',
       created_at: new Date(Date.now() - 3600000).toISOString(),
       source: 'places' as const
     },
@@ -175,7 +175,7 @@ export class UniversalMockDataService {
       title: 'Sunset Rooftop Restaurant - Reservations Available',
       description: 'Award-winning rooftop dining with panoramic city views. Perfect for group celebrations.',
       domain: 'opentable.com',
-      image_url: '/mock/images/restaurant-rooftop.jpg',
+      image_url: '/mock/images/restaurant-rooftop.png',
       created_at: new Date(Date.now() - 7200000).toISOString(),
       source: 'places' as const
     },
@@ -185,7 +185,7 @@ export class UniversalMockDataService {
       title: 'Historic City Walking Tour - Small Groups Welcome',
       description: 'Discover hidden gems and local history on this 3-hour guided walking tour.',
       domain: 'viator.com',
-      image_url: '/mock/images/walking-tour.jpg',
+      image_url: '/mock/images/walking-tour.png',
       created_at: new Date(Date.now() - 10800000).toISOString(),
       source: 'places' as const
     },
