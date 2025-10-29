@@ -14,6 +14,8 @@ export interface BasecampsPanelProps {
   onCenterMap: (coords: { lat: number; lng: number }, type: 'trip' | 'personal') => void;
   activeContext: 'trip' | 'personal';
   onContextChange: (context: 'trip' | 'personal') => void;
+  personalBasecamp?: PersonalBasecamp | null;
+  onPersonalBasecampUpdate?: (basecamp: PersonalBasecamp | null) => void;
 }
 
 export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
@@ -22,14 +24,20 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   onTripBasecampSet,
   onCenterMap,
   activeContext,
-  onContextChange
+  onContextChange,
+  personalBasecamp: externalPersonalBasecamp,
+  onPersonalBasecampUpdate
 }) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
-  const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
+  const [internalPersonalBasecamp, setInternalPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
   const [showTripSelector, setShowTripSelector] = useState(false);
   const [showPersonalSelector, setShowPersonalSelector] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Use external state if provided, otherwise use internal state
+  const personalBasecamp = externalPersonalBasecamp !== undefined ? externalPersonalBasecamp : internalPersonalBasecamp;
+  const setPersonalBasecamp = onPersonalBasecampUpdate || setInternalPersonalBasecamp;
 
   // Generate a consistent demo user ID for the session
   const getDemoUserId = () => {
@@ -43,19 +51,25 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
 
   const effectiveUserId = user?.id || getDemoUserId();
 
-  // Load personal basecamp
+  // Load personal basecamp (only if not provided externally)
   useEffect(() => {
+    // Skip loading if external state is being used
+    if (externalPersonalBasecamp !== undefined) {
+      setLoading(false);
+      return;
+    }
+
     const loadPersonalBasecamp = async () => {
       setLoading(true);
       try {
         if (isDemoMode) {
           const sessionBasecamp = demoModeService.getSessionPersonalBasecamp(tripId, effectiveUserId);
-          setPersonalBasecamp(sessionBasecamp);
+          setInternalPersonalBasecamp(sessionBasecamp);
         } else if (user) {
           const dbBasecamp = await basecampService.getPersonalBasecamp(tripId, user.id);
-          setPersonalBasecamp(dbBasecamp);
+          setInternalPersonalBasecamp(dbBasecamp);
         } else {
-          setPersonalBasecamp(null);
+          setInternalPersonalBasecamp(null);
         }
       } catch (error) {
         console.error('Failed to load personal basecamp:', error);
@@ -65,7 +79,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
     };
 
     loadPersonalBasecamp();
-  }, [tripId, user, isDemoMode, effectiveUserId]);
+  }, [tripId, user, isDemoMode, effectiveUserId, externalPersonalBasecamp]);
 
   const handleTripBasecampSet = async (newBasecamp: BasecampLocation) => {
     await onTripBasecampSet(newBasecamp);
@@ -84,6 +98,12 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           longitude: location.coordinates?.lng
         });
         setPersonalBasecamp(sessionBasecamp);
+        
+        // Switch to personal context and center map on newly set basecamp
+        onContextChange('personal');
+        if (location.coordinates) {
+          onCenterMap(location.coordinates, 'personal');
+        }
       } else if (user) {
         const dbBasecamp = await basecampService.upsertPersonalBasecamp({
           trip_id: tripId,
@@ -93,6 +113,12 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           longitude: location.coordinates?.lng
         });
         setPersonalBasecamp(dbBasecamp);
+        
+        // Switch to personal context and center map on newly set basecamp
+        onContextChange('personal');
+        if (location.coordinates) {
+          onCenterMap(location.coordinates, 'personal');
+        }
       }
       setShowPersonalSelector(false);
     } catch (error) {

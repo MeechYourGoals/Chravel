@@ -209,6 +209,13 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     // Always update the search context for proper toggle highlighting
     setSearchContext(context);
 
+    // Center the map on the appropriate basecamp when switching contexts
+    if (context === 'trip' && contextBasecamp?.coordinates) {
+      mapRef.current?.centerOn(contextBasecamp.coordinates, 15);
+    } else if (context === 'personal' && personalBasecamp?.latitude && personalBasecamp?.longitude) {
+      mapRef.current?.centerOn({ lat: personalBasecamp.latitude, lng: personalBasecamp.longitude }, 15);
+    }
+
     // If personal basecamp is not set, also open the selector
     if (context === 'personal' && !personalBasecamp) {
       setShowPersonalBasecampSelector(true);
@@ -309,6 +316,8 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
             onCenterMap={handleCenterMap}
             activeContext={searchContext}
             onContextChange={handleContextChange}
+            personalBasecamp={personalBasecamp}
+            onPersonalBasecampUpdate={setPersonalBasecamp}
           />
         )}
 
