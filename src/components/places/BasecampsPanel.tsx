@@ -326,13 +326,9 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                     Private
                   </span>
                 </div>
-                <p className="text-gray-400 text-sm mb-3">
-                  Add where you're staying (hotel/Airbnb) to center searches around you. Only you can see
-                  this.
+                <p className="text-gray-400 text-sm mb-4">
+                  Add the location of your accommodations. Only you can see this.
                 </p>
-                {isDemoMode && (
-                  <p className="text-xs text-gray-500 mb-3">Demo Mode: saved locally for this session</p>
-                )}
                 <button
                   onClick={() => setShowPersonalSelector(true)}
                   className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl transition-colors font-medium text-sm flex items-center justify-center gap-2"
@@ -340,6 +336,9 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   <Plus size={16} />
                   Set Your Location
                 </button>
+                {isDemoMode && (
+                  <p className="text-xs text-gray-500 mt-3 text-center">Demo Mode: saved locally for this session</p>
+                )}
               </>
             )}
           </div>
