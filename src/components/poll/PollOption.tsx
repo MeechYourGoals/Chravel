@@ -18,7 +18,7 @@ export const PollOption = ({ option, totalVotes, userVote, onVote, disabled = fa
     <button
       onClick={() => onVote(option.id)}
       disabled={!!userVote || disabled}
-      className={`w-full text-left p-4 rounded-xl border transition-all ${
+      className={`w-full text-left p-2.5 rounded-lg border transition-all ${
         userVote
           ? isVoted
             ? 'border-glass-enterprise-blue bg-glass-enterprise-blue/20'
@@ -26,18 +26,18 @@ export const PollOption = ({ option, totalVotes, userVote, onVote, disabled = fa
           : 'border-glass-slate-border hover:border-glass-enterprise-blue hover:bg-glass-enterprise-blue/10'
       } ${!userVote && !disabled ? 'cursor-pointer' : 'cursor-default opacity-80'}`}
     >
-      <div className="flex justify-between items-center mb-2">
-        <span className="font-medium text-white">{option.text}</span>
+      <div className="flex justify-between items-center mb-1.5">
+        <span className="font-medium text-white text-sm">{option.text}</span>
         {(userVote || disabled) && (
-          <span className="text-sm font-semibold text-gray-400">
+          <span className="text-xs font-semibold text-gray-400">
             {option.votes} votes ({percentage.toFixed(0)}%)
           </span>
         )}
       </div>
       {(userVote || disabled) && (
-        <div className="w-full bg-glass-slate-bg rounded-full h-2">
+        <div className="w-full bg-glass-slate-bg rounded-full h-1.5">
           <div
-            className="bg-gradient-to-r from-glass-enterprise-blue to-glass-accent-orange h-2 rounded-full transition-all duration-500"
+            className="bg-gradient-to-r from-glass-enterprise-blue to-glass-accent-orange h-1.5 rounded-full transition-all duration-500"
             style={{ width: `${percentage}%` }}
           />
         </div>

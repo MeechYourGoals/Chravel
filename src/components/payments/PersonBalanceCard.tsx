@@ -70,8 +70,8 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
 
   return (
     <>
-      <Card className={youOweThem ? 'border-orange-600/30' : 'border-green-600/30'}>
-        <CardContent className="pt-6">
+      <Card className={`${youOweThem ? 'border-orange-600/30' : 'border-green-600/30'} rounded-lg`}>
+        <CardContent className="py-3 px-4">
           {/* Single row layout with all info inline */}
           <div className="flex items-center justify-between gap-3">
             {/* Left: User Info */}
@@ -93,7 +93,7 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
             {isPendingConfirmation && !youOweThem ? (
               <Button 
                 size="sm" 
-                className="text-xs px-3 py-1.5 h-auto flex-shrink-0 bg-orange-600 hover:bg-orange-700"
+                className="text-xs px-2 py-1 h-auto flex-shrink-0 bg-orange-600 hover:bg-orange-700"
                 onClick={() => setShowConfirmDialog(true)}
               >
                 <Clock className="w-3 h-3 mr-1" />
@@ -104,7 +104,7 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
                 {paymentLink && (
                   <Button 
                     size="sm" 
-                    className="text-xs px-3 py-1.5 h-auto"
+                    className="text-xs px-2 py-1 h-auto"
                     onClick={() => window.open(paymentLink, '_blank')}
                   >
                     <ExternalLink className="w-3 h-3 mr-1" />
@@ -114,7 +114,7 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
                 <Button 
                   size="sm" 
                   variant="outline"
-                  className="text-xs px-3 py-1.5 h-auto"
+                  className="text-xs px-2 py-1 h-auto"
                   onClick={() => setShowSettleDialog(true)}
                 >
                   Mark as Paid
@@ -124,7 +124,7 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
               <Button 
                 size="sm" 
                 variant="outline"
-                className="text-xs px-3 py-1.5 h-auto flex-shrink-0"
+                className="text-xs px-2 py-1 h-auto flex-shrink-0"
                 onClick={() => setShowSettleDialog(true)}
               >
                 Mark as Paid
@@ -152,7 +152,7 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
 
           {/* Details Section */}
           {showDetails && (
-            <div className="mt-4 pt-4 border-t border-border space-y-2">
+            <div className="mt-3 pt-3 border-t border-border space-y-1.5">
               <h5 className="font-medium text-sm text-muted-foreground mb-2">
                 Individual Payments
               </h5>

@@ -82,18 +82,18 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
   }
 
   return (
-    <Card className="bg-payment-background-light border-payment-border dark:bg-payment-background dark:border-payment-border">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <DollarSign size={18} className="text-payment-primary" />
-          <span className="font-medium text-payment-primary-foreground dark:text-payment-primary-foreground">Payment Details</span>
+    <Card className="bg-payment-background-light border-payment-border dark:bg-payment-background dark:border-payment-border rounded-lg">
+      <CardContent className="p-3">
+        <div className="flex items-center gap-2 mb-3">
+          <DollarSign size={16} className="text-payment-primary" />
+          <span className="text-sm font-medium text-payment-primary-foreground dark:text-payment-primary-foreground">Payment Details</span>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {/* Amount and Currency */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             <div className="col-span-2">
-              <Label htmlFor="amount">Amount</Label>
+              <Label htmlFor="amount" className="text-xs">Amount</Label>
               <Input
                 id="amount"
                 type="number"
@@ -106,7 +106,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
               />
             </div>
             <div>
-              <Label htmlFor="currency">Currency</Label>
+              <Label htmlFor="currency" className="text-xs">Currency</Label>
                 <Select value={currency} onValueChange={setCurrency}>
                 <SelectTrigger className="bg-white dark:bg-white !text-black">
                   <SelectValue />
@@ -123,7 +123,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
 
           {/* Description */}
           <div>
-            <Label htmlFor="description">What's this for?</Label>
+            <Label htmlFor="description" className="text-xs">What's this for?</Label>
             <Input
               id="description"
               value={description}
@@ -136,12 +136,12 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
 
           {/* Split Options */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label className="flex items-center gap-2">
-                <Users size={16} />
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="flex items-center gap-1.5 text-xs">
+                <Users size={14} />
                 Split between {selectedParticipants.length} people
                 {amountPerPerson > 0 && (
-                  <span className="text-payment-primary font-medium">
+                  <span className="text-payment-primary font-medium text-xs">
                     (${amountPerPerson.toFixed(2)} each)
                   </span>
                 )}
@@ -156,7 +156,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
                 {allParticipantsSelected ? 'Deselect All' : 'Select All'}
               </Button>
             </div>
-            <div className="mt-2 max-h-32 overflow-y-auto space-y-2 p-2 bg-white dark:bg-white rounded border">
+            <div className="mt-1.5 max-h-28 overflow-y-auto space-y-1.5 p-2 bg-white dark:bg-white rounded border">
               {tripMembers.map(member => (
                 <div key={member.id} className="flex items-center gap-2">
                   <Checkbox
@@ -184,9 +184,9 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
 
           {/* Payment Methods */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label className="flex items-center gap-2">
-                <CheckSquare size={16} />
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="flex items-center gap-1.5 text-xs">
+                <CheckSquare size={14} />
                 Preferred payment methods
               </Label>
               <Button
@@ -199,7 +199,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
                 {allPaymentMethodsSelected ? 'Deselect All' : 'Select All'}
               </Button>
             </div>
-            <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className="mt-1.5 grid grid-cols-2 gap-2">
               {paymentMethodOptions.map(method => (
                 <div key={method.id} className="flex items-center gap-2">
                   <Checkbox

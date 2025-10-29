@@ -234,17 +234,17 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Payment Creation */}
       {demoLoading ? (
-        <div className="flex items-center justify-center py-8 opacity-80">
+        <div className="flex items-center justify-center py-6 opacity-80">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
         </div>
       ) : !user && !demoActive ? (
-        <div className="bg-card rounded-lg border border-border p-6 text-center">
-          <LogIn className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold mb-2">Sign in to create payment requests</h3>
-          <p className="text-muted-foreground mb-4">
+        <div className="bg-card rounded-lg border border-border p-4 text-center">
+          <LogIn className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+          <h3 className="text-base font-semibold mb-2">Sign in to create payment requests</h3>
+          <p className="text-sm text-muted-foreground mb-3">
             You need to be signed in to create and manage payments for this trip.
           </p>
           <Button variant="default" onClick={() => setShowAuthModal(true)}>
@@ -264,8 +264,8 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
 
       {/* Per-Person Balance Cards */}
       {balanceSummary.balances.length > 0 ? (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-foreground">Balance Breakdown</h3>
+        <div className="space-y-2">
+          <h3 className="text-base font-semibold text-foreground mb-1">Balance Breakdown</h3>
           {balanceSummary.balances.map(balance => (
             <PersonBalanceCard 
               key={balance.userId} 
@@ -275,8 +275,8 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
           ))}
         </div>
       ) : (
-        <div className="text-center py-8 bg-muted/50 rounded-lg border border-border">
-          <p className="text-muted-foreground">
+        <div className="text-center py-4 bg-muted/50 rounded-lg border border-border">
+          <p className="text-sm text-muted-foreground">
             All settled up! No outstanding payments.
           </p>
         </div>
