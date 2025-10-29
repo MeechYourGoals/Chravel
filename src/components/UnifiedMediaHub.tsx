@@ -1,22 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Camera } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMediaManagement } from '@/hooks/useMediaManagement';
 import { MediaSubTabs } from './MediaSubTabs';
 import { MediaGrid } from './media/MediaGrid';
 import { StorageQuotaBar } from './StorageQuotaBar';
+import { MediaUrlsPanel } from './media/MediaUrlsPanel';
+import { extractUrlsFromTripChat } from '@/services/chatUrlExtractor';
+import type { NormalizedUrl } from '@/services/chatUrlExtractor';
 
 interface UnifiedMediaHubProps {
   tripId: string;
+  onPromoteToTripLink?: (url: NormalizedUrl) => void;
 }
 
-export const UnifiedMediaHub = ({ tripId }: UnifiedMediaHubProps) => {
+export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHubProps) => {
   const [activeTab, setActiveTab] = useState('all');
+  const [urlsCount, setUrlsCount] = useState(0);
   
   const {
     mediaItems,
     loading
   } = useMediaManagement(tripId);
+
+  // Fetch URLs count
+  useEffect(() => {
+    const fetchUrlsCount = async () => {
+      try {
+        const urls = await extractUrlsFromTripChat(tripId);
+        setUrlsCount(urls.length);
+      } catch (error) {
+        console.error('Error fetching URLs count:', error);
+      }
+    };
+    fetchUrlsCount();
+  }, [tripId]);
 
   const filterMediaByType = (type: string) => {
     if (type === 'all') return mediaItems;
@@ -67,11 +85,38 @@ export const UnifiedMediaHub = ({ tripId }: UnifiedMediaHubProps) => {
       <StorageQuotaBar tripId={tripId} showDetails={true} />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-white/5 backdrop-blur-sm">
+        <TabsList className="grid w-full grid-cols-5 bg-white/5 backdrop-blur-sm">
           <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-          <TabsTrigger value="photos" className="text-xs">Photos</TabsTrigger>
-          <TabsTrigger value="videos" className="text-xs">Videos</TabsTrigger>
-          <TabsTrigger value="files" className="text-xs">Files</TabsTrigger>
+          <TabsTrigger value="photos" className="text-xs">
+            Photos
+            {mediaItems.filter(item => item.media_type === 'image').length > 0 && (
+              <span className="ml-1 text-[10px] opacity-70">
+                ({mediaItems.filter(item => item.media_type === 'image').length})
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="videos" className="text-xs">
+            Videos
+            {mediaItems.filter(item => item.media_type === 'video').length > 0 && (
+              <span className="ml-1 text-[10px] opacity-70">
+                ({mediaItems.filter(item => item.media_type === 'video').length})
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="files" className="text-xs">
+            Files
+            {mediaItems.filter(item => item.media_type === 'document').length > 0 && (
+              <span className="ml-1 text-[10px] opacity-70">
+                ({mediaItems.filter(item => item.media_type === 'document').length})
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="urls" className="text-xs">
+            URLs
+            {urlsCount > 0 && (
+              <span className="ml-1 text-[10px] opacity-70">({urlsCount})</span>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="mt-6">
@@ -91,6 +136,10 @@ export const UnifiedMediaHub = ({ tripId }: UnifiedMediaHubProps) => {
             item.media_type === 'document' || 
             (item.media_type === 'image' && (item.metadata?.isSchedule || item.metadata?.isReceipt))
           )} type="files" />
+        </TabsContent>
+
+        <TabsContent value="urls" className="mt-6">
+          <MediaUrlsPanel tripId={tripId} onPromoteToTripLink={onPromoteToTripLink} />
         </TabsContent>
       </Tabs>
 

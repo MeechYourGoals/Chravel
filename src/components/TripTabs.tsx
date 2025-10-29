@@ -14,9 +14,11 @@ import { EnhancedMediaAggregatedLinks } from './EnhancedMediaAggregatedLinks';
 import { PlacesSection } from './PlacesSection';
 import { AIConciergeChat } from './AIConciergeChat';
 import { PaymentsTab } from './payments/PaymentsTab';
+import { AddLinkModal } from './AddLinkModal';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { useFeatureToggle } from '../hooks/useFeatureToggle';
 import { TripPreferences as TripPreferencesType } from '../types/consumer';
+import type { NormalizedUrl } from '@/services/chatUrlExtractor';
 
 interface TripTabsProps {
   activeTab: string;
@@ -47,8 +49,31 @@ export const TripTabs = ({
   tripData 
 }: TripTabsProps) => {
   const [activeTab, setActiveTab] = useState('chat');
+  const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
+  const [linkPrefill, setLinkPrefill] = useState<{
+    url?: string;
+    title?: string;
+    category?: 'restaurant' | 'hotel' | 'attraction' | 'activity' | 'other';
+    note?: string;
+  } | undefined>(undefined);
+  
   const { accentColors } = useTripVariant();
   const features = useFeatureToggle(tripData || {});
+
+  // Handler for promoting URLs from Media to Trip Links
+  const handlePromoteToTripLink = (urlData: NormalizedUrl) => {
+    setLinkPrefill({
+      url: urlData.url,
+      title: urlData.title || urlData.domain,
+      note: `Shared in chat on ${new Date(urlData.lastSeenAt).toLocaleDateString()}`,
+    });
+    setIsAddLinkModalOpen(true);
+  };
+
+  const handleCloseLinkModal = () => {
+    setIsAddLinkModalOpen(false);
+    setLinkPrefill(undefined);
+  };
 
   // 🆕 Updated tab order: Chat, Calendar, Concierge, Media, Payments, Places, Polls, Tasks
   const tabs = [
@@ -79,7 +104,7 @@ export const TripTabs = ({
       case 'calendar':
         return <GroupCalendar tripId={tripId} />;
       case 'media':
-        return <UnifiedMediaHub tripId={tripId} />;
+        return <UnifiedMediaHub tripId={tripId} onPromoteToTripLink={handlePromoteToTripLink} />;
       case 'payments':
         return <PaymentsTab tripId={tripId} />;
       case 'places':
@@ -100,6 +125,13 @@ export const TripTabs = ({
 
   return (
     <>
+      {/* Add Link Modal */}
+      <AddLinkModal
+        isOpen={isAddLinkModalOpen}
+        onClose={handleCloseLinkModal}
+        prefill={linkPrefill}
+      />
+
       {/* Tab Navigation - Matches main navigation alignment */}
       <div className="flex overflow-x-auto whitespace-nowrap scroll-smooth gap-2 mb-8 pb-2 -mx-2 px-2 justify-center">
         {tabs.map((tab) => {
