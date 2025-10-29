@@ -17,7 +17,6 @@ export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEven
   const [title, setTitle] = useState('');
   const [time, setTime] = useState('12:00');
   const [location, setLocation] = useState('');
-  const [category, setCategory] = useState<'dining' | 'lodging' | 'activity' | 'transportation' | 'entertainment' | 'other'>('activity');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -40,7 +39,6 @@ export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEven
         description: description || undefined,
         start_time: startTime.toISOString(),
         location: location || undefined,
-        event_category: category,
         include_in_itinerary: true,
         source_type: 'manual',
         source_data: { created_from: 'mobile' }
@@ -58,7 +56,6 @@ export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEven
         setTitle('');
         setTime('12:00');
         setLocation('');
-        setCategory('activity');
         setDescription('');
         onClose();
       } else {
@@ -143,24 +140,6 @@ export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEven
               placeholder="e.g., Central Park"
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Category
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as any)}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-            >
-              <option value="dining">Dining</option>
-              <option value="lodging">Lodging</option>
-              <option value="activity">Activity</option>
-              <option value="transportation">Transportation</option>
-              <option value="entertainment">Entertainment</option>
-              <option value="other">Other</option>
-            </select>
           </div>
 
           <div>
