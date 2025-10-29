@@ -54,7 +54,7 @@ class MockDataService {
       },
       {
         id: 'mock-media-2',
-        media_url: 'https://images.unsplash.com/photo-1551963831-b3b1ca40c98e?w=600&h=400&fit=crop',
+        media_url: '/mock/images/travel-selfie.jpg',
         filename: 'Team Breakfast.jpg',
         media_type: 'image',
         metadata: { width: 1920, height: 1080 },
@@ -65,7 +65,7 @@ class MockDataService {
       },
       {
         id: 'mock-media-3',
-        media_url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop',
+        media_url: '/mock/images/beach-volleyball.jpg',
         filename: 'Adventure Hiking.jpg',
         media_type: 'image',
         metadata: { width: 1920, height: 1080 },
@@ -76,7 +76,7 @@ class MockDataService {
       },
       {
         id: 'mock-media-4',
-        media_url: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=600&h=800&fit=crop',
+        media_url: '/mock/images/concert-stage.jpg',
         filename: 'Event Flyer - Music Festival.jpg',
         media_type: 'image',
         metadata: { width: 1080, height: 1350, isFlyer: true },
@@ -88,7 +88,7 @@ class MockDataService {
       // AI-Generated Photos - People at events
       {
         id: 'mock-media-11',
-        media_url: 'https://images.unsplash.com/photo-1529271338528-96a6ac830a56?w=600&h=400&fit=crop',
+        media_url: '/mock/images/friends-party.jpg',
         filename: 'Friends Party Night.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -110,7 +110,7 @@ class MockDataService {
       },
       {
         id: 'mock-media-13',
-        media_url: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=600&h=400&fit=crop',
+        media_url: '/mock/images/concert-stage.jpg',
         filename: 'Music Festival Crowd.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -121,7 +121,7 @@ class MockDataService {
       },
       {
         id: 'mock-media-14',
-        media_url: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=400&fit=crop',
+        media_url: '/mock/images/wedding-ceremony.jpg',
         filename: 'Wedding Ceremony.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -132,7 +132,7 @@ class MockDataService {
       },
       {
         id: 'mock-media-16',
-        media_url: 'https://images.unsplash.com/photo-1539635278303-d4002c07eae3?w=600&h=400&fit=crop',
+        media_url: '/mock/images/travel-selfie.jpg',
         filename: 'Travel Group Selfie.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -143,7 +143,7 @@ class MockDataService {
       },
       {
         id: 'mock-media-17',
-        media_url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=400&fit=crop',
+        media_url: '/mock/images/beach-volleyball.jpg',
         filename: 'Beach Volleyball Fun.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
