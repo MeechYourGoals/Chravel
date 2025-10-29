@@ -174,16 +174,50 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       setIsSearching(true);
       setSearchError(null);
       try {
-        // Use Text Search API for better results
+        console.log('[MapCanvas] Searching for:', query);
+
+        // Try Google Maps Text Search API first
         const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
         const searchOptions = activeBasecamp?.coordinates
           ? { location: `${activeBasecamp.coordinates.lat},${activeBasecamp.coordinates.lng}` }
           : undefined;
 
-        const result = await GoogleMapsService.searchPlacesByText(query, searchOptions);
+        let result = await GoogleMapsService.searchPlacesByText(query, searchOptions);
+        console.log('[MapCanvas] Text search result:', result);
 
-        if (result.results && result.results.length > 0) {
+        // If Google API fails or returns no results, fallback to Nominatim
+        if (!result.results || result.results.length === 0) {
+          console.log('[MapCanvas] No results from Google API, trying Nominatim fallback...');
+          const nominatimResult = await GoogleMapsService.fallbackGeocodeNominatim(query);
+
+          if (nominatimResult) {
+            console.log('[MapCanvas] Nominatim result:', nominatimResult);
+
+            // Set the selected place info
+            const placeInfo: PlaceInfo = {
+              name: query,
+              address: nominatimResult.displayName,
+              coordinates: { lat: nominatimResult.lat, lng: nominatimResult.lng }
+            };
+
+            setSelectedPlace(placeInfo);
+
+            // Update map to show the place
+            const url = GoogleMapsService.buildEmbeddableUrl(
+              nominatimResult.displayName,
+              { lat: nominatimResult.lat, lng: nominatimResult.lng }
+            );
+            setEmbedUrl(url);
+            console.log('[MapCanvas] ✅ Search successful (Nominatim)');
+          } else {
+            setSearchError('No results found. Try a different search term.');
+            console.log('[MapCanvas] ❌ No results from both APIs');
+          }
+        } else {
+          // Google API returned results
           const place = result.results[0];
+          console.log('[MapCanvas] Using Google API result:', place);
+
           const placeDetails = place.place_id
             ? await GoogleMapsService.getPlaceDetails(place.place_id)
             : null;
@@ -207,13 +241,39 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
               place.geometry.location
             );
             setEmbedUrl(url);
+            console.log('[MapCanvas] ✅ Search successful (Google API)');
           }
-        } else {
-          setSearchError('No results found. Try a different search term.');
         }
       } catch (error) {
-        console.error('Search error:', error);
-        setSearchError('Search failed. Please try again.');
+        console.error('[MapCanvas] Search error:', error);
+
+        // Try Nominatim as last resort fallback
+        try {
+          console.log('[MapCanvas] Error occurred, trying Nominatim as fallback...');
+          const nominatimResult = await GoogleMapsService.fallbackGeocodeNominatim(query);
+
+          if (nominatimResult) {
+            const placeInfo: PlaceInfo = {
+              name: query,
+              address: nominatimResult.displayName,
+              coordinates: { lat: nominatimResult.lat, lng: nominatimResult.lng }
+            };
+
+            setSelectedPlace(placeInfo);
+
+            const url = GoogleMapsService.buildEmbeddableUrl(
+              nominatimResult.displayName,
+              { lat: nominatimResult.lat, lng: nominatimResult.lng }
+            );
+            setEmbedUrl(url);
+            console.log('[MapCanvas] ✅ Search successful (Nominatim fallback after error)');
+          } else {
+            setSearchError('Search failed. Please try again.');
+          }
+        } catch (fallbackError) {
+          console.error('[MapCanvas] Fallback search also failed:', fallbackError);
+          setSearchError('Search failed. Please try again.');
+        }
       } finally {
         setIsSearching(false);
       }
