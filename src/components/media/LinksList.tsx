@@ -9,8 +9,7 @@ interface LinkItemData {
   domain: string;
   image_url?: string;
   created_at: string;
-  source: 'chat' | 'manual' | 'pinned';
-  category?: 'Housing' | 'Eats' | 'Activities';
+  source: 'chat' | 'manual' | 'places';
   tags?: string[];
 }
 

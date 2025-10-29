@@ -25,8 +25,7 @@ export interface LinkItem {
   domain: string;
   image_url?: string;
   created_at: string;
-  source: 'chat' | 'manual' | 'pinned';
-  category?: 'Housing' | 'Eats' | 'Activities';
+  source: 'chat' | 'manual' | 'places';
   tags?: string[];
 }
 
@@ -147,18 +146,21 @@ export const useMediaManagement = (tripId: string) => {
         ]);
 
         items = [
-          ...(linksResponse.data || []).map(item => ({
-            id: item.id,
-            url: item.url,
-            title: item.og_title || 'Untitled Link',
-            description: item.og_description || '',
-            domain: item.domain || new URL(item.url).hostname,
-            image_url: item.og_image_url,
-            created_at: item.created_at,
-            source: 'chat' as const,
-            category: 'Activities' as const,
-            tags: []
-          })),
+          ...(linksResponse.data || []).map(item => {
+            // Determine source based on og_description metadata
+            const isFromPlaces = item.og_description?.includes('place_id:') || item.og_description?.includes('Saved from Places');
+            return {
+              id: item.id,
+              url: item.url,
+              title: item.og_title || 'Untitled Link',
+              description: item.og_description || '',
+              domain: item.domain || new URL(item.url).hostname,
+              image_url: item.og_image_url,
+              created_at: item.created_at,
+              source: isFromPlaces ? 'places' as const : 'chat' as const,
+              tags: []
+            };
+          }),
           ...(manualLinksResponse.data || []).map(item => ({
             id: item.id,
             url: item.url,
@@ -168,7 +170,6 @@ export const useMediaManagement = (tripId: string) => {
             image_url: undefined,
             created_at: item.created_at,
             source: 'manual' as const,
-            category: (item.category as LinkItem['category']) || 'Activities',
             tags: []
           }))
         ];

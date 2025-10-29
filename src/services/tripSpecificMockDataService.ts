@@ -20,8 +20,7 @@ interface TripSpecificLinkItem {
   domain: string;
   image_url?: string;
   created_at: string;
-  source: 'chat' | 'manual' | 'pinned';
-  category: 'Housing' | 'Eats' | 'Activities';
+  source: 'chat' | 'manual' | 'places';
   tags: string[];
 }
 
@@ -126,8 +125,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'palaceresorts.com',
         image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
-        source: 'pinned',
-        category: 'Housing',
+        source: 'places',
+        source: 'places' as const,
         tags: ['resort', 'all-inclusive', 'accommodation']
       },
       {
@@ -139,7 +138,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
         source: 'chat',
-        category: 'Eats',
+        source: 'places' as const,
         tags: ['seafood', 'restaurant', 'upscale']
       },
       {
@@ -150,8 +149,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'cocobongo.com.mx',
         image_url: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-        source: 'pinned',
-        category: 'Activities',
+        source: 'places',
+        source: 'places' as const,
         tags: ['nightlife', 'show', 'entertainment']
       },
       {
@@ -163,7 +162,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1518638150340-f706e86654de?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
         source: 'manual',
-        category: 'Activities',
+        source: 'places' as const,
         tags: ['cultural', 'historical', 'tour']
       }
     ]
@@ -257,8 +256,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'booking.com',
         image_url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
-        source: 'pinned',
-        category: 'Housing',
+        source: 'places',
+        source: 'places' as const,
         tags: ['capsule', 'modern', 'shibuya']
       },
       {
@@ -270,7 +269,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1551963831-b3b1ca40c98e?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
         source: 'chat',
-        category: 'Eats',
+        source: 'places' as const,
         tags: ['sushi', 'traditional', 'tsukiji']
       },
       {
@@ -281,8 +280,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'teamlab.art',
         image_url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
-        source: 'pinned',
-        category: 'Activities',
+        source: 'places',
+        source: 'places' as const,
         tags: ['art', 'digital', 'immersive']
       },
       {
@@ -294,7 +293,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
         source: 'manual',
-        category: 'Activities',
+        source: 'places' as const,
         tags: ['entertainment', 'unique', 'shinjuku']
       }
     ]
@@ -362,8 +361,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'seminyakbeachresort.com',
         image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 45).toISOString(),
-        source: 'pinned',
-        category: 'Housing',
+        source: 'places',
+        source: 'places' as const,
         tags: ['resort', 'wedding-venue', 'luxury']
       },
       {
@@ -375,7 +374,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
         source: 'chat',
-        category: 'Eats',
+        source: 'places' as const,
         tags: ['italian', 'romantic', 'ocean-view']
       },
       {
@@ -387,7 +386,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
         source: 'manual',
-        category: 'Activities',
+        source: 'places' as const,
         tags: ['adventure', 'scenic', 'couples']
       }
     ]
@@ -463,8 +462,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'omnihotels.com',
         image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
-        source: 'pinned',
-        category: 'Housing',
+        source: 'places',
+        source: 'places' as const,
         tags: ['hotel', 'luxury', 'downtown']
       },
       {
@@ -476,7 +475,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
         source: 'chat',
-        category: 'Eats',
+        source: 'places' as const,
         tags: ['chicken', 'nashville', 'spicy']
       },
       {
@@ -488,7 +487,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
         source: 'manual',
-        category: 'Activities',
+        source: 'places' as const,
         tags: ['music', 'historic', 'tour']
       }
     ]
@@ -556,8 +555,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'thelittlenell.com',
         image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 45).toISOString(),
-        source: 'pinned',
-        category: 'Housing',
+        source: 'places',
+        source: 'places' as const,
         tags: ['resort', 'luxury', 'ski']
       },
       {
@@ -569,7 +568,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
         source: 'chat',
-        category: 'Eats',
+        source: 'places' as const,
         tags: ['japanese', 'sushi', 'upscale']
       }
     ]
@@ -626,8 +625,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'tpc.com',
         image_url: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
-        source: 'pinned',
-        category: 'Activities',
+        source: 'places',
+        source: 'places' as const,
         tags: ['golf', 'pga', 'tournament']
       },
       {
@@ -638,8 +637,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'fourseasons.com',
         image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
-        source: 'pinned',
-        category: 'Housing',
+        source: 'places',
+        source: 'places' as const,
         tags: ['resort', 'luxury', 'golf']
       }
     ]
@@ -863,8 +862,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'airbnb.com',
         image_url: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
-        source: 'pinned',
-        category: 'Housing',
+        source: 'places',
+        source: 'places' as const,
         tags: ['airbnb', 'desert', 'festival']
       },
       {
@@ -876,7 +875,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 28).toISOString(),
         source: 'manual',
-        category: 'Eats',
+        source: 'places' as const,
         tags: ['restaurant', 'desert', 'iconic']
       },
       {
@@ -887,8 +886,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'uber.com',
         image_url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
-        source: 'pinned',
-        category: 'Activities',
+        source: 'places',
+        source: 'places' as const,
         tags: ['transportation', 'shuttle', 'festival']
       },
       {
@@ -899,8 +898,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'coachella.com',
         image_url: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 40).toISOString(),
-        source: 'pinned',
-        category: 'Activities',
+        source: 'places',
+        source: 'places' as const,
         tags: ['lineup', 'official', 'schedule']
       },
       {
@@ -912,7 +911,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 22).toISOString(),
         source: 'manual',
-        category: 'Eats',
+        source: 'places' as const,
         tags: ['grocery', 'supplies', 'healthy']
       }
     ]
@@ -1032,8 +1031,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'airbnb.com',
         image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
-        source: 'pinned' as const,
-        category: 'Housing' as const,
+        source: 'places' as const,
         tags: ['beachfront', 'villa', 'pool']
       }
     ]
@@ -1079,12 +1077,11 @@ class TripSpecificMockDataService {
     return tripData[type] || [];
   }
 
-  static getMockLinksByCategory(tripId: string | number, category?: 'Housing' | 'Eats' | 'Activities'): TripSpecificLinkItem[] {
+  static getMockLinks(tripId: string | number): TripSpecificLinkItem[] {
     const tripData = this.getTripMockData(tripId);
     if (!tripData) return [];
     
-    if (!category) return tripData.links;
-    return tripData.links.filter(link => link.category === category);
+    return tripData.links;
   }
 
   // Helper methods for compatibility
