@@ -10,7 +10,7 @@ import { CommentsWall } from './CommentsWall';
 import { FilesTab } from './FilesTab';
 import { TripTasksTab } from './todo/TripTasksTab';
 import { UnifiedMediaHub } from './UnifiedMediaHub';
-import { EnhancedMediaAggregatedLinks } from './EnhancedMediaAggregatedLinks';
+// Removed legacy Links component import; replaced by Media URLs panel inside UnifiedMediaHub
 import { PlacesSection } from './PlacesSection';
 import { AIConciergeChat } from './AIConciergeChat';
 import { PaymentsTab } from './payments/PaymentsTab';
@@ -34,6 +34,8 @@ interface TripTabsProps {
   };
 }
 
+import type { PromotePrefill } from './media/MediaUrlsPanel';
+
 export const TripTabs = ({ 
   activeTab: parentActiveTab, 
   onTabChange: parentOnTabChange, 
@@ -47,6 +49,7 @@ export const TripTabs = ({
   tripData 
 }: TripTabsProps) => {
   const [activeTab, setActiveTab] = useState('chat');
+  const [placesPrefill, setPlacesPrefill] = useState<PromotePrefill | undefined>(undefined);
   const { accentColors } = useTripVariant();
   const features = useFeatureToggle(tripData || {});
 
@@ -68,6 +71,11 @@ export const TripTabs = ({
     }
   };
 
+  const handlePromoteToTripLink = (prefill: PromotePrefill) => {
+    setPlacesPrefill(prefill);
+    setActiveTab('places');
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'chat':
@@ -79,11 +87,11 @@ export const TripTabs = ({
       case 'calendar':
         return <GroupCalendar tripId={tripId} />;
       case 'media':
-        return <UnifiedMediaHub tripId={tripId} />;
+        return <UnifiedMediaHub tripId={tripId} onPromoteToTripLink={handlePromoteToTripLink} />;
       case 'payments':
         return <PaymentsTab tripId={tripId} />;
       case 'places':
-        return <PlacesSection tripId={tripId} tripName={tripName} />;
+        return <PlacesSection tripId={tripId} tripName={tripName} prefillAddLink={placesPrefill} />;
       case 'concierge':
         return (
           <AIConciergeChat 

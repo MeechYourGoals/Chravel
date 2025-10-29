@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Trash2, Navigation2, Calendar, Eye, EyeOff, Link } from 'lucide-react';
 import { PlaceWithDistance, BasecampLocation } from '@/types/basecamp';
 import { AddPlaceModal } from '../AddPlaceModal';
@@ -18,6 +18,7 @@ export interface LinksPanelProps {
   onCenterMap: (coords: { lat: number; lng: number }) => void;
   distanceUnit: string;
   preferredMode: string;
+  prefillAddLink?: { url?: string; title?: string; category?: 'restaurant'|'hotel'|'attraction'|'activity'|'other'; note?: string };
 }
 
 export const LinksPanel: React.FC<LinksPanelProps> = ({
@@ -30,11 +31,18 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
   onEventAdded,
   onCenterMap,
   distanceUnit,
-  preferredMode
-}) => {
+  preferredMode,
+  prefillAddLink
+}: LinksPanelProps) => {
   const [isAddPlaceModalOpen, setIsAddPlaceModalOpen] = useState(false);
   const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set(['all']));
   const [addingToLinks, setAddingToLinks] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (prefillAddLink) {
+      setIsAddPlaceModalOpen(true);
+    }
+  }, [prefillAddLink]);
 
   const categories = Array.from(new Set(places.map(p => p.category).filter(Boolean)));
 
@@ -72,22 +80,22 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
       const success = await onAddToLinks(place);
       if (success) {
         toast({
-          title: "Added to Links",
+          title: 'Added to Links',
           description: `${place.name} has been saved to your Places > Links section`,
-          variant: "default",
+          variant: 'default',
         });
       } else {
         toast({
-          title: "Failed to add",
-          description: "Could not save to links. Please try again.",
-          variant: "destructive",
+          title: 'Failed to add',
+          description: 'Could not save to links. Please try again.',
+          variant: 'destructive',
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "An error occurred while saving to links",
-        variant: "destructive",
+        title: 'Error',
+        description: 'An error occurred while saving to links',
+        variant: 'destructive',
       });
     } finally {
       setAddingToLinks(prev => {
@@ -269,6 +277,7 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
         onClose={() => setIsAddPlaceModalOpen(false)}
         onPlaceAdded={onPlaceAdded}
         basecamp={basecamp}
+        prefill={prefillAddLink}
       />
     </>
   );

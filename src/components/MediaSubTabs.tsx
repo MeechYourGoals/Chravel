@@ -75,9 +75,7 @@ export const MediaSubTabs = ({ items, type }: MediaSubTabsProps) => {
       <div className="space-y-4">
         {/* Header with Add Link Button */}
         <div className="flex justify-between items-center p-4 bg-muted/30 rounded-lg">
-          <h3 className="text-lg font-semibold text-foreground">
-            All Links ({linkItems.length})
-          </h3>
+          <h3 className="text-lg font-semibold text-foreground">URLs ({linkItems.length})</h3>
           <Button
             variant="ghost"
             size="sm"
@@ -85,7 +83,7 @@ export const MediaSubTabs = ({ items, type }: MediaSubTabsProps) => {
             className="text-xs"
           >
             <Link className="w-4 h-4 mr-1" />
-            + Add Link
+            + Add URL
           </Button>
         </div>
 
@@ -93,9 +91,7 @@ export const MediaSubTabs = ({ items, type }: MediaSubTabsProps) => {
         {linkItems.length === 0 ? (
           <div className="text-center py-8">
             <Link className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-            <p className="text-muted-foreground text-sm">
-              Links shared in chat will appear here automatically
-            </p>
+            <p className="text-muted-foreground text-sm">URLs shared in chat will appear here automatically</p>
           </div>
         ) : null}
 

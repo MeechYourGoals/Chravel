@@ -17,14 +17,17 @@ import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
 import MockDataService from '@/services/mockDataService';
 
+import type { PromotePrefill } from './media/MediaUrlsPanel';
+
 interface PlacesSectionProps {
   tripId?: string;
   tripName?: string;
+  prefillAddLink?: PromotePrefill;
 }
 
 type TabView = 'overview' | 'basecamps' | 'links';
 
-export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSectionProps) => {
+export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip', prefillAddLink }: PlacesSectionProps) => {
   const { variant } = useTripVariant();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
@@ -32,7 +35,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   const mapRef = useRef<MapCanvasRef>(null);
 
   // State
-  const [activeTab, setActiveTab] = useState<TabView>('basecamps');
+  const [activeTab, setActiveTab] = useState<TabView>(prefillAddLink ? 'links' : 'basecamps');
   const [places, setPlaces] = useState<PlaceWithDistance[]>([]);
   const [linkedPlaceIds, setLinkedPlaceIds] = useState<Set<string>>(new Set());
   const [searchContext, setSearchContext] = useState<'trip' | 'personal'>('trip');
@@ -45,6 +48,12 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   });
 
   const { createLinkFromPlace, removeLinkByPlaceId, updateLinkByPlaceId } = usePlacesLinkSync();
+
+  useEffect(() => {
+    if (prefillAddLink) {
+      setActiveTab('links');
+    }
+  }, [prefillAddLink]);
 
   // Generate demo user ID
   const getDemoUserId = () => {
@@ -369,6 +378,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
             onCenterMap={handleCenterMap}
             distanceUnit={distanceSettings.unit}
             preferredMode={distanceSettings.preferredMode}
+            prefillAddLink={prefillAddLink}
           />
         )}
       </div>

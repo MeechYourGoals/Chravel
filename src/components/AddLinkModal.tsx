@@ -7,6 +7,7 @@ import { usePlaceResolution } from '../hooks/usePlaceResolution';
 interface AddLinkModalProps {
   isOpen: boolean;
   onClose: () => void;
+  prefill?: { url?: string; title?: string; category?: 'restaurant'|'hotel'|'attraction'|'activity'|'other'; note?: string };
 }
 
 interface DuplicateMatch {
@@ -58,7 +59,7 @@ const existingLinks = [
   }
 ];
 
-export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
+export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) => {
   const [inputMode, setInputMode] = useState<'url' | 'place'>('place');
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
@@ -73,6 +74,17 @@ export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
   const [showPlacePreview, setShowPlacePreview] = useState(false);
 
   const { resolvePlaceName, categorizePlaceType, isLoading: isResolving } = usePlaceResolution();
+
+  // Apply prefill if provided
+  React.useEffect(() => {
+    if (isOpen && prefill) {
+      if (prefill.url) setUrl(prefill.url);
+      if (prefill.title) setTitle(prefill.title);
+      if (prefill.category) {
+        // Keep same categories but accept mapping
+      }
+    }
+  }, [isOpen, prefill]);
 
   const checkForDuplicates = (inputUrl: string, inputTitle: string) => {
     const matches: DuplicateMatch[] = [];
@@ -213,7 +225,7 @@ export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
       <div className="bg-slate-800 border border-slate-700 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-700">
-          <h2 className="text-lg font-semibold text-white">Add Link</h2>
+          <h2 className="text-lg font-semibold text-white">{prefill ? 'Save to Trip Links' : 'Add Link'}</h2>
           <button 
             onClick={onClose}
             className="text-slate-400 hover:text-white"
@@ -411,7 +423,7 @@ export const AddLinkModal = ({ isOpen, onClose }: AddLinkModalProps) => {
               disabled={isLoading || (inputMode === 'place' && !selectedLinkOption)}
               className="flex-1 bg-blue-600 hover:bg-blue-700"
             >
-              {isLoading ? 'Adding...' : 'Add Link'}
+              {isLoading ? (prefill ? 'Saving...' : 'Adding...') : (prefill ? 'Save to Trip Links' : 'Add Link')}
             </Button>
           </div>
         </form>

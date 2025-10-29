@@ -18,11 +18,19 @@ interface ResolvedPlace {
   website?: string;
 }
 
+interface PromotePrefill {
+  url?: string;
+  title?: string;
+  category?: 'restaurant'|'hotel'|'attraction'|'activity'|'other';
+  note?: string;
+}
+
 interface AddPlaceModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPlaceAdded?: (place: PlaceWithDistance) => void;
   basecamp?: BasecampLocation;
+  prefill?: PromotePrefill;
 }
 
 const categories = [
@@ -35,7 +43,7 @@ const categories = [
   { id: 'hotel', label: 'Housing', icon: '🏠', description: 'Hotels, Airbnbs, hostels' }
 ];
 
-export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPlaceModalProps) => {
+export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp, prefill }: AddPlaceModalProps) => {
   const [smartInput, setSmartInput] = useState('');
   const [placeName, setPlaceName] = useState('');
   const [calculateDistance, setCalculateDistance] = useState(!!basecamp);
@@ -48,6 +56,16 @@ export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPl
   const [inputType, setInputType] = useState<'url' | 'place_name' | null>(null);
   
   const { resolvePlaceName, categorizePlaceType, isLoading: placeLoading } = usePlaceResolution();
+
+  // Apply prefill values when opening
+  useEffect(() => {
+    if (isOpen && prefill) {
+      if (prefill.url) setSmartInput(prefill.url);
+      if (prefill.title) setPlaceName(prefill.title);
+      if (prefill.category) setCategory(prefill.category);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Handle smart input changes and detection
   useEffect(() => {
@@ -189,7 +207,7 @@ export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPl
       <div className="bg-slate-800 border border-slate-700 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-700">
-          <h2 className="text-lg font-semibold text-white">Save Trip Pin</h2>
+          <h2 className="text-lg font-semibold text-white">{prefill ? 'Save to Trip Links' : 'Save Trip Pin'}</h2>
           <button 
             onClick={onClose}
             className="text-slate-400 hover:text-white"
