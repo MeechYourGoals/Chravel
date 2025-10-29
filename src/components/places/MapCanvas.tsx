@@ -76,28 +76,35 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       setIsLoading(true);
 
       // Determine which basecamp to use based on context
-      let activeBasecamp: BasecampLocation | null = null;
+      const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
+
+      console.log(`[MapCanvas] Context: ${activeContext}, Active Basecamp: ${activeBasecamp?.name || 'Not set'}`);
+      console.log(`[MapCanvas] Trip Basecamp: ${tripBasecamp?.name || 'Not set'}, Personal Basecamp: ${personalBasecamp?.name || 'Not set'}`);
+
+      // If active basecamp exists, center on it
+      if (activeBasecamp) {
+        // Priority: Use coordinates if available, otherwise use address
+        if (activeBasecamp.coordinates) {
+          const url = GoogleMapsService.buildEmbeddableUrl(
+            activeBasecamp.address,
+            activeBasecamp.coordinates
+          );
+          console.log(`[MapCanvas] Centering on ${activeContext} basecamp coordinates:`, activeBasecamp.coordinates);
+          setEmbedUrl(url);
+          setIsLoading(false);
+          return;
+        } else if (activeBasecamp.address) {
+          const url = GoogleMapsService.buildEmbeddableUrl(activeBasecamp.address);
+          console.log(`[MapCanvas] Centering on ${activeContext} basecamp address:`, activeBasecamp.address);
+          setEmbedUrl(url);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // No basecamp set for active context - use geolocation fallback
+      console.warn(`[MapCanvas] No ${activeContext} basecamp set, trying geolocation...`);
       
-      if (activeContext === 'trip') {
-        activeBasecamp = tripBasecamp || null;
-      } else if (activeContext === 'personal') {
-        activeBasecamp = personalBasecamp || null;
-      }
-
-      console.log(`[MapCanvas] Context: ${activeContext}, Trip: ${tripBasecamp?.name || 'Not set'}, Personal: ${personalBasecamp?.name || 'Not set'}`);
-
-      if (activeBasecamp?.address) {
-        // Use active basecamp
-        const url = GoogleMapsService.buildEmbeddableUrl(
-          activeBasecamp.address,
-          activeBasecamp.coordinates
-        );
-        setEmbedUrl(url);
-        setIsLoading(false);
-        return;
-      }
-
-      // Fallback: try geolocation
       const timeout = setTimeout(() => {
         console.warn('[MapCanvas] Geolocation timeout, using NYC fallback');
         setEmbedUrl(GoogleMapsService.buildEmbeddableUrl());
@@ -109,6 +116,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           pos => {
             clearTimeout(timeout);
             const { latitude, longitude } = pos.coords;
+            console.log('[MapCanvas] Using geolocation:', { lat: latitude, lng: longitude });
             setEmbedUrl(
               GoogleMapsService.buildEmbeddableUrl(undefined, { lat: latitude, lng: longitude })
             );
@@ -116,6 +124,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           },
           () => {
             clearTimeout(timeout);
+            console.warn('[MapCanvas] Geolocation denied, using NYC fallback');
             setEmbedUrl(GoogleMapsService.buildEmbeddableUrl());
             setIsLoading(false);
           },
@@ -123,6 +132,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         );
       } else {
         clearTimeout(timeout);
+        console.warn('[MapCanvas] Geolocation not supported, using NYC fallback');
         setEmbedUrl(GoogleMapsService.buildEmbeddableUrl());
         setIsLoading(false);
       }
