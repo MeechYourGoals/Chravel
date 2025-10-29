@@ -33,6 +33,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   // State
   const [activeTab, setActiveTab] = useState<TabView>('basecamps');
   const [places, setPlaces] = useState<PlaceWithDistance[]>([]);
+  const [linkedPlaceIds, setLinkedPlaceIds] = useState<Set<string>>(new Set());
   const [searchContext, setSearchContext] = useState<'trip' | 'personal'>('trip');
   const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
   const [showPersonalBasecampSelector, setShowPersonalBasecampSelector] = useState(false);
@@ -148,7 +149,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
 
   const handlePlaceAdded = async (newPlace: PlaceWithDistance) => {
     console.log('Adding place:', newPlace);
-    
+
     // Calculate distance if basecamp is set
     if (contextBasecamp && distanceSettings.showDistances) {
       const distance = await DistanceCalculator.calculateDistance(
@@ -156,7 +157,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
         newPlace,
         distanceSettings
       );
-      
+
       if (distance) {
         newPlace.distanceFromBasecamp = {
           [distanceSettings.preferredMode]: distance,
@@ -164,15 +165,30 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
         };
       }
     }
-    
+
     setPlaces([...places, newPlace]);
-    
-    // Create corresponding link
-    await createLinkFromPlace(newPlace, 'You', tripId, user?.id);
+
+    // Note: Link creation is now manual via "Add to Links" button
+  };
+
+  const handleAddToLinks = async (place: PlaceWithDistance) => {
+    try {
+      await createLinkFromPlace(place, 'You', tripId, user?.id);
+      setLinkedPlaceIds(prev => new Set(prev).add(place.id));
+      return true;
+    } catch (error) {
+      console.error('Failed to add place to links:', error);
+      return false;
+    }
   };
 
   const handlePlaceRemoved = async (placeId: string) => {
     setPlaces(prev => prev.filter(place => place.id !== placeId));
+    setLinkedPlaceIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(placeId);
+      return newSet;
+    });
     await removeLinkByPlaceId(placeId, tripId, user?.id);
   };
 
@@ -298,6 +314,8 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
             basecamp={contextBasecamp}
             onPlaceAdded={handlePlaceAdded}
             onPlaceRemoved={handlePlaceRemoved}
+            onAddToLinks={handleAddToLinks}
+            linkedPlaceIds={linkedPlaceIds}
             onEventAdded={handleEventAdded}
             onCenterMap={handleCenterMap}
             distanceUnit={distanceSettings.unit}

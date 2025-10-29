@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
-import { MapPin, Plus, Trash2, Navigation2, Calendar, Eye, EyeOff } from 'lucide-react';
+import { MapPin, Plus, Trash2, Navigation2, Calendar, Eye, EyeOff, Link } from 'lucide-react';
 import { PlaceWithDistance, BasecampLocation } from '@/types/basecamp';
 import { AddPlaceModal } from '../AddPlaceModal';
 import { AddToCalendarButton } from '../AddToCalendarButton';
 import { AddToCalendarData } from '@/types/calendar';
 import { Badge } from '../ui/badge';
+import { toast } from '@/hooks/use-toast';
 
 export interface LinksPanelProps {
   places: PlaceWithDistance[];
   basecamp?: BasecampLocation | null;
   onPlaceAdded: (place: PlaceWithDistance) => void;
   onPlaceRemoved: (placeId: string) => void;
+  onAddToLinks: (place: PlaceWithDistance) => Promise<boolean>;
+  linkedPlaceIds: Set<string>;
   onEventAdded: (eventData: AddToCalendarData) => void;
   onCenterMap: (coords: { lat: number; lng: number }) => void;
   distanceUnit: string;
@@ -22,6 +25,8 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
   basecamp,
   onPlaceAdded,
   onPlaceRemoved,
+  onAddToLinks,
+  linkedPlaceIds,
   onEventAdded,
   onCenterMap,
   distanceUnit,
@@ -29,6 +34,7 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
 }) => {
   const [isAddPlaceModalOpen, setIsAddPlaceModalOpen] = useState(false);
   const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set(['all']));
+  const [addingToLinks, setAddingToLinks] = useState<Set<string>>(new Set());
 
   const categories = Array.from(new Set(places.map(p => p.category).filter(Boolean)));
 
@@ -59,6 +65,38 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
     visibleCategories.has('all')
       ? places
       : places.filter(p => p.category && visibleCategories.has(p.category));
+
+  const handleAddToLinksClick = async (place: PlaceWithDistance) => {
+    setAddingToLinks(prev => new Set(prev).add(place.id));
+    try {
+      const success = await onAddToLinks(place);
+      if (success) {
+        toast({
+          title: "Added to Links",
+          description: `${place.name} has been saved to your Media > Links section`,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Failed to add",
+          description: "Could not save to links. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An error occurred while saving to links",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingToLinks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(place.id);
+        return newSet;
+      });
+    }
+  };
 
   return (
     <>
@@ -168,12 +206,14 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="text-white font-semibold text-sm">{place.name}</h4>
-                      <Badge
-                        variant="secondary"
-                        className="text-xs bg-blue-500/20 text-blue-300 border-blue-500/30"
-                      >
-                        Linked
-                      </Badge>
+                      {linkedPlaceIds.has(place.id) && (
+                        <Badge
+                          variant="secondary"
+                          className="text-xs bg-blue-500/20 text-blue-300 border-blue-500/30"
+                        >
+                          Linked
+                        </Badge>
+                      )}
                     </div>
 
                     {place.category && (
@@ -190,7 +230,17 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
                       </div>
                     )}
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
+                      {!linkedPlaceIds.has(place.id) && (
+                        <button
+                          onClick={() => handleAddToLinksClick(place)}
+                          disabled={addingToLinks.has(place.id)}
+                          className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 font-medium shadow-lg shadow-purple-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Link size={12} />
+                          {addingToLinks.has(place.id) ? 'Adding...' : 'Add to Links'}
+                        </button>
+                      )}
                       <AddToCalendarButton
                         placeName={place.name}
                         placeAddress={place.address}
