@@ -82,149 +82,151 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
   }
 
   return (
-    <Card className="bg-payment-background-light border-payment-border dark:bg-payment-background dark:border-payment-border rounded-lg">
-      <CardContent className="p-3">
-        <div className="flex items-center gap-2 mb-3">
-          <DollarSign size={16} className="text-payment-primary" />
-          <span className="text-sm font-medium text-payment-primary-foreground dark:text-payment-primary-foreground">Payment Details</span>
+    <Card className="bg-gradient-to-br from-gray-900/90 via-gray-900/70 to-emerald-900/20 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] transition-all duration-300 hover:border-emerald-400/20 hover:shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
+      <CardContent className="p-6">
+        <div className="flex items-center gap-2 mb-6">
+          <DollarSign size={20} className="text-emerald-400" />
+          <span className="text-base font-semibold text-white">Payment Details</span>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Amount and Currency */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="col-span-2">
-              <Label htmlFor="amount" className="text-xs">Amount</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                value={amount || ''}
-                onChange={(e) => setAmount(Number(e.target.value))}
-                placeholder="0.00"
-                className="bg-white dark:bg-white !text-black placeholder:!text-gray-500"
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Amount, Currency & Description - 2 Column Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Left Column: Amount + Currency */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="amount" className="text-sm font-medium text-gray-300 mb-1.5 block">Amount</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  value={amount || ''}
+                  onChange={(e) => setAmount(Number(e.target.value))}
+                  placeholder="0.00"
+                  className="w-full h-12 rounded-xl bg-gray-800/70 border border-white/10 text-white px-4 focus:ring-2 focus:ring-emerald-500 focus:outline-none placeholder-gray-500 transition-all"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="currency" className="text-sm font-medium text-gray-300 mb-1.5 block">Currency</Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger className="w-full h-12 rounded-xl bg-gray-800/70 border border-white/10 text-white px-4 focus:ring-2 focus:ring-emerald-500 transition-all">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-white/10">
+                    <SelectItem value="USD">USD ($)</SelectItem>
+                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                    <SelectItem value="GBP">GBP (£)</SelectItem>
+                    <SelectItem value="CAD">CAD ($)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Right Column: Description (taller textarea) */}
+            <div className="flex flex-col">
+              <Label htmlFor="description" className="text-sm font-medium text-gray-300 mb-1.5">What's this for?</Label>
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Dinner, taxi, tickets, etc."
+                rows={5}
+                className="w-full flex-1 min-h-[7rem] rounded-xl bg-gray-800/70 border border-white/10 text-white px-4 py-3 resize-none focus:ring-2 focus:ring-emerald-500 focus:outline-none placeholder-gray-500 transition-all"
                 required
               />
             </div>
-            <div>
-              <Label htmlFor="currency" className="text-xs">Currency</Label>
-                <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="bg-white dark:bg-white !text-black">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USD">USD ($)</SelectItem>
-                  <SelectItem value="EUR">EUR (€)</SelectItem>
-                  <SelectItem value="GBP">GBP (£)</SelectItem>
-                  <SelectItem value="CAD">CAD ($)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
-          {/* Description */}
-          <div>
-            <Label htmlFor="description" className="text-xs">What's this for?</Label>
-            <Input
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Dinner, taxi, tickets, etc."
-              className="bg-white dark:bg-white !text-black placeholder:!text-gray-500"
-              required
-            />
-          </div>
-
-          {/* Split Options */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <Label className="flex items-center gap-1.5 text-xs">
-                <Users size={14} />
-                Split between {selectedParticipants.length} people
-                {amountPerPerson > 0 && (
-                  <span className="text-payment-primary font-medium text-xs">
-                    (${amountPerPerson.toFixed(2)} each)
-                  </span>
-                )}
-              </Label>
-              <Button
+          {/* Split Between People - 3 Column Grid */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-emerald-400" />
+                <Label className="text-sm font-medium text-gray-300">
+                  Split between {selectedParticipants.length} people
+                  {amountPerPerson > 0 && (
+                    <span className="text-emerald-400 font-semibold ml-1.5">
+                      (${amountPerPerson.toFixed(2)} each)
+                    </span>
+                  )}
+                </Label>
+              </div>
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
                 onClick={selectAllParticipants}
-                className="text-xs h-7"
+                className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors font-medium"
               >
                 {allParticipantsSelected ? 'Deselect All' : 'Select All'}
-              </Button>
+              </button>
             </div>
-            <div className="mt-1.5 max-h-28 overflow-y-auto space-y-1.5 p-2 bg-white dark:bg-white rounded border">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-48 overflow-y-auto">
               {tripMembers.map(member => (
-                <div key={member.id} className="flex items-center gap-2">
+                <label
+                  key={member.id}
+                  htmlFor={`participant-${member.id}`}
+                  className="flex items-center gap-2.5 bg-gray-800/60 border border-white/10 rounded-xl px-3 py-2.5 hover:border-emerald-500/30 hover:bg-gray-800/80 cursor-pointer transition-all group"
+                >
                   <Checkbox
                     id={`participant-${member.id}`}
                     checked={selectedParticipants.includes(member.id)}
                     onCheckedChange={() => toggleParticipant(member.id)}
+                    className="accent-emerald-500"
                   />
-                  <label 
-                    htmlFor={`participant-${member.id}`}
-                    className="text-sm flex items-center gap-2 cursor-pointer !text-black"
-                  >
-                    {member.avatar && (
-                      <img 
-                        src={member.avatar} 
-                        alt={member.name}
-                        className="w-6 h-6 rounded-full"
-                      />
-                    )}
-                    {member.name}
-                  </label>
-                </div>
+                  {member.avatar && (
+                    <img
+                      src={member.avatar}
+                      alt={member.name}
+                      className="w-6 h-6 rounded-full object-cover ring-1 ring-white/10 group-hover:ring-emerald-400/30 transition-all"
+                    />
+                  )}
+                  <span className="text-white text-sm truncate">{member.name}</span>
+                </label>
               ))}
             </div>
           </div>
 
-          {/* Payment Methods */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <Label className="flex items-center gap-1.5 text-xs">
-                <CheckSquare size={14} />
-                Preferred payment methods
-              </Label>
-              <Button
+          {/* Preferred Payment Methods - Grid Layout */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckSquare size={16} className="text-emerald-400" />
+                <Label className="text-sm font-medium text-gray-300">Preferred payment methods</Label>
+              </div>
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
                 onClick={selectAllPaymentMethods}
-                className="text-xs h-7"
+                className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors font-medium"
               >
                 {allPaymentMethodsSelected ? 'Deselect All' : 'Select All'}
-              </Button>
+              </button>
             </div>
-            <div className="mt-1.5 grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {paymentMethodOptions.map(method => (
-                <div key={method.id} className="flex items-center gap-2">
+                <label
+                  key={method.id}
+                  htmlFor={`payment-${method.id}`}
+                  className="flex items-center gap-2.5 bg-gray-800/60 border border-white/10 rounded-xl px-3 py-2.5 hover:border-emerald-500/30 hover:bg-gray-800/80 cursor-pointer transition-all"
+                >
                   <Checkbox
                     id={`payment-${method.id}`}
                     checked={selectedPaymentMethods.includes(method.id)}
                     onCheckedChange={() => togglePaymentMethod(method.id)}
+                    className="accent-emerald-500"
                   />
-                  <label 
-                    htmlFor={`payment-${method.id}`}
-                    className="text-sm cursor-pointer flex items-center gap-1 !text-white"
-                  >
-                    {method.label}
-                  </label>
-                </div>
+                  <span className="text-white text-sm">{method.label}</span>
+                </label>
               ))}
             </div>
           </div>
 
-        <Button 
-          type="submit" 
-          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-          disabled={!amount || !description || selectedParticipants.length === 0}
-        >
-          Add Payment Request
-        </Button>
+          <Button
+            type="submit"
+            className="w-full mt-2 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl shadow-lg transition-all duration-200 hover:shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!amount || !description || selectedParticipants.length === 0}
+          >
+            Add Payment Request
+          </Button>
         </form>
       </CardContent>
     </Card>
