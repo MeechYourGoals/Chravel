@@ -6,6 +6,7 @@ import { proTripMockData } from '../data/proTripMockData';
 import { eventsMockData } from '../data/eventsMockData';
 import TripSpecificMockDataService from '../services/tripSpecificMockDataService';
 import UniversalMockDataService from '../services/UniversalMockDataService';
+import MockDataService from '@/services/mockDataService';
 
 export interface MediaItem {
   id: string;
@@ -130,6 +131,20 @@ export const useMediaManagement = (tripId: string) => {
         } else {
           items = UniversalMockDataService.getLinkItems(tripId);
         }
+
+        // Exclude place-related links in Media context
+        let nonPlaceItems = items.filter(item => item.source !== 'places');
+
+        // If demo data contains only place links, fall back to general mock links
+        if (nonPlaceItems.length === 0) {
+          try {
+            nonPlaceItems = await MockDataService.getMockLinkItems(tripId);
+          } catch (e) {
+            // Ignore and keep empty
+          }
+        }
+
+        items = nonPlaceItems;
       } else {
         const [linksResponse, manualLinksResponse] = await Promise.all([
           supabase
@@ -173,13 +188,22 @@ export const useMediaManagement = (tripId: string) => {
             tags: []
           }))
         ];
+
+        // Exclude place-related links for Media > Links view
+        items = items.filter(item => item.source !== 'places');
       }
 
       setLinkItems(items);
     } catch (error) {
       console.error('Error fetching link items:', error);
       if (isDemoMode) {
-        setLinkItems(UniversalMockDataService.getLinkItems(tripId));
+        // Prefer general mock links for demo if available
+        try {
+          const mocks = await MockDataService.getMockLinkItems(tripId);
+          setLinkItems(mocks);
+        } catch {
+          setLinkItems(UniversalMockDataService.getLinkItems(tripId).filter(item => item.source !== 'places'));
+        }
       } else {
         setLinkItems([]);
       }

@@ -15,6 +15,7 @@ export const UnifiedMediaHub = ({ tripId }: UnifiedMediaHubProps) => {
   
   const {
     mediaItems,
+    linkItems,
     loading
   } = useMediaManagement(tripId);
 
@@ -67,11 +68,12 @@ export const UnifiedMediaHub = ({ tripId }: UnifiedMediaHubProps) => {
       <StorageQuotaBar tripId={tripId} showDetails={true} />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-white/5 backdrop-blur-sm">
+        <TabsList className="grid w-full grid-cols-5 bg-white/5 backdrop-blur-sm">
           <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
           <TabsTrigger value="photos" className="text-xs">Photos</TabsTrigger>
           <TabsTrigger value="videos" className="text-xs">Videos</TabsTrigger>
           <TabsTrigger value="files" className="text-xs">Files</TabsTrigger>
+          <TabsTrigger value="links" className="text-xs">Links</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="mt-6">
@@ -91,6 +93,11 @@ export const UnifiedMediaHub = ({ tripId }: UnifiedMediaHubProps) => {
             item.media_type === 'document' || 
             (item.media_type === 'image' && (item.metadata?.isSchedule || item.metadata?.isReceipt))
           )} type="files" />
+        </TabsContent>
+
+        <TabsContent value="links" className="mt-6">
+          {/* Show only miscellaneous links (exclude Places-derived links) */}
+          <MediaSubTabs items={linkItems} type="links" />
         </TabsContent>
       </Tabs>
 
