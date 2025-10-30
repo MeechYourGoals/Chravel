@@ -3,7 +3,7 @@ export interface BasecampLocation {
   address: string;
   coordinates?: { lat: number; lng: number };
   name?: string;
-  type: 'hotel' | 'airbnb' | 'other';
+  type: 'hotel' | 'short-term' | 'other';
 }
 
 export interface PlaceWithDistance {
