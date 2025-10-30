@@ -148,8 +148,9 @@ const ProTripDetail = () => {
 
         if (!response.ok) {
           // If edge function fails, fallback to client export
-          console.warn(`Edge function failed (${response.status}), using client fallback`);
-          toast.info('Using demo export mode...');
+          const errorText = await response.text();
+          console.error(`Edge function failed (${response.status}): ${errorText}, using client fallback`);
+          toast.error(`Live export failed (${response.status}), generating a limited offline PDF.`);
           blob = await generateClientPDF(
             {
               tripId: proTripId || '',
