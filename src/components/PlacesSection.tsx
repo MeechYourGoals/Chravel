@@ -77,7 +77,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
           name: place.name,
           address: place.address,
           coordinates: place.coordinates,
-          category: place.category,
+          category: place.category as "activity" | "attraction" | "fitness" | "hotel" | "nightlife" | "restaurant" | "transportation",
           rating: place.rating,
           url: place.url,
           distanceFromBasecamp: place.distanceFromBasecamp

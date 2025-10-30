@@ -65,6 +65,7 @@ export function buildCalendarSection(events: TripEvent[]): FormattedCalendarSect
   return {
     type: 'calendar',
     title: 'Calendar',
+    icon: 'calendar',
     items: sortedEvents.map((event) => ({
       title: event.title,
       date: formatDate(event.start_time),
@@ -101,6 +102,7 @@ export function buildPaymentsSection(payments: TripPayment[]): FormattedPayments
   return {
     type: 'payments',
     title: 'Payments',
+    icon: 'dollar-sign',
     items,
     totalAmount: formatCurrency(total, currency),
   };
@@ -118,6 +120,7 @@ export function buildPollsSection(polls: TripPoll[]): FormattedPollsSection {
   return {
     type: 'polls',
     title: 'Polls',
+    icon: 'bar-chart',
     items: sortedPolls.map((poll) => {
       const options = (poll.options as unknown as PollOption[]) || [];
       const totalVotes = poll.total_votes;
@@ -155,6 +158,7 @@ export function buildPlacesSection(links: TripLink[]): FormattedPlacesSection {
   return {
     type: 'places',
     title: 'Places',
+    icon: 'map-pin',
     items: sortedLinks.map((link) => ({
       name: link.title,
       url: link.url,
@@ -194,6 +198,7 @@ export function buildTasksSection(tasks: TripTask[]): FormattedTasksSection {
   return {
     type: 'tasks',
     title: 'Tasks',
+    icon: 'check-square',
     items,
     stats: {
       total: tasks.length,

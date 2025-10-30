@@ -1,3 +1,5 @@
+/// <reference types="@types/google.maps" />
+
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { Search, X, Loader2 } from 'lucide-react';
 import { BasecampLocation } from '@/types/basecamp';
@@ -107,7 +109,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           setIsMapLoading(true);
           setMapError(null);
 
-          const google = await loadMapsApi();
+          const maps = await loadMapsApi();
 
           if (!mounted || !mapContainerRef.current) return;
 
@@ -123,7 +125,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           }
 
           // Create map instance
-          const map = new google.maps.Map(mapContainerRef.current, {
+          const map = new maps.Map(mapContainerRef.current, {
             center,
             zoom,
             mapTypeControl: true,

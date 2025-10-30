@@ -1,3 +1,5 @@
+/// <reference types="@types/google.maps" />
+
 /**
  * Google Places API Service
  * 
