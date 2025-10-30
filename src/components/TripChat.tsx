@@ -141,7 +141,7 @@ export const TripChat = ({
       id: message.id,
       text: message.content,
       sender: {
-        id: message.author_name || 'unknown',
+        id: message.user_id || message.author_name || 'unknown',
         name: message.author_name || 'Unknown',
         avatar: getMockAvatar(message.author_name || 'Unknown')
       },
@@ -229,14 +229,14 @@ export const TripChat = ({
           demoMessagesData = await demoModeService.getProMockMessages('event', user?.id || 'demo-user');
         } else {
           // Load consumer trip demo messages (existing logic)
-          demoMessagesData = await demoModeService.getMockMessages('friends-trip', true);
+          demoMessagesData = await demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
         }
 
         const formattedMessages = demoMessagesData.map(msg => ({
           id: msg.id,
           text: msg.message_content || '',
           sender: {
-            id: msg.sender_id || msg.id,
+            id: msg.sender_id || msg.sender_name || msg.id,
             name: msg.sender_name || 'Unknown',
             avatar: getMockAvatar(msg.sender_name || 'Unknown')
           },
@@ -261,13 +261,13 @@ export const TripChat = ({
         const tripIdNum = parseInt(resolvedTripId);
         if (tripIdNum >= 1 && tripIdNum <= 12 && liveFormattedMessages.length === 0) {
           setDemoLoading(true);
-          const demoMessagesData = await demoModeService.getMockMessages('friends-trip', true);
+          const demoMessagesData = await demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
 
           const formattedMessages = demoMessagesData.map(msg => ({
             id: msg.id,
             text: msg.message_content || '',
             sender: {
-              id: msg.sender_id || msg.id,
+              id: msg.sender_id || msg.sender_name || msg.id,
               name: msg.sender_name || 'Unknown',
               avatar: getMockAvatar(msg.sender_name || 'Unknown')
             },
