@@ -10,10 +10,6 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "claude": "claude",
-    "claude:analyze": "claude analyze",
-    "claude:security": "claude security",
-    "claude:review": "claude review",
     "ios:build": "npm run build && npx cap sync ios",
     "ios:open": "npx cap open ios",
     "ios:run": "npm run build && npx cap sync ios && npx cap run ios"
@@ -97,7 +93,6 @@
     "zustand": "^5.0.6"
   },
   "devDependencies": {
-    "@anthropic-ai/claude-code": "^1.0.63",
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
     "@testing-library/jest-dom": "^6.6.3",
