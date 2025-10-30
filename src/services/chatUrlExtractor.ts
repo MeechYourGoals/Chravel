@@ -6,8 +6,36 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { findUrls, normalizeUrl, getDomain } from './urlUtils';
 import MockDataService from './mockDataService';
+
+type TripChatMessageForExtraction = Pick<
+  Database['public']['Tables']['trip_chat_messages']['Row'],
+  'id' | 'content' | 'created_at' | 'user_id' | 'author_name' | 'link_preview'
+>;
+
+function extractTitleFromLinkPreview(preview: TripChatMessageForExtraction['link_preview']): string | undefined {
+  if (!preview || typeof preview !== 'object') {
+    return undefined;
+  }
+
+  const record = preview as Record<string, unknown>;
+  const candidates: Array<'title' | 'og_title' | 'site_name'> = [
+    'title',
+    'og_title',
+    'site_name',
+  ];
+
+  for (const key of candidates) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+  }
+
+  return undefined;
+}
 
 export interface NormalizedUrl {
   url: string;           // normalized URL
@@ -41,10 +69,11 @@ export async function extractUrlsFromTripChat(tripId: string): Promise<Normalize
       .from('trip_chat_messages')
       .select(`
         id,
-        message,
+        content,
         created_at,
         user_id,
-        metadata
+        author_name,
+        link_preview
       `)
       .eq('trip_id', tripId)
       .order('created_at', { ascending: false })
@@ -62,11 +91,12 @@ export async function extractUrlsFromTripChat(tripId: string): Promise<Normalize
     // Extract URLs from each message
     const urlMap = new Map<string, NormalizedUrl>();
 
-    for (const msg of messages) {
-      if (!msg.message) continue;
+    for (const msg of (messages as TripChatMessageForExtraction[])) {
+      if (!msg.content) continue;
 
-      const urls = findUrls(msg.message);
-      
+      const urls = findUrls(msg.content);
+      const linkPreviewTitle = extractTitleFromLinkPreview(msg.link_preview);
+
       for (const rawUrl of urls) {
         const normalized = normalizeUrl(rawUrl);
         const domain = getDomain(normalized);
@@ -76,6 +106,9 @@ export async function extractUrlsFromTripChat(tripId: string): Promise<Normalize
         if (existing) {
           // Update with earlier firstSeenAt (messages are DESC ordered)
           existing.firstSeenAt = msg.created_at;
+          if (!existing.title && linkPreviewTitle) {
+            existing.title = linkPreviewTitle;
+          }
         } else {
           // New URL entry
           urlMap.set(normalized, {
@@ -85,12 +118,14 @@ export async function extractUrlsFromTripChat(tripId: string): Promise<Normalize
             firstSeenAt: msg.created_at,
             lastSeenAt: msg.created_at,
             messageId: msg.id,
-            postedBy: msg.user_id ? {
-              id: msg.user_id,
-              name: msg.metadata?.user_name,
-              avatar_url: msg.metadata?.user_avatar,
-            } : undefined,
-            title: msg.metadata?.link_title || msg.metadata?.og_title,
+            postedBy:
+              msg.user_id || msg.author_name
+                ? {
+                    id: msg.user_id ?? msg.author_name,
+                    name: msg.author_name || undefined,
+                  }
+                : undefined,
+            title: linkPreviewTitle,
           });
         }
       }
