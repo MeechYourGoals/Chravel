@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import { MapPin, Trash2, Navigation2, Calendar, Eye, EyeOff, Link } from 'lucide-react';
-import { PlaceWithDistance, BasecampLocation } from '@/types/basecamp';
+import { PlaceWithDistance, BasecampLocation, PlaceCategory, PlaceCategoryEnum } from '@/types/basecamp';
 import { AddPlaceModal } from '../AddPlaceModal';
 import { AddToCalendarButton } from '../AddToCalendarButton';
 import { AddToCalendarData } from '@/types/calendar';
 import { Badge } from '../ui/badge';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
+
+import { PersonalBasecamp } from '@/services/basecampService';
 
 export interface LinksPanelProps {
   places: PlaceWithDistance[];
   basecamp?: BasecampLocation | null;
+  personalBasecamp?: PersonalBasecamp | null;
   onPlaceAdded: (place: PlaceWithDistance) => void;
   onPlaceRemoved: (placeId: string) => void;
   onAddToLinks: (place: PlaceWithDistance) => Promise<boolean>;
@@ -23,6 +28,7 @@ export interface LinksPanelProps {
 export const LinksPanel: React.FC<LinksPanelProps> = ({
   places,
   basecamp,
+  personalBasecamp,
   onPlaceAdded,
   onPlaceRemoved,
   onAddToLinks,
@@ -32,24 +38,34 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
   distanceUnit,
   preferredMode
 }) => {
+  const { user } = useAuth();
+  const { subscription } = useSubscription();
+  const isProUser = subscription?.plan === 'pro';
+
   const [isAddPlaceModalOpen, setIsAddPlaceModalOpen] = useState(false);
   const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set(['all']));
   const [addingToLinks, setAddingToLinks] = useState<Set<string>>(new Set());
 
-  const categories = Array.from(new Set(places.map(p => p.category).filter(Boolean)));
+  const availableCategories = PlaceCategoryEnum.filter(cat =>
+    places.some(p => p.category === cat)
+  );
 
-  const toggleCategory = (category: string) => {
+  const categoryIcons: { [key in PlaceCategory]: React.ElementType } = {
+    'Food & Drink': MapPin,
+    'Attraction': Navigation2,
+    'Experience': Calendar,
+    'Accommodations': MapPin,
+    'Other': Link,
+  };
+
+  const toggleCategory = (category: PlaceCategory | 'all') => {
     const newVisible = new Set(visibleCategories);
     if (category === 'all') {
-      if (visibleCategories.has('all')) {
-        newVisible.clear();
-      } else {
-        newVisible.clear();
-        newVisible.add('all');
-      }
+      newVisible.clear();
+      newVisible.add('all');
     } else {
       newVisible.delete('all');
-      if (visibleCategories.has(category)) {
+      if (newVisible.has(category)) {
         newVisible.delete(category);
       } else {
         newVisible.add(category);
@@ -67,13 +83,22 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
       : places.filter(p => p.category && visibleCategories.has(p.category));
 
   const handleAddToLinksClick = async (place: PlaceWithDistance) => {
+    if (linkedPlaceIds.has(place.id)) {
+      toast({
+        title: "Already saved",
+        description: `${place.name} is already in your Links.`,
+        variant: "default",
+      });
+      return;
+    }
+
     setAddingToLinks(prev => new Set(prev).add(place.id));
     try {
       const success = await onAddToLinks(place);
       if (success) {
         toast({
           title: "Added to Links",
-          description: `${place.name} has been saved to your Places > Links section`,
+          description: `${place.name} has been saved to your Places > Links section.`,
           variant: "default",
         });
       } else {
@@ -86,7 +111,7 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
     } catch (error) {
       toast({
         title: "Error",
-        description: "An error occurred while saving to links",
+        description: "An error occurred while saving to links.",
         variant: "destructive",
       });
     } finally {
@@ -131,35 +156,38 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
         </div>
 
         {/* Category Filters */}
-        {categories.length > 0 && (
+        {availableCategories.length > 0 && (
           <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-4 shadow-lg">
             <p className="text-xs text-gray-400 font-medium mb-2">Filter by Category</p>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => toggleCategory('all')}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all ${
                   visibleCategories.has('all')
                     ? 'bg-sky-500/20 text-sky-300 ring-1 ring-sky-400/30'
                     : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                 }`}
               >
-                {visibleCategories.has('all') ? <Eye size={12} /> : <EyeOff size={12} />}
+                <Eye size={14} />
                 All
               </button>
-              {categories.map(category => (
-                <button
-                  key={category}
-                  onClick={() => toggleCategory(category!)}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs capitalize transition-all ${
-                    visibleCategories.has(category!)
-                      ? 'bg-sky-500/20 text-sky-300 ring-1 ring-sky-400/30'
-                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                  }`}
-                >
-                  {visibleCategories.has(category!) ? <Eye size={12} /> : <EyeOff size={12} />}
-                  {category}
-                </button>
-              ))}
+              {availableCategories.map(category => {
+                const Icon = categoryIcons[category] || Link;
+                return (
+                  <button
+                    key={category}
+                    onClick={() => toggleCategory(category)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                      visibleCategories.has(category)
+                        ? 'bg-sky-500/20 text-sky-300 ring-1 ring-sky-400/30'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    }`}
+                  >
+                    <Icon size={14} />
+                    {category}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -215,13 +243,41 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
                         <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-300 px-2 py-1 rounded-lg text-xs">
                           <MapPin size={12} />
                           {place.distanceFromBasecamp[preferredMode]?.toFixed(1)}{' '}
-                          {place.distanceFromBasecamp.unit} from basecamp
+                          {place.distanceFromBasecamp.unit} from trip basecamp
+                        </span>
+                      </div>
+                    )}
+
+                    {isProUser && place.distanceFromPersonalBasecamp && (
+                      <div className="mb-3">
+                        <span className="inline-flex items-center gap-1 bg-blue-500/20 text-blue-300 px-2 py-1 rounded-lg text-xs">
+                          <MapPin size={12} />
+                          {place.distanceFromPersonalBasecamp[preferredMode]?.toFixed(1)}{' '}
+                          {place.distanceFromPersonalBasecamp.unit} from personal basecamp
                         </span>
                       </div>
                     )}
 
                     <div className="flex gap-2 flex-wrap">
                       {!linkedPlaceIds.has(place.id) && (
+                        <button
+                          onClick={() => handleAddToLinksClick(place)}
+                          disabled={addingToLinks.has(place.id)}
+                          className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 font-medium shadow-lg shadow-purple-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Link size={12} />
+                          {addingToLinks.has(place.id) ? 'Adding...' : 'Add to Links'}
+                        </button>
+                      )}
+                      {linkedPlaceIds.has(place.id) ? (
+                        <button
+                          disabled
+                          className="bg-gray-700 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-medium cursor-not-allowed"
+                        >
+                          <Link size={12} />
+                          Saved
+                        </button>
+                      ) : (
                         <button
                           onClick={() => handleAddToLinksClick(place)}
                           disabled={addingToLinks.has(place.id)}

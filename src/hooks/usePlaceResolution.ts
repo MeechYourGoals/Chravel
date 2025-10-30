@@ -74,14 +74,23 @@ export const usePlaceResolution = () => {
     }
   };
 
-  const categorizePlaceType = (placeTypes: string[]): string => {
-    if (placeTypes.includes('lodging') || placeTypes.includes('hotel')) return 'housing';
-    if (placeTypes.includes('restaurant') || placeTypes.includes('food') || placeTypes.includes('meal_takeaway')) return 'eats';
-    if (placeTypes.includes('tourist_attraction') || placeTypes.includes('museum') || placeTypes.includes('amusement_park')) return 'day-activities';
-    if (placeTypes.includes('night_club') || placeTypes.includes('bar')) return 'nightlife';
-    if (placeTypes.includes('gym') || placeTypes.includes('spa')) return 'fitness';
-    if (placeTypes.includes('travel_agency') || placeTypes.includes('airport') || placeTypes.includes('bus_station')) return 'transportation';
-    return 'other';
+  const categorizePlaceType = (placeTypes: string[]): PlaceCategory => {
+    // Mapping from new categories to Google Place types
+    const categoryMap: { [key in PlaceCategory]?: string[] } = {
+      'Accommodations': ['lodging', 'hotel', 'motel', 'resort', 'hostel', 'rv_park'],
+      'Food & Drink': ['restaurant', 'cafe', 'bar', 'bakery', 'meal_takeaway', 'meal_delivery'],
+      'Experience': ['tourist_attraction', 'museum', 'amusement_park', 'zoo', 'aquarium', 'art_gallery', 'park', 'church', 'mosque', 'synagogue', 'hindu_temple', 'stadium', 'movie_theater', 'casino', 'night_club', 'spa'],
+      'Attraction': ['landmark', 'point_of_interest'], // Keep this for more specific landmarks if needed, but 'Experience' is broader
+    };
+
+    for (const [category, types] of Object.entries(categoryMap)) {
+      if (types.some(type => placeTypes.includes(type))) {
+        return category as PlaceCategory;
+      }
+    }
+
+    // Default to 'Other'
+    return 'Other';
   };
 
   return {

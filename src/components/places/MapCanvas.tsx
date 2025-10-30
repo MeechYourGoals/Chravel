@@ -83,9 +83,30 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
       centerOn: (latLng: { lat: number; lng: number }, zoom = 15) => {
-        if (mapRef.current) {
-          mapRef.current.setCenter(latLng);
+        if (mapRef.current && window.google) {
+          mapRef.current.panTo(latLng);
           mapRef.current.setZoom(zoom);
+
+          // Add a temporary marker for visual feedback
+          const tempMarker = new window.google.maps.Marker({
+            position: latLng,
+            map: mapRef.current,
+            icon: {
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: '#fde047', // yellow-300
+              fillOpacity: 1,
+              strokeColor: '#f97316', // orange-500
+              strokeWeight: 2,
+            },
+            animation: window.google.maps.Animation.DROP,
+            zIndex: 300,
+          });
+
+          // Remove the marker after a short delay
+          setTimeout(() => {
+            tempMarker.setMap(null);
+          }, 2500);
         }
       },
       fitBounds: (bounds: { north: number; south: number; east: number; west: number }) => {
