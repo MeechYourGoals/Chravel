@@ -217,18 +217,23 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       if (!mapRef.current) return;
 
       const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
+      const newOrigin = activeBasecamp?.coordinates || null;
       
       console.log(`[MapCanvas] Context changed to ${activeContext}`, activeBasecamp);
 
-      if (activeBasecamp?.coordinates) {
-        // Update search origin for biasing
-        setSearchOrigin(activeBasecamp.coordinates);
+      // Update search origin for biasing future searches
+      setSearchOrigin(newOrigin);
 
+      if (newOrigin) {
         // Center map on the active basecamp
-        mapRef.current.setCenter(activeBasecamp.coordinates);
+        mapRef.current.setCenter(newOrigin);
         mapRef.current.setZoom(12);
-      } else {
-        setSearchOrigin(null);
+
+        // If a place is already selected, re-run search with new origin
+        if (selectedPlace?.name) {
+          console.log('[MapCanvas] Basecamp changed, re-running search for selected place:', selectedPlace.name);
+          handleSearch(selectedPlace.name, newOrigin);
+        }
       }
     }, [activeContext, tripBasecamp, personalBasecamp]);
 
@@ -305,7 +310,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     };
 
     // Search submission handler
-    const handleSearch = async (query: string) => {
+    const handleSearch = async (query: string, overrideOrigin?: SearchOrigin) => {
       const trimmedQuery = query.trim();
       if (!trimmedQuery || !mapRef.current || !services || !sessionToken) return;
 
@@ -314,13 +319,14 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       setShowSuggestions(false);
 
       try {
-        console.log('[MapCanvas] Searching for:', trimmedQuery, { origin: searchOrigin });
+        const effectiveOrigin = overrideOrigin || searchOrigin;
+        console.log('[MapCanvas] Searching for:', trimmedQuery, { origin: effectiveOrigin });
 
         const place = await resolveQuery(
           mapRef.current,
           services,
           trimmedQuery,
-          searchOrigin,
+          effectiveOrigin,
           sessionToken
         );
 
