@@ -153,6 +153,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
             if (hasGmError) {
               console.error('[MapCanvas] Detected Google Maps error overlay – enabling iframe fallback');
               setUseFallbackEmbed(true);
+              setMapError('Google Maps failed to load, possibly due to an invalid API key or billing issue.');
               setIsMapLoading(false);
             }
           }, 1500);
@@ -402,7 +403,9 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           {/* Overlay message about reduced functionality */}
           <div className="absolute bottom-4 left-4 right-4 z-10">
             <div className="bg-yellow-50/95 backdrop-blur-sm border border-yellow-200 rounded-lg px-3 py-2 text-xs text-yellow-800 text-center">
-              Running in basic mode. Search and place details may be limited.
+              {mapError
+                ? `Map error: ${mapError}`
+                : 'Running in basic mode. Search and place details may be limited.'}
             </div>
           </div>
         </div>
@@ -412,7 +415,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     return (
       <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
         {/* Search Bar - Centered */}
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-md px-4">
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-sm px-4">
           <form onSubmit={handleSearchSubmit} className="relative">
             <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
             <input

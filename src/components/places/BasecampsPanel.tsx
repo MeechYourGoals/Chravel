@@ -206,7 +206,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                         : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                     }`}
                   >
-                    Use for Searches
+                    Set new base camp
                   </button>
                   {tripBasecamp.coordinates && (
                     <button
@@ -249,10 +249,14 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
               </div>
             ) : personalBasecamp ? (
               <>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <MapPin size={20} className="text-emerald-400" />
                     <h3 className="text-white font-semibold text-lg">Personal Base Camp</h3>
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
+                      <Lock size={12} />
+                      Private
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -271,14 +275,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                     </button>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
-                    <Lock size={12} />
-                    Private
-                  </span>
-                </div>
-
                 <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4">
                   <div className="flex items-start gap-2">
                     <MapPin size={14} className="text-emerald-400 mt-1 flex-shrink-0" />
@@ -300,7 +296,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                         : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                     }`}
                   >
-                    Use for Searches
+                    Set new base camp
                   </button>
                   {personalBasecamp.latitude && personalBasecamp.longitude && (
                     <button
@@ -315,15 +311,17 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
               </>
             ) : (
               <>
-                <div className="flex items-center gap-2 mb-2">
-                  <MapPin size={20} className="text-emerald-400" />
-                  <h3 className="text-white font-semibold text-lg">Personal Base Camp</h3>
-                  <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
-                    <Lock size={12} />
-                    Private
-                  </span>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <MapPin size={20} className="text-emerald-400" />
+                    <h3 className="text-white font-semibold text-lg">Personal Base Camp</h3>
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
+                      <Lock size={12} />
+                      Private
+                    </span>
+                  </div>
                 </div>
-                <p className="text-gray-400 text-sm mb-3">
+                <p className="text-gray-400 text-sm mb-4">
                   Add the location of your accommodations. Only you can see this.
                 </p>
                 <button
