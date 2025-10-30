@@ -14,14 +14,14 @@ export const GoogleMapsWidget = ({ widgetToken, height = 300 }: GoogleMapsWidget
     // Validate API key before attempting to load
     const apiKey = getGoogleMapsApiKey();
     
-    if (!apiKey || apiKey === 'placeholder' || apiKey === '') {
-      console.error('❌ Google Maps API key not configured');
+    if (!apiKey) {
+      console.error('❌ Google Maps API key not available');
       if (containerRef.current) {
         containerRef.current.innerHTML = `
           <div class="flex items-center justify-center h-full text-gray-400 text-sm">
             <div class="text-center">
-              <p>🗺️ Google Maps configuration required</p>
-              <p class="text-xs mt-1">API key not found</p>
+              <p>🗺️ Google Maps configuration error</p>
+              <p class="text-xs mt-1">API key not available</p>
             </div>
           </div>
         `;

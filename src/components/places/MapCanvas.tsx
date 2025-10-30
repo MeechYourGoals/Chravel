@@ -13,6 +13,7 @@ import {
   createSessionToken,
   SearchOrigin,
 } from '@/services/googlePlaces';
+import { GoogleMapsEmbed } from '@/components/GoogleMapsEmbed';
 
 export interface MapMarker {
   id: string;
@@ -56,6 +57,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const [isMapLoading, setIsMapLoading] = useState(true);
     const [mapError, setMapError] = useState<string | null>(null);
+    const [useFallbackEmbed, setUseFallbackEmbed] = useState(false);
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -76,6 +78,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     // Markers state
     const markersRef = useRef<google.maps.Marker[]>([]);
     const searchMarkerRef = useRef<google.maps.Marker | null>(null);
+    const overlayObserverRef = useRef<MutationObserver | null>(null);
 
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
@@ -144,6 +147,16 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
           mapRef.current = map;
 
+          // If Google renders its error overlay, switch to iframe fallback
+          setTimeout(() => {
+            const hasGmError = !!mapContainerRef.current?.querySelector('.gm-err-container');
+            if (hasGmError) {
+              console.error('[MapCanvas] Detected Google Maps error overlay – enabling iframe fallback');
+              setUseFallbackEmbed(true);
+              setIsMapLoading(false);
+            }
+          }, 1500);
+
           // Create services
           const svc = await createServices(map);
           setServices(svc);
@@ -159,9 +172,11 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         } catch (error) {
           console.error('[MapCanvas] Map initialization error:', error);
           if (mounted) {
-            const errorMessage = error instanceof Error && error.message.includes('VITE_GOOGLE_MAPS_API_KEY')
-              ? 'Google Maps API key not configured. Please add VITE_GOOGLE_MAPS_API_KEY to your .env file.'
-              : 'Failed to load map. Please check your internet connection and API key configuration.';
+            // Graceful fallback to embed if JS API fails to load/auth
+            setUseFallbackEmbed(true);
+            const errorMessage = error instanceof Error && error.message.includes('Google Maps')
+              ? error.message
+              : 'Failed to load Google Maps JavaScript API.';
             setMapError(errorMessage);
             setIsMapLoading(false);
           }
@@ -378,6 +393,21 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         '_blank'
       );
     };
+
+    // If fallback embed mode is enabled, show the iframe instead
+    if (useFallbackEmbed) {
+      return (
+        <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
+          <GoogleMapsEmbed className="w-full h-full" />
+          {/* Overlay message about reduced functionality */}
+          <div className="absolute bottom-4 left-4 right-4 z-10">
+            <div className="bg-yellow-50/95 backdrop-blur-sm border border-yellow-200 rounded-lg px-3 py-2 text-xs text-yellow-800 text-center">
+              Running in basic mode. Search and place details may be limited.
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
