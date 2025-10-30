@@ -12,48 +12,27 @@
 
 import { Loader } from '@googlemaps/js-api-loader';
 
-let mapsApi: typeof google.maps | null = null;
-let loaderPromise: Promise<typeof google.maps> | null = null;
+let maps: typeof google.maps | null = null;
+
+export async function loadMaps() {
+if (maps) return maps;
+const loader = new Loader({
+apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
+version: 'weekly',
+libraries: ['places', 'geocoding'],
+});
+maps = await loader.load();
+return maps!;
+}
 
 export type SearchOrigin = { lat: number; lng: number } | null;
 
-/**
- * Lazy-load Google Maps JavaScript API with Places & Geocoding libraries
- */
-export async function loadMapsApi(): Promise<typeof google.maps> {
-  if (mapsApi) return mapsApi;
-  
-  if (!loaderPromise) {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) {
-      throw new Error('VITE_GOOGLE_MAPS_API_KEY is not configured');
-    }
-
-    const loader = new Loader({
-      apiKey,
-      version: 'weekly',
-      libraries: ['places', 'geocoding'],
-    });
-
-    loaderPromise = loader.load().then(google => {
-      mapsApi = google.maps;
-      return google.maps;
-    });
-  }
-
-  return loaderPromise;
-}
-
-/**
- * Create Places and Geocoder service instances
- * Requires an initialized map instance for PlacesService
- */
 export async function createServices(map: google.maps.Map) {
-  await loadMapsApi();
-  return {
-    places: new google.maps.places.PlacesService(map),
-    geocoder: new google.maps.Geocoder(),
-  };
+await loadMaps();
+return {
+places: new google.maps.places.PlacesService(map),
+geocoder: new google.maps.Geocoder(),
+};
 }
 
 /**
@@ -65,33 +44,25 @@ export async function createServices(map: google.maps.Map) {
  * @returns Array of autocomplete predictions
  */
 export async function autocomplete(
-  input: string,
-  sessionToken: google.maps.places.AutocompleteSessionToken,
-  origin: SearchOrigin
+input: string,
+sessionToken: google.maps.places.AutocompleteSessionToken,
+origin: SearchOrigin
 ): Promise<google.maps.places.AutocompletePrediction[]> {
-  await loadMapsApi();
-  const service = new google.maps.places.AutocompleteService();
-  
-  return new Promise((resolve, reject) => {
-    const request: google.maps.places.AutocompletionRequest = {
-      input,
-      sessionToken,
-      // Bias results toward origin if provided
-      ...(origin && { 
-        locationBias: new google.maps.LatLng(origin.lat, origin.lng),
-      }),
-    };
-
-    service.getPlacePredictions(request, (predictions, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-        return resolve(predictions);
-      }
-      if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-        return resolve([]);
-      }
-      reject(new Error(`Autocomplete failed: ${status}`));
-    });
-  });
+await loadMaps();
+const svc = new google.maps.places.AutocompleteService();
+return new Promise((resolve, reject) => {
+const req: google.maps.places.AutocompletionRequest = {
+input,
+sessionToken,
+// Prefer near origin if we have it
+...(origin && { locationBias: new google.maps.LatLng(origin.lat, origin.lng) }),
+};
+svc.getPlacePredictions(req, (preds, status) => {
+if (status === google.maps.places.PlacesServiceStatus.OK && preds) return resolve(preds);
+if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) return resolve([]);
+reject(new Error(`autocomplete failed: ${status}`));
+});
+});
 }
 
 /**
@@ -110,113 +81,96 @@ export async function autocomplete(
  * @returns Resolved place result or null if not found
  */
 export async function resolveQuery(
-  map: google.maps.Map,
-  services: { places: google.maps.places.PlacesService; geocoder: google.maps.Geocoder },
-  query: string,
-  origin: SearchOrigin,
-  sessionToken: google.maps.places.AutocompleteSessionToken
+map: google.maps.Map,
+services: { places: google.maps.places.PlacesService; geocoder: google.maps.Geocoder },
+query: string,
+origin: SearchOrigin,
+sessionToken: google.maps.places.AutocompleteSessionToken
 ): Promise<google.maps.places.PlaceResult | null> {
-  await loadMapsApi();
+await loadMaps();
+// 1) findPlaceFromQuery (precise)
+const findPlace = await new Promise<google.maps.places.PlaceResult[] | null>(res => {
+services.places.findPlaceFromQuery(
+{
+query,
+fields: ['place_id', 'geometry', 'name', 'formatted_address'],
+...(origin && { locationBias: new google.maps.LatLng(origin.lat, origin.lng) }),
+sessionToken,
+},
+(results, status) => res(status === google.maps.places.PlacesServiceStatus.OK ? results! : null)
+);
+});
+let candidate = findPlace?.[0];
 
-  // Tier 1: findPlaceFromQuery (precise, best for known places)
-  const findPlaceResults = await new Promise<google.maps.places.PlaceResult[] | null>(resolve => {
-    services.places.findPlaceFromQuery(
-      {
-        query,
-        fields: ['place_id', 'geometry', 'name', 'formatted_address'],
-        ...(origin && { 
-          locationBias: new google.maps.LatLng(origin.lat, origin.lng),
-        }),
-        // @ts-ignore - sessionToken is valid but types might be outdated
-        sessionToken,
-      },
-      (results, status) => {
-        resolve(status === google.maps.places.PlacesServiceStatus.OK ? results! : null);
-      }
-    );
-  });
+// 2) textSearch (broader)
+if (!candidate) {
+const text = await new Promise<google.maps.places.PlaceResult[] | null>(res => {
+services.places.textSearch(
+{
+query,
+...(origin && {
+location: new google.maps.LatLng(origin.lat, origin.lng),
+radius: 50000, // 50km default; tune if needed
+}),
+// region/strictBounds can be added if you want to confine results
+},
+(results, status) => res(status === google.maps.places.PlacesServiceStatus.OK ? results! : null)
+);
+});
+candidate = text?.[0] ?? null;
+}
 
-  let candidate = findPlaceResults?.[0];
+// 3) geocode (addresses)
+if (!candidate) {
+const geo = await services.geocoder.geocode({
+address: query,
+...(origin && {
+bounds: new google.maps.LatLngBounds(
+new google.maps.LatLng(origin.lat - 0.4, origin.lng - 0.4),
+new google.maps.LatLng(origin.lat + 0.4, origin.lng + 0.4)
+),
+}),
+});
+const g = geo.results?.[0];
+if (g) {
+return {
+place_id: g.place_id!,
+name: g.formatted_address,
+formatted_address: g.formatted_address,
+geometry: {
+location: g.geometry.location,
+viewport: g.geometry.viewport,
+} as any,
+};
+}
+return null;
+}
 
-  // Tier 2: textSearch (broader natural language search)
-  if (!candidate) {
-    const textSearchResults = await new Promise<google.maps.places.PlaceResult[] | null>(resolve => {
-      services.places.textSearch(
-        {
-          query,
-          ...(origin && {
-            location: new google.maps.LatLng(origin.lat, origin.lng),
-            radius: 50000, // 50km search radius - tune based on use case
-          }),
-        },
-        (results, status) => {
-          resolve(status === google.maps.places.PlacesServiceStatus.OK ? results! : null);
-        }
-      );
-    });
-    candidate = textSearchResults?.[0] ?? null;
-  }
+// If we have a place_id, enrich via getDetails
+if (candidate.place_id) {
+const details = await new Promise<google.maps.places.PlaceResult | null>(res => {
+services.places.getDetails(
+{
+placeId: candidate!.place_id!,
+fields: [
+'place_id',
+'name',
+'formatted_address',
+'geometry',
+'url',
+'website',
+'rating',
+'types',
+],
+sessionToken,
+},
+(r, status) => res(status === google.maps.places.PlacesServiceStatus.OK ? r! : candidate!)
+);
+});
+return details;
+}
 
-  // Tier 3: geocode (addresses, final fallback)
-  if (!candidate) {
-    try {
-      const geocodeResult = await services.geocoder.geocode({
-        address: query,
-        ...(origin && {
-          bounds: new google.maps.LatLngBounds(
-            new google.maps.LatLng(origin.lat - 0.4, origin.lng - 0.4),
-            new google.maps.LatLng(origin.lat + 0.4, origin.lng + 0.4)
-          ),
-        }),
-      });
-
-      const geocoded = geocodeResult.results?.[0];
-      if (geocoded) {
-        return {
-          place_id: geocoded.place_id!,
-          name: geocoded.formatted_address,
-          formatted_address: geocoded.formatted_address,
-          geometry: {
-            location: geocoded.geometry.location,
-            viewport: geocoded.geometry.viewport,
-          } as any,
-        };
-      }
-    } catch (error) {
-      console.error('Geocode fallback error:', error);
-    }
-
-    return null;
-  }
-
-  // Enrich candidate with full details if we have a place_id
-  if (candidate.place_id) {
-    const details = await new Promise<google.maps.places.PlaceResult | null>(resolve => {
-      services.places.getDetails(
-        {
-          placeId: candidate!.place_id!,
-          fields: [
-            'place_id',
-            'name',
-            'formatted_address',
-            'geometry',
-            'url',
-            'website',
-            'rating',
-            'types',
-            'photos',
-          ],
-          sessionToken,
-        },
-        (result, status) => {
-          resolve(status === google.maps.places.PlacesServiceStatus.OK ? result! : candidate!);
-        }
-      );
-    });
-    return details;
-  }
-
-  return candidate;
+return candidate;
 }
 
 /**
@@ -227,27 +181,12 @@ export async function resolveQuery(
  * @param place - Place result with geometry
  */
 export function centerMapOnPlace(map: google.maps.Map, place: google.maps.places.PlaceResult) {
-  const geometry = place.geometry;
-  if (!geometry) {
-    console.warn('Cannot center map: place has no geometry', place);
-    return;
-  }
-
-  if (geometry.viewport) {
-    // Fit bounds to show the entire viewport (better for regions/areas)
-    map.fitBounds(geometry.viewport);
-  } else if (geometry.location) {
-    // Center on point location with default zoom
-    map.setCenter(geometry.location);
-    map.setZoom(15);
-  }
+const g = place.geometry;
+if (!g) return;
+if (g.viewport) {
+map.fitBounds(g.viewport);
+} else if (g.location) {
+map.setCenter(g.location);
+map.setZoom(15);
 }
-
-/**
- * Create a session token for autocomplete/search billing grouping
- * Call this once per search session, reset after a confirmed selection
- */
-export async function createSessionToken(): Promise<google.maps.places.AutocompleteSessionToken> {
-  await loadMapsApi();
-  return new google.maps.places.AutocompleteSessionToken();
 }
