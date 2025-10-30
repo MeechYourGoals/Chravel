@@ -327,8 +327,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   </span>
                 </div>
                 <p className="text-gray-400 text-sm mb-3">
-                  Add where you're staying (hotel/Airbnb) to center searches around you. Only you can see
-                  this.
+                  Add the location of your accommodations. Only you can see this.
                 </p>
                 {isDemoMode && (
                   <p className="text-xs text-gray-500 mb-3">Demo Mode: saved locally for this session</p>
