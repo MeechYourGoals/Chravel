@@ -129,24 +129,34 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
     );
   };
 
+  const isOwnMessage = message.type === 'user';
+  
   return (
     <div className={cn(
-      "flex",
-      message.type === 'user' ? 'justify-end' : 'justify-start'
+      "flex w-full gap-2",
+      isOwnMessage ? 'justify-end flex-row-reverse' : 'justify-start flex-row'
     )}>
+      {/* AI Avatar for assistant messages */}
+      {!isOwnMessage && (
+        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+          <span className="text-xs text-white">AI</span>
+        </div>
+      )}
+      
       <div className={cn(
-        "max-w-xs lg:max-w-md",
-        message.type === 'user' ? '' : 'w-full max-w-lg'
+        "flex flex-col",
+        isOwnMessage ? 'items-end' : 'items-start',
+        "max-w-[78%]"
       )}>
         <div className={cn(
-          "px-4 py-3 rounded-2xl",
-          message.type === 'user'
-            ? 'bg-gray-800 text-white'
-            : 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-gray-300 border border-blue-500/20'
+          "px-3.5 py-2.5 rounded-2xl backdrop-blur-sm border transition-all",
+          isOwnMessage
+            ? 'bg-primary text-primary-foreground border-primary/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-sm'
+            : 'bg-muted/80 text-muted-foreground border-border shadow-sm rounded-bl-sm'
         )}>
           {/* Message content - only show if not a pure media message */}
           {message.content && (
-            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
           )}
           
           {/* Render media content inline */}
@@ -160,14 +170,17 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
         </div>
 
         {/* Message metadata */}
-        <div className="flex items-center gap-2 mt-1 px-2">
-          <span className="text-xs text-gray-500">
+        {message.timestamp && (
+          <span className={cn(
+            "text-[10px] text-muted-foreground/70 mt-1 px-1",
+            isOwnMessage ? 'text-right' : 'text-left'
+          )}>
             {new Date(message.timestamp).toLocaleTimeString([], { 
               hour: '2-digit', 
               minute: '2-digit' 
             })}
           </span>
-        </div>
+        )}
       </div>
     </div>
   );
