@@ -7,6 +7,8 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 );
 
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
 serve(async (req) => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
   
@@ -42,10 +44,8 @@ serve(async (req) => {
 });
 
 async function extractCalendarEvents(messageText: string, fileUrl?: string, fileType?: string) {
-  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-  
-  if (!openaiApiKey) {
-    throw new Error('OpenAI API key not configured');
+  if (!LOVABLE_API_KEY) {
+    throw new Error('Lovable API key not configured');
   }
 
   const messages = [
@@ -88,14 +88,14 @@ async function extractCalendarEvents(messageText: string, fileUrl?: string, file
     }
   ];
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'google/gemini-2.5-flash',
       messages,
       max_tokens: 2000,
       temperature: 0.1,
@@ -105,7 +105,7 @@ async function extractCalendarEvents(messageText: string, fileUrl?: string, file
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`OpenAI API error: ${error}`);
+    throw new Error(`Gemini API error: ${error}`);
   }
 
   const result = await response.json();
@@ -122,20 +122,18 @@ async function extractCalendarEvents(messageText: string, fileUrl?: string, file
 }
 
 async function extractTodoItems(messageText: string, tripId: string) {
-  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-  
-  if (!openaiApiKey) {
-    throw new Error('OpenAI API key not configured');
+  if (!LOVABLE_API_KEY) {
+    throw new Error('Lovable API key not configured');
   }
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'google/gemini-2.5-flash',
       messages: [
         {
           role: 'system',
@@ -185,20 +183,18 @@ async function extractTodoItems(messageText: string, tripId: string) {
 }
 
 async function analyzePhoto(fileUrl: string) {
-  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-  
-  if (!openaiApiKey) {
-    throw new Error('OpenAI API key not configured');
+  if (!LOVABLE_API_KEY) {
+    throw new Error('Lovable API key not configured');
   }
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'google/gemini-2.5-flash',
       messages: [
         {
           role: 'system',
@@ -255,22 +251,20 @@ async function analyzePhoto(fileUrl: string) {
 }
 
 async function parseDocument(fileUrl: string, fileType: string) {
-  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-  
-  if (!openaiApiKey) {
-    throw new Error('OpenAI API key not configured');
+  if (!LOVABLE_API_KEY) {
+    throw new Error('Lovable API key not configured');
   }
 
   // For PDFs and documents, we'd need additional processing
   // This is a simplified version for images of documents
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'google/gemini-2.5-flash',
       messages: [
         {
           role: 'system',
