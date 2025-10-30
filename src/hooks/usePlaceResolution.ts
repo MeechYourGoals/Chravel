@@ -77,10 +77,10 @@ export const usePlaceResolution = () => {
   const categorizePlaceType = (placeTypes: string[]): PlaceCategory => {
     // Mapping from new categories to Google Place types
     const categoryMap: { [key in PlaceCategory]?: string[] } = {
-      'Accommodations': ['lodging', 'hotel', 'motel', 'resort', 'hostel', 'rv_park'],
+      'Accommodation': ['lodging', 'hotel', 'motel', 'resort', 'hostel', 'rv_park'],
       'Food & Drink': ['restaurant', 'cafe', 'bar', 'bakery', 'meal_takeaway', 'meal_delivery'],
-      'Experience': ['tourist_attraction', 'museum', 'amusement_park', 'zoo', 'aquarium', 'art_gallery', 'park', 'church', 'mosque', 'synagogue', 'hindu_temple', 'stadium', 'movie_theater', 'casino', 'night_club', 'spa'],
-      'Attraction': ['landmark', 'point_of_interest'], // Keep this for more specific landmarks if needed, but 'Experience' is broader
+      'Activity': ['tourist_attraction', 'museum', 'amusement_park', 'zoo', 'aquarium', 'art_gallery', 'park', 'church', 'mosque', 'synagogue', 'hindu_temple', 'movie_theater', 'casino', 'night_club', 'spa'],
+      'Attraction': ['stadium', 'landmark', 'point_of_interest'], // Stadiums, music venues, sports venues
     };
 
     for (const [category, types] of Object.entries(categoryMap)) {

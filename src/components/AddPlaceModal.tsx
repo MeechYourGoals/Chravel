@@ -29,9 +29,9 @@ import { PlaceCategoryEnum, PlaceCategory } from '../types/basecamp';
 
 const categoryDetails: { [key in PlaceCategory]: { icon: string; description: string } } = {
   'Food & Drink': { icon: '🍽️', description: 'Restaurants, cafes, bars' },
-  'Attraction': { icon: '🎯', description: 'Museums, landmarks, parks' },
-  'Experience': { icon: '🎢', description: 'Tours, shows, activities' },
-  'Accommodations': { icon: '🏨', description: 'Hotels, rentals, hostels' },
+  'Attraction': { icon: '🎯', description: 'Stadiums, music venues, landmarks' },
+  'Activity': { icon: '🎢', description: 'Tours, shows, activities, museums' },
+  'Accommodation': { icon: '🏨', description: 'Hotels, rentals, hostels' },
   'Other': { icon: '📍', description: 'Other points of interest' },
 };
 
