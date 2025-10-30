@@ -122,7 +122,7 @@ class DemoModeService {
     await secureStorageService.setDemoMode(false, userId);
   }
 
-  async getMockMessages(tripType: string, excludePayments: boolean = false): Promise<MockMessage[]> {
+  async getMockMessages(tripType: string, excludePayments: boolean = false, currentUserId?: string): Promise<MockMessage[]> {
     // Enhanced mock messages with diverse, realistic names and proper message types
     const baseMessages: MockMessage[] = [
       // Regular conversation messages
@@ -243,8 +243,32 @@ class DemoModeService {
       }
     ];
 
+    // Add messages from "You" (current user) if currentUserId is provided
+    if (currentUserId) {
+      baseMessages.push(
+        {
+          id: currentUserId + '-msg-1',
+          trip_type: tripType,
+          sender_name: 'You',
+          sender_id: currentUserId,
+          message_content: 'This looks amazing! Can\'t wait to get there 🎉',
+          timestamp_offset_days: 1,
+          tags: ['conversation']
+        },
+        {
+          id: currentUserId + '-msg-2',
+          trip_type: tripType,
+          sender_name: 'You',
+          sender_id: currentUserId,
+          message_content: 'Count me in for dinner tonight!',
+          timestamp_offset_days: 0,
+          tags: ['conversation']
+        }
+      );
+    }
+
     // Add trip-specific messages based on type
-    const tripSpecificMessages = this.getTripSpecificMessages(tripType);
+    const tripSpecificMessages = this.getTripSpecificMessages(tripType, currentUserId);
     
     let allMessages = [...baseMessages, ...tripSpecificMessages];
     
@@ -323,7 +347,7 @@ class DemoModeService {
     return proMessages;
   }
 
-  private getTripSpecificMessages(tripType: string): MockMessage[] {
+  private getTripSpecificMessages(tripType: string, currentUserId?: string): MockMessage[] {
     switch (tripType) {
       case 'friends-trip':
         return [
