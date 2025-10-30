@@ -53,8 +53,8 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
   const categoryIcons: { [key in PlaceCategory]: React.ElementType } = {
     'Food & Drink': MapPin,
     'Attraction': Navigation2,
-    'Experience': Calendar,
-    'Accommodations': MapPin,
+    'Activity': Calendar,
+    'Accommodation': MapPin,
     'Other': Link,
   };
 
@@ -259,34 +259,6 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
                     )}
 
                     <div className="flex gap-2 flex-wrap">
-                      {!linkedPlaceIds.has(place.id) && (
-                        <button
-                          onClick={() => handleAddToLinksClick(place)}
-                          disabled={addingToLinks.has(place.id)}
-                          className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 font-medium shadow-lg shadow-purple-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Link size={12} />
-                          {addingToLinks.has(place.id) ? 'Adding...' : 'Add to Links'}
-                        </button>
-                      )}
-                      {linkedPlaceIds.has(place.id) ? (
-                        <button
-                          disabled
-                          className="bg-gray-700 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-medium cursor-not-allowed"
-                        >
-                          <Link size={12} />
-                          Saved
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleAddToLinksClick(place)}
-                          disabled={addingToLinks.has(place.id)}
-                          className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 font-medium shadow-lg shadow-purple-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Link size={12} />
-                          {addingToLinks.has(place.id) ? 'Adding...' : 'Add to Links'}
-                        </button>
-                      )}
                       <AddToCalendarButton
                         placeName={place.name}
                         placeAddress={place.address}
