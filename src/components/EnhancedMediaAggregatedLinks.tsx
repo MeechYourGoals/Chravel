@@ -3,6 +3,7 @@ import { Link, ExternalLink, MessageCircle, Globe, Calendar, MapPin } from 'luci
 import { supabase } from '@/integrations/supabase/client';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import MockDataService, { MockLinkItem } from '@/services/mockDataService';
+import { extractUrlsFromTripChat, type NormalizedUrl } from '@/services/chatUrlExtractor';
 
 interface LinkItem {
   id: string;
@@ -13,6 +14,10 @@ interface LinkItem {
   og_image_url?: string;
   created_at: string;
   source: 'chat' | 'manual';
+  postedBy?: {
+    id: string;
+    name?: string;
+  };
 }
 
 interface EnhancedMediaAggregatedLinksProps {
@@ -30,22 +35,8 @@ export const EnhancedMediaAggregatedLinks = ({ tripId }: EnhancedMediaAggregated
 
   const fetchLinkItems = async () => {
     try {
-      if (isDemoMode || MockDataService.isUsingMockData()) {
-        // Use mock data
-        const mockLinks = await MockDataService.getMockLinkItems(tripId);
-        setLinkItems(mockLinks);
-        setLoading(false);
-        return;
-      }
-
-      // Fetch from link index (chat aggregated links)
-      const { data: chatLinks, error: chatError } = await supabase
-        .from('trip_link_index')
-        .select('*')
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
-
-      if (chatError) throw chatError;
+      // Use chat URL extractor to get URLs from chat messages
+      const chatUrls = await extractUrlsFromTripChat(tripId);
 
       // Fetch manually added links from trip_links
       const { data: manualLinks, error: linkError } = await supabase
@@ -58,16 +49,17 @@ export const EnhancedMediaAggregatedLinks = ({ tripId }: EnhancedMediaAggregated
 
       // Combine both sources
       const allLinks: LinkItem[] = [
-        ...(chatLinks || []).map(item => ({
-          id: item.id,
+        // URLs extracted from chat
+        ...chatUrls.map(item => ({
+          id: item.messageId,
           url: item.url,
-          title: item.og_title || item.domain || 'Link',
-          description: item.og_description,
-          domain: item.domain || new URL(item.url).hostname,
-          og_image_url: item.og_image_url,
-          created_at: item.created_at,
-          source: 'chat' as const
+          title: item.title || item.domain || 'Link',
+          domain: item.domain,
+          created_at: item.lastSeenAt,
+          source: 'chat' as const,
+          postedBy: item.postedBy,
         })),
+        // Manually added links
         ...(manualLinks || []).map(item => ({
           id: item.id,
           url: item.url,
@@ -161,6 +153,11 @@ export const EnhancedMediaAggregatedLinks = ({ tripId }: EnhancedMediaAggregated
                     {getDomainIcon(item.domain)}
                     <p className="text-sm text-muted-foreground">{item.domain}</p>
                   </div>
+                  {item.postedBy && (
+                    <p className="text-xs text-muted-foreground mb-1">
+                      Posted by {item.postedBy.name}
+                    </p>
+                  )}
                   {item.description && (
                     <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                       {item.description}
