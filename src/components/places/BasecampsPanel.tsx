@@ -277,9 +277,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                     <Lock size={12} />
                     Private
                   </span>
-                  {isDemoMode && (
-                    <span className="text-xs text-gray-500">Demo Mode: saved locally</span>
-                  )}
                 </div>
 
                 <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4">
@@ -329,9 +326,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                 <p className="text-gray-400 text-sm mb-3">
                   Add the location of your accommodations. Only you can see this.
                 </p>
-                {isDemoMode && (
-                  <p className="text-xs text-gray-500 mb-3">Demo Mode: saved locally for this session</p>
-                )}
                 <button
                   onClick={() => setShowPersonalSelector(true)}
                   className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl transition-colors font-medium text-sm flex items-center justify-center gap-2"

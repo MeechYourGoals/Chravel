@@ -209,9 +209,6 @@ export const PersonalBaseCampCard: React.FC<PersonalBaseCampCardProps> = ({
                     <Lock size={12} />
                     Private
                   </span>
-                  {isDemoMode && (
-                    <span className="text-xs text-gray-500">Demo Mode: saved locally for this session</span>
-                  )}
                 </div>
                 <div className="flex items-start gap-2">
                   <MapPin size={14} className="text-emerald-400 mt-1 flex-shrink-0" />
@@ -237,9 +234,6 @@ export const PersonalBaseCampCard: React.FC<PersonalBaseCampCardProps> = ({
               <p className="text-gray-400 text-sm mb-3">
                 Add the location of your accommodations. Only you can see this.
               </p>
-              {isDemoMode && (
-                <p className="text-xs text-gray-500 mb-3">Demo Mode: saved locally for this session</p>
-              )}
               <button
                 onClick={() => setShowSelector(true)}
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl transition-colors font-medium text-sm flex items-center justify-center gap-2"
