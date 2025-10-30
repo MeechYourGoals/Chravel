@@ -224,9 +224,17 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         // Update search origin for biasing
         setSearchOrigin(activeBasecamp.coordinates);
 
-        // Center map on the active basecamp
-        mapRef.current.setCenter(activeBasecamp.coordinates);
-        mapRef.current.setZoom(12);
+        // If there's a selected place, re-trigger the search to show new directions from the new basecamp
+        if (selectedPlace?.name && services && sessionToken) {
+          console.log(`[MapCanvas] Re-searching from new basecamp context: ${selectedPlace.name}`);
+          handleSearch(selectedPlace.name);
+        }
+
+        // Center map on the active basecamp only if no place is selected
+        if (!selectedPlace) {
+          mapRef.current.setCenter(activeBasecamp.coordinates);
+          mapRef.current.setZoom(12);
+        }
       } else {
         setSearchOrigin(null);
       }
@@ -421,22 +429,14 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       return (
         <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
           <GoogleMapsEmbed className="w-full h-full" />
-          {/* Overlay message about reduced functionality */}
-          <div className="absolute bottom-4 left-4 right-4 z-10">
-            <div className="bg-yellow-50/95 backdrop-blur-sm border border-yellow-200 rounded-lg px-3 py-2 text-xs text-yellow-800 text-center">
-              {mapError
-                ? `Map error: ${mapError}`
-                : 'Running in basic mode. Search and place details may be limited.'}
-            </div>
-          </div>
         </div>
       );
     }
 
     return (
       <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
-        {/* Search Bar - Centered */}
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-sm px-4">
+        {/* Search Bar - Centered with proper spacing from sides */}
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-md px-20 md:px-24">
           <form onSubmit={handleSearchSubmit} className="relative">
             <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
             <input
