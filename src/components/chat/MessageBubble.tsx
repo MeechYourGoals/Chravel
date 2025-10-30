@@ -19,6 +19,7 @@ export interface MessageBubbleProps {
   isOwnMessage?: boolean;
   reactions?: Record<string, { count: number; userReacted: boolean }>;
   onReaction: (messageId: string, reactionType: string) => void;
+  showSenderInfo?: boolean;
   // 🆕 Grounding support
   grounding?: {
     sources?: Array<{ id: string; title: string; url: string; snippet: string; source: string }>;
@@ -37,35 +38,17 @@ export const MessageBubble = ({
   isOwnMessage = false,
   reactions,
   onReaction,
-  grounding
+  grounding,
+  showSenderInfo = true,
 }: MessageBubbleProps) => {
   const [showReactions, setShowReactions] = useState(false);
   const isMobilePortrait = useMobilePortrait();
 
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const getTextColorClass = () => {
-    if (isBroadcast) return 'text-orange-400';
-    if (isPayment) return 'text-green-400';
-    return 'text-foreground';
-  };
-
-  const getBubbleClasses = () => {
-    // Self messages always use primary blue, even if broadcast/payment
-    if (isOwnMessage) {
-      return 'bg-primary text-primary-foreground border-primary/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-sm';
-    }
-    
-    // Others' messages use contextual colors
-    if (isBroadcast) {
-      return 'bg-orange-600/10 border-orange-500/30 shadow-[0_2px_12px_rgba(251,146,60,0.15)] text-orange-400 rounded-bl-sm';
-    }
-    if (isPayment) {
-      return 'bg-green-600/10 border-green-500/30 shadow-[0_2px_12px_rgba(34,197,94,0.15)] text-green-400 rounded-bl-sm';
-    }
-    return 'bg-muted/80 text-muted-foreground border-border shadow-sm rounded-bl-sm';
+    return new Date(timestamp).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   // Unified layout: Metadata above bubble for both mobile and desktop (consistency)
@@ -75,96 +58,42 @@ export const MessageBubble = ({
       // Auto-hide after 5 seconds
       setTimeout(() => setShowReactions(false), 5000);
     },
-    threshold: 500
+    threshold: 500,
   });
 
   return (
-    <div
-      className={cn(
-        "group flex gap-2",
-        isOwnMessage ? "flex-row-reverse justify-end" : "flex-row items-start",
-        "mb-0"
-      )}
-      {...longPressHandlers}
-    >
-      {!isOwnMessage && (
+    <div className={cn('flex gap-2', isOwnMessage ? 'justify-end' : 'justify-start')}>
+      {!isOwnMessage && showSenderInfo && (
         <img
           src={senderAvatar || getMockAvatar(senderName)}
           alt={senderName}
-          className={cn(
-            "rounded-full object-cover border-2 border-border/50 flex-shrink-0",
-            isMobilePortrait ? "w-10 h-10" : "w-10 h-10"
-          )}
+          className="w-10 h-10 rounded-full object-cover border-2 border-border/50 flex-shrink-0"
         />
       )}
-      
-      <div className={cn(
-        "flex flex-col max-w-full",
-        isOwnMessage ? "items-end" : "items-start"
-      )}>
-        {/* Metadata above bubble - all versions */}
-        {!isOwnMessage && (
-          <div className={cn(
-            "flex items-center gap-1 mb-0.5",
-            isMobilePortrait ? "text-xs" : "text-sm"
-          )}>
-            <span className={cn(
-              "font-semibold text-foreground",
-              isMobilePortrait ? "text-xs" : "text-sm"
-            )}>
-              {senderName}
-            </span>
-            <span className={cn(
-              "text-muted-foreground opacity-70",
-              isMobilePortrait ? "text-[11px]" : "text-xs"
-            )}>
-              {formatTime(timestamp)}
-            </span>
-            {isBroadcast && (
-              <span className={cn(
-                "bg-orange-600/20 text-orange-400 px-1.5 py-0.5 rounded-full",
-                isMobilePortrait ? "text-[10px]" : "text-xs"
-              )}>
-                📢 Broadcast
-              </span>
-            )}
-            {isPayment && (
-              <span className={cn(
-                "bg-green-600/20 text-green-400 px-1.5 py-0.5 rounded-full",
-                isMobilePortrait ? "text-[10px]" : "text-xs"
-              )}>
-                💳 Payment
-              </span>
-            )}
-          </div>
+      {!isOwnMessage && !showSenderInfo && <div className="w-10 flex-shrink-0" />}
+
+      <div
+        className={cn(
+          'flex flex-col max-w-[70%]',
+          isOwnMessage ? 'items-end text-right' : 'items-start text-left',
         )}
-        
-        {/* Message bubble - content only */}
-        <div 
+      >
+        {showSenderInfo && (
+          <span className="text-xs text-muted-foreground mb-1">
+            {isOwnMessage ? 'You' : senderName} — {formatTime(timestamp)}
+          </span>
+        )}
+        <div
           className={cn(
-            'inline-flex rounded-2xl backdrop-blur-sm border transition-all px-3.5 py-2.5',
-            'max-w-[78%]',
-            getBubbleClasses()
+            'px-3 py-2 rounded-2xl break-words',
+            isOwnMessage
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted/80 text-muted-foreground',
+            isBroadcast && !isOwnMessage && 'border-2 border-orange-500/50',
+            isPayment && !isOwnMessage && 'border-2 border-green-500/50',
           )}
         >
-          {/* Show broadcast/payment pill inside bubble for self messages */}
-          {isOwnMessage && isBroadcast && (
-            <span className="bg-amber-500/15 text-amber-300 px-1.5 py-0.5 rounded-full text-[10px] mr-2 inline-flex items-center flex-shrink-0">
-              📢 Broadcast
-            </span>
-          )}
-          {isOwnMessage && isPayment && (
-            <span className="bg-green-500/15 text-green-300 px-1.5 py-0.5 rounded-full text-[10px] mr-2 inline-flex items-center flex-shrink-0">
-              💳 Payment
-            </span>
-          )}
-          
-          <p className={cn(
-            'text-sm leading-relaxed break-words whitespace-pre-wrap',
-            isOwnMessage ? 'text-primary-foreground' : getTextColorClass()
-          )}>
-            {text}
-          </p>
+          {text}
         </div>
         
         {/* Google Maps Widget */}

@@ -58,40 +58,69 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
 
   const effectiveUserId = user?.id || getDemoUserId();
 
-  // Load mock places data on mount
+  // Load places data on mount
   useEffect(() => {
-    const loadMockPlaces = async () => {
-      console.log('[PlacesSection] Checking if should load mock data...');
-      console.log('[PlacesSection] isDemoMode:', isDemoMode);
-      console.log('[PlacesSection] MockDataService.isUsingMockData():', MockDataService.isUsingMockData());
+    const loadPlaces = async () => {
+      if (isDemoMode) {
+        // Load mock data in demo mode
+        try {
+          const mockPlaces = await MockDataService.getMockPlaceItems(tripId, true);
+          const placesWithDistance: PlaceWithDistance[] = mockPlaces.map(place => ({
+            id: place.id,
+            name: place.name,
+            address: place.address,
+            coordinates: place.coordinates,
+            category: place.category as "activity" | "attraction" | "fitness" | "hotel" | "nightlife" | "restaurant" | "transportation",
+            rating: place.rating,
+            url: place.url,
+            distanceFromBasecamp: place.distanceFromBasecamp
+          }));
+          setPlaces(placesWithDistance);
+        } catch (error) {
+          console.error('Failed to load mock places:', error);
+        }
+      } else {
+        // Load real data for authenticated users
+        const { data, error } = await supabase
+          .from('trip_link_index')
+          .select('*')
+          .eq('trip_id', tripId);
 
-      // ALWAYS load mock places for now (for testing/demo purposes)
-      // TODO: Make this conditional based on user preferences or demo mode
-      try {
-        console.log('[PlacesSection] Loading mock places for tripId:', tripId);
-        const mockPlaces = await MockDataService.getMockPlaceItems(tripId, true); // Force load
-        console.log('[PlacesSection] Fetched mock places:', mockPlaces.length, mockPlaces);
+        if (error) {
+          console.error('Failed to load places:', error);
+          return;
+        }
 
-        const placesWithDistance: PlaceWithDistance[] = mockPlaces.map(place => ({
-          id: place.id,
-          name: place.name,
-          address: place.address,
-          coordinates: place.coordinates,
-          category: place.category as "activity" | "attraction" | "fitness" | "hotel" | "nightlife" | "restaurant" | "transportation",
-          rating: place.rating,
-          url: place.url,
-          distanceFromBasecamp: place.distanceFromBasecamp
-        }));
+        const placesWithDistance: PlaceWithDistance[] = data
+          .map(link => {
+            const placeIdMatch = link.og_description?.match(/place_id:([^ |]+)/);
+            const placeId = placeIdMatch ? placeIdMatch[1] : link.id.toString();
 
+            const coordsMatch = link.og_description?.match(/coords:([^,]+),([^ |]+)/);
+            const coordinates = coordsMatch ? { lat: parseFloat(coordsMatch[1]), lng: parseFloat(coordsMatch[2]) } : undefined;
+
+            const categoryMatch = link.og_description?.match(/category:([^ |]+)/);
+            const category = categoryMatch ? categoryMatch[1] : 'other';
+
+            const addressMatch = link.og_description?.match(/Saved from Places: ([^|]+)/);
+            const address = addressMatch ? addressMatch[1].trim() : '';
+
+            return {
+              id: placeId,
+              name: link.og_title || 'Unnamed Place',
+              address: address,
+              coordinates: coordinates,
+              category: category as any,
+              rating: 0,
+              url: link.url || '',
+            };
+          });
         setPlaces(placesWithDistance);
-        console.log('[PlacesSection] ✅ Loaded mock places:', placesWithDistance.length);
-      } catch (error) {
-        console.error('[PlacesSection] ❌ Failed to load mock places:', error);
       }
     };
 
-    loadMockPlaces();
-  }, [tripId]);
+    loadPlaces();
+  }, [tripId, isDemoMode]);
 
   // Load personal basecamp
   useEffect(() => {

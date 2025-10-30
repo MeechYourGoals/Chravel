@@ -14,6 +14,19 @@ import { ExportSection } from '@/types/tripExport';
  * @param url The URL of the font file to fetch.
  * @returns A promise that resolves with the base64 encoded font data.
  */
+
+// Type for autoTable result which includes finalY
+interface AutoTableResult {
+  finalY: number;
+}
+
+/**
+ * Font loading for jsPDF
+ * Fetches a font from a URL and returns it as a base64 encoded string.
+ * This is used to embed Unicode-capable fonts into the client-side PDF.
+ * @param url The URL of the font file to fetch.
+ * @returns A promise that resolves with the base64 encoded font data.
+ */
 async function getFontAsBase64(url: string): Promise<string> {
   // In a real-world scenario, you'd want to handle network errors.
   // For this example, we'll assume the font is always available.
@@ -61,13 +74,8 @@ async function embedNotoSansFont(doc: jsPDF): Promise<void> {
     doc.setFont('NotoSans', 'normal');
   } catch (error) {
     console.error('Failed to load and embed font, falling back to default:', error);
-    // Continue with the default font (helvetica) if embedding fails
+    // Continue with the default font (NotoSans) if embedding fails
   }
-}
-
-// Type for autoTable result which includes finalY
-interface AutoTableResult {
-  finalY: number;
 }
 
 interface ExportData {
@@ -224,11 +232,14 @@ export async function generateClientPDF(
         yPos += 15;
 
         if (poll.options && poll.options.length > 0) {
-          const pollRows = poll.options.map((opt: any) => [
-            opt.text || 'N/A',
-            `${opt.votes || 0} votes`,
-            `${((opt.votes / poll.total_votes) * 100).toFixed(1)}%`
-          ]);
+          const pollRows = poll.options.map((opt: any) => {
+            const percentage = poll.total_votes > 0 ? ((opt.votes / poll.total_votes) * 100).toFixed(1) : '0.0';
+            return [
+              opt.text || 'N/A',
+              `${opt.votes || 0} votes`,
+              `${percentage}%`
+            ];
+          });
 
           const result = autoTable(doc, {
             startY: yPos,
@@ -311,7 +322,7 @@ export async function generateClientPDF(
   if (sections.includes('roster')) {
     yPos = checkPageBreak(doc, yPos, 60);
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     doc.setTextColor(0);
     doc.text('Roster & Contacts', margin, yPos);
     yPos += 20;
@@ -338,7 +349,7 @@ export async function generateClientPDF(
       yPos = result.finalY + 10;
     } else {
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       doc.setTextColor(120);
       doc.text('No roster data available in demo mode', margin, yPos);
       yPos += 30;
@@ -348,7 +359,7 @@ export async function generateClientPDF(
   if (sections.includes('broadcasts')) {
     yPos = checkPageBreak(doc, yPos, 60);
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     doc.setTextColor(0);
     doc.text('Broadcast Log', margin, yPos);
     yPos += 20;
@@ -375,7 +386,7 @@ export async function generateClientPDF(
       yPos = result.finalY + 10;
     } else {
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       doc.setTextColor(120);
       doc.text('No broadcasts available in demo mode', margin, yPos);
       yPos += 30;
@@ -385,7 +396,7 @@ export async function generateClientPDF(
   if (sections.includes('attachments')) {
     yPos = checkPageBreak(doc, yPos, 60);
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     doc.setTextColor(0);
     doc.text('Attachments', margin, yPos);
     yPos += 20;
@@ -412,7 +423,7 @@ export async function generateClientPDF(
       yPos = result.finalY + 10;
     } else {
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       doc.setTextColor(120);
       doc.text('No attachments available in demo mode', margin, yPos);
       yPos += 30;

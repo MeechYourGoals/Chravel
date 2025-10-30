@@ -50,11 +50,10 @@ export async function extractUrlsFromTripChat(tripId: string): Promise<Normalize
     if (MockDataService.isUsingMockData()) return getMockUrls(tripId);
 
     const { data, error } = await supabase
-      .from('trip_chat_messages')
-      .select('id, content, created_at, user_id, author_name, link_preview')
+      .from('trip_link_index')
+      .select('id, url, created_at, user_id, og_title, domain')
       .eq('trip_id', tripId)
-      .order('created_at', { ascending: true }) // oldest → newest for first/last stamps
-      .limit(1000);
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('[chatUrlExtractor] Supabase error:', error);
@@ -62,52 +61,16 @@ export async function extractUrlsFromTripChat(tripId: string): Promise<Normalize
     }
     if (!data?.length) return [];
 
-    const map = new Map<string, NormalizedUrl>();
-
-    for (const msg of data as ChatRow[]) {
-      if (!msg.content) continue;
-
-      const urls = findUrls(msg.content);
-      if (!urls.length) continue;
-
-      const titleFromPreview = extractTitleFromLinkPreview(msg.link_preview);
-
-      for (const raw of urls) {
-        const normalized = normalizeUrl(raw);
-        const domain = getDomain(normalized);
-        const existing = map.get(normalized);
-
-        if (existing) {
-          // update most recent occurrence
-          existing.lastSeenAt = String(msg.created_at);
-          existing.messageId = String(msg.id);
-          // fill title if missing
-          if (!existing.title && titleFromPreview) existing.title = titleFromPreview;
-          // keep existing.postedBy if set, otherwise populate
-          if (!existing.postedBy && (msg.user_id || msg.author_name)) {
-            existing.postedBy = { id: String(msg.user_id ?? msg.author_name), name: msg.author_name ?? undefined };
-          }
-        } else {
-          map.set(normalized, {
-            url: normalized,
-            rawUrl: raw,
-            domain,
-            firstSeenAt: String(msg.created_at),
-            lastSeenAt: String(msg.created_at),
-            messageId: String(msg.id),
-            postedBy: (msg.user_id || msg.author_name)
-              ? { id: String(msg.user_id ?? msg.author_name), name: msg.author_name ?? undefined }
-              : undefined,
-            title: titleFromPreview,
-          });
-        }
-      }
-    }
-
-    // newest first in UI
-    return [...map.values()].sort(
-      (a, b) => new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime()
-    );
+    return data.map(link => ({
+      url: link.url || '',
+      rawUrl: link.url || '',
+      domain: link.domain || '',
+      firstSeenAt: link.created_at || '',
+      lastSeenAt: link.created_at || '',
+      messageId: link.id.toString(),
+      postedBy: { id: link.user_id || '' },
+      title: link.og_title || '',
+    }));
   } catch (e) {
     console.error('[chatUrlExtractor] Unexpected error:', e);
     return [];
