@@ -157,7 +157,10 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         } catch (error) {
           console.error('[MapCanvas] Map initialization error:', error);
           if (mounted) {
-            setMapError('Failed to load map. Please check your internet connection.');
+            const errorMessage = error instanceof Error && error.message.includes('VITE_GOOGLE_MAPS_API_KEY')
+              ? 'Google Maps API key not configured. Please add VITE_GOOGLE_MAPS_API_KEY to your .env file.'
+              : 'Failed to load map. Please check your internet connection and API key configuration.';
+            setMapError(errorMessage);
             setIsMapLoading(false);
           }
         }
@@ -472,11 +475,22 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         {/* Error State */}
         {mapError && (
           <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-10">
-            <div className="bg-white rounded-xl p-6 shadow-2xl max-w-sm mx-4">
-              <p className="text-red-700 text-sm text-center">{mapError}</p>
+            <div className="bg-white rounded-xl p-6 shadow-2xl max-w-md mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Map Loading Error</h3>
+              <p className="text-red-700 text-sm mb-4">{mapError}</p>
+              {mapError.includes('API key') && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <p className="text-xs text-blue-900 font-medium mb-2">Setup Instructions:</p>
+                  <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside">
+                    <li>Copy .env.example to .env</li>
+                    <li>Add your Google Maps API key</li>
+                    <li>Restart the development server</li>
+                  </ol>
+                </div>
+              )}
               <button
                 onClick={() => window.location.reload()}
-                className="mt-4 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
               >
                 Reload Page
               </button>
