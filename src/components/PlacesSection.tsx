@@ -361,6 +361,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
           <LinksPanel
             places={places}
             basecamp={contextBasecamp}
+            personalBasecamp={personalBasecamp}
             onPlaceAdded={handlePlaceAdded}
             onPlaceRemoved={handlePlaceRemoved}
             onAddToLinks={handleAddToLinks}
