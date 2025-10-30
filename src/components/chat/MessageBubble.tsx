@@ -53,13 +53,19 @@ export const MessageBubble = ({
   };
 
   const getBubbleClasses = () => {
+    // Self messages always use primary blue, even if broadcast/payment
+    if (isOwnMessage) {
+      return 'bg-primary text-primary-foreground border-primary/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-sm';
+    }
+    
+    // Others' messages use contextual colors
     if (isBroadcast) {
-      return 'bg-orange-600/10 border-orange-500/30 shadow-[0_2px_12px_rgba(251,146,60,0.15)]';
+      return 'bg-orange-600/10 border-orange-500/30 shadow-[0_2px_12px_rgba(251,146,60,0.15)] text-orange-400 rounded-bl-sm';
     }
     if (isPayment) {
-      return 'bg-green-600/10 border-green-500/30 shadow-[0_2px_12px_rgba(34,197,94,0.15)]';
+      return 'bg-green-600/10 border-green-500/30 shadow-[0_2px_12px_rgba(34,197,94,0.15)] text-green-400 rounded-bl-sm';
     }
-    return 'bg-card/50 border-border shadow-sm';
+    return 'bg-muted/80 text-muted-foreground border-border shadow-sm rounded-bl-sm';
   };
 
   // Unified layout: Metadata above bubble for both mobile and desktop (consistency)
@@ -136,16 +142,26 @@ export const MessageBubble = ({
         {/* Message bubble - content only */}
         <div 
           className={cn(
-            'inline-flex rounded-2xl backdrop-blur-sm border transition-all px-3 py-2',
-            'max-w-[85%] sm:max-w-[75%] md:max-w-[70%]',
-            isOwnMessage 
-              ? 'bg-gradient-to-br from-[#007AFF] to-[#005FCC] text-white border-[#007AFF]/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-md'
-              : getBubbleClasses()
+            'inline-flex rounded-2xl backdrop-blur-sm border transition-all px-3.5 py-2.5',
+            'max-w-[78%]',
+            getBubbleClasses()
           )}
         >
+          {/* Show broadcast/payment pill inside bubble for self messages */}
+          {isOwnMessage && isBroadcast && (
+            <span className="bg-amber-500/15 text-amber-300 px-1.5 py-0.5 rounded-full text-[10px] mr-2 inline-flex items-center flex-shrink-0">
+              📢 Broadcast
+            </span>
+          )}
+          {isOwnMessage && isPayment && (
+            <span className="bg-green-500/15 text-green-300 px-1.5 py-0.5 rounded-full text-[10px] mr-2 inline-flex items-center flex-shrink-0">
+              💳 Payment
+            </span>
+          )}
+          
           <p className={cn(
-            'text-sm leading-snug break-words whitespace-pre-wrap',
-            isOwnMessage ? 'text-white' : getTextColorClass()
+            'text-sm leading-relaxed break-words whitespace-pre-wrap',
+            isOwnMessage ? 'text-primary-foreground' : getTextColorClass()
           )}>
             {text}
           </p>
