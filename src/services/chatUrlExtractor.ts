@@ -1,8 +1,6 @@
 /**
  * Chat URL Extractor Service
- * 
- * Extracts URLs from trip chat messages and normalizes them
- * for display in Media > URLs tab
+ * Normalizes URLs posted in trip chat for the Media > URLs tab.
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -10,207 +8,136 @@ import type { Database } from '@/integrations/supabase/types';
 import { findUrls, normalizeUrl, getDomain } from './urlUtils';
 import MockDataService from './mockDataService';
 
-type TripChatMessageForExtraction = Pick<
+type ChatRow = Pick<
   Database['public']['Tables']['trip_chat_messages']['Row'],
   'id' | 'content' | 'created_at' | 'user_id' | 'author_name' | 'link_preview'
 >;
 
-function extractTitleFromLinkPreview(preview: TripChatMessageForExtraction['link_preview']): string | undefined {
-  if (!preview || typeof preview !== 'object') {
-    return undefined;
+export interface NormalizedUrl {
+  url: string;         // normalized URL
+  rawUrl: string;      // as typed in chat
+  domain: string;      // e.g., youtube.com
+  firstSeenAt: string; // oldest occurrence (ISO)
+  lastSeenAt: string;  // newest occurrence (ISO)
+  messageId: string;   // most recent message id containing this URL
+  postedBy?: { id: string; name?: string; avatar_url?: string };
+  title?: string;      // from link_preview if present
+}
+
+function parsePreview(preview: ChatRow['link_preview']): Record<string, unknown> | undefined {
+  if (!preview) return undefined;
+  if (typeof preview === 'object') return preview as Record<string, unknown>;
+  if (typeof preview === 'string') {
+    try { return JSON.parse(preview) as Record<string, unknown>; } catch { return undefined; }
   }
-
-  const record = preview as Record<string, unknown>;
-  const candidates: Array<'title' | 'og_title' | 'site_name'> = [
-    'title',
-    'og_title',
-    'site_name',
-  ];
-
-  for (const key of candidates) {
-    const value = record[key];
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value;
-    }
-  }
-
   return undefined;
 }
 
-export interface NormalizedUrl {
-  url: string;           // normalized URL
-  rawUrl: string;        // original from message
-  domain: string;        // e.g. youtube.com
-  firstSeenAt: string;   // ISO timestamp from first message
-  lastSeenAt: string;    // ISO timestamp from last message
-  messageId: string;     // ID of the most recent message containing this URL
-  postedBy?: {           // User who posted the most recent message
-    id: string;
-    name?: string;
-    avatar_url?: string;
-  };
-  title?: string;        // Optional: from message metadata or OG data
+function extractTitleFromLinkPreview(preview: ChatRow['link_preview']): string | undefined {
+  const obj = parsePreview(preview);
+  if (!obj) return undefined;
+  const candidates = ['title', 'og_title', 'ogTitle', 'site_name', 'siteName', 'name'] as const;
+  for (const k of candidates) {
+    const v = obj[k as keyof typeof obj];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return undefined;
 }
 
-/**
- * Extract and normalize URLs from all trip chat messages
- * @param tripId - Trip ID to fetch messages for
- * @returns Promise<NormalizedUrl[]> - Deduplicated, normalized URLs
- */
 export async function extractUrlsFromTripChat(tripId: string): Promise<NormalizedUrl[]> {
   try {
-    // Check if using mock data
-    if (MockDataService.isUsingMockData()) {
-      return getMockUrls(tripId);
-    }
+    // Demo / mock mode
+    if (MockDataService.isUsingMockData()) return getMockUrls(tripId);
 
-    // Fetch recent chat messages (limit to last 1000 for performance)
-    const { data: messages, error } = await supabase
+    const { data, error } = await supabase
       .from('trip_chat_messages')
-      .select(`
-        id,
-        content,
-        created_at,
-        user_id,
-        author_name,
-        link_preview
-      `)
+      .select('id, content, created_at, user_id, author_name, link_preview')
       .eq('trip_id', tripId)
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: true }) // oldest → newest for first/last stamps
       .limit(1000);
 
     if (error) {
-      console.error('Error fetching chat messages:', error);
+      console.error('[chatUrlExtractor] Supabase error:', error);
       return [];
     }
+    if (!data?.length) return [];
 
-    if (!messages || messages.length === 0) {
-      return [];
-    }
+    const map = new Map<string, NormalizedUrl>();
 
-    // Extract URLs from each message
-    const urlMap = new Map<string, NormalizedUrl>();
-
-    for (const msg of (messages as TripChatMessageForExtraction[])) {
+    for (const msg of data as ChatRow[]) {
       if (!msg.content) continue;
 
       const urls = findUrls(msg.content);
-      const linkPreviewTitle = extractTitleFromLinkPreview(msg.link_preview);
+      if (!urls.length) continue;
 
-      for (const rawUrl of urls) {
-        const normalized = normalizeUrl(rawUrl);
+      const titleFromPreview = extractTitleFromLinkPreview(msg.link_preview);
+
+      for (const raw of urls) {
+        const normalized = normalizeUrl(raw);
         const domain = getDomain(normalized);
-
-        const existing = urlMap.get(normalized);
+        const existing = map.get(normalized);
 
         if (existing) {
-          // Update with earlier firstSeenAt (messages are DESC ordered)
-          existing.firstSeenAt = msg.created_at;
-          if (!existing.title && linkPreviewTitle) {
-            existing.title = linkPreviewTitle;
+          // update most recent occurrence
+          existing.lastSeenAt = String(msg.created_at);
+          existing.messageId = String(msg.id);
+          // fill title if missing
+          if (!existing.title && titleFromPreview) existing.title = titleFromPreview;
+          // keep existing.postedBy if set, otherwise populate
+          if (!existing.postedBy && (msg.user_id || msg.author_name)) {
+            existing.postedBy = { id: String(msg.user_id ?? msg.author_name), name: msg.author_name ?? undefined };
           }
         } else {
-          // New URL entry
-          urlMap.set(normalized, {
+          map.set(normalized, {
             url: normalized,
-            rawUrl,
+            rawUrl: raw,
             domain,
-            firstSeenAt: msg.created_at,
-            lastSeenAt: msg.created_at,
-            messageId: msg.id,
-            postedBy:
-              msg.user_id || msg.author_name
-                ? {
-                    id: msg.user_id ?? msg.author_name,
-                    name: msg.author_name || undefined,
-                  }
-                : undefined,
-            title: linkPreviewTitle,
+            firstSeenAt: String(msg.created_at),
+            lastSeenAt: String(msg.created_at),
+            messageId: String(msg.id),
+            postedBy: (msg.user_id || msg.author_name)
+              ? { id: String(msg.user_id ?? msg.author_name), name: msg.author_name ?? undefined }
+              : undefined,
+            title: titleFromPreview,
           });
         }
       }
     }
 
-    // Convert to array and sort by most recent
-    const urls = Array.from(urlMap.values());
-    urls.sort((a, b) => new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime());
-
-    return urls;
-  } catch (error) {
-    console.error('Error extracting URLs from chat:', error);
+    // newest first in UI
+    return [...map.values()].sort(
+      (a, b) => new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime()
+    );
+  } catch (e) {
+    console.error('[chatUrlExtractor] Unexpected error:', e);
     return [];
   }
 }
 
-/**
- * Mock URLs for demo/development mode
- */
-function getMockUrls(tripId: string): NormalizedUrl[] {
+/** Mock data for demo mode */
+function getMockUrls(_tripId: string): NormalizedUrl[] {
+  const now = Date.now();
+  const iso = (ms: number) => new Date(ms).toISOString();
   return [
     {
       url: 'https://www.airbnb.com/rooms/12345678',
       rawUrl: 'https://www.airbnb.com/rooms/12345678?guests=4&adults=4',
       domain: 'airbnb.com',
-      firstSeenAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-      lastSeenAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+      firstSeenAt: iso(now - 86_400_000 * 2),
+      lastSeenAt: iso(now - 86_400_000 * 2),
       messageId: 'msg-1',
-      postedBy: {
-        id: 'user-1',
-        name: 'Sarah',
-      },
+      postedBy: { id: 'user-1', name: 'Sarah' },
       title: 'Cozy 3BR Apartment in Downtown',
     },
     {
-      url: 'https://www.youtube.com/watch/abc123',
+      url: 'https://www.youtube.com/watch?v=abc123',
       rawUrl: 'https://www.youtube.com/watch?v=abc123&t=60s',
       domain: 'youtube.com',
-      firstSeenAt: new Date(Date.now() - 86400000).toISOString(),
-      lastSeenAt: new Date(Date.now() - 86400000).toISOString(),
+      firstSeenAt: iso(now - 86_400_000),
+      lastSeenAt: iso(now - 86_400_000),
       messageId: 'msg-2',
-      postedBy: {
-        id: 'user-2',
-        name: 'Mike',
-      },
+      postedBy: { id: 'user-2', name: 'Mike' },
       title: 'Best Places to Visit Guide',
-    },
-    {
-      url: 'https://www.nytimes.com/travel/guide',
-      rawUrl: 'https://www.nytimes.com/travel/guide?utm_source=twitter&utm_medium=social',
-      domain: 'nytimes.com',
-      firstSeenAt: new Date(Date.now() - 3600000).toISOString(),
-      lastSeenAt: new Date(Date.now() - 3600000).toISOString(),
-      messageId: 'msg-3',
-      postedBy: {
-        id: 'user-1',
-        name: 'Sarah',
-      },
-      title: 'Ultimate Travel Guide 2024',
-    },
-    {
-      url: 'https://maps.google.com/place/123',
-      rawUrl: 'https://maps.google.com/place/123',
-      domain: 'maps.google.com',
-      firstSeenAt: new Date(Date.now() - 1800000).toISOString(),
-      lastSeenAt: new Date(Date.now() - 1800000).toISOString(),
-      messageId: 'msg-4',
-      postedBy: {
-        id: 'user-3',
-        name: 'Alex',
-      },
-      title: 'Central Park',
-    },
-    {
-      url: 'https://www.ticketmaster.com/event/abc',
-      rawUrl: 'https://www.ticketmaster.com/event/abc',
-      domain: 'ticketmaster.com',
-      firstSeenAt: new Date(Date.now() - 900000).toISOString(),
-      lastSeenAt: new Date(Date.now() - 900000).toISOString(),
-      messageId: 'msg-5',
-      postedBy: {
-        id: 'user-2',
-        name: 'Mike',
-      },
-      title: 'Concert Tickets - Summer Tour',
     },
   ];
 }
