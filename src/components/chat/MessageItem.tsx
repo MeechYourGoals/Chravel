@@ -8,9 +8,10 @@ interface MessageItemProps {
   message: ChatMessage;
   reactions?: Record<string, { count: number; userReacted: boolean }>;
   onReaction: (messageId: string, reactionType: string) => void;
+  showSenderInfo?: boolean;
 }
 
-export const MessageItem = ({ message, reactions, onReaction }: MessageItemProps) => {
+export const MessageItem = ({ message, reactions, onReaction, showSenderInfo }: MessageItemProps) => {
   const { user } = useAuth();
   const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
   
@@ -30,6 +31,7 @@ export const MessageItem = ({ message, reactions, onReaction }: MessageItemProps
       isOwnMessage={isOwnMessage}
       reactions={reactions}
       onReaction={onReaction}
+      showSenderInfo={showSenderInfo}
       // 🆕 Pass grounding data
       grounding={messageWithGrounding.sources || messageWithGrounding.googleMapsWidget ? {
         sources: messageWithGrounding.sources,

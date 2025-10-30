@@ -15,29 +15,40 @@ export const MessageList = ({
   messages,
   reactions,
   onReaction,
-  emptyStateTitle = "Start the conversation",
-  emptyStateDescription = "Messages here are visible to everyone in the trip"
+  emptyStateTitle = 'Start the conversation',
+  emptyStateDescription = 'Messages here are visible to everyone in the trip',
 }: MessageListProps) => {
   if (messages.length === 0) {
     return (
       <div className="text-center py-8">
         <MessageCircle size={48} className="text-slate-600 mx-auto mb-4" />
-        <h4 className="text-lg font-medium text-slate-400 mb-2">{emptyStateTitle}</h4>
+        <h4 className="text-lg font-medium text-slate-400 mb-2">
+          {emptyStateTitle}
+        </h4>
         <p className="text-slate-500 text-sm">{emptyStateDescription}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      {messages.map((message) => (
-        <MessageItem
-          key={message.id}
-          message={message}
-          reactions={reactions[message.id]}
-          onReaction={onReaction}
-        />
-      ))}
+    <div>
+      {messages.map((message, index) => {
+        const previousMessage = messages[index - 1];
+        const isSameSender =
+          previousMessage &&
+          previousMessage.sender.id === message.sender.id;
+        const showSenderInfo = !isSameSender;
+        return (
+          <div key={message.id} className={isSameSender ? 'mt-1' : 'mt-4'}>
+            <MessageItem
+              message={message}
+              reactions={reactions[message.id]}
+              onReaction={onReaction}
+              showSenderInfo={showSenderInfo}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 };
