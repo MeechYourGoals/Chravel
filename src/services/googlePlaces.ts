@@ -13,6 +13,7 @@
  */
 
 import { Loader } from '@googlemaps/js-api-loader';
+import { getGoogleMapsApiKey } from '@/config/maps';
 
 let mapsApi: typeof google.maps | null = null;
 let loaderPromise: Promise<typeof google.maps> | null = null;
@@ -26,10 +27,7 @@ export async function loadMapsApi(): Promise<typeof google.maps> {
   if (mapsApi) return mapsApi;
   
   if (!loaderPromise) {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) {
-      throw new Error('VITE_GOOGLE_MAPS_API_KEY is not configured');
-    }
+    const apiKey = getGoogleMapsApiKey();
 
     const loader = new Loader({
       apiKey,

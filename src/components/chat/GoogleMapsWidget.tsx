@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { MapPin, ExternalLink } from 'lucide-react';
+import { getGoogleMapsApiKey } from '@/config/maps';
 
 interface GoogleMapsWidgetProps {
   widgetToken: string;
@@ -11,7 +12,7 @@ export const GoogleMapsWidget = ({ widgetToken, height = 300 }: GoogleMapsWidget
 
   useEffect(() => {
     // Validate API key before attempting to load
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    const apiKey = getGoogleMapsApiKey();
     
     if (!apiKey || apiKey === 'placeholder' || apiKey === '') {
       console.error('❌ Google Maps API key not configured');
