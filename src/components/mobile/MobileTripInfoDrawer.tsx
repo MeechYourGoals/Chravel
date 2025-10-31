@@ -9,12 +9,15 @@ import {
 } from '../ui/drawer';
 import { TripHeader } from '../TripHeader';
 import { hapticService } from '../../services/hapticService';
+import { ProTripCategory } from '../../types/proCategories';
 
 interface MobileTripInfoDrawerProps {
   trip: any;
   isOpen: boolean;
   onClose: () => void;
   onDescriptionUpdate: (description: string) => void;
+  category?: ProTripCategory | string;
+  tags?: string[];
 }
 
 export const MobileTripInfoDrawer = ({
@@ -22,6 +25,8 @@ export const MobileTripInfoDrawer = ({
   isOpen,
   onClose,
   onDescriptionUpdate,
+  category,
+  tags,
 }: MobileTripInfoDrawerProps) => {
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -49,6 +54,8 @@ export const MobileTripInfoDrawer = ({
           <TripHeader 
             trip={trip} 
             onDescriptionUpdate={onDescriptionUpdate}
+            category={category as ProTripCategory}
+            tags={tags}
           />
         </div>
       </DrawerContent>

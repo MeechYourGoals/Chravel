@@ -9,6 +9,7 @@ import { TripExportModal } from '../components/trip/TripExportModal';
 import { TripVariantProvider } from '../contexts/TripVariantContext';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { useIsMobile } from '../hooks/use-mobile';
 import { proTripMockData } from '../data/proTripMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { ProTripCategory } from '../types/proCategories';
@@ -17,8 +18,15 @@ import { generateClientPDF } from '../utils/exportPdfClient';
 import { openOrDownloadBlob } from '../utils/download';
 import { toast } from 'sonner';
 import { supabase } from '../integrations/supabase/client';
+import { MobileProTripDetail } from './MobileProTripDetail';
 
 const ProTripDetail = () => {
+  const isMobile = useIsMobile();
+
+  // Early return for mobile
+  if (isMobile) {
+    return <MobileProTripDetail />;
+  }
   const { proTripId } = useParams<{ proTripId?: string }>();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();

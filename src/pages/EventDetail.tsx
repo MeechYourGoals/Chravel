@@ -7,13 +7,21 @@ import { EventDetailContent } from '../components/events/EventDetailContent';
 import { TripDetailModals } from '../components/trip/TripDetailModals';
 import { TripVariantProvider } from '../contexts/TripVariantContext';
 import { useAuth } from '../hooks/useAuth';
+import { useIsMobile } from '../hooks/use-mobile';
 import { eventsMockData } from '../data/eventsMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { TripContext } from '../types/tripContext';
 import { Message } from '../types/messages';
+import { MobileEventDetail } from './MobileEventDetail';
 
 
 const EventDetail = () => {
+  const isMobile = useIsMobile();
+
+  // Early return for mobile
+  if (isMobile) {
+    return <MobileEventDetail />;
+  }
   const { eventId } = useParams<{ eventId?: string }>();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('chat');

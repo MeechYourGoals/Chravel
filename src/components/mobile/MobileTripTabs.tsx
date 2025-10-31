@@ -18,30 +18,40 @@ interface MobileTripTabsProps {
   onTabChange: (tab: string) => void;
   tripId: string;
   basecamp: { name: string; address: string };
+  variant?: 'consumer' | 'pro' | 'event';
 }
 
 export const MobileTripTabs = ({
   activeTab,
   onTabChange,
   tripId,
-  basecamp
+  basecamp,
+  variant = 'consumer'
 }: MobileTripTabsProps) => {
   const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
   const contentRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
 
-  // 🆕 Updated tab order: Chat, Calendar, Concierge, Media, Payments, Places, Polls, Tasks
-  const tabs = [
-    { id: 'chat', label: 'Chat', icon: MessageCircle },
-    { id: 'calendar', label: 'Calendar', icon: Calendar },
-    { id: 'concierge', label: 'Concierge', icon: Sparkles },
-    { id: 'media', label: 'Media', icon: Camera },
-    { id: 'payments', label: 'Payments', icon: CreditCard },
-    { id: 'places', label: 'Places', icon: MapPin },
-    { id: 'polls', label: 'Polls', icon: BarChart3 },
-    { id: 'tasks', label: 'Tasks', icon: ClipboardList }
-  ];
+  // Tab configuration based on variant
+  const getTabsForVariant = () => {
+    const baseTabs = [
+      { id: 'chat', label: 'Chat', icon: MessageCircle },
+      { id: 'calendar', label: 'Calendar', icon: Calendar },
+      { id: 'concierge', label: 'Concierge', icon: Sparkles },
+      { id: 'media', label: 'Media', icon: Camera },
+      { id: 'payments', label: 'Payments', icon: CreditCard },
+      { id: 'places', label: 'Places', icon: MapPin },
+      { id: 'polls', label: 'Polls', icon: BarChart3 },
+      { id: 'tasks', label: 'Tasks', icon: ClipboardList }
+    ];
+
+    // All variants currently use the same tabs
+    // Pro/Event specific tabs can be added here in the future
+    return baseTabs;
+  };
+
+  const tabs = getTabsForVariant();
 
   // Scroll active tab into view and set CSS var for tabs height
   useEffect(() => {
