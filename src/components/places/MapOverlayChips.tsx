@@ -16,11 +16,11 @@ export const MapOverlayChips: React.FC<MapOverlayChipsProps> = ({
   personalBasecampSet
 }) => {
   return (
-    <div className="absolute top-4 right-4 z-20 flex flex-col gap-3">
+    <div className="absolute top-2 right-2 z-20 flex flex-col gap-2">
       {/* Context Chips */}
-      <div className="bg-gray-900/90 backdrop-blur-lg rounded-xl p-2 shadow-lg border border-white/10">
-        <div className="flex flex-col gap-1">
-          <p className="text-xs text-gray-400 font-medium px-2 mb-1">Search Context</p>
+      <div className="bg-gray-900/90 backdrop-blur-lg rounded-lg p-1 shadow-lg border border-white/10">
+        <div className="flex flex-col gap-0.5">
+          <p className="text-[10px] text-gray-400 font-medium px-1 mb-0.5">Search Context</p>
           <SearchContextSwitch
             activeContext={activeContext}
             onContextChange={onContextChange}

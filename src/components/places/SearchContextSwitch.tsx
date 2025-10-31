@@ -19,14 +19,14 @@ export const SearchContextSwitch: React.FC<SearchContextSwitchProps> = ({
   personalDisabled = false
 }) => {
   return (
-    <div className="flex items-center gap-2 bg-gray-800/50 rounded-xl p-1.5 border border-gray-700">
+    <div className="flex flex-col gap-1 bg-gray-800/50 rounded-lg p-0.5 border border-gray-700">
       <button
         onClick={() => onContextChange('trip')}
         disabled={tripDisabled}
         aria-pressed={activeContext === 'trip'}
         className={`
-          flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg 
-          text-sm font-medium transition-all
+          flex items-center justify-center gap-1 px-2 py-1 rounded-md 
+          text-[10px] font-medium transition-all whitespace-nowrap
           ${activeContext === 'trip'
             ? 'bg-sky-500/20 text-sky-200 shadow-sm border border-sky-500/30'
             : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
@@ -34,9 +34,8 @@ export const SearchContextSwitch: React.FC<SearchContextSwitchProps> = ({
           ${tripDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
       >
-        <Home size={16} />
-        <span className="hidden sm:inline">{tripLabel}</span>
-        <span className="sm:hidden">Trip</span>
+        <Home size={10} />
+        <span>Trip Base Camp</span>
       </button>
       
       <button
@@ -44,8 +43,8 @@ export const SearchContextSwitch: React.FC<SearchContextSwitchProps> = ({
         disabled={personalDisabled}
         aria-pressed={activeContext === 'personal'}
         className={`
-          flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg 
-          text-sm font-medium transition-all
+          flex items-center justify-center gap-1 px-2 py-1 rounded-md 
+          text-[10px] font-medium transition-all whitespace-nowrap
           ${activeContext === 'personal'
             ? 'bg-emerald-500/20 text-emerald-200 shadow-sm border border-emerald-500/30'
             : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
@@ -53,9 +52,8 @@ export const SearchContextSwitch: React.FC<SearchContextSwitchProps> = ({
           ${personalDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
       >
-        <MapPin size={16} />
-        <span className="hidden sm:inline">{personalLabel}</span>
-        <span className="sm:hidden">Personal</span>
+        <MapPin size={10} />
+        <span>Personal Base Camp</span>
       </button>
     </div>
   );

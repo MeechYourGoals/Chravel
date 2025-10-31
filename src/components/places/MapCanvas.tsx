@@ -436,9 +436,9 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     return (
       <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
         {/* Search Bar - Centered with proper spacing from sides */}
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-md px-20 md:px-24">
+        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-20 w-auto">
           <form onSubmit={handleSearchSubmit} className="relative">
-            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
+            <Search size={12} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
             <input
               type="text"
               value={searchQuery}
@@ -450,39 +450,39 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
                 // Delay to allow click on suggestion
                 setTimeout(() => setShowSuggestions(false), 200);
               }}
-              placeholder="Search places on map..."
+              placeholder="Search locations on map..."
               disabled={isSearching || isMapLoading}
-              className="w-full bg-white/95 backdrop-blur-sm border border-gray-300 rounded-xl pl-10 pr-10 py-2.5 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-lg text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-48 bg-white/95 backdrop-blur-sm border border-gray-300 rounded-lg pl-7 pr-7 py-1.5 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-lg text-xs disabled:opacity-70 disabled:cursor-not-allowed"
             />
             {/* Clear/Loading Button */}
             {isSearching ? (
-              <Loader2 size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-500 animate-spin z-10" />
+              <Loader2 size={12} className="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-500 animate-spin z-10" />
             ) : searchQuery && (
               <button
                 type="button"
                 onClick={handleClearSearch}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors z-10"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors z-10"
                 aria-label="Clear search"
               >
-                <X size={16} />
+                <X size={12} />
               </button>
             )}
 
             {/* Autocomplete Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-60 overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 max-h-48 overflow-y-auto">
                 {suggestions.map((prediction) => (
                   <button
                     key={prediction.place_id}
                     type="button"
                     onClick={() => handleSuggestionClick(prediction)}
-                    className="w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0 first:rounded-t-xl last:rounded-b-xl"
+                    className="w-full text-left px-2 py-1.5 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0 first:rounded-t-lg last:rounded-b-lg"
                   >
-                    <div className="text-sm text-gray-900 font-medium">
+                    <div className="text-xs text-gray-900 font-medium">
                       {prediction.structured_formatting?.main_text || prediction.description}
                     </div>
                     {prediction.structured_formatting?.secondary_text && (
-                      <div className="text-xs text-gray-500 mt-0.5">
+                      <div className="text-[10px] text-gray-500 mt-0.5">
                         {prediction.structured_formatting.secondary_text}
                       </div>
                     )}
@@ -501,7 +501,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
           {/* Context Info Chip */}
           {searchOrigin && (
-            <div className="mt-2 bg-blue-50/95 backdrop-blur-sm border border-blue-200 rounded-lg px-3 py-1.5 text-xs text-blue-700 text-center">
+            <div className="mt-1 bg-blue-50/95 backdrop-blur-sm border border-blue-200 rounded-md px-2 py-1 text-[10px] text-blue-700 text-center">
               Searches biased to your <span className="font-semibold">{activeContext === 'trip' ? 'Trip' : 'Personal'} Base Camp</span>
             </div>
           )}
