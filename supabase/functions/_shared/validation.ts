@@ -67,8 +67,8 @@ export const CreateTripSchema = z.object({
   name: z.string().min(1, "Trip name is required").max(200, "Trip name too long"),
   description: z.string().max(2000).optional(),
   destination: z.string().max(200).optional(),
-  start_date: z.string().date().optional(),
-  end_date: z.string().date().optional(),
+  start_date: z.string().datetime({ message: "Invalid date format. Use ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)" }).optional(),
+  end_date: z.string().datetime({ message: "Invalid date format. Use ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)" }).optional(),
   trip_type: z.enum(['consumer', 'pro', 'event']).optional(),
   cover_image_url: z.string().url().max(500).optional()
 });
