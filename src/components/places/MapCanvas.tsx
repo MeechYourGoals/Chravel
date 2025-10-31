@@ -5,12 +5,11 @@ import { Search, X, Loader2 } from 'lucide-react';
 import { BasecampLocation } from '@/types/basecamp';
 import { PlaceInfoOverlay, PlaceInfo } from './PlaceInfoOverlay';
 import {
-  loadMapsApi,
+  loadMaps,
   createServices,
   autocomplete,
   resolveQuery,
   centerMapOnPlace,
-  createSessionToken,
   SearchOrigin,
 } from '@/services/googlePlaces';
 import { GoogleMapsEmbed } from '@/components/GoogleMapsEmbed';
@@ -48,7 +47,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       tripBasecamp,
       personalBasecamp,
       markers = [],
-      onMapReady
+      onMapReady,
     },
     ref
   ) => {
@@ -184,8 +183,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           setServices(svc);
 
           // Create initial session token
-          const token = await createSessionToken();
-          setSessionToken(token);
+          setSessionToken(new gmaps.places.AutocompleteSessionToken());
 
           setIsMapLoading(false);
           onMapReady?.();
@@ -374,8 +372,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         setSelectedPlace(placeInfo);
 
         // Reset session token after successful search
-        const newToken = await createSessionToken();
-        setSessionToken(newToken);
+        const gmaps = await loadMaps();
+        setSessionToken(new gmaps.places.AutocompleteSessionToken());
       } catch (error) {
         console.error('[MapCanvas] Search error:', error);
         setSearchError('Search failed. Please try again.');
@@ -468,7 +466,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
               </button>
             )}
 
-            {/* Autocomplete Suggestions */}
+            {/* Autocomplete Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-60 overflow-y-auto">
                 {suggestions.map((prediction) => (
