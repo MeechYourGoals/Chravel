@@ -28,8 +28,8 @@ interface Feature {
 const features: Feature[] = [
   {
     id: 'concierge',
-    title: 'AI Concierge',
-    description: 'Chat with AI for personalized recommendations based on your location and preferences',
+    title: 'AI Concierge and Research',
+    description: 'Chat with AI for personalized recommendations based on your location, preferences, and trip context',
     icon: <Sparkles size={24} />,
     isNew: true
   },
@@ -80,16 +80,36 @@ const features: Feature[] = [
 
 const beforeAfterScenarios = [
   {
-    title: "Organizing a multi-family Disney World trip for 18 guests",
-    before: "10+ group texts, lost itineraries, last-minute changes, confusion over tickets and park reservations",
-    after: "One shared digital trip board, synchronized schedules, automated reminder notifications, group budgeting, and everyone on the same page from airport to park parade",
-    savings: "75% less pre-trip stress"
+    emoji: "🎢",
+    title: "Family Trip (Disney)",
+    subtitle: "18 guests",
+    before: "10 different group chats, 4 email threads, and lost PDFs containing tickets and reservations.",
+    after: "One shared space for tickets, calendars, and park reservations — no confusion, just memories.",
+    savings: "75% less stress"
   },
   {
-    title: "Managing a 33-person music tour across 30 cities",
-    before: "Email chains, Excel sheets, manual check-ins, budget overruns",
-    after: "Automated updates, role-based access, expense tracking, seamless logistics",
-    savings: "$30K saved per tour"
+    emoji: "🎤",
+    title: "Music Tour (Emerging Artist)",
+    subtitle: "14-person crew",
+    before: "Managing a 14-person touring crew across 7 cities. Endless text threads, spreadsheets, and miscommunication.",
+    after: "All tour dates, crew chats, payments, and logistics in one app. Everyone in sync.",
+    savings: "$30K saved"
+  },
+  {
+    emoji: "⚽",
+    title: "Youth Soccer Season",
+    subtitle: "Parents coordinating",
+    before: "Parents texting last-minute about who's bringing orange slices, who's driving, and what field we're at.",
+    after: "Shared season schedule, task assignments, and group photo uploads in one thread — automatically synced.",
+    savings: "10 hrs/month saved"
+  },
+  {
+    emoji: "🏈",
+    title: "College Football Program",
+    subtitle: "80+ people",
+    before: "Coaches juggling 80+ players, staff, trainers, and hotel spreadsheets with constantly shifting plans and unclear responsibilities.",
+    after: "Role-based access, team calendars, and instant updates across staff and players — all organized.",
+    savings: "15 hrs/week saved"
   }
 ];
 
@@ -106,30 +126,36 @@ export const FeatureShowcase = () => {
       {/* Before/After Comparison */}
       <div className="space-y-6">
         <div className="text-center space-y-4">
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">
             From chaos to coordination
           </h2>
-          <p className="text-sm sm:text-base md:text-lg text-foreground break-words">
-            See how Chravel transforms trip planning experiences
+          <p className="text-xs sm:text-sm md:text-base text-foreground break-words">
+            See how Chravel transforms complex group planning into seamless coordination.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {beforeAfterScenarios.map((scenario, index) => (
             <Card key={index} className="bg-card/80 backdrop-blur-sm border border-border/50">
-              <CardHeader className="p-4 md:p-6">
-                <CardTitle className="text-xl sm:text-2xl md:text-3xl break-words">{scenario.title}</CardTitle>
+              <CardHeader className="p-3 md:p-4">
+                <CardTitle className="text-base sm:text-lg md:text-xl break-words flex items-center gap-2">
+                  <span className="text-2xl">{scenario.emoji}</span>
+                  <div>
+                    <div>{scenario.title}</div>
+                    <div className="text-xs text-muted-foreground font-normal">{scenario.subtitle}</div>
+                  </div>
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 md:space-y-4 p-4 md:p-6">
-                <div className="space-y-2">
-                  <div className="text-sm sm:text-base md:text-lg font-medium text-red-400">Before Chravel:</div>
-                  <p className="text-xs sm:text-sm md:text-base text-foreground bg-red-500/10 p-2.5 md:p-3 rounded-lg border-l-4 border-red-500 break-words">
+              <CardContent className="space-y-2 md:space-y-3 p-3 md:p-4">
+                <div className="space-y-1">
+                  <div className="text-xs sm:text-sm font-medium text-red-400">Before Chravel:</div>
+                  <p className="text-[11px] sm:text-xs md:text-sm text-foreground bg-red-500/10 p-2 md:p-2.5 rounded-lg border-l-4 border-red-500 break-words">
                     {scenario.before}
                   </p>
                 </div>
-                <div className="space-y-2">
-                  <div className="text-sm sm:text-base md:text-lg font-medium text-green-400">After Chravel:</div>
-                  <p className="text-xs sm:text-sm md:text-base text-foreground bg-green-500/10 p-2.5 md:p-3 rounded-lg border-l-4 border-green-500 break-words">
+                <div className="space-y-1">
+                  <div className="text-xs sm:text-sm font-medium text-green-400">After Chravel:</div>
+                  <p className="text-[11px] sm:text-xs md:text-sm text-foreground bg-green-500/10 p-2 md:p-2.5 rounded-lg border-l-4 border-green-500 break-words">
                     {scenario.after}
                   </p>
                 </div>
@@ -145,10 +171,10 @@ export const FeatureShowcase = () => {
       {/* Feature Grid */}
       <div className="space-y-6">
         <div className="text-center space-y-4">
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">
             Powerful features for every type of trip
           </h2>
-          <p className="text-sm sm:text-base md:text-lg text-foreground break-words">
+          <p className="text-xs sm:text-sm md:text-base text-foreground break-words">
             Everything you need for seamless trip coordination
           </p>
         </div>
@@ -160,7 +186,7 @@ export const FeatureShowcase = () => {
               className="bg-card/80 backdrop-blur-sm border border-border/50 hover:border-primary/50 transition-all cursor-pointer hover:scale-105"
               onClick={() => handleFeatureClick(feature.id)}
             >
-              <CardContent className="p-4 md:p-6">
+              <CardContent className="p-3 md:p-4">
                 <div className="flex items-start justify-between mb-3 md:mb-4">
                   <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
                     {React.cloneElement(feature.icon as React.ReactElement, { 
@@ -181,8 +207,8 @@ export const FeatureShowcase = () => {
                   </div>
                 </div>
                 
-                <h3 className="font-semibold text-base sm:text-lg md:text-xl text-foreground mb-2 break-words">{feature.title}</h3>
-                <p className="text-xs sm:text-sm md:text-base text-foreground mb-3 md:mb-4 leading-relaxed break-words">
+                <h3 className="font-semibold text-sm sm:text-base md:text-lg text-foreground mb-2 break-words">{feature.title}</h3>
+                <p className="text-[11px] sm:text-xs md:text-sm text-foreground mb-3 md:mb-4 leading-relaxed break-words">
                   {feature.description}
                 </p>
                 

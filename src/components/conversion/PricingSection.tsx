@@ -327,16 +327,12 @@ const faqItems = [
     answer: "Yes! Upgrade, downgrade, or cancel anytime. No contracts, no hassles."
   },
   {
-    question: "What's an AI query?",
-    answer: "Any question you ask the AI Trip Assistant (\"Find restaurants near our hotel\", \"Plan our day in Rome\", etc.)"
-  },
-  {
     question: "Is my data safe?",
     answer: "Bank-level encryption. Your trips are private unless you choose to share them."
   },
   {
     question: "Do all trip members need to pay?",
-    answer: "Nope! Only one person needs Explorer/Pro to unlock premium features for the whole trip."
+    answer: "Trips are free with limited features. Users can sign up for Explore Pro to unlock premium features for the whole trip. For Chravel Pro, only the admin pays and can assign a set number of seats to team members — ideal for organizations and tour management."
   }
 ];
 
@@ -686,8 +682,8 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
 
       {/* FAQ Section */}
       <div className="max-w-3xl mx-auto">
-        <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground text-center mb-6 md:mb-8">Frequently Asked Questions</h3>
-        <div className="space-y-3 md:space-y-4">
+        <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground text-center mb-6 md:mb-8">Frequently Asked Questions</h3>
+        <div className="space-y-2 md:space-y-3">
           {faqItems.map((item, index) => (
             <Collapsible key={index} open={openFaq === index} onOpenChange={() => setOpenFaq(openFaq === index ? null : index)}>
               <CollapsibleTrigger className="w-full">

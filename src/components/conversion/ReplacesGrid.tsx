@@ -22,16 +22,14 @@ export const ReplacesGrid = () => {
     <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
       {/* Header */}
       <div className="text-center mb-6 sm:mb-8 md:mb-12">
-        <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-3 md:mb-4 break-words">
+        <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-foreground mb-3 md:mb-4 break-words">
           Chravel — The Operating System for Group Travel
         </h2>
-        <p className="text-sm sm:text-base md:text-lg lg:text-xl text-foreground max-w-3xl mx-auto leading-relaxed break-words">
-          Chravel consolidates the core functions of your most-used apps when traveling — chat, calendars, polls, payments, and files and more— into one shared planning space built for your group.
-          It's how travelers keep every plan, person, and payment perfectly in sync.
-          No app switching. No chaos. Just Chravel.
+        <p className="text-xs sm:text-sm md:text-base lg:text-lg text-foreground max-w-3xl mx-auto leading-relaxed break-words">
+          Chravel brings your most-used travel tools — chat, calendar, polls, payments, and files — into one shared planning space. It keeps every plan, person, and payment in sync. No app switching. No chaos. Just Chravel.
         </p>
-        <p className="text-white/80 font-medium text-sm md:text-base mt-4 md:mt-6 text-center max-w-3xl mx-auto">
-          Chravel simplifies the workflows travelers juggle across 30+ apps.
+        <p className="text-white/80 font-medium text-xs sm:text-sm md:text-base mt-4 md:mt-6 text-center max-w-3xl mx-auto">
+          Travel 365 for When You're Out of Office 365: Chravel simplifies the workflows typically juggled across 15+ apps.
         </p>
       </div>
 
@@ -69,7 +67,7 @@ const CategoryRow: React.FC<CategoryRowProps> = ({ category, isExpanded, onToggl
     <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-3 sm:p-4 transition-all duration-200">
       {/* Category Header */}
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-foreground break-words">
+        <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-foreground break-words">
           {category.title}
         </h3>
         
