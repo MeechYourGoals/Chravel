@@ -149,24 +149,19 @@ const TripDetail = () => {
         );
       } else {
         // Call edge function for real Supabase trips
-        const response = await fetch(
-          `https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/export-trip`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
+        const { data, error } = await supabase.functions.invoke('export-trip', {
+            body: {
               tripId,
               sections,
-            }),
+            },
+            responseType: 'blob'
           }
         );
 
-        if (!response.ok) {
+        if (error) {
           // If edge function fails, fallback to client export
-          console.warn(`Edge function failed (${response.status}), using client fallback`);
-          toast.info('Using demo export mode...');
+          console.error(`Edge function failed: ${error.message}, using client fallback`);
+          toast.error(`Live export failed, generating a limited offline PDF.`);
 
           // Fetch mock data for fallback
           const mockPayments = await demoModeService.getMockPayments(tripId || '1');
@@ -189,7 +184,7 @@ const TripDetail = () => {
             sections
           );
         } else {
-          blob = await response.blob();
+          blob = data;
         }
       }
 

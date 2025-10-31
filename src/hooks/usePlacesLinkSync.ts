@@ -56,7 +56,7 @@ export const usePlacesLinkSync = () => {
         trip_id: tripId,
         url: url,
         og_title: place.name,
-        og_description: `Saved from Places${place.address ? `: ${place.address}` : ''} | place_id:${place.id}`,
+        og_description: `Saved from Places${place.address ? `: ${place.address}` : ''} | place_id:${place.id}${place.coordinates ? ` | coords:${place.coordinates.lat},${place.coordinates.lng}` : ''}${place.category ? ` | category:${place.category}` : ''}`,
         domain: new URL(url).hostname,
         og_image_url: null,
         favicon_url: null

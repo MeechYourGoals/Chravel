@@ -9,6 +9,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -18,9 +20,8 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 
-    if (!openaiApiKey) {
+    if (!LOVABLE_API_KEY) {
       return createErrorResponse('Service configuration error', 500);
     }
 
@@ -69,51 +70,19 @@ serve(async (req) => {
       );
     }
 
-    // Generate embedding for the query
-    const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'text-embedding-ada-002',
-        input: query,
-      }),
+    // Fetch trip context directly from database for better results
+    const { data: tripContext } = await supabase.rpc('get_trip_context', {
+      p_trip_id: tripId
     });
 
-    if (!embeddingResponse.ok) {
-      throw new Error('Failed to generate embedding');
-    }
+    // Build context string from trip data
+    const contextString = buildContextString(tripContext);
 
-    const embeddingData = await embeddingResponse.json();
-    const queryEmbedding = embeddingData.data[0].embedding;
-
-    // Search for relevant context
-    const { data: searchResults, error: searchError } = await supabase.rpc('match_kb_chunks', {
-      query_embedding: queryEmbedding,
-      match_count: 8,
-      filter_trip: tripId
-    });
-
-    if (searchError) {
-      console.error('Search error:', searchError);
-      return new Response(
-        JSON.stringify({ error: 'Search failed' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Build context from search results
-    const context = (searchResults || []).map((result: any, index: number) => 
-      `[${index + 1}] ${result.source.toUpperCase()}: ${result.content}`
-    ).join('\n\n');
-
-    // Prepare system prompt
+    // Prepare system prompt with trip context
     const systemPrompt = `You are Chravel's AI Concierge for this trip. You have access to trip-specific information including messages, polls, broadcasts, files, calendar events, links, and locations.
 
 Context from this trip:
-${context}
+${contextString}
 
 Instructions:
 - Answer based only on the provided context from this specific trip
@@ -123,34 +92,34 @@ Instructions:
 - Suggest practical next steps when appropriate
 - Use a friendly, travel-focused tone`;
 
-    // Prepare messages for OpenAI
+    // Prepare messages for Gemini
     const messages = [
       { role: 'system', content: systemPrompt },
       ...chatHistory.slice(-6), // Include last 6 messages for context
       { role: 'user', content: query }
     ];
 
-    // Get response from OpenAI
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Get response from Google Gemini through Lovable Gateway
+    const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'google/gemini-2.5-flash',
         messages: messages,
         max_tokens: 1000,
         temperature: 0.7,
       }),
     });
 
-    if (!openaiResponse.ok) {
-      throw new Error('Failed to get response from OpenAI');
+    if (!geminiResponse.ok) {
+      throw new Error('Failed to get response from Gemini');
     }
 
-    const openaiData = await openaiResponse.json();
-    const answer = openaiData.choices[0].message.content;
+    const geminiData = await geminiResponse.json();
+    const answer = geminiData.choices[0].message.content;
 
     // Log the query
     await supabase.from('ai_queries').insert({
@@ -158,22 +127,17 @@ Instructions:
       user_id: user.id,
       query_text: query,
       response_text: answer,
-      source_count: searchResults?.length || 0
+      source_count: 0 // No embeddings-based search anymore
     });
 
-    // Format citations
-    const citations = (searchResults || []).slice(0, 5).map((result: any) => ({
-      doc_id: result.doc_id,
-      source: result.source,
-      source_id: result.id,
-      snippet: result.content.slice(0, 150) + (result.content.length > 150 ? '...' : '')
-    }));
+    // Generate simple citations from context
+    const citations = generateCitations(tripContext);
 
     return new Response(
       JSON.stringify({ 
         answer,
         citations,
-        contextUsed: searchResults?.length || 0
+        contextUsed: citations.length
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -186,3 +150,59 @@ Instructions:
     );
   }
 });
+
+function buildContextString(tripContext: any): string {
+  if (!tripContext) return 'No context available';
+  
+  let context = '';
+  
+  // Add messages
+  if (tripContext.messages?.length) {
+    context += '\n\nRECENT MESSAGES:\n';
+    tripContext.messages.slice(-10).forEach((msg: any) => {
+      context += `- ${msg.author}: ${msg.content}\n`;
+    });
+  }
+  
+  // Add calendar events
+  if (tripContext.calendar?.length) {
+    context += '\n\nUPCOMING EVENTS:\n';
+    tripContext.calendar.slice(0, 5).forEach((event: any) => {
+      context += `- ${event.title} on ${event.date}\n`;
+    });
+  }
+  
+  // Add places
+  if (tripContext.places?.length) {
+    context += '\n\nSAVED PLACES:\n';
+    tripContext.places.slice(0, 5).forEach((place: any) => {
+      context += `- ${place.name} at ${place.address}\n`;
+    });
+  }
+  
+  return context || 'No specific context available';
+}
+
+function generateCitations(tripContext: any): any[] {
+  const citations = [];
+  
+  if (tripContext?.messages?.length) {
+    citations.push({
+      doc_id: 'messages',
+      source: 'MESSAGE',
+      source_id: 'recent_messages',
+      snippet: `${tripContext.messages.length} recent messages`
+    });
+  }
+  
+  if (tripContext?.calendar?.length) {
+    citations.push({
+      doc_id: 'calendar',
+      source: 'CALENDAR',
+      source_id: 'events',
+      snippet: `${tripContext.calendar.length} calendar events`
+    });
+  }
+  
+  return citations.slice(0, 5);
+}

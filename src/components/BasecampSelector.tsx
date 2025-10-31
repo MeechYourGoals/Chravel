@@ -14,7 +14,7 @@ interface BasecampSelectorProps {
 export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBasecamp }: BasecampSelectorProps) => {
   const [address, setAddress] = useState(currentBasecamp?.address || '');
   const [name, setName] = useState(currentBasecamp?.name || '');
-  const [type, setType] = useState<'hotel' | 'airbnb' | 'other'>(currentBasecamp?.type || 'hotel');
+  const [type, setType] = useState<'hotel' | 'short-term' | 'other'>(currentBasecamp?.type || 'hotel');
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -91,14 +91,10 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
             }
           }
           
-          // Strategy 3: OSM fallback (final resort)
+          // No more results available
           if (!foundSuggestions) {
-            console.log('Text Search failed, trying OSM fallback...');
-            const osmSuggestions = await GoogleMapsService.fallbackSuggestNominatim(value);
-            setSuggestions(osmSuggestions);
-            if (osmSuggestions.length > 0) {
-              console.log(`✓ Found ${osmSuggestions.length} results via OSM`);
-            }
+            console.log('No autocomplete suggestions found');
+            setSuggestions([]);
           }
           
         } catch (error) {
@@ -279,21 +275,9 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
         }
       }
       
-      // Cascade 5: Try OSM Nominatim geocoding (final fallback)
+      // All geocoding attempts exhausted
       if (!coordinates) {
-        console.log('Attempting OSM Nominatim fallback...');
-        try {
-          const osmResult = await GoogleMapsService.fallbackGeocodeNominatim(address);
-          if (osmResult) {
-            coordinates = { lat: osmResult.lat, lng: osmResult.lng };
-            if (!inferredName) {
-              inferredName = osmResult.displayName.split(',')[0];
-            }
-            console.log('✓ Got coords from OSM Nominatim');
-          }
-        } catch (error) {
-          console.error('OSM Nominatim failed:', error);
-        }
+        console.log('All geocoding methods failed - coordinates will remain null');
       }
       
       // Allow setting basecamp even without coordinates (Google Maps will handle the query)
@@ -459,11 +443,11 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
             </label>
             <select
               value={type}
-              onChange={(e) => setType(e.target.value as 'hotel' | 'airbnb' | 'other')}
+              onChange={(e) => setType(e.target.value as 'hotel' | 'short-term' | 'other')}
               className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
             >
               <option value="hotel">Hotel</option>
-              <option value="airbnb">Airbnb / Vacation Rental</option>
+              <option value="short-term">Short-term rental</option>
               <option value="other">Other</option>
             </select>
           </div>

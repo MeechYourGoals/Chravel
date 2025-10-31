@@ -113,12 +113,14 @@ export const CalendarEventModal = ({
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full justify-start text-left font-normal text-sm px-2",
                       !formData.date && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.date ? format(formData.date, "PPP") : "Pick a date"}
+                    <CalendarIcon className="mr-1 h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">
+                      {formData.date ? format(formData.date, "MMM d, yyyy") : "Pick a date"}
+                    </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">

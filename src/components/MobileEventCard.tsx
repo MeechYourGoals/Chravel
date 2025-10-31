@@ -6,6 +6,8 @@ import { useIsMobile } from '../hooks/use-mobile';
 import { EventData } from '../types/events';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { calculatePeopleCount, calculateDaysCount, calculateEventPlacesCount } from '../utils/tripStatsUtils';
+import { getInitials } from '../utils/avatarUtils';
+import { TravelerTooltip } from './ui/traveler-tooltip';
 
 interface MobileEventCardProps {
   event: EventData;
@@ -126,17 +128,14 @@ export const MobileEventCard = ({ event }: MobileEventCardProps) => {
           <div className="flex items-center">
             <div className="flex -space-x-2">
               {event.participants.slice(0, 3).map((participant, index) => (
-                <div
-                  key={participant.id}
-                  className="relative"
-                  style={{ zIndex: event.participants.length - index }}
-                >
-                  <img
-                    src={participant.avatar}
-                    alt={participant.name}
-                    className="w-8 h-8 rounded-full border-2 border-gray-900"
-                  />
-                </div>
+                <TravelerTooltip key={participant.id} name={`${participant.name} - ${participant.role}`}>
+                  <div
+                    className="relative w-8 h-8 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center text-xs font-semibold text-black border-2 border-gray-900"
+                    style={{ zIndex: event.participants.length - index }}
+                  >
+                    {getInitials(participant.name)}
+                  </div>
+                </TravelerTooltip>
               ))}
             </div>
             {event.participants.length > 3 && (

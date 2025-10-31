@@ -8,20 +8,16 @@ interface MessageItemProps {
   message: ChatMessage;
   reactions?: Record<string, { count: number; userReacted: boolean }>;
   onReaction: (messageId: string, reactionType: string) => void;
+  showSenderInfo?: boolean;
 }
 
-export const MessageItem = ({ message, reactions, onReaction }: MessageItemProps) => {
+export const MessageItem = ({ message, reactions, onReaction, showSenderInfo }: MessageItemProps) => {
   const { user } = useAuth();
   const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
-  const isOwnMessage = user?.id === message.sender.id;
   
-  // Debug logging for alignment verification
-  console.log('MessageItem:', {
-    currentUserId: user?.id,
-    messageSenderId: message.sender.id,
-    isOwnMessage,
-    messageText: message.text.substring(0, 30)
-  });
+  // Handle demo mode: if no user, use 'demo-user' as fallback
+  const effectiveUserId = user?.id || 'demo-user';
+  const isOwnMessage = effectiveUserId === message.sender.id;
   
   return (
     <MessageBubble
@@ -35,6 +31,7 @@ export const MessageItem = ({ message, reactions, onReaction }: MessageItemProps
       isOwnMessage={isOwnMessage}
       reactions={reactions}
       onReaction={onReaction}
+      showSenderInfo={showSenderInfo}
       // 🆕 Pass grounding data
       grounding={messageWithGrounding.sources || messageWithGrounding.googleMapsWidget ? {
         sources: messageWithGrounding.sources,

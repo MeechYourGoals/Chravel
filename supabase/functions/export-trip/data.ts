@@ -195,7 +195,7 @@ async function fetchPayments(supabase: SupabaseClient, tripId: string) {
         payer:profiles!user_id(display_name)
       )
     `)
-    .eq('payment.trip_id', tripId);
+    .eq('trip_payment_messages.trip_id', tripId);
 
   // Group by payment_id
   const paymentMap = new Map<string, PaymentItem>();
