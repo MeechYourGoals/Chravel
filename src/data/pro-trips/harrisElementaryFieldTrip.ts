@@ -1,4 +1,5 @@
 import { ProTripData } from '../../types/pro';
+import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const harrisElementaryFieldTrip: ProTripData = {
   id: 'harris-elementary-dc-field-trip-2025',
@@ -10,10 +11,10 @@ export const harrisElementaryFieldTrip: ProTripData = {
   proTripCategory: 'School Trip',
   tags: ['Education', 'Field Trip', 'Middle School'],
   participants: [
-    { id: 16, name: 'Ms. Jennifer Wilson', avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face', role: 'Teachers' },
-    { id: 17, name: 'Mr. David Chen', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face', role: 'Teachers' },
-    { id: 18, name: 'Student Group A', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face', role: 'Students' },
-    { id: 19, name: 'Student Group B', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face', role: 'Students' }
+    { id: 16, name: 'Ms. Jennifer Wilson', avatar: getMockAvatar('Ms. Jennifer Wilson'), role: 'Teachers' },
+    { id: 17, name: 'Mr. David Chen', avatar: getMockAvatar('Mr. David Chen'), role: 'Teachers' },
+    { id: 18, name: 'Student Group A', avatar: getMockAvatar('Student Group A'), role: 'Students' },
+    { id: 19, name: 'Student Group B', avatar: getMockAvatar('Student Group B'), role: 'Students' }
   ],
   budget: {
     total: 15000,
@@ -41,7 +42,7 @@ export const harrisElementaryFieldTrip: ProTripData = {
       id: '16',
       name: 'Ms. Jennifer Wilson',
       email: 'jwilson@harriselementary.edu',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Ms. Jennifer Wilson'),
       role: 'Teachers',
       credentialLevel: 'AllAccess',
       permissions: ['student-supervision', 'emergency-contact'],
@@ -52,7 +53,7 @@ export const harrisElementaryFieldTrip: ProTripData = {
       id: '17',
       name: 'Mr. David Chen',
       email: 'dchen@harriselementary.edu',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Mr. David Chen'),
       role: 'Teachers',
       credentialLevel: 'AllAccess',
       permissions: ['student-supervision', 'emergency-contact'],
@@ -63,7 +64,7 @@ export const harrisElementaryFieldTrip: ProTripData = {
       id: '18',
       name: 'Student Group A (13 students)',
       email: 'students@harriselementary.edu',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Student Group A (13 students)'),
       role: 'Students',
       credentialLevel: 'Guest',
       permissions: ['supervised-access'],
@@ -74,7 +75,7 @@ export const harrisElementaryFieldTrip: ProTripData = {
       id: '19',
       name: 'Student Group B (12 students)',
       email: 'students@harriselementary.edu',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Student Group B (12 students)'),
       role: 'Students',
       credentialLevel: 'Guest',
       permissions: ['supervised-access'],
