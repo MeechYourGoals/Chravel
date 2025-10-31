@@ -255,7 +255,8 @@ export async function generateClientPDF(
         doc.setFontSize(9);
         doc.setFont('NotoSans', 'italic');
         doc.setTextColor(100);
-        doc.text(`Total votes: ${poll.total_votes || 0}`, margin + 20, yPos);
+        const totalVotes = Math.max(0, Number(poll.total_votes || 0));
+        doc.text(`Total votes: ${totalVotes}`, margin + 20, yPos);
         yPos += 20;
       });
     } else {
