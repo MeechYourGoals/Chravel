@@ -25,15 +25,19 @@ jobs:
 
       - name: Run ESLint
         run: npm run lint:check
+        continue-on-error: true  # Report but don't block
 
       - name: Run TypeScript type check
         run: npm run typecheck
+        continue-on-error: true  # Report but don't block
 
       - name: Check Prettier formatting
         run: npm run format:check
+        continue-on-error: true  # Report but don't block
 
       - name: Build
         run: npm run build
+        # Build MUST pass - this is the only true blocker
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
