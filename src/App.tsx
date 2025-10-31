@@ -15,6 +15,7 @@ import { useDemoModeStore } from "./store/demoModeStore";
 import { errorTracking } from "./services/errorTracking";
 import { supabase } from "./integrations/supabase/client";
 import { AppInitializer } from "./components/app/AppInitializer";
+import BuildBadge from "./components/BuildBadge";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -36,6 +37,7 @@ const MobileOrganizationPage = lazy(() => import("./pages/MobileOrganizationPage
 const AcceptOrganizationInvite = lazy(() => import("./pages/AcceptOrganizationInvite").then(module => ({ default: module.AcceptOrganizationInvite })));
 const ChravelRecsPage = lazy(() => import("./pages/ChravelRecsPage").then(module => ({ default: module.ChravelRecsPage })));
 const AdvertiserDashboard = lazy(() => import("./pages/AdvertiserDashboard"));
+const Healthz = lazy(() => import("./pages/Healthz"));
 
 // Note: Large components are already optimized with code splitting
 
@@ -77,6 +79,7 @@ const App = () => {
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
+                <BuildBadge />
                 <BrowserRouter>
                 <MobileAppLayout>
                   <Routes>
@@ -123,6 +126,11 @@ const App = () => {
                     <Route path="/advertiser" element={
                       <LazyRoute>
                         <AdvertiserDashboard />
+                      </LazyRoute>
+                    } />
+                    <Route path="/healthz" element={
+                      <LazyRoute>
+                        <Healthz />
                       </LazyRoute>
                     } />
                     <Route path="/profile" element={

@@ -17,6 +17,7 @@ import { MobileTripDetail } from './MobileTripDetail';
 import { ExportSection } from '../types/tripExport';
 import { supabase } from '../integrations/supabase/client';
 import { generateClientPDF } from '../utils/exportPdfClient';
+import { openOrDownloadBlob } from '../utils/download';
 import { toast } from 'sonner';
 import { demoModeService } from '../services/demoModeService';
 
@@ -121,6 +122,26 @@ const TripDetail = () => {
     const isMockTrip = tripId && /^\d+$/.test(tripId);
 
     try {
+      // Pre-open a window on iOS Safari to avoid popup blocking for blob URLs
+      let preOpenedWindow: Window | null = null;
+      try {
+        const ua = navigator.userAgent || '';
+        const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
+        if (isIOS && isSafari) {
+          preOpenedWindow = window.open('', '_blank');
+          if (preOpenedWindow) {
+            preOpenedWindow.document.write(
+              '<html><head><title>Generating PDF…</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>' +
+              '<body style="font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial; padding: 16px; color: #e5e7eb; background: #111827">' +
+              '<div>Generating PDF…</div></body></html>'
+            );
+          }
+        }
+      } catch {
+        // Non-fatal; continue without pre-open
+      }
+
       let blob: Blob;
 
       if (isMockTrip) {
@@ -149,24 +170,19 @@ const TripDetail = () => {
         );
       } else {
         // Call edge function for real Supabase trips
-        const response = await fetch(
-          `https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/export-trip`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
+        const { data, error } = await supabase.functions.invoke('export-trip', {
+            body: {
               tripId,
               sections,
-            }),
+            },
+            responseType: 'blob'
           }
         );
 
-        if (!response.ok) {
+        if (error) {
           // If edge function fails, fallback to client export
-          console.warn(`Edge function failed (${response.status}), using client fallback`);
-          toast.info('Using demo export mode...');
+          console.error(`Edge function failed: ${error.message}, using client fallback`);
+          toast.error(`Live export failed, generating a limited offline PDF.`);
 
           // Fetch mock data for fallback
           const mockPayments = await demoModeService.getMockPayments(tripId || '1');
@@ -189,19 +205,13 @@ const TripDetail = () => {
             sections
           );
         } else {
-          blob = await response.blob();
+          blob = data;
         }
       }
 
-      // Download the PDF
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Trip_${tripWithUpdatedData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Download or open the PDF with cross-platform handling
+      const filename = `Trip_${tripWithUpdatedData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
+      await openOrDownloadBlob(blob, filename, { preOpenedWindow, mimeType: 'application/pdf' });
       
       toast.success('PDF exported successfully!');
     } catch (error) {

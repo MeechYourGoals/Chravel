@@ -7,9 +7,75 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ExportSection } from '@/types/tripExport';
 
+/**
+ * Font loading for jsPDF
+ * Fetches a font from a URL and returns it as a base64 encoded string.
+ * This is used to embed Unicode-capable fonts into the client-side PDF.
+ * @param url The URL of the font file to fetch.
+ * @returns A promise that resolves with the base64 encoded font data.
+ */
+
 // Type for autoTable result which includes finalY
 interface AutoTableResult {
   finalY: number;
+}
+
+/**
+ * Font loading for jsPDF
+ * Fetches a font from a URL and returns it as a base64 encoded string.
+ * This is used to embed Unicode-capable fonts into the client-side PDF.
+ * @param url The URL of the font file to fetch.
+ * @returns A promise that resolves with the base64 encoded font data.
+ */
+async function getFontAsBase64(url: string): Promise<string> {
+  // In a real-world scenario, you'd want to handle network errors.
+  // For this example, we'll assume the font is always available.
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        // Strip the data URL prefix to get just the base64 data
+        resolve(reader.result.split(',')[1]);
+      } else {
+        reject(new Error('Failed to read font as base64.'));
+      }
+    };
+    reader.onerror = () => {
+      reject(new Error('Error reading font file.'));
+    };
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Loads and embeds the Noto Sans font family into the jsPDF document.
+ * This ensures that Unicode characters are properly rendered in the PDF.
+ * @param doc The jsPDF instance.
+ */
+async function embedNotoSansFont(doc: jsPDF): Promise<void> {
+  try {
+    const fontNormal = await getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-400-normal.ttf');
+    const fontBold = await getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-700-normal.ttf');
+    const fontItalic = await getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-400-italic.ttf');
+    const fontBoldItalic = await getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-700-italic.ttf');
+
+    doc.addFileToVFS('NotoSans-Regular.ttf', fontNormal);
+    doc.addFileToVFS('NotoSans-Bold.ttf', fontBold);
+    doc.addFileToVFS('NotoSans-Italic.ttf', fontItalic);
+    doc.addFileToVFS('NotoSans-BoldItalic.ttf', fontBoldItalic);
+
+    doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
+    doc.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold');
+    doc.addFont('NotoSans-Italic.ttf', 'NotoSans', 'italic');
+    doc.addFont('NotoSans-BoldItalic.ttf', 'NotoSans', 'bolditalic');
+
+    doc.setFont('NotoSans', 'normal');
+  } catch (error) {
+    console.error('Failed to load and embed font, falling back to default:', error);
+    // Continue with the default font (NotoSans) if embedding fails
+  }
 }
 
 interface ExportData {
@@ -43,6 +109,9 @@ export async function generateClientPDF(
     format: 'letter',
   });
 
+  // Embed the Unicode font
+  await embedNotoSansFont(doc);
+
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 40;
   const contentWidth = pageWidth - 2 * margin;
@@ -50,13 +119,13 @@ export async function generateClientPDF(
 
   // Header
   doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('NotoSans', 'bold');
   doc.text(data.tripTitle, margin, yPos);
   yPos += 30;
 
   if (data.destination) {
     doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('NotoSans', 'normal');
     doc.text(data.destination, margin, yPos);
     yPos += 20;
   }
@@ -83,7 +152,7 @@ export async function generateClientPDF(
 
   // Sections
   doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('NotoSans', 'bold');
   doc.setTextColor(0);
 
   // Calendar section
@@ -92,7 +161,7 @@ export async function generateClientPDF(
     doc.text('Calendar', margin, yPos);
     yPos += 20;
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('NotoSans', 'normal');
     doc.text('No calendar events available in demo mode', margin, yPos);
     yPos += 30;
   }
@@ -101,7 +170,7 @@ export async function generateClientPDF(
   if (sections.includes('payments')) {
     yPos = checkPageBreak(doc, yPos, 60);
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     doc.setTextColor(0);
     doc.text('Payments', margin, yPos);
     yPos += 20;
@@ -130,12 +199,12 @@ export async function generateClientPDF(
       // Calculate total
       const total = payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('NotoSans', 'bold');
       doc.text(`Total: ${payments[0]?.currency || 'USD'} ${total.toFixed(2)}`, margin, yPos);
       yPos += 30;
     } else {
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       doc.setTextColor(120);
       doc.text('No payment records available in demo mode', margin, yPos);
       yPos += 30;
@@ -146,7 +215,7 @@ export async function generateClientPDF(
   if (sections.includes('polls')) {
     yPos = checkPageBreak(doc, yPos, 60);
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     doc.setTextColor(0);
     doc.text('Polls', margin, yPos);
     yPos += 20;
@@ -157,17 +226,20 @@ export async function generateClientPDF(
         yPos = checkPageBreak(doc, yPos, 80);
 
         doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('NotoSans', 'bold');
         doc.setTextColor(0);
         doc.text(`${index + 1}. ${poll.question}`, margin, yPos);
         yPos += 15;
 
         if (poll.options && poll.options.length > 0) {
-          const pollRows = poll.options.map((opt: any) => [
-            opt.text || 'N/A',
-            `${opt.votes || 0} votes`,
-            `${((opt.votes / poll.total_votes) * 100).toFixed(1)}%`
-          ]);
+          const pollRows = poll.options.map((opt: any) => {
+            const percentage = poll.total_votes > 0 ? ((opt.votes / poll.total_votes) * 100).toFixed(1) : '0.0';
+            return [
+              opt.text || 'N/A',
+              `${opt.votes || 0} votes`,
+              `${percentage}%`
+            ];
+          });
 
           const result = autoTable(doc, {
             startY: yPos,
@@ -181,14 +253,15 @@ export async function generateClientPDF(
         }
 
         doc.setFontSize(9);
-        doc.setFont('helvetica', 'italic');
+        doc.setFont('NotoSans', 'italic');
         doc.setTextColor(100);
-        doc.text(`Total votes: ${poll.total_votes || 0}`, margin + 20, yPos);
+        const totalVotes = Math.max(0, Number(poll.total_votes || 0));
+        doc.text(`Total votes: ${totalVotes}`, margin + 20, yPos);
         yPos += 20;
       });
     } else {
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       doc.setTextColor(120);
       doc.text('No polls available in demo mode', margin, yPos);
       yPos += 30;
@@ -199,11 +272,11 @@ export async function generateClientPDF(
   if (sections.includes('places')) {
     checkPageBreak(doc, yPos, 40);
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     doc.text('Places & Links', margin, yPos);
     yPos += 20;
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('NotoSans', 'normal');
     doc.text('No places saved in demo mode', margin, yPos);
     yPos += 30;
   }
@@ -212,7 +285,7 @@ export async function generateClientPDF(
   if (sections.includes('tasks')) {
     yPos = checkPageBreak(doc, yPos, 60);
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     doc.setTextColor(0);
     doc.text('Tasks', margin, yPos);
     yPos += 20;
@@ -223,7 +296,7 @@ export async function generateClientPDF(
         task.title || task.description || 'N/A',
         task.assigned_to || 'Unassigned',
         task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date',
-        task.completed ? 'Done' : 'Pending'
+        task.completed ? '[x] Done' : '[ ] Pending'
       ]);
 
       const result = autoTable(doc, {
@@ -239,7 +312,7 @@ export async function generateClientPDF(
       yPos = result.finalY + 10;
     } else {
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       doc.setTextColor(120);
       doc.text('No tasks available in demo mode', margin, yPos);
       yPos += 30;
@@ -250,7 +323,7 @@ export async function generateClientPDF(
   if (sections.includes('roster')) {
     yPos = checkPageBreak(doc, yPos, 60);
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     doc.setTextColor(0);
     doc.text('Roster & Contacts', margin, yPos);
     yPos += 20;
@@ -277,7 +350,7 @@ export async function generateClientPDF(
       yPos = result.finalY + 10;
     } else {
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       doc.setTextColor(120);
       doc.text('No roster data available in demo mode', margin, yPos);
       yPos += 30;
@@ -287,7 +360,7 @@ export async function generateClientPDF(
   if (sections.includes('broadcasts')) {
     yPos = checkPageBreak(doc, yPos, 60);
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     doc.setTextColor(0);
     doc.text('Broadcast Log', margin, yPos);
     yPos += 20;
@@ -314,7 +387,7 @@ export async function generateClientPDF(
       yPos = result.finalY + 10;
     } else {
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       doc.setTextColor(120);
       doc.text('No broadcasts available in demo mode', margin, yPos);
       yPos += 30;
@@ -324,7 +397,7 @@ export async function generateClientPDF(
   if (sections.includes('attachments')) {
     yPos = checkPageBreak(doc, yPos, 60);
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     doc.setTextColor(0);
     doc.text('Attachments', margin, yPos);
     yPos += 20;
@@ -351,7 +424,7 @@ export async function generateClientPDF(
       yPos = result.finalY + 10;
     } else {
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       doc.setTextColor(120);
       doc.text('No attachments available in demo mode', margin, yPos);
       yPos += 30;

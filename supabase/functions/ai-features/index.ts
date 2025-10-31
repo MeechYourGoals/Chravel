@@ -9,6 +9,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
+
 serve(async (req) => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
   
@@ -72,11 +74,10 @@ serve(async (req) => {
 })
 
 async function analyzeReviews(url?: string, venue_name?: string, address?: string, place_id?: string) {
-  console.log('Analyzing reviews for:', { url, venue_name, address, place_id })
+  console.log('Analyzing reviews using Google Gemini for:', { url, venue_name, address, place_id })
   
-  const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY')
-  if (!perplexityApiKey) {
-    throw new Error('Missing Perplexity API key')
+  if (!LOVABLE_API_KEY) {
+    throw new Error('Lovable API key not configured')
   }
   
   try {
@@ -91,59 +92,48 @@ async function analyzeReviews(url?: string, venue_name?: string, address?: strin
       }
     }
 
-    const message = `You are a Review Insights Assistant for Lovable, responsible for gathering, summarizing, and analyzing real-time, authentic reviews from across the web.
+    const message = `You are a Review Insights Assistant for Chravel, responsible for gathering, summarizing, and analyzing authentic reviews from across the web.
 
 Your core job: ${searchQuery}
 
 Research and synthesize real reviews for this venue across the web — focusing on Google, Yelp, Facebook, and any other reputable platforms you find.
 
-CRITICAL: Return your analysis in this EXACT format for each platform:
-
-Platform: Google
-Summary: [2-3 sentence summary of Google reviews with specific details]
-Reviews: [actual number] reviews analyzed
-Sentiment: [positive/negative/neutral/mixed]
-Theme: [specific theme] - [actual representative quote from review] ([theme name])
-
-Platform: Yelp
-Summary: [2-3 sentence summary of Yelp reviews with specific details]
-Reviews: [actual number] reviews analyzed
-Sentiment: [positive/negative/neutral/mixed]
-Theme: [specific theme] - [actual representative quote from review] ([theme name])
-
-Platform: Facebook
-Summary: [2-3 sentence summary of Facebook reviews with specific details]
-Reviews: [actual number] reviews analyzed
-Sentiment: [positive/negative/neutral/mixed]
-Theme: [specific theme] - [actual representative quote from review] ([theme name])
-
-Platform: Other
-Summary: [summary from TripAdvisor, OpenTable, Trustpilot, Zomato, and other sources with platform names]
-Reviews: [actual number] reviews analyzed across all other platforms
-Sentiment: [positive/negative/neutral/mixed]
-Theme: [specific theme] - [actual representative quote from review] ([theme name])
+CRITICAL: Return your analysis in this EXACT JSON format:
+{
+  "text": "Comprehensive analysis of all reviews found",
+  "sentiment": "positive|negative|neutral|mixed",
+  "score": 0.75,
+  "platforms": ["Google", "Yelp", "Facebook"],
+  "summary": "Brief overall summary",
+  "themes": ["Service Quality", "Food Quality", "Atmosphere"],
+  "pros": ["Key positive points"],
+  "cons": ["Key negative points"],
+  "rating": 3.8,
+  "totalReviews": 150
+}
 
 Context variables:
-Venue Name: ${venue_name || 'N/A'}
-Address: ${address || 'N/A'}
-Review URL: ${url || 'N/A'}
-Place ID: ${place_id || 'N/A'}
-Query Date: ${new Date().toISOString().split('T')[0]}
+- Venue Name: ${venue_name || 'N/A'}
+- Address: ${address || 'N/A'}
+- Review URL: ${url || 'N/A'}
+- Place ID: ${place_id || 'N/A'}
+- Query Date: ${new Date().toISOString().split('T')[0]}
 
 Find REAL reviews and data. Never use fictional, placeholder, or default data — always provide factual, current, web-sourced information. If no reviews are found for a source, clearly indicate as much.`;
 
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    // Use Google Gemini through Lovable AI Gateway with grounding enabled
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${perplexityApiKey}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-sonar-large-128k-online',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
-            content: 'You are a restaurant and business review analyst. Provide detailed, accurate analysis of online reviews from multiple platforms. Always cite your sources and provide specific insights.'
+            content: 'You are a restaurant and business review analyst. Provide detailed, accurate analysis of online reviews from multiple platforms. Always cite your sources and provide specific insights. Return responses in valid JSON format only.'
           },
           {
             role: 'user',
@@ -152,60 +142,32 @@ Find REAL reviews and data. Never use fictional, placeholder, or default data �
         ],
         temperature: 0.3,
         max_tokens: 2048,
+        response_format: { type: "json_object" },
+        // Enable Google Search grounding for real-time review data
+        tools: [{ googleSearch: {} }]
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(`Perplexity API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`)
+      throw new Error(`Gemini API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`)
     }
 
     const data = await response.json();
-    const analysis = data.choices[0].message.content;
+    const analysis = JSON.parse(data.choices[0].message.content);
     
-    // Parse the analysis to extract structured data
-    const sentimentMatch = analysis.toLowerCase();
-    let sentiment: 'positive' | 'negative' | 'neutral' = 'neutral';
-    let score = 0.5;
-    
-    if (sentimentMatch.includes('positive') || sentimentMatch.includes('good') || sentimentMatch.includes('excellent')) {
-      sentiment = 'positive';
-      score = 0.7;
-    } else if (sentimentMatch.includes('negative') || sentimentMatch.includes('bad') || sentimentMatch.includes('poor')) {
-      sentiment = 'negative';
-      score = 0.3;
-    }
-    
-    // Extract platforms mentioned
-    const platforms = [];
-    if (analysis.toLowerCase().includes('google')) platforms.push('Google');
-    if (analysis.toLowerCase().includes('yelp')) platforms.push('Yelp');
-    if (analysis.toLowerCase().includes('tripadvisor')) platforms.push('TripAdvisor');
-    if (analysis.toLowerCase().includes('facebook')) platforms.push('Facebook');
-    if (analysis.toLowerCase().includes('opentable')) platforms.push('OpenTable');
-    
-    // Extract themes, pros, cons from the analysis
-    const themes = ['Service', 'Quality', 'Atmosphere', 'Value'];
-    const pros = [];
-    const cons = [];
-    
-    // Simple extraction based on common patterns
-    if (analysis.toLowerCase().includes('service')) themes.push('Service Quality');
-    if (analysis.toLowerCase().includes('food')) themes.push('Food Quality');
-    if (analysis.toLowerCase().includes('atmosphere')) themes.push('Atmosphere');
-    if (analysis.toLowerCase().includes('price')) themes.push('Pricing');
-    
+    // Ensure all required fields are present
     return {
-      text: analysis,
-      sentiment,
-      score,
-      platforms: platforms.length > 0 ? platforms : ['Multiple platforms'],
-      summary: analysis.split('\n')[0] || 'Analysis completed',
-      themes: [...new Set(themes)],
-      pros: ['Quality service', 'Good atmosphere', 'Value for money'],
-      cons: ['Busy during peak hours', 'Limited parking'],
-      rating: score * 5,
-      totalReviews: Math.floor(Math.random() * 100) + 50
+      text: analysis.text || analysis.summary || 'Analysis completed',
+      sentiment: analysis.sentiment || 'neutral',
+      score: analysis.score || 0.5,
+      platforms: analysis.platforms || ['Google'],
+      summary: analysis.summary || analysis.text?.slice(0, 200) || 'Review analysis completed',
+      themes: analysis.themes || ['Service', 'Quality', 'Value'],
+      pros: analysis.pros || [],
+      cons: analysis.cons || [],
+      rating: analysis.rating || analysis.score * 5 || 2.5,
+      totalReviews: analysis.totalReviews || 0
     };
   } catch (error) {
     console.error('Error analyzing reviews:', error);
@@ -249,48 +211,54 @@ async function generateMessageWithTemplate(templateId: string | undefined, conte
 }
 
 async function classifyMessagePriority(content: string) {
-  try {
-    // Use OpenAI for priority classification
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
-    
-    if (openaiApiKey) {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4.1-2025-04-14',
-          messages: [
-            {
-              role: 'system',
-              content: 'Classify the priority of this message as exactly one of: urgent, reminder, or fyi. Consider urgency, time sensitivity, and importance. Respond with only the priority level.'
-            },
-            {
-              role: 'user',
-              content: `Message: "${content}"`
-            }
-          ],
-          temperature: 0.1,
-          max_tokens: 10
-        })
-      })
+  if (!LOVABLE_API_KEY) {
+    // Fallback to keyword-based classification if API not configured
+    return keywordBasedPriorityClassification(content);
+  }
 
-      if (response.ok) {
-        const data = await response.json()
-        const priority = data.choices?.[0]?.message?.content?.trim().toLowerCase()
-        
-        if (['urgent', 'reminder', 'fyi'].includes(priority)) {
-          return { priority, confidence: 0.9 };
-        }
+  try {
+    // Use Google Gemini for priority classification
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'system',
+            content: 'Classify the priority of this message as exactly one of: urgent, reminder, or fyi. Consider urgency, time sensitivity, and importance. Respond with only the priority level and confidence score in JSON format: {"priority": "urgent|reminder|fyi", "confidence": 0.9}'
+          },
+          {
+            role: 'user',
+            content: `Message: "${content}"`
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 50,
+        response_format: { type: "json_object" }
+      })
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      const result = JSON.parse(data.choices[0].message.content)
+      
+      if (result.priority && ['urgent', 'reminder', 'fyi'].includes(result.priority)) {
+        return { priority: result.priority, confidence: result.confidence || 0.9 };
       }
     }
   } catch (error) {
-    console.error('OpenAI priority classification failed:', error);
+    console.error('Gemini priority classification failed:', error);
   }
 
   // Fallback to keyword-based classification
+  return keywordBasedPriorityClassification(content);
+}
+
+function keywordBasedPriorityClassification(content: string) {
   const urgentKeywords = ['urgent', 'emergency', 'asap', 'immediately', 'critical'];
   const reminderKeywords = ['reminder', 'don\'t forget', 'remember', 'deadline', 'due'];
   

@@ -25,15 +25,15 @@ interface AddPlaceModalProps {
   basecamp?: BasecampLocation;
 }
 
-const categories = [
-  { id: 'restaurant', label: 'Eats', icon: '🍽️', description: 'Restaurants, cafes, food tours' },
-  { id: 'attraction', label: 'Attraction / Sightseeing', icon: '🎯', description: 'Museums, tours, attractions' },
-  { id: 'activity', label: 'Day Activities', icon: '☀️', description: 'Activities and experiences' },
-  { id: 'fitness', label: 'Fitness', icon: '💪', description: 'Gyms, yoga, sports activities' },
-  { id: 'nightlife', label: 'Nightlife', icon: '🌙', description: 'Bars, clubs, evening events' },
-  { id: 'transportation', label: 'Transportation', icon: '✈️', description: 'Flights, cars, rideshares' },
-  { id: 'hotel', label: 'Housing', icon: '🏠', description: 'Hotels, Airbnbs, hostels' }
-];
+import { PlaceCategoryEnum, PlaceCategory } from '../types/basecamp';
+
+const categoryDetails: { [key in PlaceCategory]: { icon: string; description: string } } = {
+  'Food & Drink': { icon: '🍽️', description: 'Restaurants, cafes, bars' },
+  'Attraction': { icon: '🎯', description: 'Stadiums, music venues, landmarks' },
+  'Activity': { icon: '🎢', description: 'Tours, shows, activities, museums' },
+  'Accommodation': { icon: '🏨', description: 'Hotels, rentals, hostels' },
+  'Other': { icon: '📍', description: 'Other points of interest' },
+};
 
 export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPlaceModalProps) => {
   const [smartInput, setSmartInput] = useState('');
@@ -307,21 +307,21 @@ export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPl
                 Category (optional)
               </label>
               <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
-                {categories.map((cat) => (
+                {PlaceCategoryEnum.map((cat) => (
                   <button
-                    key={cat.id}
+                    key={cat}
                     type="button"
-                    onClick={() => setCategory(cat.id === category ? '' : cat.id)}
+                    onClick={() => setCategory(cat === category ? '' : cat)}
                     className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
-                      category === cat.id
+                      category === cat
                         ? 'bg-blue-600/20 border-blue-600 text-white'
                         : 'bg-slate-900/30 border-slate-700 text-slate-300 hover:border-slate-600'
                     }`}
                   >
-                    <span className="text-lg">{cat.icon}</span>
+                    <span className="text-lg">{categoryDetails[cat].icon}</span>
                     <div>
-                      <div className="font-medium">{cat.label}</div>
-                      <div className="text-xs text-slate-400">{cat.description}</div>
+                      <div className="font-medium">{cat}</div>
+                      <div className="text-xs text-slate-400">{categoryDetails[cat].description}</div>
                     </div>
                   </button>
                 ))}

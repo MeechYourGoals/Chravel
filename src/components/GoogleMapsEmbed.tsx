@@ -115,9 +115,11 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
           allowFullScreen
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
+          allow="geolocation; camera; microphone"
           className="absolute inset-0 w-full h-full"
           onLoad={handleIframeLoad}
           onError={handleIframeError}
+          title="Google Maps"
         />
       )}
     </div>

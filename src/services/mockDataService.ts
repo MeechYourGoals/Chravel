@@ -54,7 +54,7 @@ class MockDataService {
       },
       {
         id: 'mock-media-2',
-        media_url: 'https://images.unsplash.com/photo-1551963831-b3b1ca40c98e?w=600&h=400&fit=crop',
+        media_url: '/mock/images/travel-selfie.jpg',
         filename: 'Team Breakfast.jpg',
         media_type: 'image',
         metadata: { width: 1920, height: 1080 },
@@ -65,7 +65,7 @@ class MockDataService {
       },
       {
         id: 'mock-media-3',
-        media_url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop',
+        media_url: '/mock/images/beach-volleyball.jpg',
         filename: 'Adventure Hiking.jpg',
         media_type: 'image',
         metadata: { width: 1920, height: 1080 },
@@ -76,7 +76,7 @@ class MockDataService {
       },
       {
         id: 'mock-media-4',
-        media_url: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=600&h=800&fit=crop',
+        media_url: '/mock/images/concert-stage.jpg',
         filename: 'Event Flyer - Music Festival.jpg',
         media_type: 'image',
         metadata: { width: 1080, height: 1350, isFlyer: true },
@@ -88,7 +88,7 @@ class MockDataService {
       // AI-Generated Photos - People at events
       {
         id: 'mock-media-11',
-        media_url: 'https://images.unsplash.com/photo-1529271338528-96a6ac830a56?w=600&h=400&fit=crop',
+        media_url: '/mock/images/friends-party.jpg',
         filename: 'Friends Party Night.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -110,7 +110,7 @@ class MockDataService {
       },
       {
         id: 'mock-media-13',
-        media_url: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=600&h=400&fit=crop',
+        media_url: '/mock/images/concert-stage.jpg',
         filename: 'Music Festival Crowd.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -121,7 +121,7 @@ class MockDataService {
       },
       {
         id: 'mock-media-14',
-        media_url: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=400&fit=crop',
+        media_url: '/mock/images/wedding-ceremony.jpg',
         filename: 'Wedding Ceremony.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -132,7 +132,7 @@ class MockDataService {
       },
       {
         id: 'mock-media-16',
-        media_url: 'https://images.unsplash.com/photo-1539635278303-d4002c07eae3?w=600&h=400&fit=crop',
+        media_url: '/mock/images/travel-selfie.jpg',
         filename: 'Travel Group Selfie.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -143,7 +143,7 @@ class MockDataService {
       },
       {
         id: 'mock-media-17',
-        media_url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=400&fit=crop',
+        media_url: '/mock/images/beach-volleyball.jpg',
         filename: 'Beach Volleyball Fun.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -228,99 +228,384 @@ class MockDataService {
     ];
   }
 
-  private static getMockPlacesData(): MockPlaceItem[] {
-    return [
-      {
-        id: 'mock-place-1',
-        name: 'Central Park',
-        address: 'Central Park, New York, NY 10024',
-        coordinates: { lat: 40.785091, lng: -73.968285 },
-        category: 'attraction',
-        rating: 4.8,
-        url: 'https://www.centralparknyc.org/'
-      },
-      {
-        id: 'mock-place-2',
-        name: 'Joe\'s Pizza',
-        address: '7 Carmine St, New York, NY 10014',
-        coordinates: { lat: 40.730610, lng: -74.002080 },
-        category: 'restaurant',
-        rating: 4.6,
-        url: 'https://www.joespizzanyc.com/'
-      },
-      {
-        id: 'mock-place-3',
-        name: 'The Metropolitan Museum of Art',
-        address: '1000 5th Ave, New York, NY 10028',
-        coordinates: { lat: 40.779437, lng: -73.963244 },
-        category: 'attraction',
-        rating: 4.8,
-        url: 'https://www.metmuseum.org/'
-      },
-      {
-        id: 'mock-place-4',
-        name: 'Equinox Hudson Yards',
-        address: '30 Hudson Yards, New York, NY 10001',
-        coordinates: { lat: 40.753863, lng: -74.001904 },
-        category: 'fitness',
-        rating: 4.5,
-        url: 'https://www.equinox.com/clubs/new-york/hudson-yards'
-      },
-      {
-        id: 'mock-place-5',
-        name: 'The Standard High Line',
-        address: '848 Washington St, New York, NY 10014',
-        coordinates: { lat: 40.740753, lng: -74.008614 },
-        category: 'hotel',
-        rating: 4.4,
-        url: 'https://www.standardhotels.com/new-york/properties/high-line'
-      },
-      {
-        id: 'mock-place-6',
-        name: 'Brooklyn Bridge',
-        address: 'Brooklyn Bridge, New York, NY 10038',
-        coordinates: { lat: 40.706086, lng: -73.996864 },
-        category: 'attraction',
-        rating: 4.7,
-        url: 'https://www.nyc.gov/html/dot/html/infrastructure/brooklyn-bridge.shtml'
-      },
-      {
-        id: 'mock-place-7',
-        name: 'Le Bernardin',
-        address: '155 W 51st St, New York, NY 10019',
-        coordinates: { lat: 40.761625, lng: -73.982137 },
-        category: 'restaurant',
-        rating: 4.7,
-        url: 'https://www.le-bernardin.com/'
-      },
-      {
-        id: 'mock-place-8',
-        name: 'Madison Square Garden',
-        address: '4 Pennsylvania Plaza, New York, NY 10001',
-        coordinates: { lat: 40.750504, lng: -73.993439 },
-        category: 'activity',
-        rating: 4.5,
-        url: 'https://www.msg.com/'
-      },
-      {
-        id: 'mock-place-9',
-        name: 'The Dead Rabbit',
-        address: '30 Water St, New York, NY 10004',
-        coordinates: { lat: 40.703151, lng: -74.011330 },
-        category: 'nightlife',
-        rating: 4.6,
-        url: 'https://www.deadrabbitnyc.com/'
-      },
-      {
-        id: 'mock-place-10',
-        name: 'Times Square',
-        address: 'Manhattan, NY 10036',
-        coordinates: { lat: 40.758896, lng: -73.985130 },
-        category: 'attraction',
-        rating: 4.3,
-        url: 'https://www.timessquarenyc.org/'
-      }
+  private static getMockPlacesData(citySet: number = 0): MockPlaceItem[] {
+    // Different city sets for variety: 0=NYC, 1=LA, 2=Paris, 3=Tokyo
+    const cities = [
+      // NYC
+      [
+        {
+          id: 'mock-place-1',
+          name: 'Central Park',
+          address: 'Central Park, New York, NY 10024',
+          coordinates: { lat: 40.785091, lng: -73.968285 },
+          category: 'attraction',
+          rating: 4.8,
+          url: 'https://www.centralparknyc.org/'
+        },
+        {
+          id: 'mock-place-2',
+          name: 'Joe\'s Pizza',
+          address: '7 Carmine St, New York, NY 10014',
+          coordinates: { lat: 40.730610, lng: -74.002080 },
+          category: 'restaurant',
+          rating: 4.6,
+          url: 'https://www.joespizzanyc.com/'
+        },
+        {
+          id: 'mock-place-3',
+          name: 'The Metropolitan Museum of Art',
+          address: '1000 5th Ave, New York, NY 10028',
+          coordinates: { lat: 40.779437, lng: -73.963244 },
+          category: 'attraction',
+          rating: 4.8,
+          url: 'https://www.metmuseum.org/'
+        },
+        {
+          id: 'mock-place-4',
+          name: 'Equinox Hudson Yards',
+          address: '30 Hudson Yards, New York, NY 10001',
+          coordinates: { lat: 40.753863, lng: -74.001904 },
+          category: 'fitness',
+          rating: 4.5,
+          url: 'https://www.equinox.com/clubs/new-york/hudson-yards'
+        },
+        {
+          id: 'mock-place-5',
+          name: 'The Standard High Line',
+          address: '848 Washington St, New York, NY 10014',
+          coordinates: { lat: 40.740753, lng: -74.008614 },
+          category: 'hotel',
+          rating: 4.4,
+          url: 'https://www.standardhotels.com/new-york/properties/high-line'
+        },
+        {
+          id: 'mock-place-6',
+          name: 'Brooklyn Bridge',
+          address: 'Brooklyn Bridge, New York, NY 10038',
+          coordinates: { lat: 40.706086, lng: -73.996864 },
+          category: 'attraction',
+          rating: 4.7,
+          url: 'https://www.nyc.gov/html/dot/html/infrastructure/brooklyn-bridge.shtml'
+        },
+        {
+          id: 'mock-place-7',
+          name: 'Le Bernardin',
+          address: '155 W 51st St, New York, NY 10019',
+          coordinates: { lat: 40.761625, lng: -73.982137 },
+          category: 'restaurant',
+          rating: 4.7,
+          url: 'https://www.le-bernardin.com/'
+        },
+        {
+          id: 'mock-place-8',
+          name: 'Madison Square Garden',
+          address: '4 Pennsylvania Plaza, New York, NY 10001',
+          coordinates: { lat: 40.750504, lng: -73.993439 },
+          category: 'activity',
+          rating: 4.5,
+          url: 'https://www.msg.com/'
+        },
+        {
+          id: 'mock-place-9',
+          name: 'The Dead Rabbit',
+          address: '30 Water St, New York, NY 10004',
+          coordinates: { lat: 40.703151, lng: -74.011330 },
+          category: 'nightlife',
+          rating: 4.6,
+          url: 'https://www.deadrabbitnyc.com/'
+        },
+        {
+          id: 'mock-place-10',
+          name: 'Times Square',
+          address: 'Manhattan, NY 10036',
+          coordinates: { lat: 40.758896, lng: -73.985130 },
+          category: 'attraction',
+          rating: 4.3,
+          url: 'https://www.timessquarenyc.org/'
+        }
+      ],
+      // LA
+      [
+        {
+          id: 'mock-place-la-1',
+          name: 'Griffith Observatory',
+          address: '2800 E Observatory Rd, Los Angeles, CA 90027',
+          coordinates: { lat: 34.118434, lng: -118.300399 },
+          category: 'attraction',
+          rating: 4.7,
+          url: 'https://griffithobservatory.org/'
+        },
+        {
+          id: 'mock-place-la-2',
+          name: 'Santa Monica Pier',
+          address: '200 Santa Monica Pier, Santa Monica, CA 90401',
+          coordinates: { lat: 34.008888, lng: -118.498611 },
+          category: 'attraction',
+          rating: 4.5,
+          url: 'https://www.santamonicapier.org/'
+        },
+        {
+          id: 'mock-place-la-3',
+          name: 'The Getty Center',
+          address: '1200 Getty Center Dr, Los Angeles, CA 90049',
+          coordinates: { lat: 34.078056, lng: -118.473889 },
+          category: 'attraction',
+          rating: 4.8,
+          url: 'https://www.getty.edu/'
+        },
+        {
+          id: 'mock-place-la-4',
+          name: 'In-N-Out Burger',
+          address: '9149 W Sunset Blvd, West Hollywood, CA 90069',
+          coordinates: { lat: 34.090833, lng: -118.388611 },
+          category: 'restaurant',
+          rating: 4.6,
+          url: 'https://www.in-n-out.com/'
+        },
+        {
+          id: 'mock-place-la-5',
+          name: 'Venice Beach',
+          address: 'Venice Beach, Los Angeles, CA 90291',
+          coordinates: { lat: 33.985556, lng: -118.473056 },
+          category: 'attraction',
+          rating: 4.4,
+          url: 'https://www.venicebeach.com/'
+        },
+        {
+          id: 'mock-place-la-6',
+          name: 'Hollywood Sign',
+          address: 'Mt Lee Dr, Los Angeles, CA 90068',
+          coordinates: { lat: 34.134117, lng: -118.321495 },
+          category: 'attraction',
+          rating: 4.5,
+          url: 'https://hollywoodsign.org/'
+        },
+        {
+          id: 'mock-place-la-7',
+          name: 'Runyon Canyon Park',
+          address: '2000 N Fuller Ave, Los Angeles, CA 90046',
+          coordinates: { lat: 34.110278, lng: -118.352222 },
+          category: 'activity',
+          rating: 4.6,
+          url: 'https://www.laparks.org/'
+        },
+        {
+          id: 'mock-place-la-8',
+          name: 'The Grove',
+          address: '189 The Grove Dr, Los Angeles, CA 90036',
+          coordinates: { lat: 34.072222, lng: -118.357500 },
+          category: 'attraction',
+          rating: 4.3,
+          url: 'https://www.thegrovela.com/'
+        },
+        {
+          id: 'mock-place-la-9',
+          name: 'Nobu Malibu',
+          address: '22706 Pacific Coast Hwy, Malibu, CA 90265',
+          coordinates: { lat: 34.032778, lng: -118.682222 },
+          category: 'restaurant',
+          rating: 4.5,
+          url: 'https://www.noburestaurants.com/'
+        },
+        {
+          id: 'mock-place-la-10',
+          name: 'Dodger Stadium',
+          address: '1000 Vin Scully Ave, Los Angeles, CA 90012',
+          coordinates: { lat: 34.073850, lng: -118.239578 },
+          category: 'activity',
+          rating: 4.6,
+          url: 'https://www.mlb.com/dodgers/'
+        }
+      ],
+      // Paris
+      [
+        {
+          id: 'mock-place-paris-1',
+          name: 'Eiffel Tower',
+          address: 'Champ de Mars, 75007 Paris, France',
+          coordinates: { lat: 48.858370, lng: 2.294481 },
+          category: 'attraction',
+          rating: 4.8,
+          url: 'https://www.toureiffel.paris/'
+        },
+        {
+          id: 'mock-place-paris-2',
+          name: 'Louvre Museum',
+          address: 'Rue de Rivoli, 75001 Paris, France',
+          coordinates: { lat: 48.860611, lng: 2.337644 },
+          category: 'attraction',
+          rating: 4.7,
+          url: 'https://www.louvre.fr/'
+        },
+        {
+          id: 'mock-place-paris-3',
+          name: 'Notre-Dame Cathedral',
+          address: '6 Parvis Notre-Dame, 75004 Paris, France',
+          coordinates: { lat: 48.852968, lng: 2.349902 },
+          category: 'attraction',
+          rating: 4.7,
+          url: 'https://www.notredamedeparis.fr/'
+        },
+        {
+          id: 'mock-place-paris-4',
+          name: 'Le Relais de l\'Entrecôte',
+          address: '15 Rue Marbeuf, 75008 Paris, France',
+          coordinates: { lat: 48.868889, lng: 2.304167 },
+          category: 'restaurant',
+          rating: 4.6,
+          url: 'https://www.relaisentrecote.fr/'
+        },
+        {
+          id: 'mock-place-paris-5',
+          name: 'Arc de Triomphe',
+          address: 'Place Charles de Gaulle, 75008 Paris, France',
+          coordinates: { lat: 48.873889, lng: 2.295000 },
+          category: 'attraction',
+          rating: 4.7,
+          url: 'https://www.paris-arc-de-triomphe.fr/'
+        },
+        {
+          id: 'mock-place-paris-6',
+          name: 'Sacré-Cœur',
+          address: '35 Rue du Chevalier de la Barre, 75018 Paris, France',
+          coordinates: { lat: 48.886722, lng: 2.343056 },
+          category: 'attraction',
+          rating: 4.7,
+          url: 'https://www.sacre-coeur-montmartre.com/'
+        },
+        {
+          id: 'mock-place-paris-7',
+          name: 'Musée d\'Orsay',
+          address: '1 Rue de la Légion d\'Honneur, 75007 Paris, France',
+          coordinates: { lat: 48.860000, lng: 2.326389 },
+          category: 'attraction',
+          rating: 4.8,
+          url: 'https://www.musee-orsay.fr/'
+        },
+        {
+          id: 'mock-place-paris-8',
+          name: 'Champs-Élysées',
+          address: 'Avenue des Champs-Élysées, 75008 Paris, France',
+          coordinates: { lat: 48.869889, lng: 2.307653 },
+          category: 'attraction',
+          rating: 4.4,
+          url: 'https://www.champselysees.org/'
+        },
+        {
+          id: 'mock-place-paris-9',
+          name: 'L\'As du Fallafel',
+          address: '34 Rue des Rosiers, 75004 Paris, France',
+          coordinates: { lat: 48.857222, lng: 2.360000 },
+          category: 'restaurant',
+          rating: 4.5,
+          url: 'https://www.lasdufallafel.com/'
+        },
+        {
+          id: 'mock-place-paris-10',
+          name: 'Luxembourg Gardens',
+          address: '75006 Paris, France',
+          coordinates: { lat: 48.846667, lng: 2.337222 },
+          category: 'attraction',
+          rating: 4.7,
+          url: 'https://www.senat.fr/visite/jardin/'
+        }
+      ],
+      // Tokyo
+      [
+        {
+          id: 'mock-place-tokyo-1',
+          name: 'Senso-ji Temple',
+          address: '2-3-1 Asakusa, Taito City, Tokyo 111-0032, Japan',
+          coordinates: { lat: 35.714722, lng: 139.796667 },
+          category: 'attraction',
+          rating: 4.7,
+          url: 'https://www.senso-ji.jp/'
+        },
+        {
+          id: 'mock-place-tokyo-2',
+          name: 'Tokyo Skytree',
+          address: '1-1-2 Oshiage, Sumida City, Tokyo 131-0045, Japan',
+          coordinates: { lat: 35.710139, lng: 139.810833 },
+          category: 'attraction',
+          rating: 4.6,
+          url: 'https://www.tokyo-skytree.jp/'
+        },
+        {
+          id: 'mock-place-tokyo-3',
+          name: 'Meiji Shrine',
+          address: '1-1 Yoyogikamizonocho, Shibuya City, Tokyo 151-8557, Japan',
+          coordinates: { lat: 35.676389, lng: 139.699444 },
+          category: 'attraction',
+          rating: 4.8,
+          url: 'https://www.meijijingu.or.jp/'
+        },
+        {
+          id: 'mock-place-tokyo-4',
+          name: 'Tsukiji Outer Market',
+          address: '4 Chome Tsukiji, Chuo City, Tokyo 104-0045, Japan',
+          coordinates: { lat: 35.665556, lng: 139.770556 },
+          category: 'restaurant',
+          rating: 4.5,
+          url: 'https://www.tsukiji.or.jp/'
+        },
+        {
+          id: 'mock-place-tokyo-5',
+          name: 'Shibuya Crossing',
+          address: '2-2-1 Dogenzaka, Shibuya City, Tokyo 150-0043, Japan',
+          coordinates: { lat: 35.659444, lng: 139.700556 },
+          category: 'attraction',
+          rating: 4.4,
+          url: 'https://www.shibuya-scramble-square.com/'
+        },
+        {
+          id: 'mock-place-tokyo-6',
+          name: 'Tokyo Tower',
+          address: '4-2-8 Shibakoen, Minato City, Tokyo 105-0011, Japan',
+          coordinates: { lat: 35.658611, lng: 139.745556 },
+          category: 'attraction',
+          rating: 4.5,
+          url: 'https://www.tokyotower.co.jp/'
+        },
+        {
+          id: 'mock-place-tokyo-7',
+          name: 'Ramen Nagi',
+          address: '1-1-10 Kabukicho, Shinjuku City, Tokyo 160-0021, Japan',
+          coordinates: { lat: 35.694444, lng: 139.701111 },
+          category: 'restaurant',
+          rating: 4.6,
+          url: 'https://www.n-nagi.com/'
+        },
+        {
+          id: 'mock-place-tokyo-8',
+          name: 'teamLab Borderless',
+          address: '1-3-8 Aomi, Koto City, Tokyo 135-0064, Japan',
+          coordinates: { lat: 35.627778, lng: 139.775556 },
+          category: 'attraction',
+          rating: 4.7,
+          url: 'https://www.teamlab.art/'
+        },
+        {
+          id: 'mock-place-tokyo-9',
+          name: 'Harajuku',
+          address: 'Jingumae, Shibuya City, Tokyo 150-0001, Japan',
+          coordinates: { lat: 35.670278, lng: 139.702778 },
+          category: 'attraction',
+          rating: 4.5,
+          url: 'https://www.harajuku.or.jp/'
+        },
+        {
+          id: 'mock-place-tokyo-10',
+          name: 'Imperial Palace',
+          address: '1-1 Chiyoda, Chiyoda City, Tokyo 100-8111, Japan',
+          coordinates: { lat: 35.685175, lng: 139.752799 },
+          category: 'attraction',
+          rating: 4.6,
+          url: 'https://www.kunaicho.go.jp/'
+        }
+      ]
     ];
+    
+    return cities[citySet % cities.length];
   }
 
   private static getMockLinksData(): MockLinkItem[] {
@@ -454,9 +739,12 @@ class MockDataService {
       return stored;
     }
 
-    // First time - initialize with mock data
-    const mockData = this.getMockPlacesData();
-    console.log('[MockDataService] 🆕 Initializing with fresh mock data:', mockData.length);
+    // First time - initialize with trip-specific mock data
+    // Use tripId to determine which city set to use (0=NYC, 1=LA, 2=Paris, 3=Tokyo)
+    const tripNum = parseInt(tripId, 10) || 0;
+    const citySet = tripNum % 4;
+    const mockData = this.getMockPlacesData(citySet);
+    console.log('[MockDataService] 🆕 Initializing with fresh mock data (city set', citySet, '):', mockData.length);
     await setStorageItem(storageKey, mockData);
     return mockData;
   }

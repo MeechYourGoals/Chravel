@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
 serve(async (req) => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
   
@@ -27,6 +29,10 @@ serve(async (req) => {
         JSON.stringify({ error: 'Missing required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    if (!LOVABLE_API_KEY) {
+      throw new Error('Lovable API key not configured');
     }
 
     let extractedData;
@@ -85,14 +91,14 @@ serve(async (req) => {
 });
 
 async function extractCalendarEvents(fileUrl: string) {
-  const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+  const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'google/gemini-2.5-flash',
       messages: [
         {
           role: 'user',
@@ -136,30 +142,32 @@ async function extractCalendarEvents(fileUrl: string) {
           ]
         }
       ],
-      max_tokens: 2000
+      max_tokens: 2000,
+      temperature: 0.1,
+      response_format: { type: "json_object" }
     })
   });
 
-  const result = await openAIResponse.json();
+  const result = await geminiResponse.json();
   return JSON.parse(result.choices[0].message.content);
 }
 
 async function extractText(fileUrl: string) {
-  const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+  const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'google/gemini-2.5-flash',
       messages: [
         {
           role: 'user',
           content: [
             {
               type: 'text',
-              text: 'Please extract all text content from this document and return it in a clean, structured format.'
+              text: 'Please extract all text content from this document and return it in a clean, structured format as JSON: {"text": "extracted text here"}'
             },
             {
               type: 'image_url',
@@ -168,23 +176,25 @@ async function extractText(fileUrl: string) {
           ]
         }
       ],
-      max_tokens: 2000
+      max_tokens: 2000,
+      temperature: 0.1,
+      response_format: { type: "json_object" }
     })
   });
 
-  const result = await openAIResponse.json();
-  return { text: result.choices[0].message.content };
+  const result = await geminiResponse.json();
+  return JSON.parse(result.choices[0].message.content);
 }
 
 async function extractItinerary(fileUrl: string) {
-  const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+  const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'google/gemini-2.5-flash',
       messages: [
         {
           role: 'user',
@@ -234,30 +244,32 @@ async function extractItinerary(fileUrl: string) {
           ]
         }
       ],
-      max_tokens: 2000
+      max_tokens: 2000,
+      temperature: 0.1,
+      response_format: { type: "json_object" }
     })
   });
 
-  const result = await openAIResponse.json();
+  const result = await geminiResponse.json();
   return JSON.parse(result.choices[0].message.content);
 }
 
 async function extractGeneral(fileUrl: string) {
-  const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+  const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'google/gemini-2.5-flash',
       messages: [
         {
           role: 'user',
           content: [
             {
               type: 'text',
-              text: 'Analyze this document and extract key information including any dates, locations, prices, contact information, or important details that might be relevant for trip planning.'
+              text: 'Analyze this document and extract key information including any dates, locations, prices, contact information, or important details that might be relevant for trip planning. Return as JSON: {"content": "extracted information"}'
             },
             {
               type: 'image_url',
@@ -266,10 +278,12 @@ async function extractGeneral(fileUrl: string) {
           ]
         }
       ],
-      max_tokens: 1500
+      max_tokens: 1500,
+      temperature: 0.1,
+      response_format: { type: "json_object" }
     })
   });
 
-  const result = await openAIResponse.json();
-  return { content: result.choices[0].message.content };
+  const result = await geminiResponse.json();
+  return JSON.parse(result.choices[0].message.content);
 }

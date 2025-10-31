@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
 serve(async (req) => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
   
@@ -18,11 +20,10 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 
-    if (!openaiApiKey) {
+    if (!LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key not configured' }),
+        JSON.stringify({ error: 'Service not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -76,54 +77,84 @@ serve(async (req) => {
       );
     }
 
-    // Generate embedding for the query
-    const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'text-embedding-ada-002',
-        input: query,
-      }),
+    // Fetch all trip data for semantic search
+    const { data: tripData } = await supabase.rpc('get_trip_search_data', {
+      p_trip_id: tripId
     });
 
-    if (!embeddingResponse.ok) {
-      throw new Error('Failed to generate embedding');
-    }
-
-    const embeddingData = await embeddingResponse.json();
-    const queryEmbedding = embeddingData.data[0].embedding;
-
-    // Search for similar chunks
-    const { data: searchResults, error: searchError } = await supabase.rpc('match_kb_chunks', {
-      query_embedding: queryEmbedding,
-      match_count: limit,
-      filter_trip: tripId
-    });
-
-    if (searchError) {
-      console.error('Search error:', searchError);
+    if (!tripData) {
       return new Response(
-        JSON.stringify({ error: 'Search failed' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ results: [] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Use Gemini to perform intelligent search across trip data
+    const searchPrompt = `Given this search query: "${query}"
+
+Trip data:
+${JSON.stringify(tripData, null, 2)}
+
+Find and rank the most relevant items from the trip data. Return results as JSON array:
+{
+  "results": [
+    {
+      "id": "item_id",
+      "objectType": "message|calendar_event|file|place|receipt",
+      "content": "relevant content",
+      "snippet": "brief excerpt",
+      "score": 0.95,
+      "matchReason": "why this matches"
+    }
+  ]
+}
+
+Return up to ${limit} results, ranked by relevance.`;
+
+    const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a search assistant. Analyze trip data and return the most relevant results for user queries. Always return valid JSON.'
+          },
+          {
+            role: 'user',
+            content: searchPrompt
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.3,
+        response_format: { type: "json_object" }
+      })
+    });
+
+    if (!geminiResponse.ok) {
+      throw new Error('Search failed');
+    }
+
+    const geminiData = await geminiResponse.json();
+    const searchResults = JSON.parse(geminiData.choices[0].message.content);
+
     // Format search results
-    const results = (searchResults || []).map((result: any) => ({
-      id: result.id,
-      objectType: result.source,
-      objectId: result.doc_id,
+    const results = (searchResults.results || []).map((result: any) => ({
+      id: result.id || crypto.randomUUID(),
+      objectType: result.objectType || 'message',
+      objectId: result.id || '',
       tripId: tripId,
       tripName: 'Current Trip',
-      content: result.content,
-      snippet: result.content.slice(0, 200) + (result.content.length > 200 ? '...' : ''),
-      score: result.similarity,
-      deepLink: `#${result.source}`,
-      matchReason: `${result.source} content match`,
-      metadata: result.metadata
+      content: result.content || '',
+      snippet: result.snippet || result.content?.slice(0, 200) || '',
+      score: result.score || 0.7,
+      deepLink: `#${result.objectType}`,
+      matchReason: result.matchReason || 'Content match',
+      metadata: result.metadata || {}
     }));
 
     // Log the query for analytics
@@ -142,7 +173,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in ai-search function:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error', results: [] }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

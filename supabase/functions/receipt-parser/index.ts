@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
 serve(async (req) => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
   
@@ -29,15 +31,19 @@ serve(async (req) => {
       );
     }
 
-    // Use OpenAI Vision API to parse receipt
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    if (!LOVABLE_API_KEY) {
+      throw new Error('Lovable API key not configured');
+    }
+
+    // Use Google Gemini Vision API through Lovable Gateway to parse receipt
+    const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'user',
@@ -66,22 +72,24 @@ serve(async (req) => {
             ]
           }
         ],
-        max_tokens: 1000
+        max_tokens: 1000,
+        temperature: 0.1,
+        response_format: { type: "json_object" }
       })
     });
 
-    if (!openAIResponse.ok) {
-      throw new Error(`OpenAI API error: ${await openAIResponse.text()}`);
+    if (!geminiResponse.ok) {
+      throw new Error(`Gemini API error: ${await geminiResponse.text()}`);
     }
 
-    const openAIResult = await openAIResponse.json();
-    const parsedContent = openAIResult.choices[0].message.content;
+    const geminiResult = await geminiResponse.json();
+    const parsedContent = geminiResult.choices[0].message.content;
     
     let parsedData;
     try {
       parsedData = JSON.parse(parsedContent);
     } catch (parseError) {
-      console.error('Failed to parse OpenAI response:', parsedContent);
+      console.error('Failed to parse Gemini response:', parsedContent);
       parsedData = { error: 'Failed to parse receipt', raw_response: parsedContent };
     }
 
