@@ -2,13 +2,30 @@
 
 All AI coding systems (Claude Code, Cursor, Lovable, Codex, Google Jules, etc.) must follow the rules in **`CLAUDE.md`**.
 
+## 🤖 AI Assistant Configuration Map
+
+Each AI assistant has its own instruction file, but all reference **CLAUDE.md** for complete standards:
+
+| AI Assistant | Primary Instruction File | Status |
+|--------------|-------------------------|--------|
+| **Claude Code** | `CLAUDE.md` | ✅ Most detailed |
+| **Cursor** | `.cursorrules` | ✅ Configured |
+| **Lovable** | `.lovable/instructions.md` | ✅ Configured |
+| **Google Jules** | `.ai/README.md` | ✅ Configured |
+| **Others** | `.ai/README.md` + this file | ✅ Fallback |
+
+**All files reference `CLAUDE.md` as the source of truth.**
+
 ## Quick Reference
 - Run `npm run lint && npm run typecheck && npm run build` before merging
 - See **`CLAUDE.md`** for full patterns and examples
 - If it doesn't build, it doesn't ship
 
 ## File Structure
-- `CLAUDE.md` — Primary engineering manifest (read this first)
+- `CLAUDE.md` — Primary engineering manifesto (read this first)
+- `.cursorrules` — Cursor AI specific instructions
+- `.lovable/instructions.md` — Lovable AI specific instructions
+- `.ai/README.md` — Universal fallback for any AI assistant
 - `.claude/settings.json` — Auto-formatting hooks for Claude Code
 - `.prettierrc` + `eslint.config.js` — Code style enforcement
 
