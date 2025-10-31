@@ -327,7 +327,7 @@ export const TripChat = ({
 
       {/* Message Filters */}
       {filteredMessages.length > 0 && (
-        <div className="p-3 border-b border-gray-700">
+        <div className="pb-2">
           <MessageFilters
             activeFilter={messageFilter}
             onFilterChange={setMessageFilter}
@@ -337,7 +337,7 @@ export const TripChat = ({
       )}
 
       {/* Unified Chat Shell - Glassmorphic container */}
-      <div className="max-w-5xl mx-auto px-4 pb-4 flex-1 flex flex-col">
+      <div className="pb-4 flex-1 flex flex-col">
         <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
           {isLoading ? (
           <div className="flex-1 overflow-y-auto p-4">
