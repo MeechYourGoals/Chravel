@@ -7,6 +7,7 @@ import { AddToCalendarData } from '../types/calendar';
 interface AddToCalendarButtonProps {
   placeName: string;
   placeAddress?: string;
+  category?: AddToCalendarData['category'];
   onEventAdded?: (eventData: AddToCalendarData) => void;
   variant?: 'default' | 'icon' | 'pill';
 }
@@ -14,6 +15,7 @@ interface AddToCalendarButtonProps {
 export const AddToCalendarButton = ({
   placeName,
   placeAddress,
+  category = 'other',
   onEventAdded,
   variant = 'default'
 }: AddToCalendarButtonProps) => {
@@ -24,9 +26,10 @@ export const AddToCalendarButton = ({
     setIsModalOpen(false);
   };
 
-  const prefilledData = {
+  const prefilledData: Partial<AddToCalendarData> = {
     title: placeName,
     location: placeAddress || placeName,
+    category: category,
     include_in_itinerary: true
   };
 

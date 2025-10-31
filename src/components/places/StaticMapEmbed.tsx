@@ -46,6 +46,8 @@ export const StaticMapEmbed: React.FC<StaticMapEmbedProps> = ({
         className={`w-full h-full border-0 ${className}`}
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
+        allow="geolocation"
+        allowFullScreen
         onLoad={handleIframeLoad}
         onError={handleIframeError}
         title="Location Map"

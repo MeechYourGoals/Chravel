@@ -148,67 +148,6 @@ export class GoogleMapsService {
     return `https://www.google.com/maps?output=embed&ll=40.7580,-73.9855&z=12`;
   }
 
-  // Fallback geocoding using OpenStreetMap Nominatim
-  static async fallbackGeocodeNominatim(query: string): Promise<{ lat: number; lng: number; displayName: string } | null> {
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-      const res = await fetch(url, { 
-        headers: { 
-          'Accept': 'application/json',
-          'User-Agent': 'Chravel/1.0'
-        } 
-      });
-      
-      if (!res.ok) return null;
-      
-      const arr = await res.json();
-      if (Array.isArray(arr) && arr.length > 0 && arr[0].lat && arr[0].lon) {
-        return { 
-          lat: parseFloat(arr[0].lat), 
-          lng: parseFloat(arr[0].lon),
-          displayName: arr[0].display_name 
-        };
-      }
-      return null;
-    } catch (error) {
-      console.error('Nominatim geocode error:', error);
-      return null;
-    }
-  }
-
-  // Fallback suggestions using OpenStreetMap Nominatim
-  static async fallbackSuggestNominatim(query: string, limit = 8): Promise<any[]> {
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=${limit}&q=${encodeURIComponent(query)}`;
-      const res = await fetch(url, { 
-        headers: { 
-          'Accept': 'application/json',
-          'User-Agent': 'Chravel/1.0'
-        } 
-      });
-      
-      if (!res.ok) return [];
-      
-      const arr = await res.json();
-      if (!Array.isArray(arr)) return [];
-      
-      return arr.map((item: any) => ({
-        source: 'osm',
-        place_id: `osm:${item.place_id}`,
-        description: item.display_name,
-        osm_lat: parseFloat(item.lat),
-        osm_lng: parseFloat(item.lon),
-        types: ['geocode'],
-        structured_formatting: {
-          main_text: item.display_name.split(',')[0],
-          secondary_text: item.display_name.split(',').slice(1).join(',').trim()
-        }
-      }));
-    } catch (error) {
-      console.error('Nominatim suggest error:', error);
-      return [];
-    }
-  }
 
   /**
    * Text Search for natural language queries

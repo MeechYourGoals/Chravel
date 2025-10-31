@@ -22,6 +22,14 @@ export const MediaItem = ({ item }: MediaItemProps) => {
         <img
           src={item.media_url}
           alt={item.filename}
+          loading="lazy"
+          decoding="async"
+          onError={(e) => {
+            const target = e.currentTarget as HTMLImageElement;
+            if (target.src !== '/placeholder.svg') {
+              target.src = '/placeholder.svg';
+            }
+          }}
           className="w-full h-full object-cover transition-transform group-hover:scale-105"
         />
       </div>
@@ -37,6 +45,7 @@ export const MediaItem = ({ item }: MediaItemProps) => {
             className="w-full h-full object-cover"
             muted
             preload="metadata"
+            poster={item?.metadata?.poster}
           />
           <div className="absolute inset-0 flex items-center justify-center bg-black/20">
             <Video className="w-12 h-12 text-white" />

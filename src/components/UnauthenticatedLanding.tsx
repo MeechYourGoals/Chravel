@@ -60,7 +60,7 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
       </div>
 
       {/* Feature Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto mt-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto mt-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
         <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 md:p-6 text-center hover:border-primary/50 transition-colors">
           <div className="bg-primary/10 w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center mx-auto mb-3 md:mb-4">
             <Users className="text-primary" size={20} />

@@ -33,6 +33,7 @@ export const CalendarEventModal = ({
     time: prefilledData?.time || editEvent?.time || '',
     location: prefilledData?.location || editEvent?.location || '',
     description: prefilledData?.description || editEvent?.description || '',
+    category: prefilledData?.category || editEvent?.event_category || 'other',
     include_in_itinerary: prefilledData?.include_in_itinerary ?? editEvent?.include_in_itinerary ?? true
   });
 
@@ -45,6 +46,7 @@ export const CalendarEventModal = ({
         time: editEvent.time,
         location: editEvent.location || '',
         description: editEvent.description || '',
+        category: editEvent.event_category || 'other',
         include_in_itinerary: editEvent.include_in_itinerary ?? true
       });
     } else if (prefilledData) {
@@ -54,6 +56,7 @@ export const CalendarEventModal = ({
         time: prefilledData.time || '',
         location: prefilledData.location || '',
         description: prefilledData.description || '',
+        category: prefilledData.category || 'other',
         include_in_itinerary: prefilledData.include_in_itinerary ?? true
       });
     }
@@ -75,6 +78,7 @@ export const CalendarEventModal = ({
       time: '',
       location: '',
       description: '',
+      category: 'other',
       include_in_itinerary: true
     });
     onClose();
@@ -109,12 +113,14 @@ export const CalendarEventModal = ({
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full justify-start text-left font-normal text-sm px-2",
                       !formData.date && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.date ? format(formData.date, "PPP") : "Pick a date"}
+                    <CalendarIcon className="mr-1 h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">
+                      {formData.date ? format(formData.date, "MMM d, yyyy") : "Pick a date"}
+                    </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
