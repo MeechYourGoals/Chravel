@@ -11,6 +11,7 @@ import napaWineGetaway from '../assets/trip-covers/napa-wine-getaway.webp';
 import aspenCorporateSki from '../assets/trip-covers/aspen-corporate-ski.webp';
 import disneyFamilyCruise from '../assets/trip-covers/disney-family-cruise.webp';
 import yellowstoneHikingGroup from '../assets/trip-covers/yellowstone-hiking-group.webp';
+import { getMockAvatar } from '../utils/mockAvatars';
 
 export interface TripParticipant {
   id: number;
@@ -44,11 +45,11 @@ export const tripsData: Trip[] = [
     description: "Brotherhood spring break getaway with beach activities, nightlife, and bonding experiences",
     coverPhoto: cancunSpringBreak,
     participants: [
-      { id: 1, name: "Marcus", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" },
-      { id: 2, name: "Jamal", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" },
-      { id: 3, name: "Darius", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" },
-      { id: 4, name: "Terrell", avatar: "https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face" },
-      { id: 5, name: "Jerome", avatar: "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=40&h=40&fit=crop&crop=face" }
+      { id: 1, name: "Marcus", avatar: getMockAvatar("Marcus") },
+      { id: 2, name: "Jamal", avatar: getMockAvatar("Jamal") },
+      { id: 3, name: "Darius", avatar: getMockAvatar("Darius") },
+      { id: 4, name: "Terrell", avatar: getMockAvatar("Terrell") },
+      { id: 5, name: "Jerome", avatar: getMockAvatar("Jerome") }
     ]
   },
   {
@@ -59,9 +60,9 @@ export const tripsData: Trip[] = [
     description: "Cultural exploration of Japan's capital with temples, modern tech districts, and amazing cuisine",
     coverPhoto: tokyoAdventure,
     participants: [
-      { id: 4, name: "Alex", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" },
-      { id: 5, name: "Maria", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=40&h=40&fit=crop&crop=face" },
-      { id: 6, name: "David", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" }
+      { id: 4, name: "Alex", avatar: getMockAvatar("Alex") },
+      { id: 5, name: "Maria", avatar: getMockAvatar("Maria") },
+      { id: 6, name: "David", avatar: getMockAvatar("David") }
     ]
   },
   {
@@ -72,10 +73,10 @@ export const tripsData: Trip[] = [
     description: "Romantic destination wedding celebration with family and friends in paradise",
     coverPhoto: baliDestinationWedding,
     participants: [
-      { id: 7, name: "Jack", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" },
-      { id: 8, name: "Jill", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=40&h=40&fit=crop&crop=face" },
-      { id: 9, name: "Steve", avatar: "https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face" },
-      { id: 10, name: "Emma", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face" }
+      { id: 7, name: "Jack", avatar: getMockAvatar("Jack") },
+      { id: 8, name: "Jill", avatar: getMockAvatar("Jill") },
+      { id: 9, name: "Steve", avatar: getMockAvatar("Steve") },
+      { id: 10, name: "Emma", avatar: getMockAvatar("Emma") }
     ]
   },
   {
@@ -86,12 +87,12 @@ export const tripsData: Trip[] = [
     description: "Epic bachelorette celebration with honky-tonk bars, live music, and unforgettable memories",
     coverPhoto: nashvilleBachelorette,
     participants: [
-      { id: 10, name: "Kristen", avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face" },
-      { id: 11, name: "Ashley", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=40&h=40&fit=crop&crop=face" },
-      { id: 12, name: "Megan", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face" },
-      { id: 13, name: "Taylor", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=40&h=40&fit=crop&crop=face" },
-      { id: 14, name: "Sam", avatar: "https://images.unsplash.com/photo-1506634572416-48cdfe530110?w=40&h=40&fit=crop&crop=face" },
-      { id: 15, name: "Jenna", avatar: "https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?w=40&h=40&fit=crop&crop=face" }
+      { id: 10, name: "Kristen", avatar: getMockAvatar("Kristen") },
+      { id: 11, name: "Ashley", avatar: getMockAvatar("Ashley") },
+      { id: 12, name: "Megan", avatar: getMockAvatar("Megan") },
+      { id: 13, name: "Taylor", avatar: getMockAvatar("Taylor") },
+      { id: 14, name: "Sam", avatar: getMockAvatar("Sam") },
+      { id: 15, name: "Jenna", avatar: getMockAvatar("Jenna") }
     ]
   },
   {
@@ -102,11 +103,11 @@ export const tripsData: Trip[] = [
     description: "Music festival adventure with top artists, desert vibes, and group camping",
     coverPhoto: cochelleFestivalNew,
     participants: [
-      { id: 16, name: "Tyler", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" },
-      { id: 17, name: "Zoe", avatar: "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=40&h=40&fit=crop&crop=face" },
-      { id: 18, name: "Mason", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" },
-      { id: 19, name: "Chloe", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=40&h=40&fit=crop&crop=face" },
-      { id: 20, name: "Jordan", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" }
+      { id: 16, name: "Tyler", avatar: getMockAvatar("Tyler") },
+      { id: 17, name: "Zoe", avatar: getMockAvatar("Zoe") },
+      { id: 18, name: "Mason", avatar: getMockAvatar("Mason") },
+      { id: 19, name: "Chloe", avatar: getMockAvatar("Chloe") },
+      { id: 20, name: "Jordan", avatar: getMockAvatar("Jordan") }
     ]
   },
   {
@@ -117,11 +118,11 @@ export const tripsData: Trip[] = [
     description: "Multi-generational family retreat with hiking, spa time, and quality family bonding",
     coverPhoto: aspenFamilySummer,
     participants: [
-      { id: 21, name: "Dad (Mike)", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" },
-      { id: 22, name: "Mom (Linda)", avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face" },
-      { id: 23, name: "Katie", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face" },
-      { id: 24, name: "Tommy", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" },
-      { id: 25, name: "Grandma Pat", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=40&h=40&fit=crop&crop=face" }
+      { id: 21, name: "Dad (Mike)", avatar: getMockAvatar("Mike") },
+      { id: 22, name: "Mom (Linda)", avatar: getMockAvatar("Linda") },
+      { id: 23, name: "Katie", avatar: getMockAvatar("Katie") },
+      { id: 24, name: "Tommy", avatar: getMockAvatar("Tommy") },
+      { id: 25, name: "Grandma Pat", avatar: getMockAvatar("Pat") }
     ]
   },
   {
@@ -132,12 +133,12 @@ export const tripsData: Trip[] = [
     description: "Annual guys' golf trip with tournaments, poker nights, and fantasy football draft",
     coverPhoto: phoenixGolfOuting,
     participants: [
-      { id: 26, name: "Commissioner Mike", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" },
-      { id: 27, name: "Big Rob", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" },
-      { id: 28, name: "Tony", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" },
-      { id: 29, name: "Dave", avatar: "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=40&h=40&fit=crop&crop=face" },
-      { id: 30, name: "Chris", avatar: "https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face" },
-      { id: 31, name: "Steve", avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=40&h=40&fit=crop&crop=face" }
+      { id: 26, name: "Commissioner Mike", avatar: getMockAvatar("Mike") },
+      { id: 27, name: "Big Rob", avatar: getMockAvatar("Rob") },
+      { id: 28, name: "Tony", avatar: getMockAvatar("Tony") },
+      { id: 29, name: "Dave", avatar: getMockAvatar("Dave") },
+      { id: 30, name: "Chris", avatar: getMockAvatar("Chris") },
+      { id: 31, name: "Steve", avatar: getMockAvatar("Steve") }
     ]
   },
   {
@@ -148,14 +149,14 @@ export const tripsData: Trip[] = [
     description: "Yoga and wellness focused retreat with breathwork, meditation, and spa treatments",
     coverPhoto: tulumYogaWellness,
     participants: [
-      { id: 32, name: "Elena Ramirez", avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face" },
-      { id: 33, name: "Jason Wu", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" },
-      { id: 34, name: "Amara Vance", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face" },
-      { id: 35, name: "Sophia Chen", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=40&h=40&fit=crop&crop=face" },
-      { id: 36, name: "Marcus Thompson", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" },
-      { id: 37, name: "Isla Rodriguez", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=40&h=40&fit=crop&crop=face" },
-      { id: 38, name: "Maya Patel", avatar: "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=40&h=40&fit=crop&crop=face" },
-      { id: 39, name: "River Johnson", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" }
+      { id: 32, name: "Elena Ramirez", avatar: getMockAvatar("Elena") },
+      { id: 33, name: "Jason Wu", avatar: getMockAvatar("Jason") },
+      { id: 34, name: "Amara Vance", avatar: getMockAvatar("Amara") },
+      { id: 35, name: "Sophia Chen", avatar: getMockAvatar("Sophia") },
+      { id: 36, name: "Marcus Thompson", avatar: getMockAvatar("Marcus") },
+      { id: 37, name: "Isla Rodriguez", avatar: getMockAvatar("Isla") },
+      { id: 38, name: "Maya Patel", avatar: getMockAvatar("Maya") },
+      { id: 39, name: "River Johnson", avatar: getMockAvatar("River") }
     ]
   },
   {
@@ -166,12 +167,12 @@ export const tripsData: Trip[] = [
     description: "Celebratory wine country escape with tastings, spa treatments, and new beginnings",
     coverPhoto: napaWineGetaway,
     participants: [
-      { id: 40, name: "Olivia Parker", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face" },
-      { id: 41, name: "Mia Brooks", avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face" },
-      { id: 42, name: "Sara Kang", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=40&h=40&fit=crop&crop=face" },
-      { id: 43, name: "Jessica Martinez", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=40&h=40&fit=crop&crop=face" },
-      { id: 44, name: "Rachel Davis", avatar: "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=40&h=40&fit=crop&crop=face" },
-      { id: 45, name: "Amanda Wilson", avatar: "https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face" }
+      { id: 40, name: "Olivia Parker", avatar: getMockAvatar("Olivia") },
+      { id: 41, name: "Mia Brooks", avatar: getMockAvatar("Mia") },
+      { id: 42, name: "Sara Kang", avatar: getMockAvatar("Sara") },
+      { id: 43, name: "Jessica Martinez", avatar: getMockAvatar("Jessica") },
+      { id: 44, name: "Rachel Davis", avatar: getMockAvatar("Rachel") },
+      { id: 45, name: "Amanda Wilson", avatar: getMockAvatar("Amanda") }
     ]
   },
   {
@@ -182,16 +183,16 @@ export const tripsData: Trip[] = [
     description: "Company holiday celebration with skiing, team building, and winter activities",
     coverPhoto: aspenCorporateSki,
     participants: [
-      { id: 46, name: "Tom Nguyen", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" },
-      { id: 47, name: "Heather Cole", avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face" },
-      { id: 48, name: "Luis Ortiz", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" },
-      { id: 49, name: "Sarah Kim", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face" },
-      { id: 50, name: "Michael Chang", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" },
-      { id: 51, name: "Jennifer Lee", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=40&h=40&fit=crop&crop=face" },
-      { id: 52, name: "David Park", avatar: "https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face" },
-      { id: 53, name: "Lisa Wong", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=40&h=40&fit=crop&crop=face" },
-      { id: 54, name: "Kevin Zhang", avatar: "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=40&h=40&fit=crop&crop=face" },
-      { id: 55, name: "Emily Chen", avatar: "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=40&h=40&fit=crop&crop=face" }
+      { id: 46, name: "Tom Nguyen", avatar: getMockAvatar("Tom") },
+      { id: 47, name: "Heather Cole", avatar: getMockAvatar("Heather") },
+      { id: 48, name: "Luis Ortiz", avatar: getMockAvatar("Luis") },
+      { id: 49, name: "Sarah Kim", avatar: getMockAvatar("Sarah") },
+      { id: 50, name: "Michael Chang", avatar: getMockAvatar("Michael") },
+      { id: 51, name: "Jennifer Lee", avatar: getMockAvatar("Jennifer") },
+      { id: 52, name: "David Park", avatar: getMockAvatar("David") },
+      { id: 53, name: "Lisa Wong", avatar: getMockAvatar("Lisa") },
+      { id: 54, name: "Kevin Zhang", avatar: getMockAvatar("Kevin") },
+      { id: 55, name: "Emily Chen", avatar: getMockAvatar("Emily") }
     ]
   },
   {
@@ -202,13 +203,13 @@ export const tripsData: Trip[] = [
     description: "Magical family cruise with Disney characters, activities, and island adventures",
     coverPhoto: disneyFamilyCruise,
     participants: [
-      { id: 56, name: "Liam Turner", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" },
-      { id: 57, name: "Emma Turner", avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face" },
-      { id: 58, name: "Ella Turner", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face" },
-      { id: 59, name: "Noah Turner", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" },
-      { id: 60, name: "Grace Turner", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=40&h=40&fit=crop&crop=face" },
-      { id: 61, name: "Grandpa Joe", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" },
-      { id: 62, name: "Grandma Rose", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=40&h=40&fit=crop&crop=face" }
+      { id: 56, name: "Liam Turner", avatar: getMockAvatar("Liam") },
+      { id: 57, name: "Emma Turner", avatar: getMockAvatar("Emma") },
+      { id: 58, name: "Ella Turner", avatar: getMockAvatar("Ella") },
+      { id: 59, name: "Noah Turner", avatar: getMockAvatar("Noah") },
+      { id: 60, name: "Grace Turner", avatar: getMockAvatar("Grace") },
+      { id: 61, name: "Grandpa Joe", avatar: getMockAvatar("Joe") },
+      { id: 62, name: "Grandma Rose", avatar: getMockAvatar("Rose") }
     ]
   },
   {
@@ -219,11 +220,11 @@ export const tripsData: Trip[] = [
     description: "Outdoor adventure exploring geysers, wildlife, and backcountry hiking trails",
     coverPhoto: yellowstoneHikingGroup,
     participants: [
-      { id: 63, name: "Brent Miller", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" },
-      { id: 64, name: "Nia Patel", avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face" },
-      { id: 65, name: "Zoe Lewis", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face" },
-      { id: 66, name: "Alex Rivera", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" },
-      { id: 67, name: "Cameron Brooks", avatar: "https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face" }
+      { id: 63, name: "Brent Miller", avatar: getMockAvatar("Brent") },
+      { id: 64, name: "Nia Patel", avatar: getMockAvatar("Nia") },
+      { id: 65, name: "Zoe Lewis", avatar: getMockAvatar("Zoe") },
+      { id: 66, name: "Alex Rivera", avatar: getMockAvatar("Alex") },
+      { id: 67, name: "Cameron Brooks", avatar: getMockAvatar("Cameron") }
     ]
   }
 ];

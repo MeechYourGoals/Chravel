@@ -16,6 +16,7 @@ interface CollaboratorsGridProps {
   minColWidth?: number; // min width for each grid item
   onShowAll: () => void;
   tripType?: 'consumer' | 'pro' | 'event';
+  displayContext?: 'home' | 'trip-detail'; // Controls whether to show avatars or initials
 }
 
 export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
@@ -25,7 +26,13 @@ export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
   minColWidth = 140,
   onShowAll,
   tripType = 'consumer',
+  displayContext = 'trip-detail',
 }) => {
+  // Determine whether to show avatars or initials
+  // Events: always show initials only (privacy)
+  // Consumer & Pro: show avatars in trip-detail, initials on home
+  const showAvatars = tripType !== 'event' && displayContext === 'trip-detail';
+  
   // Approximate clamp height: each row ~ 52px with compact sizing
   const clampHeight = Math.max(52, Math.min(160, maxRows * 52));
 
@@ -49,7 +56,7 @@ export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
               role="listitem"
               title={c.role ? `${c.name} • ${c.role}` : c.name}
             >
-            {isValidAvatarUrl(c.avatar) && shouldShowFullNameInAvatar(tripType) ? (
+            {showAvatars && isValidAvatarUrl(c.avatar) ? (
               <img
                 src={c.avatar}
                 alt={c.name}
