@@ -28,10 +28,10 @@ interface AddPlaceModalProps {
 import { PlaceCategoryEnum, PlaceCategory } from '../types/basecamp';
 
 const categoryDetails: { [key in PlaceCategory]: { icon: string; description: string } } = {
-  'Food & Drink': { icon: '🍽️', description: 'Restaurants, cafes, bars' },
-  'Attraction': { icon: '🎯', description: 'Stadiums, music venues, landmarks' },
-  'Activity': { icon: '🎢', description: 'Tours, shows, activities, museums' },
+  'Appetite': { icon: '🍽️', description: 'Restaurants, bars, lounges, food trucks' },
+  'Activity': { icon: '🎢', description: 'Hiking, jet skiing, beach, museums' },
   'Accommodation': { icon: '🏨', description: 'Hotels, rentals, hostels' },
+  'Attraction': { icon: '🎯', description: 'Stadiums, music venues, famous landmarks' },
   'Other': { icon: '📍', description: 'Other points of interest' },
 };
 

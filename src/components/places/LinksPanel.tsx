@@ -44,17 +44,16 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
 
   const [isAddPlaceModalOpen, setIsAddPlaceModalOpen] = useState(false);
   const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set(['all']));
-  const [addingToLinks, setAddingToLinks] = useState<Set<string>>(new Set());
 
   const availableCategories = PlaceCategoryEnum.filter(cat =>
     places.some(p => p.category === cat)
   );
 
   const categoryIcons: { [key in PlaceCategory]: React.ElementType } = {
-    'Food & Drink': MapPin,
-    'Attraction': Navigation2,
+    'Appetite': MapPin,
     'Activity': Calendar,
     'Accommodation': MapPin,
+    'Attraction': Navigation2,
     'Other': Link,
   };
 
@@ -81,47 +80,6 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
     visibleCategories.has('all')
       ? places
       : places.filter(p => p.category && visibleCategories.has(p.category));
-
-  const handleAddToLinksClick = async (place: PlaceWithDistance) => {
-    if (linkedPlaceIds.has(place.id)) {
-      toast({
-        title: "Already saved",
-        description: `${place.name} is already in your Links.`,
-        variant: "default",
-      });
-      return;
-    }
-
-    setAddingToLinks(prev => new Set(prev).add(place.id));
-    try {
-      const success = await onAddToLinks(place);
-      if (success) {
-        toast({
-          title: "Added to Links",
-          description: `${place.name} has been saved to your Places > Links section.`,
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Failed to add",
-          description: "Could not save to links. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "An error occurred while saving to links.",
-        variant: "destructive",
-      });
-    } finally {
-      setAddingToLinks(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(place.id);
-        return newSet;
-      });
-    }
-  };
 
   return (
     <>

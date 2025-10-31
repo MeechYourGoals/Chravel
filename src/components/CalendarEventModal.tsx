@@ -113,11 +113,11 @@ export const CalendarEventModal = ({
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal text-sm px-2",
+                      "w-full justify-start text-left font-normal text-xs px-3",
                       !formData.date && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-1 h-4 w-4 flex-shrink-0" />
+                    <CalendarIcon className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
                     <span className="truncate">
                       {formData.date ? format(formData.date, "MMM d, yyyy") : "Pick a date"}
                     </span>
