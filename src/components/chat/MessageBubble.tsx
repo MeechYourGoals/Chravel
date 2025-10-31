@@ -74,7 +74,7 @@ export const MessageBubble = ({
 
       <div
         className={cn(
-          'flex flex-col max-w-[70%]',
+          'flex flex-col max-w-[85%]',
           isOwnMessage ? 'items-end text-right' : 'items-start text-left',
         )}
       >

@@ -336,10 +336,10 @@ export const TripChat = ({
         </div>
       )}
 
-      {/* Unified Chat Shell - Teams-like container */}
-      <div className="max-w-5xl mx-auto p-4 overflow-hidden flex flex-col flex-1">
-
-        {isLoading ? (
+      {/* Unified Chat Shell - Glassmorphic container */}
+      <div className="max-w-5xl mx-auto px-4 pb-4 flex-1 flex flex-col">
+        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
+          {isLoading ? (
           <div className="flex-1 overflow-y-auto p-4">
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
@@ -353,55 +353,56 @@ export const TripChat = ({
               ))}
             </div>
           </div>
-        ) : (
-          <VirtualizedMessageContainer
-            messages={filteredMessages}
-            renderMessage={(message) => (
-              <MessageItem
-                message={message}
-                reactions={reactions[message.id]}
-                onReaction={handleReaction}
+          ) : (
+            <VirtualizedMessageContainer
+              messages={filteredMessages}
+              renderMessage={(message) => (
+                <MessageItem
+                  message={message}
+                  reactions={reactions[message.id]}
+                  onReaction={handleReaction}
+                />
+              )}
+              onLoadMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? () => {} : loadMoreMessages}
+              hasMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? false : hasMore}
+              isLoading={isLoadingMore}
+              initialVisibleCount={10}
+              className="chat-scroll-container native-scroll px-3"
+              autoScroll={true}
+              restoreScroll={true}
+              scrollKey={`chat-scroll-${resolvedTripId}`}
+            />
+          )}
+          
+          {/* Reply Bar */}
+          {replyingTo && (
+            <div className="border-t border-white/10 bg-black/30 px-4 py-2">
+              <InlineReplyComponent 
+                replyTo={{ 
+                  id: replyingTo.id, 
+                  text: replyingTo.text,
+                  senderName: replyingTo.senderName 
+                }}
+                onCancel={clearReply} 
               />
-            )}
-            onLoadMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? () => {} : loadMoreMessages}
-            hasMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? false : hasMore}
-            isLoading={isLoadingMore}
-            initialVisibleCount={10}
-            className="chat-scroll-container native-scroll"
-            autoScroll={true}
-            restoreScroll={true}
-            scrollKey={`chat-scroll-${resolvedTripId}`}
-          />
-        )}
-        
-        {/* Reply Bar */}
-        {replyingTo && (
-          <div className="border-t border-white/10 bg-black/30 px-4 py-2">
-            <InlineReplyComponent 
-              replyTo={{ 
-                id: replyingTo.id, 
-                text: replyingTo.text,
-                senderName: replyingTo.senderName 
-              }}
-              onCancel={clearReply} 
+            </div>
+          )}
+          
+          {/* Input Area */}
+          <div className="border-t border-white/10 bg-black/30 p-3">
+            <ChatInput
+              inputMessage={inputMessage}
+              onInputChange={setInputMessage}
+              onSendMessage={handleSendMessage}
+              onKeyPress={handleKeyPress}
+              apiKey=""
+              isTyping={isSendingMessage}
+              tripMembers={tripMembers}
+              hidePayments={true}
+              isPro={isPro}
+              tripId={resolvedTripId}
             />
           </div>
-        )}
-        
-        {/* Input Area */}
-        <div className="border-t border-white/10 bg-black/30 p-3">
-          <ChatInput
-            inputMessage={inputMessage}
-            onInputChange={setInputMessage}
-            onSendMessage={handleSendMessage}
-            onKeyPress={handleKeyPress}
-            apiKey=""
-            isTyping={isSendingMessage}
-            tripMembers={tripMembers}
-            hidePayments={true}
-            isPro={isPro}
-            tripId={resolvedTripId}
-          />
         </div>
       </div>
     </div>

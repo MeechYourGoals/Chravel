@@ -222,6 +222,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       // Update search origin for biasing future searches
       setSearchOrigin(newOrigin);
 
+      if (activeBasecamp) {
         // If there's a selected place, re-trigger the search to show new directions from the new basecamp
         if (selectedPlace?.name && services && sessionToken) {
           console.log(`[MapCanvas] Re-searching from new basecamp context: ${selectedPlace.name}`);
