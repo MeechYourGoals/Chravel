@@ -52,7 +52,6 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
         if (product_id === STRIPE_PRODUCTS['consumer-explorer'].product_id) userTier = 'explorer';
         else if (product_id === STRIPE_PRODUCTS['consumer-frequent-chraveler']?.product_id) userTier = 'frequent-chraveler';
         else if (product_id === STRIPE_PRODUCTS['consumer-plus'].product_id) userTier = 'explorer'; // Legacy Plus -> Explorer
-        // Note: 'consumer-pro' was renamed to 'consumer-frequent-chraveler' above
       }
       
       setSubscription({

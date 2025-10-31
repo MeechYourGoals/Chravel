@@ -39,7 +39,14 @@ export const TripCategorySelector = ({
     
     setIsSaving(true);
     try {
-      // Store categories in localStorage temporarily until migration runs
+      // Persist categories to database
+      const { error } = await supabase
+        .from('trips')
+        .update({ categories: newCategories })
+        .eq('id', tripId);
+      
+      if (error) throw error;
+      
       onCategoriesChange(newCategories);
       toast.success('Categories updated');
     } catch (error) {

@@ -2284,6 +2284,7 @@ export type Database = {
           ai_access_enabled: boolean | null
           basecamp_address: string | null
           basecamp_name: string | null
+          categories: Json | null
           cover_image_url: string | null
           created_at: string
           created_by: string
@@ -2302,6 +2303,7 @@ export type Database = {
           ai_access_enabled?: boolean | null
           basecamp_address?: string | null
           basecamp_name?: string | null
+          categories?: Json | null
           cover_image_url?: string | null
           created_at?: string
           created_by: string
@@ -2320,6 +2322,7 @@ export type Database = {
           ai_access_enabled?: boolean | null
           basecamp_address?: string | null
           basecamp_name?: string | null
+          categories?: Json | null
           cover_image_url?: string | null
           created_at?: string
           created_by?: string
