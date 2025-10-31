@@ -215,12 +215,12 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       if (!mapRef.current) return;
 
       const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
+      const newOrigin = activeBasecamp?.coordinates || null;
       
       console.log(`[MapCanvas] Context changed to ${activeContext}`, activeBasecamp);
 
-      if (activeBasecamp?.coordinates) {
-        // Update search origin for biasing
-        setSearchOrigin(activeBasecamp.coordinates);
+      // Update search origin for biasing future searches
+      setSearchOrigin(newOrigin);
 
         // If there's a selected place, re-trigger the search to show new directions from the new basecamp
         if (selectedPlace?.name && services && sessionToken) {
@@ -311,7 +311,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     };
 
     // Search submission handler
-    const handleSearch = async (query: string) => {
+    const handleSearch = async (query: string, overrideOrigin?: SearchOrigin) => {
       const trimmedQuery = query.trim();
       if (!trimmedQuery || !mapRef.current || !services || !sessionToken) return;
 
@@ -320,13 +320,14 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       setShowSuggestions(false);
 
       try {
-        console.log('[MapCanvas] Searching for:', trimmedQuery, { origin: searchOrigin });
+        const effectiveOrigin = overrideOrigin || searchOrigin;
+        console.log('[MapCanvas] Searching for:', trimmedQuery, { origin: effectiveOrigin });
 
         const place = await resolveQuery(
           mapRef.current,
           services,
           trimmedQuery,
-          searchOrigin,
+          effectiveOrigin,
           sessionToken
         );
 
