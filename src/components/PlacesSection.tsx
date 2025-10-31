@@ -304,7 +304,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
 
       {/* Single Map with Overlays - Pinned at top */}
       <div className="mb-6">
-        <div className="relative h-[35vh] md:h-[300px] rounded-2xl overflow-hidden shadow-2xl">
+        <div className="relative h-[52.5vh] md:h-[450px] rounded-2xl overflow-hidden shadow-2xl">
           <MapCanvas
             ref={mapRef}
             activeContext={searchContext}
