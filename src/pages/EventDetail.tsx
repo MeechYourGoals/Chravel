@@ -13,6 +13,7 @@ import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { TripContext } from '../types/tripContext';
 import { Message } from '../types/messages';
 import { MobileEventDetail } from './MobileEventDetail';
+import { useEmbeddingGeneration } from '../hooks/useEmbeddingGeneration';
 
 
 const EventDetail = () => {
@@ -23,6 +24,7 @@ const EventDetail = () => {
     return <MobileEventDetail />;
   }
   const { eventId } = useParams<{ eventId?: string }>();
+  const { generateInitialEmbeddings } = useEmbeddingGeneration(eventId);
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('chat');
   const [showInbox, setShowInbox] = useState(false);
@@ -74,6 +76,13 @@ const EventDetail = () => {
       setTripDescription(eventData.description);
     }
   }, [eventData.description, tripDescription]);
+
+  // Generate initial embeddings for RAG when event loads
+  React.useEffect(() => {
+    if (eventId && user) {
+      generateInitialEmbeddings();
+    }
+  }, [eventId, user, generateInitialEmbeddings]);
 
   // Mock basecamp data for Events
   const basecamp = {

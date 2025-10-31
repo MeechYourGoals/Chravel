@@ -19,6 +19,7 @@ import { openOrDownloadBlob } from '../utils/download';
 import { toast } from 'sonner';
 import { supabase } from '../integrations/supabase/client';
 import { MobileProTripDetail } from './MobileProTripDetail';
+import { useEmbeddingGeneration } from '../hooks/useEmbeddingGeneration';
 
 const ProTripDetail = () => {
   const isMobile = useIsMobile();
@@ -28,6 +29,7 @@ const ProTripDetail = () => {
     return <MobileProTripDetail />;
   }
   const { proTripId } = useParams<{ proTripId?: string }>();
+  const { generateInitialEmbeddings } = useEmbeddingGeneration(proTripId);
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const [activeTab, setActiveTab] = useState('chat');
@@ -88,6 +90,13 @@ const ProTripDetail = () => {
     name: tripData.basecamp_name || '',
     address: tripData.basecamp_address || ''
   };
+
+  // Generate initial embeddings for RAG when pro trip loads
+  React.useEffect(() => {
+    if (proTripId && user && isDemoMode) {
+      generateInitialEmbeddings();
+    }
+  }, [proTripId, user, isDemoMode, generateInitialEmbeddings]);
 
   const broadcasts = tripData.broadcasts || [];
   const links = tripData.links || [];
