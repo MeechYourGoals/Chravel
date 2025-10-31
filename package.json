@@ -59,6 +59,7 @@
     "@radix-ui/react-tooltip": "^1.1.4",
     "@supabase/supabase-js": "^2.53.0",
     "@tanstack/react-query": "^5.56.2",
+    "@types/google.maps": "^3.58.1",
     "@types/leaflet": "^1.9.18",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -112,6 +113,6 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1",
-    "vitest": "^1.4.0"
+    "vitest": "^1.6.1"
   }
 }

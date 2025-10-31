@@ -1,3 +1,5 @@
+/// <reference types="@types/google.maps" />
+
 /**
  * Google Places API Service
  * 
@@ -11,6 +13,7 @@
  */
 
 import { Loader } from '@googlemaps/js-api-loader';
+import { getGoogleMapsApiKey } from '@/config/maps';
 
 let maps: typeof google.maps | null = null;
 
@@ -27,6 +30,34 @@ return maps!;
 
 export type SearchOrigin = { lat: number; lng: number } | null;
 
+/**
+ * Lazy-load Google Maps JavaScript API with Places & Geocoding libraries
+ */
+export async function loadMapsApi(): Promise<typeof google.maps> {
+  if (mapsApi) return mapsApi;
+  
+  if (!loaderPromise) {
+    const apiKey = getGoogleMapsApiKey();
+
+    const loader = new Loader({
+      apiKey,
+      version: 'weekly',
+      libraries: ['places', 'geocoding'],
+    });
+
+    loaderPromise = loader.load().then(google => {
+      mapsApi = google.maps;
+      return google.maps;
+    });
+  }
+
+  return loaderPromise;
+}
+
+/**
+ * Create Places and Geocoder service instances
+ * Requires an initialized map instance for PlacesService
+ */
 export async function createServices(map: google.maps.Map) {
 await loadMaps();
 return {

@@ -6,7 +6,8 @@ export interface SearchContextSwitchProps {
   onContextChange: (context: 'trip' | 'personal') => void;
   tripLabel?: string;
   personalLabel?: string;
-  disabled?: boolean;
+  tripDisabled?: boolean;
+  personalDisabled?: boolean;
 }
 
 export const SearchContextSwitch: React.FC<SearchContextSwitchProps> = ({
@@ -14,13 +15,14 @@ export const SearchContextSwitch: React.FC<SearchContextSwitchProps> = ({
   onContextChange,
   tripLabel = 'Trip Base Camp',
   personalLabel = 'Personal Base Camp',
-  disabled = false
+  tripDisabled = false,
+  personalDisabled = false
 }) => {
   return (
     <div className="flex items-center gap-2 bg-gray-800/50 rounded-xl p-1.5 border border-gray-700">
       <button
         onClick={() => onContextChange('trip')}
-        disabled={disabled}
+        disabled={tripDisabled}
         aria-pressed={activeContext === 'trip'}
         className={`
           flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg 
@@ -29,7 +31,7 @@ export const SearchContextSwitch: React.FC<SearchContextSwitchProps> = ({
             ? 'bg-sky-500/20 text-sky-200 shadow-sm border border-sky-500/30'
             : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
           }
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          ${tripDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
       >
         <Home size={16} />
@@ -39,7 +41,7 @@ export const SearchContextSwitch: React.FC<SearchContextSwitchProps> = ({
       
       <button
         onClick={() => onContextChange('personal')}
-        disabled={disabled}
+        disabled={personalDisabled}
         aria-pressed={activeContext === 'personal'}
         className={`
           flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg 
@@ -48,7 +50,7 @@ export const SearchContextSwitch: React.FC<SearchContextSwitchProps> = ({
             ? 'bg-emerald-500/20 text-emerald-200 shadow-sm border border-emerald-500/30'
             : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
           }
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          ${personalDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
       >
         <MapPin size={16} />

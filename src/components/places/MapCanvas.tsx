@@ -1,3 +1,5 @@
+/// <reference types="@types/google.maps" />
+
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { Search, X, Loader2 } from 'lucide-react';
 import { BasecampLocation } from '@/types/basecamp';
@@ -10,6 +12,7 @@ import {
   centerMapOnPlace,
   SearchOrigin,
 } from '@/services/googlePlaces';
+import { GoogleMapsEmbed } from '@/components/GoogleMapsEmbed';
 
 export interface MapMarker {
   id: string;
@@ -53,6 +56,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const [isMapLoading, setIsMapLoading] = useState(true);
     const [mapError, setMapError] = useState<string | null>(null);
+    const [useFallbackEmbed, setUseFallbackEmbed] = useState(false);
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -73,13 +77,35 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     // Markers state
     const markersRef = useRef<google.maps.Marker[]>([]);
     const searchMarkerRef = useRef<google.maps.Marker | null>(null);
+    const overlayObserverRef = useRef<MutationObserver | null>(null);
 
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
       centerOn: (latLng: { lat: number; lng: number }, zoom = 15) => {
-        if (mapRef.current) {
-          mapRef.current.setCenter(latLng);
+        if (mapRef.current && window.google) {
+          mapRef.current.panTo(latLng);
           mapRef.current.setZoom(zoom);
+
+          // Add a temporary marker for visual feedback
+          const tempMarker = new window.google.maps.Marker({
+            position: latLng,
+            map: mapRef.current,
+            icon: {
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: '#fde047', // yellow-300
+              fillOpacity: 1,
+              strokeColor: '#f97316', // orange-500
+              strokeWeight: 2,
+            },
+            animation: window.google.maps.Animation.DROP,
+            zIndex: 300,
+          });
+
+          // Remove the marker after a short delay
+          setTimeout(() => {
+            tempMarker.setMap(null);
+          }, 2500);
         }
       },
       fitBounds: (bounds: { north: number; south: number; east: number; west: number }) => {
@@ -106,7 +132,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           setIsMapLoading(true);
           setMapError(null);
 
-          const gmaps = await loadMaps();
+          const maps = await loadMapsApi();
 
           if (!mounted || !mapContainerRef.current) return;
 
@@ -122,7 +148,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           }
 
           // Create map instance
-          const map = new gmaps.Map(mapContainerRef.current, {
+          const map = new maps.Map(mapContainerRef.current, {
             center,
             zoom,
             mapTypeControl: true,
@@ -141,6 +167,17 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
           mapRef.current = map;
 
+          // If Google renders its error overlay, switch to iframe fallback
+          setTimeout(() => {
+            const hasGmError = !!mapContainerRef.current?.querySelector('.gm-err-container');
+            if (hasGmError) {
+              console.error('[MapCanvas] Detected Google Maps error overlay – enabling iframe fallback');
+              setUseFallbackEmbed(true);
+              setMapError('Google Maps failed to load, possibly due to an invalid API key or billing issue.');
+              setIsMapLoading(false);
+            }
+          }, 1500);
+
           // Create services
           const svc = await createServices(map);
           setServices(svc);
@@ -155,9 +192,11 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         } catch (error) {
           console.error('[MapCanvas] Map initialization error:', error);
           if (mounted) {
-            const errorMessage = error instanceof Error && error.message.includes('VITE_GOOGLE_MAPS_API_KEY')
-              ? 'Google Maps API key not configured. Please add VITE_GOOGLE_MAPS_API_KEY to your .env file.'
-              : 'Failed to load map. Please check your internet connection and API key configuration.';
+            // Graceful fallback to embed if JS API fails to load/auth
+            setUseFallbackEmbed(true);
+            const errorMessage = error instanceof Error && error.message.includes('Google Maps')
+              ? error.message
+              : 'Failed to load Google Maps JavaScript API.';
             setMapError(errorMessage);
             setIsMapLoading(false);
           }
@@ -183,9 +222,17 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         // Update search origin for biasing
         setSearchOrigin(activeBasecamp.coordinates);
 
-        // Center map on the active basecamp
-        mapRef.current.setCenter(activeBasecamp.coordinates);
-        mapRef.current.setZoom(12);
+        // If there's a selected place, re-trigger the search to show new directions from the new basecamp
+        if (selectedPlace?.name && services && sessionToken) {
+          console.log(`[MapCanvas] Re-searching from new basecamp context: ${selectedPlace.name}`);
+          handleSearch(selectedPlace.name);
+        }
+
+        // Center map on the active basecamp only if no place is selected
+        if (!selectedPlace) {
+          mapRef.current.setCenter(activeBasecamp.coordinates);
+          mapRef.current.setZoom(12);
+        }
       } else {
         setSearchOrigin(null);
       }
@@ -375,10 +422,19 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       );
     };
 
+    // If fallback embed mode is enabled, show the iframe instead
+    if (useFallbackEmbed) {
+      return (
+        <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
+          <GoogleMapsEmbed className="w-full h-full" />
+        </div>
+      );
+    }
+
     return (
       <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
-        {/* Search Bar - Centered */}
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-sm px-4">
+        {/* Search Bar - Centered with proper spacing from sides */}
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-md px-20 md:px-24">
           <form onSubmit={handleSearchSubmit} className="relative">
             <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
             <input

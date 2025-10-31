@@ -6,6 +6,7 @@ import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useBasecamp } from '@/contexts/BasecampContext';
 
 export interface BasecampsPanelProps {
   tripId: string;
@@ -30,6 +31,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
 }) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
+  const { clearBasecamp } = useBasecamp();
   const [internalPersonalBasecamp, setInternalPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
   const [showTripSelector, setShowTripSelector] = useState(false);
   const [showPersonalSelector, setShowPersonalSelector] = useState(false);
@@ -84,6 +86,12 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   const handleTripBasecampSet = async (newBasecamp: BasecampLocation) => {
     await onTripBasecampSet(newBasecamp);
     setShowTripSelector(false);
+  };
+
+  const handleTripBasecampDelete = () => {
+    if (!tripBasecamp) return;
+    // Clear the trip basecamp using the context
+    clearBasecamp();
   };
 
   const handlePersonalBasecampSet = async (location: BasecampLocation) => {
@@ -167,8 +175,8 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Trip Base Camp Card */}
-        <div className="rounded-2xl bg-gray-900/80 border border-white/10 shadow-lg overflow-hidden">
-          <div className="p-6">
+        <div className="rounded-2xl bg-gray-900/80 border border-white/10 shadow-lg overflow-hidden flex flex-col">
+          <div className="p-6 flex flex-col flex-1">
             {tripBasecamp ? (
               <>
                 <div className="flex items-center justify-between mb-4">
@@ -176,16 +184,25 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                     <Home size={20} className="text-sky-400" />
                     <h3 className="text-white font-semibold text-lg">Trip Base Camp</h3>
                   </div>
-                  <button
-                    onClick={() => setShowTripSelector(true)}
-                    className="p-2 rounded-lg text-sky-400 hover:bg-sky-500/10 transition-colors"
-                    title="Edit"
-                  >
-                    <Edit size={16} />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleTripBasecampDelete}
+                      className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => setShowTripSelector(true)}
+                      className="p-2 rounded-lg text-sky-400 hover:bg-sky-500/10 transition-colors"
+                      title="Edit"
+                    >
+                      <Edit size={16} />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4">
+                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4 flex-1">
                   <div className="flex items-start gap-2">
                     <MapPin size={14} className="text-sky-400 mt-1 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -197,7 +214,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-auto">
                   <button
                     onClick={() => onContextChange('trip')}
                     className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
@@ -206,7 +223,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                         : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                     }`}
                   >
-                    Use for Searches
+                    Add New Basecamp
                   </button>
                   {tripBasecamp.coordinates && (
                     <button
@@ -240,8 +257,8 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         </div>
 
         {/* Personal Base Camp Card */}
-        <div className="rounded-2xl bg-gray-900/80 border border-white/10 shadow-lg overflow-hidden">
-          <div className="p-6">
+        <div className="rounded-2xl bg-gray-900/80 border border-white/10 shadow-lg overflow-hidden flex flex-col">
+          <div className="p-6 flex flex-col flex-1">
             {loading ? (
               <div className="animate-pulse">
                 <div className="h-8 bg-gray-800 rounded mb-4"></div>
@@ -249,10 +266,16 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
               </div>
             ) : personalBasecamp ? (
               <>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <MapPin size={20} className="text-emerald-400" />
-                    <h3 className="text-white font-semibold text-lg">Personal Base Camp</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <MapPin size={20} className="text-emerald-400" />
+                      <h3 className="text-white font-semibold text-lg">Personal Base Camp</h3>
+                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
+                      <Lock size={12} />
+                      Private
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -271,18 +294,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                     </button>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
-                    <Lock size={12} />
-                    Private
-                  </span>
-                  {isDemoMode && (
-                    <span className="text-xs text-gray-500">Demo Mode: saved locally</span>
-                  )}
-                </div>
-
-                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4">
+                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4 flex-1">
                   <div className="flex items-start gap-2">
                     <MapPin size={14} className="text-emerald-400 mt-1 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -294,7 +306,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-auto">
                   <button
                     onClick={() => onContextChange('personal')}
                     className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
@@ -303,7 +315,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                         : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                     }`}
                   >
-                    Use for Searches
+                    Add New Basecamp
                   </button>
                   {personalBasecamp.latitude && personalBasecamp.longitude && (
                     <button
@@ -318,20 +330,21 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
               </>
             ) : (
               <>
-                <div className="flex items-center gap-2 mb-2">
-                  <MapPin size={20} className="text-emerald-400" />
-                  <h3 className="text-white font-semibold text-lg">Personal Base Camp</h3>
-                  <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
-                    <Lock size={12} />
-                    Private
-                  </span>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <MapPin size={20} className="text-emerald-400" />
+                      <h3 className="text-white font-semibold text-lg">Personal Base Camp</h3>
+                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
+                      <Lock size={12} />
+                      Private
+                    </span>
+                  </div>
                 </div>
-                <p className="text-gray-400 text-sm mb-3">
+                <p className="text-gray-400 text-sm mb-4">
                   Add the location of your accommodations. Only you can see this.
                 </p>
-                {isDemoMode && (
-                  <p className="text-xs text-gray-500 mb-3">Demo Mode: saved locally for this session</p>
-                )}
                 <button
                   onClick={() => setShowPersonalSelector(true)}
                   className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl transition-colors font-medium text-sm flex items-center justify-center gap-2"

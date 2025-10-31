@@ -8,6 +8,8 @@ import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { archiveTrip } from '../services/archiveService';
 import { useToast } from '../hooks/use-toast';
 import { calculatePeopleCount, calculateDaysCount, calculateEventPlacesCount } from '../utils/tripStatsUtils';
+import { getInitials } from '../utils/avatarUtils';
+import { TravelerTooltip } from './ui/traveler-tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -159,18 +161,15 @@ export const EventCard = ({ event }: EventCardProps) => {
           
           <div className="flex items-center justify-between">
             <div className="flex -space-x-3">
-              {event.participants.slice(0, 4).map((participant) => (
-                <div
-                  key={participant.id}
-                  className="relative"
-                  title={`${participant.name} - ${participant.role}`}
-                >
-                  <img
-                    src={participant.avatar}
-                    alt={participant.name}
-                    className="w-10 h-10 rounded-full border-2 border-gray-900"
-                  />
-                </div>
+              {event.participants.slice(0, 4).map((participant, index) => (
+                <TravelerTooltip key={participant.id} name={`${participant.name} - ${participant.role}`}>
+                  <div
+                    className="relative w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center text-sm font-semibold text-black border-2 border-gray-900 hover:scale-110 transition-transform duration-200 hover:border-yellow-400 cursor-pointer"
+                    style={{ zIndex: event.participants.length - index }}
+                  >
+                    {getInitials(participant.name)}
+                  </div>
+                </TravelerTooltip>
               ))}
             </div>
             {event.participants.length > 4 && (
