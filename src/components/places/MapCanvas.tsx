@@ -132,7 +132,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           setIsMapLoading(true);
           setMapError(null);
 
-          const maps = await loadMapsApi();
+          const maps = await loadMaps();
 
           if (!mounted || !mapContainerRef.current) return;
 
@@ -183,7 +183,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           setServices(svc);
 
           // Create initial session token
-          setSessionToken(new gmaps.places.AutocompleteSessionToken());
+          setSessionToken(new maps.places.AutocompleteSessionToken());
 
           setIsMapLoading(false);
           onMapReady?.();

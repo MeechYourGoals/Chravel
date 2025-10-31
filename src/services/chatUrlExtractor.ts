@@ -51,7 +51,7 @@ export async function extractUrlsFromTripChat(tripId: string): Promise<Normalize
 
     const { data, error } = await supabase
       .from('trip_link_index')
-      .select('id, url, created_at, user_id, og_title, domain')
+      .select('id, url, created_at, og_title, domain')
       .eq('trip_id', tripId)
       .order('created_at', { ascending: false });
 
@@ -62,14 +62,14 @@ export async function extractUrlsFromTripChat(tripId: string): Promise<Normalize
     if (!data?.length) return [];
 
     return data.map(link => ({
-      url: link.url || '',
-      rawUrl: link.url || '',
-      domain: link.domain || '',
-      firstSeenAt: link.created_at || '',
-      lastSeenAt: link.created_at || '',
+      url: link.url,
+      rawUrl: link.url,
+      domain: link.domain,
+      firstSeenAt: link.created_at,
+      lastSeenAt: link.created_at,
       messageId: link.id.toString(),
-      postedBy: { id: link.user_id || '' },
-      title: link.og_title || '',
+      postedBy: undefined, // user_id column doesn't exist in trip_link_index
+      title: link.og_title || undefined,
     }));
   } catch (e) {
     console.error('[chatUrlExtractor] Unexpected error:', e);

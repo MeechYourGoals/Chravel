@@ -15,25 +15,15 @@
 import { Loader } from '@googlemaps/js-api-loader';
 import { getGoogleMapsApiKey } from '@/config/maps';
 
-let maps: typeof google.maps | null = null;
-
-export async function loadMaps() {
-if (maps) return maps;
-const loader = new Loader({
-apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY!,
-version: 'weekly',
-libraries: ['places', 'geocoding'],
-});
-maps = await loader.load();
-return maps!;
-}
+let mapsApi: typeof google.maps | null = null;
+let loaderPromise: Promise<typeof google.maps> | null = null;
 
 export type SearchOrigin = { lat: number; lng: number } | null;
 
 /**
  * Lazy-load Google Maps JavaScript API with Places & Geocoding libraries
  */
-export async function loadMapsApi(): Promise<typeof google.maps> {
+export async function loadMaps(): Promise<typeof google.maps> {
   if (mapsApi) return mapsApi;
   
   if (!loaderPromise) {
@@ -121,15 +111,14 @@ sessionToken: google.maps.places.AutocompleteSessionToken
 await loadMaps();
 // 1) findPlaceFromQuery (precise)
 const findPlace = await new Promise<google.maps.places.PlaceResult[] | null>(res => {
-services.places.findPlaceFromQuery(
-{
-query,
-fields: ['place_id', 'geometry', 'name', 'formatted_address'],
-...(origin && { locationBias: new google.maps.LatLng(origin.lat, origin.lng) }),
-sessionToken,
-},
-(results, status) => res(status === google.maps.places.PlacesServiceStatus.OK ? results! : null)
-);
+    services.places.findPlaceFromQuery(
+      {
+        query,
+        fields: ['place_id', 'geometry', 'name', 'formatted_address'],
+        ...(origin && { locationBias: new google.maps.LatLng(origin.lat, origin.lng) }),
+      },
+      (results, status) => res(status === google.maps.places.PlacesServiceStatus.OK ? results! : null)
+    );
 });
 let candidate = findPlace?.[0];
 

@@ -16,6 +16,7 @@ import { ExportSection } from '../types/tripExport';
 import { generateClientPDF } from '../utils/exportPdfClient';
 import { openOrDownloadBlob } from '../utils/download';
 import { toast } from 'sonner';
+import { supabase } from '../integrations/supabase/client';
 
 const ProTripDetail = () => {
   const { proTripId } = useParams<{ proTripId?: string }>();
@@ -154,13 +155,11 @@ const ProTripDetail = () => {
       } else {
         // Call edge function for real Supabase trips
         const { data, error } = await supabase.functions.invoke('export-trip', {
-            body: {
-              tripId: proTripId,
-              sections,
-            },
-            responseType: 'blob'
+          body: {
+            tripId: proTripId,
+            sections,
           }
-        );
+        });
 
         if (error) {
           // If edge function fails, fallback to client export

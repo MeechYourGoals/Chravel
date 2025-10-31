@@ -171,13 +171,11 @@ const TripDetail = () => {
       } else {
         // Call edge function for real Supabase trips
         const { data, error } = await supabase.functions.invoke('export-trip', {
-            body: {
-              tripId,
-              sections,
-            },
-            responseType: 'blob'
+          body: {
+            tripId,
+            sections,
           }
-        );
+        });
 
         if (error) {
           // If edge function fails, fallback to client export

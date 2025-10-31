@@ -4,7 +4,7 @@ import { MapOverlayChips } from './places/MapOverlayChips';
 import { GreenNotice } from './places/GreenNotice';
 import { BasecampsPanel } from './places/BasecampsPanel';
 import { LinksPanel } from './places/LinksPanel';
-import { BasecampLocation, PlaceWithDistance, DistanceCalculationSettings } from '../types/basecamp';
+import { BasecampLocation, PlaceWithDistance, DistanceCalculationSettings, PlaceCategory } from '../types/basecamp';
 import { DistanceCalculator } from '../utils/distanceCalculator';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { AddToCalendarData } from '../types/calendar';
@@ -13,6 +13,7 @@ import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useBasecamp } from '@/contexts/BasecampContext';
+import { supabase } from '@/integrations/supabase/client';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
 import MockDataService from '@/services/mockDataService';
@@ -70,7 +71,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
             name: place.name,
             address: place.address,
             coordinates: place.coordinates,
-            category: place.category as "activity" | "attraction" | "fitness" | "hotel" | "nightlife" | "restaurant" | "transportation",
+            category: place.category as PlaceCategory,
             rating: place.rating,
             url: place.url,
             distanceFromBasecamp: place.distanceFromBasecamp
