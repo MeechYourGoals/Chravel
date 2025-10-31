@@ -1,5 +1,8 @@
 project_id = "jmjiyekmxwsxkfnqwyaa"
 
+[functions.generate-embeddings]
+verify_jwt = true
+
 [functions.join-trip]
 verify_jwt = true
 
