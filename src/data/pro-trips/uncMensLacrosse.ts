@@ -1,4 +1,5 @@
 import { ProTripData } from '../../types/pro';
+import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const uncMensLacrosse: ProTripData = {
   id: 'unc-lax-2025',
@@ -13,28 +14,21 @@ export const uncMensLacrosse: ProTripData = {
   broadcasts: [],
   participants: Array.from({ length: 45 }, (_, i) => {
     const id = 201 + i;
-    const avatars = [
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=40&h=40&fit=crop&crop=face'
-    ];
     
     if (i < 6) {
       const coaches = ['Joe Breschi', 'Jon Thompson', 'Dave Pietramala', 'Peter Murphy', 'Assistant Coach', 'Graduate Assistant'];
-      return { id, name: coaches[i] || `Coach ${i + 1}`, avatar: avatars[i % avatars.length], role: 'Coaches' };
+      const name = coaches[i] || `Coach ${i + 1}`;
+      return { id, name, avatar: getMockAvatar(name), role: 'Coaches' };
     } else if (i < 35) {
       const players = ['Michael Gianforcaro', 'James Matan', 'Owen Duffy', 'Antonio DeMarco', 'Cooper Frankenheimer', 'Dewey Egan', 'Tayden Bultman', 'Kai Prohaszka', 'Nick Pietramala', 'Dominic Pietramala', 'Hayden Downs', 'Colin Hannigan'];
       const playerIndex = (i - 6) % players.length;
       const playerNumber = Math.floor((i - 6) / 12) + 1;
-      return { id, name: players[playerIndex] || `Player ${i - 5}`, avatar: avatars[i % avatars.length], role: 'Players' };
+      const name = players[playerIndex] || `Player ${i - 5}`;
+      return { id, name, avatar: getMockAvatar(name), role: 'Players' };
     } else {
       const staff = ['Team Manager', 'Logistics Manager', 'Athletic Trainer', 'Academic Coordinator', 'Video Coordinator', 'Strength Coach', 'Team Doctor', 'Bus Driver', 'Administrative Assistant', 'Compliance Officer'];
-      return { id, name: staff[i - 35] || `Staff ${i - 34}`, avatar: avatars[i % avatars.length], role: 'Staff' };
+      const name = staff[i - 35] || `Staff ${i - 34}`;
+      return { id, name, avatar: getMockAvatar(name), role: 'Staff' };
     }
   }),
   budget: {
@@ -64,7 +58,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '201',
       name: 'Joe Breschi',
       email: 'breschi@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Joe Breschi'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'facility-access', 'medical-access'],
@@ -75,7 +69,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '202',
       name: 'Jon Thompson',
       email: 'jthompson@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Jon Thompson'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'offensive-coordination'],
@@ -86,7 +80,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '203',
       name: 'Dave Pietramala',
       email: 'dpietramala@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Dave Pietramala'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'defensive-coordination'],
@@ -97,7 +91,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '204',
       name: 'Peter Murphy',
       email: 'pmurphy@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Peter Murphy'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'assistant-coaching'],
@@ -108,7 +102,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '205',
       name: 'Michael Gianforcaro',
       email: 'mgianforcaro@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Michael Gianforcaro'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
@@ -119,7 +113,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '206',
       name: 'James Matan',
       email: 'jmatan@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('James Matan'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
@@ -130,7 +124,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '207',
       name: 'Owen Duffy',
       email: 'oduffy@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Owen Duffy'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
@@ -141,7 +135,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '208',
       name: 'Antonio DeMarco',
       email: 'ademarco@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Antonio DeMarco'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
@@ -152,7 +146,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '209',
       name: 'Cooper Frankenheimer',
       email: 'cfrankenheimer@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Cooper Frankenheimer'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
@@ -163,7 +157,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '210',
       name: 'Dewey Egan',
       email: 'degan@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Dewey Egan'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
@@ -174,7 +168,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '211',
       name: 'Tayden Bultman',
       email: 'tbultman@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Tayden Bultman'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
@@ -185,7 +179,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '212',
       name: 'Kai Prohaszka',
       email: 'kprohaszka@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Kai Prohaszka'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
@@ -196,7 +190,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '213',
       name: 'Nick Pietramala',
       email: 'npietramala@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Nick Pietramala'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
@@ -207,7 +201,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '214',
       name: 'Dominic Pietramala',
       email: 'dpietramala2@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Dominic Pietramala'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
@@ -218,7 +212,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '215',
       name: 'Hayden Downs',
       email: 'hdowns@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Hayden Downs'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
@@ -229,7 +223,7 @@ export const uncMensLacrosse: ProTripData = {
       id: '216',
       name: 'Colin Hannigan',
       email: 'channigan@unc.edu',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Colin Hannigan'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],

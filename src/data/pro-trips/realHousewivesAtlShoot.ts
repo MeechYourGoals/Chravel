@@ -1,4 +1,5 @@
 import { ProTripData } from '../../types/pro';
+import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const realHousewivesAtlShoot: ProTripData = {
   id: 'real-housewives-atl-s9-shoot-2025',
@@ -9,10 +10,10 @@ export const realHousewivesAtlShoot: ProTripData = {
   category: 'TV Production',
   tags: ['TV Production', 'Reality Show', 'Cast & Crew'],
   participants: [
-    { id: 27, name: 'Kenya Moore', avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face', role: 'Cast' },
-    { id: 28, name: 'Executive Producer', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face', role: 'Producers' },
-    { id: 29, name: 'Camera Operator', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face', role: 'Crew' },
-    { id: 30, name: 'Production Assistant', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face', role: 'Crew' }
+    { id: 27, name: 'Kenya Moore', avatar: getMockAvatar('Kenya Moore'), role: 'Cast' },
+    { id: 28, name: 'Executive Producer', avatar: getMockAvatar('Executive Producer'), role: 'Producers' },
+    { id: 29, name: 'Camera Operator', avatar: getMockAvatar('Camera Operator'), role: 'Crew' },
+    { id: 30, name: 'Production Assistant', avatar: getMockAvatar('Production Assistant'), role: 'Crew' }
   ],
   budget: {
     total: 2500000,
@@ -40,7 +41,7 @@ export const realHousewivesAtlShoot: ProTripData = {
       id: '27',
       name: 'Kenya Moore',
       email: 'kenya@bravotv.com',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Kenya Moore'),
       role: 'Cast',
       credentialLevel: 'AllAccess',
       permissions: ['cast-areas', 'media-access'],
@@ -51,7 +52,7 @@ export const realHousewivesAtlShoot: ProTripData = {
       id: '28',
       name: 'Executive Producer',
       email: 'producer@bravotv.com',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Executive Producer'),
       role: 'Producers',
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'production-control'],
@@ -62,7 +63,7 @@ export const realHousewivesAtlShoot: ProTripData = {
       id: '29',
       name: 'Camera Operator',
       email: 'camera@bravotv.com',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Camera Operator'),
       role: 'Crew',
       credentialLevel: 'Backstage',
       permissions: ['filming-areas', 'equipment-access'],
@@ -73,7 +74,7 @@ export const realHousewivesAtlShoot: ProTripData = {
       id: '30',
       name: 'Production Assistant',
       email: 'pa@bravotv.com',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Production Assistant'),
       role: 'Crew',
       credentialLevel: 'Guest',
       permissions: ['general-access'],

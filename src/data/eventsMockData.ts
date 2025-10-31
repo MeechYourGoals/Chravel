@@ -1,6 +1,7 @@
 import { EventData } from '../types/events';
 import { googleIO2026Event } from './events/googleIO2026';
 import { getMockAvatar } from '../utils/mockAvatars';
+import { getMockAvatar } from '../utils/mockAvatars';
 
 export const eventsMockData: Record<string, EventData> = {
   'sxsw-2025': {
@@ -12,10 +13,10 @@ export const eventsMockData: Record<string, EventData> = {
     description: 'Interactive technology, film, and music festival and conference',
     tags: ['Technology', 'Music', 'Film', 'Interactive', 'Networking'],
     participants: [
-      { id: 1, name: 'Sarah Chen', avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face', role: 'Event Coordinator' },
-      { id: 2, name: 'Marcus Rodriguez', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face', role: 'Tech Director' },
-      { id: 3, name: 'Jessica Kim', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face', role: 'Music Coordinator' },
-      { id: 4, name: 'David Thompson', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face', role: 'Film Producer' }
+      { id: 1, name: 'Sarah Chen', avatar: getMockAvatar('Sarah Chen'), role: 'Event Coordinator' },
+      { id: 2, name: 'Marcus Rodriguez', avatar: getMockAvatar('Marcus Rodriguez'), role: 'Tech Director' },
+      { id: 3, name: 'Jessica Kim', avatar: getMockAvatar('Jessica Kim'), role: 'Music Coordinator' },
+      { id: 4, name: 'David Thompson', avatar: getMockAvatar('David Thompson'), role: 'Film Producer' }
     ],
     itinerary: [
       {
@@ -56,9 +57,9 @@ export const eventsMockData: Record<string, EventData> = {
     description: 'Annual meeting of global leaders discussing world economic issues',
     tags: ['Economics', 'Policy', 'Leadership', 'Global Issues', 'Networking'],
     participants: [
-      { id: 5, name: 'Dr. Elena Volkov', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=40&h=40&fit=crop&crop=face', role: 'Forum Director' },
-      { id: 6, name: 'Ambassador Chen Wei', avatar: 'https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face', role: 'Policy Advisor' },
-      { id: 7, name: 'Maria Santos', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=40&h=40&fit=crop&crop=face', role: 'Economics Lead' }
+      { id: 5, name: 'Dr. Elena Volkov', avatar: getMockAvatar('Dr. Elena Volkov'), role: 'Forum Director' },
+      { id: 6, name: 'Ambassador Chen Wei', avatar: getMockAvatar('Ambassador Chen Wei'), role: 'Policy Advisor' },
+      { id: 7, name: 'Maria Santos', avatar: getMockAvatar('Maria Santos'), role: 'Economics Lead' }
     ],
     itinerary: [
       {
@@ -99,9 +100,9 @@ export const eventsMockData: Record<string, EventData> = {
     description: 'The largest global fintech event connecting the money ecosystem',
     tags: ['Fintech', 'Payments', 'Banking', 'Innovation', 'Blockchain'],
     participants: [
-      { id: 8, name: 'Alex Rivera', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face', role: 'Fintech Director' },
-      { id: 9, name: 'Sophie Zhang', avatar: 'https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?w=40&h=40&fit=crop&crop=face', role: 'Payments Lead' },
-      { id: 10, name: 'Ryan O\'Connor', avatar: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=40&h=40&fit=crop&crop=face', role: 'Banking Innovation' }
+      { id: 8, name: 'Alex Rivera', avatar: getMockAvatar('Alex Rivera'), role: 'Fintech Director' },
+      { id: 9, name: 'Sophie Zhang', avatar: getMockAvatar('Sophie Zhang'), role: 'Payments Lead' },
+      { id: 10, name: 'Ryan O\'Connor', avatar: getMockAvatar('Ryan O\'Connor'), role: 'Banking Innovation' }
     ],
     itinerary: [
       {
@@ -142,8 +143,8 @@ export const eventsMockData: Record<string, EventData> = {
     description: 'Premier media and entertainment industry summit',
     tags: ['Media', 'Entertainment', 'Streaming', 'Content', 'Hollywood'],
     participants: [
-      { id: 11, name: 'Jordan Park', avatar: 'https://images.unsplash.com/photo-1506634572416-48cdfe530110?w=40&h=40&fit=crop&crop=face', role: 'Media Producer' },
-      { id: 12, name: 'Taylor Mitchell', avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face', role: 'Content Director' }
+      { id: 11, name: 'Jordan Park', avatar: getMockAvatar('Jordan Park'), role: 'Media Producer' },
+      { id: 12, name: 'Taylor Mitchell', avatar: getMockAvatar('Taylor Mitchell'), role: 'Content Director' }
     ],
     itinerary: [
       {
@@ -184,8 +185,8 @@ export const eventsMockData: Record<string, EventData> = {
     description: 'Marketing, sales, and customer success conference',
     tags: ['Marketing', 'Sales', 'Customer Experience', 'Digital', 'Growth'],
     participants: [
-      { id: 13, name: 'Maya Patel', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=40&h=40&fit=crop&crop=face', role: 'Marketing Director' },
-      { id: 14, name: 'Chris Johnson', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face', role: 'Sales Strategy' }
+      { id: 13, name: 'Maya Patel', avatar: getMockAvatar('Maya Patel'), role: 'Marketing Director' },
+      { id: 14, name: 'Chris Johnson', avatar: getMockAvatar('Chris Johnson'), role: 'Sales Strategy' }
     ],
     itinerary: [
       {
@@ -226,8 +227,8 @@ export const eventsMockData: Record<string, EventData> = {
     description: 'Personal finance mega-expo for building generational wealth',
     tags: ['Finance', 'Investing', 'Wealth Building', 'Education', 'Community'],
     participants: [
-      { id: 15, name: 'Jamal Washington', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face', role: 'Finance Director' },
-      { id: 16, name: 'Keisha Davis', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face', role: 'Community Lead' }
+      { id: 15, name: 'Jamal Washington', avatar: getMockAvatar('Jamal Washington'), role: 'Finance Director' },
+      { id: 16, name: 'Keisha Davis', avatar: getMockAvatar('Keisha Davis'), role: 'Community Lead' }
     ],
     itinerary: [
       {
@@ -266,7 +267,7 @@ export const eventsMockData: Record<string, EventData> = {
         title: 'Author & Investor',
         company: 'Rich Dad Company',
         bio: 'Best-selling author of "Rich Dad Poor Dad" and internationally recognized financial educator who has challenged the way people think about money and investing.',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=face',
+        avatar: getMockAvatar('Robert Kiyosaki'),
         sessions: ['keynote-1', 'panel-1']
       },
       {
@@ -275,7 +276,7 @@ export const eventsMockData: Record<string, EventData> = {
         title: 'Financial Advisor & Author',
         company: 'Suze Orman Media',
         bio: 'New York Times bestselling author and personal finance expert who has transformed the way Americans think about personal finance, money, and life.',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=80&h=80&fit=crop&crop=face',
+        avatar: getMockAvatar('Suze Orman'),
         sessions: ['keynote-2', 'workshop-1']
       },
       {
@@ -284,7 +285,7 @@ export const eventsMockData: Record<string, EventData> = {
         title: 'Radio Host & Author',
         company: 'Ramsey Solutions',
         bio: 'Radio host, author, and financial expert who has helped millions of people get out of debt and build wealth through his proven money principles.',
-        avatar: 'https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=80&h=80&fit=crop&crop=face',
+        avatar: getMockAvatar('Dave Ramsey'),
         sessions: ['workshop-2', 'panel-2']
       }
     ],
@@ -363,8 +364,8 @@ export const eventsMockData: Record<string, EventData> = {
     description: 'Music industry\'s most prestigious awards ceremony',
     tags: ['Music', 'Awards', 'Entertainment', 'Industry', 'Celebration'],
     participants: [
-      { id: 17, name: 'Isabella Martinez', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=40&h=40&fit=crop&crop=face', role: 'Awards Producer' },
-      { id: 18, name: 'Michael Torres', avatar: 'https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face', role: 'Music Director' }
+      { id: 17, name: 'Isabella Martinez', avatar: getMockAvatar('Isabella Martinez'), role: 'Awards Producer' },
+      { id: 18, name: 'Michael Torres', avatar: getMockAvatar('Michael Torres'), role: 'Music Director' }
     ],
     itinerary: [
       {
@@ -405,8 +406,8 @@ export const eventsMockData: Record<string, EventData> = {
     description: 'Startup showcase for Y Combinator Winter 2025 batch',
     tags: ['Startups', 'Venture Capital', 'Innovation', 'Technology', 'Pitching'],
     participants: [
-      { id: 19, name: 'Amanda Liu', avatar: 'https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?w=40&h=40&fit=crop&crop=face', role: 'Program Director' },
-      { id: 20, name: 'Kevin Brown', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face', role: 'Investor Relations' }
+      { id: 19, name: 'Amanda Liu', avatar: getMockAvatar('Amanda Liu'), role: 'Program Director' },
+      { id: 20, name: 'Kevin Brown', avatar: getMockAvatar('Kevin Brown'), role: 'Investor Relations' }
     ],
     itinerary: [
       {
@@ -447,8 +448,8 @@ export const eventsMockData: Record<string, EventData> = {
     description: 'Summit for content creators and digital marketing professionals',
     tags: ['Creator Economy', 'Social Media', 'Content Creation', 'Digital Marketing', 'Influencers'],
     participants: [
-      { id: 21, name: 'Zoe Parker', avatar: 'https://images.unsplash.com/photo-1506634572416-48cdfe530110?w=40&h=40&fit=crop&crop=face', role: 'Creator Relations' },
-      { id: 22, name: 'Tyler Johnson', avatar: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=40&h=40&fit=crop&crop=face', role: 'Content Strategy' }
+      { id: 21, name: 'Zoe Parker', avatar: getMockAvatar('Zoe Parker'), role: 'Creator Relations' },
+      { id: 22, name: 'Tyler Johnson', avatar: getMockAvatar('Tyler Johnson'), role: 'Content Strategy' }
     ],
     itinerary: [
       {
@@ -489,8 +490,8 @@ export const eventsMockData: Record<string, EventData> = {
     description: 'Film industry\'s most prestigious awards ceremony',
     tags: ['Film', 'Awards', 'Hollywood', 'Entertainment', 'Ceremony'],
     participants: [
-      { id: 23, name: 'Rachel Green', avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face', role: 'Awards Producer' },
-      { id: 24, name: 'James Wilson', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face', role: 'Film Coordinator' }
+      { id: 23, name: 'Rachel Green', avatar: getMockAvatar('Rachel Green'), role: 'Awards Producer' },
+      { id: 24, name: 'James Wilson', avatar: getMockAvatar('James Wilson'), role: 'Film Coordinator' }
     ],
     itinerary: [
       {
@@ -531,8 +532,8 @@ export const eventsMockData: Record<string, EventData> = {
     description: 'Basketball Hall of Fame induction ceremony and celebration',
     tags: ['Basketball', 'Sports', 'Hall of Fame', 'Ceremony', 'Legacy'],
     participants: [
-      { id: 25, name: 'Marcus Thompson', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face', role: 'Sports Coordinator' },
-      { id: 26, name: 'Lisa Rodriguez', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face', role: 'Event Director' }
+      { id: 25, name: 'Marcus Thompson', avatar: getMockAvatar('Marcus Thompson'), role: 'Sports Coordinator' },
+      { id: 26, name: 'Lisa Rodriguez', avatar: getMockAvatar('Lisa Rodriguez'), role: 'Event Director' }
     ],
     itinerary: [
       {

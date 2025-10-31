@@ -1,4 +1,5 @@
 import { ProTripData } from '../../types/pro';
+import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const paulGeorgeEliteAau: ProTripData = {
   id: 'paul-george-elite-aau-nationals-2025',
@@ -13,32 +14,26 @@ export const paulGeorgeEliteAau: ProTripData = {
   broadcasts: [],
   participants: Array.from({ length: 120 }, (_, i) => {
     const id = 101 + i;
-    const avatars = [
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=40&h=40&fit=crop&crop=face'
-    ];
     
     if (i < 10) {
       const coaches = ['Matt Barnes', 'Brandon Lincoln', 'Byron Joseph', 'Jerald Dickson', 'Dave McClure', 'Travis Oscar', 'Eddie Cruz', 'Paul George', 'Assistant Coach 1', 'Assistant Coach 2'];
-      return { id, name: coaches[i] || `Coach ${i + 1}`, avatar: avatars[i % avatars.length], role: 'Coaches' };
+      const name = coaches[i] || `Coach ${i + 1}`;
+      return { id, name, avatar: getMockAvatar(name), role: 'Coaches' };
     } else if (i < 20) {
       const staff = ['Team Manager', 'Logistics Manager', 'Team Doctor', 'Athletic Trainer', 'Team Photographer', 'Video Coordinator', 'Nutrition Specialist', 'Transportation Coordinator', 'Team Administrator', 'Academic Advisor'];
-      return { id, name: staff[i - 10] || `Staff ${i - 9}`, avatar: avatars[i % avatars.length], role: 'Staff' };
+      const name = staff[i - 10] || `Staff ${i - 9}`;
+      return { id, name, avatar: getMockAvatar(name), role: 'Staff' };
     } else if (i < 100) {
       const playerNames = ['Carter Bryant', 'Jaden DePina', 'James Evans Jr.', 'Ifiok Peter', 'Michael Johnson', 'David Williams', 'Chris Brown', 'Kevin Davis', 'Anthony Miller', 'Brandon Wilson'];
       const playerIndex = (i - 20) % playerNames.length;
       const teamNumber = Math.floor((i - 20) / 10) + 1;
-      return { id, name: `${playerNames[playerIndex]} (T${teamNumber})`, avatar: avatars[i % avatars.length], role: 'Players' };
+      const name = `${playerNames[playerIndex]} (T${teamNumber})`;
+      return { id, name, avatar: getMockAvatar(name), role: 'Players' };
     } else {
       const chaperones = ['Parent Chaperone', 'Team Volunteer', 'Guardian', 'Family Representative'];
       const chaperoneIndex = (i - 100) % chaperones.length;
-      return { id, name: `${chaperones[chaperoneIndex]} ${i - 99}`, avatar: avatars[i % avatars.length], role: 'Chaperones' };
+      const name = `${chaperones[chaperoneIndex]} ${i - 99}`;
+      return { id, name, avatar: getMockAvatar(name), role: 'Chaperones' };
     }
   }),
   budget: {
@@ -67,7 +62,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: '101',
       name: 'Matt Barnes',
       email: 'mbarnes@pgelite.com',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Matt Barnes'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'medical-access', 'facility-access'],
@@ -78,7 +73,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: '102',
       name: 'Brandon Lincoln',
       email: 'blincoln@pgelite.com',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Brandon Lincoln'),
       role: 'Directors',
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'facility-access', 'tournament-admin'],
@@ -89,7 +84,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: '103',
       name: 'Byron Joseph',
       email: 'bjoseph@pgelite.com',
-      avatar: 'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Byron Joseph'),
       role: 'Directors',
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'facility-access'],
@@ -100,7 +95,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: '104',
       name: 'Jerald Dickson',
       email: 'jdickson@pgelite.com',
-      avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Jerald Dickson'),
       role: 'Staff',
       credentialLevel: 'Backstage',
       permissions: ['facility-access', 'operations'],
@@ -111,7 +106,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: '105',
       name: 'Dave McClure',
       email: 'dmcclure@pgelite.com',
-      avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Dave McClure'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'medical-access'],
@@ -122,7 +117,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: '106',
       name: 'Travis Oscar',
       email: 'toscar@pgelite.com',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Travis Oscar'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'youth-coordination'],
@@ -133,7 +128,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: '107',
       name: 'Eddie Cruz',
       email: 'ecruz@pgelite.com',
-      avatar: 'https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Eddie Cruz'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'program-coaching'],
@@ -144,7 +139,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: '108',
       name: 'Carter Bryant',
       email: 'cbryant@pgelite.com',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Carter Bryant'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['court-access', 'locker-room'],
@@ -155,7 +150,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: '109',
       name: 'Jaden DePina',
       email: 'jdepina@pgelite.com',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Jaden DePina'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['court-access', 'locker-room'],
@@ -166,7 +161,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: '110',
       name: 'James Evans Jr.',
       email: 'jevans@pgelite.com',
-      avatar: 'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('James Evans Jr.'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['court-access', 'locker-room'],
@@ -177,7 +172,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: '111',
       name: 'Ifiok Peter',
       email: 'ipeter@pgelite.com',
-      avatar: 'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=40&h=40&fit=crop&crop=face',
+      avatar: getMockAvatar('Ifiok Peter'),
       role: 'Players',
       credentialLevel: 'Backstage',
       permissions: ['court-access', 'locker-room'],
