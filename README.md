@@ -116,6 +116,11 @@ For complete mobile readiness report, see: [MOBILE_READINESS.md](MOBILE_READINES
 
 Simply open [Lovable](https://lovable.dev/projects/20feaa04-0946-4c68-a68d-0eb88cc1b9c4) and click on Share -> Publish.
 
+**Troubleshooting:** If changes aren't appearing on your production domain:
+- **Quick fix:** See [QUICK_FIX_GUIDE.md](QUICK_FIX_GUIDE.md)
+- **Full analysis:** See [LOVABLE_DEPLOYMENT_ANALYSIS.md](LOVABLE_DEPLOYMENT_ANALYSIS.md)
+- **Diagnostic tool:** Run `./diagnose-deployment.sh`
+
 ## Can I connect a custom domain to my Lovable project?
 
 Yes, you can!
