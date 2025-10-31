@@ -10,6 +10,7 @@ interface TripChatMessage {
   trip_id: string;
   content: string;
   author_name: string;
+  user_id?: string;
   created_at: string;
   updated_at: string;
   media_type?: string;

@@ -141,7 +141,7 @@ export const TripChat = ({
       id: message.id,
       text: message.content,
       sender: {
-        id: message.author_name ?? 'unknown',
+        id: message.user_id || message.author_name || 'unknown',
         name: message.author_name || 'Unknown',
         avatar: getMockAvatar(message.author_name || 'Unknown')
       },
