@@ -374,8 +374,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         setSelectedPlace(placeInfo);
 
         // Reset session token after successful search
-        const gmaps = await loadMaps();
-        setSessionToken(new gmaps.places.AutocompleteSessionToken());
+        const maps = await loadMaps();
+        setSessionToken(new maps.places.AutocompleteSessionToken());
       } catch (error) {
         console.error('[MapCanvas] Search error:', error);
         setSearchError('Search failed. Please try again.');

@@ -59,15 +59,15 @@ export async function extractUrlsFromTripChat(tripId: string): Promise<Normalize
       console.error('[chatUrlExtractor] Supabase error:', error);
       return [];
     }
-    if (!data?.length) return [];
+    if (!data || data.length === 0) return [];
 
     return data.map(link => ({
-      url: link.url,
-      rawUrl: link.url,
-      domain: link.domain,
-      firstSeenAt: link.created_at,
-      lastSeenAt: link.created_at,
-      messageId: link.id.toString(),
+      url: link.url || '',
+      rawUrl: link.url || '',
+      domain: link.domain || '',
+      firstSeenAt: link.created_at || new Date().toISOString(),
+      lastSeenAt: link.created_at || new Date().toISOString(),
+      messageId: link.id?.toString() || '',
       postedBy: undefined, // user_id column doesn't exist in trip_link_index
       title: link.og_title || undefined,
     }));

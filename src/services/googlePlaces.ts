@@ -35,9 +35,9 @@ export async function loadMaps(): Promise<typeof google.maps> {
       libraries: ['places', 'geocoding'],
     });
 
-    loaderPromise = loader.load().then(google => {
+    loaderPromise = loader.load().then((google) => {
       mapsApi = google.maps;
-      return google.maps;
+      return mapsApi;
     });
   }
 

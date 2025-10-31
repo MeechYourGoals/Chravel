@@ -66,12 +66,27 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
         // Load mock data in demo mode
         try {
           const mockPlaces = await MockDataService.getMockPlaceItems(tripId, true);
+          const mapCategoryToPlaceCategory = (cat: string): PlaceCategory => {
+            const categoryMap: Record<string, PlaceCategory> = {
+              'activity': 'Activity',
+              'attraction': 'Attraction',
+              'appetite': 'Appetite',
+              'accommodation': 'Accommodation',
+              'fitness': 'Activity',
+              'hotel': 'Accommodation',
+              'nightlife': 'Other',
+              'restaurant': 'Appetite',
+              'transportation': 'Other'
+            };
+            return categoryMap[cat.toLowerCase()] || 'Other';
+          };
+
           const placesWithDistance: PlaceWithDistance[] = mockPlaces.map(place => ({
             id: place.id,
             name: place.name,
             address: place.address,
             coordinates: place.coordinates,
-            category: place.category as PlaceCategory,
+            category: mapCategoryToPlaceCategory(place.category),
             rating: place.rating,
             url: place.url,
             distanceFromBasecamp: place.distanceFromBasecamp
