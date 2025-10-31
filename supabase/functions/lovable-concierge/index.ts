@@ -446,32 +446,6 @@ serve(async (req) => {
       }
     );
   }
-}
-    } else if (error.message?.includes('not authenticated')) {
-      userMessage = "🔐 **Authentication Required**\n\nPlease sign in to use the AI Concierge.";
-      errorType = 'auth_error';
-    } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
-      userMessage = "🌐 **Network Error**\n\nCheck your internet connection and try again.";
-      errorType = 'network_error';
-    } else if (error.message?.includes('timeout')) {
-      userMessage = "⏱️ **Request Timeout**\n\nThe AI service is taking too long. Try a simpler query.";
-      errorType = 'timeout_error';
-    }
-    
-    return new Response(
-      JSON.stringify({ 
-        response: userMessage,
-        error: error.message,
-        errorType,
-        success: false,
-        retryable: errorType !== 'config_error' && errorType !== 'auth_error'
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
-    )
-  }
 })
 
 function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
