@@ -133,7 +133,7 @@ export const TripTabs = ({
       />
 
       {/* Tab Navigation - Matches main navigation alignment */}
-      <div className="flex overflow-x-auto whitespace-nowrap scroll-smooth gap-3 mb-2 pb-2 justify-start px-1">
+      <div className="flex whitespace-nowrap gap-2 mb-2 justify-start">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -145,11 +145,11 @@ export const TripTabs = ({
               onClick={() => handleTabChange(tab.id, enabled)}
               disabled={!enabled}
               className={`
-                flex items-center justify-center gap-2 
-                px-5 py-3 min-h-[44px] min-w-max
-                rounded-xl font-medium text-base
+                flex items-center justify-center gap-1.5 
+                px-3.5 py-2.5 min-h-[42px]
+                rounded-xl font-medium text-sm
                 transition-all duration-200
-                flex-shrink-0
+                flex-1
                 ${
                   isActive && enabled
                     ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-md`
@@ -160,7 +160,7 @@ export const TripTabs = ({
                 ${enabled ? 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent' : ''}
               `}
             >
-              <Icon size={18} className="flex-shrink-0" />
+              <Icon size={16} className="flex-shrink-0" />
               <span className="whitespace-nowrap">{tab.label}</span>
               {!enabled && <Lock size={12} className="ml-1 flex-shrink-0" />}
             </button>

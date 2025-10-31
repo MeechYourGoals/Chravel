@@ -21,7 +21,7 @@ export const ProTabNavigation = ({ tabs, activeTab, onTabChange, category }: Pro
   const userPermissions = user?.permissions || ['read'];
 
   return (
-    <div className="flex justify-center overflow-x-auto whitespace-nowrap scroll-smooth gap-2 mb-8 pb-2 -mx-2 px-2 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
+    <div className="flex whitespace-nowrap gap-2 mb-2 justify-start">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isReadOnly = isReadOnlyTab(tab.id, userRole, userPermissions);
@@ -32,7 +32,7 @@ export const ProTabNavigation = ({ tabs, activeTab, onTabChange, category }: Pro
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`flex-shrink-0 min-w-max px-4 py-3 rounded-lg font-medium transition-all duration-200 text-sm flex items-center gap-2 ${
+            className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 min-h-[42px] rounded-xl font-medium transition-all duration-200 text-sm flex-1 ${
               activeTab === tab.id
                 ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-md`
                 : 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white'
