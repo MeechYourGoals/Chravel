@@ -31,13 +31,13 @@ export interface PlaceWithDistance {
   rating?: number;
 }
 
-export type PlaceCategory = 'Food & Drink' | 'Attraction' | 'Experience' | 'Accommodations' | 'Other';
+export type PlaceCategory = 'Food & Drink' | 'Attraction' | 'Activity' | 'Accommodation' | 'Other';
 
 export const PlaceCategoryEnum: PlaceCategory[] = [
   'Food & Drink',
   'Attraction',
-  'Experience',
-  'Accommodations',
+  'Activity',
+  'Accommodation',
   'Other',
 ];
 

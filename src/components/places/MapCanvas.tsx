@@ -5,12 +5,11 @@ import { Search, X, Loader2 } from 'lucide-react';
 import { BasecampLocation } from '@/types/basecamp';
 import { PlaceInfoOverlay, PlaceInfo } from './PlaceInfoOverlay';
 import {
-  loadMapsApi,
+  loadMaps,
   createServices,
   autocomplete,
   resolveQuery,
   centerMapOnPlace,
-  createSessionToken,
   SearchOrigin,
 } from '@/services/googlePlaces';
 import { GoogleMapsEmbed } from '@/components/GoogleMapsEmbed';
@@ -48,7 +47,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       tripBasecamp,
       personalBasecamp,
       markers = [],
-      onMapReady
+      onMapReady,
     },
     ref
   ) => {
@@ -184,8 +183,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           setServices(svc);
 
           // Create initial session token
-          const token = await createSessionToken();
-          setSessionToken(token);
+          setSessionToken(new gmaps.places.AutocompleteSessionToken());
 
           setIsMapLoading(false);
           onMapReady?.();
@@ -224,16 +222,19 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       // Update search origin for biasing future searches
       setSearchOrigin(newOrigin);
 
-      if (newOrigin) {
-        // Center map on the active basecamp
-        mapRef.current.setCenter(newOrigin);
-        mapRef.current.setZoom(12);
-
-        // If a place is already selected, re-run search with new origin
-        if (selectedPlace?.name) {
-          console.log('[MapCanvas] Basecamp changed, re-running search for selected place:', selectedPlace.name);
-          handleSearch(selectedPlace.name, newOrigin);
+        // If there's a selected place, re-trigger the search to show new directions from the new basecamp
+        if (selectedPlace?.name && services && sessionToken) {
+          console.log(`[MapCanvas] Re-searching from new basecamp context: ${selectedPlace.name}`);
+          handleSearch(selectedPlace.name);
         }
+
+        // Center map on the active basecamp only if no place is selected
+        if (!selectedPlace) {
+          mapRef.current.setCenter(activeBasecamp.coordinates);
+          mapRef.current.setZoom(12);
+        }
+      } else {
+        setSearchOrigin(null);
       }
     }, [activeContext, tripBasecamp, personalBasecamp]);
 
@@ -372,8 +373,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         setSelectedPlace(placeInfo);
 
         // Reset session token after successful search
-        const newToken = await createSessionToken();
-        setSessionToken(newToken);
+        const gmaps = await loadMaps();
+        setSessionToken(new gmaps.places.AutocompleteSessionToken());
       } catch (error) {
         console.error('[MapCanvas] Search error:', error);
         setSearchError('Search failed. Please try again.');
@@ -427,22 +428,14 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       return (
         <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
           <GoogleMapsEmbed className="w-full h-full" />
-          {/* Overlay message about reduced functionality */}
-          <div className="absolute bottom-4 left-4 right-4 z-10">
-            <div className="bg-yellow-50/95 backdrop-blur-sm border border-yellow-200 rounded-lg px-3 py-2 text-xs text-yellow-800 text-center">
-              {mapError
-                ? `Map error: ${mapError}`
-                : 'Running in basic mode. Search and place details may be limited.'}
-            </div>
-          </div>
         </div>
       );
     }
 
     return (
       <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
-        {/* Search Bar - Centered */}
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-sm px-4">
+        {/* Search Bar - Centered with proper spacing from sides */}
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-md px-20 md:px-24">
           <form onSubmit={handleSearchSubmit} className="relative">
             <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
             <input
@@ -474,7 +467,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
               </button>
             )}
 
-            {/* Autocomplete Suggestions */}
+            {/* Autocomplete Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-60 overflow-y-auto">
                 {suggestions.map((prediction) => (
