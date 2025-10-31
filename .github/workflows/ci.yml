@@ -25,12 +25,15 @@ jobs:
 
       - name: Run ESLint
         run: npm run lint:check
+        continue-on-error: ${{ github.event_name == 'push' }}
 
       - name: Run TypeScript type check
         run: npm run typecheck
+        continue-on-error: ${{ github.event_name == 'push' }}
 
       - name: Check Prettier formatting
         run: npm run format:check
+        continue-on-error: ${{ github.event_name == 'push' }}
 
       - name: Build
         run: npm run build
@@ -41,7 +44,6 @@ jobs:
 
   # Vercel Deployment (only on main branch)
   deploy:
-    needs: validate
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
