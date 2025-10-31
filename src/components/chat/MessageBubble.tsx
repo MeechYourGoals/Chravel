@@ -62,7 +62,7 @@ export const MessageBubble = ({
   });
 
   return (
-    <div className={cn('flex gap-2', isOwnMessage ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex gap-2', isOwnMessage ? 'justify-end pr-3' : 'justify-start pl-3')}>
       {!isOwnMessage && showSenderInfo && (
         <img
           src={senderAvatar || getMockAvatar(senderName)}
@@ -74,7 +74,7 @@ export const MessageBubble = ({
 
       <div
         className={cn(
-          'flex flex-col max-w-[70%]',
+          'flex flex-col max-w-[85%]',
           isOwnMessage ? 'items-end text-right' : 'items-start text-left',
         )}
       >

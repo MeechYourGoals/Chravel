@@ -134,7 +134,7 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
   return (
     <div className={cn(
       "flex w-full gap-2",
-      isOwnMessage ? 'justify-end flex-row-reverse' : 'justify-start flex-row'
+      isOwnMessage ? 'justify-end flex-row-reverse pr-3' : 'justify-start flex-row pl-3'
     )}>
       {/* AI Avatar for assistant messages */}
       {!isOwnMessage && (
@@ -146,7 +146,7 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
       <div className={cn(
         "flex flex-col",
         isOwnMessage ? 'items-end' : 'items-start',
-        "max-w-[78%]"
+        "max-w-[85%]"
       )}>
         <div className={cn(
           "px-3.5 py-2.5 rounded-2xl backdrop-blur-sm border transition-all",
