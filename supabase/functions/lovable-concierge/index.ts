@@ -106,6 +106,74 @@ serve(async (req) => {
       }
     }
 
+    // 🆕 RAG RETRIEVAL: Semantic search for relevant trip context
+    let ragContext = ''
+    if (tripId && !isDemoMode) {
+      try {
+        console.log('Generating query embedding for RAG retrieval')
+        
+        // Generate embedding for the user's query
+        const queryEmbedResponse = await fetch('https://ai.gateway.lovable.dev/v1/embeddings', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'google/text-embedding-004',
+            input: [message]
+          })
+        })
+        
+        if (queryEmbedResponse.ok) {
+          const queryEmbedData = await queryEmbedResponse.json()
+          const queryEmbedding = queryEmbedData.data[0].embedding
+          
+          console.log('Performing RAG similarity search')
+          
+          // Retrieve relevant context using vector similarity
+          const { data: ragResults, error: ragError } = await supabase.rpc('match_trip_embeddings', {
+            query_embedding: queryEmbedding,
+            trip_id_input: tripId,
+            match_threshold: 0.6,
+            match_count: 15
+          })
+          
+          if (ragError) {
+            console.error('RAG retrieval error:', ragError)
+          } else if (ragResults && ragResults.length > 0) {
+            console.log(`Found ${ragResults.length} relevant context items via RAG`)
+            
+            ragContext = '\n\n=== RELEVANT TRIP CONTEXT (RAG) ===\n'
+            ragContext += 'The following information was retrieved based on semantic similarity to your question:\n'
+            
+            ragResults.forEach((result: any, idx: number) => {
+              const relevancePercent = (result.similarity * 100).toFixed(0)
+              const sourceIcon = {
+                'chat': '💬',
+                'task': '✅',
+                'poll': '📊',
+                'payment': '💰',
+                'broadcast': '📢',
+                'calendar': '📅',
+                'link': '🔗',
+                'file': '📎'
+              }[result.source_type] || '📝'
+              
+              ragContext += `\n[${idx + 1}] ${sourceIcon} [${result.source_type}] ${result.content_text} (${relevancePercent}% relevant)`
+            })
+            
+            ragContext += '\n\nIMPORTANT: Use this retrieved context to provide accurate, specific answers. Cite sources when possible (e.g., "Based on the chat messages..." or "According to the calendar...").'
+          }
+        } else {
+          console.error('Query embedding failed:', await queryEmbedResponse.text())
+        }
+      } catch (ragError) {
+        console.error('RAG retrieval failed, falling back to basic context:', ragError)
+        // Don't fail the request if RAG fails
+      }
+    }
+
     // Skip privacy check in demo mode
     if (!isDemoMode && comprehensiveContext?.tripMetadata?.id) {
       try {
@@ -136,8 +204,8 @@ serve(async (req) => {
       }
     }
 
-    // Build context-aware system prompt
-    const systemPrompt = buildSystemPrompt(comprehensiveContext, config.systemPrompt)
+    // Build context-aware system prompt with RAG context injected
+    const systemPrompt = buildSystemPrompt(comprehensiveContext, config.systemPrompt) + ragContext
     
     // Prepare messages for Lovable AI
     const messages: ChatMessage[] = [
