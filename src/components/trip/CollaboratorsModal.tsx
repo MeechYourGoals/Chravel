@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { getInitials, isValidAvatarUrl } from '../../utils/avatarUtils';
+import { getGenderedAvatar, getInitials, isValidAvatarUrl } from '../../utils/avatarUtils';
 import { formatCollaboratorName } from '../../utils/nameFormatUtils';
 
 interface CollaboratorItem {
@@ -48,8 +48,8 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                   loading="lazy"
                 />
               ) : (
-                <div className="h-9 w-9 rounded-full bg-white/10 text-white/80 grid place-items-center text-xs font-semibold border border-white/20">
-                  {getInitials(c.name)}
+                <div className="h-9 w-9 rounded-full bg-white/10 text-white/80 grid place-items-center text-xl font-semibold border border-white/20">
+                  {getGenderedAvatar(c.name)}
                 </div>
               )}
               <div className="flex-1 min-w-0">

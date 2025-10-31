@@ -1,5 +1,5 @@
 import React from 'react';
-import { getInitials, isValidAvatarUrl } from '../../utils/avatarUtils';
+import { getGenderedAvatar, getInitials, isValidAvatarUrl } from '../../utils/avatarUtils';
 import { formatCollaboratorName, shouldShowFullNameInAvatar } from '../../utils/nameFormatUtils';
 
 export interface CollaboratorItem {
@@ -57,8 +57,8 @@ export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
                 loading="lazy"
               />
             ) : (
-              <div className="h-7 w-7 rounded-full bg-white/10 text-white/80 grid place-items-center text-[10px] font-semibold border border-white/20">
-                {getInitials(c.name)}
+              <div className="h-7 w-7 rounded-full bg-white/10 text-white/80 grid place-items-center text-lg font-semibold border border-white/20">
+                {getGenderedAvatar(c.name)}
               </div>
             )}
             <div className="flex-1 min-w-0 text-left">
