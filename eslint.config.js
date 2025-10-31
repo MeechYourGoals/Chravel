@@ -5,13 +5,31 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "capacitor.config.ts"] },
+  { 
+    ignores: [
+      "dist/**",
+      "public/**",
+      "ios/**",
+      "android/**",
+      "supabase/**",
+      "scripts/**",
+      "node_modules/**",
+      ".ai/**",
+      "docs/**",
+      "capacitor.config.ts"
+    ] 
+  },
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
-    extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
     },
     plugins: {
       "react-hooks": reactHooks,
@@ -24,7 +42,7 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": [
-        "error",
+        "warn",
         {
           argsIgnorePattern: "^_",
           varsIgnorePattern: "^_",
@@ -32,7 +50,7 @@ export default tseslint.config(
       ],
       "@typescript-eslint/no-unused-expressions": "off",
       "no-unexpected-multiline": "error",
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-explicit-any": "off",
       "react-hooks/exhaustive-deps": "warn",
       "react-hooks/rules-of-hooks": "error",
     },

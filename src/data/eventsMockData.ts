@@ -1,7 +1,6 @@
 import { EventData } from '../types/events';
 import { googleIO2026Event } from './events/googleIO2026';
 import { getMockAvatar } from '../utils/mockAvatars';
-import { getMockAvatar } from '../utils/mockAvatars';
 
 export const eventsMockData: Record<string, EventData> = {
   'sxsw-2025': {
