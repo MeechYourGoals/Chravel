@@ -1653,6 +1653,50 @@ export type Database = {
           },
         ]
       }
+      trip_embeddings: {
+        Row: {
+          content_text: string
+          created_at: string | null
+          embedding: string | null
+          id: string
+          metadata: Json | null
+          source_id: string
+          source_type: string
+          trip_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          content_text: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          source_id: string
+          source_type: string
+          trip_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          content_text?: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          source_id?: string
+          source_type?: string
+          trip_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_embeddings_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_events: {
         Row: {
           created_at: string
@@ -2634,6 +2678,22 @@ export type Database = {
       is_trip_admin: {
         Args: { _trip_id: string; _user_id: string }
         Returns: boolean
+      }
+      match_trip_embeddings: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+          trip_id_input: string
+        }
+        Returns: {
+          content_text: string
+          id: string
+          metadata: Json
+          similarity: number
+          source_id: string
+          source_type: string
+        }[]
       }
       toggle_task_status: {
         Args: {
