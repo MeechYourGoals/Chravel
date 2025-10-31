@@ -49,7 +49,9 @@ export const useTripChat = (tripId: string) => {
       setHasMore(data && data.length === 10);
       return reversed;
     },
-    enabled: !!tripId
+    enabled: !!tripId,
+    staleTime: 30 * 1000, // 30 seconds - balance between freshness and performance
+    gcTime: 5 * 60 * 1000 // 5 minutes - keep in cache
   });
 
   // Enhanced real-time subscription with rate limiting and batching

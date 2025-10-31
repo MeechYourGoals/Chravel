@@ -24,7 +24,7 @@ interface MobileTripCardProps {
   trip: Trip;
 }
 
-export const MobileTripCard = ({ trip }: MobileTripCardProps) => {
+export const MobileTripCard = React.memo(({ trip }: MobileTripCardProps) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [showShareModal, setShowShareModal] = useState(false);
@@ -142,11 +142,11 @@ export const MobileTripCard = ({ trip }: MobileTripCardProps) => {
         </div>
       </div>
 
-      <ShareTripModal 
+      <ShareTripModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         trip={trip}
       />
     </div>
   );
-};
+});

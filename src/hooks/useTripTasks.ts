@@ -323,7 +323,9 @@ export const useTripTasks = (tripId: string, options?: {
         return demoTasks.length > 0 ? demoTasks : generateSeedTasks(tripId);
       }
     },
-    enabled: !!tripId
+    enabled: !!tripId,
+    staleTime: 2 * 60 * 1000, // 2 minutes - tasks need reasonable freshness
+    gcTime: 10 * 60 * 1000 // 10 minutes - keep in cache
   });
 
   // Task mutations

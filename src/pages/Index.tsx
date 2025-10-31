@@ -90,30 +90,30 @@ const Index = () => {
           events: isDemoMode ? eventsMockData : {}
         };
       case 'tripsPro':
+        // Optimized: Filter all trips at once instead of one-by-one
+        const filteredProTrips = isDemoMode
+          ? filterItemsByStatus(Object.values(proTripMockData), activeFilter)
+          : [];
         return {
           trips,
-          proTrips: isDemoMode ? Object.fromEntries(
-            Object.entries(proTripMockData).filter(([_, trip]) => 
-              filterItemsByStatus([trip], activeFilter).length > 0
-            )
-          ) : {},
+          proTrips: Object.fromEntries(filteredProTrips.map(trip => [trip.id, trip])),
           events: isDemoMode ? eventsMockData : {}
         };
       case 'events':
+        // Optimized: Filter all events at once instead of one-by-one
+        const filteredEvents = isDemoMode
+          ? filterItemsByStatus(Object.values(eventsMockData), activeFilter)
+          : [];
         return {
           trips,
           proTrips: isDemoMode ? proTripMockData : {},
-          events: isDemoMode ? Object.fromEntries(
-            Object.entries(eventsMockData).filter(([_, event]) => 
-              filterItemsByStatus([event], activeFilter).length > 0
-            )
-          ) : {}
+          events: Object.fromEntries(filteredEvents.map(event => [event.id, event]))
         };
       default:
-        return { 
-          trips, 
-          proTrips: isDemoMode ? proTripMockData : {}, 
-          events: isDemoMode ? eventsMockData : {} 
+        return {
+          trips,
+          proTrips: isDemoMode ? proTripMockData : {},
+          events: isDemoMode ? eventsMockData : {}
         };
     }
   }, [activeFilter, viewMode, trips, isDemoMode]);

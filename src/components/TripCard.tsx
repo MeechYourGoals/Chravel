@@ -37,7 +37,7 @@ interface TripCardProps {
   trip: Trip;
 }
 
-export const TripCard = ({ trip }: TripCardProps) => {
+export const TripCard = React.memo(({ trip }: TripCardProps) => {
   const navigate = useNavigate();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -246,4 +246,4 @@ export const TripCard = ({ trip }: TripCardProps) => {
       />
     </div>
   );
-};
+});

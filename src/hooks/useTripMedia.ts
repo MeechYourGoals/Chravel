@@ -37,7 +37,9 @@ export const useTripMedia = (tripId: string) => {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!tripId
+    enabled: !!tripId,
+    staleTime: 5 * 60 * 1000, // 5 minutes - media doesn't change frequently
+    gcTime: 10 * 60 * 1000 // 10 minutes - keep in cache longer
   });
 
   // Upload media mutation

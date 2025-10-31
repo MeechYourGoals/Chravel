@@ -232,26 +232,30 @@ export const getTripById = (id: number): Trip | null => {
   return tripsData.find(trip => trip.id === id) || null;
 };
 
-export const generateTripMockData = (trip: Trip) => {
+// Cache for generated trip mock data
+const mockDataCache = new Map<number, ReturnType<typeof generateTripMockDataInternal>>();
+
+// Internal function that generates the mock data
+const generateTripMockDataInternal = (trip: Trip) => {
   const participantNames = trip.participants.map(p => p.name);
-  
+
   return {
     basecamp: {
       name: `${trip.location.split(',')[0]} Base Hotel`,
       address: `123 Main Street, ${trip.location}`
     },
     broadcasts: [
-      { 
-        id: 1, 
-        senderName: participantNames[0] || "Organizer", 
-        content: `Looking forward to ${trip.title}! Everything is confirmed and ready to go.`, 
-        timestamp: "2025-01-15T15:30:00Z" 
+      {
+        id: 1,
+        senderName: participantNames[0] || "Organizer",
+        content: `Looking forward to ${trip.title}! Everything is confirmed and ready to go.`,
+        timestamp: "2025-01-15T15:30:00Z"
       },
-      { 
-        id: 2, 
-        senderName: participantNames[1] || "Coordinator", 
-        content: `Just confirmed all arrangements for ${trip.location}. This is going to be amazing!`, 
-        timestamp: "2025-01-15T10:00:00Z" 
+      {
+        id: 2,
+        senderName: participantNames[1] || "Coordinator",
+        content: `Just confirmed all arrangements for ${trip.location}. This is going to be amazing!`,
+        timestamp: "2025-01-15T10:00:00Z"
       }
     ],
     links: [
@@ -269,4 +273,18 @@ export const generateTripMockData = (trip: Trip) => {
       }
     ]
   };
+};
+
+// Exported function with caching
+export const generateTripMockData = (trip: Trip) => {
+  // Check cache first
+  if (mockDataCache.has(trip.id)) {
+    return mockDataCache.get(trip.id)!;
+  }
+
+  // Generate and cache the data
+  const data = generateTripMockDataInternal(trip);
+  mockDataCache.set(trip.id, data);
+
+  return data;
 };

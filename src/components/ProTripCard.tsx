@@ -25,7 +25,7 @@ interface ProTripCardProps {
   trip: ProTripData;
 }
 
-export const ProTripCard = ({ trip }: ProTripCardProps) => {
+export const ProTripCard = React.memo(({ trip }: ProTripCardProps) => {
   const navigate = useNavigate();
   const { accentColors } = useTripVariant();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
@@ -265,4 +265,4 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
       />
     </div>
   );
-};
+});

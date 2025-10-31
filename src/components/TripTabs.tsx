@@ -1,24 +1,21 @@
 
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { MessageCircle, Users, Calendar, Camera, Radio, Link, BarChart3, FileText, ClipboardList, Lock, MapPin, Sparkles, DollarSign } from 'lucide-react';
-import { TripChat } from './TripChat';
-import { GroupCalendar } from './GroupCalendar';
-import { PhotoAlbum } from './PhotoAlbum';
-import { Broadcasts } from './Broadcasts';
-import { VenueIdeas } from './VenueIdeas';
-import { CommentsWall } from './CommentsWall';
-import { FilesTab } from './FilesTab';
-import { TripTasksTab } from './todo/TripTasksTab';
-import { UnifiedMediaHub } from './UnifiedMediaHub';
-import { EnhancedMediaAggregatedLinks } from './EnhancedMediaAggregatedLinks';
-import { PlacesSection } from './PlacesSection';
-import { AIConciergeChat } from './AIConciergeChat';
-import { PaymentsTab } from './payments/PaymentsTab';
-import { AddLinkModal } from './AddLinkModal';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { useFeatureToggle } from '../hooks/useFeatureToggle';
 import { TripPreferences as TripPreferencesType } from '../types/consumer';
 import type { NormalizedUrl } from '@/services/chatUrlExtractor';
+
+// Lazy load tab components for better performance
+const TripChat = lazy(() => import('./TripChat').then(module => ({ default: module.TripChat })));
+const GroupCalendar = lazy(() => import('./GroupCalendar').then(module => ({ default: module.GroupCalendar })));
+const CommentsWall = lazy(() => import('./CommentsWall').then(module => ({ default: module.CommentsWall })));
+const TripTasksTab = lazy(() => import('./todo/TripTasksTab').then(module => ({ default: module.TripTasksTab })));
+const UnifiedMediaHub = lazy(() => import('./UnifiedMediaHub').then(module => ({ default: module.UnifiedMediaHub })));
+const PlacesSection = lazy(() => import('./PlacesSection').then(module => ({ default: module.PlacesSection })));
+const AIConciergeChat = lazy(() => import('./AIConciergeChat').then(module => ({ default: module.AIConciergeChat })));
+const PaymentsTab = lazy(() => import('./payments/PaymentsTab').then(module => ({ default: module.PaymentsTab })));
+const AddLinkModal = lazy(() => import('./AddLinkModal').then(module => ({ default: module.AddLinkModal })));
 
 interface TripTabsProps {
   activeTab: string;
@@ -126,11 +123,13 @@ export const TripTabs = ({
   return (
     <>
       {/* Add Link Modal */}
-      <AddLinkModal
-        isOpen={isAddLinkModalOpen}
-        onClose={handleCloseLinkModal}
-        prefill={linkPrefill}
-      />
+      <Suspense fallback={<div className="flex items-center justify-center h-20"><div className="text-white/60">Loading...</div></div>}>
+        <AddLinkModal
+          isOpen={isAddLinkModalOpen}
+          onClose={handleCloseLinkModal}
+          prefill={linkPrefill}
+        />
+      </Suspense>
 
       {/* Tab Navigation - Matches main navigation alignment */}
       <div className="flex overflow-x-auto whitespace-nowrap scroll-smooth gap-2 mb-8 pb-2 -mx-2 px-2 justify-center">
@@ -138,14 +137,14 @@ export const TripTabs = ({
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           const enabled = tab.enabled;
-          
+
           return (
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id, enabled)}
               disabled={!enabled}
               className={`
-                flex items-center justify-center gap-2 
+                flex items-center justify-center gap-2
                 px-4 py-3 min-h-[44px] min-w-max
                 rounded-lg font-medium text-sm
                 transition-all duration-200
@@ -170,7 +169,13 @@ export const TripTabs = ({
 
       {/* Tab Content */}
       <div className="h-[calc(100vh-240px)] max-h-[1000px] min-h-[600px]">
-        {renderTabContent()}
+        <Suspense fallback={
+          <div className="flex items-center justify-center h-full">
+            <div className="text-white/60 animate-pulse">Loading...</div>
+          </div>
+        }>
+          {renderTabContent()}
+        </Suspense>
       </div>
     </>
   );
