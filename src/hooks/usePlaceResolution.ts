@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { PlaceCategory } from '@/types/basecamp';
 
 interface LinkOption {
   type: string;
@@ -78,8 +79,8 @@ export const usePlaceResolution = () => {
     // Mapping from new categories to Google Place types
     const categoryMap: { [key in PlaceCategory]?: string[] } = {
       'Accommodation': ['lodging', 'hotel', 'motel', 'resort', 'hostel', 'rv_park'],
-      'Food & Drink': ['restaurant', 'cafe', 'bar', 'bakery', 'meal_takeaway', 'meal_delivery'],
-      'Activity': ['tourist_attraction', 'museum', 'amusement_park', 'zoo', 'aquarium', 'art_gallery', 'park', 'church', 'mosque', 'synagogue', 'hindu_temple', 'movie_theater', 'casino', 'night_club', 'spa'],
+      'Appetite': ['restaurant', 'cafe', 'bar', 'bakery', 'meal_takeaway', 'meal_delivery', 'food', 'night_club'],
+      'Activity': ['tourist_attraction', 'museum', 'amusement_park', 'zoo', 'aquarium', 'art_gallery', 'park', 'church', 'mosque', 'synagogue', 'hindu_temple', 'movie_theater', 'casino', 'spa'],
       'Attraction': ['stadium', 'landmark', 'point_of_interest'], // Stadiums, music venues, sports venues
     };
 
