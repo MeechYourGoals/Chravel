@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface EmbeddingGenerationStatus {
   isGenerating: boolean;
@@ -15,6 +16,7 @@ export function useEmbeddingGeneration(tripId: string | undefined) {
     lastGenerated: null,
   });
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
 
   const generateEmbeddings = useCallback(async (
     sourceType: 'chat' | 'task' | 'poll' | 'payment' | 'broadcast' | 'file' | 'link' | 'calendar' | 'all' = 'all',
@@ -23,6 +25,17 @@ export function useEmbeddingGeneration(tripId: string | undefined) {
     if (!tripId) {
       console.warn('No tripId provided for embedding generation');
       return false;
+    }
+
+    // Demo mode: Skip API calls, return success immediately
+    if (isDemoMode) {
+      console.log('[Demo Mode] Skipping embedding generation (using mock data)');
+      setStatus({
+        isGenerating: false,
+        error: null,
+        lastGenerated: new Date(),
+      });
+      return true;
     }
 
     setStatus(prev => ({ ...prev, isGenerating: true, error: null }));
@@ -35,6 +48,7 @@ export function useEmbeddingGeneration(tripId: string | undefined) {
           tripId,
           sourceType,
           forceRefresh,
+          isDemoMode: false
         },
       });
 
@@ -87,7 +101,7 @@ export function useEmbeddingGeneration(tripId: string | undefined) {
 
       return false;
     }
-  }, [tripId, toast]);
+  }, [tripId, toast, isDemoMode]);
 
   const generateInitialEmbeddings = useCallback(async () => {
     // Check if embeddings already exist for this trip

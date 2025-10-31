@@ -108,46 +108,23 @@ serve(async (req) => {
 
     // 🆕 RAG RETRIEVAL: Semantic search for relevant trip context
     let ragContext = ''
-    if (tripId && !isDemoMode) {
+    if (tripId) {
       try {
-        console.log('Generating query embedding for RAG retrieval')
-        
-        // Generate embedding for the user's query
-        const queryEmbedResponse = await fetch('https://ai.gateway.lovable.dev/v1/embeddings', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'google/text-embedding-004',
-            input: [message]
-          })
-        })
-        
-        if (queryEmbedResponse.ok) {
-          const queryEmbedData = await queryEmbedResponse.json()
-          const queryEmbedding = queryEmbedData.data[0].embedding
+        if (isDemoMode) {
+          // Demo mode: Use mock embedding service
+          console.log('[Demo Mode] Using mock embedding service for RAG')
           
-          console.log('Performing RAG similarity search')
+          // Import mock service (simulated - in real Deno, we'd use actual imports)
+          // For now, we'll use a simplified mock retrieval
+          const mockResults = await getMockRAGResults(message, tripId)
           
-          // Retrieve relevant context using vector similarity
-          const { data: ragResults, error: ragError } = await supabase.rpc('match_trip_embeddings', {
-            query_embedding: queryEmbedding,
-            trip_id_input: tripId,
-            match_threshold: 0.6,
-            match_count: 15
-          })
-          
-          if (ragError) {
-            console.error('RAG retrieval error:', ragError)
-          } else if (ragResults && ragResults.length > 0) {
-            console.log(`Found ${ragResults.length} relevant context items via RAG`)
+          if (mockResults && mockResults.length > 0) {
+            console.log(`[Demo Mode] Found ${mockResults.length} relevant context items via mock RAG`)
             
             ragContext = '\n\n=== RELEVANT TRIP CONTEXT (RAG) ===\n'
             ragContext += 'The following information was retrieved based on semantic similarity to your question:\n'
             
-            ragResults.forEach((result: any, idx: number) => {
+            mockResults.forEach((result: any, idx: number) => {
               const relevancePercent = (result.similarity * 100).toFixed(0)
               const sourceIcon = {
                 'chat': '💬',
@@ -166,7 +143,65 @@ serve(async (req) => {
             ragContext += '\n\nIMPORTANT: Use this retrieved context to provide accurate, specific answers. Cite sources when possible (e.g., "Based on the chat messages..." or "According to the calendar...").'
           }
         } else {
-          console.error('Query embedding failed:', await queryEmbedResponse.text())
+          // Production mode: Use real embeddings
+          console.log('Generating query embedding for RAG retrieval')
+          
+          // Generate embedding for the user's query
+          const queryEmbedResponse = await fetch('https://ai.gateway.lovable.dev/v1/embeddings', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: 'google/text-embedding-004',
+              input: [message]
+            })
+          })
+          
+          if (queryEmbedResponse.ok) {
+            const queryEmbedData = await queryEmbedResponse.json()
+            const queryEmbedding = queryEmbedData.data[0].embedding
+            
+            console.log('Performing RAG similarity search')
+            
+            // Retrieve relevant context using vector similarity
+            const { data: ragResults, error: ragError } = await supabase.rpc('match_trip_embeddings', {
+              query_embedding: queryEmbedding,
+              trip_id_input: tripId,
+              match_threshold: 0.6,
+              match_count: 15
+            })
+            
+            if (ragError) {
+              console.error('RAG retrieval error:', ragError)
+            } else if (ragResults && ragResults.length > 0) {
+              console.log(`Found ${ragResults.length} relevant context items via RAG`)
+              
+              ragContext = '\n\n=== RELEVANT TRIP CONTEXT (RAG) ===\n'
+              ragContext += 'The following information was retrieved based on semantic similarity to your question:\n'
+              
+              ragResults.forEach((result: any, idx: number) => {
+                const relevancePercent = (result.similarity * 100).toFixed(0)
+                const sourceIcon = {
+                  'chat': '💬',
+                  'task': '✅',
+                  'poll': '📊',
+                  'payment': '💰',
+                  'broadcast': '📢',
+                  'calendar': '📅',
+                  'link': '🔗',
+                  'file': '📎'
+                }[result.source_type] || '📝'
+                
+                ragContext += `\n[${idx + 1}] ${sourceIcon} [${result.source_type}] ${result.content_text} (${relevancePercent}% relevant)`
+              })
+              
+              ragContext += '\n\nIMPORTANT: Use this retrieved context to provide accurate, specific answers. Cite sources when possible (e.g., "Based on the chat messages..." or "According to the calendar...").'
+            }
+          } else {
+            console.error('Query embedding failed:', await queryEmbedResponse.text())
+          }
         }
       } catch (ragError) {
         console.error('RAG retrieval failed, falling back to basic context:', ragError)
@@ -625,6 +660,73 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
 - Make the user feel excited about their trip!`
 
   return basePrompt
+}
+
+// Mock RAG retrieval for demo mode
+function getMockRAGResults(query: string, tripId: string): any[] {
+  const lowercaseQuery = query.toLowerCase();
+  const allResults = [
+    {
+      content_text: 'Sarah Chen: Super excited for this trip! Has everyone seen the weather forecast?',
+      source_type: 'chat',
+      similarity: 0.85,
+      metadata: { author: 'Sarah Chen' }
+    },
+    {
+      content_text: 'Payment: Dinner at Sakura Restaurant. Amount: USD 240.00',
+      source_type: 'payment',
+      similarity: 0.92,
+      metadata: { amount: 240.00, currency: 'USD' }
+    },
+    {
+      content_text: 'Payment: Taxi to airport. Amount: USD 65.00',
+      source_type: 'payment',
+      similarity: 0.88,
+      metadata: { amount: 65.00, currency: 'USD' }
+    },
+    {
+      content_text: 'Event: Welcome Dinner at The Little Nell Restaurant. Group dinner at 7 PM',
+      source_type: 'calendar',
+      similarity: 0.90,
+      metadata: { location: 'The Little Nell Restaurant' }
+    },
+    {
+      content_text: 'Task: Confirm dinner reservations',
+      source_type: 'task',
+      similarity: 0.87,
+      metadata: { assignee: 'Priya Patel' }
+    },
+    {
+      content_text: 'Poll: Where should we have dinner tonight?. Options: Italian Restaurant, Sushi Place, Steakhouse, Thai Food',
+      source_type: 'poll',
+      similarity: 0.89,
+      metadata: { total_votes: 8 }
+    },
+    {
+      content_text: 'Broadcast [logistics]: All luggage must be outside rooms by 8 AM for pickup tomorrow!',
+      source_type: 'broadcast',
+      similarity: 0.82,
+      metadata: { priority: 'logistics' }
+    }
+  ];
+
+  // Filter based on query keywords
+  let filteredResults = allResults;
+  
+  if (lowercaseQuery.includes('payment') || lowercaseQuery.includes('money') || lowercaseQuery.includes('owe')) {
+    filteredResults = allResults.filter(r => r.source_type === 'payment' || r.content_text.toLowerCase().includes('payment'));
+  } else if (lowercaseQuery.includes('dinner') || lowercaseQuery.includes('restaurant')) {
+    filteredResults = allResults.filter(r => r.content_text.toLowerCase().includes('dinner') || r.content_text.toLowerCase().includes('restaurant'));
+  } else if (lowercaseQuery.includes('task') || lowercaseQuery.includes('todo')) {
+    filteredResults = allResults.filter(r => r.source_type === 'task');
+  } else if (lowercaseQuery.includes('poll') || lowercaseQuery.includes('vote')) {
+    filteredResults = allResults.filter(r => r.source_type === 'poll');
+  }
+
+  // Sort by similarity and return top results
+  return filteredResults
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, 5);
 }
 
 async function storeConversation(supabase: any, tripId: string, userMessage: string, aiResponse: string, type: string, metadata?: any) {

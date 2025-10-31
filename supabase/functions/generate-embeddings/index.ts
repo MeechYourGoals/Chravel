@@ -31,10 +31,33 @@ serve(async (req) => {
 
   try {
     console.log('Starting embedding generation')
-    const { tripId, sourceType = 'all', forceRefresh = false }: EmbeddingRequest = await req.json()
+    const { tripId, sourceType = 'all', forceRefresh = false, isDemoMode = false }: EmbeddingRequest & { isDemoMode?: boolean } = await req.json()
     
     if (!tripId) {
       throw new Error('tripId is required')
+    }
+
+    // Demo mode: Return mock success without processing
+    if (isDemoMode) {
+      console.log(`[Demo Mode] Skipping embedding generation for trip ${tripId} (using mock data)`)
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          totalProcessed: 15,
+          results: { 
+            chat: 5, 
+            payment: 3, 
+            calendar: 2, 
+            task: 2, 
+            poll: 1, 
+            broadcast: 2 
+          },
+          tripId,
+          sourceType,
+          demoMode: true
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     console.log(`Processing embeddings for trip ${tripId}, sourceType: ${sourceType}, forceRefresh: ${forceRefresh}`)
