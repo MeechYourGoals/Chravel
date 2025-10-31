@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -120,11 +121,14 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Embedding generation error:', error)
+    // Log full error server-side
+    logError('EMBEDDING_GENERATION', error, { tripId: tripId || 'unknown' })
+    
+    // Return sanitized error to client
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: sanitizeErrorForClient(error)
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

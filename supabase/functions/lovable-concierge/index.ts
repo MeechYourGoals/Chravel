@@ -2,6 +2,9 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from "../_shared/cors.ts"
 import { TripContextBuilder } from "../_shared/contextBuilder.ts"
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts"
+import { validateInput } from "../_shared/validation.ts"
+import { sanitizeErrorForClient, logError } from "../_shared/errorHandling.ts"
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -26,6 +29,30 @@ interface LovableConciergeRequest {
   }
 }
 
+// Input validation schema
+const LovableConciergeSchema = z.object({
+  message: z.string()
+    .min(1, 'Message cannot be empty')
+    .max(2000, 'Message too long (max 2000 characters)')
+    .trim(),
+  tripId: z.string()
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Invalid trip ID format')
+    .max(50, 'Trip ID too long')
+    .optional(),
+  tripContext: z.any().optional(),
+  chatHistory: z.array(z.object({
+    role: z.enum(['system', 'user', 'assistant']),
+    content: z.string().max(2000, 'Chat message too long')
+  })).max(20, 'Chat history too long (max 20 messages)').optional(),
+  isDemoMode: z.boolean().optional(),
+  config: z.object({
+    model: z.string().max(100).optional(),
+    temperature: z.number().min(0).max(2).optional(),
+    maxTokens: z.number().min(1).max(4000).optional(),
+    systemPrompt: z.string().max(1000, 'System prompt too long').optional()
+  }).optional()
+})
+
 serve(async (req) => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
   
@@ -38,6 +65,15 @@ serve(async (req) => {
       throw new Error('Lovable API key not configured')
     }
 
+    // Validate input
+    const requestBody = await req.json()
+    const validation = validateInput(LovableConciergeSchema, requestBody)
+    
+    if (!validation.success) {
+      logError('LOVABLE_CONCIERGE_VALIDATION', validation.error)
+      return createErrorResponse(validation.error, 400)
+    }
+
     const { 
       message, 
       tripContext, 
@@ -45,7 +81,7 @@ serve(async (req) => {
       chatHistory = [], 
       isDemoMode = false,
       config = {}
-    }: LovableConciergeRequest = await req.json()
+    } = validation.data
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
@@ -392,15 +428,25 @@ serve(async (req) => {
       },
     )
   } catch (error) {
-    console.error('Lovable concierge error:', error)
+    // Log full error server-side
+    logError('LOVABLE_CONCIERGE', error, { 
+      tripId: tripId || 'unknown',
+      messageLength: message?.length || 0
+    })
     
-    // Provide specific error messages based on error type
-    let userMessage = "I'm having trouble connecting right now. Please try again in a moment.";
-    let errorType = 'unknown';
-    
-    if (error.message?.includes('Lovable API key')) {
-      userMessage = "⚙️ **Configuration Error**\n\nThe AI service needs to be configured. Please contact support.";
-      errorType = 'config_error';
+    // Return sanitized error to client
+    return new Response(
+      JSON.stringify({ 
+        error: sanitizeErrorForClient(error),
+        success: false
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
     } else if (error.message?.includes('not authenticated')) {
       userMessage = "🔐 **Authentication Required**\n\nPlease sign in to use the AI Concierge.";
       errorType = 'auth_error';
