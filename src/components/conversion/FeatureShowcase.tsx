@@ -28,7 +28,7 @@ interface Feature {
 const features: Feature[] = [
   {
     id: 'concierge',
-    title: 'AI Concierge and Research',
+    title: 'AI Concierge',
     description: 'Chat with AI for personalized recommendations based on your location, preferences, and trip context',
     icon: <Sparkles size={24} />,
     isNew: true
@@ -89,9 +89,9 @@ const beforeAfterScenarios = [
   },
   {
     emoji: "🎤",
-    title: "Music Tour (Emerging Artist)",
-    subtitle: "14-person crew",
-    before: "Managing a 14-person touring crew across 7 cities. Endless text threads, spreadsheets, and miscommunication.",
+    title: "Touring Artists",
+    subtitle: "12-person crew",
+    before: "Managing a 12-person touring crew across 21 cities over 5 months. Endless text threads, spreadsheets, and miscommunication.",
     after: "All tour dates, crew chats, payments, and logistics in one app. Everyone in sync.",
     savings: "$30K saved"
   },

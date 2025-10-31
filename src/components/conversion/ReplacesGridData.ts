@@ -101,7 +101,7 @@ export const CATEGORIES: Category[] = [
 
   {
     key: "concierge",
-    title: "AI Concierge / Research",
+    title: "AI Concierge & Research",
     hero: [
       { 
         name: "ChatGPT", 
@@ -111,7 +111,7 @@ export const CATEGORIES: Category[] = [
         source: "https://play.google.com/store/apps/details?id=com.openai.chatgpt"
       },
       { 
-        name: "Gemini*", 
+        name: "Gemini", 
         androidInstalls: "100M+", 
         globalUsers: "80M downloads (2024)",
         source: "https://play.google.com/store/apps/details?id=com.google.android.apps.sidekick"
@@ -229,9 +229,6 @@ export const CATEGORIES: Category[] = [
     full: [
       { name: "Google Tasks" },
       { name: "Todoist", globalUsers: "30M users" },
-      { name: "Any.do" },
-      { name: "TickTick" },
-      { name: "Things 3" },
       { name: "Monday.com" }
     ]
   },
@@ -299,8 +296,7 @@ export const CATEGORIES: Category[] = [
         androidInstalls: "10M+"
       },
       { 
-        name: "Life360", 
-        androidInstalls: "100M+"
+        name: "MapQuest"
       }
     ],
     full: [
