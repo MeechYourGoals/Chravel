@@ -54,6 +54,7 @@ export default tseslint.config(
         },
       ],
       "no-unexpected-multiline": "error",
+      "@typescript-eslint/no-unused-expressions": "off",
       "@typescript-eslint/no-explicit-any": "off",
       "react-hooks/exhaustive-deps": "warn",
       "react-hooks/rules-of-hooks": "error",
