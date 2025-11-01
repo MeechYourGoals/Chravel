@@ -265,22 +265,20 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
         </div>
 
         {/* Left: Edit Description Button - desktop only, aligned with right edit */}
-        {isProOrEvent && (
-          <div className="hidden lg:block absolute bottom-2 left-2 z-20">
-            <button
-              onClick={() => setDescEditTick((t) => t + 1)}
-              className={cn(
-                "p-1.5 border border-white/20 rounded-lg transition-all shadow-lg backdrop-blur-sm",
-                hasCoverPhoto && isProOrEvent
-                  ? "bg-black/40 hover:bg-black/60 text-white/80 hover:text-white"
-                  : "bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white"
-              )}
-              title="Edit description"
-            >
-              <Edit size={14} />
-            </button>
-          </div>
-        )}
+        <div className="hidden lg:block absolute bottom-2 left-2 z-20">
+          <button
+            onClick={() => setDescEditTick((t) => t + 1)}
+            className={cn(
+              "p-1.5 border border-white/20 rounded-lg transition-all shadow-lg backdrop-blur-sm",
+              hasCoverPhoto && isProOrEvent
+                ? "bg-black/40 hover:bg-black/60 text-white/80 hover:text-white"
+                : "bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white"
+            )}
+            title="Edit description"
+          >
+            <Edit size={14} />
+          </button>
+        </div>
 
         {/* Edit Trip Button - Positioned for all layouts except consumer with cover */}
         {!(coverPhoto && !isProOrEvent) && (
