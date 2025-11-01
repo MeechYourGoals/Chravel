@@ -6,9 +6,13 @@
  * - Itinerary and trip data caching
  * - Background sync for offline changes
  * - Push notification handling
+ * - Dynamic versioning from deployment SHA
  */
 
-const CACHE_VERSION = 'chravel-v1.0.0';
+// Parse version from SW URL query parameter (e.g., /sw.js?v=abc123)
+const urlParams = new URLSearchParams(self.location.search);
+const buildVersion = urlParams.get('v') || 'v0';
+const CACHE_VERSION = `chravel-${buildVersion}`;
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const MAP_TILES_CACHE = `${CACHE_VERSION}-map-tiles`;
@@ -108,8 +112,8 @@ self.addEventListener('fetch', (event) => {
     // Images: Cache first, network fallback
     event.respondWith(cacheFirstStrategy(request, IMAGES_CACHE, MAX_IMAGES_CACHE_SIZE));
   } else if (url.pathname.match(/\.(js|css|woff2?|ttf|eot)$/i)) {
-    // Static assets: Cache first
-    event.respondWith(cacheFirstStrategy(request, STATIC_CACHE));
+    // Static assets: Stale-while-revalidate (serve cache, update in background)
+    event.respondWith(staleWhileRevalidateStrategy(request, STATIC_CACHE));
   } else if (isAPIRequest(url)) {
     // API requests: Network first, cache fallback
     event.respondWith(networkFirstStrategy(request));
@@ -152,6 +156,32 @@ async function cacheFirstStrategy(request, cacheName = DYNAMIC_CACHE, maxSize = 
       headers: new Headers({ 'Content-Type': 'text/plain' })
     });
   }
+}
+
+async function staleWhileRevalidateStrategy(request, cacheName = STATIC_CACHE) {
+  const cache = await caches.open(cacheName);
+  const cachedResponse = await cache.match(request);
+
+  // Fetch fresh version in background
+  const fetchPromise = fetch(request).then(async (networkResponse) => {
+    if (networkResponse.ok) {
+      await cache.put(request, networkResponse.clone());
+      console.log('[SW] Updated cache with fresh version:', request.url);
+    }
+    return networkResponse;
+  }).catch(err => {
+    console.warn('[SW] Background fetch failed:', request.url, err);
+    return null;
+  });
+
+  // Return cached version immediately, or wait for network if no cache
+  if (cachedResponse) {
+    console.log('[SW] Serving cached (updating in background):', request.url);
+    return cachedResponse;
+  }
+
+  console.log('[SW] No cache, waiting for network:', request.url);
+  return fetchPromise;
 }
 
 async function networkFirstStrategy(request) {
