@@ -104,13 +104,13 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
             </div>
             
             {/* Edit Trip Button - Bottom right */}
-            <div className="absolute bottom-6 right-6 z-10">
+            <div className="absolute bottom-2 right-2 z-10">
               <button
                 onClick={() => setShowEditModal(true)}
-                className="p-3 bg-black/30 hover:bg-black/50 backdrop-blur-sm border border-white/20 rounded-xl transition-all text-white/70 hover:text-white shadow-lg"
+                className="p-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/20 rounded-lg transition-all text-white/80 hover:text-white shadow-lg"
                 title="Edit trip details"
               >
-                <Edit size={20} />
+                <Edit size={14} />
               </button>
             </div>
           </div>
