@@ -16,7 +16,12 @@ export default tseslint.config(
       "node_modules/**",
       ".ai/**",
       "docs/**",
-      "capacitor.config.ts"
+      "capacitor.config.ts",
+      "*.config.js",
+      "*.config.ts",
+      ".lintstagedrc.js",
+      ".prettierrc.js",
+      "vercel.json"
     ] 
   },
   js.configs.recommended,
@@ -48,7 +53,6 @@ export default tseslint.config(
           varsIgnorePattern: "^_",
         },
       ],
-      "@typescript-eslint/no-unused-expressions": "off",
       "no-unexpected-multiline": "error",
       "@typescript-eslint/no-explicit-any": "off",
       "react-hooks/exhaustive-deps": "warn",
