@@ -182,28 +182,48 @@ const ProTripDetail = () => {
           sections
         );
       } else {
-        // Call edge function for real Supabase trips
+        // Call edge function for real Supabase trips using direct fetch
         console.log('[PRO-EXPORT] Calling export-trip edge function', { proTripId, sections });
         
-        const { data, error } = await supabase.functions.invoke('export-trip', {
-          body: {
-            tripId: proTripId,
-            sections,
-            layout: 'pro',
-            paper: 'letter',
-            privacyRedaction: true,
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData?.session?.access_token || '';
+        
+        const response = await fetch(
+          `https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/export-trip`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`,
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI',
+            },
+            body: JSON.stringify({
+              tripId: proTripId,
+              sections,
+              layout: 'pro',
+              paper: 'letter',
+              privacyRedaction: true,
+            }),
           }
-        });
+        );
 
         console.log('[PRO-EXPORT] Edge function response', { 
-          hasData: !!data, 
-          hasError: !!error, 
-          dataType: data ? data.constructor.name : null 
+          status: response.status,
+          contentType: response.headers.get('content-type'),
         });
 
-        if (error) {
-          // If edge function fails, fallback to client export
-          console.error('[PRO-EXPORT] Edge function failed:', error);
+        if (!response.ok) {
+          // Try to parse error JSON
+          const errorText = await response.text();
+          let errorMsg = 'Export failed';
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMsg = errorJson.error || errorMsg;
+          } catch {
+            errorMsg = errorText || errorMsg;
+          }
+          
+          console.error('[PRO-EXPORT] Edge function failed:', errorMsg);
           toast.error('Live export failed, generating a limited offline PDF.');
           
           blob = await generateClientPDF(
@@ -229,20 +249,7 @@ const ProTripDetail = () => {
           );
         } else {
           // Convert response to Blob
-          if (data instanceof Blob) {
-            blob = data;
-          } else if (data instanceof ArrayBuffer) {
-            blob = new Blob([data], { type: 'application/pdf' });
-          } else if (typeof data === 'object' && data !== null) {
-            // Check if it's an error response
-            const errorObj = data as any;
-            if (errorObj.error) {
-              throw new Error(errorObj.error);
-            }
-            throw new Error('Unexpected response format from export function');
-          } else {
-            throw new Error('Invalid response from export function');
-          }
+          blob = await response.blob();
           console.log('[PRO-EXPORT] PDF blob created', { size: blob.size });
         }
       }

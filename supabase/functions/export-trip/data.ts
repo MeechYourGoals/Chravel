@@ -133,191 +133,286 @@ async function fetchRoster(supabase: SupabaseClient, tripId: string, privacyReda
 }
 
 async function fetchCalendar(supabase: SupabaseClient, tripId: string): Promise<EventItem[]> {
-  // Get trip timezone first
-  const { data: trip } = await supabase
-    .from('trips')
-    .select('timezone')
-    .eq('id', tripId)
-    .single();
-
-  const timezone = trip?.timezone || 'UTC';
-
-  // Query with timezone-aware timestamps
-  const { data: events } = await supabase.rpc('get_trip_events_with_timezone', {
-    p_trip_id: tripId
-  });
-
-  // Fallback to simple query if RPC doesn't exist
-  if (!events) {
-    const { data: fallbackEvents } = await supabase
+  try {
+    console.log('[EXPORT-DATA] Fetching calendar for trip:', tripId);
+    
+    const { data: events, error } = await supabase
       .from('trip_events')
-      .select('id, title, location, notes, start_time, end_time')
+      .select('id, title, location, description, start_time, end_time')
       .eq('trip_id', tripId)
       .order('start_time', { ascending: true });
 
-    return (fallbackEvents || []).map(e => ({
+    if (error) {
+      console.error('[EXPORT-DATA] Error fetching calendar:', error);
+      return [];
+    }
+
+    if (!events || events.length === 0) {
+      console.log('[EXPORT-DATA] No calendar events found');
+      return [];
+    }
+
+    console.log('[EXPORT-DATA] Found', events.length, 'calendar events');
+
+    return events.map(e => ({
       dayLabel: formatDateDay(e.start_time),
       time: formatTime(e.start_time),
       title: e.title || '',
       location: e.location || undefined,
-      notes: e.notes || undefined,
+      notes: e.description || undefined,
     }));
+  } catch (error) {
+    console.error('[EXPORT-DATA] Exception fetching calendar:', error);
+    return [];
   }
-
-  return (events || []).map(e => ({
-    dayLabel: formatDateDay(e.start_local || e.start_time),
-    time: formatTime(e.start_local || e.start_time),
-    title: e.title || '',
-    location: e.location || undefined,
-    notes: e.notes || undefined,
-  }));
 }
 
 async function fetchPayments(supabase: SupabaseClient, tripId: string) {
-  // Fetch payments with payer name and splits in one query
-  const { data: paymentSplits } = await supabase
-    .from('payment_splits')
-    .select(`
-      payment_message_id,
-      amount_owed,
-      settled,
-      settled_at,
-      debtor:profiles!debtor_user_id(display_name),
-      payment:trip_payment_messages!payment_message_id(
+  try {
+    console.log('[EXPORT-DATA] Fetching payments for trip:', tripId);
+    
+    // First, fetch all payment messages for this trip
+    const { data: paymentMessages, error: pmError } = await supabase
+      .from('trip_payment_messages')
+      .select(`
         id,
-        trip_id,
-        title,
+        description,
         amount,
         currency,
-        status,
-        due_at,
+        split_count,
+        created_by,
         created_at,
-        payer:profiles!user_id(display_name)
-      )
-    `)
-    .eq('trip_payment_messages.trip_id', tripId);
+        creator:profiles!created_by(display_name)
+      `)
+      .eq('trip_id', tripId)
+      .order('created_at', { ascending: true });
 
-  // Group by payment_id
-  const paymentMap = new Map<string, PaymentItem>();
-  let totalAmount = 0;
-  let currency = 'USD';
-
-  for (const split of paymentSplits || []) {
-    const payment = split.payment as any;
-    if (!payment) continue;
-
-    const paymentId = payment.id;
-
-    if (!paymentMap.has(paymentId)) {
-      totalAmount += payment.amount || 0;
-      currency = payment.currency || 'USD';
-
-      paymentMap.set(paymentId, {
-        title: payment.title || 'Untitled',
-        payer: payment.payer?.display_name || 'Unknown',
-        amount: payment.amount || 0,
-        currency: payment.currency || 'USD',
-        status: payment.status || 'Pending',
-        due: payment.due_at ? formatDate(payment.due_at) : undefined,
-        split: [],
-      });
+    if (pmError) {
+      console.error('[EXPORT-DATA] Error fetching payment messages:', pmError);
+      return { items: [], totals: { paymentsTotal: 0, currency: 'USD' } };
     }
 
-    const item = paymentMap.get(paymentId)!;
-    item.split.push({
-      name: split.debtor?.display_name || 'Unknown',
-      owes: split.amount_owed || 0,
-      paid: split.settled || false,
-      paid_at: split.settled_at ? formatDateTime(split.settled_at) : null,
+    if (!paymentMessages || paymentMessages.length === 0) {
+      console.log('[EXPORT-DATA] No payments found');
+      return { items: [], totals: { paymentsTotal: 0, currency: 'USD' } };
+    }
+
+    console.log('[EXPORT-DATA] Found', paymentMessages.length, 'payment messages');
+
+    const paymentIds = paymentMessages.map(pm => pm.id);
+
+    // Fetch splits for these payments
+    const { data: splits, error: splitsError } = await supabase
+      .from('payment_splits')
+      .select(`
+        payment_message_id,
+        debtor_user_id,
+        amount_owed,
+        settled,
+        settled_at,
+        debtor:profiles!debtor_user_id(display_name)
+      `)
+      .in('payment_message_id', paymentIds);
+
+    if (splitsError) {
+      console.error('[EXPORT-DATA] Error fetching splits:', splitsError);
+    }
+
+    console.log('[EXPORT-DATA] Found', (splits || []).length, 'payment splits');
+
+    // Group splits by payment_message_id
+    const splitsMap = new Map<string, any[]>();
+    for (const split of splits || []) {
+      if (!splitsMap.has(split.payment_message_id)) {
+        splitsMap.set(split.payment_message_id, []);
+      }
+      splitsMap.get(split.payment_message_id)!.push(split);
+    }
+
+    // Build payment items
+    let totalAmount = 0;
+    let currency = 'USD';
+
+    const items = paymentMessages.map((pm: any) => {
+      totalAmount += pm.amount || 0;
+      currency = pm.currency || currency;
+
+      const pmSplits = splitsMap.get(pm.id) || [];
+
+      return {
+        title: pm.description || 'Untitled Payment',
+        payer: pm.creator?.display_name || 'Unknown',
+        amount: pm.amount || 0,
+        currency: pm.currency || 'USD',
+        status: pmSplits.every(s => s.settled) ? 'Paid' : (pmSplits.some(s => s.settled) ? 'Partial' : 'Pending'),
+        due: undefined,
+        split: pmSplits.map((s: any) => ({
+          name: s.debtor?.display_name || 'Unknown',
+          owes: s.amount_owed || 0,
+          paid: s.settled || false,
+          paid_at: s.settled_at ? formatDateTime(s.settled_at) : null,
+        })),
+      };
     });
+
+    return {
+      items,
+      totals: {
+        paymentsTotal: totalAmount,
+        currency,
+      },
+    };
+  } catch (error) {
+    console.error('[EXPORT-DATA] Exception fetching payments:', error);
+    return { items: [], totals: { paymentsTotal: 0, currency: 'USD' } };
   }
-
-  const items = Array.from(paymentMap.values());
-
-  return {
-    items,
-    totals: {
-      paymentsTotal: totalAmount,
-      currency,
-    },
-  };
 }
 
 async function fetchPolls(supabase: SupabaseClient, tripId: string): Promise<PollItem[]> {
-  // Fetch polls
-  const { data: polls } = await supabase
-    .from('trip_polls')
-    .select('id, question, created_at')
-    .eq('trip_id', tripId)
-    .order('created_at', { ascending: true });
+  try {
+    console.log('[EXPORT-DATA] Fetching polls for trip:', tripId);
+    
+    // Fetch polls with options stored in JSONB
+    const { data: polls, error } = await supabase
+      .from('trip_polls')
+      .select('id, question, options, created_at')
+      .eq('trip_id', tripId)
+      .order('created_at', { ascending: true });
 
-  if (!polls || polls.length === 0) return [];
-
-  const pollIds = polls.map(p => p.id);
-
-  // Fetch all options for these polls
-  const { data: options } = await supabase
-    .from('trip_poll_options')
-    .select('poll_id, text, votes, is_winner, created_at')
-    .in('poll_id', pollIds)
-    .order('created_at', { ascending: true });
-
-  // Group options by poll_id
-  const optionsMap = new Map<string, any[]>();
-  for (const option of options || []) {
-    if (!optionsMap.has(option.poll_id)) {
-      optionsMap.set(option.poll_id, []);
+    if (error) {
+      console.error('[EXPORT-DATA] Error fetching polls:', error);
+      return [];
     }
-    optionsMap.get(option.poll_id)!.push(option);
+
+    if (!polls || polls.length === 0) {
+      console.log('[EXPORT-DATA] No polls found');
+      return [];
+    }
+
+    console.log('[EXPORT-DATA] Found', polls.length, 'polls');
+
+    return polls.map(poll => {
+      // Parse options from JSONB - handle both array and object formats
+      let pollOptions: any[] = [];
+      try {
+        if (typeof poll.options === 'string') {
+          pollOptions = JSON.parse(poll.options);
+        } else if (Array.isArray(poll.options)) {
+          pollOptions = poll.options;
+        } else if (poll.options && typeof poll.options === 'object') {
+          // Handle object format
+          pollOptions = Object.values(poll.options);
+        }
+      } catch (e) {
+        console.error('[EXPORT-DATA] Error parsing poll options:', e);
+        pollOptions = [];
+      }
+
+      const maxVotes = Math.max(...pollOptions.map(o => o.voteCount || o.votes || 0), 0);
+
+      return {
+        question: poll.question || '',
+        options: pollOptions.map(opt => ({
+          text: opt.text || '',
+          votes: opt.voteCount || opt.votes || 0,
+          winner: (opt.voteCount || opt.votes || 0) === maxVotes && maxVotes > 0,
+        })),
+      };
+    });
+  } catch (error) {
+    console.error('[EXPORT-DATA] Exception fetching polls:', error);
+    return [];
   }
-
-  return polls.map(poll => {
-    const pollOptions = optionsMap.get(poll.id) || [];
-    const maxVotes = Math.max(...pollOptions.map(o => o.votes || 0), 0);
-
-    return {
-      question: poll.question || '',
-      options: pollOptions.map(opt => ({
-        text: opt.text || '',
-        votes: opt.votes || 0,
-        winner: opt.is_winner || ((opt.votes || 0) === maxVotes && maxVotes > 0),
-      })),
-    };
-  });
 }
 
 async function fetchTasks(supabase: SupabaseClient, tripId: string): Promise<TaskItem[]> {
-  const { data: tasks } = await supabase
-    .from('trip_tasks')
-    .select('title, owner_name, due_at, status')
-    .eq('trip_id', tripId)
-    .order('due_at', { ascending: true, nullsFirst: false });
+  try {
+    console.log('[EXPORT-DATA] Fetching tasks for trip:', tripId);
+    
+    // Query with creator profile join
+    const { data: tasks, error } = await supabase
+      .from('trip_tasks')
+      .select(`
+        title,
+        description,
+        due_at,
+        completed,
+        creator:profiles!creator_id(display_name)
+      `)
+      .eq('trip_id', tripId)
+      .order('due_at', { ascending: true, nullsFirst: false });
 
-  return (tasks || []).map((t: any) => ({
-    title: t.title || '',
-    owner: t.owner_name || undefined,
-    due: t.due_at ? formatDate(t.due_at) : undefined,
-    status: t.status || 'Open',
-  }));
+    if (error) {
+      console.error('[EXPORT-DATA] Error fetching tasks:', error);
+      return [];
+    }
+
+    if (!tasks || tasks.length === 0) {
+      console.log('[EXPORT-DATA] No tasks found');
+      return [];
+    }
+
+    console.log('[EXPORT-DATA] Found', tasks.length, 'tasks');
+
+    return tasks.map((t: any) => ({
+      title: t.title || t.description || 'Untitled Task',
+      owner: t.creator?.display_name || undefined,
+      due: t.due_at ? formatDate(t.due_at) : undefined,
+      status: t.completed ? 'Done' : 'Open',
+    }));
+  } catch (error) {
+    console.error('[EXPORT-DATA] Exception fetching tasks:', error);
+    return [];
+  }
 }
 
 async function fetchPlaces(supabase: SupabaseClient, tripId: string): Promise<LinkItem[]> {
-  const { data: links } = await supabase
-    .from('trip_link_index')
-    .select('og_title, title, url, domain, category, notes, created_at')
-    .eq('trip_id', tripId)
-    .order('created_at', { ascending: true });
+  try {
+    console.log('[EXPORT-DATA] Fetching places for trip:', tripId);
+    
+    const { data: links, error } = await supabase
+      .from('trip_links')
+      .select('title, url, category, description, created_at')
+      .eq('trip_id', tripId)
+      .order('created_at', { ascending: true });
 
-  return (links || []).map(link => {
-    return {
-      title: link.og_title || link.title || 'Untitled',
-      url: link.url || '',
-      domain: link.domain || '',
-      category: link.category || undefined,
-      notes: link.notes || undefined,
-      qrSvg: link.url ? generateQRSvg(link.url, 48) : undefined,
-    };
-  });
+    if (error) {
+      console.error('[EXPORT-DATA] Error fetching places:', error);
+      return [];
+    }
+
+    if (!links || links.length === 0) {
+      console.log('[EXPORT-DATA] No places found');
+      return [];
+    }
+
+    console.log('[EXPORT-DATA] Found', links.length, 'places');
+
+    return links.map(link => {
+      // Extract domain from URL
+      let domain = '';
+      try {
+        if (link.url) {
+          const urlObj = new URL(link.url);
+          domain = urlObj.hostname.replace('www.', '');
+        }
+      } catch {
+        domain = 'Unknown';
+      }
+
+      return {
+        title: link.title || 'Untitled',
+        url: link.url || '',
+        domain,
+        category: link.category || undefined,
+        notes: link.description || undefined,
+        qrSvg: link.url ? generateQRSvg(link.url, 48) : undefined,
+      };
+    });
+  } catch (error) {
+    console.error('[EXPORT-DATA] Exception fetching places:', error);
+    return [];
+  }
 }
 
 async function fetchBroadcasts(supabase: SupabaseClient, tripId: string) {
