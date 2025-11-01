@@ -36,7 +36,7 @@ serve(async (req) => {
   });
 
   try {
-    logStep("Export started", { method: req.method });
+    logStep("Export started", { method: req.method, url: req.url });
 
     // Parse request - support both GET and POST
     let tripId: string;
@@ -63,8 +63,20 @@ serve(async (req) => {
     }
 
     logStep("Request parsed", { tripId, sections, layout, privacyRedaction, paper });
-    console.log('[EXPORT-TRIP] Trip ID type:', typeof tripId, 'value:', tripId);
-    console.log('[EXPORT-TRIP] Layout:', layout, 'Sections:', sections);
+
+    // Auto-detect layout from trip_type if not explicitly provided
+    if (!layout || layout === 'onepager') {
+      const { data: trip, error: tripError } = await supabaseClient
+        .from('trips')
+        .select('trip_type')
+        .eq('id', tripId)
+        .single();
+
+      if (!tripError && trip) {
+        layout = (trip.trip_type === 'pro' || trip.trip_type === 'events') ? 'pro' : 'onepager';
+        logStep("Layout auto-detected", { trip_type: trip.trip_type, layout });
+      }
+    }
 
     // Validate layout
     if (layout !== 'onepager' && layout !== 'pro') {
@@ -162,6 +174,7 @@ serve(async (req) => {
         ...corsHeaders,
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Length': pdfBuffer.length.toString(),
       },
     });
 

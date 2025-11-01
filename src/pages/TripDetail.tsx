@@ -191,17 +191,28 @@ const TripDetail = () => {
         );
       } else {
         // Call edge function for real Supabase trips
+        console.log('[EXPORT] Calling export-trip edge function', { tripId, sections });
+        
         const { data, error } = await supabase.functions.invoke('export-trip', {
           body: {
             tripId,
             sections,
+            layout: 'onepager',
+            paper: 'letter',
+            privacyRedaction: true,
           }
+        });
+
+        console.log('[EXPORT] Edge function response', { 
+          hasData: !!data, 
+          hasError: !!error, 
+          dataType: data ? data.constructor.name : null 
         });
 
         if (error) {
           // If edge function fails, fallback to client export
-          console.error(`Edge function failed: ${error.message}, using client fallback`);
-          toast.error(`Live export failed, generating a limited offline PDF.`);
+          console.error('[EXPORT] Edge function failed:', error);
+          toast.error('Live export failed, generating a limited offline PDF.');
 
           // Fetch mock data for fallback
           const mockPayments = await demoModeService.getMockPayments(tripId || '1');
@@ -224,7 +235,22 @@ const TripDetail = () => {
             sections
           );
         } else {
-          blob = data;
+          // Convert response to Blob
+          if (data instanceof Blob) {
+            blob = data;
+          } else if (data instanceof ArrayBuffer) {
+            blob = new Blob([data], { type: 'application/pdf' });
+          } else if (typeof data === 'object' && data !== null) {
+            // Check if it's an error response
+            const errorObj = data as any;
+            if (errorObj.error) {
+              throw new Error(errorObj.error);
+            }
+            throw new Error('Unexpected response format from export function');
+          } else {
+            throw new Error('Invalid response from export function');
+          }
+          console.log('[EXPORT] PDF blob created', { size: blob.size });
         }
       }
 
@@ -234,8 +260,18 @@ const TripDetail = () => {
       
       toast.success('PDF exported successfully!');
     } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Failed to export PDF');
+      console.error('Export error details:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        tripId,
+        sections
+      });
+      toast.error(
+        error instanceof Error 
+          ? `Export failed: ${error.message}` 
+          : 'Failed to export PDF'
+      );
       throw error;
     }
   };
