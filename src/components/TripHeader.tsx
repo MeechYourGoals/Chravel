@@ -186,7 +186,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
           {/* Right: Collaborators Panel */}
           <div 
             className={cn(
-              "rounded-2xl p-4 min-w-[280px] lg:w-[40%] border border-white/10",
+              "rounded-2xl p-4 pb-3 min-w-[280px] lg:w-[40%] border border-white/10",
               hasCoverPhoto && isProOrEvent 
                 ? "bg-black/50 backdrop-blur-md" 
                 : "bg-white/5 backdrop-blur-sm"
@@ -263,7 +263,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
 
         {/* Edit Trip Button - Positioned for all layouts except consumer with cover */}
         {!(coverPhoto && !isProOrEvent) && (
-          <div className="absolute bottom-4 right-4 z-20">
+          <div className="absolute bottom-3 right-4 z-20">
             <button
               onClick={() => setShowEditModal(true)}
               className={cn(

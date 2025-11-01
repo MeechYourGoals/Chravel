@@ -117,10 +117,10 @@ export const EditableDescription = ({
       )}
       <button
         onClick={() => setIsEditing(true)}
-        className="absolute bottom-1 left-0 p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-all duration-200 text-gray-400 hover:text-white"
+        className="absolute bottom-2 left-0 p-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition-all duration-200 text-gray-400 hover:text-white shadow-lg backdrop-blur-sm"
         title="Edit description"
       >
-        <Edit size={14} />
+        <Edit size={20} />
       </button>
     </div>
   );
