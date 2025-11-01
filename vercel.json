@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "vite build",
   "devCommand": "npm run dev",
-  "installCommand": "npm ci",
+  "installCommand": "npm install --no-audit --no-fund",
   "framework": "vite",
   "outputDirectory": "dist",
   "env": {
@@ -14,7 +14,8 @@
     "env": {
       "VITE_SUPABASE_URL": "@vite_supabase_url",
       "VITE_SUPABASE_ANON_KEY": "@vite_supabase_anon_key",
-      "VITE_BUILD_ID": "$VERCEL_GIT_COMMIT_SHA"
+      "VITE_BUILD_ID": "$VERCEL_GIT_COMMIT_SHA",
+      "NODE_VERSION": "18"
     }
   },
   "headers": [
