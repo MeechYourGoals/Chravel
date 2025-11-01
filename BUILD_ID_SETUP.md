@@ -22,16 +22,17 @@ The `VITE_BUILD_ID` environment variable displays the current deployed version i
 }
 ```
 
-### For Netlify
+### For Render
 
-1. Go to Site Settings → Build & Deploy → Environment
-2. Add: `VITE_BUILD_ID` = `$COMMIT_REF-$BUILD_ID`
-3. Or in `netlify.toml`:
+1. Add to your `render.yaml` in the `envVars` section:
 
-```toml
-[build.environment]
-  VITE_BUILD_ID = "$COMMIT_REF"
+```yaml
+envVars:
+  - key: VITE_BUILD_ID
+    value: $RENDER_GIT_COMMIT
 ```
+
+2. Render automatically populates `$RENDER_GIT_COMMIT` with the Git commit SHA
 
 ### For Lovable / Other Platforms
 

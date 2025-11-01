@@ -745,7 +745,7 @@ supabase secrets set RESEND_API_KEY=your-key
 # Build optimized production bundle
 npm run build
 
-# Deploy to hosting (Vercel, Netlify, etc.)
+# Deploy to hosting (Vercel, Render, etc.)
 vercel deploy --prod
 ```
 

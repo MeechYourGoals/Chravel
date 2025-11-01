@@ -90,7 +90,7 @@ Verified Media tab only shows: All / Photos / Videos / Files (no Links tab)
 
 1. **Set `VITE_BUILD_ID` environment variable** in your deployment platform:
    - Vercel: `$VERCEL_GIT_COMMIT_SHA`
-   - Netlify: `$COMMIT_REF`
+   - Render: `$RENDER_GIT_COMMIT`
    - Other: `$(date +%Y-%m-%dT%H:%M:%SZ)-$(git rev-parse --short HEAD)`
 
 2. **Deploy to main branch**

@@ -191,7 +191,7 @@ frame-src: https://*.google.com https://maps.google.com (for embed mode)
 
 For production deployment, ensure `VITE_GOOGLE_MAPS_API_KEY` is set in your deployment environment:
 
-- **Vercel/Netlify**: Add to environment variables in dashboard
+- **Vercel/Render**: Add to environment variables in dashboard
 - **Supabase Functions**: Use `supabase secrets set VITE_GOOGLE_MAPS_API_KEY your-key`
 - **Docker/Self-hosted**: Add to `.env.production` or container environment
 
