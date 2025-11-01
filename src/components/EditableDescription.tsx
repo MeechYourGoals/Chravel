@@ -103,7 +103,7 @@ export const EditableDescription = ({
   const lineClampClass = shouldTruncate && !isExpanded ? `line-clamp-${maxLines}` : '';
 
   return (
-    <div className="relative pb-10">
+    <div className="relative pb-8">
       <p className={`${className} ${lineClampClass}`}>
         {description || 'No description added yet. Click to add one.'}
       </p>
@@ -117,7 +117,7 @@ export const EditableDescription = ({
       )}
       <button
         onClick={() => setIsEditing(true)}
-        className="absolute bottom-3 left-0 p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-all duration-200 text-gray-400 hover:text-white shadow-lg backdrop-blur-sm"
+        className="absolute bottom-2 left-0 p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-all duration-200 text-gray-400 hover:text-white shadow-lg backdrop-blur-sm"
         title="Edit description"
       >
         <Edit size={14} />
