@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Edit, Check, X } from 'lucide-react';
 import { tripService } from '../services/tripService';
 import { toast } from 'sonner';
@@ -10,6 +10,8 @@ interface EditableDescriptionProps {
   className?: string;
   maxLines?: number;
   collapsible?: boolean;
+  externalEditTrigger?: number;
+  hideInlineButtonOnLg?: boolean;
 }
 
 export const EditableDescription = ({ 
@@ -18,12 +20,20 @@ export const EditableDescription = ({
   onUpdate, 
   className = "text-gray-300 text-lg leading-relaxed",
   maxLines = 2,
-  collapsible = true
+  collapsible = true,
+  externalEditTrigger,
+  hideInlineButtonOnLg = false
 }: EditableDescriptionProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(description);
   const [isSaving, setIsSaving] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    if (typeof externalEditTrigger === 'number') {
+      setIsEditing(true);
+    }
+  }, [externalEditTrigger]);
 
   const handleSave = async () => {
     if (editValue.trim() === description) {
@@ -117,7 +127,7 @@ export const EditableDescription = ({
       )}
       <button
         onClick={() => setIsEditing(true)}
-        className="absolute bottom-2 left-0 p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-all duration-200 text-gray-400 hover:text-white shadow-lg backdrop-blur-sm"
+        className={`absolute bottom-2 left-0 p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-all duration-200 text-gray-400 hover:text-white shadow-lg backdrop-blur-sm ${hideInlineButtonOnLg ? 'lg:hidden' : ''}`}
         title="Edit description"
       >
         <Edit size={14} />
