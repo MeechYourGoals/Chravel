@@ -236,30 +236,32 @@ const ProTripDetail = () => {
           <MessageInbox />
         )}
 
-        <TripHeader
-          trip={{
-            id: parseInt(tripData.id) || 0,
-            title: tripData.title,
-            location: tripData.location,
-            dateRange: tripData.dateRange,
-            description: tripData.description || '',
-            participants: tripData.participants
-          }}
-          category={tripData.proTripCategory as ProTripCategory}
-          tags={tripData.tags}
-          onCategoryChange={() => {}}
-          onShowExport={() => setShowExportModal(true)}
-        />
+        <div className="container mx-auto px-6 py-8 max-w-7xl">
+          <TripHeader
+            trip={{
+              id: parseInt(tripData.id) || 0,
+              title: tripData.title,
+              location: tripData.location,
+              dateRange: tripData.dateRange,
+              description: tripData.description || '',
+              participants: tripData.participants
+            }}
+            category={tripData.proTripCategory as ProTripCategory}
+            tags={tripData.tags}
+            onCategoryChange={() => {}}
+            onShowExport={() => setShowExportModal(true)}
+          />
 
-        <ProTripDetailContent
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onShowTripsPlusModal={() => setShowTripsPlusModal(true)}
-          tripId={proTripId}
-          basecamp={basecamp}
-          tripData={tripData}
-          selectedCategory={tripData.proTripCategory as ProTripCategory}
-        />
+          <ProTripDetailContent
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onShowTripsPlusModal={() => setShowTripsPlusModal(false)}
+            tripId={proTripId}
+            basecamp={basecamp}
+            tripData={tripData}
+            selectedCategory={tripData.proTripCategory as ProTripCategory}
+          />
+        </div>
 
         <TripDetailModals
           showSettings={showSettings}
