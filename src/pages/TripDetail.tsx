@@ -1,11 +1,23 @@
 
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { useParams } from 'react-router-dom';
-import { TripHeader } from '../components/TripHeader';
 import { MessageInbox } from '../components/MessageInbox';
 import { TripDetailHeader } from '../components/trip/TripDetailHeader';
-import { TripDetailContent } from '../components/trip/TripDetailContent';
 import { TripDetailModals } from '../components/trip/TripDetailModals';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+
+// 🚀 OPTIMIZATION: Lazy load heavy components for faster initial render
+const TripHeader = lazy(() => 
+  import('../components/TripHeader').then(module => ({
+    default: module.TripHeader
+  }))
+);
+
+const TripDetailContent = lazy(() =>
+  import('../components/trip/TripDetailContent').then(module => ({
+    default: module.TripDetailContent
+  }))
+);
 import { TripExportModal } from '../components/trip/TripExportModal';
 import { useAuth } from '../hooks/useAuth';
 import { getTripById, generateTripMockData } from '../data/tripsData';
@@ -255,22 +267,32 @@ const TripDetail = () => {
         )}
 
         {/* Trip Header with Cover Photo Upload */}
-        <TripHeader 
-          trip={tripWithUpdatedData} 
-          onDescriptionUpdate={setTripDescription}
-          onTripUpdate={handleTripUpdate}
-          onShowExport={() => setShowExportModal(true)}
-        />
+        <Suspense fallback={
+          <div className="mb-8 animate-pulse">
+            <div className="h-64 bg-white/5 rounded-3xl mb-4"></div>
+            <div className="h-8 bg-white/5 rounded w-1/3 mb-2"></div>
+            <div className="h-4 bg-white/5 rounded w-1/4"></div>
+          </div>
+        }>
+          <TripHeader 
+            trip={tripWithUpdatedData} 
+            onDescriptionUpdate={setTripDescription}
+            onTripUpdate={handleTripUpdate}
+            onShowExport={() => setShowExportModal(true)}
+          />
+        </Suspense>
 
         {/* Main Content */}
-        <TripDetailContent
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onShowTripsPlusModal={() => setShowTripsPlusModal(true)}
-          tripId={tripId || '1'}
-          tripName={tripWithUpdatedData.title}
-          basecamp={basecamp}
-        />
+        <Suspense fallback={<LoadingSpinner className="my-12" />}>
+          <TripDetailContent
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onShowTripsPlusModal={() => setShowTripsPlusModal(true)}
+            tripId={tripId || '1'}
+            tripName={tripWithUpdatedData.title}
+            basecamp={basecamp}
+          />
+        </Suspense>
       </div>
 
       {/* Modals */}

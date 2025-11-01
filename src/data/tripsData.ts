@@ -233,10 +233,18 @@ export const getTripById = (id: number): Trip | null => {
   return tripsData.find(trip => trip.id === id) || null;
 };
 
+// 🚀 OPTIMIZATION: Cache for generated mock data
+const mockDataCache = new Map<number, ReturnType<typeof generateTripMockData>>();
+
 export const generateTripMockData = (trip: Trip) => {
+  // Check cache first for performance
+  if (mockDataCache.has(trip.id)) {
+    return mockDataCache.get(trip.id)!;
+  }
+
   const participantNames = trip.participants.map(p => p.name);
   
-  return {
+  const mockData = {
     basecamp: {
       name: `${trip.location.split(',')[0]} Base Hotel`,
       address: `123 Main Street, ${trip.location}`
@@ -270,4 +278,8 @@ export const generateTripMockData = (trip: Trip) => {
       }
     ]
   };
+
+  // Cache for future calls
+  mockDataCache.set(trip.id, mockData);
+  return mockData;
 };

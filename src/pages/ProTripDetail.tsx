@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { useParams } from 'react-router-dom';
-import { TripHeader } from '../components/TripHeader';
 import { MessageInbox } from '../components/MessageInbox';
 import { ProTripDetailHeader } from '../components/pro/ProTripDetailHeader';
-import { ProTripDetailContent } from '../components/pro/ProTripDetailContent';
 import { TripDetailModals } from '../components/trip/TripDetailModals';
 import { TripExportModal } from '../components/trip/TripExportModal';
 import { TripVariantProvider } from '../contexts/TripVariantContext';
@@ -20,6 +18,20 @@ import { toast } from 'sonner';
 import { supabase } from '../integrations/supabase/client';
 import { MobileProTripDetail } from './MobileProTripDetail';
 import { useEmbeddingGeneration } from '../hooks/useEmbeddingGeneration';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+
+// 🚀 OPTIMIZATION: Lazy load heavy components for faster initial render
+const TripHeader = lazy(() =>
+  import('../components/TripHeader').then(module => ({
+    default: module.TripHeader
+  }))
+);
+
+const ProTripDetailContent = lazy(() =>
+  import('../components/pro/ProTripDetailContent').then(module => ({
+    default: module.ProTripDetailContent
+  }))
+);
 
 const ProTripDetail = () => {
   const isMobile = useIsMobile();
@@ -237,30 +249,43 @@ const ProTripDetail = () => {
         )}
 
         <div className="container mx-auto px-6 py-8 max-w-7xl">
-          <TripHeader
-            trip={{
-              id: parseInt(tripData.id) || 0,
-              title: tripData.title,
-              location: tripData.location,
-              dateRange: tripData.dateRange,
-              description: tripData.description || '',
-              participants: tripData.participants
-            }}
-            category={tripData.proTripCategory as ProTripCategory}
-            tags={tripData.tags}
-            onCategoryChange={() => {}}
-            onShowExport={() => setShowExportModal(true)}
-          />
+          <Suspense fallback={
+            <div className="mb-8 animate-pulse">
+              <div className="h-8 bg-white/5 rounded w-2/3 mb-4"></div>
+              <div className="flex gap-2 mb-4">
+                <div className="h-6 bg-white/5 rounded w-24"></div>
+                <div className="h-6 bg-white/5 rounded w-24"></div>
+              </div>
+              <div className="h-32 bg-white/5 rounded"></div>
+            </div>
+          }>
+            <TripHeader
+              trip={{
+                id: parseInt(tripData.id) || 0,
+                title: tripData.title,
+                location: tripData.location,
+                dateRange: tripData.dateRange,
+                description: tripData.description || '',
+                participants: tripData.participants
+              }}
+              category={tripData.proTripCategory as ProTripCategory}
+              tags={tripData.tags}
+              onCategoryChange={() => {}}
+              onShowExport={() => setShowExportModal(true)}
+            />
+          </Suspense>
 
-          <ProTripDetailContent
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            onShowTripsPlusModal={() => setShowTripsPlusModal(false)}
-            tripId={proTripId}
-            basecamp={basecamp}
-            tripData={tripData}
-            selectedCategory={tripData.proTripCategory as ProTripCategory}
-          />
+          <Suspense fallback={<LoadingSpinner className="my-12" />}>
+            <ProTripDetailContent
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              onShowTripsPlusModal={() => setShowTripsPlusModal(false)}
+              tripId={proTripId}
+              basecamp={basecamp}
+              tripData={tripData}
+              selectedCategory={tripData.proTripCategory as ProTripCategory}
+            />
+          </Suspense>
         </div>
 
         <TripDetailModals

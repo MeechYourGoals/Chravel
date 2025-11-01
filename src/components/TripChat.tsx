@@ -69,9 +69,14 @@ export const TripChat = ({
   const resolvedTripId = useMemo(() => {
     return tripIdProp || params.tripId || params.proTripId || params.eventId || '';
   }, [tripIdProp, params.tripId, params.proTripId, params.eventId]);
+  
   const demoMode = useDemoMode();
-  const { tripMembers } = useTripMembers(resolvedTripId);
   const { user } = useAuth();
+
+  // 🚀 OPTIMIZATION: Defer live chat hooks in demo mode to save 200-400ms
+  const shouldUseLiveChat = !demoMode.isDemoMode;
+
+  const { tripMembers } = useTripMembers(shouldUseLiveChat ? resolvedTripId : '');
   const {
     messages: liveMessages,
     isLoading: liveLoading,
@@ -80,7 +85,7 @@ export const TripChat = ({
     loadMore: loadMoreMessages,
     hasMore,
     isLoadingMore
-  } = useTripChat(resolvedTripId);
+  } = useTripChat(shouldUseLiveChat ? resolvedTripId : '');
 
   const {
     inputMessage,

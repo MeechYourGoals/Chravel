@@ -104,8 +104,14 @@ export function useEmbeddingGeneration(tripId: string | undefined) {
   }, [tripId, toast, isDemoMode]);
 
   const generateInitialEmbeddings = useCallback(async () => {
-    // Check if embeddings already exist for this trip
     if (!tripId) return;
+
+    // 🚀 OPTIMIZATION: Skip database operations in demo mode
+    // RAG uses getMockRAGResults() in edge function, not database embeddings
+    if (isDemoMode) {
+      console.log('[Demo Mode] Skipping embeddings check (RAG uses mock data)');
+      return;
+    }
 
     try {
       const { data: existingEmbeddings, error } = await supabase
@@ -129,7 +135,7 @@ export function useEmbeddingGeneration(tripId: string | undefined) {
     } catch (error) {
       console.error('Failed to check/generate initial embeddings:', error);
     }
-  }, [tripId, generateEmbeddings]);
+  }, [tripId, generateEmbeddings, isDemoMode]);
 
   return {
     ...status,
