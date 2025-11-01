@@ -30,11 +30,6 @@ import { useEmbeddingGeneration } from '../hooks/useEmbeddingGeneration';
 
 const EventDetail = () => {
   const isMobile = useIsMobile();
-
-  // Early return for mobile
-  if (isMobile) {
-    return <MobileEventDetail />;
-  }
   const { eventId } = useParams<{ eventId?: string }>();
   const { generateInitialEmbeddings } = useEmbeddingGeneration(eventId);
   const { user } = useAuth();
@@ -118,6 +113,11 @@ const EventDetail = () => {
   ];
 
   // Enhanced trip context with event-specific features
+  // Early return for mobile after all hooks are initialized
+  if (isMobile) {
+    return <MobileEventDetail />;
+  }
+
   const tripContext: TripContext = {
     tripId: eventId,
     title: eventData.title,

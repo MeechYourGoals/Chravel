@@ -73,10 +73,8 @@ export const TripChat = ({
   const demoMode = useDemoMode();
   const { user } = useAuth();
 
-  // 🚀 OPTIMIZATION: Defer live chat hooks in demo mode to save 200-400ms
-  const shouldUseLiveChat = !demoMode.isDemoMode;
-
-  const { tripMembers } = useTripMembers(shouldUseLiveChat ? resolvedTripId : '');
+  // Live chat hooks - always initialize normally
+  const { tripMembers } = useTripMembers(resolvedTripId);
   const {
     messages: liveMessages,
     isLoading: liveLoading,
@@ -85,7 +83,7 @@ export const TripChat = ({
     loadMore: loadMoreMessages,
     hasMore,
     isLoadingMore
-  } = useTripChat(shouldUseLiveChat ? resolvedTripId : '');
+  } = useTripChat(resolvedTripId);
 
   const {
     inputMessage,

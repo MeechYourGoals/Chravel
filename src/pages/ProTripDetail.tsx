@@ -35,11 +35,6 @@ const ProTripDetailContent = lazy(() =>
 
 const ProTripDetail = () => {
   const isMobile = useIsMobile();
-
-  // Early return for mobile
-  if (isMobile) {
-    return <MobileProTripDetail />;
-  }
   const { proTripId } = useParams<{ proTripId?: string }>();
   const { generateInitialEmbeddings } = useEmbeddingGeneration(proTripId);
   const { user } = useAuth();
@@ -132,6 +127,11 @@ const ProTripDetail = () => {
   };
 
   // Handle export functionality - use same handler as consumer trips
+  // Early return for mobile after all hooks are initialized
+  if (isMobile) {
+    return <MobileProTripDetail />;
+  }
+
   const handleExport = async (sections: ExportSection[]) => {
     try {
       // Pre-open a window on iOS Safari to avoid popup blocking for blob URLs
