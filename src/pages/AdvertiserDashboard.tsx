@@ -217,24 +217,24 @@ export const AdvertiserDashboard = () => {
         </div>
       )}
       
-      {/* Header */}
+      {/* Header - Mobile Optimized */}
       <header className="bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-white">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 h-auto sm:h-16 py-3 sm:py-0">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <h1 className="text-lg sm:text-2xl font-bold text-white">
                 Chravel Advertiser Hub
               </h1>
-              <span className="text-sm text-gray-400">
+              <span className="text-xs sm:text-sm text-gray-400 truncate max-w-[120px] sm:max-w-none">
                 {activeAdvertiser?.company_name || 'Loading...'}
               </span>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/')}
-                className="border-gray-600 text-gray-300 hover:bg-white/10"
+                className="border-gray-600 text-gray-300 hover:bg-white/10 flex-1 sm:flex-none"
               >
                 Back to Chravel
               </Button>
@@ -243,7 +243,7 @@ export const AdvertiserDashboard = () => {
                   variant="ghost"
                   size="sm"
                   onClick={handleSignOut}
-                  className="text-gray-300 hover:bg-white/10"
+                  className="text-gray-300 hover:bg-white/10 flex-1 sm:flex-none"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign Out
@@ -272,7 +272,7 @@ export const AdvertiserDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="campaigns" className="space-y-6">
+          <TabsContent value="campaigns" className="space-y-6 mobile-safe-scroll overflow-y-auto">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-white">Your Campaigns</h2>
               <Button 
@@ -290,11 +290,11 @@ export const AdvertiserDashboard = () => {
             />
           </TabsContent>
 
-          <TabsContent value="analytics">
+          <TabsContent value="analytics" className="mobile-safe-scroll overflow-y-auto">
             <CampaignAnalytics campaigns={activeCampaigns} />
           </TabsContent>
 
-          <TabsContent value="settings">
+          <TabsContent value="settings" className="mobile-safe-scroll overflow-y-auto">
             <AdvertiserSettings 
               advertiser={activeAdvertiser} 
               onUpdate={setAdvertiser}

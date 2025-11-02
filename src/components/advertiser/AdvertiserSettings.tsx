@@ -78,16 +78,16 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       {/* Account Status */}
       <Card className="bg-white/5 border-gray-700">
-        <CardHeader>
-          <CardTitle className="text-white">Account Status</CardTitle>
-          <CardDescription className="text-gray-400">
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg text-white">Account Status</CardTitle>
+          <CardDescription className="text-xs sm:text-sm text-gray-400">
             Your current advertiser account status and details
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <User className="h-5 w-5 text-gray-400" />
@@ -98,7 +98,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
           
           <Separator className="bg-gray-700" />
           
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 text-sm">
             <div>
               <p className="text-gray-400">Account ID</p>
               <p className="font-mono text-xs text-white">{advertiser.id}</p>
@@ -113,11 +113,11 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
 
       {/* Company Information */}
       <Card className="bg-white/5 border-gray-700">
-        <CardHeader>
-          <div className="flex justify-between items-center">
+        <CardHeader className="pb-3 sm:pb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
             <div>
-              <CardTitle className="text-white">Company Information</CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle className="text-base sm:text-lg text-white">Company Information</CardTitle>
+              <CardDescription className="text-xs sm:text-sm text-gray-400">
                 Manage your company details and contact information
               </CardDescription>
             </div>
@@ -126,14 +126,14 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
                 variant="outline"
                 size="sm"
                 onClick={() => setIsEditing(true)}
-                className="border-gray-600 text-gray-300 hover:bg-white/10"
+                className="border-gray-600 text-gray-300 hover:bg-white/10 w-full sm:w-auto"
               >
                 Edit
               </Button>
             )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
           {isEditing ? (
             <>
               <div className="space-y-2">
@@ -177,11 +177,11 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
+                  className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 w-full sm:w-auto"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {isSaving ? 'Saving...' : 'Save Changes'}
@@ -196,7 +196,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
                       website: advertiser.website || ''
                     });
                   }}
-                  className="border-gray-600 text-gray-300 hover:bg-white/10"
+                  className="border-gray-600 text-gray-300 hover:bg-white/10 w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
@@ -247,9 +247,9 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
 
       {/* API Access */}
       <Card className="bg-white/5 border-gray-700">
-        <CardHeader>
-          <CardTitle className="text-white">API Access</CardTitle>
-          <CardDescription className="text-gray-400">
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg text-white">API Access</CardTitle>
+          <CardDescription className="text-xs sm:text-sm text-gray-400">
             Programmatic access for campaign management (Coming Soon)
           </CardDescription>
         </CardHeader>
