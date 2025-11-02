@@ -387,7 +387,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   });
 
   return (
-    <div className="mb-12 pb-24 sm:pb-4">
+    <div className="mb-12 mobile-safe-scroll">
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-3xl font-bold text-white">Places</h2>

@@ -356,7 +356,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       )}
 
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto native-scroll pb-24 sm:pb-4 space-y-2 mb-3 min-h-0">
+      <div className="flex-1 overflow-y-auto native-scroll chat-safe-scroll space-y-2 mb-3 min-h-0">
         <ChatMessages 
           messages={messages} 
           isTyping={isTyping}

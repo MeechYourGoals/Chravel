@@ -173,7 +173,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
 
   return (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-24 sm:pb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mobile-safe-scroll">
         {/* Trip Base Camp Card */}
         <div className="rounded-2xl bg-gray-900/80 border border-white/10 shadow-lg overflow-hidden flex flex-col">
           <div className="p-6 flex flex-col flex-1">

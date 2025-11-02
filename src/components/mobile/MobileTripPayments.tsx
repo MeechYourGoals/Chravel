@@ -226,7 +226,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
       </div>
 
       {/* Payments List */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 native-scroll">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 native-scroll mobile-safe-scroll">
         {payments.length === 0 ? (
           <div className="text-center py-12">
             <DollarSign size={48} className="text-slate-600 mx-auto mb-4" />

@@ -124,7 +124,7 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
               hasMore={hasMore}
               isLoading={isLoadingMore}
               initialVisibleCount={10}
-              className="chat-scroll-container native-scroll chat-messages"
+              className="chat-scroll-container native-scroll chat-safe-scroll"
             />
           )}
           

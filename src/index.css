@@ -658,14 +658,22 @@
     padding-bottom: 6rem; /* ensures text box visible above nav bar */
   }
   
-  .modal-scroll-safe {
-    padding-bottom: 5rem; /* modals don't need full 6rem */
-  }
+  /* ✅ Universal Mobile Scroll Framework - Bottom Safe Area */
   
-  /* Offset sticky inputs above fixed bottom nav */
-  .sticky-input-offset {
-    position: sticky;
-    bottom: 64px; /* approx nav height; keeps input above it */
+  /* General scroll containers under the fixed nav (6rem = 96px for nav + buffer) */
+  .mobile-safe-scroll {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+
+  /* Chat-specific scroll - extra room for input + nav (8rem = 128px) */
+  .chat-safe-scroll {
+    padding-bottom: calc(8rem + env(safe-area-inset-bottom));
+  }
+
+  /* Bottom navigation spacer (prevent overlap) */
+  .bottom-nav-safe {
+    height: 4rem; /* match nav bar height */
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
