@@ -132,10 +132,19 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         try {
           setIsMapLoading(true);
           setMapError(null);
+          
+          console.log('[MapCanvas] 🗺️ Initializing map...', {
+            tripBasecamp: !!tripBasecamp,
+            personalBasecamp: !!personalBasecamp,
+            activeContext
+          });
 
           const maps = await loadMaps();
 
-          if (!mounted || !mapContainerRef.current) return;
+          if (!mounted || !mapContainerRef.current) {
+            console.log('[MapCanvas] Component unmounted or container missing, aborting init');
+            return;
+          }
 
           // Determine initial center based on hierarchy
           let center = { lat: 40.7580, lng: -73.9855 }; // NYC fallback
@@ -145,20 +154,24 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           if (tripBasecamp?.coordinates) {
             center = tripBasecamp.coordinates;
             zoom = 12;
-            console.log('[MapCanvas] Centered on Trip Basecamp');
+            console.log('[MapCanvas] ✅ Centered on Trip Basecamp:', tripBasecamp.name);
           } 
           // Priority 2: Personal Basecamp
           else if (personalBasecamp?.coordinates) {
             center = personalBasecamp.coordinates;
             zoom = 12;
-            console.log('[MapCanvas] Centered on Personal Basecamp');
+            console.log('[MapCanvas] ✅ Centered on Personal Basecamp:', personalBasecamp.name);
           } 
           // Priority 3: User Geolocation
           else if (userGeolocation) {
             center = userGeolocation;
             zoom = 13;
-            console.log('[MapCanvas] Centered on User Geolocation');
+            console.log('[MapCanvas] ✅ Centered on User Geolocation');
+          } else {
+            console.log('[MapCanvas] ℹ️ Using default center (NYC)');
           }
+
+          console.log('[MapCanvas] Creating map instance with center:', center);
 
           // Create map instance
           const map = new maps.Map(mapContainerRef.current, {
@@ -179,21 +192,28 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           });
 
           mapRef.current = map;
+          console.log('[MapCanvas] ✅ Map instance created');
 
-          // If Google renders its error overlay, switch to iframe fallback
-          setTimeout(() => {
+          // Monitor for Google Maps error overlay
+          const errorCheckInterval = setInterval(() => {
             const hasGmError = !!mapContainerRef.current?.querySelector('.gm-err-container');
             if (hasGmError) {
-              console.error('[MapCanvas] Detected Google Maps error overlay – enabling iframe fallback');
+              clearInterval(errorCheckInterval);
+              console.error('[MapCanvas] ❌ Detected Google Maps error overlay – likely API key or billing issue');
               setUseFallbackEmbed(true);
-              setMapError('Google Maps failed to load, possibly due to an invalid API key or billing issue.');
+              setMapError('Google Maps API Error: Please check your API key, enabled APIs, and billing status in Google Cloud Console.');
               setIsMapLoading(false);
             }
-          }, 1500);
+          }, 500);
+
+          // Stop checking after 3 seconds
+          setTimeout(() => clearInterval(errorCheckInterval), 3000);
 
           // Create services
+          console.log('[MapCanvas] Creating Places and Geocoding services...');
           const svc = await createServices(map);
           setServices(svc);
+          console.log('[MapCanvas] ✅ Services created');
 
           // Create initial session token
           setSessionToken(new maps.places.AutocompleteSessionToken());
@@ -201,17 +221,19 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           setIsMapLoading(false);
           onMapReady?.();
 
-          console.log('[MapCanvas] Map initialized', { activeContext, center });
+          console.log('[MapCanvas] ✅ Map fully initialized and ready');
         } catch (error) {
-          console.error('[MapCanvas] Map initialization error:', error);
+          console.error('[MapCanvas] ❌ Map initialization error:', error);
           if (mounted) {
             // Graceful fallback to embed if JS API fails to load/auth
             setUseFallbackEmbed(true);
-            const errorMessage = error instanceof Error && error.message.includes('Google Maps')
+            const errorMessage = error instanceof Error 
               ? error.message
               : 'Failed to load Google Maps JavaScript API.';
             setMapError(errorMessage);
             setIsMapLoading(false);
+            
+            console.error('[MapCanvas] Fallback to iframe embed mode due to error');
           }
         }
       };
@@ -607,25 +629,40 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
         {/* Error State */}
         {mapError && (
-          <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-10">
-            <div className="bg-white rounded-xl p-6 shadow-2xl max-w-md mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Map Loading Error</h3>
+          <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center z-10 p-4">
+            <div className="bg-white rounded-xl p-6 shadow-2xl max-w-lg w-full">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">🗺️ Google Maps Setup Required</h3>
               <p className="text-red-700 text-sm mb-4">{mapError}</p>
-              {mapError.includes('API key') && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                  <p className="text-xs text-blue-900 font-medium mb-2">Setup Instructions:</p>
-                  <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside">
-                    <li>Copy .env.example to .env</li>
-                    <li>Add your Google Maps API key</li>
-                    <li>Restart the development server</li>
-                  </ol>
-                </div>
-              )}
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <p className="text-xs text-blue-900 font-semibold mb-3">Quick Setup Guide:</p>
+                <ol className="text-xs text-blue-800 space-y-2 list-decimal list-inside">
+                  <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="underline font-medium">Google Cloud Console</a></li>
+                  <li>Create a new API key (or use existing)</li>
+                  <li>Enable these APIs:
+                    <ul className="ml-5 mt-1 space-y-0.5 list-disc list-inside">
+                      <li>Maps JavaScript API</li>
+                      <li>Places API (New)</li>
+                      <li>Geocoding API</li>
+                    </ul>
+                  </li>
+                  <li>Enable billing on your Google Cloud project</li>
+                  <li>Add key to <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">.env</code> as <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">VITE_GOOGLE_MAPS_API_KEY</code></li>
+                  <li>Restart your dev server: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">npm run dev</code></li>
+                </ol>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <p className="text-xs text-amber-900">
+                  <strong>Note:</strong> Google Maps requires an active billing account. You'll get $200/month free credit.
+                </p>
+              </div>
+              
               <button
                 onClick={() => window.location.reload()}
                 className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
               >
-                Reload Page
+                Reload After Setup
               </button>
             </div>
           </div>

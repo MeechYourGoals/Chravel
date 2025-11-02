@@ -28,6 +28,15 @@ export async function loadMaps(): Promise<typeof google.maps> {
   
   if (!loaderPromise) {
     const apiKey = getGoogleMapsApiKey();
+    
+    console.log('[GooglePlaces] Loading Google Maps API...', { 
+      keyPresent: !!apiKey,
+      keyPrefix: apiKey?.substring(0, 10) + '...'
+    });
+
+    if (!apiKey || apiKey === 'placeholder') {
+      throw new Error('Google Maps API key is not configured. Please add VITE_GOOGLE_MAPS_API_KEY to your .env file.');
+    }
 
     const loader = new Loader({
       apiKey,
@@ -35,10 +44,17 @@ export async function loadMaps(): Promise<typeof google.maps> {
       libraries: ['places', 'geocoding'],
     });
 
-    loaderPromise = loader.load().then((google) => {
-      mapsApi = google.maps;
-      return mapsApi;
-    });
+    loaderPromise = loader.load()
+      .then((google) => {
+        mapsApi = google.maps;
+        console.log('[GooglePlaces] ✅ Google Maps API loaded successfully');
+        return mapsApi;
+      })
+      .catch((error) => {
+        console.error('[GooglePlaces] ❌ Failed to load Google Maps API:', error);
+        loaderPromise = null; // Reset to allow retry
+        throw new Error(`Google Maps API failed to load: ${error.message}. Please check your API key and billing status.`);
+      });
   }
 
   return loaderPromise;
