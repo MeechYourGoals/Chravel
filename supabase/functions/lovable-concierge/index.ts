@@ -17,6 +17,7 @@ interface LovableConciergeRequest {
   tripContext?: any
   tripId?: string
   chatHistory?: ChatMessage[]
+  isDemoMode?: boolean
   config?: {
     model?: string
     temperature?: number
@@ -42,48 +43,55 @@ serve(async (req) => {
       tripContext, 
       tripId,
       chatHistory = [], 
+      isDemoMode = false,
       config = {}
     }: LovableConciergeRequest = await req.json()
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-    // Get current user for usage tracking
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      throw new Error('User not authenticated')
+    // Skip authentication check in demo mode
+    let user = null
+    if (!isDemoMode) {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) {
+        throw new Error('User not authenticated')
+      }
+      user = authUser
     }
 
-    // Check usage limits for free users
-    const { data: userProfile } = await supabase
-      .from('profiles')
-      .select('app_role')
-      .eq('id', user.id)
-      .single()
+    // Skip usage limits check in demo mode
+    if (!isDemoMode && user) {
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('app_role')
+        .eq('id', user.id)
+        .single()
 
-    const isFreeUser = !userProfile?.app_role || userProfile.app_role === 'consumer'
-    
-    if (isFreeUser) {
-      const { data: usageData } = await supabase
-        .rpc('get_daily_concierge_usage', { user_uuid: user.id })
+      const isFreeUser = !userProfile?.app_role || userProfile.app_role === 'consumer'
       
-      const dailyUsage = usageData || 0
-      const FREE_TIER_LIMIT = 10
-      
-      if (dailyUsage >= FREE_TIER_LIMIT) {
-        return new Response(
-          JSON.stringify({
-            response: `🚫 **Daily query limit reached**\n\nYou've used ${dailyUsage}/${FREE_TIER_LIMIT} free AI queries today. Upgrade to Pro for unlimited access!`,
-            usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-            sources: [],
-            success: false,
-            error: 'usage_limit_exceeded',
-            upgradeRequired: true
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200
-          }
-        );
+      if (isFreeUser) {
+        const { data: usageData } = await supabase
+          .rpc('get_daily_concierge_usage', { user_uuid: user.id })
+        
+        const dailyUsage = usageData || 0
+        const FREE_TIER_LIMIT = 10
+        
+        if (dailyUsage >= FREE_TIER_LIMIT) {
+          return new Response(
+            JSON.stringify({
+              response: `🚫 **Daily query limit reached**\n\nYou've used ${dailyUsage}/${FREE_TIER_LIMIT} free AI queries today. Upgrade to Pro for unlimited access!`,
+              usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+              sources: [],
+              success: false,
+              error: 'usage_limit_exceeded',
+              upgradeRequired: true
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200
+            }
+          );
+        }
       }
     }
 
@@ -98,8 +106,8 @@ serve(async (req) => {
       }
     }
 
-    // Check privacy settings if trip context is provided
-    if (comprehensiveContext?.tripMetadata?.id) {
+    // Skip privacy check in demo mode
+    if (!isDemoMode && comprehensiveContext?.tripMetadata?.id) {
       try {
         const { data: privacyConfig } = await supabase
           .from('trip_privacy_configs')
@@ -237,28 +245,33 @@ serve(async (req) => {
       source: 'google_maps_grounding'
     }))
 
-    // Store conversation in database for context awareness
-    if (comprehensiveContext?.tripMetadata?.id) {
-      await storeConversation(supabase, comprehensiveContext.tripMetadata.id, message, aiResponse, 'chat', {
-        grounding_sources: citations.length,
-        has_map_widget: !!googleMapsWidget
-      })
-    }
+    // Skip database storage in demo mode
+    if (!isDemoMode) {
+      // Store conversation in database for context awareness
+      if (comprehensiveContext?.tripMetadata?.id) {
+        await storeConversation(supabase, comprehensiveContext.tripMetadata.id, message, aiResponse, 'chat', {
+          grounding_sources: citations.length,
+          has_map_widget: !!googleMapsWidget
+        })
+      }
 
-    // Track usage for analytics and rate limiting
-    try {
-      await supabase
-        .from('concierge_usage')
-        .insert({
-          user_id: user.id,
-          trip_id: comprehensiveContext?.tripMetadata?.id || tripId || 'unknown',
-          query_text: message.substring(0, 500), // Truncate for storage
-          response_tokens: usage?.completion_tokens || 0,
-          model_used: config.model || 'google/gemini-2.5-flash'
-        });
-    } catch (usageError) {
-      console.error('Failed to track usage:', usageError);
-      // Don't fail the request if usage tracking fails
+      // Track usage for analytics and rate limiting
+      if (user) {
+        try {
+          await supabase
+            .from('concierge_usage')
+            .insert({
+              user_id: user.id,
+              trip_id: comprehensiveContext?.tripMetadata?.id || tripId || 'unknown',
+              query_text: message.substring(0, 500), // Truncate for storage
+              response_tokens: usage?.completion_tokens || 0,
+              model_used: config.model || 'google/gemini-2.5-flash'
+            });
+        } catch (usageError) {
+          console.error('Failed to track usage:', usageError);
+          // Don't fail the request if usage tracking fails
+        }
+      }
     }
 
     return new Response(

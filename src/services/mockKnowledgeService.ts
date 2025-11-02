@@ -100,38 +100,91 @@ export class MockKnowledgeService {
   static async generateMockAnswer(query: string, tripId: string): Promise<string> {
     const lowercaseQuery = query.toLowerCase();
     
-    // Sarah Chen's recent messages
-    if (lowercaseQuery.includes('sarah chen') && (lowercaseQuery.includes('recent') || lowercaseQuery.includes('latest') || lowercaseQuery.includes('last'))) {
-      return "Sarah Chen's most recent message was: 'Super excited for this trip! Has everyone seen the weather forecast?' She posted this 2 days ago and seems enthusiastic about the upcoming trip.";
+    // Fetch actual mock data for context
+    const mockMessages = await demoModeService.getMockMessages('consumer-trip', false);
+    const mockBroadcasts = await demoModeService.getMockBroadcasts('consumer-trip');
+    const mockPolls = await demoModeService.getMockPolls(tripId);
+    const mockPayments = await demoModeService.getMockPayments(tripId);
+    const mockMembers = await demoModeService.getMockMembers(tripId);
+    
+    // Broadcast summary
+    if (lowercaseQuery.includes('broadcast') || lowercaseQuery.includes('announcement')) {
+      const broadcasts = mockBroadcasts;
+      return `📢 **Broadcast Messages** (${broadcasts.length} total)\n\n` +
+        broadcasts.map((b, i) => 
+          `${i + 1}. **${b.sender_name}** ${b.tag === 'urgent' || b.tag === 'emergency' ? '🚨' : ''}\n   "${b.content}"\n   _${Math.round((b.timestamp_offset_hours || 0))} hours ago_`
+        ).join('\n\n');
+    }
+    
+    // Trip participants/who's coming
+    if (lowercaseQuery.includes('who') && (lowercaseQuery.includes('trip') || lowercaseQuery.includes('coming') || lowercaseQuery.includes('going'))) {
+      const memberList = mockMembers.map((m, i) => 
+        `- **${m.display_name}**${i === 0 ? ' (Organizer)' : ''}`
+      ).join('\n');
+      return `🎿 **Trip Participants**\n\nYou'll be traveling with:\n${memberList}\n\nThat's ${mockMembers.length} people total heading to Aspen for this corporate ski trip!`;
     }
 
-    // Restaurant poll questions
-    if (lowercaseQuery.includes('restaurant') && lowercaseQuery.includes('poll')) {
-      return "The restaurant poll had three options: Italian Bistro, Sushi Palace, and Local BBQ. The poll was asking 'Where should we eat tonight?' and was created by Priya Patel yesterday.";
+    // Agenda/schedule questions
+    if (lowercaseQuery.includes('agenda') || lowercaseQuery.includes('schedule') || lowercaseQuery.includes('today') || lowercaseQuery.includes('tomorrow')) {
+      return "📅 **Upcoming Schedule**\n\n**Tomorrow:**\n- **3:30 PM** - Airport Pickup at Aspen Airport\n- **7:00 PM** - Welcome Dinner at The Little Nell Restaurant\n\n**Next Few Days:**\n- Skiing at Aspen Mountain\n- Group activities TBA\n\nThe trip runs from January 15-20, 2025.";
     }
 
-    // Task list items
-    if (lowercaseQuery.includes('task')) {
-      return "The current task list has these outstanding items: 1) Pack snorkeling gear, 2) Confirm dinner reservations, and 3) Buy sunscreen. These tasks are still pending completion.";
+    // Poll/voting questions
+    if (lowercaseQuery.includes('poll') || lowercaseQuery.includes('vote') || lowercaseQuery.includes('restaurant')) {
+      return "🍽️ **Restaurant Poll Results**\n\nPriya Patel created a poll asking \"Where should we eat tonight?\"\n\n**Current votes:**\n- Italian Bistro: 3 votes 🏆\n- Sushi Palace: 2 votes\n- Local BBQ: 1 vote\n\nLooks like Italian Bistro is winning! The poll is still active if you want to add your vote.";
+    }
+
+    // Payment/money questions
+    if (lowercaseQuery.includes('owe') || lowercaseQuery.includes('payment') || lowercaseQuery.includes('money') || lowercaseQuery.includes('pay')) {
+      const paymentList = mockPayments.map(p => {
+        const splitAmount = p.amount / p.split_count;
+        const payer = mockMembers.find(m => m.user_id === p.created_by)?.display_name || 'Unknown';
+        const status = p.is_settled ? '✅ Settled' : '⏳ Pending';
+        return `- **${p.description}**: $${p.amount.toFixed(2)} paid by ${payer}\n  Split ${p.split_count} ways = $${splitAmount.toFixed(2)} per person ${status}`;
+      }).join('\n\n');
+      
+      return `💰 **Payment Summary**\n\n**All Payments:**\n${paymentList}\n\nCheck the Payments tab to settle up!`;
+    }
+
+    // Task questions
+    if (lowercaseQuery.includes('task') || lowercaseQuery.includes('to-do') || lowercaseQuery.includes('need to do')) {
+      return "✅ **Outstanding Tasks**\n\n**Group Tasks:**\n1. Pack snorkeling gear (assigned to Sarah Chen)\n2. Confirm dinner reservations (assigned to Priya Patel)\n3. Buy sunscreen (unassigned)\n\nLooks like there are a few things still pending before the trip!";
     }
 
     // Flight information
-    if (lowercaseQuery.includes('flight') || lowercaseQuery.includes('landing')) {
-      return "Marcus Johnson mentioned that he booked his flight and will be landing at 3:30 PM on Friday. There was also an urgent message from David Thompson about a gate change to B12.";
+    if (lowercaseQuery.includes('flight') || lowercaseQuery.includes('landing') || lowercaseQuery.includes('arrival')) {
+      return "✈️ **Flight Information**\n\nMarcus Johnson mentioned he booked his flight and will be landing at **3:30 PM on Friday** at Aspen Airport.\n\nDavid Thompson also sent an urgent message about a gate change to **B12**.\n\nMake sure to coordinate pickup times with the group!";
     }
 
     // Weather information
-    if (lowercaseQuery.includes('weather')) {
-      return "There have been several weather-related messages: Sarah Chen asked about the weather forecast, Alex Kim sent a weather alert about rain expected in the afternoon (recommending umbrellas or jackets), and there was an emergency broadcast about severe weather requiring everyone to stay indoors.";
+    if (lowercaseQuery.includes('weather') || lowercaseQuery.includes('forecast') || lowercaseQuery.includes('temperature')) {
+      return "⛅ **Weather Updates**\n\nSarah Chen asked about the weather forecast for Aspen.\n\nAlex Kim sent an alert that **rain is expected in the afternoon** - recommending everyone bring umbrellas or jackets.\n\nThere was also an emergency broadcast about severe weather, advising everyone to stay indoors temporarily.\n\nCheck the weather links in Files for the full forecast!";
     }
 
     // Hotel/accommodation info
-    if (lowercaseQuery.includes('hotel') || lowercaseQuery.includes('room')) {
-      return "Chris Anderson mentioned he checked into room 502 and offered help if anyone needs anything. Maya Williams also mentioned incredible sunset views from their hotel room. There's also a reminder that luggage must be outside rooms by 8 AM for pickup.";
+    if (lowercaseQuery.includes('hotel') || lowercaseQuery.includes('room') || lowercaseQuery.includes('accommodation') || lowercaseQuery.includes('stay')) {
+      return "🏨 **Hotel Information**\n\nYou're staying at **The Little Nell** (675 E Durant Ave, Aspen, CO 81611).\n\nChris Anderson checked into **room 502** and offered help if anyone needs anything. Maya Williams mentioned incredible sunset views from their hotel room!\n\n📢 Reminder: Luggage must be outside rooms by 8 AM for pickup.";
     }
 
-    // Generic fallback
-    return `I found information related to your query about "${query}" in the demo trip data. The mock data includes messages from team members like Sarah Chen, Marcus Johnson, Priya Patel, and others, along with polls, tasks, and files. Is there something specific you'd like to know more about?`;
+    // Location/directions questions
+    if (lowercaseQuery.includes('where') || lowercaseQuery.includes('location') || lowercaseQuery.includes('address') || lowercaseQuery.includes('directions')) {
+      return "📍 **Key Locations**\n\n**Home Base:** The Little Nell (675 E Durant Ave, Aspen, CO 81611)\n\n**Activities:**\n- Aspen Mountain (skiing)\n- The Little Nell Restaurant (welcome dinner)\n\n**Airport:** Aspen Airport (for arrivals/departures)\n\nCheck the Maps tab for directions and saved places!";
+    }
+
+    // Catch missed messages
+    if (lowercaseQuery.includes('catch') || lowercaseQuery.includes('miss') || lowercaseQuery.includes('update') || lowercaseQuery.includes('summarize')) {
+      const recentBroadcasts = mockBroadcasts.slice(0, 5);
+      const recentMessages = mockMessages.filter(m => !m.tags?.includes('payment')).slice(0, 5);
+      
+      return `💬 **Recent Activity**\n\n**Recent Broadcasts:**\n` +
+        recentBroadcasts.map(b => `- **${b.sender_name}**: ${b.content}`).join('\n') +
+        `\n\n**Recent Messages:**\n` +
+        recentMessages.map(m => `- **${m.sender_name}**: ${m.message_content}`).join('\n') +
+        `\n\n**Payments:** ${mockPayments.length} pending\n**Polls:** ${mockPolls.length} active\n\nThe group chat has been pretty active with trip planning!`;
+    }
+
+    // Generic fallback with trip awareness
+    return `🌟 I have full context about your **Corporate Holiday Ski Trip to Aspen**!\n\nHere's what I know:\n- 5 participants including Sarah Chen, Marcus Johnson, Priya Patel, Alex Kim, and David Thompson\n- Dates: January 15-20, 2025\n- Staying at The Little Nell\n- Active restaurant poll and pending tasks\n- Recent messages about flights and weather\n\nWhat would you like to know? I can help with schedules, payments, tasks, or any trip details!`;
   }
 
   private static getDateFromOffset(offsetDays: number): string {

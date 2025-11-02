@@ -32,11 +32,16 @@ export const useConciergeUsage = (userId?: string) => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      const { data, error } = await supabase
+      // @ts-ignore - Supabase type instantiation issue
+      const result = await supabase
+        // @ts-ignore - Supabase type instantiation issue
         .from('concierge_usage')
         .select('id')
         .eq('user_id', targetUserId)
         .gte('created_at', today.toISOString());
+
+      // @ts-ignore - Supabase type instantiation issue  
+      const { data, error } = result;
 
       if (error) {
         console.error('Failed to fetch usage data:', error);

@@ -165,3 +165,12 @@ export const BasecampCard: React.FC<BasecampCardProps> = ({ tripId }) => {
     </Card>
   );
 };
+
+
+
+
+
+
+
+
+

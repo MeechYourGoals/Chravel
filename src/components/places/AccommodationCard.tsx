@@ -159,3 +159,12 @@ export const AccommodationCard: React.FC<AccommodationCardProps> = ({ tripId }) 
     </Card>
   );
 };
+
+
+
+
+
+
+
+
+
