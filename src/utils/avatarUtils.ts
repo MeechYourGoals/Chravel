@@ -38,3 +38,22 @@ export const isValidAvatarUrl = (avatarUrl?: string | null): boolean => {
     return false;
   }
 };
+
+/**
+ * Generates a consistent, deterministic avatar for a given name
+ * Uses initials and a color derived from the name hash
+ * @param name - Full name of the person
+ * @returns URL to a consistent avatar image
+ */
+export const getConsistentAvatar = (name: string): string => {
+  if (!name || typeof name !== 'string') return 'https://ui-avatars.com/api/?name=U&background=64748b&color=fff&size=128&bold=true';
+  
+  const initials = getInitials(name);
+  
+  // Generate consistent background color from name hash
+  const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const colors = ['3b82f6', '8b5cf6', 'ec4899', 'f59e0b', '10b981', 'ef4444', '06b6d4', 'a855f7'];
+  const bg = colors[hash % colors.length];
+  
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=${bg}&color=fff&size=128&bold=true`;
+};

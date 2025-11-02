@@ -6,6 +6,7 @@ import { demoModeService } from '@/services/demoModeService';
 import { supabase } from '@/integrations/supabase/client';
 import { getTripById } from '@/data/tripsData';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { getConsistentAvatar } from '@/utils/avatarUtils';
 
 interface Payment {
   id: string;
@@ -36,7 +37,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     {
       id: '1',
       payer: 'Sarah Chen',
-      payerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
+      payerAvatar: getConsistentAvatar('Sarah Chen'),
       amount: 450.00,
       currency: 'USD',
       description: 'Hotel - Night 1 & 2',
@@ -47,7 +48,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     {
       id: '2',
       payer: 'Alex Rivera',
-      payerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
+      payerAvatar: getConsistentAvatar('Alex Rivera'),
       amount: 120.50,
       currency: 'USD',
       description: 'Group Dinner - Italian Restaurant',
@@ -58,7 +59,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     {
       id: '3',
       payer: 'Jordan Kim',
-      payerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan',
+      payerAvatar: getConsistentAvatar('Jordan Kim'),
       amount: 85.00,
       currency: 'USD',
       description: 'Uber to Airport',
@@ -139,7 +140,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
       const convertedPayments = sessionPayments.map(sp => ({
         id: sp.id,
         payer: sp.createdByName,
-        payerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo',
+        payerAvatar: getConsistentAvatar(sp.createdByName),
         amount: sp.amount,
         currency: sp.currency,
         description: sp.description,
@@ -162,7 +163,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     const convertedPayments = sessionPayments.map(sp => ({
       id: sp.id,
       payer: sp.createdByName,
-      payerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo',
+      payerAvatar: getConsistentAvatar(sp.createdByName),
       amount: sp.amount,
       currency: sp.currency,
       description: sp.description,

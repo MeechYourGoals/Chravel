@@ -172,7 +172,7 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
             )}
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 pb-24 sm:pb-4">
             {filteredPlaces.map(place => (
               <div
                 key={place.id}

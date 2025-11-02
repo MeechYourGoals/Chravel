@@ -653,14 +653,25 @@
 
 /* Mobile padding to ensure chat input visible above bottom nav */
 @media (max-width: 768px) {
-  .chat-messages {
+  .chat-messages,
+  .scrollable-mobile {
     padding-bottom: 6rem; /* ensures text box visible above nav bar */
   }
+  
+  .modal-scroll-safe {
+    padding-bottom: 5rem; /* modals don't need full 6rem */
+  }
+  
   /* Offset sticky inputs above fixed bottom nav */
   .sticky-input-offset {
     position: sticky;
     bottom: 64px; /* approx nav height; keeps input above it */
   }
+}
+
+/* Mobile safe area bottom utility */
+.mobile-safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Active scale utility for touch feedback */

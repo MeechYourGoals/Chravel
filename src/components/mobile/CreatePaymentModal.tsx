@@ -79,9 +79,9 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, tripMembers, onPay
       />
       
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-glass-slate-card border border-glass-slate-border rounded-t-3xl sm:rounded-3xl shadow-enterprise-2xl p-6 animate-slide-up">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+      <div className="relative w-full max-w-md bg-glass-slate-card border border-glass-slate-border rounded-t-3xl sm:rounded-3xl shadow-enterprise-2xl flex flex-col max-h-[calc(100vh-80px)] animate-slide-up">
+        {/* Fixed Header */}
+        <div className="flex items-center justify-between p-6 border-b border-white/10 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
               <DollarSign className="w-5 h-5 text-green-400" />
@@ -96,8 +96,9 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, tripMembers, onPay
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Scrollable Form */}
+        <div className="flex-1 overflow-y-auto p-6 pb-24 native-scroll">
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Description
@@ -217,25 +218,26 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, tripMembers, onPay
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || selectedParticipants.length === 0 || !amount || !description}
-              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? 'Creating...' : 'Create Payment'}
-            </Button>
-          </div>
-        </form>
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting || selectedParticipants.length === 0 || !amount || !description}
+                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Creating...' : 'Create Payment'}
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
