@@ -19,26 +19,42 @@ import BuildBadge from "./components/BuildBadge";
 import { Navigate, useParams } from "react-router-dom";
 
 // Lazy load pages for better performance
-const Index = lazy(() => import("./pages/Index"));
-const TripDetail = lazy(() => import("./pages/TripDetail"));
-const ItineraryAssignmentPage = lazy(() => import("./pages/ItineraryAssignmentPage"));
-const ProTripDetail = lazy(() => import("./pages/ProTripDetail"));
-const EventDetail = lazy(() => import("./pages/EventDetail"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const JoinTrip = lazy(() => import("./pages/JoinTrip"));
-const SearchPage = lazy(() => import("./pages/SearchPage"));
-const ProfilePage = lazy(() => import("./pages/ProfilePage"));
-const SettingsPage = lazy(() => import("./pages/SettingsPage"));
-const ArchivePage = lazy(() => import("./pages/ArchivePage"));
-const AdminDashboard = lazy(() => import("./pages/AdminDashboard").then(module => ({ default: module.AdminDashboard })));
-const OrganizationDashboard = lazy(() => import("./pages/OrganizationDashboard").then(module => ({ default: module.OrganizationDashboard })));
-const OrganizationsHub = lazy(() => import("./pages/OrganizationsHub").then(module => ({ default: module.OrganizationsHub })));
-const MobileEnterpriseHub = lazy(() => import("./pages/MobileEnterpriseHub").then(module => ({ default: module.MobileEnterpriseHub })));
-const MobileOrganizationPage = lazy(() => import("./pages/MobileOrganizationPage").then(module => ({ default: module.MobileOrganizationPage })));
-const AcceptOrganizationInvite = lazy(() => import("./pages/AcceptOrganizationInvite").then(module => ({ default: module.AcceptOrganizationInvite })));
-const ChravelRecsPage = lazy(() => import("./pages/ChravelRecsPage").then(module => ({ default: module.ChravelRecsPage })));
-const AdvertiserDashboard = lazy(() => import("./pages/AdvertiserDashboard"));
-const Healthz = lazy(() => import("./pages/Healthz"));
+const retryImport = (importFn: () => Promise<any>, retries = 3) => {
+  return new Promise((resolve, reject) => {
+    importFn()
+      .then(resolve)
+      .catch((error) => {
+        if (retries === 0) {
+          reject(error);
+          return;
+        }
+        setTimeout(() => {
+          retryImport(importFn, retries - 1).then(resolve, reject);
+        }, 1000);
+      });
+  });
+};
+
+const Index = lazy(() => retryImport(() => import("./pages/Index")));
+const TripDetail = lazy(() => retryImport(() => import("./pages/TripDetail")));
+const ItineraryAssignmentPage = lazy(() => retryImport(() => import("./pages/ItineraryAssignmentPage")));
+const ProTripDetail = lazy(() => retryImport(() => import("./pages/ProTripDetail")));
+const EventDetail = lazy(() => retryImport(() => import("./pages/EventDetail")));
+const NotFound = lazy(() => retryImport(() => import("./pages/NotFound")));
+const JoinTrip = lazy(() => retryImport(() => import("./pages/JoinTrip")));
+const SearchPage = lazy(() => retryImport(() => import("./pages/SearchPage")));
+const ProfilePage = lazy(() => retryImport(() => import("./pages/ProfilePage")));
+const SettingsPage = lazy(() => retryImport(() => import("./pages/SettingsPage")));
+const ArchivePage = lazy(() => retryImport(() => import("./pages/ArchivePage")));
+const AdminDashboard = lazy(() => retryImport(() => import("./pages/AdminDashboard").then(module => ({ default: module.AdminDashboard }))));
+const OrganizationDashboard = lazy(() => retryImport(() => import("./pages/OrganizationDashboard").then(module => ({ default: module.OrganizationDashboard }))));
+const OrganizationsHub = lazy(() => retryImport(() => import("./pages/OrganizationsHub").then(module => ({ default: module.OrganizationsHub }))));
+const MobileEnterpriseHub = lazy(() => retryImport(() => import("./pages/MobileEnterpriseHub").then(module => ({ default: module.MobileEnterpriseHub }))));
+const MobileOrganizationPage = lazy(() => retryImport(() => import("./pages/MobileOrganizationPage").then(module => ({ default: module.MobileOrganizationPage }))));
+const AcceptOrganizationInvite = lazy(() => retryImport(() => import("./pages/AcceptOrganizationInvite").then(module => ({ default: module.AcceptOrganizationInvite }))));
+const ChravelRecsPage = lazy(() => retryImport(() => import("./pages/ChravelRecsPage").then(module => ({ default: module.ChravelRecsPage }))));
+const AdvertiserDashboard = lazy(() => retryImport(() => import("./pages/AdvertiserDashboard")));
+const Healthz = lazy(() => retryImport(() => import("./pages/Healthz")));
 
 // Note: Large components are already optimized with code splitting
 
@@ -63,8 +79,17 @@ const App = () => {
   // Initialize demo mode BEFORE rendering any components
   useEffect(() => {
     const initDemoMode = async () => {
-      await useDemoModeStore.getState().init();
-      setDemoModeInitialized(true);
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(false), 3000));
+      try {
+        await Promise.race([
+          useDemoModeStore.getState().init(),
+          timeout
+        ]);
+      } catch (error) {
+        console.error('Demo mode init failed:', error);
+      } finally {
+        setDemoModeInitialized(true);
+      }
     };
     initDemoMode();
   }, []);

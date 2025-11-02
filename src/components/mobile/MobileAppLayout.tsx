@@ -16,38 +16,50 @@ export const MobileAppLayout = ({ children, className }: MobileAppLayoutProps) =
 
   // 🆕 Initialize mobile optimizations
   useEffect(() => {
-    if (isMobile) {
-      MobileOptimizationService.initializeMobileOptimizations();
-      MobileOptimizationService.trackMobilePerformance();
-      
-      // Initialize native features
-      NativeMobileService.initialize();
-      NativeMobileService.trackNativePerformance();
-    }
+    if (!isMobile) return;
+
+    const initServices = async () => {
+      try {
+        await Promise.race([
+          Promise.all([
+            MobileOptimizationService.initializeMobileOptimizations(),
+            NativeMobileService.initialize()
+          ]),
+          new Promise((resolve) => setTimeout(resolve, 2000))
+        ]);
+
+        // Start tracking after initialization
+        MobileOptimizationService.trackMobilePerformance();
+        NativeMobileService.trackNativePerformance();
+      } catch (error) {
+        console.warn('Mobile services initialization failed:', error);
+      }
+    };
+
+    initServices();
   }, [isMobile]);
 
-  if (!isMobile) {
-    // On desktop, return children without mobile layout
-    return <>{children}</>;
-  }
-
   return (
-    <div className={cn("flex flex-col min-h-screen bg-gray-900", className)}>
-      {/* Main content area with bottom padding for nav */}
-      <main 
-        className="flex-1 pb-mobile-nav-height overflow-y-auto"
-        style={{
+    <div className={cn(
+      "flex flex-col min-h-screen",
+      isMobile ? "bg-gray-900" : "bg-background",
+      className
+    )}>
+      <main
+        className={cn(
+          "flex-1 overflow-y-auto",
+          isMobile && "pb-mobile-nav-height"
+        )}
+        style={isMobile ? {
           paddingBottom: `calc(80px + env(safe-area-inset-bottom))`,
-          // 🆕 Mobile performance optimizations
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain'
-        }}
+        } : undefined}
       >
         {children}
       </main>
-      
-      {/* Fixed bottom navigation */}
-      <MobileBottomNav />
+
+      {isMobile && <MobileBottomNav />}
     </div>
   );
 };

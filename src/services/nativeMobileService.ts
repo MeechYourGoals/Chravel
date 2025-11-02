@@ -329,7 +329,7 @@ export class NativeMobileService {
 
   // 🆕 Performance Monitoring
   static trackNativePerformance() {
-    if (!this.isNative) return;
+    if (!this.isNative || import.meta.env.PROD) return;
 
     // Monitor memory usage
     if ('memory' in performance) {
@@ -344,8 +344,15 @@ export class NativeMobileService {
     // Monitor frame rate
     let frameCount = 0;
     let lastTime = performance.now();
+    let rafId: number;
+    let stopTime = Date.now() + 10000; // Stop after 10 seconds
     
     const countFrames = () => {
+      if (Date.now() > stopTime) {
+        console.log('Native performance tracking stopped');
+        return;
+      }
+
       frameCount++;
       const currentTime = performance.now();
       
@@ -357,9 +364,12 @@ export class NativeMobileService {
         lastTime = currentTime;
       }
       
-      requestAnimationFrame(countFrames);
+      rafId = requestAnimationFrame(countFrames);
     };
     
-    requestAnimationFrame(countFrames);
+    rafId = requestAnimationFrame(countFrames);
+
+    // Return cleanup function
+    return () => cancelAnimationFrame(rafId);
   }
 }

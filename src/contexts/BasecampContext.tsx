@@ -7,6 +7,7 @@ interface BasecampContextType {
   setBasecamp: (basecamp: BasecampLocation | null) => void;
   isBasecampSet: boolean;
   clearBasecamp: () => void;
+  isLoading: boolean;
 }
 
 const BasecampContext = createContext<BasecampContextType | undefined>(undefined);
@@ -15,18 +16,24 @@ const BASECAMP_STORAGE_KEY = 'trip-basecamp';
 
 export const BasecampProvider = ({ children }: { children: ReactNode }) => {
   const [basecamp, setBasecampState] = useState<BasecampLocation | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load basecamp from platform storage on mount
   useEffect(() => {
     const loadBasecamp = async () => {
       try {
-        const stored = await getStorageItem<BasecampLocation>(BASECAMP_STORAGE_KEY);
+        const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 2000));
+        const stored = await Promise.race([
+          getStorageItem<BasecampLocation>(BASECAMP_STORAGE_KEY),
+          timeout
+        ]);
         if (stored) {
-          setBasecampState(stored);
+          setBasecampState(stored as BasecampLocation);
         }
       } catch (error) {
         console.warn('Failed to load basecamp from storage:', error);
-        await removeStorageItem(BASECAMP_STORAGE_KEY);
+      } finally {
+        setIsLoading(false);
       }
     };
     loadBasecamp();
@@ -58,7 +65,8 @@ export const BasecampProvider = ({ children }: { children: ReactNode }) => {
       basecamp,
       setBasecamp,
       isBasecampSet,
-      clearBasecamp
+      clearBasecamp,
+      isLoading
     }}>
       {children}
     </BasecampContext.Provider>
