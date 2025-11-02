@@ -27,7 +27,7 @@ const env = (import.meta as any)?.env ?? {};
 const isLovablePreview = typeof window !== 'undefined' && window.location.hostname.endsWith('lovableproject.com');
 
 const SUPABASE_URL = env.VITE_SUPABASE_URL || (isLovablePreview ? 'https://jmjiyekmxwsxkfnqwyaa.supabase.co' : '');
-const SUPABASE_PUBLISHABLE_KEY = env.VITE_SUPABASE_ANON_KEY || (isLovablePreview
+const SUPABASE_PUBLISHABLE_KEY = env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || (isLovablePreview
   ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI'
   : '');
 
