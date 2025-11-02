@@ -102,12 +102,12 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:h-[420px]">
-          <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-4 flex justify-center items-center">
+          <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-2 flex items-center">
             <Calendar
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}
-              className="scale-110 mx-auto"
+              className="w-full"
               modifiers={{
                 hasEvents: datesWithEvents
               }}
