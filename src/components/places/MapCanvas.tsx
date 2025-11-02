@@ -57,7 +57,11 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     const [isMapLoading, setIsMapLoading] = useState(true);
     const [mapError, setMapError] = useState<string | null>(null);
     const [useFallbackEmbed, setUseFallbackEmbed] = useState(false);
+    const [forceIframeFallback, setForceIframeFallback] = useState(false);
     const [userGeolocation, setUserGeolocation] = useState<{ lat: number; lng: number } | null>(null);
+    
+    // Emergency timeout to force iframe fallback if JS API takes too long
+    const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -127,6 +131,16 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     // Initialize map
     useEffect(() => {
       let mounted = true;
+      
+      // Emergency timeout: if map doesn't load in 5 seconds, force iframe fallback
+      loadingTimeoutRef.current = setTimeout(() => {
+        if (mounted && isMapLoading) {
+          console.warn('[MapCanvas] ⏱️ Map loading timeout - forcing iframe fallback');
+          setForceIframeFallback(true);
+          setUseFallbackEmbed(true);
+          setIsMapLoading(false);
+        }
+      }, 5000);
 
       const initMap = async () => {
         try {
@@ -218,6 +232,12 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           // Create initial session token
           setSessionToken(new maps.places.AutocompleteSessionToken());
 
+          // Clear emergency timeout - map loaded successfully
+          if (loadingTimeoutRef.current) {
+            clearTimeout(loadingTimeoutRef.current);
+            loadingTimeoutRef.current = null;
+          }
+          
           setIsMapLoading(false);
           onMapReady?.();
 
@@ -225,8 +245,15 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         } catch (error) {
           console.error('[MapCanvas] ❌ Map initialization error:', error);
           if (mounted) {
+            // Clear emergency timeout
+            if (loadingTimeoutRef.current) {
+              clearTimeout(loadingTimeoutRef.current);
+              loadingTimeoutRef.current = null;
+            }
+            
             // Graceful fallback to embed if JS API fails to load/auth
             setUseFallbackEmbed(true);
+            setForceIframeFallback(true);
             const errorMessage = error instanceof Error 
               ? error.message
               : 'Failed to load Google Maps JavaScript API.';
@@ -238,10 +265,22 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         }
       };
 
-      initMap();
+      // Try to init map, but if it fails immediately, force iframe fallback
+      try {
+        initMap();
+      } catch (syncError) {
+        console.error('[MapCanvas] Synchronous error during init:', syncError);
+        setForceIframeFallback(true);
+        setUseFallbackEmbed(true);
+        setIsMapLoading(false);
+      }
 
       return () => {
         mounted = false;
+        if (loadingTimeoutRef.current) {
+          clearTimeout(loadingTimeoutRef.current);
+          loadingTimeoutRef.current = null;
+        }
       };
     }, []);
 
@@ -523,10 +562,16 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     };
 
     // If fallback embed mode is enabled, show the iframe instead
-    if (useFallbackEmbed) {
+    if (useFallbackEmbed || forceIframeFallback) {
+      console.log('[MapCanvas] Rendering iframe fallback mode');
       return (
         <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
           <GoogleMapsEmbed className="w-full h-full" />
+          {!forceIframeFallback && mapError && (
+            <div className="absolute top-2 right-2 z-30 bg-amber-500/90 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-lg shadow-lg">
+              ℹ️ Using simplified map view
+            </div>
+          )}
         </div>
       );
     }
