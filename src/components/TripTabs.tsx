@@ -169,7 +169,7 @@ export const TripTabs = ({
       </div>
 
       {/* Tab Content */}
-      <div className="h-[calc(100vh-240px)] max-h-[1000px] min-h-[600px]">
+      <div className="overflow-y-auto native-scroll pb-24 sm:pb-4 h-auto min-h-0 max-h-none md:h-[calc(100vh-240px)] md:max-h-[1000px] md:min-h-[600px]">
         {renderTabContent()}
       </div>
     </>

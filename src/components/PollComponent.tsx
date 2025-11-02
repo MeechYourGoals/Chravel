@@ -63,7 +63,7 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 pb-24 sm:pb-4">
       {!showCreatePoll && (
         <Button
           onClick={() => setShowCreatePoll(true)}
