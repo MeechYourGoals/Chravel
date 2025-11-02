@@ -651,3 +651,10 @@
   }
 }
 
+/* Mobile padding to ensure chat input visible above bottom nav */
+@media (max-width: 768px) {
+  .chat-messages {
+    padding-bottom: 6rem; /* ensures text box visible above nav bar */
+  }
+}
+

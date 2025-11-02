@@ -102,7 +102,7 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
   return (
     <div className="flex flex-col min-h-screen bg-black">
       {/* Unified Chat Shell - Teams-like container */}
-      <div className="flex-1 flex flex-col p-4 pb-24 sm:pb-4 overflow-hidden">
+      <div className="flex-1 flex flex-col p-4 overflow-hidden">
         <div
           className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1"
         >
@@ -124,7 +124,7 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
               hasMore={hasMore}
               isLoading={isLoadingMore}
               initialVisibleCount={10}
-              className="chat-scroll-container native-scroll"
+              className="chat-scroll-container native-scroll chat-messages"
             />
           )}
           
@@ -139,7 +139,7 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
           )}
 
           {/* Input Area */}
-          <div className="border-t border-white/10 bg-black/30 p-3">
+          <div className="sticky bottom-0 z-10 border-t border-white/10 bg-black/30 p-3 mobile-safe-area-bottom">
             <ChatInput
               inputMessage={inputMessage}
               onInputChange={setInputMessage}
