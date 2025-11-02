@@ -335,20 +335,20 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         </div>
       )}
 
-      {/* Empty State */}
+      {/* Empty State - Compact for Mobile */}
       {messages.length === 0 && !(isFreeUser && usage?.isLimitReached) && (
-        <div className="text-center py-2 mb-3 flex-shrink-0">
-          <h4 className="text-white font-medium mb-2">Your AI Travel Concierge</h4>
+        <div className="text-center py-3 px-4 mb-2 flex-shrink-0 max-h-[45vh] overflow-y-auto sm:py-6 sm:px-6">
+          <h4 className="text-base font-semibold mb-1.5 text-white sm:text-lg sm:mb-2">Your AI Travel Concierge</h4>
           <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
-            <p>Ask me anything about your trip:</p>
-            <div className="text-xs text-gray-400 space-y-1">
+            <p className="text-xs sm:text-sm mb-1.5">Ask me anything about your trip:</p>
+            <div className="text-xs text-gray-400 space-y-0.5 leading-snug">
               <p>• "Suggest activities based on our preferences"</p>
               <p>• "What hidden gems should we check out?"</p>
               <p>• "What's in the calendar agenda for the rest of the week"</p>
               <p>• "What tasks still need to be completed"</p>
-              <p>• "Can you give me a summary of the payments owed for my expenses?"</p>
+              <p>• "Can you summarize my payments owed?"</p>
             </div>
-            <div className="mt-2 text-xs text-green-400 bg-green-500/10 rounded px-3 py-1.5 inline-block">
+            <div className="mt-2 text-xs text-green-400 bg-green-500/10 rounded px-2.5 py-1 inline-block">
               ✨ Powered by AI - ask me anything!
             </div>
           </div>
