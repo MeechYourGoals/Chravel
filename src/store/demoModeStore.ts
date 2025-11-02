@@ -15,7 +15,16 @@ export const useDemoModeStore = create<DemoModeState>((set, get) => ({
   isLoading: false,
 
   init: async () => {
+    set({ isLoading: true });
     try {
+      // Try to read from localStorage synchronously first for instant initialization
+      const cachedValue = localStorage.getItem('TRIPS_DEMO_MODE');
+      if (cachedValue !== null) {
+        set({ isDemoMode: cachedValue === 'true', isLoading: false });
+        return;
+      }
+      
+      // Fallback to async service if not in cache
       const enabled = await secureStorageService.isDemoModeEnabled();
       set({ isDemoMode: enabled, isLoading: false });
     } catch (error) {

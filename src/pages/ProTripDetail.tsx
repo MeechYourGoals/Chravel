@@ -55,13 +55,15 @@ const ProTripDetail = () => {
     }
   }, [isDemoMode, enableDemoMode]);
 
-  // Gate demo content
+  // Show loading spinner while demo mode initializes
   if (!isDemoMode) {
     return (
-      <ProTripNotFound 
-        message="Demo Mode is disabled"
-        details="Turn on Demo Mode to view sample professional trips and explore all features."
-      />
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading demo content...</p>
+        </div>
+      </div>
     );
   }
 

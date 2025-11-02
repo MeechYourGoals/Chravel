@@ -51,6 +51,8 @@ const LegacyProTripRedirect = () => {
 const queryClient = new QueryClient();
 
 const App = () => {
+  const [demoModeInitialized, setDemoModeInitialized] = React.useState(false);
+
   // Track app initialization performance
   const stopTiming = performanceService.startTiming('App Initialization');
   
@@ -58,9 +60,13 @@ const App = () => {
     stopTiming();
   }, [stopTiming]);
 
-  // Initialize demo mode store once on mount
+  // Initialize demo mode BEFORE rendering any components
   useEffect(() => {
-    useDemoModeStore.getState().init();
+    const initDemoMode = async () => {
+      await useDemoModeStore.getState().init();
+      setDemoModeInitialized(true);
+    };
+    initDemoMode();
   }, []);
 
   // Initialize error tracking with user context
@@ -75,6 +81,15 @@ const App = () => {
       }
     });
   }, []);
+
+  // Show loading screen until demo mode is initialized
+  if (!demoModeInitialized) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>

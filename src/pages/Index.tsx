@@ -170,50 +170,119 @@ const Index = () => {
     }
   }, [location.search]);
 
-  // Show full marketing landing ONLY when logged out AND demo mode is OFF
-  if (!user && !isDemoMode) {
+  // Show marketing landing when logged out, allow demo mode toggle to show app features
+  if (!user) {
     return (
       <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
-        {/* Demo Mode Toggle - Flow, centered above hero */}
+        {/* Demo Mode Toggle - Always visible for investors/prospects */}
         <div className="w-full flex justify-center px-4 pt-3">
           <div className="max-w-[200px] w-full">
             <DemoModeToggle />
           </div>
         </div>
-        <div className="container mx-auto px-4 pt-2 pb-6 max-w-7xl relative z-10">
-          {/* Hero Section */}
-          <UnauthenticatedLanding 
-            onSignIn={() => setIsAuthModalOpen(true)}
-            onSignUp={() => setIsAuthModalOpen(true)}
-          />
 
-          {/* Marketing Content - Always show to unauthenticated users */}
-          <div className="mt-6 space-y-8">
-            {/* Social Proof Section */}
-            <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              <SocialProofSection />
-            </div>
+        {!isDemoMode ? (
+          // Marketing landing content
+          <div className="container mx-auto px-4 pt-2 pb-6 max-w-7xl relative z-10">
+            <UnauthenticatedLanding 
+              onSignIn={() => setIsAuthModalOpen(true)}
+              onSignUp={() => setIsAuthModalOpen(true)}
+            />
 
-            {/* Feature Showcase */}
-            <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
-              <FeatureShowcase />
-            </div>
+            <div className="mt-6 space-y-8">
+              <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                <SocialProofSection />
+              </div>
 
-            {/* Replaces Grid Section - Drives home the consolidation value prop */}
-            <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
-              <ReplacesGrid />
-            </div>
+              <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                <FeatureShowcase />
+              </div>
 
-            {/* Pricing Section */}
-            <div id="pricing-section" className="animate-fade-in" style={{ animationDelay: '0.5s' }}>
-              <PricingSection onSignUp={() => setIsAuthModalOpen(true)} />
+              <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                <ReplacesGrid />
+              </div>
+
+              <div id="pricing-section" className="animate-fade-in" style={{ animationDelay: '0.5s' }}>
+                <PricingSection onSignUp={() => setIsAuthModalOpen(true)} />
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          // Demo mode content - full app interface
+          <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
+            <div className="container mx-auto px-4 py-6 max-w-7xl relative z-10">
+              <div className="w-full animate-fade-in mb-8">
+                <TripViewToggle 
+                  viewMode={viewMode} 
+                  onViewModeChange={handleViewModeChange}
+                  onUpgrade={() => setIsUpgradeModalOpen(true)}
+                  showRecsTab={showMarketingContent}
+                />
+              </div>
+
+              {!isMobile && (
+                <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                  <TripStatsOverview 
+                    stats={getCurrentStats()} 
+                    viewMode={viewMode} 
+                    activeFilter={activeFilter}
+                    onFilterClick={handleFilterClick}
+                  />
+                </div>
+              )}
+
+              {viewMode === 'travelRecs' && (
+                <div className="mb-6">
+                  <RecommendationFilters 
+                    activeFilter={recsFilter}
+                    onFilterChange={setRecsFilter}
+                    showInlineSearch={true}
+                  />
+                </div>
+              )}
+
+              <div className="mb-12 animate-fade-in w-full" style={{ animationDelay: '0.2s' }}>
+                <TripGrid
+                  viewMode={viewMode}
+                  trips={filteredData.trips}
+                  proTrips={filteredData.proTrips}
+                  events={filteredData.events}
+                  loading={isLoading}
+                  onCreateTrip={handleCreateTrip}
+                  activeFilter={recsFilter}
+                />
+              </div>
+            </div>
+
+            {showMarketingContent && (viewMode === 'tripsPro' || viewMode === 'events') && (
+              <PersistentCTABar
+                viewMode={viewMode}
+                onScheduleDemo={handleScheduleDemo}
+                onSeePricing={handleSeePricing}
+              />
+            )}
+          </div>
+        )}
 
         <AuthModal
           isOpen={isAuthModalOpen}
           onClose={() => setIsAuthModalOpen(false)}
+        />
+
+        <CreateTripModal 
+          isOpen={isCreateModalOpen} 
+          onClose={() => setIsCreateModalOpen(false)} 
+        />
+
+        <UpgradeModal 
+          isOpen={isUpgradeModalOpen} 
+          onClose={() => setIsUpgradeModalOpen(false)} 
+        />
+
+        <DemoModal
+          isOpen={isDemoModalOpen}
+          onClose={() => setIsDemoModalOpen(false)}
+          demoType={viewMode === 'events' ? 'events' : 'pro'}
         />
       </div>
     );
