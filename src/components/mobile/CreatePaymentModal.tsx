@@ -3,6 +3,8 @@ import { X, DollarSign, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { demoModeService } from '@/services/demoModeService';
 import { usePaymentSplits } from '@/hooks/usePaymentSplits';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { getConsistentAvatar, getInitials } from '@/utils/avatarUtils';
 
 interface CreatePaymentModalProps {
   isOpen: boolean;
@@ -179,13 +181,12 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, tripMembers, onPay
                       className="w-5 h-5 rounded border-white/20 bg-white/5 text-green-600 focus:ring-2 focus:ring-green-500/50"
                     />
                     <div className="flex items-center gap-2 flex-1">
-                      {member.avatar && (
-                        <img 
-                          src={member.avatar} 
-                          alt={member.name}
-                          className="w-6 h-6 rounded-full"
-                        />
-                      )}
+                      <Avatar className="w-6 h-6">
+                        <AvatarImage src={getConsistentAvatar(member.name)} alt={member.name} />
+                        <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
+                          {getInitials(member.name)}
+                        </AvatarFallback>
+                      </Avatar>
                       <span className="text-white text-sm">{member.name}</span>
                     </div>
                   </label>

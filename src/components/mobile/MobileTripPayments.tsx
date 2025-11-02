@@ -6,7 +6,8 @@ import { demoModeService } from '@/services/demoModeService';
 import { supabase } from '@/integrations/supabase/client';
 import { getTripById } from '@/data/tripsData';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { getConsistentAvatar } from '@/utils/avatarUtils';
+import { getConsistentAvatar, getInitials } from '@/utils/avatarUtils';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface Payment {
   id: string;
@@ -243,11 +244,12 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
             >
               <div className="flex items-start gap-3">
                 {/* Payer Avatar */}
-                <img
-                  src={payment.payerAvatar}
-                  alt={payment.payer}
-                  className="w-10 h-10 rounded-full flex-shrink-0"
-                />
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={payment.payerAvatar} alt={payment.payer} />
+                  <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
+                    {getInitials(payment.payer)}
+                  </AvatarFallback>
+                </Avatar>
 
                 {/* Payment Details */}
                 <div className="flex-1 min-w-0">
