@@ -29,8 +29,16 @@ export const EditableDescription = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Reset to view mode when trip or description changes
   useEffect(() => {
-    if (typeof externalEditTrigger === 'number') {
+    setIsEditing(false);
+    setEditValue(description);
+    setIsExpanded(false);
+  }, [tripId, description]);
+
+  // Allow external trigger to activate edit mode
+  useEffect(() => {
+    if (typeof externalEditTrigger === 'number' && externalEditTrigger > 0) {
       setIsEditing(true);
     }
   }, [externalEditTrigger]);
