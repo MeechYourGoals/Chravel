@@ -100,66 +100,63 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
     : (isKeyboardVisible ? 'calc(100dvh - 180px)' : 'calc(100dvh - 160px)');
 
   return (
-    <div className="flex flex-col h-full bg-black relative p-4">
+    <div className="flex flex-col min-h-screen bg-black">
       {/* Unified Chat Shell - Teams-like container */}
-      <div
-        className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col mobile-portrait-chat-container"
-        style={{
-          height: '480px',
-          maxHeight: '480px',
-          minHeight: '360px'
-        }}
-      >
-        {isLoading ? (
-          <div className="flex-1 overflow-y-auto p-4">
-            <MessageSkeleton />
-          </div>
-        ) : (
-          <VirtualizedMessageContainer
-            messages={messages}
-            renderMessage={(message) => (
-              <MessageItem
-                message={message}
-                reactions={reactions[message.id]}
-                onReaction={handleReaction}
+      <div className="flex-1 flex flex-col p-4 pb-24 sm:pb-4 overflow-hidden">
+        <div
+          className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1"
+        >
+          {isLoading ? (
+            <div className="flex-1 overflow-y-auto p-4">
+              <MessageSkeleton />
+            </div>
+          ) : (
+            <VirtualizedMessageContainer
+              messages={messages}
+              renderMessage={(message) => (
+                <MessageItem
+                  message={message}
+                  reactions={reactions[message.id]}
+                  onReaction={handleReaction}
+                />
+              )}
+              onLoadMore={loadMore}
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+              initialVisibleCount={10}
+              className="chat-scroll-container native-scroll"
+            />
+          )}
+          
+          {/* Reply Bar */}
+          {replyingTo && (
+            <div className="border-t border-white/10 bg-black/30 px-4 py-2">
+              <InlineReplyComponent
+                replyTo={replyingTo}
+                onCancel={clearReply}
               />
-            )}
-            onLoadMore={loadMore}
-            hasMore={hasMore}
-            isLoading={isLoadingMore}
-            initialVisibleCount={10}
-            className="chat-scroll-container native-scroll"
-          />
-        )}
-        
-        {/* Reply Bar */}
-        {replyingTo && (
-          <div className="border-t border-white/10 bg-black/30 px-4 py-2">
-            <InlineReplyComponent
-              replyTo={replyingTo}
-              onCancel={clearReply}
+            </div>
+          )}
+
+          {/* Input Area */}
+          <div className="border-t border-white/10 bg-black/30 p-3">
+            <ChatInput
+              inputMessage={inputMessage}
+              onInputChange={setInputMessage}
+              onSendMessage={handleMobileSendMessage}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleMobileSendMessage();
+                }
+              }}
+              apiKey=""
+              isTyping={false}
+              tripMembers={[]}
+              hidePayments={true}
+              tripId={tripId}
             />
           </div>
-        )}
-
-        {/* Input Area */}
-        <div className="border-t border-white/10 bg-black/30 p-3">
-          <ChatInput
-            inputMessage={inputMessage}
-            onInputChange={setInputMessage}
-            onSendMessage={handleMobileSendMessage}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleMobileSendMessage();
-              }
-            }}
-            apiKey=""
-            isTyping={false}
-            tripMembers={[]}
-            hidePayments={true}
-            tripId={tripId}
-          />
         </div>
       </div>
     </div>
