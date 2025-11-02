@@ -158,8 +158,9 @@ const ProTripDetail = () => {
 
       // Pro trips in demo mode use client-side export
       // Real Pro trips would call the edge function with their UUID
+      toast.info('Generating PDF...');
+      
       if (isDemoMode) {
-        toast.info('Generating demo PDF...');
         blob = await generateClientPDF(
           {
             tripId: proTripId || '',

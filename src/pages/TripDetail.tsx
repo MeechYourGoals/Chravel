@@ -160,10 +160,8 @@ const TripDetail = () => {
         // Non-fatal; continue without pre-open
       }
 
-      // Generate PDF client-side with real data
-      toast.info('Generating PDF...');
-
       // Check if this is a mock trip (numeric ID 1-12) or real trip (UUID)
+      toast.info('Generating PDF...');
       const isMockTrip = tripId && /^\d+$/.test(tripId);
       let blob: Blob;
 

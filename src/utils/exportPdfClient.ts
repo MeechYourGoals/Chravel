@@ -15,9 +15,16 @@ import { ExportSection } from '@/types/tripExport';
  * @returns A promise that resolves with the base64 encoded font data.
  */
 
-// Type for autoTable result which includes finalY
-interface AutoTableResult {
-  finalY: number;
+/**
+ * Safely retrieves the finalY position from the last autoTable call
+ * @param doc The jsPDF document instance
+ * @param fallback The fallback Y position if finalY is not available
+ * @returns The finalY position or fallback
+ */
+function getFinalY(doc: jsPDF, fallback: number): number {
+  const last = (doc as any).lastAutoTable;
+  const val = last?.finalY;
+  return typeof val === 'number' && isFinite(val) ? val : fallback;
 }
 
 /**
@@ -196,12 +203,12 @@ export async function generateClientPDF(
     if (events.length > 0) {
       const eventRows = events.map((event: any) => [
         event.title || 'Untitled Event',
-        new Date(event.start_time).toLocaleString(),
+        event.start_time ? new Date(event.start_time).toLocaleString() : 'N/A',
         event.location || 'N/A',
         event.description ? event.description.substring(0, 50) + '...' : ''
       ]);
 
-      const result = autoTable(doc, {
+      autoTable(doc, {
         startY: yPos,
         head: [['Event', 'Date & Time', 'Location', 'Description']],
         body: eventRows,
@@ -209,9 +216,9 @@ export async function generateClientPDF(
         headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
         margin: { left: margin, right: margin },
         styles: { fontSize: 9 }
-      }) as unknown as AutoTableResult;
+      });
 
-      yPos = result.finalY + 10;
+      yPos = getFinalY(doc, yPos) + 10;
     } else {
       doc.setFontSize(10);
       doc.setFont('NotoSans', 'normal');
@@ -239,7 +246,7 @@ export async function generateClientPDF(
         p.is_settled ? 'Settled' : 'Pending'
       ]);
 
-      const result = autoTable(doc, {
+      autoTable(doc, {
         startY: yPos,
         head: [['Description', 'Amount', 'Split', 'Status']],
         body: paymentRows,
@@ -247,9 +254,9 @@ export async function generateClientPDF(
         headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
         margin: { left: margin, right: margin },
         styles: { fontSize: 9 }
-      }) as unknown as AutoTableResult;
+      });
 
-      yPos = result.finalY + 10;
+      yPos = getFinalY(doc, yPos) + 10;
 
       // Display total
       doc.setFontSize(10);
@@ -295,15 +302,15 @@ export async function generateClientPDF(
             ];
           });
 
-          const result = autoTable(doc, {
+          autoTable(doc, {
             startY: yPos,
             body: pollRows,
             theme: 'plain',
             margin: { left: margin + 20, right: margin },
             styles: { fontSize: 9, cellPadding: 3 }
-          }) as unknown as AutoTableResult;
+          });
 
-          yPos = result.finalY + 5;
+          yPos = getFinalY(doc, yPos) + 5;
         }
 
         doc.setFontSize(9);
@@ -339,7 +346,7 @@ export async function generateClientPDF(
         place.votes?.toString() || '0'
       ]);
 
-      const result = autoTable(doc, {
+      autoTable(doc, {
         startY: yPos,
         head: [['Name', 'URL', 'Votes']],
         body: placeRows,
@@ -347,9 +354,9 @@ export async function generateClientPDF(
         headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
         margin: { left: margin, right: margin },
         styles: { fontSize: 9 }
-      }) as unknown as AutoTableResult;
+      });
 
-      yPos = result.finalY + 10;
+      yPos = getFinalY(doc, yPos) + 10;
     } else {
       doc.setFontSize(10);
       doc.setFont('NotoSans', 'normal');
@@ -375,7 +382,7 @@ export async function generateClientPDF(
         task.completed ? '[x] Done' : '[ ] Pending'
       ]);
 
-      const result = autoTable(doc, {
+      autoTable(doc, {
         startY: yPos,
         head: [['Task', 'Status']],
         body: taskRows,
@@ -383,9 +390,9 @@ export async function generateClientPDF(
         headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
         margin: { left: margin, right: margin },
         styles: { fontSize: 9 }
-      }) as unknown as AutoTableResult;
+      });
 
-      yPos = result.finalY + 10;
+      yPos = getFinalY(doc, yPos) + 10;
     } else {
       doc.setFontSize(10);
       doc.setFont('NotoSans', 'normal');
@@ -412,7 +419,7 @@ export async function generateClientPDF(
         member.role || 'member'
       ]);
 
-      const result = autoTable(doc, {
+      autoTable(doc, {
         startY: yPos,
         head: [['Name', 'Email', 'Role']],
         body: rosterRows,
@@ -420,9 +427,9 @@ export async function generateClientPDF(
         headStyles: { fillColor: [66, 139, 202], fontSize: 10 },
         margin: { left: margin, right: margin },
         styles: { fontSize: 9 }
-      }) as unknown as AutoTableResult;
+      });
 
-      yPos = result.finalY + 10;
+      yPos = getFinalY(doc, yPos) + 10;
     } else {
       doc.setFontSize(10);
       doc.setFont('NotoSans', 'normal');
