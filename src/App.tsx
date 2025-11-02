@@ -16,6 +16,7 @@ import { errorTracking } from "./services/errorTracking";
 import { supabase } from "./integrations/supabase/client";
 import { AppInitializer } from "./components/app/AppInitializer";
 import BuildBadge from "./components/BuildBadge";
+import { Navigate, useParams } from "react-router-dom";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -41,6 +42,11 @@ const Healthz = lazy(() => import("./pages/Healthz"));
 
 // Note: Large components are already optimized with code splitting
 
+// Legacy redirect for old pro trip URLs using hyphen format
+const LegacyProTripRedirect = () => {
+  const { proTripId } = useParams();
+  return <Navigate to={`/tour/pro/${proTripId}`} replace />;
+};
 
 const queryClient = new QueryClient();
 
@@ -106,6 +112,11 @@ const App = () => {
                     <Route path="/tour/pro/:proTripId" element={
                       <LazyRoute>
                         <ProTripDetail />
+                      </LazyRoute>
+                    } />
+                    <Route path="/tour/pro-:proTripId" element={
+                      <LazyRoute>
+                        <LegacyProTripRedirect />
                       </LazyRoute>
                     } />
                     <Route path="/event/:eventId" element={

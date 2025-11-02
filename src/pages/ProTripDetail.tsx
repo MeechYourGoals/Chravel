@@ -38,7 +38,7 @@ const ProTripDetail = () => {
   const { proTripId } = useParams<{ proTripId?: string }>();
   const { generateInitialEmbeddings } = useEmbeddingGeneration(proTripId);
   const { user } = useAuth();
-  const { isDemoMode } = useDemoMode();
+  const { isDemoMode, enableDemoMode } = useDemoMode();
   const [activeTab, setActiveTab] = useState('chat');
   const [showInbox, setShowInbox] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -47,6 +47,13 @@ const ProTripDetail = () => {
   const [showTripSettings, setShowTripSettings] = useState(false);
   const [showTripsPlusModal, setShowTripsPlusModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+
+  // Auto-enable demo mode for Pro pages on first visit
+  React.useEffect(() => {
+    if (!isDemoMode) {
+      enableDemoMode();
+    }
+  }, [isDemoMode, enableDemoMode]);
 
   // Gate demo content
   if (!isDemoMode) {
