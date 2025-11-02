@@ -258,8 +258,9 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   };
 
   return (
-    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 flex flex-col md:min-h-0 min-h-[60vh]">
-      <div className="flex items-center gap-3 mb-4">
+    <div className="flex flex-col h-full min-h-0">
+      <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 flex flex-col flex-1 min-h-0">
+        <div className="flex items-center gap-3 mb-4 flex-shrink-0">
         <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
           <Search size={20} className="text-white" />
         </div>
@@ -310,7 +311,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
 
       {/* Usage Limit Reached State */}
       {isFreeUser && usage?.isLimitReached && (
-        <div className="text-center py-8 mb-6">
+        <div className="text-center py-8 mb-6 flex-shrink-0">
           <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <Crown size={24} className="text-white" />
           </div>
@@ -336,7 +337,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
 
       {/* Empty State */}
       {messages.length === 0 && !(isFreeUser && usage?.isLimitReached) && (
-        <div className="text-center py-2 mb-3">
+        <div className="text-center py-2 mb-3 flex-shrink-0">
           <h4 className="text-white font-medium mb-2">Your AI Travel Concierge</h4>
           <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
             <p>Ask me anything about your trip:</p>
@@ -355,7 +356,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       )}
 
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto native-scroll chat-messages space-y-2 mb-3">
+      <div className="flex-1 overflow-y-auto native-scroll pb-24 sm:pb-4 space-y-2 mb-3 min-h-0">
         <ChatMessages 
           messages={messages} 
           isTyping={isTyping}
@@ -364,7 +365,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       </div>
 
       {/* Input */}
-      <div className="sticky bottom-0 z-10 bg-background/0 mobile-safe-area-bottom">
+      <div className="sticky bottom-0 z-10 border-t border-white/10 bg-background/90 backdrop-blur-sm pt-3 flex-shrink-0" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <AiChatInput
           inputMessage={inputMessage}
           onInputChange={setInputMessage}
@@ -374,6 +375,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
           disabled={aiStatus === 'error' || (isFreeUser && usage?.isLimitReached)}
         />
       </div>
+    </div>
     </div>
   );
 };

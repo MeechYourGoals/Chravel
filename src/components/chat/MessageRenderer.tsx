@@ -151,8 +151,8 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
         <div className={cn(
           "px-3.5 py-2.5 rounded-2xl backdrop-blur-sm border transition-all",
           isOwnMessage
-            ? 'bg-primary text-primary-foreground border-primary/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-sm'
-            : 'bg-muted/80 text-muted-foreground border-border shadow-sm rounded-bl-sm'
+            ? 'bg-blue-600 text-white border-blue-600/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-sm'
+            : 'bg-muted/80 text-white border-border shadow-sm rounded-bl-sm'
         )}>
           {/* Message content - only show if not a pure media message */}
           {message.content && (
