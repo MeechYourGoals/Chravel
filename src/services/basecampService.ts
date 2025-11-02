@@ -29,7 +29,7 @@ class BasecampService {
     try {
       const { data, error } = await supabase
         .from('trips')
-        .select('basecamp_name, basecamp_address')
+        .select('basecamp_name, basecamp_address, basecamp_latitude, basecamp_longitude')
         .eq('id', tripId)
         .single();
 
@@ -45,8 +45,10 @@ class BasecampService {
       return {
         address: data.basecamp_address,
         name: data.basecamp_name || undefined,
-        type: 'other', // Trip basecamps default to 'other' type
-        coordinates: undefined // Can be enhanced later
+        type: 'other',
+        coordinates: data.basecamp_latitude && data.basecamp_longitude
+          ? { lat: data.basecamp_latitude, lng: data.basecamp_longitude }
+          : undefined
       };
     } catch (error) {
       console.error('Error getting trip basecamp:', error);
@@ -67,7 +69,9 @@ class BasecampService {
         .from('trips')
         .update({
           basecamp_name: basecamp.name,
-          basecamp_address: basecamp.address
+          basecamp_address: basecamp.address,
+          basecamp_latitude: basecamp.latitude,
+          basecamp_longitude: basecamp.longitude
         })
         .eq('id', tripId);
 

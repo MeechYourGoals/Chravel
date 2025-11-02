@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
 import MockDataService from '@/services/mockDataService';
+import { toast } from 'sonner';
 
 interface PlacesSectionProps {
   tripId?: string;
@@ -156,6 +157,43 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
 
     loadPersonalBasecamp();
   }, [tripId, user, isDemoMode, effectiveUserId]);
+
+  // Realtime sync for trip basecamp updates
+  useEffect(() => {
+    if (isDemoMode || !tripId) return;
+
+    // Subscribe to trip basecamp changes
+    const channel = supabase
+      .channel(`trip_basecamp_${tripId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'trips',
+          filter: `id=eq.${tripId}`
+        },
+        async (payload) => {
+          console.log('[PlacesSection] Trip basecamp updated by another user:', payload);
+          
+          // Fetch updated basecamp
+          const updatedBasecamp = await basecampService.getTripBasecamp(tripId);
+          if (updatedBasecamp) {
+            setContextBasecamp(updatedBasecamp);
+            
+            // Show toast notification
+            toast.success('Trip Base Camp updated by another member!', {
+              description: updatedBasecamp.name || updatedBasecamp.address
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tripId, isDemoMode, setContextBasecamp]);
 
   // Recalculate distances for existing places when basecamp changes
   useEffect(() => {

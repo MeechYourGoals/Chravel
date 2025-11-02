@@ -4,6 +4,7 @@ import { BasecampLocation } from '@/types/basecamp';
 import { BaseCampPill } from './BaseCampPill';
 import { StaticMapEmbed } from './StaticMapEmbed';
 import { BasecampSelector } from '../BasecampSelector';
+import { basecampService } from '@/services/basecampService';
 
 export interface TripBaseCampCardProps {
   tripId: string;
@@ -20,9 +21,22 @@ export const TripBaseCampCard: React.FC<TripBaseCampCardProps> = ({
 }) => {
   const [showSelector, setShowSelector] = useState(false);
 
-  const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
-    await onBasecampSet(newBasecamp);
-    setShowSelector(false);
+  const handleBasecampSet = async (location: BasecampLocation) => {
+    // Save to database with coordinates
+    const success = await basecampService.setTripBasecamp(tripId, {
+      name: location.name,
+      address: location.address,
+      latitude: location.coordinates?.lat,
+      longitude: location.coordinates?.lng
+    });
+
+    if (success) {
+      // Call the parent callback
+      await onBasecampSet(location);
+      
+      // Close the modal
+      setShowSelector(false);
+    }
   };
 
   return (

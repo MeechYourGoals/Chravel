@@ -2327,6 +2327,8 @@ export type Database = {
         Row: {
           ai_access_enabled: boolean | null
           basecamp_address: string | null
+          basecamp_latitude: number | null
+          basecamp_longitude: number | null
           basecamp_name: string | null
           categories: Json | null
           cover_image_url: string | null
@@ -2346,6 +2348,8 @@ export type Database = {
         Insert: {
           ai_access_enabled?: boolean | null
           basecamp_address?: string | null
+          basecamp_latitude?: number | null
+          basecamp_longitude?: number | null
           basecamp_name?: string | null
           categories?: Json | null
           cover_image_url?: string | null
@@ -2365,6 +2369,8 @@ export type Database = {
         Update: {
           ai_access_enabled?: boolean | null
           basecamp_address?: string | null
+          basecamp_latitude?: number | null
+          basecamp_longitude?: number | null
           basecamp_name?: string | null
           categories?: Json | null
           cover_image_url?: string | null

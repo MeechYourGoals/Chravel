@@ -57,6 +57,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     const [isMapLoading, setIsMapLoading] = useState(true);
     const [mapError, setMapError] = useState<string | null>(null);
     const [useFallbackEmbed, setUseFallbackEmbed] = useState(false);
+    const [userGeolocation, setUserGeolocation] = useState<{ lat: number; lng: number } | null>(null);
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -136,15 +137,27 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
           if (!mounted || !mapContainerRef.current) return;
 
-          // Default center (NYC fallback)
-          let center = { lat: 40.7580, lng: -73.9855 };
+          // Determine initial center based on hierarchy
+          let center = { lat: 40.7580, lng: -73.9855 }; // NYC fallback
           let zoom = 12;
 
-          // Try to use active basecamp as initial center
-          const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
-          if (activeBasecamp?.coordinates) {
-            center = activeBasecamp.coordinates;
+          // Priority 1: Trip Basecamp
+          if (tripBasecamp?.coordinates) {
+            center = tripBasecamp.coordinates;
             zoom = 12;
+            console.log('[MapCanvas] Centered on Trip Basecamp');
+          } 
+          // Priority 2: Personal Basecamp
+          else if (personalBasecamp?.coordinates) {
+            center = personalBasecamp.coordinates;
+            zoom = 12;
+            console.log('[MapCanvas] Centered on Personal Basecamp');
+          } 
+          // Priority 3: User Geolocation
+          else if (userGeolocation) {
+            center = userGeolocation;
+            zoom = 13;
+            console.log('[MapCanvas] Centered on User Geolocation');
           }
 
           // Create map instance
@@ -210,34 +223,61 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       };
     }, []);
 
+    // Get user geolocation as fallback
+    useEffect(() => {
+      // Only request geolocation if no basecamps are set
+      if (!tripBasecamp && !personalBasecamp && 'geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setUserGeolocation({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            });
+            console.log('[MapCanvas] User geolocation obtained:', position.coords);
+          },
+          (error) => {
+            console.warn('[MapCanvas] Geolocation error:', error);
+            // Fallback to NYC
+            setUserGeolocation({ lat: 40.7580, lng: -73.9855 });
+          }
+        );
+      }
+    }, [tripBasecamp, personalBasecamp]);
+
     // Update search origin and center when context changes
     useEffect(() => {
       if (!mapRef.current) return;
 
-      const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
-      const newOrigin = activeBasecamp?.coordinates || null;
+      // Determine which basecamp to use
+      let targetBasecamp: BasecampLocation | null = null;
       
-      console.log(`[MapCanvas] Context changed to ${activeContext}`, activeBasecamp);
-
-      // Update search origin for biasing future searches
-      setSearchOrigin(newOrigin);
-
-      if (activeBasecamp) {
-        // If there's a selected place, re-trigger the search to show new directions from the new basecamp
-        if (selectedPlace?.name && services && sessionToken) {
-          console.log(`[MapCanvas] Re-searching from new basecamp context: ${selectedPlace.name}`);
-          handleSearch(selectedPlace.name);
-        }
-
-        // Center map on the active basecamp only if no place is selected
-        if (!selectedPlace) {
-          mapRef.current.setCenter(activeBasecamp.coordinates);
-          mapRef.current.setZoom(12);
-        }
-      } else {
-        setSearchOrigin(null);
+      if (activeContext === 'trip') {
+        targetBasecamp = tripBasecamp || null;
+      } else if (activeContext === 'personal') {
+        targetBasecamp = personalBasecamp || null;
       }
-    }, [activeContext, tripBasecamp, personalBasecamp]);
+
+      console.log(`[MapCanvas] Context changed to ${activeContext}`, targetBasecamp);
+
+      // Update search origin for biasing
+      setSearchOrigin(targetBasecamp?.coordinates || null);
+
+      // Center map on active basecamp, or geolocation, or default
+      if (targetBasecamp?.coordinates) {
+        mapRef.current.setCenter(targetBasecamp.coordinates);
+        mapRef.current.setZoom(12);
+      } else if (userGeolocation && !tripBasecamp && !personalBasecamp) {
+        // Only fall back to geolocation if NO basecamps are set
+        mapRef.current.setCenter(userGeolocation);
+        mapRef.current.setZoom(13);
+      }
+
+      // If place is selected, re-trigger search to recalculate distance from new basecamp
+      if (selectedPlace?.name && services && sessionToken) {
+        console.log(`[MapCanvas] Recalculating distance from ${activeContext} basecamp`);
+        handleSearch(selectedPlace.name);
+      }
+    }, [activeContext, tripBasecamp, personalBasecamp, userGeolocation]);
 
     // Update basecamp markers
     useEffect(() => {
@@ -250,44 +290,52 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       const google = window.google;
       if (!google?.maps) return;
 
-      // Add trip basecamp marker
-      if (tripBasecamp?.coordinates) {
-        const marker = new google.maps.Marker({
-          position: tripBasecamp.coordinates,
-          map: mapRef.current,
-          title: tripBasecamp.name || 'Trip Base Camp',
+      // Helper: Create marker with active/inactive styling
+      const createBasecampMarker = (
+        coords: { lat: number; lng: number },
+        title: string,
+        color: string,
+        isActive: boolean
+      ) => {
+        return new google.maps.Marker({
+          position: coords,
+          map: mapRef.current!,
+          title,
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: '#3b82f6',
-            fillOpacity: 0.9,
-            strokeColor: '#ffffff',
-            strokeWeight: 2,
+            scale: isActive ? 12 : 10,
+            fillColor: color,
+            fillOpacity: isActive ? 1 : 0.5,
+            strokeColor: isActive ? '#ffffff' : '#9ca3af',
+            strokeWeight: isActive ? 3 : 1,
           },
-          zIndex: 100,
+          zIndex: isActive ? 150 : 100,
+          opacity: isActive ? 1 : 0.6
         });
+      };
+
+      // Add trip basecamp marker
+      if (tripBasecamp?.coordinates) {
+        const marker = createBasecampMarker(
+          tripBasecamp.coordinates,
+          tripBasecamp.name || 'Trip Base Camp',
+          '#3b82f6', // blue
+          activeContext === 'trip'
+        );
         markersRef.current.push(marker);
       }
 
       // Add personal basecamp marker
       if (personalBasecamp?.coordinates) {
-        const marker = new google.maps.Marker({
-          position: personalBasecamp.coordinates,
-          map: mapRef.current,
-          title: personalBasecamp.name || 'Personal Base Camp',
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: '#10b981',
-            fillOpacity: 0.9,
-            strokeColor: '#ffffff',
-            strokeWeight: 2,
-          },
-          zIndex: 100,
-        });
+        const marker = createBasecampMarker(
+          personalBasecamp.coordinates,
+          personalBasecamp.name || 'Personal Base Camp',
+          '#10b981', // emerald
+          activeContext === 'personal'
+        );
         markersRef.current.push(marker);
       }
-    }, [tripBasecamp, personalBasecamp]);
+    }, [tripBasecamp, personalBasecamp, activeContext]);
 
     // Autocomplete handler
     const handleSearchInput = async (value: string) => {
@@ -359,7 +407,34 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           });
         }
 
-        // Set place info for overlay
+        // ** Calculate distance from active basecamp **
+        const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
+        let distanceInfo: { distance: string; duration: string; mode: string } | null = null;
+
+        if (activeBasecamp?.coordinates && place.geometry?.location) {
+          try {
+            const origin = `${activeBasecamp.coordinates.lat},${activeBasecamp.coordinates.lng}`;
+            const destination = `${place.geometry.location.lat()},${place.geometry.location.lng()}`;
+            
+            // Use Distance Matrix API for driving distance/time
+            const { GoogleMapsService } = await import('@/services/googleMapsService');
+            const distanceData = await GoogleMapsService.getDistanceMatrix(origin, destination, 'DRIVING');
+            
+            if (distanceData.status === 'OK' && distanceData.rows[0]?.elements[0]?.status === 'OK') {
+              const element = distanceData.rows[0].elements[0];
+              distanceInfo = {
+                distance: element.distance.text,
+                duration: element.duration.text,
+                mode: 'driving'
+              };
+              console.log('[MapCanvas] Distance calculated:', distanceInfo);
+            }
+          } catch (error) {
+            console.error('[MapCanvas] Distance calculation error:', error);
+          }
+        }
+
+        // Set place info for overlay with distance
         const placeInfo: PlaceInfo = {
           name: place.name || trimmedQuery,
           address: place.formatted_address,
@@ -369,6 +444,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           placeId: place.place_id,
           rating: place.rating,
           website: place.website,
+          distance: distanceInfo
         };
 
         setSelectedPlace(placeInfo);
@@ -513,6 +589,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
             place={selectedPlace}
             onClose={() => setSelectedPlace(null)}
             onViewDirections={handleViewDirections}
+            activeContext={activeContext}
           />
         )}
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, ExternalLink, Navigation, X } from 'lucide-react';
+import { MapPin, ExternalLink, Navigation, X, Car } from 'lucide-react';
 
 export interface PlaceInfo {
   name: string;
@@ -8,18 +8,25 @@ export interface PlaceInfo {
   rating?: number;
   coordinates?: { lat: number; lng: number };
   placeId?: string;
+  distance?: {
+    distance: string;
+    duration: string;
+    mode: string;
+  } | null;
 }
 
 interface PlaceInfoOverlayProps {
   place: PlaceInfo | null;
   onClose: () => void;
   onViewDirections?: () => void;
+  activeContext?: 'trip' | 'personal';
 }
 
 export const PlaceInfoOverlay: React.FC<PlaceInfoOverlayProps> = ({
   place,
   onClose,
-  onViewDirections
+  onViewDirections,
+  activeContext = 'trip'
 }) => {
   if (!place) return null;
 
@@ -61,6 +68,21 @@ export const PlaceInfoOverlay: React.FC<PlaceInfoOverlayProps> = ({
             <X size={18} className="text-gray-500" />
           </button>
         </div>
+
+        {/* Distance Info */}
+        {place.distance && (
+          <div className="mb-3 pb-3 border-b border-gray-200 bg-blue-50 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Car size={14} className="text-blue-600 flex-shrink-0" />
+              <span className="text-xs font-semibold text-blue-800">
+                From {activeContext === 'trip' ? 'Trip' : 'Personal'} Base Camp
+              </span>
+            </div>
+            <div className="text-sm text-blue-900 font-medium">
+              {place.distance.distance} · {place.distance.duration}
+            </div>
+          </div>
+        )}
 
         {/* Website Link */}
         {place.website && (
