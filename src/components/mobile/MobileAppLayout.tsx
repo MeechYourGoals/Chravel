@@ -20,11 +20,18 @@ export const MobileAppLayout = ({ children, className }: MobileAppLayoutProps) =
 
     const initServices = async () => {
       try {
+        // Attach individual catch handlers to prevent unhandled promise rejections
+        // if the timeout resolves first.
+        const mobileOptimizations = MobileOptimizationService.initializeMobileOptimizations().catch(err => {
+          console.warn('Failed to initialize mobile optimizations:', err);
+        });
+
+        const nativeInitialization = NativeMobileService.initialize().catch(err => {
+          console.warn('Failed to initialize native mobile services:', err);
+        });
+
         await Promise.race([
-          Promise.all([
-            MobileOptimizationService.initializeMobileOptimizations(),
-            NativeMobileService.initialize()
-          ]),
+          Promise.all([mobileOptimizations, nativeInitialization]),
           new Promise((resolve) => setTimeout(resolve, 2000))
         ]);
 
@@ -32,7 +39,7 @@ export const MobileAppLayout = ({ children, className }: MobileAppLayoutProps) =
         MobileOptimizationService.trackMobilePerformance();
         NativeMobileService.trackNativePerformance();
       } catch (error) {
-        console.warn('Mobile services initialization failed:', error);
+        console.warn('Mobile services initialization timed out or failed:', error);
       }
     };
 
