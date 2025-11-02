@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useApiHealth } from '@/hooks/useApiHealth';
-import { BootWatchdog } from './BootWatchdog';
 
 /**
  * AppInitializer - Runs API health checks on app startup
@@ -32,10 +31,5 @@ export const AppInitializer = ({ children }: { children: React.ReactNode }) => {
     return () => window.removeEventListener('securitypolicyviolation', handleCSPViolation);
   }, []);
 
-  return (
-    <>
-      <BootWatchdog />
-      {children}
-    </>
-  );
+  return <>{children}</>;
 };
