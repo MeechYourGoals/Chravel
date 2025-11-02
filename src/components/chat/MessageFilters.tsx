@@ -30,8 +30,8 @@ export const MessageFilters = ({ activeFilter, onFilterChange, hidePayments = fa
           onClick={() => onFilterChange('broadcast')}
           className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all ${
             activeFilter === 'broadcast' 
-              ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white' 
-              : 'border border-orange-600 text-orange-400 active:text-white active:bg-orange-600/10'
+              ? 'bg-gradient-to-r from-red-600 to-red-700 text-white' 
+              : 'border border-red-600 text-red-400 active:text-white active:bg-red-600/10'
           }`}
         >
           <Megaphone size={14} />
@@ -72,8 +72,8 @@ export const MessageFilters = ({ activeFilter, onFilterChange, hidePayments = fa
         onClick={() => onFilterChange('broadcast')}
         className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
           activeFilter === 'broadcast' 
-            ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white' 
-            : 'border border-orange-600 text-orange-400 hover:text-white hover:bg-orange-600/10'
+            ? 'bg-gradient-to-r from-red-600 to-red-700 text-white' 
+            : 'border border-red-600 text-red-400 hover:text-white hover:bg-red-600/10'
         }`}
       >
         <Megaphone size={16} />

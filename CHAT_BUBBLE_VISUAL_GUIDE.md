@@ -22,13 +22,13 @@ The blue used for self messages matches the "All Messages" and "Group Chat" butt
 ```
 ┌──────────────────────────────────┐
 │  Does anyone want to split an    │  ← Muted bg-muted/80
-│  Uber to the downtown area?      │     Gray text
+│  Uber to the downtown area?      │     White text
 └──────────────────────────────────┘
 Jordan Lee • 07:31 PM  ← Name + timestamp above
 ```
 - Alignment: Left
 - Background: `bg-muted/80` (dark gray with transparency)
-- Text: `text-muted-foreground` (gray)
+- Text: `text-white` (pure white for optimal readability)
 - Corner: `rounded-bl-sm` (small radius bottom-left for tail effect)
 
 ### 3. Self Broadcast Message
@@ -47,16 +47,17 @@ Jordan Lee • 07:31 PM  ← Name + timestamp above
 ### 4. Other's Broadcast Message
 ```
 ┌──────────────────────────────────────────┐
-│  📢 Broadcast                            │  ← Orange bg-orange-600/10
-│  Reminder: Group dinner reservation is   │     Orange text
+│  📢 Broadcast                            │  ← Red border (border-red-500/50)
+│  Reminder: Group dinner reservation is   │     White text
 │  at 7:30 PM at Bella Vista. Please       │
 │  confirm attendance!                     │
 └──────────────────────────────────────────┘
 Sofia Garcia • 07:31 PM
 ```
 - Alignment: Left
-- Background: `bg-orange-600/10` (orange tint)
-- Text: `text-orange-400`
+- Background: `bg-muted/80` (dark gray, same as regular messages)
+- Text: `text-white` (white for readability)
+- Border: `border-2 border-red-500/50` (red accent for broadcast identification)
 - Pill: Above content (existing behavior)
 
 ### 5. AI Concierge (User Query)
@@ -73,13 +74,13 @@ Sofia Garcia • 07:31 PM
 ```
 [AI]  ┌──────────────────────────────────────────┐
       │  Based on your preferences, I recommend  │  ← Muted bg-muted/80
-      │  Bella Vista Italian Bistro, located     │     Gray text
+      │  Bella Vista Italian Bistro, located     │     White text
       │  just 0.3 miles from your hotel...       │
       └──────────────────────────────────────────┘
       2:45 PM
 ```
 - Avatar shown (blue/purple gradient circle with "AI")
-- Same styling as other's messages
+- Same styling as other's messages (white text on dark gray)
 
 ## Key Visual Principles
 
@@ -88,14 +89,15 @@ Sofia Garcia • 07:31 PM
 2. **Color Hierarchy**:
    - Self > Broadcast/Payment type for background color
    - Self messages always blue, regardless of type
-   - Others' messages use contextual colors (orange for broadcast, green for payment)
+   - Others' messages use white text on dark gray background
+   - Red borders identify broadcast messages, green borders for payment messages
 
 3. **Consistency**: The blue matches existing UI elements (buttons, focused inputs, etc.)
 
 4. **Accessibility**: 
    - Blue on white: 4.5:1 contrast (WCAG AA)
    - White on blue: 4.5:1 contrast (WCAG AA)
-   - Muted text on dark: 7:1 contrast (WCAG AAA)
+   - White on dark gray: 15.3:1 contrast (WCAG AAA) ✅ Enhanced readability
 
 5. **Mobile Optimization**:
    - Max 78% width prevents overly wide bubbles on tablets
@@ -112,7 +114,7 @@ border: hsl(var(--primary) / 0.2)        /* 20% opacity */
 
 /* Others' messages */
 background: hsl(var(--muted) / 0.8)      /* 223 10% 20% at 80% opacity */
-color: hsl(var(--muted-foreground))      /* 0 0% 60% */
+color: hsl(0 0% 100%)                     /* Pure white for readability */
 border: hsl(var(--border))               /* 223 15% 18% */
 
 /* Timestamps */
@@ -124,7 +126,7 @@ font-size: 10px
 
 ### Dark Mode (Default)
 - Self: Bright blue (#6B8DD6) on pure black
-- Others: Dark gray (#333333) with gray text (#999999)
+- Others: Dark gray (#333333) with white text (#FFFFFF) ✅ Enhanced contrast
 - High contrast for readability
 
 ### Light Mode

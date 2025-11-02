@@ -79,7 +79,7 @@ export const MessageBubble = ({
         )}
       >
         {showSenderInfo && (
-          <span className="text-xs text-muted-foreground mb-1">
+          <span className="text-xs text-white/70 mb-1">
             {isOwnMessage ? 'You' : senderName} — {formatTime(timestamp)}
           </span>
         )}
@@ -88,8 +88,8 @@ export const MessageBubble = ({
             'px-3 py-2 rounded-2xl break-words',
             isOwnMessage
               ? 'bg-primary text-primary-foreground'
-              : 'bg-muted/80 text-muted-foreground',
-            isBroadcast && !isOwnMessage && 'border-2 border-orange-500/50',
+              : 'bg-muted/80 text-white',
+            isBroadcast && !isOwnMessage && 'border-2 border-red-500/50',
             isPayment && !isOwnMessage && 'border-2 border-green-500/50',
           )}
         >
@@ -110,7 +110,7 @@ export const MessageBubble = ({
         {grounding?.sources && grounding.sources.length > 0 && (
           <div className={cn("space-y-2", "mt-2")}>
             <div className={cn(
-              "font-medium text-muted-foreground flex items-center gap-2",
+              "font-medium text-white/80 flex items-center gap-2",
               isMobilePortrait ? "text-[10px]" : "text-xs"
             )}>
               <span>Sources:</span>
