@@ -656,5 +656,15 @@
   .chat-messages {
     padding-bottom: 6rem; /* ensures text box visible above nav bar */
   }
+  /* Offset sticky inputs above fixed bottom nav */
+  .sticky-input-offset {
+    position: sticky;
+    bottom: 64px; /* approx nav height; keeps input above it */
+  }
+}
+
+/* Active scale utility for touch feedback */
+.active\:scale-98:active {
+  transform: scale(0.98);
 }
 

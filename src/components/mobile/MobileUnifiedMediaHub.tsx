@@ -26,8 +26,8 @@ interface MobileUnifiedMediaHubProps {
 
 export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) => {
   const { isDemoMode } = useDemoMode();
-  const { mediaItems: realMediaItems, loading, refetch } = useMediaManagement(tripId);
-  const [selectedTab, setSelectedTab] = useState<'all' | 'photos' | 'videos' | 'files'>('all');
+  const { mediaItems: realMediaItems, linkItems, loading, refetch } = useMediaManagement(tripId);
+  const [selectedTab, setSelectedTab] = useState<'all' | 'photos' | 'videos' | 'files' | 'urls'>('all');
 
   const { isPulling, isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: async () => {
@@ -46,6 +46,13 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       uploadedAt: new Date(item.created_at)
     }));
 
+  // Calculate counts for each tab
+  const photosCount = mediaItems.filter(item => item.type === 'image').length;
+  const videosCount = mediaItems.filter(item => item.type === 'video').length;
+  const filesCount = mediaItems.filter(item => item.type === 'file').length;
+  const urlsCount = linkItems.length;
+  const allCount = mediaItems.length + linkItems.length;
+
   const filteredMedia = mediaItems.filter(item => {
     if (selectedTab === 'all') return true;
     if (selectedTab === 'photos') return item.type === 'image';
@@ -53,6 +60,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
     if (selectedTab === 'files') return item.type === 'file';
     return true;
   });
+
+  const filteredLinks = selectedTab === 'urls' || selectedTab === 'all' ? linkItems : [];
 
   const handleTakePicture = async () => {
     await hapticService.medium();
@@ -113,25 +122,35 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
         <StorageQuotaBar tripId={tripId} showDetails={true} />
       </div>
 
-      {/* Filter Tabs */}
+      {/* Filter Tabs with Counters */}
       <div className="flex gap-2 px-4 py-3 border-b border-white/10 safe-container overflow-x-auto native-scroll scrollbar-hide">
-        {(['all', 'photos', 'videos', 'files'] as const).map((tab) => (
+        {([
+          { id: 'all', label: 'All', count: allCount },
+          { id: 'photos', label: 'Photos', count: photosCount },
+          { id: 'videos', label: 'Videos', count: videosCount },
+          { id: 'files', label: 'Files', count: filesCount },
+          { id: 'urls', label: 'URLs', count: urlsCount }
+        ] as const).map((tab) => (
           <button
-            key={tab}
+            key={tab.id}
             onClick={async () => {
               await hapticService.light();
-              setSelectedTab(tab);
+              setSelectedTab(tab.id);
             }}
             className={`
               native-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap flex-shrink-0
               ${
-                selectedTab === tab
+                selectedTab === tab.id
                   ? 'bg-blue-600 text-white shadow-md'
                   : 'bg-white/10 text-gray-300'
               }
             `}
           >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab.label} {tab.count > 0 && (
+              <span className={selectedTab === tab.id ? 'text-blue-200' : 'text-gray-500'}>
+                ({tab.count})
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -150,40 +169,92 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
               <div key={i} className="aspect-square rounded-md bg-white/5 skeleton-shimmer" />
             ))}
           </div>
-        ) : filteredMedia.length === 0 ? (
+        ) : filteredMedia.length === 0 && filteredLinks.length === 0 ? (
           <div className="text-center py-12 animate-fade-in">
             <div className="ios-bounce">
               <ImageIcon size={48} className="text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-400 mb-2 font-medium">No media yet</p>
-              <p className="text-sm text-gray-500">Tap the camera button to add photos</p>
+              <p className="text-gray-400 mb-2 font-medium">
+                {selectedTab === 'urls' ? 'No URLs yet' : 'No media yet'}
+              </p>
+              <p className="text-sm text-gray-500">
+                {selectedTab === 'urls' 
+                  ? 'Links shared in chat will appear here' 
+                  : 'Tap the camera button to add photos'
+                }
+              </p>
             </div>
           </div>
         ) : (
-          <div className="media-grid animate-fade-in">
-            {filteredMedia
-              .filter((item): item is MediaItem & { type: 'image' | 'video' } => 
-                item.type === 'image' || item.type === 'video'
-              )
-              .map((item, index) => (
-              <div 
-                key={item.id}
-                style={{ 
-                  animationDelay: `${index * 30}ms`,
-                  animation: 'fade-in 0.3s ease-out both'
-                }}
-              >
-                <MediaGridItem
-                  item={item}
-                  onPress={() => {
-                    console.log('Open fullscreen viewer for:', item.id);
-                  }}
-                  onLongPress={() => {
-                    console.log('Show options menu for:', item.id);
-                  }}
-                />
+          <>
+            {/* Media Grid for photos/videos/files */}
+            {selectedTab !== 'urls' && filteredMedia.length > 0 && (
+              <div className="media-grid animate-fade-in mb-4">
+                {filteredMedia
+                  .filter((item): item is MediaItem & { type: 'image' | 'video' } => 
+                    item.type === 'image' || item.type === 'video'
+                  )
+                  .map((item, index) => (
+                  <div 
+                    key={item.id}
+                    style={{ 
+                      animationDelay: `${index * 30}ms`,
+                      animation: 'fade-in 0.3s ease-out both'
+                    }}
+                  >
+                    <MediaGridItem
+                      item={item}
+                      onPress={() => {
+                        console.log('Open fullscreen viewer for:', item.id);
+                      }}
+                      onLongPress={() => {
+                        console.log('Show options menu for:', item.id);
+                      }}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+
+            {/* URLs List */}
+            {(selectedTab === 'urls' || selectedTab === 'all') && filteredLinks.length > 0 && (
+              <div className="space-y-3 px-2 animate-fade-in">
+                {filteredLinks.map((link, index) => (
+                  <a
+                    key={link.id}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors active:scale-98"
+                    style={{ 
+                      animationDelay: `${index * 30}ms`,
+                      animation: 'fade-in 0.3s ease-out both'
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      {link.image_url && (
+                        <img 
+                          src={link.image_url} 
+                          alt=""
+                          className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-white font-medium text-sm mb-1 line-clamp-2">
+                          {link.title}
+                        </h4>
+                        <p className="text-gray-400 text-xs mb-2 line-clamp-2">
+                          {link.description}
+                        </p>
+                        <p className="text-blue-400 text-xs truncate">
+                          {link.domain}
+                        </p>
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
