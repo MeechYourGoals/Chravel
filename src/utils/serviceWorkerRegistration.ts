@@ -1,18 +1,45 @@
 export const registerServiceWorker = async () => {
+  // Don't register SW in Lovable preview environment
+  const isLovablePreview = 
+    typeof window !== 'undefined' && 
+    window.location.hostname.endsWith('lovableproject.com');
+  
+  if (isLovablePreview) {
+    console.log('[SW] Skipping registration in Lovable preview');
+    
+    // One-time cleanup of any existing SW in preview
+    const CLEANUP_KEY = 'lovable_sw_cleanup_v1';
+    if (!localStorage.getItem(CLEANUP_KEY)) {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+        console.log('[SW] Unregistered stale service workers');
+      }
+      
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+        console.log('[SW] Cleared all caches');
+      }
+      
+      localStorage.setItem(CLEANUP_KEY, 'true');
+    }
+    return;
+  }
+  
+  // Production SW registration
   if ('serviceWorker' in navigator) {
     try {
-      // Register SW with build version to force update on new deploys
       const buildId = import.meta.env.VITE_BUILD_ID || Date.now().toString();
       const swUrl = `/sw.js?v=${buildId}`;
       
       console.log(`[SW] Registering service worker with version: ${buildId}`);
       const registration = await navigator.serviceWorker.register(swUrl, {
-        updateViaCache: 'none' // Always check for SW updates
+        updateViaCache: 'none'
       });
       
       console.log('[SW] Service Worker registered:', registration);
       
-      // Check for updates on registration
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
         console.log('[SW] Update found, installing new service worker...');
@@ -23,26 +50,22 @@ export const registerServiceWorker = async () => {
             
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               console.log('[SW] New service worker installed, will activate on next navigation');
-              
-              // Optionally notify user about update
-              // You can show a toast here if needed
             }
           });
         }
       });
       
-      // Auto-reload when new SW takes control (after skipWaiting)
+      // Log only - don't auto-reload to prevent loops
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('[SW] New service worker activated, reloading page...');
-        window.location.reload();
+        console.log('[SW] New service worker activated - refresh to see updates');
       });
       
-      // Check for updates periodically (every 60 seconds)
+      // Check for updates every 5 minutes
       setInterval(() => {
         registration.update().catch(err => 
           console.warn('[SW] Update check failed:', err)
         );
-      }, 60000);
+      }, 300000);
       
     } catch (error) {
       console.error('[SW] Service Worker registration failed:', error);

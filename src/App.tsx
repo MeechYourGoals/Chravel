@@ -19,7 +19,7 @@ import BuildBadge from "./components/BuildBadge";
 import { Navigate, useParams } from "react-router-dom";
 
 // Lazy load pages for better performance
-const retryImport = (importFn: () => Promise<any>, retries = 3) => {
+const retryImport = <T,>(importFn: () => Promise<T>, retries = 3): Promise<T> => {
   return new Promise((resolve, reject) => {
     importFn()
       .then(resolve)
