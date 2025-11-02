@@ -24,14 +24,11 @@ export const BasecampCard: React.FC<BasecampCardProps> = ({ tripId }) => {
   const handleSave = async () => {
     if (!formData.name.trim() || !formData.address.trim()) return;
 
-    const result = await updateBasecamp({
+    updateBasecamp({
       name: formData.name,
       address: formData.address,
     });
-    
-    if (result) {
-      setIsEditing(false);
-    }
+    setIsEditing(false);
   };
 
   const handleCancel = () => {

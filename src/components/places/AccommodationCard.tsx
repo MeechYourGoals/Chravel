@@ -16,28 +16,24 @@ export const AccommodationCard: React.FC<AccommodationCardProps> = ({ tripId }) 
   const { myAccommodation, saveAccommodation, isSaving, saveError } = useAccommodations(tripId);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    label: myAccommodation?.label || 'My Stay',
+    label: myAccommodation?.accommodation_name || 'My Stay',
     address: myAccommodation?.address || '',
   });
 
   const handleSave = async () => {
     if (!formData.address.trim()) return;
 
-    const request: CreateAccommodationRequest = {
+    saveAccommodation({
       trip_id: tripId,
-      label: formData.label,
+      accommodation_name: formData.label,
       address: formData.address,
-    };
-
-    const result = await saveAccommodation(request);
-    if (result) {
-      setIsEditing(false);
-    }
+    });
+    setIsEditing(false);
   };
 
   const handleCancel = () => {
     setFormData({
-      label: myAccommodation?.label || 'My Stay',
+      label: myAccommodation?.accommodation_name || 'My Stay',
       address: myAccommodation?.address || '',
     });
     setIsEditing(false);
@@ -45,7 +41,7 @@ export const AccommodationCard: React.FC<AccommodationCardProps> = ({ tripId }) 
 
   const handleEdit = () => {
     setFormData({
-      label: myAccommodation?.label || 'My Stay',
+      label: myAccommodation?.accommodation_name || 'My Stay',
       address: myAccommodation?.address || '',
     });
     setIsEditing(true);
@@ -129,7 +125,7 @@ export const AccommodationCard: React.FC<AccommodationCardProps> = ({ tripId }) 
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <MapPin className="h-4 w-4 text-green-500" />
-                  <span className="font-medium">{myAccommodation.label}</span>
+                  <span className="font-medium">{myAccommodation.accommodation_name}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {myAccommodation.address}

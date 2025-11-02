@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PersonalAccommodationService } from '@/services/personalAccommodationService';
-import { CreateAccommodationRequest, UpdateAccommodationRequest } from '@/types/accommodations';
+import { PersonalAccommodationService, personalAccommodationService, PersonalAccommodation, CreateAccommodationRequest as ServiceCreateRequest, UpdateAccommodationRequest } from '@/services/personalAccommodationService';
 import { useAuth } from './useAuth';
 
 export const useAccommodations = (tripId: string) => {
@@ -10,7 +9,7 @@ export const useAccommodations = (tripId: string) => {
   // Get user's personal accommodation
   const { data: myAccommodation, isLoading: isLoadingAccommodation } = useQuery({
     queryKey: ['accommodation', tripId, user?.id],
-    queryFn: () => PersonalAccommodationService.getMyAccommodation(tripId),
+    queryFn: () => personalAccommodationService.getUserAccommodation(tripId),
     enabled: !!user && !!tripId,
   });
 
@@ -23,8 +22,8 @@ export const useAccommodations = (tripId: string) => {
 
   // Create/Update accommodation mutation
   const saveAccommodationMutation = useMutation({
-    mutationFn: (request: CreateAccommodationRequest) => 
-      PersonalAccommodationService.saveAccommodation(request),
+    mutationFn: (request: ServiceCreateRequest) => 
+      personalAccommodationService.setUserAccommodation(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accommodation', tripId, user?.id] });
     },

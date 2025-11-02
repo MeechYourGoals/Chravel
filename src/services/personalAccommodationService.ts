@@ -15,6 +15,18 @@ export interface PersonalAccommodation {
   updated_at: string;
 }
 
+export interface TripBasecamp {
+  id: string;
+  trip_id: string;
+  name: string;
+  address: string;
+  latitude?: number;
+  longitude?: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CreateAccommodationRequest {
   trip_id: string;
   accommodation_name: string;
@@ -111,7 +123,7 @@ class PersonalAccommodationService {
   static async updateAccommodation(
     accommodationId: string, 
     updates: UpdateAccommodationRequest
-  ): Promise<UserAccommodation | null> {
+  ): Promise<PersonalAccommodation | null> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
@@ -128,7 +140,7 @@ class PersonalAccommodationService {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as PersonalAccommodation;
     } catch (error) {
       console.error('Error updating personal accommodation:', error);
       return null;
@@ -155,12 +167,17 @@ class PersonalAccommodationService {
     }
   }
 
+  // Instance method for deleting user accommodation
+  async deleteUserAccommodation(accommodationId: string): Promise<boolean> {
+    return PersonalAccommodationService.deleteAccommodation(accommodationId);
+  }
+
   // Get trip basecamp (shared by all members)
   static async getTripBasecamp(tripId: string): Promise<TripBasecamp | null> {
     try {
       const { data, error } = await supabase
         .from('trips')
-        .select('basecamp_name, basecamp_address, basecamp_lat, basecamp_lng')
+        .select('basecamp_name, basecamp_address, basecamp_latitude, basecamp_longitude')
         .eq('id', tripId)
         .single();
 
@@ -173,8 +190,8 @@ class PersonalAccommodationService {
         trip_id: tripId,
         name: data.basecamp_name,
         address: data.basecamp_address || '',
-        latitude: data.basecamp_lat,
-        longitude: data.basecamp_lng,
+        latitude: data.basecamp_latitude,
+        longitude: data.basecamp_longitude,
         created_by: '', // Not stored in trips table
         created_at: '',
         updated_at: ''
@@ -213,8 +230,8 @@ class PersonalAccommodationService {
         .update({
           basecamp_name: name,
           basecamp_address: address,
-          basecamp_lat: latitude,
-          basecamp_lng: longitude,
+          basecamp_latitude: latitude,
+          basecamp_longitude: longitude,
           updated_at: new Date().toISOString()
         })
         .eq('id', tripId);
@@ -227,3 +244,6 @@ class PersonalAccommodationService {
     }
   }
 }
+
+export { PersonalAccommodationService };
+export const personalAccommodationService = new PersonalAccommodationService();

@@ -404,7 +404,7 @@ export class TripContextAggregator {
       // @ts-ignore - Supabase type instantiation issue
       const tripResult = await supabase
         .from('trips')
-        .select('basecamp_name, basecamp_address, basecamp_lat, basecamp_lng')
+        .select('basecamp_name, basecamp_address, basecamp_latitude, basecamp_longitude')
         .eq('id', tripId)
         .single();
       const trip = tripResult.data;
@@ -420,17 +420,18 @@ export class TripContextAggregator {
 
       // Get user's personal accommodation
       let userAccommodation;
+      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: accommodation } = await supabase
           .from('user_accommodations')
-          .select('label, address, latitude, longitude')
+          .select('accommodation_name, address, latitude, longitude')
           .eq('trip_id', tripId)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (accommodation) {
           userAccommodation = {
-            label: accommodation.label,
+            label: accommodation.accommodation_name,
             address: accommodation.address,
             lat: accommodation.latitude,
             lng: accommodation.longitude
