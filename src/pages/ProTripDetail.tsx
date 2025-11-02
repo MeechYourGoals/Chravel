@@ -159,7 +159,7 @@ const ProTripDetail = () => {
       // Pro trips in demo mode use client-side export
       // Real Pro trips would call the edge function with their UUID
       if (isDemoMode) {
-        toast.info('Generating demo PDF with mock data...');
+        toast.info('Generating demo PDF...');
         blob = await generateClientPDF(
           {
             tripId: proTripId || '',
@@ -167,17 +167,28 @@ const ProTripDetail = () => {
             destination: tripData.location,
             dateRange: tripData.dateRange,
             description: tripData.description || '',
-            mockData: {
-              payments: tripData.settlement || [],
-              polls: [],
-              tasks: tripData.schedule || [],
-              places: [],
-              roster: tripData.roster || [],
-              broadcasts: tripData.broadcasts || [],
-              attachments: [],
-              schedule: tripData.schedule || [],
-              participants: tripData.participants || [],
-            },
+            calendar: tripData.schedule?.map(s => ({
+              title: s.title || 'Event',
+              start_time: s.startTime || new Date().toISOString(),
+              location: s.location,
+              description: s.notes
+            })) || [],
+            payments: tripData.settlement && tripData.settlement.length > 0 ? {
+              items: tripData.settlement.map(p => ({
+                description: p.venue || 'Payment',
+                amount: p.finalPayout || 0,
+                currency: 'USD',
+                split_count: 1,
+                is_settled: p.status === 'paid'
+              })),
+              total: tripData.settlement.reduce((sum, p) => sum + (p.finalPayout || 0), 0),
+              currency: 'USD'
+            } : undefined,
+            roster: tripData.roster?.map(r => ({
+              name: r.name,
+              email: r.email,
+              role: r.role
+            })) || [],
           },
           sections
         );
@@ -224,7 +235,7 @@ const ProTripDetail = () => {
           }
           
           console.error('[PRO-EXPORT] Edge function failed:', errorMsg);
-          toast.error('Live export failed, generating a limited offline PDF.');
+          toast.error('Live export failed, generating offline PDF.');
           
           blob = await generateClientPDF(
             {
@@ -233,17 +244,28 @@ const ProTripDetail = () => {
               destination: tripData.location,
               dateRange: tripData.dateRange,
               description: tripData.description || '',
-              mockData: {
-                payments: tripData.settlement || [],
-                polls: [],
-                tasks: tripData.schedule || [],
-                places: [],
-                roster: tripData.roster || [],
-                broadcasts: tripData.broadcasts || [],
-                attachments: [],
-                schedule: tripData.schedule || [],
-                participants: tripData.participants || [],
-              },
+              calendar: tripData.schedule?.map(s => ({
+                title: s.title || 'Event',
+                start_time: s.startTime || new Date().toISOString(),
+                location: s.location,
+                description: s.notes
+              })) || [],
+              payments: tripData.settlement && tripData.settlement.length > 0 ? {
+                items: tripData.settlement.map(p => ({
+                  description: p.venue || 'Payment',
+                  amount: p.finalPayout || 0,
+                  currency: 'USD',
+                  split_count: 1,
+                  is_settled: p.status === 'paid'
+                })),
+                total: tripData.settlement.reduce((sum, p) => sum + (p.finalPayout || 0), 0),
+                currency: 'USD'
+              } : undefined,
+              roster: tripData.roster?.map(r => ({
+                name: r.name,
+                email: r.email,
+                role: r.role
+              })) || [],
             },
             sections
           );

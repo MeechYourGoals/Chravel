@@ -137,11 +137,8 @@ const TripDetail = () => {
     isPro: false
   };
 
-  // Handle export functionality - detect mock trips and use appropriate export method
+  // Handle export functionality - always use client-side generation
   const handleExport = async (sections: ExportSection[]) => {
-    // Detect mock trip IDs (numeric vs UUID)
-    const isMockTrip = tripId && /^\d+$/.test(tripId);
-
     try {
       // Pre-open a window on iOS Safari to avoid popup blocking for blob URLs
       let preOpenedWindow: Window | null = null;
@@ -163,13 +160,15 @@ const TripDetail = () => {
         // Non-fatal; continue without pre-open
       }
 
+      // Generate PDF client-side with real data
+      toast.info('Generating PDF...');
+
+      // Check if this is a mock trip (numeric ID 1-12) or real trip (UUID)
+      const isMockTrip = tripId && /^\d+$/.test(tripId);
       let blob: Blob;
 
       if (isMockTrip) {
-        // Use client-side export for mock trips
-        toast.info('Generating demo PDF with mock data...');
-
-        // Fetch mock data for this trip
+        // Use mock data for demo trips
         const mockPayments = await demoModeService.getMockPayments(tripId || '1');
         const mockPolls = await demoModeService.getMockPolls(tripId || '1');
         const mockMembers = await demoModeService.getMockMembers(tripId || '1');
@@ -181,84 +180,42 @@ const TripDetail = () => {
             destination: tripWithUpdatedData.location,
             dateRange: tripWithUpdatedData.dateRange,
             description: tripWithUpdatedData.description,
-            mockData: {
-              payments: mockPayments,
-              polls: mockPolls,
-              roster: mockMembers,
-            },
+            calendar: mockItinerary,
+            payments: mockPayments.length > 0 ? {
+              items: mockPayments,
+              total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
+              currency: mockPayments[0]?.currency || 'USD'
+            } : undefined,
+            polls: mockPolls,
+            roster: mockMembers.map(m => ({
+              name: m.display_name,
+              email: undefined,
+              role: m.role
+            })),
           },
           sections
         );
       } else {
-        // Call edge function for real Supabase trips using direct fetch
-        console.log('[EXPORT] Calling export-trip edge function', { tripId, sections });
-        
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token || '';
-        
-        const response = await fetch(
-          `https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/export-trip`,
+        // Fetch real data for Supabase trips
+        const { getExportData } = await import('../services/tripExportDataService');
+        const realData = await getExportData(tripId || '', sections);
+
+        blob = await generateClientPDF(
           {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`,
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI',
-            },
-            body: JSON.stringify({
-              tripId,
-              sections,
-              layout: 'onepager',
-              paper: 'letter',
-              privacyRedaction: true,
-            }),
-          }
+            tripId: tripId || '',
+            tripTitle: realData.trip.title,
+            destination: realData.trip.destination,
+            dateRange: realData.trip.dateRange,
+            description: realData.trip.description,
+            calendar: realData.calendar,
+            payments: realData.payments,
+            polls: realData.polls,
+            tasks: realData.tasks,
+            places: realData.places,
+            roster: realData.roster,
+          },
+          sections
         );
-
-        console.log('[EXPORT] Edge function response', { 
-          status: response.status,
-          contentType: response.headers.get('content-type'),
-        });
-
-        if (!response.ok) {
-          // Try to parse error JSON
-          const errorText = await response.text();
-          let errorMsg = 'Export failed';
-          try {
-            const errorJson = JSON.parse(errorText);
-            errorMsg = errorJson.error || errorMsg;
-          } catch {
-            errorMsg = errorText || errorMsg;
-          }
-          
-          console.error('[EXPORT] Edge function failed:', errorMsg);
-          toast.error('Live export failed, generating a limited offline PDF.');
-
-          // Fetch mock data for fallback
-          const mockPayments = await demoModeService.getMockPayments(tripId || '1');
-          const mockPolls = await demoModeService.getMockPolls(tripId || '1');
-          const mockMembers = await demoModeService.getMockMembers(tripId || '1');
-
-          blob = await generateClientPDF(
-            {
-              tripId: tripId || '1',
-              tripTitle: tripWithUpdatedData.title,
-              destination: tripWithUpdatedData.location,
-              dateRange: tripWithUpdatedData.dateRange,
-              description: tripWithUpdatedData.description,
-              mockData: {
-                payments: mockPayments,
-                polls: mockPolls,
-                roster: mockMembers,
-              },
-            },
-            sections
-          );
-        } else {
-          // Convert response to Blob
-          blob = await response.blob();
-          console.log('[EXPORT] PDF blob created', { size: blob.size });
-        }
       }
 
       // Download or open the PDF with cross-platform handling
