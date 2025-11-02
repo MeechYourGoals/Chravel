@@ -16,7 +16,7 @@ import { useBasecamp } from '@/contexts/BasecampContext';
 import { supabase } from '@/integrations/supabase/client';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
-import MockDataService from '@/services/mockDataService';
+import { getTripById, generateTripMockData } from '@/data/tripsData';
 import { toast } from 'sonner';
 
 interface PlacesSectionProps {
@@ -60,41 +60,72 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
 
   const effectiveUserId = user?.id || getDemoUserId();
 
+  // Helper to map link categories from tripsData to PlaceCategory
+  const mapLinkCategoryToPlaceCategory = (label: string): PlaceCategory => {
+    const categoryMap: Record<string, PlaceCategory> = {
+      'Accommodation': 'Accommodation',
+      'Activities': 'Activity',
+      'Attractions': 'Attraction',
+      'Food': 'Appetite',
+      'Nightlife': 'Other',
+      'Event': 'Other',
+      'Tips': 'Other',
+      'Entrance': 'Other',
+      'Cruise': 'Other',
+      'General': 'Other',
+      'Transportation': 'Other'
+    };
+    return categoryMap[label] || 'Other';
+  };
+
+  // City center coordinates for distance chip display
+  const cityCenterCoords: Record<string, { lat: number; lng: number }> = {
+    'Cancun': { lat: 21.1619, lng: -86.8515 },
+    'Tokyo': { lat: 35.6762, lng: 139.6503 },
+    'Bali': { lat: -8.5069, lng: 115.2625 },
+    'Nashville': { lat: 36.1627, lng: -86.7816 },
+    'Indio': { lat: 33.7206, lng: -116.2156 },
+    'Aspen': { lat: 39.1911, lng: -106.8175 },
+    'Phoenix': { lat: 33.4484, lng: -112.0740 },
+    'Tulum': { lat: 20.211, lng: -87.4659 },
+    'Napa Valley': { lat: 38.5, lng: -122.3 },
+    'Port Canaveral': { lat: 28.4101, lng: -80.6188 },
+    'Yellowstone': { lat: 44.4279, lng: -110.5885 }
+  };
+
   // Load places data on mount
   useEffect(() => {
     const loadPlaces = async () => {
-      if (isDemoMode) {
-        // Load mock data in demo mode
-        try {
-          const mockPlaces = await MockDataService.getMockPlaceItems(tripId, true);
-          const mapCategoryToPlaceCategory = (cat: string): PlaceCategory => {
-            const categoryMap: Record<string, PlaceCategory> = {
-              'activity': 'Activity',
-              'attraction': 'Attraction',
-              'appetite': 'Appetite',
-              'accommodation': 'Accommodation',
-              'fitness': 'Activity',
-              'hotel': 'Accommodation',
-              'nightlife': 'Other',
-              'restaurant': 'Appetite',
-              'transportation': 'Other'
-            };
-            return categoryMap[cat.toLowerCase()] || 'Other';
-          };
+      // Helper to load trip links from tripsData.ts
+      const loadDemoPlacesFromTripsData = async (): Promise<PlaceWithDistance[]> => {
+        const trip = getTripById(Number(tripId));
+        if (!trip) return [];
+        
+        // Bottom 6 consumer trips (IDs 7-12) intentionally empty to show empty state
+        if (trip.id > 6) return [];
+        
+        const { links } = generateTripMockData(trip);
+        const city = trip.location.split(',')[0].trim();
+        const coords = cityCenterCoords[city];
+        
+        return links.slice(0, 5).map((link, i) => ({
+          id: `mock-link-${trip.id}-${i + 1}`,
+          name: link.title,
+          address: '',
+          coordinates: coords,
+          category: mapLinkCategoryToPlaceCategory(link.category),
+          rating: 0,
+          url: link.url
+        }));
+      };
 
-          const placesWithDistance: PlaceWithDistance[] = mockPlaces.map(place => ({
-            id: place.id,
-            name: place.name,
-            address: place.address,
-            coordinates: place.coordinates,
-            category: mapCategoryToPlaceCategory(place.category),
-            rating: place.rating,
-            url: place.url,
-            distanceFromBasecamp: place.distanceFromBasecamp
-          }));
-          setPlaces(placesWithDistance);
+      if (isDemoMode) {
+        // Load city-specific links from tripsData for demo mode
+        try {
+          const demoPlaces = await loadDemoPlacesFromTripsData();
+          setPlaces(demoPlaces);
         } catch (error) {
-          console.error('Failed to load mock places:', error);
+          console.error('Failed to load demo places:', error);
         }
       } else {
         // Load real data for authenticated users
@@ -105,6 +136,13 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
 
         if (error) {
           console.error('Failed to load places:', error);
+          return;
+        }
+
+        // If DB is empty, fallback to tripsData for mock trips
+        if (!data || data.length === 0) {
+          const fallbackPlaces = await loadDemoPlacesFromTripsData();
+          setPlaces(fallbackPlaces);
           return;
         }
 
