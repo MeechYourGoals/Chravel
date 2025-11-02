@@ -28,7 +28,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.seed-demo-data]
-verify_jwt = false
+verify_jwt = true
 
 [functions.create-checkout]
 verify_jwt = true
@@ -52,4 +52,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.export-trip]
-verify_jwt = false
+verify_jwt = true

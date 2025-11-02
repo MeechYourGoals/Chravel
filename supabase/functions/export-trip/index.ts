@@ -28,10 +28,21 @@ serve(async (req) => {
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
-  // Use service role key to bypass RLS for read-only queries
-  const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  // Get authorization header for authentication
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    logStep("Unauthorized - missing auth header");
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized - authentication required' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Use anon key with user's JWT to respect RLS
+  const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
     auth: { persistSession: false }
   });
 
@@ -63,6 +74,24 @@ serve(async (req) => {
     }
 
     logStep("Request parsed", { tripId, sections, layout, privacyRedaction, paper });
+
+    // Verify user is a member of the trip before proceeding
+    const { data: membershipCheck, error: membershipError } = await supabaseClient
+      .from('trip_members')
+      .select('user_id, status')
+      .eq('trip_id', tripId)
+      .eq('user_id', (await supabaseClient.auth.getUser()).data.user?.id)
+      .single();
+
+    if (membershipError || !membershipCheck || membershipCheck.status !== 'active') {
+      logStep("Forbidden - not a trip member", { tripId, error: membershipError?.message });
+      return new Response(
+        JSON.stringify({ error: 'Forbidden - you must be an active member of this trip to export it' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    logStep("Authorization verified", { tripId });
 
     // Auto-detect layout from trip_type if not explicitly provided
     if (!layout || layout === 'onepager') {

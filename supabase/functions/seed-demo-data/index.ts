@@ -107,6 +107,16 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // Disable demo seeding in production environment
+  const environment = Deno.env.get('ENVIRONMENT') || Deno.env.get('DENO_ENV') || 'production';
+  if (environment === 'production') {
+    console.log('[SEED-DEMO] Blocked: Demo seeding is disabled in production');
+    return new Response(
+      JSON.stringify({ error: 'Demo data seeding is disabled in production environment' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
     const { tripId = '1' } = await req.json();
     
