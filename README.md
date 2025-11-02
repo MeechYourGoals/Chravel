@@ -168,3 +168,20 @@ When deploying, set the same variables using `supabase secrets set`.
 ## Claude Code
 
 Run `npm run claude` to launch Claude Code for advanced code analysis and MCP integration. See [docs/claude-code.md](docs/claude-code.md) for setup details.
+
+## 🔌 **Render MCP Integration**
+
+Chravel now supports the Render Model Context Protocol (MCP) server, enabling you to manage Render infrastructure directly from Cursor using natural language.
+
+**Capabilities:**
+- Create and manage web services, static sites, and databases
+- Monitor logs and analyze service metrics in real-time
+- Query Render Postgres databases directly
+- Update service configurations and environment variables
+
+**Setup:**
+1. The MCP configuration is already set up in `.cursor/mcp_config.json`
+2. **Restart Cursor** for the changes to take effect
+3. Use natural language prompts like "Show me my Render services" or "What's the CPU usage?"
+
+For complete documentation, see: [docs/RENDER_MCP_INTEGRATION.md](docs/RENDER_MCP_INTEGRATION.md)

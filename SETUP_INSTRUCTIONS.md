@@ -128,9 +128,50 @@ The "Could not find address" error you're seeing is because the Google Maps API 
 
 ---
 
+## 🔌 **Part 3: Render MCP Integration (for DevOps in Cursor)**
+
+### ✅ **Step 1: Understanding Render MCP**
+The Render Model Context Protocol (MCP) server enables you to manage Render infrastructure directly from Cursor using natural language prompts.
+
+**Capabilities:**
+- Create and manage web services, static sites, and databases
+- Monitor logs and analyze service metrics in real-time
+- Query Render Postgres databases directly
+- Update service configurations and environment variables
+
+### ✅ **Step 2: Configuration (Already Complete)**
+The MCP configuration has been set up in `.cursor/mcp_config.json` with your API key.
+
+**Security Note:** This file is automatically excluded from Git via `.gitignore`.
+
+### ✅ **Step 3: Activate the Integration**
+1. **Restart Cursor** completely for the MCP configuration to take effect
+2. The Render MCP server will be automatically available
+
+### ✅ **Step 4: Test the Integration**
+Try these natural language prompts in Cursor:
+
+```
+"Show me my Render services"
+"What's the CPU usage of my web service?"
+"Show me the last 100 logs from the Chravel API"
+"Query the trips table for the last 10 entries"
+```
+
+### 🔐 **API Key Management**
+- **Current Status:** API key is configured and active
+- **To Rotate:** Generate new key from [Render Dashboard](https://dashboard.render.com/account), update `.cursor/mcp_config.json`, restart Cursor
+- **Security:** Never commit the config file (it's gitignored), rotate keys regularly
+
+### 📚 **Full Documentation**
+For complete details, see: [docs/RENDER_MCP_INTEGRATION.md](docs/RENDER_MCP_INTEGRATION.md)
+
+---
+
 **Priority Order:**
 1. Set up Google Maps API first (fixes basecamp errors)
 2. Set up OpenAI API second (enables real concierge responses)
 3. Test both features together for full integration
+4. (Optional) Restart Cursor to activate Render MCP integration
 
 Once both are configured, users can set "SoFi Stadium" as basecamp and search for "restaurants" to see results sorted by distance from SoFi Stadium, with the AI concierge providing contextual recommendations.

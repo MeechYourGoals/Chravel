@@ -513,7 +513,21 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
     }
 
     if (places?.basecamp) {
-      basePrompt += `\nCurrent Basecamp: ${places.basecamp.name} at ${places.basecamp.address}`
+      basePrompt += `\n\n🏠 TRIP BASECAMP:`
+      basePrompt += `\nLocation: ${places.basecamp.name}`
+      basePrompt += `\nAddress: ${places.basecamp.address}`
+      if (places.basecamp.lat && places.basecamp.lng) {
+        basePrompt += `\nCoordinates: ${places.basecamp.lat}, ${places.basecamp.lng}`
+      }
+    }
+    
+    if (places?.userAccommodation) {
+      basePrompt += `\n\n🏨 YOUR ACCOMMODATION:`
+      basePrompt += `\nLabel: ${places.userAccommodation.label}`
+      basePrompt += `\nAddress: ${places.userAccommodation.address}`
+      if (places.userAccommodation.lat && places.userAccommodation.lng) {
+        basePrompt += `\nCoordinates: ${places.userAccommodation.lat}, ${places.userAccommodation.lng}`
+      }
     }
 
     // Add comprehensive context sections

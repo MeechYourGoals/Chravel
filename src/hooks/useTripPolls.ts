@@ -39,7 +39,7 @@ export const useTripPolls = (tripId: string) => {
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
 
-  // Fetch polls from database
+  // Fetch polls from database or localStorage
   const { data: polls = [], isLoading } = useQuery({
     queryKey: ['tripPolls', tripId],
     queryFn: async (): Promise<TripPoll[]> => {

@@ -200,6 +200,42 @@ export class UniversalConciergeService {
           throw new Error('No response from edge function');
         }
 
+      let comprehensiveContext = ContextCacheService.get(tripContext.tripId);
+      
+      if (!comprehensiveContext) {
+        try {
+          comprehensiveContext = await TripContextAggregator.buildContext(tripContext.tripId, isDemoMode);
+          ContextCacheService.set(tripContext.tripId, comprehensiveContext);
+        } catch (contextError) {
+          console.error('Failed to build comprehensive context, using fallback:', contextError);
+          comprehensiveContext = tripContext as any; // Use original context as fallback
+        }
+      }
+      
+      // Try edge function first (works in both demo and authenticated mode)
+      try {
+        console.log('🤖 Calling AI Concierge edge function...', { isDemoMode, tripId: tripContext.tripId });
+        
+        const { data, error } = await supabase.functions.invoke('lovable-concierge', {
+          body: {
+            message: message,
+            tripContext: comprehensiveContext,
+            tripId: tripContext.tripId,
+            isDemoMode: isDemoMode,
+            chatHistory: comprehensiveContext.messages?.slice(-10) || []
+          }
+        });
+
+        if (error) {
+          console.error('Edge function invocation error:', error);
+          throw error;
+        }
+
+        if (!data) {
+          console.error('Edge function returned no data');
+          throw new Error('No response from edge function');
+        }
+
         console.log('✅ Edge function success:', { hasResponse: !!data.response, citationCount: data.citations?.length || 0 });
 
         return {
