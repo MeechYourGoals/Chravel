@@ -58,16 +58,16 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
 
   return (
     <div className={`relative w-full h-full ${className}`}>
-      {/* Search Field */}
-      <div className="absolute top-4 left-4 right-4 z-10">
+      {/* Search Field - Centered and Compact */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 w-auto max-w-xs">
         <form onSubmit={handleSearch} className="relative">
-          <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Search size={14} className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search locations on map..."
-            className="w-full bg-white/95 backdrop-blur-sm border border-gray-300 rounded-xl pl-10 pr-4 py-3 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-lg text-sm"
+            placeholder="Search locations..."
+            className="w-48 bg-white/95 backdrop-blur-sm border border-gray-300 rounded-lg pl-8 pr-3 py-2 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-lg text-xs"
           />
         </form>
       </div>

@@ -435,8 +435,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
     return (
       <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
-        {/* Search Bar - Centered with proper spacing from sides */}
-        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-20 w-auto max-w-[200px]">
+        {/* Search Bar - Centered and Compact */}
+        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-20 w-auto max-w-xs">
           <form onSubmit={handleSearchSubmit} className="relative">
             <Search size={12} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
             <input
@@ -450,9 +450,9 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
                 // Delay to allow click on suggestion
                 setTimeout(() => setShowSuggestions(false), 200);
               }}
-              placeholder="Search locations on map..."
+              placeholder="Search locations..."
               disabled={isSearching || isMapLoading}
-              className="w-40 bg-white/95 backdrop-blur-sm border border-gray-300 rounded-lg pl-7 pr-7 py-1.5 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-lg text-xs disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-48 bg-white/95 backdrop-blur-sm border border-gray-300 rounded-lg pl-7 pr-7 py-1.5 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-lg text-xs disabled:opacity-70 disabled:cursor-not-allowed"
             />
             {/* Clear/Loading Button */}
             {isSearching ? (
