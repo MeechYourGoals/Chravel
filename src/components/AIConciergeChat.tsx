@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, CheckCircle, Search, AlertCircle, Crown, Clock } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { TripPreferences } from '../types/consumer';
@@ -53,11 +53,35 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   const [aiStatus, setAiStatus] = useState<'checking' | 'connected' | 'limited' | 'error' | 'thinking'>('connected');
   const [remainingQueries, setRemainingQueries] = useState<number>(Infinity);
 
+  // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
+  const isMounted = useRef(true);
+
+  // Helper to convert isPlus boolean to tier string
+  const getUserTier = (): 'free' | 'plus' | 'pro' => {
+    if (user?.isPro) return 'pro';
+    if (isPlus) return 'plus';
+    return 'free';
+  };
+
+  // PHASE 1 BUG FIX #7: Set up cleanup to track component mount state
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   // Initialize remaining queries for events
   useEffect(() => {
     if (isEvent && user) {
-      const remaining = conciergeRateLimitService.getRemainingQueries(user.id, tripId, isPlus);
-      setRemainingQueries(remaining);
+      conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier())
+        .then(remaining => {
+          // PHASE 1 BUG FIX #7: Only update state if component is still mounted
+          if (isMounted.current) {
+            setRemainingQueries(remaining);
+          }
+        })
+        .catch(err => console.error('Failed to get remaining queries:', err));
     }
   }, [isEvent, user, tripId, isPlus]);
 
@@ -66,10 +90,10 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
 
     // 🆕 Rate limit check for events
     if (isEvent && user) {
-      const canQuery = conciergeRateLimitService.canQuery(user.id, tripId, isPlus);
+      const canQuery = await conciergeRateLimitService.canQuery(user.id, tripId, getUserTier());
       if (!canQuery) {
-        const remaining = conciergeRateLimitService.getRemainingQueries(user.id, tripId, isPlus);
-        const resetTime = conciergeRateLimitService.getTimeUntilReset(user.id, tripId, isPlus);
+        const remaining = await conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier());
+        const resetTime = await conciergeRateLimitService.getTimeUntilReset(user.id, tripId, getUserTier());
         
         setMessages(prev => [...prev, {
           id: Date.now().toString(),
@@ -136,27 +160,62 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         address: basecamp.address
       } : undefined);
 
-      // Send to Lovable AI Concierge
-      const { data, error } = await supabase.functions.invoke('lovable-concierge', {
-        body: {
-          message: currentInput,
-          tripContext,
-          basecampLocation,
-          preferences,
-          chatHistory,
-          isDemoMode
-        }
-      });
+      // Send to Lovable AI Concierge with retry logic
+      let retryCount = 0;
+      const MAX_RETRIES = 2;
+      let data, error;
+      
+      while (retryCount <= MAX_RETRIES) {
+        try {
+          const response = await supabase.functions.invoke('lovable-concierge', {
+            body: {
+              message: currentInput,
+              tripContext,
+              basecampLocation,
+              preferences,
+              chatHistory,
+              isDemoMode
+            }
+          });
 
-      if (error) throw error;
+          data = response.data;
+          error = response.error;
+
+          // Check if response indicates a retryable error
+          if (error && retryCount < MAX_RETRIES) {
+            retryCount++;
+            console.log(`🔄 Retry attempt ${retryCount}/${MAX_RETRIES} for AI Concierge...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+            continue;
+          }
+
+          if (error) throw error;
+
+          // Success - exit retry loop
+          break;
+
+        } catch (attemptError) {
+          if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            console.log(`🔄 Retry attempt ${retryCount}/${MAX_RETRIES} after error:`, attemptError);
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+            continue;
+          }
+          throw attemptError; // Max retries exceeded
+        }
+      }
 
       setAiStatus('connected');
 
       // 🆕 Increment usage for events
       if (isEvent && user) {
         try {
-          const usage = conciergeRateLimitService.incrementUsage(user.id, tripId, isPlus);
-          setRemainingQueries(conciergeRateLimitService.getRemainingQueries(user.id, tripId, isPlus));
+          await conciergeRateLimitService.incrementUsage(user.id, tripId, getUserTier());
+          const remaining = await conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier());
+          // PHASE 1 BUG FIX #7: Only update state if component is still mounted
+          if (isMounted.current) {
+            setRemainingQueries(remaining);
+          }
         } catch (error) {
           console.error('Failed to increment usage:', error);
         }
@@ -199,8 +258,8 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   };
 
   return (
-    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-      <div className="flex items-center gap-3 mb-6">
+    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4">
+      <div className="flex items-center gap-3 mb-4">
         <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
           <Search size={20} className="text-white" />
         </div>
@@ -277,17 +336,18 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
 
       {/* Empty State */}
       {messages.length === 0 && !(isFreeUser && usage?.isLimitReached) && (
-        <div className="text-center py-8 mb-6">
-          <h4 className="text-white font-medium mb-3">Your AI Travel Concierge</h4>
-          <div className="text-sm text-gray-300 space-y-2 max-w-md mx-auto">
+        <div className="text-center py-2 mb-3">
+          <h4 className="text-white font-medium mb-2">Your AI Travel Concierge</h4>
+          <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
             <p>Ask me anything about your trip:</p>
             <div className="text-xs text-gray-400 space-y-1">
-              <p>• "What are the best restaurants for our group?"</p>
               <p>• "Suggest activities based on our preferences"</p>
-              <p>• "Help me plan our itinerary"</p>
               <p>• "What hidden gems should we check out?"</p>
+              <p>• "What's in the calendar agenda for the rest of the week"</p>
+              <p>• "What tasks still need to be completed"</p>
+              <p>• "Can you give me a summary of the payments owed for my expenses?"</p>
             </div>
-            <div className="mt-3 text-xs text-green-400 bg-green-500/10 rounded px-3 py-2 inline-block">
+            <div className="mt-2 text-xs text-green-400 bg-green-500/10 rounded px-3 py-1.5 inline-block">
               ✨ Powered by AI - ask me anything!
             </div>
           </div>
@@ -295,7 +355,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       )}
 
       {/* Chat Messages */}
-      <div className="space-y-4 mb-6 max-h-80 overflow-y-auto">
+      <div className="space-y-2 mb-3 max-h-[300px] overflow-y-auto">
         <ChatMessages 
           messages={messages} 
           isTyping={isTyping}

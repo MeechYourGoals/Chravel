@@ -178,25 +178,21 @@ export const TripCard = ({ trip }: TripCardProps) => {
           </div>
           
           <div className="flex items-center">
-            <div className="flex -space-x-3">
-              {participantsWithAvatars.slice(0, 4).map((participant, index) => (
+            <div className="flex -space-x-2">
+              {participantsWithAvatars.slice(0, 5).map((participant, index) => (
                 <TravelerTooltip key={participant.id} name={participant.name}>
                   <div
-                    className="relative"
+                    className="relative w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center text-sm font-semibold text-black border-2 border-gray-900 hover:scale-110 transition-transform duration-200 hover:border-yellow-400 cursor-pointer"
                     style={{ zIndex: participantsWithAvatars.length - index }}
                   >
-                    <img
-                      src={participant.avatar}
-                      alt={participant.name}
-                      className="w-10 h-10 rounded-full border-3 border-gray-900 hover:scale-110 transition-transform duration-200 hover:border-yellow-400 cursor-pointer"
-                    />
+                    {participant.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                   </div>
                 </TravelerTooltip>
               ))}
             </div>
-            {participantsWithAvatars.length > 4 && (
-              <div className="w-10 h-10 rounded-full bg-gray-700 border-3 border-gray-900 flex items-center justify-center text-sm font-medium text-white ml-2">
-                +{participantsWithAvatars.length - 4}
+            {participantsWithAvatars.length > 5 && (
+              <div className="w-10 h-10 rounded-full bg-gray-700 border-2 border-gray-900 flex items-center justify-center text-sm font-medium text-white -ml-2">
+                +{participantsWithAvatars.length - 5}
               </div>
             )}
           </div>

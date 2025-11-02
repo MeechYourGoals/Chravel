@@ -1,7 +1,11 @@
 /**
  * Concierge Rate Limiting Service for Events
  * Prevents API cost overruns while maintaining good UX
+ * NOW WITH DATABASE-BACKED RATE LIMITING
  */
+
+import { supabase } from '@/integrations/supabase/client';
+import { demoModeService } from './demoModeService';
 
 export interface ConciergeUsage {
   userId: string;
@@ -15,16 +19,59 @@ class ConciergeRateLimitService {
   private storageKey = 'concierge-usage';
 
   /**
-   * Get daily query limit based on user's subscription
+   * Get daily query limit based on user's subscription tier
    */
-  getDailyLimit(isChravelPlus: boolean): number {
-    return isChravelPlus ? Infinity : 5; // Free: 5 queries/day, Plus: unlimited
+  getDailyLimit(userTier: 'free' | 'plus' | 'pro'): number {
+    if (userTier === 'pro') return Infinity;
+    if (userTier === 'plus') return 50;
+    return 5; // Free: 5 queries/day
   }
 
   /**
-   * Get current usage for user in specific event
+   * Get current usage for user in specific event - DATABASE-BACKED
    */
-  getUsage(userId: string, eventId: string, isChravelPlus: boolean): ConciergeUsage {
+  async getUsage(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro' = 'free'): Promise<ConciergeUsage> {
+    // Check if in demo mode
+    const isDemoMode = await demoModeService.isDemoModeEnabled();
+
+    if (isDemoMode) {
+      return this.getUsageFromStorage(userId, eventId, userTier);
+    }
+
+    // Query database for usage
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const { data, error } = await supabase
+      .from('concierge_usage')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('context_type', 'event')
+      .eq('context_id', eventId)
+      .gte('created_at', today.toISOString());
+
+    if (error) {
+      console.error('Failed to fetch usage from database:', error);
+      // Fallback to storage
+      return this.getUsageFromStorage(userId, eventId, userTier);
+    }
+
+    const queriesUsed = data?.length || 0;
+    const resetAt = this.getNextMidnight();
+
+    return {
+      userId,
+      eventId,
+      queriesUsed,
+      dailyLimit: this.getDailyLimit(userTier),
+      resetAt
+    };
+  }
+
+  /**
+   * Get usage from localStorage (demo mode fallback)
+   */
+  private getUsageFromStorage(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro'): ConciergeUsage {
     const storageData = this.loadFromStorage();
     const key = `${userId}-${eventId}`;
     const existing = storageData[key];
@@ -40,60 +87,87 @@ class ConciergeRateLimitService {
       userId,
       eventId,
       queriesUsed: 0,
-      dailyLimit: this.getDailyLimit(isChravelPlus),
+      dailyLimit: this.getDailyLimit(userTier),
       resetAt
     };
 
     storageData[key] = newUsage;
     this.saveToStorage(storageData);
-    
+
     return newUsage;
   }
 
   /**
-   * Increment query count for user
+   * Increment query count for user - DATABASE-BACKED
    */
-  incrementUsage(userId: string, eventId: string, isChravelPlus: boolean): ConciergeUsage {
-    const usage = this.getUsage(userId, eventId, isChravelPlus);
-    
-    if (!isChravelPlus && usage.queriesUsed >= usage.dailyLimit) {
+  async incrementUsage(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro' = 'free'): Promise<ConciergeUsage> {
+    const usage = await this.getUsage(userId, eventId, userTier);
+
+    if (userTier !== 'pro' && usage.queriesUsed >= usage.dailyLimit) {
       throw new Error('Daily query limit reached');
     }
 
-    usage.queriesUsed++;
-    
-    const storageData = this.loadFromStorage();
-    storageData[`${userId}-${eventId}`] = usage;
-    this.saveToStorage(storageData);
+    // Check if in demo mode
+    const isDemoMode = await demoModeService.isDemoModeEnabled();
+
+    if (isDemoMode) {
+      // Use localStorage for demo mode
+      usage.queriesUsed++;
+      const storageData = this.loadFromStorage();
+      storageData[`${userId}-${eventId}`] = usage;
+      this.saveToStorage(storageData);
+      return usage;
+    }
+
+    // Insert usage record to database
+    const { error } = await supabase
+      .from('concierge_usage')
+      .insert({
+        user_id: userId,
+        context_type: 'event',
+        context_id: eventId,
+        query_count: 1
+      });
+
+    if (error) {
+      console.error('Failed to increment usage in database:', error);
+      // Fallback to storage
+      usage.queriesUsed++;
+      const storageData = this.loadFromStorage();
+      storageData[`${userId}-${eventId}`] = usage;
+      this.saveToStorage(storageData);
+    } else {
+      usage.queriesUsed++;
+    }
 
     return usage;
   }
 
   /**
-   * Check if user can make another query
+   * Check if user can make another query - DATABASE-BACKED
    */
-  canQuery(userId: string, eventId: string, isChravelPlus: boolean): boolean {
-    if (isChravelPlus) return true;
-    
-    const usage = this.getUsage(userId, eventId, isChravelPlus);
+  async canQuery(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro' = 'free'): Promise<boolean> {
+    if (userTier === 'pro') return true;
+
+    const usage = await this.getUsage(userId, eventId, userTier);
     return usage.queriesUsed < usage.dailyLimit;
   }
 
   /**
    * Get remaining queries for user
    */
-  getRemainingQueries(userId: string, eventId: string, isChravelPlus: boolean): number {
-    if (isChravelPlus) return Infinity;
+  async getRemainingQueries(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro'): Promise<number> {
+    if (userTier === 'pro') return Infinity;
     
-    const usage = this.getUsage(userId, eventId, isChravelPlus);
+    const usage = await this.getUsage(userId, eventId, userTier);
     return Math.max(0, usage.dailyLimit - usage.queriesUsed);
   }
 
   /**
    * Get time until limit resets
    */
-  getTimeUntilReset(userId: string, eventId: string, isChravelPlus: boolean): string {
-    const usage = this.getUsage(userId, eventId, isChravelPlus);
+  async getTimeUntilReset(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro'): Promise<string> {
+    const usage = await this.getUsage(userId, eventId, userTier);
     const now = new Date();
     const reset = new Date(usage.resetAt);
     const hoursLeft = Math.ceil((reset.getTime() - now.getTime()) / (1000 * 60 * 60));

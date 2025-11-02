@@ -20,8 +20,7 @@ interface TripSpecificLinkItem {
   domain: string;
   image_url?: string;
   created_at: string;
-  source: 'chat' | 'manual' | 'pinned';
-  category: 'Housing' | 'Eats' | 'Activities';
+  source: 'chat' | 'manual' | 'places';
   tags: string[];
 }
 
@@ -45,7 +44,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     photos: [
       {
         id: 'cancun-photo-1',
-        media_url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=400&fit=crop',
+        media_url: '/mock/images/beach-volleyball.jpg',
         filename: 'Beach Volleyball Tournament.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -56,7 +55,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'cancun-photo-2',
-        media_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop',
+        media_url: '/mock/images/travel-selfie.jpg',
         filename: 'Sunset Resort Pool Party.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -67,7 +66,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'cancun-photo-3',
-        media_url: 'https://images.unsplash.com/photo-1539635278303-d4002c07eae3?w=600&h=400&fit=crop',
+        media_url: '/mock/images/group-mountain-photo.jpg',
         filename: 'Brotherhood Beach Group Shot.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -79,10 +78,10 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     ],
     videos: [{
       id: 'cancun-video-1',
-      media_url: '/mock/videos/cancun-beach-party.mp4',
+      media_url: '/mock/videos/team-celebration.mp4',
       filename: 'Epic Beach Party Highlights.mp4',
       media_type: 'video',
-      metadata: { duration: 52, width: 1280, height: 720, poster: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop' },
+      metadata: { duration: 12, width: 1280, height: 720, poster: '/mock/images/beach-volleyball.jpg' },
       created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
       source: 'chat',
       file_size: 12456000,
@@ -91,7 +90,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     files: [
       {
         id: 'cancun-file-1',
-        media_url: '/mock/files/cancun-resort-confirmation.pdf',
+        media_url: '/mock/files/hotel-confirmation.pdf',
         filename: 'Moon Palace Resort Confirmation.pdf',
         media_type: 'document',
         metadata: { pageCount: 3, confirmationNumber: 'MP-CAN-2026-789' },
@@ -102,7 +101,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'cancun-file-2',
-        media_url: 'https://images.unsplash.com/photo-1523794027912-478866de8aa4?w=400&h=300&fit=crop',
+        media_url: '/mock/images/conference-schedule-preview.jpg',
         filename: 'Excursion Tickets - Chichen Itza.jpg',
         media_type: 'image',
         metadata: { 
@@ -126,8 +125,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'palaceresorts.com',
         image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
-        source: 'pinned',
-        category: 'Housing',
+        source: 'places' as const,
         tags: ['resort', 'all-inclusive', 'accommodation']
       },
       {
@@ -138,8 +136,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'joestonecrab.com',
         image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-        source: 'chat',
-        category: 'Eats',
+        source: 'places' as const,
         tags: ['seafood', 'restaurant', 'upscale']
       },
       {
@@ -150,8 +147,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'cocobongo.com.mx',
         image_url: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-        source: 'pinned',
-        category: 'Activities',
+        source: 'places' as const,
         tags: ['nightlife', 'show', 'entertainment']
       },
       {
@@ -162,8 +158,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'tripadvisor.com',
         image_url: 'https://images.unsplash.com/photo-1518638150340-f706e86654de?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
-        source: 'manual',
-        category: 'Activities',
+        source: 'places' as const,
         tags: ['cultural', 'historical', 'tour']
       }
     ]
@@ -177,7 +172,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     photos: [
       {
         id: 'tokyo-photo-1',
-        media_url: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&h=400&fit=crop',
+        media_url: '/mock/images/concert-stage.jpg',
         filename: 'Shibuya Crossing Night Shot.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -188,7 +183,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'tokyo-photo-2',
-        media_url: 'https://images.unsplash.com/photo-1522059773416-5d424f04e00a?w=600&h=400&fit=crop',
+        media_url: '/mock/images/wedding-ceremony.jpg',
         filename: 'Cherry Blossoms Ueno Park.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -199,7 +194,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'tokyo-photo-3',
-        media_url: 'https://images.unsplash.com/photo-1551963831-b3b1ca40c98e?w=600&h=400&fit=crop',
+        media_url: '/mock/images/travel-selfie.jpg',
         filename: 'Sushi Bar Group Experience.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -211,10 +206,10 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     ],
     videos: [{
       id: 'tokyo-video-1',
-      media_url: '/mock/videos/tokyo-karaoke.mp4',
+      media_url: '/mock/videos/venue-tour.mp4',
       filename: 'Epic Karaoke Night Shibuya.mp4',
       media_type: 'video',
-      metadata: { duration: 78, width: 1280, height: 720, poster: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&h=300&fit=crop' },
+      metadata: { duration: 10, width: 1280, height: 720, poster: '/mock/images/concert-stage.jpg' },
       created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
       source: 'chat',
       file_size: 15678000,
@@ -223,7 +218,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     files: [
       {
         id: 'tokyo-file-1',
-        media_url: '/mock/files/jr-pass-confirmation.pdf',
+        media_url: '/mock/files/travel_itinerary.pdf',
         filename: 'JR Pass - 7 Day Tokyo Regional.pdf',
         media_type: 'document',
         metadata: { passType: '7-day', regions: ['Tokyo', 'Kanto'] },
@@ -234,7 +229,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'tokyo-file-2',
-        media_url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop',
+        media_url: '/mock/files/travel_itinerary.pdf',
         filename: 'Tokyo Itinerary Day by Day.pdf',
         media_type: 'document',
         metadata: { 
@@ -257,8 +252,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'booking.com',
         image_url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
-        source: 'pinned',
-        category: 'Housing',
+        source: 'places' as const,
         tags: ['capsule', 'modern', 'shibuya']
       },
       {
@@ -269,8 +263,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'sushidai-tsukiji.com',
         image_url: 'https://images.unsplash.com/photo-1551963831-b3b1ca40c98e?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
-        source: 'chat',
-        category: 'Eats',
+        source: 'places' as const,
         tags: ['sushi', 'traditional', 'tsukiji']
       },
       {
@@ -281,8 +274,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'teamlab.art',
         image_url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
-        source: 'pinned',
-        category: 'Activities',
+        source: 'places' as const,
         tags: ['art', 'digital', 'immersive']
       },
       {
@@ -293,8 +285,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'robot-restaurant.com',
         image_url: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-        source: 'manual',
-        category: 'Activities',
+        source: 'places' as const,
         tags: ['entertainment', 'unique', 'shinjuku']
       }
     ]
@@ -308,7 +299,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     photos: [
       {
         id: 'bali-photo-1',
-        media_url: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=400&fit=crop',
+        media_url: '/mock/images/wedding-ceremony.jpg',
         filename: 'Beachside Wedding Ceremony.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -319,7 +310,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'bali-photo-2',
-        media_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop',
+        media_url: '/mock/images/travel-selfie.jpg',
         filename: 'Sunset Reception Ubud.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -331,10 +322,10 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     ],
     videos: [{
       id: 'bali-video-1',
-      media_url: '/mock/videos/bali-ceremony.mp4',
+      media_url: '/mock/videos/venue-tour.mp4',
       filename: 'Wedding Ceremony Highlights.mp4',
       media_type: 'video',
-      metadata: { duration: 125, width: 1920, height: 1080, poster: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=300&fit=crop' },
+      metadata: { duration: 12, width: 1920, height: 1080, poster: '/mock/images/wedding-ceremony.jpg' },
       created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
       source: 'upload',
       file_size: 25678000,
@@ -343,7 +334,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     files: [
       {
         id: 'bali-file-1',
-        media_url: '/mock/files/villa-booking-confirmation.pdf',
+        media_url: '/mock/files/hotel-confirmation.pdf',
         filename: 'Villa Seminyak Wedding Package.pdf',
         media_type: 'document',
         metadata: { guests: 50, package: 'Premium Beach Wedding' },
@@ -362,8 +353,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'seminyakbeachresort.com',
         image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 45).toISOString(),
-        source: 'pinned',
-        category: 'Housing',
+        source: 'places' as const,
         tags: ['resort', 'wedding-venue', 'luxury']
       },
       {
@@ -374,8 +364,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'lalucianbali.com',
         image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
-        source: 'chat',
-        category: 'Eats',
+        source: 'places' as const,
         tags: ['italian', 'romantic', 'ocean-view']
       },
       {
@@ -386,8 +375,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'baliswing.com',
         image_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
-        source: 'manual',
-        category: 'Activities',
+        source: 'places' as const,
         tags: ['adventure', 'scenic', 'couples']
       }
     ]
@@ -404,7 +392,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     photos: [
       {
         id: 'nashville-photo-1',
-        media_url: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&h=400&fit=crop',
+        media_url: '/mock/images/concert-stage.jpg',
         filename: 'Honky Tonk Squad Goals.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -415,7 +403,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'nashville-photo-2',
-        media_url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&h=400&fit=crop',
+        media_url: '/mock/images/travel-selfie.jpg',
         filename: 'Broadway Live Music Night.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -427,10 +415,10 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     ],
     videos: [{
       id: 'nashville-video-1',
-      media_url: '/mock/videos/nashville-karaoke.mp4',
+      media_url: '/mock/videos/venue-tour.mp4',
       filename: 'Bride Karaoke Highlights.mp4',
       media_type: 'video',
-      metadata: { duration: 67, width: 1280, height: 720, poster: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=300&fit=crop' },
+      metadata: { duration: 10, width: 1280, height: 720, poster: '/mock/images/concert-stage.jpg' },
       created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
       source: 'chat',
       file_size: 13456000,
@@ -439,7 +427,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     files: [
       {
         id: 'nashville-file-1',
-        media_url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=300&fit=crop',
+        media_url: '/mock/images/conference-schedule-preview.jpg',
         filename: 'Grand Ole Opry VIP Tickets.jpg',
         media_type: 'image',
         metadata: { 
@@ -463,8 +451,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'omnihotels.com',
         image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
-        source: 'pinned',
-        category: 'Housing',
+        source: 'places' as const,
         tags: ['hotel', 'luxury', 'downtown']
       },
       {
@@ -475,8 +462,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'hattiebs.com',
         image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-        source: 'chat',
-        category: 'Eats',
+        source: 'places' as const,
         tags: ['chicken', 'nashville', 'spicy']
       },
       {
@@ -487,8 +473,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'ryman.com',
         image_url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
-        source: 'manual',
-        category: 'Activities',
+        source: 'places' as const,
         tags: ['music', 'historic', 'tour']
       }
     ]
@@ -502,7 +487,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     photos: [
       {
         id: 'aspen-photo-1',
-        media_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop',
+        media_url: '/mock/images/group-mountain-photo.jpg',
         filename: 'Family Mountain Hike.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -513,7 +498,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'aspen-photo-2',
-        media_url: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&h=400&fit=crop',
+        media_url: '/mock/images/travel-selfie.jpg',
         filename: 'Multi-Gen Lodge Group.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -525,10 +510,10 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     ],
     videos: [{
       id: 'aspen-video-1',
-      media_url: '/mock/videos/aspen-family.mp4',
+      media_url: '/mock/videos/team-celebration.mp4',
       filename: 'Family Adventure Montage.mp4',
       media_type: 'video',
-      metadata: { duration: 89, width: 1280, height: 720, poster: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop' },
+      metadata: { duration: 10, width: 1280, height: 720, poster: '/mock/images/group-mountain-photo.jpg' },
       created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
       source: 'chat',
       file_size: 16789000,
@@ -537,7 +522,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     files: [
       {
         id: 'aspen-file-1',
-        media_url: '/mock/files/aspen-lodge-reservation.pdf',
+        media_url: '/mock/files/hotel-confirmation.pdf',
         filename: 'Little Nell Resort Confirmation.pdf',
         media_type: 'document',
         metadata: { guests: 7, nights: 8 },
@@ -556,8 +541,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'thelittlenell.com',
         image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 45).toISOString(),
-        source: 'pinned',
-        category: 'Housing',
+        source: 'places' as const,
         tags: ['resort', 'luxury', 'ski']
       },
       {
@@ -568,8 +552,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'matsuhisaaspen.com',
         image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
-        source: 'chat',
-        category: 'Eats',
+        source: 'places' as const,
         tags: ['japanese', 'sushi', 'upscale']
       }
     ]
@@ -583,7 +566,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     photos: [
       {
         id: 'phoenix-photo-1',
-        media_url: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=600&h=400&fit=crop',
+        media_url: '/mock/images/group-mountain-photo.jpg',
         filename: 'Desert Golf Championship.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -595,10 +578,10 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     ],
     videos: [{
       id: 'phoenix-video-1',
-      media_url: '/mock/videos/phoenix-golf.mp4',
+      media_url: '/mock/videos/team-celebration.mp4',
       filename: 'Hole-in-One Celebration.mp4',
       media_type: 'video',
-      metadata: { duration: 45, width: 1280, height: 720, poster: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=400&h=300&fit=crop' },
+      metadata: { duration: 8, width: 1280, height: 720, poster: '/mock/images/group-mountain-photo.jpg' },
       created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
       source: 'chat',
       file_size: 9876000,
@@ -607,7 +590,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     files: [
       {
         id: 'phoenix-file-1',
-        media_url: '/mock/files/tpc-scottsdale-booking.pdf',
+        media_url: '/mock/files/hotel-confirmation.pdf',
         filename: 'TPC Scottsdale Tee Times.pdf',
         media_type: 'document',
         metadata: { players: 6, rounds: 3 },
@@ -626,8 +609,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'tpc.com',
         image_url: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
-        source: 'pinned',
-        category: 'Activities',
+        source: 'places' as const,
         tags: ['golf', 'pga', 'tournament']
       },
       {
@@ -638,8 +620,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'fourseasons.com',
         image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
-        source: 'pinned',
-        category: 'Housing',
+        source: 'places' as const,
         tags: ['resort', 'luxury', 'golf']
       }
     ]
@@ -653,7 +634,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     photos: [
       {
         id: 'coachella-photo-1',
-        media_url: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=600&h=400&fit=crop',
+        media_url: '/mock/images/concert-stage.jpg',
         filename: 'Main Stage Festival Vibes.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -664,7 +645,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'coachella-photo-2',
-        media_url: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&h=400&fit=crop',
+        media_url: '/mock/images/group-mountain-photo.jpg',
         filename: 'Ferris Wheel Desert Sunset.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -675,7 +656,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'coachella-photo-3',
-        media_url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&h=400&fit=crop',
+        media_url: '/mock/images/travel-selfie.jpg',
         filename: 'Squad Goals at Sahara Tent.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -686,7 +667,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'coachella-photo-4',
-        media_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop',
+        media_url: '/mock/images/beach-volleyball.jpg',
         filename: 'Desert House Pool Party.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -697,7 +678,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'coachella-photo-5',
-        media_url: 'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=600&h=400&fit=crop',
+        media_url: '/mock/images/concert-stage.jpg',
         filename: 'Food Truck Adventures.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -708,7 +689,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'coachella-photo-6',
-        media_url: 'https://images.unsplash.com/photo-1483032469466-b937c425697b?w=600&h=400&fit=crop',
+        media_url: '/mock/images/group-mountain-photo.jpg',
         filename: 'Late Night Art Installation.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -719,7 +700,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'coachella-photo-7',
-        media_url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&h=400&fit=crop',
+        media_url: '/mock/images/beach-volleyball.jpg',
         filename: 'Morning Coffee Desert Views.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -730,7 +711,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'coachella-photo-8',
-        media_url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
+        media_url: '/mock/images/travel-selfie.jpg',
         filename: 'Full Group Festival Outfits.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
@@ -743,7 +724,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     videos: [
       {
         id: 'coachella-video-1',
-        media_url: '/mock/videos/coachella-highlights.mp4',
+        media_url: '/mock/videos/venue-tour.mp4',
         filename: 'Festival Highlights Reel.mp4',
         media_type: 'video',
         metadata: { duration: 95, width: 1280, height: 720 },
@@ -754,7 +735,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'coachella-video-2',
-        media_url: '/mock/videos/desert-house-tour.mp4',
+        media_url: '/mock/videos/team-celebration.mp4',
         filename: 'Epic Desert House Tour.mp4',
         media_type: 'video',
         metadata: { duration: 42, width: 1280, height: 720 },
@@ -765,7 +746,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'coachella-video-3',
-        media_url: '/mock/videos/sunset-timelapse.mp4',
+        media_url: '/mock/videos/venue-tour.mp4',
         filename: 'Desert Sunset Timelapse.mp4',
         media_type: 'video',
         metadata: { duration: 28, width: 1280, height: 720 },
@@ -778,7 +759,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     files: [
       {
         id: 'coachella-file-1',
-        media_url: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400&h=300&fit=crop',
+        media_url: '/mock/images/conference-schedule-preview.jpg',
         filename: 'Weekend 1 Festival Passes.jpg',
         media_type: 'image',
         metadata: { 
@@ -794,7 +775,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'coachella-file-2',
-        media_url: '/mock/files/coachella-lineup-schedule.pdf',
+        media_url: '/mock/files/travel_itinerary.pdf',
         filename: 'Coachella 2026 Lineup & Schedule.pdf',
         media_type: 'document',
         metadata: { 
@@ -809,7 +790,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'coachella-file-3',
-        media_url: 'https://images.unsplash.com/photo-1543892555-d79449d33e8b?w=400&h=300&fit=crop',
+        media_url: '/mock/images/dinner-receipt-preview.jpg',
         filename: 'Desert House Rental Receipt.jpg',
         media_type: 'image',
         metadata: { 
@@ -826,7 +807,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'coachella-file-4',
-        media_url: '/mock/files/festival-map.pdf',
+        media_url: '/mock/files/travel_itinerary.pdf',
         filename: 'Coachella Festival Grounds Map.pdf',
         media_type: 'document',
         metadata: { 
@@ -840,7 +821,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'coachella-file-5',
-        media_url: 'https://images.unsplash.com/photo-1556742044-3c52d6e88c62?w=400&h=300&fit=crop',
+        media_url: '/mock/images/conference-schedule-preview.jpg',
         filename: 'VIP Camping Pass Confirmation.jpg',
         media_type: 'image',
         metadata: { 
@@ -863,8 +844,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'airbnb.com',
         image_url: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
-        source: 'pinned',
-        category: 'Housing',
+        source: 'places' as const,
         tags: ['airbnb', 'desert', 'festival']
       },
       {
@@ -875,8 +855,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'yelp.com',
         image_url: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 28).toISOString(),
-        source: 'manual',
-        category: 'Eats',
+        source: 'places' as const,
         tags: ['restaurant', 'desert', 'iconic']
       },
       {
@@ -887,8 +866,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'uber.com',
         image_url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
-        source: 'pinned',
-        category: 'Activities',
+        source: 'places' as const,
         tags: ['transportation', 'shuttle', 'festival']
       },
       {
@@ -899,8 +877,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'coachella.com',
         image_url: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 40).toISOString(),
-        source: 'pinned',
-        category: 'Activities',
+        source: 'places' as const,
         tags: ['lineup', 'official', 'schedule']
       },
       {
@@ -911,8 +888,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'wholefoodsmarket.com',
         image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 22).toISOString(),
-        source: 'manual',
-        category: 'Eats',
+        source: 'places' as const,
         tags: ['grocery', 'supplies', 'healthy']
       }
     ]
@@ -926,7 +902,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     photos: [
       {
         id: 'cancun-photo-1',
-        media_url: 'https://images.unsplash.com/photo-1544552866-d3ed42536cfd?w=600&h=400&fit=crop',
+        media_url: '/mock/images/beach-volleyball.jpg',
         filename: 'Beach Day Paradise.jpg',
         media_type: 'image' as const,
         metadata: { width: 800, height: 600 },
@@ -937,7 +913,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'cancun-photo-2', 
-        media_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&h=400&fit=crop',
+        media_url: '/mock/images/group-mountain-photo.jpg',
         filename: 'Resort Pool Vibes.jpg',
         media_type: 'image' as const,
         metadata: { width: 800, height: 600 },
@@ -950,7 +926,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     videos: [
       {
         id: 'cancun-video-1',
-        media_url: '/mock/videos/beach-volleyball.mp4',
+        media_url: '/mock/videos/team-celebration.mp4',
         filename: 'Epic Beach Volleyball Game.mp4',
         media_type: 'video' as const,
         metadata: { duration: 45, width: 1280, height: 720 },
@@ -963,7 +939,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     files: [
       {
         id: 'cancun-file-1',
-        media_url: 'https://images.unsplash.com/photo-1544966503-7adce1a35804?w=400&h=300&fit=crop',
+        media_url: '/mock/images/conference-schedule-preview.jpg',
         filename: 'Flight Confirmation - Mexico City.jpg',
         media_type: 'image' as const,
         metadata: { 
@@ -992,7 +968,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'cancun-file-3',
-        media_url: 'https://images.unsplash.com/photo-1586227740560-8cf2732c1531?w=400&h=300&fit=crop',
+        media_url: '/mock/files/dinner_receipt.jpg',
         filename: 'Dinner Receipt - La Isla.jpg',
         media_type: 'image' as const,
         metadata: { 
@@ -1009,7 +985,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       },
       {
         id: 'cancun-file-4',
-        media_url: '/mock/files/cancun-itinerary.pdf',
+        media_url: '/mock/files/travel_itinerary.pdf',
         filename: 'Cancun Week Itinerary.pdf',
         media_type: 'document' as const,
         metadata: { 
@@ -1032,8 +1008,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         domain: 'airbnb.com',
         image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
-        source: 'pinned' as const,
-        category: 'Housing' as const,
+        source: 'places' as const,
         tags: ['beachfront', 'villa', 'pool']
       }
     ]
@@ -1079,12 +1054,11 @@ class TripSpecificMockDataService {
     return tripData[type] || [];
   }
 
-  static getMockLinksByCategory(tripId: string | number, category?: 'Housing' | 'Eats' | 'Activities'): TripSpecificLinkItem[] {
+  static getMockLinks(tripId: string | number): TripSpecificLinkItem[] {
     const tripData = this.getTripMockData(tripId);
     if (!tripData) return [];
     
-    if (!category) return tripData.links;
-    return tripData.links.filter(link => link.category === category);
+    return tripData.links;
   }
 
   // Helper methods for compatibility

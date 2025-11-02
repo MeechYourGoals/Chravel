@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, User, Bell, Crown, LogOut, Building } from 'lucide-react';
+import { X, User, Bell, Crown, LogOut, Building, Megaphone } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,7 +24,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection }: Settin
   const navigate = useNavigate();
   const [showProModal, setShowProModal] = useState(false);
   const [activeSection, setActiveSection] = useState('profile');
-  const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events'>('consumer');
+  const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events' | 'advertiser'>('consumer');
   const { accentColors } = useTripVariant();
 
   // Create mock user for demo mode when no real user is authenticated
@@ -73,7 +73,8 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection }: Settin
   const sections = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'subscription', label: 'Subscription', icon: Crown }
+    { id: 'subscription', label: 'Subscription', icon: Crown },
+    { id: 'advertiser', label: 'Advertiser Hub', icon: Megaphone }
   ];
 
   const renderSection = () => {
@@ -90,6 +91,11 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection }: Settin
             onShowEnterpriseSettings={() => setActiveSection('enterprise')}
           />
         );
+      case 'advertiser':
+        // Redirect to advertiser dashboard
+        navigate('/advertiser');
+        onClose();
+        return null;
       default:
         return <ProfileSection userOrganization={userOrganization} />;
     }
@@ -109,7 +115,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection }: Settin
 
           {/* Settings Type Toggle */}
           <div className="flex-shrink-0 p-6 border-b border-white/20">
-            <div className="bg-white/10 rounded-xl p-1 grid grid-cols-3">
+            <div className="bg-white/10 rounded-xl p-1 grid grid-cols-4">
               <button
                 onClick={() => setSettingsType('consumer')}
                 className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
@@ -140,6 +146,16 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection }: Settin
               >
                 Events
               </button>
+              <button
+                onClick={() => setSettingsType('advertiser')}
+                className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                  settingsType === 'advertiser'
+                    ? `bg-${accentColors.primary} text-white`
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Advertiser
+              </button>
             </div>
             
             {/* Helper text for Enterprise */}
@@ -154,7 +170,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection }: Settin
           <div className="flex-1 flex flex-col min-h-0">
             {settingsType === 'consumer' ? (
               <div className="flex-1 min-h-0">
-                <ConsumerSettings currentUserId={currentUser.id} initialSection={initialConsumerSection} />
+                <ConsumerSettings currentUserId={currentUser.id} initialSection={initialConsumerSection} onClose={onClose} />
               </div>
             ) : settingsType === 'enterprise' ? (
               <div className="flex-1 min-h-0">
@@ -167,10 +183,19 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection }: Settin
               <div className="flex-1 min-h-0">
                 <EventsSettings currentUserId={currentUser.id} />
               </div>
+            ) : settingsType === 'advertiser' ? (
+              <div className="flex-1 min-h-0">
+                {/* Redirect to advertiser dashboard */}
+                {(() => {
+                  navigate('/advertiser');
+                  onClose();
+                  return null;
+                })()}
+              </div>
             ) : null}
 
-            {/* Sign Out Button - Only show for consumer settings */}
-            {settingsType === 'consumer' && (
+            {/* Sign Out Button - Only show for consumer and advertiser settings */}
+            {(settingsType === 'consumer' || settingsType === 'advertiser') && (
               <div className="flex-shrink-0 p-6 bg-white/5 border-t border-white/20">
                 <button
                   onClick={currentSignOut}

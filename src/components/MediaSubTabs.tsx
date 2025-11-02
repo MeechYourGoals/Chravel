@@ -26,18 +26,16 @@ interface LinkItem {
   domain: string;
   image_url?: string;
   created_at: string;
-  source: 'chat' | 'manual' | 'pinned';
-  category?: 'Housing' | 'Eats' | 'Activities';
+  source: 'chat' | 'manual' | 'places';
   tags?: string[];
 }
 
 interface MediaSubTabsProps {
   items: MediaItem[] | LinkItem[];
-  type: 'photos' | 'videos' | 'files' | 'links';
+  type: 'photos' | 'videos' | 'files' | 'urls';
 }
 
 export const MediaSubTabs = ({ items, type }: MediaSubTabsProps) => {
-  const [selectedCategory, setSelectedCategory] = React.useState<'Housing' | 'Eats' | 'Activities' | null>(null);
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -70,75 +68,39 @@ export const MediaSubTabs = ({ items, type }: MediaSubTabsProps) => {
     }
   };
 
-  if (type === 'links') {
+  if (type === 'urls') {
     const linkItems = items as LinkItem[];
-
-    // Filter links by selected category
-    const filteredLinks = selectedCategory 
-      ? linkItems.filter(item => item.category === selectedCategory)
-      : linkItems;
 
     return (
       <div className="space-y-4">
-        {/* Category Filter Buttons */}
-        <div className="flex flex-wrap gap-2 p-4 bg-muted/30 rounded-lg">
-          <Button
-            variant={selectedCategory === null ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedCategory(null)}
-            className="text-xs"
-          >
-            All Links ({linkItems.length})
-          </Button>
-          <Button
-            variant={selectedCategory === 'Housing' ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedCategory('Housing')}
-            className="text-xs"
-          >
-            Housing ({linkItems.filter(l => l.category === 'Housing').length})
-          </Button>
-          <Button
-            variant={selectedCategory === 'Eats' ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedCategory('Eats')}
-            className="text-xs"
-          >
-            Eats ({linkItems.filter(l => l.category === 'Eats').length})
-          </Button>
-          <Button
-            variant={selectedCategory === 'Activities' ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedCategory('Activities')}
-            className="text-xs"
-          >
-            Activities ({linkItems.filter(l => l.category === 'Activities').length})
-          </Button>
-          
-          {/* Add Link Button */}
+        {/* Header with Add URL Button */}
+        <div className="flex justify-between items-center p-4 bg-muted/30 rounded-lg">
+          <h3 className="text-lg font-semibold text-foreground">
+            All URLs ({linkItems.length})
+          </h3>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsAddLinkModalOpen(true)}
-            className="text-xs ml-auto"
+            className="text-xs"
           >
             <Link className="w-4 h-4 mr-1" />
-            + Add Link
+            + Add URL
           </Button>
         </div>
 
-        {/* Links Display */}
+        {/* URLs Display */}
         {linkItems.length === 0 ? (
           <div className="text-center py-8">
             <Link className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
             <p className="text-muted-foreground text-sm">
-              Links shared in chat will appear here automatically
+              URLs shared in chat will appear here automatically
             </p>
           </div>
         ) : null}
 
-        {/* Links Display */}
-        {filteredLinks.length > 0 && filteredLinks.map((item) => (
+        {/* URLs Display */}
+        {linkItems.length > 0 && linkItems.map((item) => (
           <div key={item.id} className="bg-card border rounded-lg p-4 hover:bg-card/80 transition-colors">
             <div className="flex gap-4">
               {item.image_url && (
@@ -156,13 +118,8 @@ export const MediaSubTabs = ({ items, type }: MediaSubTabsProps) => {
                     <span>{item.domain}</span>
                     <span>{formatDate(item.created_at)}</span>
                     <Badge variant="outline" className="text-xs">
-                      {item.source === 'chat' ? 'From chat' : item.source === 'pinned' ? 'From pins' : 'Manual'}
+                      {item.source === 'chat' ? 'From chat' : item.source === 'places' ? 'From Places' : 'Manual'}
                     </Badge>
-                    {item.category && (
-                      <Badge variant="secondary" className="text-xs">
-                        {item.category}
-                      </Badge>
-                    )}
                   </div>
                   <Button
                     size="sm"

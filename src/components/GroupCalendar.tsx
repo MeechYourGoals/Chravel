@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { ItineraryView } from './ItineraryView';
 import { useCalendarManagement } from '@/hooks/useCalendarManagement';
 import { CalendarHeader } from './calendar/CalendarHeader';
-import { AddEventForm } from './calendar/AddEventForm';
+import { AddEventModal } from './calendar/AddEventModal';
 import { EventList } from './calendar/EventList';
 
 interface GroupCalendarProps {
@@ -18,17 +18,49 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
     events,
     showAddEvent,
     setShowAddEvent,
+    editingEvent,
+    setEditingEvent,
     viewMode,
     toggleViewMode,
     newEvent,
     updateEventField,
     getEventsForDate,
     handleAddEvent,
+    updateEvent,
     deleteEvent,
     resetForm,
     isLoading,
     isSaving
   } = useCalendarManagement(tripId);
+
+  const handleEdit = (event: any) => {
+    setEditingEvent(event);
+    setShowAddEvent(true);
+    // Populate form with event data
+    updateEventField('title', event.title);
+    updateEventField('time', event.time);
+    updateEventField('location', event.location || '');
+    updateEventField('description', event.description || '');
+    updateEventField('category', event.event_category || 'other');
+    updateEventField('include_in_itinerary', event.include_in_itinerary ?? true);
+  };
+
+  const handleFormSubmit = async () => {
+    if (editingEvent) {
+      // Update existing event
+      await updateEvent(editingEvent.id, newEvent);
+      setEditingEvent(null);
+      resetForm();
+    } else {
+      // Create new event
+      await handleAddEvent();
+    }
+  };
+
+  const handleFormCancel = () => {
+    setEditingEvent(null);
+    resetForm();
+  };
 
   const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : [];
   const datesWithEvents = events.map(event => event.date);
@@ -69,8 +101,8 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:h-[420px]">
+          <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-2 flex items-center">
             <Calendar
               mode="single"
               selected={selectedDate}
@@ -89,42 +121,45 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
             />
           </div>
 
-          <div className="space-y-4">
-            {showAddEvent && (
-              <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4">
-                <h3 className="text-lg font-medium text-foreground mb-4">
-                  Add Event {selectedDate && `for ${format(selectedDate, 'MMM d')}`}
-                </h3>
-                <AddEventForm
-                  newEvent={newEvent}
-                  onUpdateField={updateEventField}
-                  onSubmit={handleAddEvent}
-                  onCancel={resetForm}
-                  isSubmitting={isSaving}
+          <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-4 flex flex-col">
+            <h3 className="text-white font-medium mb-3">
+              {selectedDate
+                ? `Events for ${format(selectedDate, 'EEEE, MMM d')}`
+                : 'Select a date to view events'}
+            </h3>
+
+            <div className="flex-1 overflow-y-auto">
+              {selectedDateEvents.length > 0 ? (
+                <EventList
+                  events={selectedDateEvents}
+                  onEdit={handleEdit}
+                  onDelete={deleteEvent}
+                  emptyMessage=""
+                  isDeleting={isSaving}
                 />
-              </div>
-            )}
-
-            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-4">
-              <h3 className="text-lg font-medium text-foreground mb-4">
-                {selectedDate
-                  ? `Events for ${format(selectedDate, 'EEEE, MMM d')}`
-                  : 'Select a date to view events'}
-              </h3>
-
-              <EventList
-                events={selectedDateEvents}
-                onDelete={deleteEvent}
-                emptyMessage={selectedDate
-                  ? 'No events scheduled for this day'
-                  : 'Select a date to view events'
-                }
-                isDeleting={isSaving}
-              />
+              ) : (
+                <p className="text-gray-400 text-sm mt-6 text-center">
+                  {selectedDate
+                    ? 'No events scheduled for this day.'
+                    : 'Select a date to view events.'}
+                </p>
+              )}
             </div>
           </div>
         </div>
       )}
+
+      {/* Add Event Modal */}
+      <AddEventModal
+        open={showAddEvent}
+        onClose={handleFormCancel}
+        newEvent={newEvent}
+        onUpdateField={updateEventField}
+        onSubmit={handleFormSubmit}
+        isSubmitting={isSaving}
+        isEditing={!!editingEvent}
+        selectedDate={selectedDate}
+      />
     </div>
   );
 };

@@ -140,17 +140,14 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   };
 
   const featureLabels: Record<string, string> = {
-    chat: 'Group Chat',
-    broadcasts: 'Broadcasts',
-    links: 'Links & Ideas',
-    polls: 'Polls & Voting',
-    tasks: 'Tasks',
+    chat: 'Chat',
     calendar: 'Calendar',
+    concierge: 'Concierge',
     media: 'Media',
-    photos: 'Photo Sharing',
-    files: 'File Sharing',
-    concierge: 'AI Concierge',
-    search: 'Search'
+    payments: 'Payments',
+    places: 'Places',
+    polls: 'Polls',
+    tasks: 'Tasks'
   };
 
   return (
@@ -283,15 +280,6 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             />
           </div>
 
-          {/* Privacy Settings */}
-          <div>
-            <PrivacyModeSelector
-              tripType={tripType}
-              selectedMode={privacyMode}
-              onModeChange={setPrivacyMode}
-              showOverrideOption={true}
-            />
-          </div>
 
           {/* Organization Selector - Only for Pro/Event trips */}
           {(tripType === 'pro' || tripType === 'event') && organizations.length > 0 && (

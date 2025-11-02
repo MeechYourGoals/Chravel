@@ -8,9 +8,18 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
-// Price ID mapping
+// Price ID mapping - NEW 3-TIER STRUCTURE
 const PRICE_IDS = {
+  // Consumer Plans - NEW STRUCTURE
+  'consumer-explorer-monthly': 'price_explorer_monthly_9_99',
+  'consumer-explorer-annual': 'price_explorer_annual_99',
+  'consumer-pro-monthly': 'price_pro_monthly_19_99',
+  'consumer-pro-annual': 'price_pro_annual_199',
+  
+  // Legacy Consumer Plus (map to explorer)
   'consumer-plus': 'price_1SEw5402kHnoJKm0cVP4HlOh',
+  
+  // Pro Plans (unchanged)
   'pro-starter': 'price_1SEw6t02kHnoJKm0OmIvxWW9',
   'pro-growing': 'price_1SEw7E02kHnoJKm0HPnZzLrj',
   'pro-enterprise': 'price_1SEw7L02kHnoJKm0o0TLldSz',
@@ -43,12 +52,26 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const { tier } = await req.json();
-    if (!tier || !PRICE_IDS[tier as keyof typeof PRICE_IDS]) {
-      throw new Error(`Invalid tier: ${tier}`);
+    const { tier, billing_cycle = 'monthly' } = await req.json();
+    
+    // Validate tier and construct price ID key
+    let priceIdKey: string;
+    if (tier.startsWith('consumer-') && !tier.includes('plus')) {
+      // New consumer tiers: consumer-starter, consumer-explorer, consumer-unlimited
+      priceIdKey = `${tier}-${billing_cycle}`;
+    } else if (tier === 'consumer-plus') {
+      // Legacy consumer plus
+      priceIdKey = tier;
+    } else {
+      // Pro tiers don't have billing cycle in key
+      priceIdKey = tier;
     }
-    const priceId = PRICE_IDS[tier as keyof typeof PRICE_IDS];
-    logStep("Tier selected", { tier, priceId });
+    
+    if (!PRICE_IDS[priceIdKey as keyof typeof PRICE_IDS]) {
+      throw new Error(`Invalid tier/billing combination: ${tier} + ${billing_cycle}`);
+    }
+    const priceId = PRICE_IDS[priceIdKey as keyof typeof PRICE_IDS];
+    logStep("Tier selected", { tier, billing_cycle, priceIdKey, priceId });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     
@@ -79,6 +102,7 @@ serve(async (req) => {
       metadata: {
         user_id: user.id,
         tier: tier,
+        billing_cycle: billing_cycle || 'monthly',
       },
     });
 

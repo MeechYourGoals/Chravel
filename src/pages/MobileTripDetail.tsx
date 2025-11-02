@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MoreVertical, Users } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Info } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
-import { TripHeader } from '../components/TripHeader';
+import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
@@ -16,7 +16,9 @@ export const MobileTripDetail = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('chat');
   const [tripDescription, setTripDescription] = useState<string>('');
-
+  const [showTripInfo, setShowTripInfo] = useState(false);
+  const headerRef = React.useRef<HTMLDivElement>(null);
+ 
   // Keyboard handling for mobile inputs
   useKeyboardHandler({
     preventZoom: true,
@@ -32,6 +34,29 @@ export const MobileTripDetail = () => {
       setTripDescription(trip.description);
     }
   }, [trip, tripDescription]);
+  
+  // Measure header height and expose as CSS var for sticky offsets
+  React.useEffect(() => {
+    const setHeaderHeightVar = () => {
+      const h = headerRef.current?.offsetHeight || 73;
+      document.documentElement.style.setProperty('--mobile-header-h', `${h}px`);
+    };
+    const debounce = (fn: () => void, delay = 100) => {
+      let t: any;
+      return () => {
+        clearTimeout(t);
+        t = setTimeout(fn, delay);
+      };
+    };
+    const handler = debounce(setHeaderHeightVar, 100);
+    setHeaderHeightVar();
+    window.addEventListener('resize', handler);
+    window.addEventListener('orientationchange', handler);
+    return () => {
+      window.removeEventListener('resize', handler);
+      window.removeEventListener('orientationchange', handler);
+    };
+  }, []);
   
   const tripWithUpdatedDescription = trip ? {
     ...trip,
@@ -73,49 +98,46 @@ export const MobileTripDetail = () => {
 
   return (
     <MobileErrorBoundary>
-      <div className="min-h-screen bg-black pb-mobile-nav-height">
+      <div className="flex flex-col min-h-screen bg-black">
       {/* Mobile Header - Sticky */}
-      <div className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10">
-        <div className="flex items-center justify-between px-4 py-3">
-          <button
-            onClick={handleBack}
-            className="p-2 -ml-2 active:scale-95 transition-transform"
-          >
-            <ArrowLeft size={24} className="text-white" />
-          </button>
-          
-          <div className="flex-1 text-center">
-            <h1 className="text-lg font-semibold text-white truncate px-2">
-              {trip.title}
-            </h1>
-            <p className="text-xs text-gray-400 truncate px-2">
-              {trip.location}
-            </p>
+      <div ref={headerRef} className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <button
+              onClick={handleBack}
+              className="p-2 -ml-2 active:scale-95 transition-transform"
+            >
+              <ArrowLeft size={24} className="text-white" />
+            </button>
+            
+            <button
+              onClick={() => hapticService.light()}
+              className="p-2 -mr-2 active:scale-95 transition-transform"
+            >
+              <MoreVertical size={24} className="text-white" />
+            </button>
           </div>
           
-          <button
-            onClick={() => hapticService.light()}
-            className="p-2 -mr-2 active:scale-95 transition-transform"
-          >
-            <MoreVertical size={24} className="text-white" />
-          </button>
+          <div className="text-center px-2">
+            <h1 className="text-lg font-semibold text-white leading-tight mb-1.5 break-words">
+              {trip.title}
+            </h1>
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+              <span>{trip.location} • {trip.participants.length} travelers</span>
+              <button
+                onClick={() => {
+                  hapticService.light();
+                  setShowTripInfo(true);
+                }}
+                className="flex items-center gap-1 active:scale-95 transition-transform text-blue-400 hover:text-blue-300"
+                aria-label="View trip details"
+              >
+                <Info size={16} />
+                <span className="font-medium">More Details</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-
-      {/* Trip Cover & Info */}
-      <div className="px-4 pt-4">
-        <TripHeader 
-          trip={tripWithUpdatedDescription} 
-          onDescriptionUpdate={setTripDescription}
-        />
-      </div>
-
-      {/* Participants Preview */}
-      <div className="px-4 py-3 flex items-center gap-2 border-b border-white/10">
-        <Users size={16} className="text-gray-400" />
-        <span className="text-sm text-gray-300">
-          {trip.participants.length} travelers
-        </span>
       </div>
 
       {/* Mobile Tabs - Swipeable */}
@@ -124,6 +146,17 @@ export const MobileTripDetail = () => {
         onTabChange={handleTabChange}
         tripId={tripId || '1'}
         basecamp={basecamp}
+      />
+
+      {/* Trip Info Drawer */}
+      <MobileTripInfoDrawer
+        trip={tripWithUpdatedDescription}
+        isOpen={showTripInfo}
+        onClose={() => {
+          hapticService.light();
+          setShowTripInfo(false);
+        }}
+        onDescriptionUpdate={setTripDescription}
       />
       </div>
     </MobileErrorBoundary>

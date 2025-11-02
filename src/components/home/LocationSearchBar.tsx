@@ -8,9 +8,10 @@ import { useBasecamp } from '../../contexts/BasecampContext';
 interface LocationSearchBarProps {
   onLocationSelect: (location: string) => void;
   currentLocation?: string;
+  autoFromBasecamp?: boolean;
 }
 
-export const LocationSearchBar = ({ onLocationSelect, currentLocation }: LocationSearchBarProps) => {
+export const LocationSearchBar = ({ onLocationSelect, currentLocation, autoFromBasecamp = false }: LocationSearchBarProps) => {
   const [searchValue, setSearchValue] = useState(currentLocation || '');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -18,12 +19,12 @@ export const LocationSearchBar = ({ onLocationSelect, currentLocation }: Locatio
   const { basecamp } = useBasecamp();
 
   useEffect(() => {
-    if (basecamp && !currentLocation) {
+    if (autoFromBasecamp && basecamp && !currentLocation) {
       const city = extractCityFromAddress(basecamp.address);
       setSearchValue(city);
       onLocationSelect(city);
     }
-  }, [basecamp, currentLocation, onLocationSelect]);
+  }, [autoFromBasecamp, basecamp, currentLocation, onLocationSelect]);
 
   const extractCityFromAddress = (address: string) => {
     const parts = address.split(',');

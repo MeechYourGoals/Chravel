@@ -7,14 +7,14 @@ import { GoogleMapsService } from '../services/googleMapsService';
 interface BasecampSelectorProps {
   isOpen: boolean;
   onClose: () => void;
-  onBasecampSet: (basecamp: BasecampLocation) => void;
+  onBasecampSet: (basecamp: BasecampLocation) => Promise<void> | void;
   currentBasecamp?: BasecampLocation;
 }
 
 export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBasecamp }: BasecampSelectorProps) => {
   const [address, setAddress] = useState(currentBasecamp?.address || '');
   const [name, setName] = useState(currentBasecamp?.name || '');
-  const [type, setType] = useState<'hotel' | 'airbnb' | 'other'>(currentBasecamp?.type || 'hotel');
+  const [type, setType] = useState<'hotel' | 'short-term' | 'other'>(currentBasecamp?.type || 'hotel');
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -61,7 +61,14 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
           // Strategy 2: If venue query OR autocomplete failed, try Text Search
           if (!foundSuggestions) {
             console.log('Autocomplete returned no results, trying Text Search...');
-            const textSearchResponse = await GoogleMapsService.searchPlacesByText(value);
+            
+            // Use enhanced Text Search with optional location bias
+            const textSearchResponse = await GoogleMapsService.searchPlacesByText(value, {
+              // Location bias: If there's an existing basecamp, search near it
+              ...(currentBasecamp?.coordinates && {
+                location: `${currentBasecamp.coordinates.lat},${currentBasecamp.coordinates.lng}`
+              })
+            });
             
             if (textSearchResponse?.results?.length > 0) {
               // Transform Text Search results to autocomplete format
@@ -84,14 +91,10 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
             }
           }
           
-          // Strategy 3: OSM fallback (final resort)
+          // No more results available
           if (!foundSuggestions) {
-            console.log('Text Search failed, trying OSM fallback...');
-            const osmSuggestions = await GoogleMapsService.fallbackSuggestNominatim(value);
-            setSuggestions(osmSuggestions);
-            if (osmSuggestions.length > 0) {
-              console.log(`✓ Found ${osmSuggestions.length} results via OSM`);
-            }
+            console.log('No autocomplete suggestions found');
+            setSuggestions([]);
           }
           
         } catch (error) {
@@ -192,7 +195,7 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
     e.preventDefault();
     
     if (!address.trim()) {
-      alert('Please enter an address.');
+      alert('Please enter a location.');
       return;
     }
     
@@ -203,8 +206,14 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
       let coordinates: { lat: number; lng: number } | null = null;
       let inferredName = name.trim();
       
-      // Cascade 1: If we have a Google place_id from suggestion
-      if (selectedPlaceId && !selectedPlaceId.startsWith('osm:')) {
+      // Cascade 1: If we have coordinates from a selected suggestion (most reliable)
+      if (selectedCoords) {
+        console.log('✓ Using coordinates from selected suggestion');
+        coordinates = selectedCoords;
+      }
+      
+      // Cascade 2: If we have a Google place_id from suggestion
+      if (!coordinates && selectedPlaceId && !selectedPlaceId.startsWith('osm:')) {
         console.log('Attempting Google Place Details...');
         try {
           const placeDetails = await GoogleMapsService.getPlaceDetailsById(selectedPlaceId);
@@ -223,93 +232,69 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
         }
       }
       
-      // Cascade 2: If we have OSM coordinates from suggestion
-      if (!coordinates && selectedCoords) {
-        console.log('Using OSM suggestion coordinates...');
-        coordinates = selectedCoords;
-        console.log('✓ Got coords from OSM suggestion');
-      }
-      
-      // 🆕 Cascade 2.5: Google Text Search (NEW - handles venue names)
+      // 🆕 Cascade 3: Google Text Search (handles ALL natural language queries like Google Maps)
+      // This is the key method that makes it work like Google Maps search
+      // Per Google docs: https://developers.google.com/maps/documentation/places/web-service/text-search
       if (!coordinates) {
-        const queryType = GoogleMapsService.detectQueryType(address);
-        if (queryType === 'venue') {
-          console.log('Cascade 2.5: Attempting Google Text Search (venue query)...');
-          try {
-            const textSearchResult = await GoogleMapsService.searchPlacesByText(address);
-            if (textSearchResult?.results?.[0]?.geometry?.location) {
-              const topResult = textSearchResult.results[0];
-              coordinates = {
-                lat: topResult.geometry.location.lat,
-                lng: topResult.geometry.location.lng
-              };
-              if (!inferredName && topResult.name) {
-                inferredName = topResult.name;
-              }
-              console.log('✓ Cascade 2.5 success: Got coords from Text Search');
+        console.log('Attempting Google Text Search for:', address);
+        try {
+          const textSearchResult = await GoogleMapsService.searchPlacesByText(address, {
+            // Location bias: If there's an existing basecamp, prioritize results near it
+            ...(currentBasecamp?.coordinates && {
+              location: `${currentBasecamp.coordinates.lat},${currentBasecamp.coordinates.lng}`
+            })
+          });
+          console.log('Text Search result:', textSearchResult);
+          
+          if (textSearchResult?.results?.[0]?.geometry?.location) {
+            const topResult = textSearchResult.results[0];
+            coordinates = {
+              lat: topResult.geometry.location.lat,
+              lng: topResult.geometry.location.lng
+            };
+            if (!inferredName && topResult.name) {
+              inferredName = topResult.name;
             }
-          } catch (error) {
-            console.error('Cascade 2.5 failed:', error);
+            console.log('✓ Got coords from Text Search:', coordinates);
           }
+        } catch (error) {
+          console.error('Text Search failed:', error);
         }
       }
       
-      // Cascade 3: Try Google geocoding
+      // Cascade 4: Try Google geocoding (for specific addresses)
       if (!coordinates) {
-        console.log('Attempting Google geocoding...');
+        console.log('Attempting Google Geocoding...');
         try {
           coordinates = await GoogleMapsService.geocodeAddress(address);
           if (coordinates) {
-            console.log('✓ Got coords from Google geocoding');
+            console.log('✓ Got coords from Google Geocoding');
           }
         } catch (error) {
-          console.error('Google geocoding failed:', error);
+          console.error('Google Geocoding failed:', error);
         }
       }
       
-      // Cascade 4: Try OSM Nominatim geocoding
+      // All geocoding attempts exhausted
       if (!coordinates) {
-        console.log('Attempting OSM Nominatim fallback geocoding...');
-        try {
-          const osmResult = await GoogleMapsService.fallbackGeocodeNominatim(address);
-          if (osmResult) {
-            coordinates = { lat: osmResult.lat, lng: osmResult.lng };
-            if (!inferredName) {
-              inferredName = osmResult.displayName.split(',')[0];
-            }
-            console.log('✓ Got coords from OSM Nominatim');
-          }
-        } catch (error) {
-          console.error('OSM Nominatim geocoding failed:', error);
-        }
+        console.log('All geocoding methods failed - coordinates will remain null');
       }
       
-      // Final check
-      if (coordinates) {
-        const basecamp: BasecampLocation = {
-          address: address.trim(),
-          coordinates,
-          name: inferredName || undefined,
-          type
-        };
-        
-        onBasecampSet(basecamp);
-        onClose();
-      } else {
-        // Enhanced error message based on query type
-        const queryType = GoogleMapsService.detectQueryType(address);
-        let errorMsg = `We couldn't find "${address}". `;
-        
-        if (queryType === 'venue') {
-          errorMsg += `Please try:\n• Adding city/country (e.g., "${address}, [City], [Country]")\n• Checking spelling\n• Selecting from dropdown suggestions above`;
-        } else if (queryType === 'address') {
-          errorMsg += `Please add:\n• City and state/country\n• Or select from dropdown suggestions`;
-        } else {
-          errorMsg += `Please try:\n• Adding more detail\n• Selecting from suggestions\n• Using a more specific location`;
-        }
-        
-        alert(errorMsg);
-      }
+      // Allow setting basecamp even without coordinates (Google Maps will handle the query)
+      // The embed URL builder can work with just an address string
+      const basecamp: BasecampLocation = {
+        address: address.trim(),
+        coordinates: coordinates || undefined,
+        name: inferredName || undefined,
+        type
+      };
+      
+      console.log('Setting basecamp:', basecamp);
+      
+      // Wait for basecamp to be saved before closing modal
+      await Promise.resolve(onBasecampSet(basecamp));
+      onClose();
+      
     } catch (error) {
       console.error('Error setting basecamp:', error);
       alert('There was an error setting your basecamp. Please check your internet connection and try again.');
@@ -372,7 +357,7 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
                 onChange={(e) => handleAddressChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                placeholder="Enter hotel, Airbnb, or main lodging address..."
+                placeholder="Search any place - address, landmark, venue, or city..."
                 required
                 className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-12 pr-4 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
                 autoComplete="off"
@@ -458,18 +443,18 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
             </label>
             <select
               value={type}
-              onChange={(e) => setType(e.target.value as 'hotel' | 'airbnb' | 'other')}
+              onChange={(e) => setType(e.target.value as 'hotel' | 'short-term' | 'other')}
               className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
             >
               <option value="hotel">Hotel</option>
-              <option value="airbnb">Airbnb / Vacation Rental</option>
+              <option value="short-term">Short-term rental</option>
               <option value="other">Other</option>
             </select>
           </div>
 
           <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
             <p className="text-sm text-green-300">
-              💡 <strong>Tip:</strong> Selecting from the dropdown improves accuracy, but you can also type any location (city, region, or address) and press Set.
+              💡 <strong>Tip:</strong> Search works just like Google Maps - type landmarks ("Eiffel Tower"), venues ("SoFi Stadium Los Angeles"), addresses, or cities. Select from dropdown or press Enter.
             </p>
           </div>
 

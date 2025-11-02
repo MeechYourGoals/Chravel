@@ -68,7 +68,7 @@ export const ConsumerProfileSection = () => {
             <input
               type="text"
               value={currentUser.displayName}
-              onChange={(e) => handleProfileUpdate('displayName', e.target.value)}
+              onChange={(e) => handleProfileUpdate('display_name', e.target.value)}
               className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
             />
           </div>

@@ -10,6 +10,7 @@ interface TripChatMessage {
   trip_id: string;
   content: string;
   author_name: string;
+  user_id?: string;
   created_at: string;
   updated_at: string;
   media_type?: string;
@@ -30,8 +31,10 @@ interface CreateMessageRequest {
 export const useTripChat = (tripId: string) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Fetch messages from database
+  // Fetch initial messages (last 10)
   const { data: messages = [], isLoading, error } = useQuery({
     queryKey: ['tripChat', tripId],
     queryFn: async (): Promise<TripChatMessage[]> => {
@@ -39,10 +42,13 @@ export const useTripChat = (tripId: string) => {
         .from('trip_chat_messages')
         .select('*')
         .eq('trip_id', tripId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(10);
 
       if (error) throw error;
-      return data || [];
+      const reversed = (data || []).reverse();
+      setHasMore(data && data.length === 10);
+      return reversed;
     },
     enabled: !!tripId
   });
@@ -171,12 +177,49 @@ export const useTripChat = (tripId: string) => {
     });
   };
 
+  // Load more messages
+  const loadMore = async () => {
+    if (!hasMore || isLoadingMore || messages.length === 0) return;
+
+    setIsLoadingMore(true);
+    try {
+      const oldestMessage = messages[0];
+      const { data, error } = await supabase
+        .from('trip_chat_messages')
+        .select('*')
+        .eq('trip_id', tripId)
+        .lt('created_at', oldestMessage.created_at)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const olderMessages = data.reverse();
+        queryClient.setQueryData(['tripChat', tripId], (old: TripChatMessage[] = []) => [
+          ...olderMessages,
+          ...old
+        ]);
+        setHasMore(data.length === 20);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('Failed to load more messages:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
   return {
     messages,
     isLoading,
     error,
     sendMessage,
     sendMessageAsync,
-    isCreating: createMessageMutation.isPending
+    isCreating: createMessageMutation.isPending,
+    loadMore,
+    hasMore,
+    isLoadingMore,
   };
 };

@@ -1,5 +1,9 @@
 
 import { Recommendation } from './types';
+import artDecoFacades from '@/assets/recommendations/art-deco-facades.png';
+import artDecoDetail from '@/assets/recommendations/art-deco-detail.png';
+import livNightclub from '@/assets/recommendations/liv-nightclub.png';
+import livTable from '@/assets/recommendations/liv-table.png';
 
 export const experienceRecommendations: Recommendation[] = [
   {
@@ -13,8 +17,8 @@ export const experienceRecommendations: Recommendation[] = [
     rating: 4.4,
     priceLevel: 1,
     images: [
-      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&h=400&fit=crop'
+      artDecoFacades,
+      artDecoDetail
     ],
     tags: ['Architecture', 'Walking Tour', 'History', 'Cultural'],
     isSponsored: true,
@@ -42,8 +46,8 @@ export const experienceRecommendations: Recommendation[] = [
     rating: 4.5,
     priceLevel: 4,
     images: [
-      'https://images.unsplash.com/photo-1566737236500-c8ac43014a8e?w=600&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1574391884720-bbc428f95817?w=600&h=400&fit=crop'
+      livNightclub,
+      livTable
     ],
     tags: ['VIP', 'Nightlife', 'Bottle Service', 'Exclusive'],
     isSponsored: true,

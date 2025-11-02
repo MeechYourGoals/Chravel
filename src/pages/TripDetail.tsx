@@ -1,11 +1,24 @@
 
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { useParams } from 'react-router-dom';
-import { TripHeader } from '../components/TripHeader';
 import { MessageInbox } from '../components/MessageInbox';
 import { TripDetailHeader } from '../components/trip/TripDetailHeader';
-import { TripDetailContent } from '../components/trip/TripDetailContent';
 import { TripDetailModals } from '../components/trip/TripDetailModals';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+
+// 🚀 OPTIMIZATION: Lazy load heavy components for faster initial render
+const TripHeader = lazy(() => 
+  import('../components/TripHeader').then(module => ({
+    default: module.TripHeader
+  }))
+);
+
+const TripDetailContent = lazy(() =>
+  import('../components/trip/TripDetailContent').then(module => ({
+    default: module.TripDetailContent
+  }))
+);
+import { TripExportModal } from '../components/trip/TripExportModal';
 import { useAuth } from '../hooks/useAuth';
 import { getTripById, generateTripMockData } from '../data/tripsData';
 import { Trip } from '../services/tripService';
@@ -13,10 +26,18 @@ import { Message } from '../types/messages';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/use-mobile';
 import { MobileTripDetail } from './MobileTripDetail';
+import { ExportSection } from '../types/tripExport';
+import { supabase } from '../integrations/supabase/client';
+import { generateClientPDF } from '../utils/exportPdfClient';
+import { openOrDownloadBlob } from '../utils/download';
+import { toast } from 'sonner';
+import { demoModeService } from '../services/demoModeService';
+import { useEmbeddingGeneration } from '../hooks/useEmbeddingGeneration';
 
 const TripDetail = () => {
   const isMobile = useIsMobile();
   const { tripId } = useParams();
+  const { generateInitialEmbeddings } = useEmbeddingGeneration(tripId);
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('chat');
@@ -26,6 +47,7 @@ const TripDetail = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [showTripSettings, setShowTripSettings] = useState(false);
   const [showTripsPlusModal, setShowTripsPlusModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [tripDescription, setTripDescription] = useState<string>('');
   const [tripData, setTripData] = useState<{
     title?: string;
@@ -43,6 +65,13 @@ const TripDetail = () => {
       setTripDescription(trip.description);
     }
   }, [trip, tripDescription]);
+
+  // Generate initial embeddings for RAG when trip loads
+  React.useEffect(() => {
+    if (tripId && user) {
+      generateInitialEmbeddings();
+    }
+  }, [tripId, user, generateInitialEmbeddings]);
 
   // Handle trip updates from edit modal
   const handleTripUpdate = (updates: Partial<Trip>) => {
@@ -108,6 +137,107 @@ const TripDetail = () => {
     isPro: false
   };
 
+  // Handle export functionality - always use client-side generation
+  const handleExport = async (sections: ExportSection[]) => {
+    try {
+      // Pre-open a window on iOS Safari to avoid popup blocking for blob URLs
+      let preOpenedWindow: Window | null = null;
+      try {
+        const ua = navigator.userAgent || '';
+        const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
+        if (isIOS && isSafari) {
+          preOpenedWindow = window.open('', '_blank');
+          if (preOpenedWindow) {
+            preOpenedWindow.document.write(
+              '<html><head><title>Generating PDF…</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>' +
+              '<body style="font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial; padding: 16px; color: #e5e7eb; background: #111827">' +
+              '<div>Generating PDF…</div></body></html>'
+            );
+          }
+        }
+      } catch {
+        // Non-fatal; continue without pre-open
+      }
+
+      // Check if this is a mock trip (numeric ID 1-12) or real trip (UUID)
+      toast.info('Generating PDF...');
+      const isMockTrip = tripId && /^\d+$/.test(tripId);
+      let blob: Blob;
+
+      if (isMockTrip) {
+        // Use mock data for demo trips
+        const mockPayments = await demoModeService.getMockPayments(tripId || '1');
+        const mockPolls = await demoModeService.getMockPolls(tripId || '1');
+        const mockMembers = await demoModeService.getMockMembers(tripId || '1');
+
+        blob = await generateClientPDF(
+          {
+            tripId: tripId || '1',
+            tripTitle: tripWithUpdatedData.title,
+            destination: tripWithUpdatedData.location,
+            dateRange: tripWithUpdatedData.dateRange,
+            description: tripWithUpdatedData.description,
+            calendar: mockItinerary,
+            payments: mockPayments.length > 0 ? {
+              items: mockPayments,
+              total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
+              currency: mockPayments[0]?.currency || 'USD'
+            } : undefined,
+            polls: mockPolls,
+            roster: mockMembers.map(m => ({
+              name: m.display_name,
+              email: undefined,
+              role: m.role
+            })),
+          },
+          sections
+        );
+      } else {
+        // Fetch real data for Supabase trips
+        const { getExportData } = await import('../services/tripExportDataService');
+        const realData = await getExportData(tripId || '', sections);
+
+        blob = await generateClientPDF(
+          {
+            tripId: tripId || '',
+            tripTitle: realData.trip.title,
+            destination: realData.trip.destination,
+            dateRange: realData.trip.dateRange,
+            description: realData.trip.description,
+            calendar: realData.calendar,
+            payments: realData.payments,
+            polls: realData.polls,
+            tasks: realData.tasks,
+            places: realData.places,
+            roster: realData.roster,
+          },
+          sections
+        );
+      }
+
+      // Download or open the PDF with cross-platform handling
+      const filename = `Trip_${tripWithUpdatedData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
+      await openOrDownloadBlob(blob, filename, { preOpenedWindow, mimeType: 'application/pdf' });
+      
+      toast.success('PDF exported successfully!');
+    } catch (error) {
+      console.error('Export error details:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        tripId,
+        sections
+      });
+      toast.error(
+        error instanceof Error 
+          ? `Export failed: ${error.message}` 
+          : 'Failed to export PDF'
+      );
+      throw error;
+    }
+  };
+
   // Mobile-first conditional render - Zero impact on desktop
   if (isMobile) {
     return <MobileTripDetail />;
@@ -135,21 +265,32 @@ const TripDetail = () => {
         )}
 
         {/* Trip Header with Cover Photo Upload */}
-        <TripHeader 
-          trip={tripWithUpdatedData} 
-          onDescriptionUpdate={setTripDescription}
-          onTripUpdate={handleTripUpdate}
-        />
+        <Suspense fallback={
+          <div className="mb-8 animate-pulse">
+            <div className="h-64 bg-white/5 rounded-3xl mb-4"></div>
+            <div className="h-8 bg-white/5 rounded w-1/3 mb-2"></div>
+            <div className="h-4 bg-white/5 rounded w-1/4"></div>
+          </div>
+        }>
+          <TripHeader 
+            trip={tripWithUpdatedData} 
+            onDescriptionUpdate={setTripDescription}
+            onTripUpdate={handleTripUpdate}
+            onShowExport={() => setShowExportModal(true)}
+          />
+        </Suspense>
 
         {/* Main Content */}
-        <TripDetailContent
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onShowTripsPlusModal={() => setShowTripsPlusModal(true)}
-          tripId={tripId || '1'}
-          tripName={tripWithUpdatedData.title}
-          basecamp={basecamp}
-        />
+        <Suspense fallback={<LoadingSpinner className="my-12" />}>
+          <TripDetailContent
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onShowTripsPlusModal={() => setShowTripsPlusModal(true)}
+            tripId={tripId || '1'}
+            tripName={tripWithUpdatedData.title}
+            basecamp={basecamp}
+          />
+        </Suspense>
       </div>
 
       {/* Modals */}
@@ -167,6 +308,15 @@ const TripDetail = () => {
         tripName={tripWithUpdatedData.title}
         tripId={tripId || '1'}
         userId={user?.id}
+      />
+
+      {/* Export Modal */}
+      <TripExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        tripName={tripWithUpdatedData.title}
+        tripId={tripId || '1'}
       />
     </div>
   );

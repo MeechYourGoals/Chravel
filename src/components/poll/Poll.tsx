@@ -18,16 +18,16 @@ export const Poll = ({ poll, onVote, disabled = false, isVoting = false }: PollP
   };
 
   return (
-    <div className="bg-glass-slate-card border border-glass-slate-border rounded-2xl p-6 shadow-enterprise-lg">
-      <div className="flex items-start justify-between gap-4 mb-4">
-        <h3 className="text-lg font-semibold text-white flex-1">{poll.question}</h3>
+    <div className="bg-glass-slate-card border border-glass-slate-border rounded-xl p-3 shadow-enterprise-lg">
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <h3 className="text-base font-semibold text-white flex-1">{poll.question}</h3>
         {poll.status === 'closed' && (
           <span className="text-xs font-semibold px-2 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
             Closed
           </span>
         )}
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2">
         {poll.options.map((option) => (
           <PollOption
             key={option.id}
@@ -39,7 +39,7 @@ export const Poll = ({ poll, onVote, disabled = false, isVoting = false }: PollP
           />
         ))}
       </div>
-      <p className="text-sm text-gray-400 mt-4 text-center">
+      <p className="text-xs text-gray-400 mt-2 text-center">
         {poll.totalVotes} total votes
       </p>
     </div>

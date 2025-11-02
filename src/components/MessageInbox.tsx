@@ -21,7 +21,7 @@ export const MessageInbox = () => {
     if (message.tripId) {
       navigate(`/trip/${message.tripId}`);
     } else if (message.tourId) {
-      navigate(`/tour/pro-${message.tourId}`);
+      navigate(`/tour/pro/${message.tourId}`);
     }
   };
 

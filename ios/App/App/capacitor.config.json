@@ -1,11 +1,7 @@
 {
 	"appId": "com.chravel.app",
-	"appName": "chravel",
+	"appName": "Chravel",
 	"webDir": "dist",
-	"server": {
-		"url": "https://20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovableproject.com?forceHideBadge=true",
-		"cleartext": true
-	},
 	"plugins": {
 		"PushNotifications": {
 			"presentationOptions": [
@@ -18,13 +14,38 @@
 			"smallIcon": "ic_stat_icon_config_sample",
 			"iconColor": "#488AFF",
 			"sound": "beep.wav"
+		},
+		"SplashScreen": {
+			"launchShowDuration": 2000,
+			"launchAutoHide": true,
+			"backgroundColor": "#1a1a1a",
+			"androidSplashResourceName": "splash",
+			"androidScaleType": "CENTER_CROP",
+			"showSpinner": false,
+			"androidSpinnerStyle": "large",
+			"iosSpinnerStyle": "small",
+			"spinnerColor": "#999999",
+			"splashFullScreen": true,
+			"splashImmersive": true
+		},
+		"StatusBar": {
+			"style": "dark",
+			"backgroundColor": "#1a1a1a"
 		}
 	},
 	"ios": {
-		"scheme": "Chravel"
+		"scheme": "Chravel",
+		"contentInset": "automatic",
+		"scrollEnabled": true,
+		"backgroundColor": "#1a1a1a",
+		"allowsLinkPreview": false,
+		"handleApplicationURL": true
 	},
 	"android": {
-		"allowMixedContent": true
+		"allowMixedContent": true,
+		"backgroundColor": "#1a1a1a",
+		"appendUserAgent": "ChravelMobile",
+		"overrideUserAgent": "ChravelMobile/1.0.0"
 	},
 	"packageClassList": [
 		"CAPCameraPlugin",
@@ -32,6 +53,7 @@
 		"GeolocationPlugin",
 		"HapticsPlugin",
 		"LocalNotificationsPlugin",
+		"PreferencesPlugin",
 		"PushNotificationsPlugin",
 		"SharePlugin",
 		"StatusBarPlugin"

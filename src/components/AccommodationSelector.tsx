@@ -36,17 +36,25 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
   onLocationSet
 }) => {
   const { user } = useAuth();
-  const { basecamp: tripBasecamp, setBasecamp: setTripBasecampRoute } = useBasecamp();
+  const { basecamp: tripBasecamp } = useBasecamp();
   const [personalAccommodation, setPersonalAccommodation] = useState<PersonalAccommodation | null>(null);
   const [showPersonalSelector, setShowPersonalSelector] = useState(false);
-  const [showTripSelector, setShowTripSelector] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadAccommodations = React.useCallback(async () => {
-    if (!user) return;
-    
     setLoading(true);
+    setError(null);
+    
     try {
+      // Handle unauthenticated users - show UI but no personal accommodation
+      if (!user) {
+        console.log('No user authenticated, showing public trip basecamp only');
+        setPersonalAccommodation(null);
+        setLoading(false);
+        return;
+      }
+      
       console.log('Loading accommodations for trip:', tripId, 'user:', user.id);
       // Load personal accommodation
       const personal = await personalAccommodationService.getUserAccommodation(tripId, user.id);
@@ -55,8 +63,9 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
 
       // Trip basecamp is already loaded from BasecampContext
       console.log('Trip basecamp from context:', tripBasecamp);
-    } catch (error) {
-      console.error('Failed to load accommodations:', error);
+    } catch (err: any) {
+      console.error('Failed to load accommodations:', err);
+      setError(err?.message || 'Failed to load accommodations. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -81,18 +90,13 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
 
       if (accommodation) {
         setPersonalAccommodation(accommodation);
-        onLocationSet?.(location, 'personal');
+        if (onLocationSet) {
+          await Promise.resolve(onLocationSet(location, 'personal'));
+        }
       }
     } catch (error) {
       console.error('Failed to set personal accommodation:', error);
     }
-    setShowPersonalSelector(false);
-  };
-
-  const handleTripLocationSet = (location: any) => {
-    setTripBasecampRoute(location);
-    onLocationSet?.(location, 'trip');
-    setShowTripSelector(false);
   };
 
   const handleDeletePersonalAccommodation = async () => {
@@ -117,75 +121,109 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
     );
   }
 
+  if (error) {
+    return (
+      <Card className="border-red-200 bg-red-50">
+        <CardHeader>
+          <CardTitle className="text-red-900 flex items-center gap-2">
+            <MapPin size={20} />
+            Unable to Load Accommodations
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-red-700 mb-4">{error}</p>
+          <Button 
+            onClick={loadAccommodations}
+            variant="outline"
+            className="border-red-300 text-red-700 hover:bg-red-100"
+          >
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Trip Base Camp Section */}
-      <Card className="border-blue-200 bg-blue-50/50">
+      {/* Trip Base Camp Section - Display Only */}
+      <Card className="bg-glass-slate-card border border-glass-slate-border shadow-enterprise-lg rounded-2xl">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-blue-900 flex items-center gap-2">
-              <MapPin size={20} />
-              Trip Base Camp
-            </CardTitle>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setShowTripSelector(true)}
-              className="border-blue-300 text-blue-700 hover:bg-blue-100"
-            >
-              {tripBasecamp ? <Edit size={16} /> : <Plus size={16} />}
-              {tripBasecamp ? 'Edit' : 'Set Location'}
-            </Button>
-          </div>
-          <p className="text-sm text-blue-700">
+          <CardTitle className="text-white flex items-center gap-2">
+            <MapPin size={20} className="text-blue-400" />
+            Trip Base Camp
+          </CardTitle>
+          <p className="text-sm text-gray-300">
             Main meeting point for group activities and shared recommendations
           </p>
         </CardHeader>
-        {tripBasecamp && (
+        {tripBasecamp ? (
           <CardContent className="pt-0">
-            <div className="flex items-center gap-2 text-blue-800">
-              <MapPin size={16} />
-              <span className="font-medium">{tripBasecamp.name}</span>
+            <div className="flex items-start gap-2 text-white">
+              <MapPin size={16} className="text-blue-400 mt-1 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="font-medium block">{tripBasecamp.name}</span>
+                {tripBasecamp.address && (
+                  <p className="text-sm text-gray-300 mt-1 break-words">{tripBasecamp.address}</p>
+                )}
+              </div>
             </div>
-            {tripBasecamp.address && (
-              <p className="text-sm text-blue-600 mt-1">{tripBasecamp.address}</p>
-            )}
+          </CardContent>
+        ) : (
+          <CardContent className="pt-0">
+            <p className="text-sm text-gray-400 italic">
+              No basecamp set. Set it in the "Places & Activities" tab.
+            </p>
           </CardContent>
         )}
       </Card>
 
       {/* Personal Accommodation Section */}
-      <Card className="border-green-200 bg-green-50/50">
+      <Card className="bg-glass-slate-card border border-glass-slate-border shadow-enterprise-lg rounded-2xl">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-green-900 flex items-center gap-2">
-              <Bed size={20} />
-              Your Accommodation
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="text-white flex items-center gap-2 flex-wrap">
+              <Bed size={20} className="text-green-400 flex-shrink-0" />
+              <span>Your Accommodation</span>
+              {!user && <Badge variant="outline" className="text-xs border-green-400/30 text-green-400">Private</Badge>}
             </CardTitle>
-            <div className="flex gap-2">
-              {personalAccommodation && (
-                <Button 
-                  variant="outline" 
+            {personalAccommodation && user ? (
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={handleDeletePersonalAccommodation}
-                  className="border-red-300 text-red-700 hover:bg-red-100"
+                  className="border-glass-slate-border text-red-400 hover:bg-red-500/10"
                 >
                   <Trash2 size={16} />
                 </Button>
-              )}
-              <Button 
-                variant="outline" 
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPersonalSelector(true)}
+                  className="border-glass-slate-border text-white hover:bg-white/10"
+                >
+                  <Edit size={16} />
+                  <span className="hidden sm:inline">Edit</span>
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => setShowPersonalSelector(true)}
-                className="border-green-300 text-green-700 hover:bg-green-100"
+                disabled={!user}
+                className="border-glass-slate-border text-white hover:bg-white/10 disabled:opacity-50 w-full sm:w-auto flex-shrink-0"
               >
-                {personalAccommodation ? <Edit size={16} /> : <Plus size={16} />}
-                {personalAccommodation ? 'Edit' : 'Set Your Location'}
+                <Plus size={16} />
+                <span>Set Your Location</span>
               </Button>
-            </div>
+            )}
           </div>
-          <p className="text-sm text-green-700">
-            Where you're staying for personalized recommendations and local insights
+          <p className="text-sm text-gray-300 mt-2">
+            {user
+              ? "Where you're staying for personalized recommendations and local insights"
+              : "Sign in to save your private accommodation for personalized directions"}
           </p>
         </CardHeader>
         {personalAccommodation && (
@@ -193,18 +231,18 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {React.createElement(accommodationTypeIcons[personalAccommodation.accommodation_type], { size: 16, className: "text-green-700" })}
-                  <span className="font-medium text-green-800">{personalAccommodation.accommodation_name}</span>
+                  {React.createElement(accommodationTypeIcons[personalAccommodation.accommodation_type], { size: 16, className: "text-green-400" })}
+                  <span className="font-medium text-white">{personalAccommodation.accommodation_name}</span>
                 </div>
-                <Badge className={accommodationTypeColors[personalAccommodation.accommodation_type]}>
+                <Badge variant="outline" className="border-green-400/30 text-green-400 text-xs">
                   {personalAccommodation.accommodation_type}
                 </Badge>
               </div>
               {personalAccommodation.address && (
-                <p className="text-sm text-green-600">{personalAccommodation.address}</p>
+                <p className="text-sm text-gray-300">{personalAccommodation.address}</p>
               )}
               {(personalAccommodation.check_in || personalAccommodation.check_out) && (
-                <div className="flex gap-4 text-sm text-green-600">
+                <div className="flex gap-4 text-sm text-gray-400">
                   {personalAccommodation.check_in && (
                     <span>Check-in: {new Date(personalAccommodation.check_in).toLocaleDateString()}</span>
                   )}
@@ -218,15 +256,7 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
         )}
       </Card>
 
-      {/* Location Selector Modals */}
-      {showTripSelector && (
-        <BasecampSelector
-          isOpen={showTripSelector}
-          onClose={() => setShowTripSelector(false)}
-          onBasecampSet={handleTripLocationSet}
-        />
-      )}
-
+      {/* Location Selector Modal */}
       {showPersonalSelector && (
         <BasecampSelector
           isOpen={showPersonalSelector}

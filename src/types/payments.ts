@@ -40,6 +40,9 @@ export interface PaymentParticipant {
   paid: boolean;
   paidAt?: string;
   paymentMethod?: PaymentMethod;
+  confirmationStatus?: 'none' | 'pending' | 'confirmed';
+  confirmedBy?: string;
+  confirmedAt?: string;
 }
 
 export interface PaymentSplit {

@@ -52,49 +52,46 @@ export const DesktopHeader = ({ viewMode, onCreateTrip, onUpgrade, onSettings }:
         </div>
       </div>
 
-      {/* Main Header Container - Responsive layout */}
+      {/* Main Header Container - Single Visual Plane Alignment */}
       <div className="mb-6">
-        {/* Responsive Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center mb-5">
-          {/* Column 1: Brand - stacked on My Trips button */}
-          <div className="flex flex-col">
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight" aria-label="Chravel Home">
+        {/* Unified Horizontal Layout - All elements aligned on same baseline */}
+        <div className="flex items-center justify-between gap-4 mb-5">
+          {/* Left Cluster: Brand + Tagline */}
+          <div className="flex items-center gap-3 shrink-0">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight transition-all duration-300 hover:brightness-110 hover:scale-105" aria-label="Chravel Home">
               Chravel
             </h1>
-            <div className="mt-2 text-center">
-              <p className="text-caption text-muted-foreground font-medium leading-tight">
-                The Group Chat<br />for Group Travel
-              </p>
-            </div>
+            <span className="text-sm text-muted-foreground align-middle hidden md:inline">
+              The Group Chat for Group Travel
+            </span>
           </div>
 
-          {/* Column 2: Search Bar - spans Chravel Pro + Events + Chravel Recs buttons */}
-          <div className="flex items-center min-w-0">
+          {/* Center: Search Bar - Flexible width */}
+          <div className="flex-1 mx-6 max-w-2xl hidden lg:flex">
             <SearchBar
-              placeholder="Search for and plan your perfect trip."
+              placeholder="Search for and plan your perfect trip..."
               onSearch={handleSearchClick}
               className="cursor-pointer w-full"
             />
           </div>
 
-          {/* Column 3: Action Buttons - aligned to right */}
-          <div className="flex items-center gap-2 justify-end">
-            {/* Action button group - enhanced with new design system */}
+          {/* Right Cluster: Action Buttons - Equal spacing */}
+          <div className="flex items-center gap-4 shrink-0">
             <button
               onClick={onCreateTrip}
-              className="w-12 h-12 bg-card/90 backdrop-blur-xl border-2 border-border/50 hover:bg-card hover:border-primary/60 text-foreground rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary-glow/50"
+              className="w-11 h-11 bg-card/90 backdrop-blur-xl border-2 border-border/50 hover:bg-card hover:border-primary/60 text-foreground rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary-glow/50"
               title="New Trip"
             >
               <Plus size={20} />
             </button>
 
-            <div className="w-12 h-12">
+            <div className="w-11 h-11">
               <NotificationBell />
             </div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="w-12 h-12 bg-card/90 backdrop-blur-xl border-2 border-border/50 hover:bg-card hover:border-primary/60 text-foreground rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary-glow/50">
+                <button className="w-11 h-11 bg-card/90 backdrop-blur-xl border-2 border-border/50 hover:bg-card hover:border-primary/60 text-foreground rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary-glow/50">
                   <Settings size={20} />
                 </button>
               </DropdownMenuTrigger>
@@ -147,6 +144,15 @@ export const DesktopHeader = ({ viewMode, onCreateTrip, onUpgrade, onSettings }:
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+        </div>
+
+        {/* Mobile Search Bar - Full width below header */}
+        <div className="lg:hidden mb-4">
+          <SearchBar
+            placeholder="Search for and plan your perfect trip..."
+            onSearch={handleSearchClick}
+            className="cursor-pointer w-full"
+          />
         </div>
       </div>
 

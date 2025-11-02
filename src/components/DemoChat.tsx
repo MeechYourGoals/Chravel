@@ -1,28 +1,24 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Send, MessageCircle } from 'lucide-react';
-import { currentUserAvatar } from '@/utils/mockAvatars';
-import { MessageReactionBar } from './chat/MessageReactionBar';
+import { MessageItem } from './chat/MessageItem';
+import { VirtualizedMessageContainer } from './chat/VirtualizedMessageContainer';
 import { useUnifiedMessages } from '@/hooks/useUnifiedMessages';
+import { ChatMessage } from '@/hooks/useChatComposer';
 
 interface DemoChatProps {
   tripId: string;
 }
 
-interface DemoMessage {
-  id: string;
-  text: string;
-  user: {
-    id: string;
-    name: string;
-    image?: string;
-  };
-  created_at: string;
-  reactions?: Record<string, { count: number; userReacted: boolean }>;
-}
 
 export const DemoChat = ({ tripId }: DemoChatProps) => {
-  const { messages, sendMessage } = useUnifiedMessages({ tripId, enabled: true });
+  const { 
+    messages, 
+    sendMessage,
+    loadMore,
+    hasMore,
+    isLoadingMore 
+  } = useUnifiedMessages({ tripId, enabled: true });
   const [inputValue, setInputValue] = useState('');
   const [reactions, setReactions] = useState<Record<string, Record<string, { count: number; userReacted: boolean }>>>({});
 
@@ -64,7 +60,22 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
     });
   };
 
-  const filteredMessages = messages;
+  // Transform messages from useUnifiedMessages format to ChatMessage format
+  const transformedMessages = useMemo((): ChatMessage[] => {
+    return messages.map(msg => ({
+      id: msg.id,
+      text: msg.content,
+      sender: {
+        id: msg.user_id || 'unknown',
+        name: msg.author_name,
+        avatar: undefined
+      },
+      createdAt: msg.created_at,
+      isBroadcast: false,
+      isPayment: false,
+      reactions: {}
+    }));
+  }, [messages]);
 
   return (
     <div className="p-6">
@@ -86,55 +97,32 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
       {/* Message list */}
 
       {/* Chat Interface */}
-      <div className="bg-gray-900/50 rounded-xl overflow-hidden">
+      <div className="bg-gray-900/50 rounded-xl overflow-hidden flex flex-col" style={{ height: '500px' }}>
         {/* Messages Container */}
-        <div className="h-96 overflow-y-auto p-4 space-y-4">
-          {filteredMessages.length === 0 ? (
+        {transformedMessages.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center">
             <div className="text-center py-8">
               <MessageCircle size={32} className="text-gray-600 mx-auto mb-2" />
               <p className="text-gray-500 text-sm">No messages yet</p>
             </div>
-          ) : (
-            messages.map((message) => (
-              <div key={message.id} className="flex items-start gap-3">
-                {/* Avatar */}
-                <img
-                  src={currentUserAvatar}
-                  alt={message.author_name}
-                  className="w-10 h-10 rounded-full flex-shrink-0 object-cover border border-gray-600"
-                />
-                
-                {/* Message Content */}
-                <div className="flex-1 min-w-0">
-                  {/* Sender Name & Time */}
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-gray-300">
-                      {message.author_name}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {formatTime(message.created_at)}
-                    </span>
-                  </div>
-                  
-                  {/* Message Bubble */}
-                  <div className="max-w-md p-3 rounded-lg bg-gray-800 text-gray-200">
-                    {/* Message Text */}
-                    <div className="text-sm leading-relaxed">
-                      {message.content}
-                    </div>
-                  </div>
-                  
-                  {/* Message Actions */}
-                  <MessageReactionBar
-                    messageId={message.id}
-                    reactions={reactions[message.id]}
-                    onReaction={handleReaction}
-                  />
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+          </div>
+        ) : (
+          <VirtualizedMessageContainer
+            messages={transformedMessages}
+            renderMessage={(message) => (
+              <MessageItem
+                key={message.id}
+                message={message}
+                reactions={reactions[message.id]}
+                onReaction={handleReaction}
+              />
+            )}
+            onLoadMore={loadMore}
+            hasMore={hasMore}
+            isLoading={isLoadingMore}
+            initialVisibleCount={10}
+          />
+        )}
 
         {/* Message Input */}
         <div className="border-t border-gray-700 p-4">

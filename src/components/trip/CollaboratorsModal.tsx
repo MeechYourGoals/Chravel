@@ -1,6 +1,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { getInitials, isValidAvatarUrl } from '../../utils/avatarUtils';
+import { formatCollaboratorName } from '../../utils/nameFormatUtils';
 
 interface CollaboratorItem {
   id: number | string;
@@ -13,12 +14,14 @@ interface CollaboratorsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   participants: CollaboratorItem[];
+  tripType?: 'consumer' | 'pro' | 'event';
 }
 
 export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
   open,
   onOpenChange,
   participants,
+  tripType = 'consumer',
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -50,7 +53,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="truncate text-sm font-medium text-white">{c.name}</div>
+                <div className="truncate text-sm font-medium text-white">{formatCollaboratorName(c.name, tripType)}</div>
                 {c.role && (
                   <div className="truncate text-xs text-gray-400">{c.role}</div>
                 )}

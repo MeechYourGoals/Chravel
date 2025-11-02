@@ -14,22 +14,46 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [embedUrl, setEmbedUrl] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
   
   useEffect(() => {
-    setIsLoading(true);
+    console.log('[GoogleMapsEmbed] Initializing embed...', {
+      hasBasecamp: !!basecamp,
+      isBasecampSet,
+      retryCount
+    });
     
-    if (isBasecampSet && basecamp?.address) {
-      // Initialize with Base Camp
-      const url = GoogleMapsService.buildEmbeddableUrl(basecamp.address, basecamp.coordinates);
+    setIsLoading(true);
+    setHasError(false);
+    
+    try {
+      let url: string;
+      
+      if (isBasecampSet && basecamp?.address) {
+        // Initialize with Base Camp
+        console.log('[GoogleMapsEmbed] Using basecamp:', basecamp.address);
+        url = GoogleMapsService.buildEmbeddableUrl(basecamp.address, basecamp.coordinates);
+      } else {
+        // Default fallback - show world map centered on US
+        console.log('[GoogleMapsEmbed] Using default fallback');
+        url = 'https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d25211418.31451683!2d-95.665!3d37.6!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sus!4v1234567890!5m2!1sen!2sus';
+      }
+      
       setEmbedUrl(url);
-    } else {
-      // Default fallback
-      const url = GoogleMapsService.buildEmbeddableUrl();
-      setEmbedUrl(url);
+      console.log('[GoogleMapsEmbed] Embed URL set successfully');
+    } catch (error) {
+      console.error('[GoogleMapsEmbed] Error building URL:', error);
+      // Ultimate fallback - simple embed without API key
+      setEmbedUrl('https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d25211418.31451683!2d-95.665!3d37.6!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sus!4v1234567890!5m2!1sen!2sus');
     }
     
-    setIsLoading(false);
-  }, [isBasecampSet, basecamp]);
+    // Always stop loading after a short delay to ensure UI updates
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [isBasecampSet, basecamp, retryCount]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,27 +71,36 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
   };
 
   const handleIframeLoad = () => {
+    console.log('[GoogleMapsEmbed] ✅ Iframe loaded successfully');
     setIsLoading(false);
     setHasError(false);
   };
 
-  const handleIframeError = () => {
+  const handleIframeError = (e: any) => {
+    console.error('[GoogleMapsEmbed] ❌ Iframe load error:', e);
     setIsLoading(false);
     setHasError(true);
+  };
+  
+  const handleRetry = () => {
+    console.log('[GoogleMapsEmbed] Retrying map load...');
+    setRetryCount(prev => prev + 1);
+    setHasError(false);
+    setIsLoading(true);
   };
 
   return (
     <div className={`relative w-full h-full ${className}`}>
-      {/* Search Field */}
-      <div className="absolute top-4 left-4 right-4 z-10">
+      {/* Search Field - Centered and Compact */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 w-auto max-w-xs">
         <form onSubmit={handleSearch} className="relative">
-          <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Search size={14} className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search locations on map..."
-            className="w-full bg-white/95 backdrop-blur-sm border border-gray-300 rounded-xl pl-10 pr-4 py-3 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-lg text-sm"
+            placeholder="Search locations..."
+            className="w-48 bg-white/95 backdrop-blur-sm border border-gray-300 rounded-lg pl-8 pr-3 py-2 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-lg text-xs"
           />
         </form>
       </div>
@@ -90,12 +123,7 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
             <h3 className="text-lg font-medium text-gray-300 mb-2">Map unavailable</h3>
             <p className="text-gray-500 text-sm mb-4">Unable to load Google Maps</p>
             <button 
-              onClick={() => {
-                setHasError(false);
-                setIsLoading(true);
-                const url = GoogleMapsService.buildEmbeddableUrl();
-                setEmbedUrl(url);
-              }}
+              onClick={handleRetry}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
             >
               Retry
@@ -104,22 +132,22 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
         </div>
       )}
 
-      {/* Google Maps Iframe */}
-      {embedUrl && (
-        <iframe
-          key={embedUrl}
-          src={embedUrl}
-          width="100%"
-          height="100%"
-          style={{ border: 0 }}
-          allowFullScreen
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-          className="absolute inset-0 w-full h-full"
-          onLoad={handleIframeLoad}
-          onError={handleIframeError}
-        />
-      )}
+      {/* Google Maps Iframe - Always render */}
+      <iframe
+        key={`${embedUrl}-${retryCount}`}
+        src={embedUrl || 'https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d25211418.31451683!2d-95.665!3d37.6!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sus!4v1234567890!5m2!1sen!2sus'}
+        width="100%"
+        height="100%"
+        style={{ border: 0 }}
+        allowFullScreen
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+        allow="geolocation; camera; microphone"
+        className="absolute inset-0 w-full h-full"
+        onLoad={handleIframeLoad}
+        onError={handleIframeError}
+        title="Google Maps"
+      />
     </div>
   );
 };

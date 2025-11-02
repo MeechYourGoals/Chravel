@@ -1,5 +1,9 @@
 
 import { Recommendation } from './types';
+import fourSeasonsExterior from '@/assets/recommendations/four-seasons-exterior.png';
+import fourSeasonsPool from '@/assets/recommendations/four-seasons-pool.png';
+import setaiExterior from '@/assets/recommendations/setai-exterior.png';
+import setaiSpa from '@/assets/recommendations/setai-spa.png';
 
 export const hotelRecommendations: Recommendation[] = [
   {
@@ -13,8 +17,8 @@ export const hotelRecommendations: Recommendation[] = [
     rating: 4.8,
     priceLevel: 4,
     images: [
-      'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&h=400&fit=crop'
+      fourSeasonsExterior,
+      fourSeasonsPool
     ],
     tags: ['Luxury', 'Beachfront', 'Spa', 'Pool'],
     isSponsored: true,
@@ -43,8 +47,8 @@ export const hotelRecommendations: Recommendation[] = [
     rating: 4.9,
     priceLevel: 4,
     images: [
-      'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=600&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&h=400&fit=crop'
+      setaiExterior,
+      setaiSpa
     ],
     tags: ['Luxury', 'Beachfront', 'Spa', 'Contemporary'],
     isSponsored: true,

@@ -19,20 +19,29 @@ export const ProTabNavigation = ({ tabs, activeTab, onTabChange, category }: Pro
 
   const userRole = user?.proRole || 'staff';
   const userPermissions = user?.permissions || ['read'];
+  
+  const tabCount = tabs.length;
+  const isCompactMode = tabCount > 8;
 
   return (
-    <div className="flex justify-center overflow-x-auto whitespace-nowrap scroll-smooth gap-2 mb-8 pb-2 -mx-2 px-2 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
+    <div className="flex whitespace-nowrap gap-2 mb-2 justify-start overflow-x-auto scrollbar-thin scrollbar-thumb-white/20">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isReadOnly = isReadOnlyTab(tab.id, userRole, userPermissions);
         const displayLabel =
           tab.id === 'team' && category === 'Content' ? 'Cast & Crew' : tab.label;
         
+        const buttonSizeClass = isCompactMode 
+          ? 'flex-shrink flex-grow-0 min-w-[90px]'
+          : 'flex-1';
+        
+        const paddingClass = isCompactMode ? 'px-3' : 'px-3.5';
+        
         return (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`flex-shrink-0 min-w-max px-4 py-3 rounded-lg font-medium transition-all duration-200 text-sm flex items-center gap-2 ${
+            className={`flex items-center justify-center gap-1.5 ${paddingClass} py-2.5 min-h-[42px] rounded-xl font-medium transition-all duration-200 text-sm ${buttonSizeClass} ${
               activeTab === tab.id
                 ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-md`
                 : 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white'

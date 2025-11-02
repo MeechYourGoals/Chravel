@@ -151,6 +151,10 @@ class RoleChannelService {
           sender:sender_id (
             id,
             raw_user_meta_data
+          ),
+          profiles!sender_id (
+            display_name,
+            avatar_url
           )
         `)
         .eq('channel_id', channelId)
@@ -162,8 +166,8 @@ class RoleChannelService {
         id: d.id,
         channelId: d.channel_id,
         senderId: d.sender_id,
-        senderName: d.sender?.raw_user_meta_data?.full_name,
-        senderAvatar: d.sender?.raw_user_meta_data?.avatar_url,
+        senderName: d.profiles?.display_name || d.sender?.raw_user_meta_data?.full_name || 'Anonymous',
+        senderAvatar: d.profiles?.avatar_url || d.sender?.raw_user_meta_data?.avatar_url,
         content: d.content,
         createdAt: d.created_at
       }));

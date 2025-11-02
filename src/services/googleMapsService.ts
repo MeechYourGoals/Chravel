@@ -97,104 +97,111 @@ export class GoogleMapsService {
   }
 
   /**
-   * Build classic embeddable Google Maps URL (output=embed format)
-   * This format works reliably in iframes without CSP/API key issues
+   * Build stable embeddable Google Maps URL
+   * Uses www.google.com (more stable) with keyless embed or Embed API v1 if key present
    */
   static buildEmbeddableUrl(
     basecampAddress?: string,
     coords?: { lat: number; lng: number },
     destination?: string
   ): string {
-    if (destination && basecampAddress) {
-      // Directions from Base Camp to destination
-      const s = encodeURIComponent(basecampAddress);
-      const d = encodeURIComponent(destination);
-      return `https://maps.google.com/maps?output=embed&saddr=${s}&daddr=${d}`;
-    }
-    
-    if (basecampAddress) {
-      // Show Base Camp location
-      const q = encodeURIComponent(basecampAddress);
-      return `https://maps.google.com/maps?output=embed&q=${q}`;
-    }
-    
-    if (coords) {
-      // Show specific coordinates
-      return `https://maps.google.com/maps?output=embed&ll=${coords.lat},${coords.lng}&z=12`;
-    }
-    
-    // Fallback: NYC default
-    return `https://maps.google.com/maps?output=embed&ll=40.7580,-73.9855&z=12`;
-  }
-
-  // Fallback geocoding using OpenStreetMap Nominatim
-  static async fallbackGeocodeNominatim(query: string): Promise<{ lat: number; lng: number; displayName: string } | null> {
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-      const res = await fetch(url, { 
-        headers: { 
-          'Accept': 'application/json',
-          'User-Agent': 'Chravel/1.0'
-        } 
-      });
+      console.log('[GoogleMapsService.buildEmbeddableUrl]', { basecampAddress, coords, destination });
       
-      if (!res.ok) return null;
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
       
-      const arr = await res.json();
-      if (Array.isArray(arr) && arr.length > 0 && arr[0].lat && arr[0].lon) {
-        return { 
-          lat: parseFloat(arr[0].lat), 
-          lng: parseFloat(arr[0].lon),
-          displayName: arr[0].display_name 
-        };
-      }
-      return null;
-    } catch (error) {
-      console.error('Nominatim geocode error:', error);
-      return null;
-    }
-  }
-
-  // Fallback suggestions using OpenStreetMap Nominatim
-  static async fallbackSuggestNominatim(query: string, limit = 8): Promise<any[]> {
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=${limit}&q=${encodeURIComponent(query)}`;
-      const res = await fetch(url, { 
-        headers: { 
-          'Accept': 'application/json',
-          'User-Agent': 'Chravel/1.0'
-        } 
-      });
-      
-      if (!res.ok) return [];
-      
-      const arr = await res.json();
-      if (!Array.isArray(arr)) return [];
-      
-      return arr.map((item: any) => ({
-        source: 'osm',
-        place_id: `osm:${item.place_id}`,
-        description: item.display_name,
-        osm_lat: parseFloat(item.lat),
-        osm_lng: parseFloat(item.lon),
-        types: ['geocode'],
-        structured_formatting: {
-          main_text: item.display_name.split(',')[0],
-          secondary_text: item.display_name.split(',').slice(1).join(',').trim()
+      // With API key: use official Embed API v1 (more stable)
+      if (apiKey && apiKey !== 'placeholder') {
+        if (destination && basecampAddress) {
+          const origin = encodeURIComponent(basecampAddress);
+          const dest = encodeURIComponent(destination);
+          const url = `https://www.google.com/maps/embed/v1/directions?key=${apiKey}&origin=${origin}&destination=${dest}`;
+          console.log('[GoogleMapsService] ✅ Built directions URL with API key');
+          return url;
         }
-      }));
+        
+        if (basecampAddress) {
+          const query = encodeURIComponent(basecampAddress);
+          const url = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${query}`;
+          console.log('[GoogleMapsService] ✅ Built place URL with API key');
+          return url;
+        }
+        
+        if (coords) {
+          const url = `https://www.google.com/maps/embed/v1/view?key=${apiKey}&center=${coords.lat},${coords.lng}&zoom=12&maptype=roadmap`;
+          console.log('[GoogleMapsService] ✅ Built view URL with API key');
+          return url;
+        }
+        
+        // Fallback: NYC
+        const url = `https://www.google.com/maps/embed/v1/view?key=${apiKey}&center=40.7580,-73.9855&zoom=12&maptype=roadmap`;
+        console.log('[GoogleMapsService] ✅ Built default NYC URL with API key');
+        return url;
+      }
+      
+      // Without API key: use keyless embed (www.google.com is more stable than maps.google.com)
+      console.log('[GoogleMapsService] No API key, using keyless embed');
+      
+      if (destination && basecampAddress) {
+        const s = encodeURIComponent(basecampAddress);
+        const d = encodeURIComponent(destination);
+        const url = `https://www.google.com/maps?output=embed&saddr=${s}&daddr=${d}`;
+        console.log('[GoogleMapsService] ✅ Built keyless directions URL');
+        return url;
+      }
+      
+      if (basecampAddress) {
+        const q = encodeURIComponent(basecampAddress);
+        const url = `https://www.google.com/maps?output=embed&q=${q}`;
+        console.log('[GoogleMapsService] ✅ Built keyless place URL');
+        return url;
+      }
+      
+      if (coords) {
+        const url = `https://www.google.com/maps?output=embed&ll=${coords.lat},${coords.lng}&z=12`;
+        console.log('[GoogleMapsService] ✅ Built keyless coords URL');
+        return url;
+      }
+      
+      // Fallback: NYC default
+      const url = `https://www.google.com/maps?output=embed&ll=40.7580,-73.9855&z=12`;
+      console.log('[GoogleMapsService] ✅ Built keyless default URL');
+      return url;
     } catch (error) {
-      console.error('Nominatim suggest error:', error);
-      return [];
+      console.error('[GoogleMapsService] ❌ Error building URL, using emergency fallback:', error);
+      // Emergency fallback - guaranteed to work without API key
+      return 'https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d25211418.31451683!2d-95.665!3d37.6!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sus!4v1234567890!5m2!1sen!2sus';
     }
   }
 
-  // New: Text Search for natural language queries
-  static async searchPlacesByText(query: string, location?: string): Promise<any> {
+
+  /**
+   * Text Search for natural language queries
+   * Docs: https://developers.google.com/maps/documentation/places/web-service/text-search
+   * 
+   * @param query - Natural language search query (e.g., "Mercedes-Benz Stadium Atlanta")
+   * @param options - Optional parameters for location bias, language, region, type filtering
+   * @returns Text Search API response with places array
+   */
+  static async searchPlacesByText(
+    query: string, 
+    options?: {
+      location?: string;      // Lat,lng for location bias (e.g., "33.7554,-84.4008")
+      language?: string;      // Language code (e.g., "en", "es", "fr")
+      region?: string;        // Region bias ccTLD (e.g., "us", "uk", "fr")
+      type?: string;          // Place type filter (e.g., "restaurant", "lodging")
+    }
+  ): Promise<any> {
     try {
+      // Auto-detect browser language if not provided
+      const language = options?.language || navigator.language.split('-')[0];
+      
       return await this.callProxy('text-search', { 
         query,
-        ...(location && { location })
+        language,
+        ...(options?.location && { location: options.location }),
+        ...(options?.region && { region: options.region }),
+        ...(options?.type && { type: options.type })
       });
     } catch (error) {
       console.error('Text search error:', error);

@@ -53,26 +53,28 @@ const testimonials: Testimonial[] = [
 
 const metrics: Metric[] = [
   { value: "Instantly See", label: "Itinerary Conflicts", icon: <MapPin size={16} />, trend: "Automatically flags double-bookings before they happen" },
-  { value: "Automated", label: "Payment Tracking", icon: <Clock size={16} />, trend: "See who's paid and who hasn't, all in one place" },
+  { value: "Automatic", label: "Payment Tracking", icon: <Clock size={16} />, trend: "See who's paid and who hasn't, all in one place" },
   { value: "Real-Time", label: "Updates", icon: <Star size={16} />, trend: "Everyone gets instant alerts when plans change" },
-  { value: "Proven for", label: "Complex Travel", icon: <TrendingUp size={16} />, trend: "Successfully handles sports teams, tours, and family reunions" }
+  { value: "Proven", label: "Complex Travel", icon: <TrendingUp size={16} />, trend: "Successfully handles sports teams, tours, and family reunions" }
 ];
 
 export const SocialProofSection = () => {
   return (
     <div className="w-full space-y-8">
       {/* Metrics Banner */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {metrics.map((metric, index) => (
           <Card key={index} className="bg-card/50 backdrop-blur-sm border border-border/50">
-            <CardContent className="p-4 text-center">
+            <CardContent className="p-3 md:p-4 text-center">
               <div className="flex items-center justify-center mb-2 text-primary">
-                {metric.icon}
+                {React.cloneElement(metric.icon as React.ReactElement, { 
+                  size: 14
+                })}
               </div>
-              <div className="text-2xl font-bold text-foreground">{metric.value}</div>
-              <div className="text-sm text-muted-foreground">{metric.label}</div>
+              <div className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-foreground leading-tight break-words">{metric.value}</div>
+              <div className="text-xs sm:text-sm md:text-base text-foreground leading-tight mt-1 break-words">{metric.label}</div>
               {metric.trend && (
-                <div className="text-xs text-accent mt-1">{metric.trend}</div>
+                <div className="text-xs sm:text-sm md:text-base text-accent mt-1 leading-tight break-words">{metric.trend}</div>
               )}
             </CardContent>
           </Card>

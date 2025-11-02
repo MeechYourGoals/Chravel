@@ -1,6 +1,6 @@
 
 export interface ConsumerSubscription {
-  tier: 'free' | 'plus';
+  tier: 'free' | 'explorer' | 'frequent-chraveler';
   status: 'active' | 'trial' | 'expired' | 'cancelled';
   trialEndsAt?: string;
   subscriptionEndsAt?: string;
@@ -29,6 +29,38 @@ export interface TripPreferences {
   budgetMax: number;
   timePreference: 'early-riser' | 'night-owl' | 'flexible';
 }
+
+export interface TripCategory {
+  id: string;
+  label: string;
+  color: string;
+}
+
+export const CONSUMER_TRIP_CATEGORIES: TripCategory[] = [
+  { id: 'work', label: 'Work', color: 'blue' },
+  { id: 'leisure', label: 'Leisure', color: 'green' },
+  { id: 'family', label: 'Family', color: 'purple' },
+  { id: 'music', label: 'Music', color: 'pink' },
+  { id: 'sports', label: 'Sports', color: 'orange' },
+  { id: 'vacation', label: 'Vacation', color: 'teal' },
+  { id: 'foodie', label: 'Foodie', color: 'yellow' },
+  { id: 'adventure', label: 'Adventure', color: 'red' },
+  { id: 'wellness', label: 'Wellness', color: 'emerald' },
+  { id: 'cultural', label: 'Cultural', color: 'indigo' },
+  { id: 'romantic', label: 'Romantic', color: 'rose' },
+  { id: 'bachelor-bachelorette', label: 'Bachelor/Bachelorette', color: 'fuchsia' },
+  { id: 'reunion', label: 'Reunion', color: 'cyan' },
+  { id: 'shopping', label: 'Shopping', color: 'violet' },
+  { id: 'nightlife', label: 'Nightlife', color: 'amber' }
+];
+
+export const PRO_TRIP_CATEGORIES: TripCategory[] = [
+  { id: 'business-travel', label: 'Business Travel', color: 'slate' },
+  { id: 'school-trip', label: 'School Trip', color: 'sky' },
+  { id: 'content', label: 'Content', color: 'lime' },
+  { id: 'tour', label: 'Tour', color: 'coral' },
+  { id: 'sports-pro', label: 'Sports (Pro/Collegiate)', color: 'orange' }
+];
 
 export interface AIRecommendation {
   id: string;
@@ -73,8 +105,31 @@ export const LIFESTYLE_OPTIONS = [
   'Sightseeing', 'Volunteering', 'Night Owls', 'Farmer\'s Markets'
 ];
 
-export const TRIPS_PLUS_PRICE = 9.99;
-export const TRIPS_PLUS_ANNUAL_PRICE = 99.99;
+// Consumer subscription pricing - NEW 3-TIER STRUCTURE
+export const CONSUMER_PRICING = {
+  explorer: {
+    monthly: 9.99,
+    annual: 99,
+    trips: Infinity,
+    aiQueries: 10, // 10 queries per trip
+    savings: 20,
+    savingsPercent: 17
+  },
+  'frequent-chraveler': {
+    monthly: 19.99,
+    annual: 199,
+    trips: Infinity,
+    aiQueries: Infinity, // Unlimited AI
+    proTripsPerMonth: 1, // Can create 1 Chravel Pro trip/month
+    proTripSeats: 50, // 50-seat allotment for Pro trip
+    savings: 40,
+    savingsPercent: 17
+  }
+} as const;
+
+// Legacy exports for backward compatibility (map to Explorer)
+export const TRIPS_PLUS_PRICE = CONSUMER_PRICING.explorer.monthly;
+export const TRIPS_PLUS_ANNUAL_PRICE = CONSUMER_PRICING.explorer.annual;
 
 // Storage quotas (in MB)
 export const FREE_STORAGE_QUOTA_MB = 500;
@@ -82,9 +137,14 @@ export const PLUS_STORAGE_QUOTA_MB = 50000; // 50GB
 
 // Feature availability
 export const FEATURE_ACCESS = {
-  AI_CONCIERGE: 'free', // Now free for all users
-  UNLIMITED_STORAGE: 'plus',
-  ADVANCED_ANALYTICS: 'plus',
-  PRIORITY_SUPPORT: 'plus',
-  TEAM_MANAGEMENT: 'plus'
+  AI_CONCIERGE: 'free', // 5 queries per trip
+  AI_QUERIES_EXPLORER: 10, // 10 queries per trip
+  AI_QUERIES_UNLIMITED: 'frequent-chraveler',
+  UNLIMITED_STORAGE: 'explorer', // Both paid tiers
+  CALENDAR_SYNC: 'frequent-chraveler',
+  PDF_EXPORT: 'frequent-chraveler',
+  TRIP_CATEGORIES: 'explorer', // Both paid tiers can tag
+  PRO_TRIP_ACCESS: 'frequent-chraveler', // 1 Pro trip/month
+  PRIORITY_SUPPORT: 'explorer',
+  EARLY_ACCESS: 'frequent-chraveler'
 } as const;

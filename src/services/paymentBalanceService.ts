@@ -13,6 +13,7 @@ export interface PersonalBalance {
     amount: number;
     date: string;
   }>;
+  confirmationStatus?: 'none' | 'pending' | 'confirmed';
 }
 
 export interface BalanceSummary {
@@ -50,7 +51,7 @@ export const paymentBalanceService = {
       // Fetch all payment splits for these payments
       const { data: paymentSplits, error: splitsError } = await supabase
         .from('payment_splits')
-        .select('*')
+        .select('*, confirmation_status, confirmed_by, confirmed_at')
         .in('payment_message_id', paymentMessages?.map(m => m.id) || []);
 
       if (splitsError) throw splitsError;
@@ -98,10 +99,11 @@ export const paymentBalanceService = {
       const ledger = new Map<string, {
         netAmount: number;
         payments: Array<{ paymentId: string; description: string; amount: number; date: string }>;
+        confirmationStatus: 'none' | 'pending' | 'confirmed';
       }>();
 
       // Initialize current user in ledger
-      ledger.set(userId, { netAmount: 0, payments: [] });
+      ledger.set(userId, { netAmount: 0, payments: [], confirmationStatus: 'none' });
 
       // Add amounts for payments current user made (positive - they are owed)
       paymentMessages?.forEach(payment => {
@@ -114,11 +116,13 @@ export const paymentBalanceService = {
           relevantSplits.forEach(split => {
             if (!split.is_settled) {
               const debtorId = split.debtor_user_id;
+              const confirmStatus = (split.confirmation_status as 'none' | 'pending' | 'confirmed') || 'none';
               if (!ledger.has(debtorId)) {
-                ledger.set(debtorId, { netAmount: 0, payments: [] });
+                ledger.set(debtorId, { netAmount: 0, payments: [], confirmationStatus: confirmStatus });
               }
               const entry = ledger.get(debtorId)!;
               entry.netAmount += split.amount_owed; // They owe you
+              entry.confirmationStatus = confirmStatus;
               entry.payments.push({
                 paymentId: payment.id,
                 description: payment.description,
@@ -136,11 +140,13 @@ export const paymentBalanceService = {
           const payment = paymentMessages?.find(m => m.id === split.payment_message_id);
           if (payment) {
             const payerId = payment.created_by;
+            const confirmStatus = (split.confirmation_status as 'none' | 'pending' | 'confirmed') || 'none';
             if (!ledger.has(payerId)) {
-              ledger.set(payerId, { netAmount: 0, payments: [] });
+              ledger.set(payerId, { netAmount: 0, payments: [], confirmationStatus: confirmStatus });
             }
             const entry = ledger.get(payerId)!;
             entry.netAmount -= split.amount_owed; // You owe them
+            entry.confirmationStatus = confirmStatus;
             entry.payments.push({
               paymentId: payment.id,
               description: payment.description,
@@ -178,7 +184,8 @@ export const paymentBalanceService = {
             displayName: primaryMethod.display_name || undefined,
             isPreferred: primaryMethod.is_preferred || false
           } : null,
-          unsettledPayments: entry.payments
+          unsettledPayments: entry.payments,
+          confirmationStatus: entry.confirmationStatus
         });
 
         // Calculate totals

@@ -32,7 +32,11 @@ cd <YOUR_PROJECT_NAME>
 # Step 3: Install the necessary dependencies.
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Set up environment variables
+cp .env.example .env
+# Edit .env and add your API keys (see Environment Configuration section below)
+
+# Step 5: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 
@@ -129,15 +133,37 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-trick
 
 ## 🔧 **Environment Configuration**
 
-The Supabase functions that power the AI features need access to these environment variables:
+### Required for Local Development
 
-- `LOVABLE_API_KEY` – required for AI Concierge powered by Google Gemini
-- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` – allow the functions to read and write data
-- `VITE_GOOGLE_MAPS_API_KEY` – required for Google Maps integration and grounding
-- `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` – frontend Supabase connection
+Create a `.env` file in the root directory (copy from `.env.example`):
+
+```bash
+cp .env.example .env
+```
+
+**Critical Frontend Variables:**
+- `VITE_GOOGLE_MAPS_API_KEY` – **Required** for Places tab and map features
+  - Get from: https://console.cloud.google.com/apis/credentials
+  - Enable: Maps JavaScript API, Places API, Geocoding API
+- `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` – Required for database connection
+- `VITE_STREAM_API_KEY` – Required for chat features
+
+**Backend/Supabase Functions Variables:**
+- `LOVABLE_API_KEY` – Required for AI Concierge powered by Google Gemini
+- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` – Allow functions to read/write data
 
 Set these variables when running `supabase functions serve` locally.
 When deploying, set the same variables using `supabase secrets set`.
+
+### Troubleshooting
+
+**Maps not loading?**
+1. Verify `VITE_GOOGLE_MAPS_API_KEY` is set in `.env`
+2. Ensure the API key has the following APIs enabled:
+   - Maps JavaScript API
+   - Places API
+   - Geocoding API
+3. Restart the development server after adding/changing environment variables
 
 ## Claude Code
 

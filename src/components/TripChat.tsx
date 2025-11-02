@@ -7,20 +7,23 @@ import { useOrientation } from '../hooks/useOrientation';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { useSwipeGesture } from '../hooks/useSwipeGesture';
+import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { ChatInput } from './chat/ChatInput';
 import { MessageList } from './chat/MessageList';
 import { MessageFilters } from './chat/MessageFilters';
 import { InlineReplyComponent } from './chat/InlineReplyComponent';
-import { ChannelSwitcher } from './chat/ChannelSwitcher';
+import { VirtualizedMessageContainer } from './chat/VirtualizedMessageContainer';
+import { MessageItem } from './chat/MessageItem';
 import { PullToRefreshIndicator } from './mobile/PullToRefreshIndicator';
 import { MessageSkeleton } from './mobile/SkeletonLoader';
 import { getMockAvatar } from '../utils/mockAvatars';
 import { useTripMembers } from '../hooks/useTripMembers';
 import { useTripChat } from '@/hooks/useTripChat';
 import { useAuth } from '@/hooks/useAuth';
-import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { PaymentData } from '@/types/payments';
 import { hapticService } from '../services/hapticService';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { WifiOff } from 'lucide-react';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -60,29 +63,27 @@ export const TripChat = ({
   const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
   const [demoLoading, setDemoLoading] = useState(true);
   const [reactions, setReactions] = useState<{ [messageId: string]: { [reaction: string]: { count: number; userReacted: boolean } } }>({});
-
+  
+  const { isOffline } = useOfflineStatus();
   const params = useParams<{ tripId?: string; proTripId?: string; eventId?: string }>();
   const resolvedTripId = useMemo(() => {
     return tripIdProp || params.tripId || params.proTripId || params.eventId || '';
   }, [tripIdProp, params.tripId, params.proTripId, params.eventId]);
+  
   const demoMode = useDemoMode();
-  const { tripMembers } = useTripMembers(resolvedTripId);
   const { user } = useAuth();
+
+  // Live chat hooks - always initialize normally
+  const { tripMembers } = useTripMembers(resolvedTripId);
   const {
     messages: liveMessages,
     isLoading: liveLoading,
     sendMessageAsync: sendTripMessage,
-    isCreating: isSendingMessage
+    isCreating: isSendingMessage,
+    loadMore: loadMoreMessages,
+    hasMore,
+    isLoadingMore
   } = useTripChat(resolvedTripId);
-
-  // 🆕 Role channels for enterprise trips
-  const {
-    availableChannels,
-    activeChannel,
-    messages: channelMessages,
-    setActiveChannel,
-    sendMessage: sendChannelMessage
-  } = useRoleChannels(resolvedTripId, userRole);
 
   const {
     inputMessage,
@@ -143,7 +144,7 @@ export const TripChat = ({
       id: message.id,
       text: message.content,
       sender: {
-        id: message.author_name || 'unknown',
+        id: message.user_id || message.author_name || 'unknown',
         name: message.author_name || 'Unknown',
         avatar: getMockAvatar(message.author_name || 'Unknown')
       },
@@ -155,15 +156,6 @@ export const TripChat = ({
   }, [liveMessages, shouldUseDemoData]);
 
   const handleSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: any) => {
-    // If we're in a role channel, send to that channel instead
-    if (isPro && activeChannel) {
-      const success = await sendChannelMessage(inputMessage);
-      if (success) {
-        setInputMessage('');
-      }
-      return;
-    }
-
     // Transform paymentData if needed to match useChatComposer expectations
     let transformedPaymentData;
     if (isPayment && paymentData) {
@@ -225,14 +217,29 @@ export const TripChat = ({
     const loadDemoData = async () => {
       if (shouldUseDemoData) {
         setDemoLoading(true);
-        // Exclude payment messages from chat
-        const demoMessagesData = await demoModeService.getMockMessages('friends-trip', true);
+        
+        // Detect if this is a Pro or Event trip
+        const isProTrip = isPro || params.proTripId;
+        const isEventTrip = isEvent || params.eventId;
+        
+        let demoMessagesData;
+        
+        if (isProTrip) {
+          // Load Pro-specific demo messages
+          demoMessagesData = await demoModeService.getProMockMessages('pro', user?.id || 'demo-user');
+        } else if (isEventTrip) {
+          // Load Event-specific demo messages
+          demoMessagesData = await demoModeService.getProMockMessages('event', user?.id || 'demo-user');
+        } else {
+          // Load consumer trip demo messages (existing logic)
+          demoMessagesData = await demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
+        }
 
         const formattedMessages = demoMessagesData.map(msg => ({
           id: msg.id,
           text: msg.message_content || '',
           sender: {
-            id: msg.id,
+            id: msg.sender_id || msg.sender_name || msg.id,
             name: msg.sender_name || 'Unknown',
             avatar: getMockAvatar(msg.sender_name || 'Unknown')
           },
@@ -257,13 +264,13 @@ export const TripChat = ({
         const tripIdNum = parseInt(resolvedTripId);
         if (tripIdNum >= 1 && tripIdNum <= 12 && liveFormattedMessages.length === 0) {
           setDemoLoading(true);
-          const demoMessagesData = await demoModeService.getMockMessages('friends-trip', true);
+          const demoMessagesData = await demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
 
           const formattedMessages = demoMessagesData.map(msg => ({
             id: msg.id,
             text: msg.message_content || '',
             sender: {
-              id: msg.id,
+              id: msg.sender_id || msg.sender_name || msg.id,
               name: msg.sender_name || 'Unknown',
               avatar: getMockAvatar(msg.sender_name || 'Unknown')
             },
@@ -287,39 +294,20 @@ export const TripChat = ({
     };
 
     loadDemoData();
-  }, [shouldUseDemoData, isEvent, resolvedTripId, liveFormattedMessages.length]);
+  }, [shouldUseDemoData, isEvent, isPro, resolvedTripId, liveFormattedMessages.length, user?.id]);
 
   // Determine which messages to show:
-  // 1. If in a role channel: show channel messages
-  // 2. Demo mode OR no tripId: show demo messages
-  // 3. Consumer trip (1-12) with no live messages: show demo messages as fallback
-  // 4. Otherwise: show live messages
+  // 1. Demo mode OR no tripId: show demo messages
+  // 2. Consumer trip (1-12) with no live messages: show demo messages as fallback
+  // 3. Otherwise: show live messages
   const tripIdNum = parseInt(resolvedTripId);
-  const isConsumerTripWithNoMessages = 
+  const isConsumerTripWithNoMessages =
     tripIdNum >= 1 && tripIdNum <= 12 && liveFormattedMessages.length === 0 && !shouldUseDemoData;
-  
-  let messagesToShow: MockMessage[];
-  if (isPro && activeChannel) {
-    // Show channel messages for enterprise trips when channel is selected
-    messagesToShow = channelMessages.map(msg => ({
-      id: msg.id,
-      text: msg.content,
-      sender: {
-        id: msg.senderId,
-        name: msg.senderName || 'Unknown',
-        avatar: msg.senderAvatar || getMockAvatar(msg.senderName || 'Unknown')
-      },
-      createdAt: msg.createdAt,
-      isBroadcast: false,
-      isPayment: false,
-      tags: [] as string[]
-    }));
-  } else {
-    messagesToShow = (shouldUseDemoData || isConsumerTripWithNoMessages) 
-      ? demoMessages 
-      : liveFormattedMessages;
-  }
-  
+
+  const messagesToShow = (shouldUseDemoData || isConsumerTripWithNoMessages)
+    ? demoMessages
+    : liveFormattedMessages;
+
   const filteredMessages = filterMessages(messagesToShow);
 
   const isLoading = shouldUseDemoData ? demoLoading : liveLoading;
@@ -330,36 +318,19 @@ export const TripChat = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Channel Switcher for Enterprise Trips */}
-      {isPro && availableChannels.length > 0 && (
-        <div className="p-4 border-b border-gray-700">
-          <div className="flex items-center gap-3 mb-3">
-            <ChannelSwitcher
-              activeChannel={activeChannel?.id || 'main'}
-              roleChannels={availableChannels}
-              onChannelChange={(channelId) => {
-                if (channelId === 'main') {
-                  setActiveChannel(null);
-                } else {
-                  const channel = availableChannels.find(ch => ch.id === channelId);
-                  if (channel) setActiveChannel(channel);
-                }
-              }}
-              className="flex-1"
-            />
-            {activeChannel && (
-              <div className="bg-purple-500/10 border border-purple-500/20 rounded px-3 py-1.5">
-                <p className="text-xs text-purple-400 font-medium">
-                  Private channel - Only {activeChannel.roleName} members
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Offline Mode Banner */}
+      {isOffline && (
+        <Alert className="mx-4 mt-2 mb-0 border-warning/50 bg-warning/10">
+          <WifiOff className="h-4 w-4" />
+          <AlertDescription className="text-sm">
+            Offline Mode – viewing cached messages
+          </AlertDescription>
+        </Alert>
       )}
-      
+
+      {/* Message Filters */}
       {filteredMessages.length > 0 && (
-        <div className="p-4 border-b border-gray-700">
+        <div className="pb-2">
           <MessageFilters
             activeFilter={messageFilter}
             onFilterChange={setMessageFilter}
@@ -368,41 +339,74 @@ export const TripChat = ({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto bg-gray-800/30 rounded-lg mx-4 mb-4">
-        <div className="p-4">
-          <MessageList
-            messages={filteredMessages}
-            reactions={reactions}
-            onReaction={handleReaction}
-            emptyStateTitle={shouldUseDemoData ? undefined : 'No messages yet'}
-            emptyStateDescription={shouldUseDemoData ? undefined : 'Start the conversation with your team'}
-          />
+      {/* Unified Chat Shell - Glassmorphic container */}
+      <div className="pb-4 flex-1 flex flex-col">
+        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
+          {isLoading ? (
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-start gap-3 animate-pulse">
+                  <div className="w-10 h-10 rounded-full bg-slate-700" />
+                  <div className="flex-1">
+                    <div className="h-4 bg-slate-700 rounded w-1/4 mb-2" />
+                    <div className="h-16 bg-slate-700 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          ) : (
+            <VirtualizedMessageContainer
+              messages={filteredMessages}
+              renderMessage={(message) => (
+                <MessageItem
+                  message={message}
+                  reactions={reactions[message.id]}
+                  onReaction={handleReaction}
+                />
+              )}
+              onLoadMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? () => {} : loadMoreMessages}
+              hasMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? false : hasMore}
+              isLoading={isLoadingMore}
+              initialVisibleCount={10}
+              className="chat-scroll-container native-scroll px-3"
+              autoScroll={true}
+              restoreScroll={true}
+              scrollKey={`chat-scroll-${resolvedTripId}`}
+            />
+          )}
+          
+          {/* Reply Bar */}
+          {replyingTo && (
+            <div className="border-t border-white/10 bg-black/30 px-4 py-2">
+              <InlineReplyComponent 
+                replyTo={{ 
+                  id: replyingTo.id, 
+                  text: replyingTo.text,
+                  senderName: replyingTo.senderName 
+                }}
+                onCancel={clearReply} 
+              />
+            </div>
+          )}
+          
+          {/* Input Area */}
+          <div className="border-t border-white/10 bg-black/30 p-3">
+            <ChatInput
+              inputMessage={inputMessage}
+              onInputChange={setInputMessage}
+              onSendMessage={handleSendMessage}
+              onKeyPress={handleKeyPress}
+              apiKey=""
+              isTyping={isSendingMessage}
+              tripMembers={tripMembers}
+              hidePayments={true}
+              isPro={isPro}
+              tripId={resolvedTripId}
+            />
+          </div>
         </div>
-      </div>
-
-      {replyingTo && (
-        <InlineReplyComponent 
-          replyTo={{ 
-            id: replyingTo.id, 
-            text: replyingTo.text,
-            senderName: replyingTo.senderName 
-          }}
-          onCancel={clearReply} 
-        />
-      )}
-
-      <div className="p-4">
-        <ChatInput
-          inputMessage={inputMessage}
-          onInputChange={setInputMessage}
-          onSendMessage={handleSendMessage}
-          onKeyPress={handleKeyPress}
-          apiKey=""
-          isTyping={isSendingMessage}
-          tripMembers={tripMembers}
-          hidePayments={true}
-          isInChannelMode={isPro && !!activeChannel}
-        />
       </div>
     </div>
   );

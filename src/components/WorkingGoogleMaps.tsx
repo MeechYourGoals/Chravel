@@ -64,9 +64,8 @@ export const WorkingGoogleMaps = ({ className = '' }: WorkingGoogleMapsProps) =>
     setIsBasecampSelectorOpen(true);
   };
 
-  const handleBasecampSet = (newBasecamp: BasecampLocation) => {
-    setBasecamp(newBasecamp);
-    setIsBasecampSelectorOpen(false);
+  const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
+    await setBasecamp(newBasecamp);
   };
 
   const handleIframeLoad = () => {
@@ -106,18 +105,27 @@ export const WorkingGoogleMaps = ({ className = '' }: WorkingGoogleMapsProps) =>
         </div>
       )}
 
-      {/* Google Maps Iframe - Classic Embeddable UI */}
+      {/* Google Maps Iframe - Stable Embed */}
       <iframe
         src={embedUrl}
         className="w-full h-full border-0"
         loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
+        referrerPolicy="strict-origin-when-cross-origin"
         onLoad={handleIframeLoad}
         onError={() => {
           console.error('[WorkingGoogleMaps] Iframe error for URL:', embedUrl);
-          const fallback = 'https://maps.google.com/maps?output=embed&q=' + encodeURIComponent('near me');
-          console.info('[WorkingGoogleMaps] Applying fallback URL:', fallback);
-          setEmbedUrl(fallback);
+          
+          // Try domain swap: maps.google.com → www.google.com
+          if (embedUrl.includes('maps.google.com')) {
+            const swapped = embedUrl.replace('maps.google.com', 'www.google.com');
+            console.info('[WorkingGoogleMaps] Retrying with www.google.com:', swapped);
+            setEmbedUrl(swapped);
+          } else {
+            // Final fallback: simple "near me" query
+            const fallback = 'https://www.google.com/maps?output=embed&q=' + encodeURIComponent('near me');
+            console.info('[WorkingGoogleMaps] Applying fallback URL:', fallback);
+            setEmbedUrl(fallback);
+          }
         }}
         title="Google Maps"
         allow="geolocation"

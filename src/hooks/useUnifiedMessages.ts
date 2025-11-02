@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { unifiedMessagingService, Message, SendMessageOptions } from '@/services/unifiedMessagingService';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { saveMessagesToCache, loadMessagesFromCache } from '@/services/chatStorage';
 
 interface UseUnifiedMessagesOptions {
   tripId: string;
@@ -13,6 +14,8 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [user, setUser] = useState<{ 
     id: string; 
     email?: string;
@@ -33,9 +36,20 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
 
     const initMessaging = async () => {
       try {
-        // Load initial messages
-        const initialMessages = await unifiedMessagingService.getMessages(tripId, 50);
+        // Load from cache first for instant display
+        const cachedMessages = await loadMessagesFromCache(tripId);
+        if (cachedMessages.length > 0) {
+          setMessages(cachedMessages as any);
+          setIsLoading(false);
+        }
+
+        // Load initial messages from server (last 10)
+        const initialMessages = await unifiedMessagingService.getMessages(tripId, 10);
         setMessages(initialMessages);
+        setHasMore(initialMessages.length === 10);
+        
+        // Cache the fresh messages
+        await saveMessagesToCache(tripId, initialMessages as any);
 
         // Subscribe to real-time updates
         const unsubscribe = await unifiedMessagingService.subscribeToTrip(
@@ -86,12 +100,15 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
     setIsSending(true);
     try {
       const userName = user.email?.split('@')[0] || 'Unknown User';
-      await unifiedMessagingService.sendMessage({
+      const message = await unifiedMessagingService.sendMessage({
         content,
         tripId,
         userName,
         userId: user.id
       });
+      
+      // Update cache with new message
+      await saveMessagesToCache(tripId, [message as any]);
     } catch (error) {
       console.error('Failed to send message:', error);
       toast({
@@ -107,20 +124,28 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
 
   // Load more messages
   const loadMore = useCallback(async () => {
-    if (messages.length === 0) return;
+    if (messages.length === 0 || !hasMore || isLoadingMore) return;
 
+    setIsLoadingMore(true);
     try {
       const oldestMessage = messages[0];
       const olderMessages = await unifiedMessagingService.getMessages(
         tripId, 
-        50, 
+        20, 
         new Date(oldestMessage.created_at)
       );
-      setMessages(prev => [...olderMessages, ...prev]);
+      if (olderMessages.length > 0) {
+        setMessages(prev => [...olderMessages, ...prev]);
+        setHasMore(olderMessages.length === 20);
+      } else {
+        setHasMore(false);
+      }
     } catch (error) {
       console.error('Failed to load more messages:', error);
+    } finally {
+      setIsLoadingMore(false);
     }
-  }, [tripId, messages]);
+  }, [tripId, messages, hasMore, isLoadingMore]);
 
   // Delete message
   const deleteMessage = useCallback(async (messageId: string) => {
@@ -144,6 +169,8 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
     sendMessage,
     loadMore,
     deleteMessage,
-    isConnected: true
+    isConnected: true,
+    hasMore,
+    isLoadingMore,
   };
 }

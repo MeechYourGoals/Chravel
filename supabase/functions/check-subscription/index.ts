@@ -45,7 +45,7 @@ serve(async (req) => {
     const user = userData.user;
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
@@ -78,16 +78,29 @@ serve(async (req) => {
       logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
       
       productId = subscription.items.data[0].price.product as string;
-      logStep("Determined subscription tier", { productId });
+      
+      // Determine tier from product ID
+      let tier = 'free';
+      if (productId === 'prod_TBD_EXPLORER') tier = 'explorer';
+      else if (productId === 'prod_TBD_FREQUENT_CHRAVELER') tier = 'frequent-chraveler';
+      else if (productId === 'prod_TBD_PRO') tier = 'frequent-chraveler'; // Legacy consumer Pro -> Frequent Chraveler
+      else if (productId === 'prod_TBD_UNLIMITED') tier = 'frequent-chraveler'; // Legacy Unlimited -> Frequent Chraveler
+      else if (productId === 'prod_TBIgoaG5RiY45u') tier = 'explorer'; // Legacy Plus -> Explorer
+      else if (productId === 'prod_TBD_STARTER') tier = 'explorer'; // Legacy Starter -> Explorer
+      else if (productId.startsWith('prod_TBIi')) tier = 'pro'; // Organization Pro products (separate from consumer tier)
+      
+      logStep("Determined subscription tier", { productId, tier });
 
       // Update profile with subscription info
       await supabaseClient
         .from('profiles')
-        .update({ subscription_product_id: productId })
+        .update({ 
+          subscription_product_id: productId,
+        })
         .eq('user_id', user.id);
 
       // Grant pro role if it's a pro product
-      if (productId.startsWith('prod_TBIi')) { // All Pro products start with this
+      if (tier === 'pro') {
         await supabaseClient
           .from('user_roles')
           .insert({ user_id: user.id, role: 'pro' })
@@ -95,6 +108,13 @@ serve(async (req) => {
           .select();
         logStep("Pro role granted");
       }
+      
+      return createSecureResponse({
+        subscribed: hasActiveSub,
+        product_id: productId,
+        tier: tier,
+        subscription_end: subscriptionEnd
+      });
     } else {
       logStep("No active subscription found");
       
@@ -103,13 +123,14 @@ serve(async (req) => {
         .from('profiles')
         .update({ subscription_product_id: null })
         .eq('user_id', user.id);
+        
+      return createSecureResponse({
+        subscribed: false,
+        product_id: null,
+        tier: 'free',
+        subscription_end: null
+      });
     }
-
-    return createSecureResponse({
-      subscribed: hasActiveSub,
-      product_id: productId,
-      subscription_end: subscriptionEnd
-    });
   } catch (error) {
     logError('CHECK_SUBSCRIPTION', error);
     return createErrorResponse(sanitizeErrorForClient(error), 500);

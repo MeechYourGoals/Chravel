@@ -97,24 +97,20 @@ export const MobileTripCard = ({ trip }: MobileTripCardProps) => {
           
           <div className="flex items-center">
             <div className="flex -space-x-2">
-              {participantsWithAvatars.slice(0, 3).map((participant, index) => (
+              {participantsWithAvatars.slice(0, 5).map((participant, index) => (
                 <TravelerTooltip key={participant.id} name={participant.name}>
                   <div
-                    className="relative"
+                    className="relative w-8 h-8 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center text-xs font-semibold text-black border-2 border-gray-900"
                     style={{ zIndex: participantsWithAvatars.length - index }}
                   >
-                    <img
-                      src={participant.avatar}
-                      alt={participant.name}
-                      className="w-8 h-8 rounded-full border-2 border-gray-900"
-                    />
+                    {participant.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                   </div>
                 </TravelerTooltip>
               ))}
             </div>
-            {participantsWithAvatars.length > 3 && (
+            {participantsWithAvatars.length > 5 && (
               <div className="w-8 h-8 rounded-full bg-gray-700 border-2 border-gray-900 flex items-center justify-center text-xs font-medium text-white ml-1">
-                +{participantsWithAvatars.length - 3}
+                +{participantsWithAvatars.length - 5}
               </div>
             )}
           </div>

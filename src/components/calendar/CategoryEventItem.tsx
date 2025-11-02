@@ -37,7 +37,7 @@ export const CategoryEventItem = ({ event, categoryInfo, assignment }: CategoryE
             
             <div className="flex items-center gap-2">
               <User className="h-3.5 w-3.5" />
-              Added by You
+              Added by {event.creatorName || 'Unknown'}
             </div>
           </div>
           

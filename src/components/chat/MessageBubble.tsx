@@ -5,6 +5,8 @@ import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { ChatMessageWithGrounding } from '@/types/grounding';
 import { ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useMobilePortrait } from '@/hooks/useMobilePortrait';
+import { useLongPress } from '@/hooks/useLongPress';
 
 export interface MessageBubbleProps {
   id: string;
@@ -14,8 +16,10 @@ export interface MessageBubbleProps {
   timestamp: string;
   isBroadcast?: boolean;
   isPayment?: boolean;
+  isOwnMessage?: boolean;
   reactions?: Record<string, { count: number; userReacted: boolean }>;
   onReaction: (messageId: string, reactionType: string) => void;
+  showSenderInfo?: boolean;
   // 🆕 Grounding support
   grounding?: {
     sources?: Array<{ id: string; title: string; url: string; snippet: string; source: string }>;
@@ -31,77 +35,90 @@ export const MessageBubble = ({
   timestamp,
   isBroadcast,
   isPayment,
+  isOwnMessage = false,
   reactions,
   onReaction,
-  grounding
+  grounding,
+  showSenderInfo = true,
 }: MessageBubbleProps) => {
   const [showReactions, setShowReactions] = useState(false);
+  const isMobilePortrait = useMobilePortrait();
 
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return new Date(timestamp).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
-  const getTextColorClass = () => {
-    if (isBroadcast) return 'text-orange-400';
-    if (isPayment) return 'text-green-400';
-    return 'text-foreground';
-  };
-
-  const getBubbleClasses = () => {
-    if (isBroadcast) {
-      return 'bg-orange-600/10 border-orange-500/30 shadow-[0_2px_12px_rgba(251,146,60,0.15)]';
-    }
-    if (isPayment) {
-      return 'bg-green-600/10 border-green-500/30 shadow-[0_2px_12px_rgba(34,197,94,0.15)]';
-    }
-    return 'bg-card/50 border-border shadow-sm';
-  };
+  // Unified layout: Metadata above bubble for both mobile and desktop (consistency)
+  const longPressHandlers = useLongPress({
+    onLongPress: () => {
+      setShowReactions(true);
+      // Auto-hide after 5 seconds
+      setTimeout(() => setShowReactions(false), 5000);
+    },
+    threshold: 500,
+  });
 
   return (
-    <div
-      className="group flex items-start gap-3"
-      onMouseEnter={() => setShowReactions(true)}
-      onMouseLeave={() => setShowReactions(false)}
-    >
-      <img
-        src={senderAvatar || getMockAvatar(senderName)}
-        alt={senderName}
-        className="w-10 h-10 rounded-full object-cover border-2 border-border/50"
-      />
-      
-      <div className="flex-1">
-        <div className={cn('rounded-xl px-4 py-3 backdrop-blur-sm border transition-all', getBubbleClasses())}>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="font-semibold text-sm text-foreground">{senderName}</span>
-            <span className="text-xs text-muted-foreground">{formatTime(timestamp)}</span>
-            {isBroadcast && (
-              <span className="text-xs bg-orange-600/20 text-orange-400 px-2 py-0.5 rounded-full">
-                📢 Broadcast
-              </span>
-            )}
-            {isPayment && (
-              <span className="text-xs bg-green-600/20 text-green-400 px-2 py-0.5 rounded-full">
-                💳 Payment
-              </span>
-            )}
-          </div>
-          <p className={cn('text-sm leading-relaxed', getTextColorClass())}>{text}</p>
+    <div className={cn('flex gap-2', isOwnMessage ? 'justify-end' : 'justify-start')}>
+      {!isOwnMessage && showSenderInfo && (
+        <img
+          src={senderAvatar || getMockAvatar(senderName)}
+          alt={senderName}
+          className="w-10 h-10 rounded-full object-cover border-2 border-border/50 flex-shrink-0"
+        />
+      )}
+      {!isOwnMessage && !showSenderInfo && <div className="w-10 flex-shrink-0" />}
+
+      <div
+        className={cn(
+          'flex flex-col max-w-[85%]',
+          isOwnMessage ? 'items-end text-right' : 'items-start text-left',
+        )}
+      >
+        {showSenderInfo && (
+          <span className="text-xs text-muted-foreground mb-1">
+            {isOwnMessage ? 'You' : senderName} — {formatTime(timestamp)}
+          </span>
+        )}
+        <div
+          className={cn(
+            'px-3 py-2 rounded-2xl break-words',
+            isOwnMessage
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted/80 text-muted-foreground',
+            isBroadcast && !isOwnMessage && 'border-2 border-orange-500/50',
+            isPayment && !isOwnMessage && 'border-2 border-green-500/50',
+          )}
+        >
+          {text}
         </div>
         
-        {/* 🆕 Google Maps Widget */}
+        {/* Google Maps Widget */}
         {grounding?.googleMapsWidget && (
-          <div className="mt-3">
-            <GoogleMapsWidget widgetToken={grounding.googleMapsWidget} height={250} />
+          <div className="mt-2">
+            <GoogleMapsWidget 
+              widgetToken={grounding.googleMapsWidget} 
+              height={isMobilePortrait ? 200 : 250} 
+            />
           </div>
         )}
         
-        {/* 🆕 Grounding Sources */}
+        {/* Grounding Sources */}
         {grounding?.sources && grounding.sources.length > 0 && (
-          <div className="mt-3 space-y-2">
-            <div className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+          <div className={cn("space-y-2", "mt-2")}>
+            <div className={cn(
+              "font-medium text-muted-foreground flex items-center gap-2",
+              isMobilePortrait ? "text-[10px]" : "text-xs"
+            )}>
               <span>Sources:</span>
               {grounding.sources.some(s => s.source === 'google_maps_grounding') && (
-                <span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-[10px]">
+                <span className={cn(
+                  "bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded",
+                  isMobilePortrait ? "text-[9px]" : "text-[10px]"
+                )}>
                   Verified by Google Maps
                 </span>
               )}
@@ -113,9 +130,12 @@ export const MessageBubble = ({
                   href={source.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 p-2 bg-blue-500/10 rounded-lg transition-colors"
+                  className={cn(
+                    "block text-blue-400 hover:text-blue-300 flex items-center gap-1 bg-blue-500/10 rounded-lg transition-colors",
+                    isMobilePortrait ? "text-[10px] p-1.5" : "text-xs p-2"
+                  )}
                 >
-                  <ExternalLink size={10} />
+                  <ExternalLink size={isMobilePortrait ? 8 : 10} />
                   <span className="truncate">{source.title}</span>
                 </a>
               ))}
@@ -123,9 +143,13 @@ export const MessageBubble = ({
           </div>
         )}
         
-        <div className={cn('mt-2 transition-opacity', showReactions ? 'opacity-100' : 'opacity-0')}>
-          <MessageReactionBar messageId={id} reactions={reactions} onReaction={onReaction} />
-        </div>
+        {showReactions && (
+          <div className={cn(
+            isMobilePortrait ? 'mt-1' : 'mt-1'
+          )}>
+            <MessageReactionBar messageId={id} reactions={reactions} onReaction={onReaction} />
+          </div>
+        )}
       </div>
     </div>
   );

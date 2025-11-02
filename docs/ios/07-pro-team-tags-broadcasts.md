@@ -5,6 +5,71 @@
 
 ---
 
+## ⚡ IMPORTANT: Team Tab Structure Update (2025-10-27)
+
+**Breaking Change**: The Team tab now uses a sub-tab navigation pattern.
+
+### New Structure:
+```
+TeamView (SwiftUI)
+├─ TabView or SegmentedControl
+│   ├─ ChannelsView (default) - Shows role-based channels
+│   └─ RolesView - Shows team roster with role management
+```
+
+### Implementation Notes for iOS:
+
+1. **Default View**: ChannelsView should be the initially selected tab
+2. **Navigation**: Use SwiftUI `Picker` with `.segmentedPickerStyle()` or custom tabs
+3. **State Management**: Track `selectedTeamSubTab` in `@State` variable
+4. **Data Fetching**: 
+   - ChannelsView fetches accessible channels via `/role-channels/:tripId`
+   - RolesView fetches roster via `/trips/:tripId/roster`
+
+### Example SwiftUI Structure:
+
+```swift
+struct TeamTabView: View {
+    @State private var selectedSubTab: TeamSubTab = .channels
+    
+    enum TeamSubTab: String, CaseIterable {
+        case channels = "Channels"
+        case roles = "Roles"
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Sub-tab Picker
+            Picker("Team Section", selection: $selectedSubTab) {
+                ForEach(TeamSubTab.allCases, id: \.self) { tab in
+                    Text(tab.rawValue).tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding()
+            
+            // Content
+            TabView(selection: $selectedSubTab) {
+                ChannelsView(tripId: tripId)
+                    .tag(TeamSubTab.channels)
+                
+                RolesView(roster: roster, category: category)
+                    .tag(TeamSubTab.roles)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+        }
+    }
+}
+```
+
+### Consistency Requirements:
+- ✅ Channels tab must be default across all Pro trip types
+- ✅ Scrolling must work properly (no cut-off content)
+- ✅ Admin controls (Create Role button) only visible in Roles tab
+- ✅ Channel grid layout should be used for ChannelsView
+
+---
+
 ## Overview
 
 Pro trips unlock advanced team management, broadcast messaging, scheduling, and organizational features for sports teams, entertainment tours, and corporate travel.

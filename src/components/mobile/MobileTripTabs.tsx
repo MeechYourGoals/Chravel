@@ -18,39 +18,71 @@ interface MobileTripTabsProps {
   onTabChange: (tab: string) => void;
   tripId: string;
   basecamp: { name: string; address: string };
+  variant?: 'consumer' | 'pro' | 'event';
 }
 
 export const MobileTripTabs = ({
   activeTab,
   onTabChange,
   tripId,
-  basecamp
+  basecamp,
+  variant = 'consumer'
 }: MobileTripTabsProps) => {
   const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
   const contentRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
 
-  // 🆕 Updated tab order: Chat, Calendar, Concierge, Media, Payments, Places, Polls, Tasks
-  const tabs = [
-    { id: 'chat', label: 'Chat', icon: MessageCircle },
-    { id: 'calendar', label: 'Calendar', icon: Calendar },
-    { id: 'concierge', label: 'Concierge', icon: Sparkles },
-    { id: 'media', label: 'Media', icon: Camera },
-    { id: 'payments', label: 'Payments', icon: CreditCard },
-    { id: 'places', label: 'Places', icon: MapPin },
-    { id: 'polls', label: 'Polls', icon: BarChart3 },
-    { id: 'tasks', label: 'Tasks', icon: ClipboardList }
-  ];
+  // Tab configuration based on variant
+  const getTabsForVariant = () => {
+    const baseTabs = [
+      { id: 'chat', label: 'Chat', icon: MessageCircle },
+      { id: 'calendar', label: 'Calendar', icon: Calendar },
+      { id: 'concierge', label: 'Concierge', icon: Sparkles },
+      { id: 'media', label: 'Media', icon: Camera },
+      { id: 'payments', label: 'Payments', icon: CreditCard },
+      { id: 'places', label: 'Places', icon: MapPin },
+      { id: 'polls', label: 'Polls', icon: BarChart3 },
+      { id: 'tasks', label: 'Tasks', icon: ClipboardList }
+    ];
 
-  // Scroll active tab into view
+    // All variants currently use the same tabs
+    // Pro/Event specific tabs can be added here in the future
+    return baseTabs;
+  };
+
+  const tabs = getTabsForVariant();
+
+  // Scroll active tab into view and set CSS var for tabs height
   useEffect(() => {
     if (tabsContainerRef.current) {
       const activeButton = tabsContainerRef.current.querySelector(`[data-tab="${activeTab}"]`);
       if (activeButton) {
-        activeButton.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        activeButton.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
       }
     }
+
+    const setTabsHeightVar = () => {
+      const el = tabsContainerRef.current;
+      const barEl = el?.parentElement as HTMLElement | null;
+      const h = (barEl?.offsetHeight ?? el?.offsetHeight) || 52;
+      document.documentElement.style.setProperty('--mobile-tabs-h', `${h}px`);
+    };
+
+    // simple debounce
+    let t: any;
+    const handler = () => {
+      clearTimeout(t);
+      t = setTimeout(setTabsHeightVar, 100);
+    };
+
+    setTabsHeightVar();
+    window.addEventListener('resize', handler);
+    window.addEventListener('orientationchange', handler);
+    return () => {
+      window.removeEventListener('resize', handler);
+      window.removeEventListener('orientationchange', handler);
+    };
   }, [activeTab]);
 
   const handleTabPress = async (tabId: string) => {
@@ -89,12 +121,17 @@ export const MobileTripTabs = ({
 
   return (
     <>
-      {/* Horizontal Scrollable Tab Bar - Sticky */}
-      <div className="sticky top-[73px] z-40 bg-black/95 backdrop-blur-md border-b border-white/10">
+      {/* Horizontal Scrollable Tab Bar - Sticky, Compressed for Mobile Portrait */}
+      <div className="sticky top-[var(--mobile-header-h,73px)] z-40 bg-black/95 backdrop-blur-md border-b border-white/10">
         <div
           ref={tabsContainerRef}
-          className="flex overflow-x-auto scrollbar-hide gap-2 px-4 py-3"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="flex overflow-x-auto scrollbar-hide gap-2 px-4 py-2"
+          style={{ 
+            scrollbarWidth: 'none', 
+            msOverflowStyle: 'none',
+            scrollSnapType: 'x mandatory',
+            WebkitOverflowScrolling: 'touch'
+          }}
         >
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -107,11 +144,12 @@ export const MobileTripTabs = ({
                 onClick={() => handleTabPress(tab.id)}
                 className={`
                   flex items-center justify-center gap-2 
-                  px-4 py-2.5 min-w-max min-h-[44px]
+                  px-4 py-2 min-w-max h-[44px]
                   rounded-lg font-medium text-sm
                   transition-all duration-200
                   flex-shrink-0
                   active:scale-95
+                  scroll-snap-align-start
                   ${
                     isActive
                       ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-lg`
@@ -119,18 +157,24 @@ export const MobileTripTabs = ({
                   }
                 `}
               >
-                <Icon size={18} className="flex-shrink-0" />
-                <span className="whitespace-nowrap">{tab.label}</span>
+                <Icon size={16} className="flex-shrink-0" />
+                <span className="whitespace-nowrap text-sm">{tab.label}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Tab Content - Full height with padding for bottom nav */}
+      {/* Tab Content - Optimized height for mobile portrait, accounting for bottom nav */}
       <div
         ref={contentRef}
-        className="min-h-[calc(100vh-240px)] bg-black"
+        className="bg-background flex flex-col min-h-0 flex-1 mb-[calc(80px+env(safe-area-inset-bottom))]"
+        style={{
+          height: 'calc(100dvh - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px) - 80px - env(safe-area-inset-bottom))',
+          minHeight: '400px',
+          maxHeight: 'calc(100dvh - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px) - 80px - env(safe-area-inset-bottom))',
+          WebkitOverflowScrolling: 'touch'
+        }}
       >
         {renderTabContent()}
       </div>

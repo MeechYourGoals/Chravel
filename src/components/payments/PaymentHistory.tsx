@@ -172,31 +172,33 @@ export const PaymentHistory = ({ tripId }: PaymentHistoryProps) => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Payment History</CardTitle>
-        <p className="text-sm text-muted-foreground mt-1">
+    <Card className="rounded-lg">
+      <CardHeader className="py-3 px-4">
+        <CardTitle className="text-base">Payment History</CardTitle>
+        <p className="text-xs text-muted-foreground mt-0.5">
           All payment requests created for this trip
         </p>
       </CardHeader>
-      <CardContent>
+      <CardContent className="py-3 px-4">
         {payments.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-1">
             {payments.map(payment => (
-              <div key={payment.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                <div className="flex-1">
-                  <p className="font-medium text-foreground">{payment.description}</p>
-                  <p className="text-sm text-muted-foreground">
+              <div key={payment.id} className="flex items-center justify-between py-1 border-b border-border last:border-0">
+                {/* Left: Title and metadata inline */}
+                <div className="flex items-baseline gap-2 flex-1 min-w-0">
+                  <span className="font-medium text-foreground">{payment.description}</span>
+                  <span className="text-xs text-muted-foreground truncate">
                     {payment.createdByName || 'Trip member'} requested • Split among {payment.splitCount} people • {format(new Date(payment.createdAt), 'MMM d, yyyy')}
-                  </p>
+                  </span>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold text-foreground">
-                    {formatCurrency(payment.amount, payment.currency)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {formatCurrency(payment.amount / payment.splitCount, payment.currency)}/person
-                  </p>
+                {/* Right: Amount and per-person inline */}
+                <div className="text-right flex-shrink-0">
+                  <span className="font-semibold text-foreground">
+                    {formatCurrency(payment.amount, payment.currency)}{' '}
+                    <span className="text-sm text-muted-foreground font-normal">
+                      ({formatCurrency(payment.amount / payment.splitCount, payment.currency)}/person)
+                    </span>
+                  </span>
                 </div>
               </div>
             ))}

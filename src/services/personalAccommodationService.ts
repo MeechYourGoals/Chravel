@@ -1,61 +1,110 @@
-import { supabase } from '@/integrations/supabase/client';
-import { UserAccommodation, CreateAccommodationRequest, UpdateAccommodationRequest, TripBasecamp } from '@/types/accommodations';
+import { supabase } from '../integrations/supabase/client';
 
-export class PersonalAccommodationService {
-  // Get user's personal accommodation for a trip
-  static async getMyAccommodation(tripId: string): Promise<UserAccommodation | null> {
+export interface PersonalAccommodation {
+  id: string;
+  trip_id: string;
+  user_id: string;
+  accommodation_name: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  check_in?: string;
+  check_out?: string;
+  accommodation_type: 'hotel' | 'airbnb' | 'hostel' | 'apartment' | 'resort' | 'other';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateAccommodationRequest {
+  trip_id: string;
+  accommodation_name: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  check_in?: string;
+  check_out?: string;
+  accommodation_type?: 'hotel' | 'airbnb' | 'hostel' | 'apartment' | 'resort' | 'other';
+}
+
+export interface UpdateAccommodationRequest {
+  accommodation_name?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  check_in?: string;
+  check_out?: string;
+  accommodation_type?: 'hotel' | 'airbnb' | 'hostel' | 'apartment' | 'resort' | 'other';
+}
+
+class PersonalAccommodationService {
+  /**
+   * Get user's accommodation for a specific trip
+   */
+  async getUserAccommodation(tripId: string, userId?: string): Promise<PersonalAccommodation | null> {
+    const { data, error } = await (supabase as any)
+      .from('user_accommodations')
+      .select('*')
+      .eq('trip_id', tripId)
+      .eq('user_id', userId || (await supabase.auth.getUser()).data.user?.id || '')
+      .maybeSingle();
+
+    if (error) {
+      console.error('Failed to get user accommodation:', error);
+      throw error;
+    }
+
+    return data as PersonalAccommodation | null;
+  }
+
+  /**
+   * Get all accommodations for a trip
+   */
+  async getTripAccommodations(tripId: string): Promise<PersonalAccommodation[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_accommodations')
         .select('*')
         .eq('trip_id', tripId)
-        .eq('user_id', user.id)
-        .single();
+        .order('created_at', { ascending: true });
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        throw error;
-      }
-
-      return data;
+      if (error) throw error;
+      return (data || []) as PersonalAccommodation[];
     } catch (error) {
-      console.error('Error fetching personal accommodation:', error);
-      return null;
+      console.error('Failed to get trip accommodations:', error);
+      return [];
     }
   }
 
-  // Create or update user's personal accommodation
-  static async saveAccommodation(request: CreateAccommodationRequest): Promise<UserAccommodation | null> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+  /**
+   * Create or update user's accommodation
+   */
+  async setUserAccommodation(request: CreateAccommodationRequest): Promise<PersonalAccommodation | null> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase
-        .from('user_accommodations')
-        .upsert({
-          trip_id: request.trip_id,
-          user_id: user.id,
-          label: request.label || 'My Stay',
-          address: request.address,
-          latitude: request.latitude,
-          longitude: request.longitude,
-          place_id: request.place_id,
-          is_private: true,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'trip_id,user_id'
-        })
-        .select()
-        .single();
+    const { data, error } = await (supabase as any)
+      .from('user_accommodations')
+      .upsert({
+        trip_id: request.trip_id,
+        user_id: user.id,
+        accommodation_name: request.accommodation_name,
+        address: request.address,
+        latitude: request.latitude,
+        longitude: request.longitude,
+        check_in: request.check_in,
+        check_out: request.check_out,
+        accommodation_type: request.accommodation_type || 'hotel'
+      }, {
+        onConflict: 'trip_id,user_id'
+      })
+      .select()
+      .single();
 
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error saving personal accommodation:', error);
-      return null;
+    if (error) {
+      console.error('Failed to set user accommodation:', error);
+      throw error;
     }
+    return data as PersonalAccommodation | null;
   }
 
   // Update user's personal accommodation

@@ -2,13 +2,13 @@ import { useMemo } from 'react';
 
 export const DEFAULT_FEATURES = [
   'chat',
-  'broadcasts', 
-  'polls',
-  'tasks',
   'calendar',
-  'media',
   'concierge',
-  'search'
+  'media',
+  'payments',
+  'places',
+  'polls',
+  'tasks'
 ] as const;
 
 export type FeatureType = typeof DEFAULT_FEATURES[number];
@@ -24,13 +24,13 @@ export const useFeatureToggle = (config: FeatureConfig) => {
     if (config.trip_type === 'consumer') {
     return {
       showChat: true,
-      showBroadcasts: true,
+      showCalendar: true,
+      showConcierge: true,
+      showMedia: true,
+      showPayments: true,
+      showPlaces: true,
       showPolls: true,
       showTasks: true,
-      showCalendar: true,
-      showMedia: true,
-      showConcierge: true,
-      showSearch: true,
       isFeatureEnabled: () => true
     };
     }
@@ -40,13 +40,13 @@ export const useFeatureToggle = (config: FeatureConfig) => {
     
     return {
       showChat: enabledFeatures.includes('chat'),
-      showBroadcasts: enabledFeatures.includes('broadcasts'),
+      showCalendar: enabledFeatures.includes('calendar'),
+      showConcierge: enabledFeatures.includes('concierge'),
+      showMedia: enabledFeatures.includes('media'),
+      showPayments: enabledFeatures.includes('payments'),
+      showPlaces: enabledFeatures.includes('places'),
       showPolls: enabledFeatures.includes('polls'),
       showTasks: enabledFeatures.includes('tasks'),
-      showCalendar: enabledFeatures.includes('calendar'),
-      showMedia: enabledFeatures.includes('media'),
-      showConcierge: enabledFeatures.includes('concierge'),
-      showSearch: enabledFeatures.includes('search'),
       isFeatureEnabled: (feature: FeatureType) => enabledFeatures.includes(feature)
     };
   }, [config.enabled_features, config.trip_type]);

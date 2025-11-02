@@ -26,7 +26,6 @@ export const TripDetailHeader = ({
 }: TripDetailHeaderProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isPlus } = useConsumerSubscription();
   const { variant, accentColors } = useTripVariant();
 
   return (
@@ -51,7 +50,7 @@ export const TripDetailHeader = ({
               <UserPlus size={16} />
               <span className="hidden sm:inline">Invite</span>
             </button>
-            
+
             <button
               onClick={onToggleInbox}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors flex items-center gap-2"

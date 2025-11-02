@@ -262,8 +262,8 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
           </div>
         )}
 
-        <div className="mt-6 flex flex-col h-[calc(100vh-120px)]">
-          <div className="flex-1 space-y-4 mb-4 overflow-y-auto">
+        <div className="mt-6 flex flex-col h-[60vh] min-h-[400px]">
+          <div className="flex-1 space-y-4 mb-4 overflow-y-auto overflow-x-hidden concierge-chat-scroll">
             {messages.length === 0 ? (
               <div className="text-center py-8">
                 <MessageCircle size={48} className="text-gray-600 mx-auto mb-4" />

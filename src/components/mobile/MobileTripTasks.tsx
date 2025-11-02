@@ -4,6 +4,7 @@ import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { TaskSkeleton } from './SkeletonLoader';
 import { hapticService } from '../../services/hapticService';
+import { CreateTaskModal } from './CreateTaskModal';
 
 interface Task {
   id: string;
@@ -18,6 +19,7 @@ interface MobileTripTasksProps {
 }
 
 export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([
     { id: '1', title: 'Book flights', completed: true, assignee: 'Sarah' },
     { id: '2', title: 'Reserve hotel rooms', completed: false, assignee: 'Mike', dueDate: 'Tomorrow' },
@@ -76,7 +78,7 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
         <button
           onClick={async () => {
             await hapticService.medium();
-            // Add task modal
+            setIsModalOpen(true);
           }}
           className="p-3 bg-blue-600 rounded-lg active:scale-95 transition-transform"
         >
@@ -207,6 +209,16 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
           </div>
         )}
       </div>
+
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        tripId={tripId}
+        onTaskCreated={(task) => {
+          setTasks(prev => [task, ...prev]);
+        }}
+      />
     </div>
   );
 };

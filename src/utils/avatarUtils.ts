@@ -27,6 +27,9 @@ export const getInitials = (name: string): string => {
 export const isValidAvatarUrl = (avatarUrl?: string | null): boolean => {
   if (!avatarUrl) return false;
   
+  // Accept local paths starting with '/'
+  if (avatarUrl.startsWith('/')) return true;
+  
   // Check for valid URL format and common image extensions
   try {
     const url = new URL(avatarUrl);

@@ -2,15 +2,50 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://jmjiyekmxwsxkfnqwyaa.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI";
+function createSafeStorage(): Storage {
+  try {
+    const t = '__supabase_probe__';
+    localStorage.setItem(t, '1');
+    localStorage.removeItem(t);
+    return localStorage;
+  } catch {
+    // Sandbox/3rd-party iframe or restricted mode: degrade gracefully
+    const noop = {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+      clear: () => {},
+      key: () => null,
+      length: 0,
+    } as unknown as Storage;
+    console.warn('[Supabase] localStorage unavailable — using no-op storage (sessions will not persist).');
+    return noop;
+  }
+}
+
+const env = (import.meta as any)?.env ?? {};
+const isLovablePreview = typeof window !== 'undefined' && window.location.hostname.endsWith('lovableproject.com');
+
+const SUPABASE_URL = env.VITE_SUPABASE_URL || (isLovablePreview ? 'https://jmjiyekmxwsxkfnqwyaa.supabase.co' : '');
+const SUPABASE_PUBLISHABLE_KEY = env.VITE_SUPABASE_ANON_KEY || (isLovablePreview
+  ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI'
+  : '');
+
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  const msg = 'Missing Supabase environment variables (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).';
+  if (isLovablePreview) {
+    console.warn('[Supabase] ' + msg + ' Using built-in preview credentials.');
+  } else {
+    throw new Error(msg);
+  }
+}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: createSafeStorage(),
     persistSession: true,
     autoRefreshToken: true,
   }

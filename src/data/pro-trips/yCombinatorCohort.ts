@@ -1,4 +1,5 @@
 import { ProTripData } from '../../types/pro';
+import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const yCombinatorCohort: ProTripData = {
   id: 'a16z-speedrun-2026',
@@ -13,28 +14,21 @@ export const yCombinatorCohort: ProTripData = {
   broadcasts: [],
   participants: Array.from({ length: 35 }, (_, i) => {
     const id = 24 + i;
-    const avatars = [
-      '/images/avatars/blank-05.png',
-      '/images/avatars/blank-06.png',
-      '/images/avatars/blank-07.png',
-      '/images/avatars/blank-08.png',
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face'
-    ];
     
     if (i < 5) {
       const partners = ['Marc Andreessen', 'Chris Dixon', 'Ben Horowitz', 'Jeff Jordan', 'Scott Weiss'];
-      return { id, name: partners[i] || `Partner ${i + 1}`, avatar: avatars[i % avatars.length], role: 'Partners' };
+      const name = partners[i] || `Partner ${i + 1}`;
+      return { id, name, avatar: getMockAvatar(name), role: 'Partners' };
     } else if (i < 25) {
       const founderNames = ['Alexis Rivera', 'Priya Krishnan', 'David Chen', 'Sarah Johnson', 'Michael Torres', 'Jessica Wang', 'Ryan Martinez', 'Emily Davis', 'Kevin Liu', 'Amanda Rodriguez'];
       const founderIndex = (i - 5) % founderNames.length;
       const companyNumber = Math.floor((i - 5) / 10) + 1;
-      return { id, name: `${founderNames[founderIndex]} (Startup ${companyNumber})`, avatar: avatars[i % avatars.length], role: 'Founders' };
+      const name = `${founderNames[founderIndex]} (Startup ${companyNumber})`;
+      return { id, name, avatar: getMockAvatar(name), role: 'Founders' };
     } else {
       const staff = ['Program Director', 'Venture Partner 1', 'Venture Partner 2', 'EIR 1', 'EIR 2', 'Operations Manager', 'Event Coordinator', 'Technical Advisor', 'Legal Counsel', 'Finance Manager'];
-      return { id, name: staff[i - 25] || `Staff ${i - 24}`, avatar: avatars[i % avatars.length], role: 'Staff' };
+      const name = staff[i - 25] || `Staff ${i - 24}`;
+      return { id, name, avatar: getMockAvatar(name), role: 'Staff' };
     }
   }),
   budget: {

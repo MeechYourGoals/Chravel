@@ -101,11 +101,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   // Helper function to transform Supabase user to app User
-  const transformUser = useCallback(async (supabaseUser: SupabaseUser, profile?: UserProfile | null): Promise<User> => {
+  const transformUser = useCallback(async (supabaseUser: SupabaseUser, profile?: UserProfile | null): Promise<User | null> => {
     // CRITICAL: Validate that we have a valid user ID before proceeding
     if (!supabaseUser || !supabaseUser.id) {
       console.error('[transformUser] Invalid Supabase user - missing ID', { supabaseUser });
-      throw new Error('Invalid Supabase user - missing ID');
+      return null;
     }
     
     const userProfile = profile || await fetchUserProfile(supabaseUser.id);
@@ -118,7 +118,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     const roles = userRoles?.map(r => r.role) || [];
     const isPro = roles.includes('pro');
-    const isSystemAdmin = roles.includes('admin');
+    const isSystemAdmin = roles.includes('enterprise_admin');
     
     // Map roles to permissions - only grant what user actually has
     const permissions: string[] = ['read'];
@@ -204,9 +204,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           setTimeout(async () => {
             if (!mounted) return;
-            const transformedUser = await transformUser(session.user);
-            setUser(transformedUser);
-            setIsLoading(false);
+            try {
+              const transformedUser = await transformUser(session.user);
+              setUser(transformedUser);
+            } catch (error) {
+              console.error('[Auth] Error transforming user:', error);
+              setUser(null);
+            } finally {
+              setIsLoading(false);
+            }
           }, 0);
         } else {
           setUser(null);
@@ -216,24 +222,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      
-      setSession(session);
-      if (session?.user) {
-        // Phase 4: Start prefetching trips immediately
-        prefetchTrips();
-        
-        transformUser(session.user).then(transformedUser => {
-          if (mounted) {
-            setUser(transformedUser);
-            setIsLoading(false);
-          }
-        });
-      } else {
-        setIsLoading(false);
-      }
-    });
+    // PHASE 1 BUG FIX #2: Add .catch() handler to prevent unhandled promise rejection
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!mounted) return;
+
+        setSession(session);
+        if (session?.user) {
+          // Phase 4: Start prefetching trips immediately
+          prefetchTrips();
+
+          transformUser(session.user)
+            .then(transformedUser => {
+              if (mounted) {
+                setUser(transformedUser);
+                setIsLoading(false);
+              }
+            })
+            .catch(error => {
+              console.error('[Auth] Error transforming user on init:', error);
+              if (mounted) {
+                setUser(null);
+                setIsLoading(false);
+              }
+            });
+        } else {
+          setIsLoading(false);
+        }
+      })
+      .catch(error => {
+        console.error('[Auth] Error getting session:', error);
+        if (mounted) {
+          setUser(null);
+          setIsLoading(false);
+        }
+      });
 
     return () => {
       mounted = false;
@@ -244,45 +267,75 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log('[Auth] Attempting sign in with email:', email);
+
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        console.error('[Auth] Sign in error:', error);
         setIsLoading(false);
+
+        // Provide more specific error messages
+        if (error.message.includes('Invalid login credentials')) {
+          return { error: 'Invalid email or password. Please check your credentials and try again.' };
+        }
+        if (error.message.includes('Email not confirmed')) {
+          return { error: 'Please confirm your email address before signing in. Check your inbox for the confirmation link.' };
+        }
+
         return { error: error.message };
       }
 
+      console.log('[Auth] Sign in successful:', data.user?.email);
       return {};
     } catch (error) {
+      console.error('[Auth] Unexpected sign in error:', error);
       setIsLoading(false);
-      return { error: 'An unexpected error occurred' };
+      return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
 
   const signInWithPhone = async (phone: string): Promise<{ error?: string }> => {
     try {
       setIsLoading(true);
+      console.log('[Auth] Attempting phone OTP sign in:', phone);
+
       const { error } = await supabase.auth.signInWithOtp({
         phone,
       });
 
       if (error) {
+        console.error('[Auth] Phone OTP error:', error);
         setIsLoading(false);
+
+        // Provide more specific error messages
+        if (error.message.includes('not configured') || error.message.includes('SMS provider')) {
+          return { error: 'Phone authentication is not configured. Please use email to sign in.' };
+        }
+        if (error.message.includes('Invalid phone number')) {
+          return { error: 'Please enter a valid phone number with country code (e.g., +1234567890).' };
+        }
+
         return { error: error.message };
       }
 
       setIsLoading(false);
+      console.log('[Auth] Phone OTP sent successfully');
       return {};
     } catch (error) {
+      console.error('[Auth] Unexpected phone OTP error:', error);
       setIsLoading(false);
-      return { error: 'An unexpected error occurred' };
+      return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
 
   const signInWithGoogle = async (): Promise<{ error?: string }> => {
     try {
+      console.log('[Auth] Attempting Google sign in');
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -291,17 +344,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
+        console.error('[Auth] Google sign in error:', error);
+
+        // Provide more specific error messages
+        if (error.message.includes('not configured') || error.message.includes('OAuth')) {
+          return { error: 'Google sign-in is not configured. Please use email to sign in or contact support.' };
+        }
+
         return { error: error.message };
       }
 
+      console.log('[Auth] Google sign in initiated, redirecting...');
       return {};
     } catch (error) {
-      return { error: 'An unexpected error occurred' };
+      console.error('[Auth] Unexpected Google sign in error:', error);
+      return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
 
   const signInWithApple = async (): Promise<{ error?: string }> => {
     try {
+      console.log('[Auth] Attempting Apple sign in');
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
@@ -310,19 +374,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
+        console.error('[Auth] Apple sign in error:', error);
+
+        // Provide more specific error messages
+        if (error.message.includes('not configured') || error.message.includes('OAuth')) {
+          return { error: 'Apple sign-in is not configured. Please use email to sign in or contact support.' };
+        }
+
         return { error: error.message };
       }
 
+      console.log('[Auth] Apple sign in initiated, redirecting...');
       return {};
     } catch (error) {
-      return { error: 'An unexpected error occurred' };
+      console.error('[Auth] Unexpected Apple sign in error:', error);
+      return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string): Promise<{ error?: string }> => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signUp({
+      console.log('[Auth] Attempting sign up with email:', email);
+
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -336,15 +411,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
+        console.error('[Auth] Sign up error:', error);
         setIsLoading(false);
+
+        // Provide more specific error messages
+        if (error.message.includes('already registered')) {
+          return { error: 'This email is already registered. Please sign in instead.' };
+        }
+        if (error.message.includes('password')) {
+          return { error: 'Password must be at least 6 characters long.' };
+        }
+
         return { error: error.message };
+      }
+
+      console.log('[Auth] Sign up successful:', data.user?.email);
+
+      // Check if email confirmation is required
+      if (data.user && !data.session) {
+        console.log('[Auth] Email confirmation required');
+        setIsLoading(false);
+        return { error: 'Account created! Please check your email to confirm your account.' };
       }
 
       setIsLoading(false);
       return {};
     } catch (error) {
+      console.error('[Auth] Unexpected sign up error:', error);
       setIsLoading(false);
-      return { error: 'An unexpected error occurred' };
+      return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
 

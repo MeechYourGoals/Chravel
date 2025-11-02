@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Calendar } from './ui/calendar';
@@ -16,7 +15,7 @@ import { AddToCalendarData, CalendarEvent } from '../types/calendar';
 interface CalendarEventModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onEventAdded: (eventData: AddToCalendarData) => void;
+  onEventAdded: (eventData: AddToCalendarData, eventId?: string) => void;
   prefilledData?: Partial<AddToCalendarData>;
   editEvent?: CalendarEvent;
 }
@@ -34,15 +33,41 @@ export const CalendarEventModal = ({
     time: prefilledData?.time || editEvent?.time || '',
     location: prefilledData?.location || editEvent?.location || '',
     description: prefilledData?.description || editEvent?.description || '',
-    category: prefilledData?.category || editEvent?.event_category || 'activity',
+    category: prefilledData?.category || editEvent?.event_category || 'other',
     include_in_itinerary: prefilledData?.include_in_itinerary ?? editEvent?.include_in_itinerary ?? true
   });
+
+  // Update form data when editEvent changes
+  useEffect(() => {
+    if (editEvent) {
+      setFormData({
+        title: editEvent.title,
+        date: editEvent.date,
+        time: editEvent.time,
+        location: editEvent.location || '',
+        description: editEvent.description || '',
+        category: editEvent.event_category || 'other',
+        include_in_itinerary: editEvent.include_in_itinerary ?? true
+      });
+    } else if (prefilledData) {
+      setFormData({
+        title: prefilledData.title || '',
+        date: prefilledData.date || new Date(),
+        time: prefilledData.time || '',
+        location: prefilledData.location || '',
+        description: prefilledData.description || '',
+        category: prefilledData.category || 'other',
+        include_in_itinerary: prefilledData.include_in_itinerary ?? true
+      });
+    }
+  }, [editEvent, prefilledData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.time) return;
-    
-    onEventAdded(formData);
+
+    // Pass event ID if editing, otherwise undefined for new event
+    onEventAdded(formData, editEvent?.id);
     handleClose();
   };
 
@@ -53,20 +78,11 @@ export const CalendarEventModal = ({
       time: '',
       location: '',
       description: '',
-      category: 'activity',
+      category: 'other',
       include_in_itinerary: true
     });
     onClose();
   };
-
-  const categoryOptions = [
-    { value: 'dining', label: 'Dining', icon: '🍽️' },
-    { value: 'lodging', label: 'Lodging', icon: '🏨' },
-    { value: 'activity', label: 'Activity', icon: '🎯' },
-    { value: 'transportation', label: 'Transportation', icon: '🚗' },
-    { value: 'entertainment', label: 'Entertainment', icon: '🎭' },
-    { value: 'other', label: 'Other', icon: '📅' }
-  ];
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -97,12 +113,14 @@ export const CalendarEventModal = ({
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full justify-start text-left font-normal text-xs px-3",
                       !formData.date && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.date ? format(formData.date, "PPP") : "Pick a date"}
+                    <CalendarIcon className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="truncate">
+                      {formData.date ? format(formData.date, "MMM d, yyyy") : "Pick a date"}
+                    </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -137,28 +155,6 @@ export const CalendarEventModal = ({
               onChange={(e) => setFormData({...formData, location: e.target.value})}
               placeholder="Event location"
             />
-          </div>
-
-          <div>
-            <Label>Category</Label>
-            <Select 
-              value={formData.category} 
-              onValueChange={(value: any) => setFormData({...formData, category: value})}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {categoryOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <span className="flex items-center gap-2">
-                      <span>{option.icon}</span>
-                      {option.label}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div>

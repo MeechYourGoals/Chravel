@@ -1,5 +1,11 @@
 
 import { Recommendation } from './types';
+import joesExterior from '@/assets/recommendations/joes-exterior.png';
+import joesStonecrab from '@/assets/recommendations/joes-stonecrab.png';
+import komodoExterior from '@/assets/recommendations/komodo-exterior.png';
+import komodoInterior from '@/assets/recommendations/komodo-interior.png';
+import zumaExterior from '@/assets/recommendations/zuma-exterior.png';
+import zumaRobata from '@/assets/recommendations/zuma-robata.png';
 
 export const restaurantRecommendations: Recommendation[] = [
   {
@@ -13,8 +19,8 @@ export const restaurantRecommendations: Recommendation[] = [
     rating: 4.6,
     priceLevel: 3,
     images: [
-      'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?w=600&h=400&fit=crop'
+      joesExterior,
+      joesStonecrab
     ],
     tags: ['Seafood', 'Historic', 'Fine Dining', 'Stone Crab'],
     isSponsored: true,
@@ -42,8 +48,8 @@ export const restaurantRecommendations: Recommendation[] = [
     rating: 4.5,
     priceLevel: 3,
     images: [
-      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=400&fit=crop'
+      komodoExterior,
+      komodoInterior
     ],
     tags: ['Asian Fusion', 'Trendy', 'Outdoor Dining', 'Nightlife'],
     isSponsored: true,
@@ -72,8 +78,8 @@ export const restaurantRecommendations: Recommendation[] = [
     rating: 4.7,
     priceLevel: 4,
     images: [
-      'https://images.unsplash.com/photo-1552566635-dcc4ec5f7077?w=600&h=400&fit=crop',
-      'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&h=400&fit=crop'
+      zumaExterior,
+      zumaRobata
     ],
     tags: ['Japanese', 'Robatayaki', 'Waterfront', 'Premium'],
     isSponsored: true,

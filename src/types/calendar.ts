@@ -6,6 +6,8 @@ export interface CalendarEvent {
   location?: string;
   description?: string;
   createdBy: string;
+  creatorName?: string;
+  creatorAvatar?: string;
   include_in_itinerary: boolean;
   event_category: 'dining' | 'lodging' | 'activity' | 'transportation' | 'entertainment' | 'other' | 'accommodations' | 'food' | 'fitness' | 'nightlife' | 'attractions' | 'budget';
   source_type: 'manual' | 'ai_extracted' | 'places_tab';

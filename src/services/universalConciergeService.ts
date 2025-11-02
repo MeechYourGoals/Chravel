@@ -164,36 +164,6 @@ export class UniversalConciergeService {
       const isDemoMode = await demoModeService.isDemoModeEnabled();
       
       // 🆕 Enhanced: Get comprehensive trip context with caching
-<<<<<<< HEAD
-      let comprehensiveContext;
-      try {
-        comprehensiveContext = ContextCacheService.get(tripContext.tripId);
-        
-        if (!comprehensiveContext) {
-          comprehensiveContext = await TripContextAggregator.buildContext(tripContext.tripId);
-          ContextCacheService.set(tripContext.tripId, comprehensiveContext);
-        }
-      } catch (contextError) {
-        console.warn('Failed to build comprehensive context, using fallback:', contextError);
-        // Fallback to EnhancedTripContextService for compatibility
-        try {
-          const enhancedContext = await EnhancedTripContextService.getEnhancedTripContext(tripContext.tripId);
-          comprehensiveContext = enhancedContext;
-        } catch (fallbackError) {
-          console.error('Both context services failed, using basic context:', fallbackError);
-          // Use the basic tripContext passed in
-          comprehensiveContext = tripContext;
-        }
-      }
-      
-      // For non-search queries, use the Google Gemini-powered concierge service
-      const { data, error } = await supabase.functions.invoke('lovable-concierge', {
-        body: {
-          message: message,
-          tripContext: comprehensiveContext,
-          tripId: tripContext.tripId,
-          chatHistory: comprehensiveContext?.messages?.slice(-10) || []
-=======
       let comprehensiveContext = ContextCacheService.get(tripContext.tripId);
       
       if (!comprehensiveContext) {
@@ -223,26 +193,44 @@ export class UniversalConciergeService {
         if (error) {
           console.error('Edge function invocation error:', error);
           throw error;
->>>>>>> 2cac85995d18082729ed535d867c03c21a82239d
         }
 
-<<<<<<< HEAD
-      if (error) {
-        console.error('Edge function invocation error:', error);
-        throw error;
-      }
+        if (!data) {
+          console.error('Edge function returned no data');
+          throw new Error('No response from edge function');
+        }
 
-      if (!data) {
-        console.error('Edge function returned no data');
-        throw new Error('No response from AI service');
+      let comprehensiveContext = ContextCacheService.get(tripContext.tripId);
+      
+      if (!comprehensiveContext) {
+        try {
+          comprehensiveContext = await TripContextAggregator.buildContext(tripContext.tripId, isDemoMode);
+          ContextCacheService.set(tripContext.tripId, comprehensiveContext);
+        } catch (contextError) {
+          console.error('Failed to build comprehensive context, using fallback:', contextError);
+          comprehensiveContext = tripContext as any; // Use original context as fallback
+        }
       }
+      
+      // Try edge function first (works in both demo and authenticated mode)
+      try {
+        console.log('🤖 Calling AI Concierge edge function...', { isDemoMode, tripId: tripContext.tripId });
+        
+        const { data, error } = await supabase.functions.invoke('lovable-concierge', {
+          body: {
+            message: message,
+            tripContext: comprehensiveContext,
+            tripId: tripContext.tripId,
+            isDemoMode: isDemoMode,
+            chatHistory: comprehensiveContext.messages?.slice(-10) || []
+          }
+        });
 
-      return {
-        content: data.response || "I'm having trouble processing your request right now.",
-        searchResults: data.citations || data.sources || [],
-        isFromFallback: false
-      };
-=======
+        if (error) {
+          console.error('Edge function invocation error:', error);
+          throw error;
+        }
+
         if (!data) {
           console.error('Edge function returned no data');
           throw new Error('No response from edge function');
@@ -273,7 +261,6 @@ export class UniversalConciergeService {
         // Re-throw for authenticated mode
         throw edgeFunctionError;
       }
->>>>>>> 2cac85995d18082729ed535d867c03c21a82239d
     } catch (error) {
       console.error('Concierge processing error:', error);
       return {

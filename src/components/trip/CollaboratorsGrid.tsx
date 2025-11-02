@@ -1,5 +1,6 @@
 import React from 'react';
 import { getInitials, isValidAvatarUrl } from '../../utils/avatarUtils';
+import { formatCollaboratorName, shouldShowFullNameInAvatar } from '../../utils/nameFormatUtils';
 
 export interface CollaboratorItem {
   id: number | string;
@@ -14,17 +15,26 @@ interface CollaboratorsGridProps {
   maxRows?: number; // approximate rows to show before clamping
   minColWidth?: number; // min width for each grid item
   onShowAll: () => void;
+  tripType?: 'consumer' | 'pro' | 'event';
+  displayContext?: 'home' | 'trip-detail'; // Controls whether to show avatars or initials
 }
 
 export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
   participants,
   countLabel,
-  maxRows = 2,
-  minColWidth = 220,
+  maxRows = 1,
+  minColWidth = 140,
   onShowAll,
+  tripType = 'consumer',
+  displayContext = 'trip-detail',
 }) => {
-  // Approximate clamp height: each row ~ 72-84px depending on content
-  const clampHeight = Math.max(72, Math.min(240, maxRows * 84));
+  // Determine whether to show avatars or initials
+  // Events: always show initials only (privacy)
+  // Consumer & Pro: show avatars in trip-detail, initials on home
+  const showAvatars = tripType !== 'event' && displayContext === 'trip-detail';
+  
+  // Approximate clamp height: each row ~ 52px with compact sizing
+  const clampHeight = Math.max(52, Math.min(160, maxRows * 52));
 
   return (
     <section aria-labelledby="collab-title" className="relative">
@@ -42,26 +52,26 @@ export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
           {participants.map((c) => (
             <button
               key={c.id}
-              className="group flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 transition"
+              className="group flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 transition"
               role="listitem"
               title={c.role ? `${c.name} • ${c.role}` : c.name}
             >
-              {isValidAvatarUrl(c.avatar) ? (
-                <img
-                  src={c.avatar}
-                  alt={c.name}
-                  className="h-8 w-8 rounded-full object-cover border border-white/20"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="h-8 w-8 rounded-full bg-white/10 text-white/80 grid place-items-center text-xs font-semibold border border-white/20">
-                  {getInitials(c.name)}
-                </div>
-              )}
-              <div className="flex-1 min-w-0 text-left">
-                <div className="truncate text-sm font-medium text-white">{c.name}</div>
+            {showAvatars && isValidAvatarUrl(c.avatar) ? (
+              <img
+                src={c.avatar}
+                alt={c.name}
+                className="h-7 w-7 rounded-full object-cover border border-white/20"
+                loading="lazy"
+              />
+            ) : (
+              <div className="h-7 w-7 rounded-full bg-white/10 text-white/80 grid place-items-center text-[10px] font-semibold border border-white/20">
+                {getInitials(c.name)}
+              </div>
+            )}
+            <div className="flex-1 min-w-0 text-left">
+              <div className="truncate text-xs font-medium text-white">{formatCollaboratorName(c.name, tripType)}</div>
                 {c.role && (
-                  <div className="truncate text-xs text-gray-400">{c.role}</div>
+                  <div className="truncate text-[10px] text-gray-400">{c.role}</div>
                 )}
               </div>
             </button>

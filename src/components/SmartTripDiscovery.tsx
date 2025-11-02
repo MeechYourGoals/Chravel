@@ -105,7 +105,7 @@ export const SmartTripDiscovery = ({
       similarity: 0.78,
       tripType: 'pro',
       tags: ['business', 'networking', 'tech'],
-      deepLink: '/tour/pro/tech-conference',
+      deepLink: '/tour/pro/lakers-road-trip',
       reason: 'Popular with professionals'
     }
   ];

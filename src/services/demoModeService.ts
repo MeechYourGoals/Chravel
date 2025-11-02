@@ -5,6 +5,7 @@ interface MockMessage {
   id: string;
   trip_type?: string;
   sender_name: string;
+  sender_id?: string;
   message_content: string;
   delay_seconds?: number;
   timestamp_offset_days?: number;
@@ -88,8 +89,21 @@ export interface SessionPayment {
   is_settled: boolean;
 }
 
+export interface SessionPersonalBasecamp {
+  id: string;
+  trip_id: string;
+  user_id: string;
+  name?: string;
+  address: string;
+  latitude?: number;
+  longitude?: number;
+  created_at: string;
+  updated_at: string;
+}
+
 class DemoModeService {
   private sessionPayments: Map<string, SessionPayment[]> = new Map();
+  private sessionPersonalBasecamps: Map<string, SessionPersonalBasecamp> = new Map();
   getTripType(trip: any): string {
     if (!trip) return 'demo';
     if (trip.category === 'pro') return 'pro-trip';
@@ -108,7 +122,7 @@ class DemoModeService {
     await secureStorageService.setDemoMode(false, userId);
   }
 
-  async getMockMessages(tripType: string, excludePayments: boolean = false): Promise<MockMessage[]> {
+  async getMockMessages(tripType: string, excludePayments: boolean = false, currentUserId?: string): Promise<MockMessage[]> {
     // Enhanced mock messages with diverse, realistic names and proper message types
     const baseMessages: MockMessage[] = [
       // Regular conversation messages
@@ -229,8 +243,32 @@ class DemoModeService {
       }
     ];
 
+    // Add messages from "You" (current user) if currentUserId is provided
+    if (currentUserId) {
+      baseMessages.push(
+        {
+          id: currentUserId + '-msg-1',
+          trip_type: tripType,
+          sender_name: 'You',
+          sender_id: currentUserId,
+          message_content: 'This looks amazing! Can\'t wait to get there 🎉',
+          timestamp_offset_days: 1,
+          tags: ['conversation']
+        },
+        {
+          id: currentUserId + '-msg-2',
+          trip_type: tripType,
+          sender_name: 'You',
+          sender_id: currentUserId,
+          message_content: 'Count me in for dinner tonight!',
+          timestamp_offset_days: 0,
+          tags: ['conversation']
+        }
+      );
+    }
+
     // Add trip-specific messages based on type
-    const tripSpecificMessages = this.getTripSpecificMessages(tripType);
+    const tripSpecificMessages = this.getTripSpecificMessages(tripType, currentUserId);
     
     let allMessages = [...baseMessages, ...tripSpecificMessages];
     
@@ -244,7 +282,72 @@ class DemoModeService {
     );
   }
 
-  private getTripSpecificMessages(tripType: string): MockMessage[] {
+  async getProMockMessages(tripType: 'pro' | 'event', currentUserId: string): Promise<MockMessage[]> {
+    const proMessages: MockMessage[] = [
+      {
+        id: 'pro-msg-1',
+        trip_type: tripType,
+        sender_name: 'Tour Manager',
+        message_content: 'Meeting at hotel lobby at 9 AM sharp tomorrow for our group activity!',
+        timestamp_offset_days: 2,
+        tags: ['broadcast', 'logistics']
+      },
+      {
+        id: 'pro-msg-2',
+        trip_type: tripType,
+        sender_name: 'Alex Kim',
+        message_content: 'Weather alert: Rain expected this afternoon. Bring umbrellas or jackets!',
+        timestamp_offset_days: 2,
+        tags: ['broadcast']
+      },
+      {
+        id: 'pro-msg-3',
+        trip_type: tripType,
+        sender_name: 'David Thompson',
+        message_content: 'URGENT: Flight departure gate changed to B12. All passengers report immediately!',
+        timestamp_offset_days: 2,
+        tags: ['broadcast', 'urgent']
+      },
+      {
+        id: 'pro-msg-4',
+        trip_type: tripType,
+        sender_name: 'Maya Williams',
+        message_content: 'The sunset views from our hotel room are incredible! 🌅',
+        timestamp_offset_days: 1,
+        tags: []
+      },
+      {
+        id: 'pro-msg-5',
+        trip_type: tripType,
+        sender_name: 'Jordan Lee',
+        message_content: 'Does anyone want to split an Uber to the downtown area?',
+        timestamp_offset_days: 1,
+        tags: []
+      },
+      {
+        id: currentUserId + '-msg-1',
+        trip_type: tripType,
+        sender_name: 'You',
+        sender_id: currentUserId,
+        message_content: 'Just checked in! Room 502 if anyone needs anything 👍',
+        timestamp_offset_days: 0,
+        tags: []
+      },
+      {
+        id: currentUserId + '-msg-2',
+        trip_type: tripType,
+        sender_name: 'You',
+        sender_id: currentUserId,
+        message_content: 'See you all at dinner!',
+        timestamp_offset_days: 0,
+        tags: []
+      }
+    ];
+
+    return proMessages;
+  }
+
+  private getTripSpecificMessages(tripType: string, currentUserId?: string): MockMessage[] {
     switch (tripType) {
       case 'friends-trip':
         return [
@@ -548,6 +651,74 @@ class DemoModeService {
       this.sessionPayments.delete(tripId);
     } else {
       this.sessionPayments.clear();
+    }
+  }
+
+  // ============================================
+  // Personal Basecamp Methods (Demo Mode)
+  // ============================================
+
+  /**
+   * Get personal basecamp for a trip in demo mode
+   */
+  getSessionPersonalBasecamp(tripId: string, sessionUserId: string): SessionPersonalBasecamp | null {
+    const key = `${tripId}:${sessionUserId}`;
+    return this.sessionPersonalBasecamps.get(key) || null;
+  }
+
+  /**
+   * Set personal basecamp for a trip in demo mode
+   */
+  setSessionPersonalBasecamp(payload: {
+    trip_id: string;
+    user_id: string;
+    name?: string;
+    address: string;
+    latitude?: number;
+    longitude?: number;
+  }): SessionPersonalBasecamp {
+    const key = `${payload.trip_id}:${payload.user_id}`;
+    const basecamp: SessionPersonalBasecamp = {
+      id: `demo-personal-basecamp-${Date.now()}`,
+      trip_id: payload.trip_id,
+      user_id: payload.user_id,
+      name: payload.name,
+      address: payload.address,
+      latitude: payload.latitude,
+      longitude: payload.longitude,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    this.sessionPersonalBasecamps.set(key, basecamp);
+    console.log('✅ Demo personal basecamp set (session-only):', basecamp);
+    return basecamp;
+  }
+
+  /**
+   * Delete personal basecamp in demo mode
+   */
+  deleteSessionPersonalBasecamp(tripId: string, sessionUserId: string): boolean {
+    const key = `${tripId}:${sessionUserId}`;
+    const existed = this.sessionPersonalBasecamps.has(key);
+    this.sessionPersonalBasecamps.delete(key);
+    return existed;
+  }
+
+  /**
+   * Clear all session personal basecamps (called when demo mode is toggled off)
+   */
+  clearSessionPersonalBasecamps(tripId?: string) {
+    if (tripId) {
+      // Clear only basecamps for specific trip
+      const keys = Array.from(this.sessionPersonalBasecamps.keys());
+      keys.forEach(key => {
+        if (key.startsWith(`${tripId}:`)) {
+          this.sessionPersonalBasecamps.delete(key);
+        }
+      });
+    } else {
+      this.sessionPersonalBasecamps.clear();
     }
   }
 }

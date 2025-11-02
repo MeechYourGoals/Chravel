@@ -5,6 +5,7 @@ import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { CalendarSkeleton } from './SkeletonLoader';
 import { hapticService } from '../../services/hapticService';
 import { format } from 'date-fns';
+import { CreateEventModal } from './CreateEventModal';
 
 interface CalendarEvent {
   id: string;
@@ -23,7 +24,8 @@ interface MobileGroupCalendarProps {
 export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState(true);
-  const [events] = useState<CalendarEvent[]>([
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [events, setEvents] = useState<CalendarEvent[]>([
     {
       id: '1',
       title: 'Airport Pickup',
@@ -58,7 +60,7 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
 
   const handleAddEvent = async () => {
     await hapticService.medium();
-    // Add event modal/sheet would open here
+    setIsModalOpen(true);
   };
 
   return (
@@ -166,6 +168,17 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
       </div>
         </>
       )}
+
+      {/* Create Event Modal */}
+      <CreateEventModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        selectedDate={selectedDate}
+        tripId={tripId}
+        onEventCreated={(event) => {
+          setEvents(prev => [...prev, event]);
+        }}
+      />
     </div>
   );
 };

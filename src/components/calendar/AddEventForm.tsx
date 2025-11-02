@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AddToCalendarData } from '@/types/calendar';
 
 interface AddEventFormProps {
@@ -12,11 +11,12 @@ interface AddEventFormProps {
   onSubmit: () => void;
   onCancel: () => void;
   isSubmitting?: boolean;
+  isEditing?: boolean;
 }
 
-export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSubmitting = false }: AddEventFormProps) => {
+export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSubmitting = false, isEditing = false }: AddEventFormProps) => {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div>
         <Label htmlFor="title">Title</Label>
         <Input
@@ -38,33 +38,6 @@ export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSu
       </div>
 
       <div>
-        <Label htmlFor="location">Location</Label>
-        <Input
-          id="location"
-          value={newEvent.location}
-          onChange={(e) => onUpdateField('location', e.target.value)}
-          placeholder="Event location"
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="category">Category</Label>
-        <Select value={newEvent.category} onValueChange={(value) => onUpdateField('category', value as AddToCalendarData['category'])}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="dining">Dining</SelectItem>
-            <SelectItem value="lodging">Lodging</SelectItem>
-            <SelectItem value="activity">Activity</SelectItem>
-            <SelectItem value="transportation">Transportation</SelectItem>
-            <SelectItem value="entertainment">Entertainment</SelectItem>
-            <SelectItem value="other">Other</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div>
         <Label htmlFor="description">Description</Label>
         <Textarea
           id="description"
@@ -76,7 +49,7 @@ export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSu
 
       <div className="flex gap-2">
         <Button onClick={onSubmit} disabled={!newEvent.title || isSubmitting}>
-          {isSubmitting ? 'Saving...' : 'Add Event'}
+          {isSubmitting ? 'Saving...' : isEditing ? 'Update Event' : 'Add Event'}
         </Button>
         <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancel</Button>
       </div>

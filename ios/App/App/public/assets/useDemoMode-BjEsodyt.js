@@ -1,1 +1,0 @@
-import{ao as m}from"./index-CAsyng-G.js";const i=()=>{const{isDemoMode:e,isLoading:o,enable:s,disable:d,toggle:a}=m();return{isDemoMode:e,isLoading:o,enableDemoMode:s,disableDemoMode:d,toggleDemoMode:a}};export{i as u};

@@ -4,6 +4,7 @@ import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { ChannelWithStats } from '../../../types/channels';
 import { useChannelMessages } from '../../../hooks/useChannels';
+import { VirtualizedMessageContainer } from '../../chat/VirtualizedMessageContainer';
 import { format } from 'date-fns';
 
 interface ChannelMessagePaneProps {
@@ -22,13 +23,16 @@ export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
   isAdmin
 }) => {
   const [messageInput, setMessageInput] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const { messages, loading, sending, sendMessage } = useChannelMessages(channel.id);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  const { 
+    messages, 
+    loading, 
+    sending, 
+    sendMessage,
+    loadMore,
+    hasMore,
+    isLoadingMore
+  } = useChannelMessages(channel.id);
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || sending) return;
@@ -82,22 +86,33 @@ export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
         </div>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Unified Chat Shell - Teams-like container */}
+      <div
+        className="flex-1 mx-4 my-4 rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col"
+        style={{
+          minHeight: '360px',
+          maxHeight: 'max(360px, 75vh)'
+        }}
+      >
         {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-gray-400">Loading messages...</p>
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex items-center justify-center h-full">
+              <p className="text-gray-400">Loading messages...</p>
+            </div>
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center text-gray-400">
-              <p className="mb-2">No messages yet</p>
-              <p className="text-sm">Be the first to say something!</p>
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center text-gray-400">
+                <p className="mb-2">No messages yet</p>
+                <p className="text-sm">Be the first to say something!</p>
+              </div>
             </div>
           </div>
         ) : (
-          <>
-            {messages.map((message) => (
+          <VirtualizedMessageContainer
+            messages={messages}
+            renderMessage={(message) => (
               <div key={message.id} className="flex gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
                   {message.author_name?.charAt(0).toUpperCase() || '?'}
@@ -112,31 +127,35 @@ export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
                   <p className="text-gray-200 break-words">{message.content}</p>
                 </div>
               </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </>
-        )}
-      </div>
-
-      {/* Message Input */}
-      <div className="p-4 border-t border-border bg-card/50">
-        <div className="flex gap-2">
-          <Input
-            placeholder={`Message #${channel.name}`}
-            value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            disabled={sending}
-            className="flex-1 bg-card border-border"
+            )}
+            onLoadMore={loadMore}
+            hasMore={hasMore}
+            isLoading={isLoadingMore}
+            initialVisibleCount={10}
+            className="chat-scroll-container native-scroll"
           />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!messageInput.trim() || sending}
-            size="sm"
-            className="bg-primary hover:bg-primary/90"
-          >
-            <Send size={16} />
-          </Button>
+        )}
+
+        {/* Input Area */}
+        <div className="border-t border-white/10 bg-black/30 p-3">
+          <div className="flex gap-2">
+            <Input
+              placeholder={`Message #${channel.name}`}
+              value={messageInput}
+              onChange={(e) => setMessageInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={sending}
+              className="flex-1 bg-card border-border"
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={!messageInput.trim() || sending}
+              size="sm"
+              className="bg-primary hover:bg-primary/90"
+            >
+              <Send size={16} />
+            </Button>
+          </div>
         </div>
       </div>
     </div>

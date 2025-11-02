@@ -1,9 +1,9 @@
 
 export interface BasecampLocation {
   address: string;
-  coordinates: { lat: number; lng: number };
+  coordinates?: { lat: number; lng: number };
   name?: string;
-  type: 'hotel' | 'airbnb' | 'other';
+  type: 'hotel' | 'short-term' | 'other';
 }
 
 export interface PlaceWithDistance {
@@ -18,9 +18,28 @@ export interface PlaceWithDistance {
     straightLine?: number;
     unit: 'miles' | 'km';
   };
+  distanceFromPersonalBasecamp?: {
+    driving?: number;
+    walking?: number;
+    straightLine?: number;
+    unit: 'miles' | 'km';
+  };
   calculatedAt?: string;
-  category?: 'restaurant' | 'attraction' | 'hotel' | 'activity' | 'fitness' | 'nightlife' | 'transportation';
+  category?: PlaceCategory;
+  website?: string;
+  placeId?: string;
+  rating?: number;
 }
+
+export type PlaceCategory = 'Appetite' | 'Attraction' | 'Activity' | 'Accommodation' | 'Other';
+
+export const PlaceCategoryEnum: PlaceCategory[] = [
+  'Appetite',
+  'Activity',
+  'Accommodation',
+  'Attraction',
+  'Other',
+];
 
 export interface DistanceCalculationSettings {
   preferredMode: 'driving' | 'walking' | 'straightLine';

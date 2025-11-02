@@ -10,7 +10,7 @@ interface StorageQuotaBarProps {
 
 export const StorageQuotaBar: React.FC<StorageQuotaBarProps> = ({ tripId, showDetails = true }) => {
   const { quota, loading } = useStorageQuota(tripId);
-  const { isPlus, upgradeToPlus } = useConsumerSubscription();
+  const { isSubscribed, upgradeToTier } = useConsumerSubscription();
 
   if (loading) {
     return (
@@ -55,48 +55,48 @@ export const StorageQuotaBar: React.FC<StorageQuotaBarProps> = ({ tripId, showDe
       </div>
 
       {/* Warning/Upgrade Messages */}
-      {quota.isOverLimit && !isPlus && (
+      {quota.isOverLimit && !isSubscribed && (
         <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3 flex items-start gap-3">
           <AlertTriangle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-red-300 text-sm font-medium mb-1">Storage Limit Reached</p>
             <p className="text-red-200/80 text-xs mb-2">
-              You've reached your 500 MB storage limit. Upgrade to Plus for unlimited storage.
+              You've reached your 500 MB storage limit. Upgrade for unlimited storage.
             </p>
             <button
-              onClick={upgradeToPlus}
+              onClick={() => upgradeToTier('explorer', 'annual')}
               className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-4 py-1.5 rounded-lg text-xs font-bold hover:scale-105 transition-transform"
             >
               <Crown size={14} className="inline mr-1" />
-              Upgrade to Plus
+              View Plans
             </button>
           </div>
         </div>
       )}
 
-      {quota.isNearLimit && !quota.isOverLimit && !isPlus && (
+      {quota.isNearLimit && !quota.isOverLimit && !isSubscribed && (
         <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 flex items-start gap-3">
           <AlertTriangle size={20} className="text-yellow-400 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-yellow-300 text-sm font-medium mb-1">Approaching Storage Limit</p>
             <p className="text-yellow-200/80 text-xs mb-2">
-              You've used {quota.percentUsed.toFixed(0)}% of your storage. Upgrade to Plus for unlimited storage.
+              You've used {quota.percentUsed.toFixed(0)}% of your storage. Upgrade for unlimited storage.
             </p>
             <button
-              onClick={upgradeToPlus}
+              onClick={() => upgradeToTier('explorer', 'annual')}
               className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-4 py-1.5 rounded-lg text-xs font-bold hover:scale-105 transition-transform"
             >
               <Crown size={14} className="inline mr-1" />
-              Upgrade to Plus - $9.99/mo
+              View Plans
             </button>
           </div>
         </div>
       )}
 
-      {isPlus && showDetails && (
+      {isSubscribed && showDetails && (
         <div className="text-center">
           <span className="text-xs text-gray-400">
-            ✨ Unlimited storage with Plus
+            ✨ Unlimited storage with your plan
           </span>
         </div>
       )}

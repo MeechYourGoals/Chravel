@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
@@ -23,7 +23,15 @@ import {
   Quote,
   TrendingUp,
   Clock,
-  MessageSquare
+  MessageSquare,
+  Heart,
+  Calendar,
+  FileText,
+  Bell,
+  Search,
+  Briefcase,
+  MapPin,
+  Settings
 } from 'lucide-react';
 
 interface PricingTier {
@@ -43,114 +51,81 @@ interface PricingTier {
   badge?: string;
   savings?: string;
   ctaAction?: () => void;
+  limitation?: string;
 }
 
-// Consumer Pricing Tiers
+interface PricingSectionProps {
+  onSignUp?: () => void;
+}
+
+// Consumer Pricing Tiers - NEW 3-TIER STRUCTURE
 const consumerTiers: PricingTier[] = [
   {
     id: 'free',
     name: 'Free Plan',
     price: '$0',
-    description: 'Perfect for trying Chravel with your first few trips',
+    description: 'Perfect for trying Chravel with your crew',
     icon: <Users size={24} />,
     features: [
-      '3 trips per year',
-      'Core group chat',
-      'Shared calendar',
+      'Create unlimited trip participants',
+      'Core group chat & collaboration',
+      'Shared calendar (manual entry)',
+      'Photo & video sharing',
       'Basic itinerary planning',
-      'Photo sharing',
-      'All trip invitees join free'
+      'Expense tracking',
+      'Polls & decision making',
+      'AI Trip Assistant (5 queries per user per trip)',
+      'Save up to 3 active trips'
     ],
     cta: 'Get Started Free',
-    category: 'consumer'
-  },
-  {
-    id: 'starter-bundle',
-    name: 'Starter Bundle',
-    price: '$19.99',
-    description: 'One-time yearly purchase for occasional travelers',
-    icon: <Star size={24} />,
-    features: [
-      '10 trips per year',
-      'AI trip assistant',
-      'Advanced recommendations',
-      'Expense tracking',
-      'Priority support',
-      'All bundle features'
-    ],
-    cta: 'Buy Starter Bundle',
-    category: 'consumer'
-  },
-  {
-    id: 'explorer-bundle',
-    name: 'Explorer Bundle',
-    price: '$39.99',
-    description: 'Perfect for frequent travelers and families',
-    icon: <Globe size={24} />,
-    features: [
-      '25 trips per year',
-      'Everything in Starter',
-      'Advanced trip insights',
-      'Multi-trip planning',
-      'Enhanced AI features',
-      'Premium support'
-    ],
-    cta: 'Buy Explorer Bundle',
-    popular: true,
     category: 'consumer',
-    badge: 'Most Popular'
+    limitation: 'To create a new trip after 3, you\'ll need to delete an old one'
   },
   {
-    id: 'unlimited-bundle',
-    name: 'Unlimited Bundle',
-    price: '$79.99',
-    description: 'For travel enthusiasts who never stop exploring',
-    icon: <Sparkles size={24} />,
-    features: [
-      'Unlimited trips',
-      'Everything in Explorer',
-      'Premium AI responses',
-      'VIP support',
-      'Early feature access'
-    ],
-    cta: 'Buy Unlimited Bundle',
-    category: 'consumer'
-  },
-  {
-    id: 'pro-monthly',
-    name: 'Pro Monthly',
+    id: 'explorer',
+    name: 'Explorer',
     price: '$9.99',
     annualPrice: '$99',
     originalPrice: '$119.88',
-    description: 'Ultimate flexibility with monthly billing',
-    icon: <Crown size={24} />,
+    description: 'Never lose a trip memory',
+    icon: <Globe size={24} />,
     features: [
-      'Everything in Unlimited',
-      'Priority AI responses',
-      'Auto-itinerary generation',
-      'Trip insights dashboard',
-      'Early access to features'
+      'Unlimited saved trips - keep every memory forever',
+      '10 AI queries per trip - double the free tier',
+      'Location-aware AI suggestions - personalized recs based on where you are',
+      'Smart notifications - never miss important updates',
+      'Search past trips - find that perfect restaurant again',
+      'Priority support - we\'ve got your back',
+      'Custom trip categories - tag trips by type'
+    ],
+    cta: 'Start Free Trial',
+    popular: true,
+    category: 'consumer',
+    badge: 'Most Popular',
+    savings: 'Save $20/year'
+  },
+  {
+    id: 'frequent-chraveler',
+    name: 'Frequent Chraveler',
+    price: '$19.99',
+    annualPrice: '$199',
+    originalPrice: '$239.88',
+    description: 'For travel pros and adventure enthusiasts',
+    icon: <Sparkles size={24} />,
+    features: [
+      'Everything in Explorer',
+      'Unlimited AI queries - your 24/7 concierge with no limits',
+      'Calendar sync - Google, Apple, Outlook integration',
+      'PDF trip export - one-click beautiful itineraries',
+      'Create 1 Chravel Pro trip per month - invite up to 50 people',
+      'Role-based channels & pro features on your Pro trip',
+      'Custom trip categories - tag by type (work/leisure/family/etc.)',
+      'Early feature access - shape the future of Chravel',
+      'Multi-stop route optimization'
     ],
     cta: 'Start Free Trial',
     category: 'consumer',
-    savings: 'Save 17% annually'
-  },
-  {
-    id: 'family-plan',
-    name: 'Family Plan',
-    price: '$119',
-    description: 'Perfect for families traveling together',
-    icon: <Users size={24} />,
-    features: [
-      '4 linked accounts',
-      'Unlimited trips for all',
-      'Shared family trip history',
-      'Parental controls',
-      'Teen account management',
-      'Family dashboard'
-    ],
-    cta: 'Start Family Plan',
-    category: 'consumer'
+    savings: 'Save $40/year'
   }
 ];
 
@@ -172,7 +147,8 @@ const proTiers: PricingTier[] = [
     ],
     cta: 'Start 14-Day Trial',
     category: 'pro',
-    enterprise: true
+    enterprise: true,
+    ctaAction: () => window.location.href = 'mailto:christian@chravelapp.com?subject=Starter%20Pro%2014-Day%20Trial'
   },
   {
     id: 'growth-pro',
@@ -192,7 +168,8 @@ const proTiers: PricingTier[] = [
     popular: true,
     category: 'pro',
     enterprise: true,
-    badge: 'Most Popular'
+    badge: 'Most Popular',
+    ctaAction: () => window.location.href = 'mailto:christian@chravelapp.com?subject=Growth%20Pro%2014-Day%20Trial'
   },
   {
     id: 'enterprise',
@@ -215,62 +192,147 @@ const proTiers: PricingTier[] = [
   }
 ];
 
-// Events Tiers
+// Events Tiers - NEW STRUCTURE
 const eventsTiers: PricingTier[] = [
   {
     id: 'basic-events',
     name: 'Basic Events',
-    price: '$2.99',
-    description: 'One-time events: weddings, conferences, festivals',
+    price: '$0',
+    description: 'For 3–50 attendees per event',
     icon: <CalendarPlus size={24} />,
     features: [
-      'Per attendee pricing',
-      'All core event features',
-      'RSVP management',
+      'Event page & RSVP management',
+      'Shared group chat',
+      'Photo & media sharing',
+      'Polls & simple itinerary',
       'Basic customization',
-      'Event check-in',
+      '"Made with Chravel" footer',
       'Email support'
     ],
-    cta: 'Start Planning Event',
+    cta: 'Start Free',
     category: 'events'
   },
   {
     id: 'premium-events',
     name: 'Premium Events',
-    price: '$5.99',
-    description: 'Advanced features for professional events',
+    price: '$0.99',
+    description: 'For 51–149 attendees • hard cap $150',
     icon: <Star size={24} />,
     features: [
-      'Per attendee pricing',
-      'Advanced sponsorship tools',
-      'Custom branding',
-      'Detailed analytics',
-      'VIP management',
-      'Priority support'
+      'Everything in Basic',
+      'Custom branding (remove footer, theme colors)',
+      'Higher media limits',
+      'Advanced polls (ranked choice)',
+      'CSV export (guest list & RSVPs)',
+      'VIP tags (e.g., staff, speakers)'
     ],
-    cta: 'Start Planning Event',
+    cta: 'Upgrade This Event',
+    category: 'events'
+  },
+  {
+    id: 'premium-plus',
+    name: 'Premium Plus',
+    price: '$0.49',
+    description: 'For 150–500 attendees',
+    icon: <Zap size={24} />,
+    features: [
+      'Everything in Premium',
+      'Optimized for larger crowds',
+      'No per-attendee charge for Host Pass events'
+    ],
+    cta: 'Upgrade This Event',
+    category: 'events'
+  },
+  {
+    id: 'host-pass',
+    name: 'Host Pass',
+    price: '$9.99',
+    description: '2 events/month • up to 149 attendees each • no per-attendee fees',
+    icon: <Crown size={24} />,
+    features: [
+      'All Premium features on covered events',
+      'Ideal for monthly shows & series',
+      '3 organizer seats included',
+      'Priority email support',
+      'Add another Host Pass for more covered events'
+    ],
+    cta: 'Get Host Pass',
     popular: true,
     category: 'events',
     badge: 'Recommended'
   },
   {
-    id: 'annual-license',
-    name: 'Annual License',
-    price: '$19,999',
-    description: 'Unlimited attendees across multiple events',
-    icon: <Crown size={24} />,
+    id: 'enterprise-events',
+    name: 'Enterprise',
+    price: 'Custom',
+    description: '501+ attendees per event or higher-volume organizers',
+    icon: <Shield size={24} />,
     features: [
-      'Unlimited attendees',
-      'Multiple events',
-      'White-label option (+$20k)',
-      'Custom development',
-      'Dedicated account manager',
-      '24/7 support'
+      'Larger attendee caps & advanced permissions',
+      'Security reviews & DPA/SOC2 roadmap',
+      'Onboarding & support aligned to your scale',
+      'Annual contract'
     ],
     cta: 'Contact Sales',
     category: 'events',
     enterprise: true,
-    ctaAction: () => window.location.href = 'mailto:christian@chravelapp.com?subject=Events%20Annual%20License'
+    ctaAction: () => window.location.href = 'mailto:christian@chravelapp.com?subject=Enterprise%20Events%20Inquiry'
+  }
+];
+
+const valuePropItems = [
+  {
+    icon: <Heart size={20} />,
+    title: 'The average trip costs $2,000+',
+    description: 'Your memories are worth more than $9.99/month'
+  },
+  {
+    icon: <Camera size={20} />,
+    title: 'Never delete another trip',
+    description: 'That sunset in Santorini? Keep it forever.'
+  },
+  {
+    icon: <MessageSquare size={20} />,
+    title: 'Unlimited AI assistance',
+    description: 'From "what\'s near me?" to complex itinerary planning'
+  },
+  {
+    icon: <MapPin size={20} />,
+    title: 'Location-aware suggestions',
+    description: '"Find coffee shops within walking distance" - your AI knows where you are'
+  },
+  {
+    icon: <Calendar size={20} />,
+    title: 'Seamless calendar sync',
+    description: 'Your trips, automatically in your calendar'
+  },
+  {
+    icon: <FileText size={20} />,
+    title: 'Professional PDF exports',
+    description: 'Share beautiful itineraries with one click'
+  }
+];
+
+const faqItems = [
+  {
+    question: "What happens when I hit my 3-trip limit?",
+    answer: "You'll need to delete an old trip to create a new one. Or upgrade to Explorer to keep unlimited trips!"
+  },
+  {
+    question: "How do AI queries work on the free plan?",
+    answer: "Each user gets 5 AI queries per trip. A counter shows how many you have left. Resets with each new trip."
+  },
+  {
+    question: "Can I change plans anytime?",
+    answer: "Yes! Upgrade, downgrade, or cancel anytime. No contracts, no hassles."
+  },
+  {
+    question: "Is my data safe?",
+    answer: "Bank-level encryption. Your trips are private unless you choose to share them."
+  },
+  {
+    question: "Do all trip members need to pay?",
+    answer: "Trips are free with limited features. Or upgrade to Explorer or Pro to keep unlimited trips and more features. For Chravel Pro, only the admin pays and can assign a set number of seats to team members — ideal for organizations, sports teams, and tour management."
   }
 ];
 
@@ -295,52 +357,30 @@ const testimonials = [
   }
 ];
 
-const faqItems = [
-  {
-    question: "How does the free plan work?",
-    answer: "Everyone starts with 3 free trips per year. All trip invitees can join and participate for free. Upgrade to paid plans for unlimited trips and premium features like AI assistance and priority support."
-  },
-  {
-    question: "Can I switch between plans?",
-    answer: "Yes, you can upgrade or downgrade at any time. Pro plans include 14-day free trials."
-  },
-  {
-    question: "What happens if I exceed my trip limit?",
-    answer: "You can archive old trips or upgrade to a higher tier. We'll never delete your data."
-  },
-  {
-    question: "Is there a cancellation fee?",
-    answer: "No cancellation fees ever. You can cancel anytime and keep access until your billing period ends."
-  },
-  {
-    question: "Do you offer enterprise discounts?",
-    answer: "Yes! Enterprise plans start at $499/month with volume discounts available for teams over 500 members. Contact sales for custom pricing."
-  }
-];
-
-
-export const PricingSection = () => {
+export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const [activeTab, setActiveTab] = useState<'consumer' | 'pro' | 'events'>('consumer');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [roiCalculator, setRoiCalculator] = useState({
-    teamSize: 10,
-    tripsPerYear: 12,
-    hoursSavedPerTrip: 8,
-    hourlyRate: 75
-  });
 
-  const handlePlanSelect = (planId: string) => {
-    console.log(`Selected plan: ${planId}`);
-    // Handle plan selection logic
-  };
-
-  const calculateROI = () => {
-    const timeSaved = roiCalculator.teamSize * roiCalculator.tripsPerYear * roiCalculator.hoursSavedPerTrip;
-    const annualSavings = timeSaved * roiCalculator.hourlyRate;
-    const chravaelCost = activeTab === 'pro' ? 4788 : 999; // Rough annual costs
-    const roi = ((annualSavings - chravaelCost) / chravaelCost) * 100;
-    return { timeSaved, annualSavings, roi };
+  const handlePlanSelect = (planId: string, tier?: PricingTier) => {
+    // If tier has custom action, use it
+    if (tier?.ctaAction) {
+      tier.ctaAction();
+      return;
+    }
+    
+    // For consumer plans, trigger sign-up modal
+    if (activeTab === 'consumer' && onSignUp) {
+      onSignUp();
+    } else if (activeTab === 'events') {
+      // For basic events, trigger sign-up
+      if (planId === 'basic-events' && onSignUp) {
+        onSignUp();
+      } else {
+        // For paid events, open email
+        window.location.href = 'mailto:christian@chravelapp.com?subject=Event%20Planning%20Inquiry';
+      }
+    }
   };
 
   const getCurrentTiers = () => {
@@ -359,21 +399,48 @@ export const PricingSection = () => {
     return tier.price;
   };
 
-  const { timeSaved, annualSavings, roi } = calculateROI();
+  const getAnnualMonthlyEquivalent = (tier: PricingTier) => {
+    if (!tier.annualPrice || billingCycle !== 'annual') return null;
+    const annual = parseFloat(tier.annualPrice.replace('$', ''));
+    return `$${(annual / 12).toFixed(2)}/month`;
+  };
 
   return (
     <div className="w-full space-y-16">
       {/* Header with Value Prop */}
       <div className="text-center space-y-6">
         <div className="space-y-4">
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground">
-            Replace 8-10 travel apps with one powerful solution
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
+            Start planning better trips today
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Save 70% of trip planning time with enterprise-grade security and consumer-friendly design. 
-            <span className="text-accent font-semibold"> Start with 3 free trips per year, upgrade for unlimited access and premium features.</span>
+          <p className="text-sm sm:text-base md:text-lg text-foreground max-w-3xl mx-auto leading-relaxed break-words">
+            Your crew is waiting. <span className="text-accent font-semibold">Save 23 hours per trip</span> with the world's first AI-native travel collaboration platform.
           </p>
         </div>
+
+        {/* Why Upgrade Section */}
+        {activeTab === 'consumer' && (
+          <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-5 md:p-8 max-w-5xl mx-auto">
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-4 md:mb-6">Why Upgrade?</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+              {valuePropItems.map((item, index) => (
+                <div key={index} className="text-left">
+                  <div className="flex items-start gap-2 md:gap-3">
+                    <div className="text-primary mt-0.5">
+                      {React.cloneElement(item.icon as React.ReactElement, { 
+                        size: 16
+                      })}
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground text-sm sm:text-base md:text-lg mb-1 break-words">{item.title}</h4>
+                      <p className="text-xs sm:text-sm md:text-base text-foreground break-words">{item.description}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Category Tabs */}
         <div className="flex justify-center">
@@ -386,13 +453,15 @@ export const PricingSection = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-6 py-3 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                className={`px-4 py-2 md:px-6 md:py-3 rounded-md text-sm sm:text-base md:text-lg font-medium transition-all flex items-center gap-1.5 md:gap-2 ${
                   activeTab === tab.id
                     ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                    : 'text-foreground hover:text-foreground'
                 }`}
               >
-                {tab.icon}
+                {React.cloneElement(tab.icon as React.ReactElement, { 
+                  size: 14
+                })}
                 {tab.label}
               </button>
             ))}
@@ -401,8 +470,8 @@ export const PricingSection = () => {
 
         {/* Billing Toggle for applicable plans */}
         {activeTab === 'consumer' && (
-          <div className="flex items-center justify-center gap-4">
-            <span className={`text-sm ${billingCycle === 'monthly' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+          <div className="flex items-center justify-center gap-3 md:gap-4">
+            <span className={`text-sm sm:text-base ${billingCycle === 'monthly' ? 'text-foreground font-medium' : 'text-foreground'}`}>
               Monthly
             </span>
             <button
@@ -413,12 +482,12 @@ export const PricingSection = () => {
                 billingCycle === 'annual' ? 'translate-x-7' : 'translate-x-1'
               }`} />
             </button>
-            <span className={`text-sm ${billingCycle === 'annual' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+            <span className={`text-sm sm:text-base ${billingCycle === 'annual' ? 'text-foreground font-medium' : 'text-foreground'}`}>
               Annual
             </span>
             {billingCycle === 'annual' && (
-              <Badge variant="secondary" className="bg-green-500/20 text-green-400">
-                Save 20%
+              <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-xs">
+                Save 17%
               </Badge>
             )}
           </div>
@@ -426,18 +495,33 @@ export const PricingSection = () => {
       </div>
 
       {/* Pricing Cards */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+      <div className={`grid gap-4 md:gap-6 max-w-7xl mx-auto ${
+        activeTab === 'consumer' 
+          ? 'md:grid-cols-3' 
+          : activeTab === 'events'
+          ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5'
+          : 'md:grid-cols-2 lg:grid-cols-3'
+      }`}>
         {getCurrentTiers().map((tier) => (
-          <Card 
-            key={tier.id} 
-            className={`relative bg-card/80 backdrop-blur-sm border transition-all hover:scale-105 hover:shadow-lg ${
-              tier.popular || tier.recommended
-                ? 'border-primary/50 shadow-lg ring-1 ring-primary/20' 
-                : tier.enterprise 
-                ? 'border-accent/50' 
-                : 'border-border/50'
-            }`}
+          <div 
+            key={tier.id}
+            className={activeTab === 'events' && tier.enterprise ? 'col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-1' : ''}
           >
+            <Card 
+              className={`relative backdrop-blur-sm border transition-all hover:scale-105 hover:shadow-lg min-h-[480px] flex flex-col ${
+                activeTab === 'events' 
+                  ? tier.popular || tier.recommended
+                    ? 'bg-blue-950/40 border-blue-500/40 shadow-lg ring-1 ring-blue-500/40'
+                    : tier.enterprise
+                    ? 'bg-gray-900/80 border-amber-500/30'
+                    : 'bg-gray-900/80 border-gray-700/50'
+                  : tier.popular || tier.recommended
+                    ? 'bg-card/80 border-primary/50 shadow-lg ring-1 ring-primary/20' 
+                    : tier.enterprise 
+                    ? 'bg-card/80 border-accent/50' 
+                    : 'bg-card/80 border-border/50'
+              }`}
+            >
             {(tier.popular || tier.recommended) && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                 <Badge className="bg-primary text-primary-foreground px-4 py-2 font-medium">
@@ -446,181 +530,180 @@ export const PricingSection = () => {
               </div>
             )}
             
-            <CardHeader className="text-center pb-6">
-              <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 ${
-                tier.popular || tier.recommended
-                  ? 'bg-primary/20 text-primary' 
-                  : tier.enterprise 
-                  ? 'bg-accent/20 text-accent' 
-                  : 'bg-muted/50 text-muted-foreground'
+            <CardHeader className="text-center pb-4 md:pb-6 p-4 md:p-6">
+              <div className={`w-12 h-12 md:w-16 md:h-16 mx-auto rounded-full flex items-center justify-center mb-3 md:mb-4 ${
+                activeTab === 'events'
+                  ? tier.popular || tier.recommended
+                    ? 'bg-blue-600/30 text-blue-400'
+                    : tier.enterprise
+                    ? 'bg-amber-600/20 text-amber-500'
+                    : 'bg-gray-700/50 text-gray-300'
+                  : tier.popular || tier.recommended
+                    ? 'bg-primary/20 text-primary' 
+                    : tier.enterprise 
+                    ? 'bg-accent/20 text-accent' 
+                    : 'bg-muted/50 text-muted-foreground'
               }`}>
-                {tier.icon}
+                {React.cloneElement(tier.icon as React.ReactElement, { 
+                  size: 20
+                })}
               </div>
-              <CardTitle className="text-xl font-bold">{tier.name}</CardTitle>
-              <div className="space-y-3">
-                <div className="text-4xl font-bold text-foreground">
-                  {getPrice(tier)}
-                  {tier.category === 'events' && tier.price.includes('$') && !tier.price.includes('999') && (
-                    <span className="text-lg text-muted-foreground font-normal">/attendee</span>
+              <CardTitle className="text-xl md:text-2xl mb-2 font-bold break-words whitespace-normal">{tier.name}</CardTitle>
+              <div className="space-y-2">
+                <div className="break-words whitespace-normal overflow-hidden text-center">
+                  <div className="text-3xl md:text-4xl font-bold text-foreground">
+                    {getPrice(tier)}
+                  </div>
+                  {/* Events per-attendee pricing */}
+                  {tier.category === 'events' && ['premium-events', 'premium-plus'].includes(tier.id) && (
+                    <div className="text-sm sm:text-base md:text-lg text-foreground font-normal mt-1">
+                      /attendee
+                    </div>
                   )}
+                  {/* Events Host Pass monthly pricing */}
+                  {tier.category === 'events' && tier.id === 'host-pass' && (
+                    <div className="text-sm sm:text-base md:text-lg text-foreground font-normal mt-1">
+                      /month
+                    </div>
+                  )}
+                  {/* Pro monthly pricing */}
                   {tier.category === 'pro' && tier.price.includes('$') && !tier.price.includes('Starting') && (
-                    <span className="text-lg text-muted-foreground font-normal">/month</span>
+                    <div className="text-sm sm:text-base md:text-lg text-foreground font-normal mt-1">
+                      /month
+                    </div>
                   )}
+                  {/* Consumer monthly/annual pricing */}
                   {tier.category === 'consumer' && tier.annualPrice && billingCycle === 'monthly' && (
-                    <span className="text-lg text-muted-foreground font-normal">/month</span>
+                    <div className="text-sm sm:text-base md:text-lg text-foreground font-normal mt-1">
+                      /month
+                    </div>
                   )}
-                  {tier.category === 'consumer' && !tier.price.includes('$0') && billingCycle === 'annual' && !tier.annualPrice && (
-                    <span className="text-lg text-muted-foreground font-normal">/year</span>
+                  {tier.category === 'consumer' && tier.annualPrice && billingCycle === 'annual' && (
+                    <div className="text-sm sm:text-base md:text-lg text-foreground font-normal mt-1">
+                      /year
+                    </div>
                   )}
                 </div>
                 
+                {/* Show monthly equivalent for annual plans */}
+                {billingCycle === 'annual' && tier.annualPrice && tier.category === 'consumer' && getAnnualMonthlyEquivalent(tier) && (
+                  <div className="text-sm text-muted-foreground break-words whitespace-normal text-center px-2">
+                    {getAnnualMonthlyEquivalent(tier)} when billed annually
+                  </div>
+                )}
+                
+                {/* Show original price and savings */}
                 {tier.originalPrice && billingCycle === 'annual' && (
-                  <div className="text-sm text-muted-foreground line-through">
+                  <div className="text-sm text-muted-foreground line-through break-words whitespace-normal text-center">
                     Originally {tier.originalPrice}/year
                   </div>
                 )}
                 
                 {tier.savings && billingCycle === 'annual' && (
-                  <div className="text-sm text-green-400 font-medium">
+                  <div className="text-sm text-green-400 font-medium break-words whitespace-normal text-center">
                     {tier.savings}
                   </div>
                 )}
                 
-                <p className="text-sm text-muted-foreground leading-relaxed">{tier.description}</p>
+                <p className="text-sm text-muted-foreground min-h-[2.5rem] flex items-center justify-center break-words whitespace-normal overflow-hidden text-center px-2">
+                  {tier.description}
+                </p>
               </div>
             </CardHeader>
 
-            <CardContent className="space-y-6">
-              <ul className="space-y-3">
+            <CardContent className="space-y-3 md:space-y-4 px-4 md:px-6 pb-4 md:pb-6 flex-1">
+              {tier.limitation && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2.5 md:p-3 text-xs sm:text-sm text-yellow-400 break-words">
+                  {tier.limitation}
+                </div>
+              )}
+              
+              <ul className="space-y-2 md:space-y-3">
                 {tier.features.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <Check size={16} className="text-green-400 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-muted-foreground">{feature}</span>
+                  <li key={index} className="flex items-start gap-2">
+                    <Check size={14} className="text-green-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-foreground break-words">{feature}</span>
                   </li>
                 ))}
               </ul>
-
-              <Button 
-                className={`w-full h-12 font-medium ${
-                  tier.popular || tier.recommended
-                    ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
-                    : tier.enterprise 
-                    ? 'bg-accent hover:bg-accent/90 text-accent-foreground' 
-                    : 'bg-secondary hover:bg-secondary/80'
-                }`}
+            </CardContent>
+            
+            <CardFooter className="px-4 md:px-6 pb-4 md:pb-6 pt-0 mt-auto">
+              <Button
                 onClick={tier.ctaAction || (() => handlePlanSelect(tier.id))}
+                className={`w-full h-10 md:h-12 font-medium text-sm sm:text-base ${
+                  activeTab === 'events'
+                    ? tier.popular || tier.recommended
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : tier.enterprise
+                      ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : tier.popular || tier.recommended
+                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
+                      : tier.enterprise 
+                      ? 'bg-accent hover:bg-accent/90 text-accent-foreground' 
+                      : 'bg-secondary hover:bg-secondary/80'
+                }`}
               >
                 {tier.cta}
-                {(tier.cta.includes('Trial') || tier.cta.includes('Free')) && (
-                  <Badge variant="outline" className="ml-2 bg-background/50">
-                    14-day trial
-                  </Badge>
-                )}
               </Button>
-            </CardContent>
+            </CardFooter>
           </Card>
+          </div>
         ))}
       </div>
 
-      {/* ROI Calculator */}
-      {activeTab === 'pro' && (
-        <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-2xl p-8 border border-primary/20">
-          <div className="text-center mb-8">
-            <Calculator className="w-12 h-12 mx-auto text-primary mb-4" />
-            <h3 className="text-2xl font-bold mb-2">ROI Calculator</h3>
-            <p className="text-muted-foreground">See how much Chravel Pro can save your organization</p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Team Size</label>
-                <input
-                  type="number"
-                  value={roiCalculator.teamSize}
-                  onChange={(e) => setRoiCalculator(prev => ({ ...prev, teamSize: parseInt(e.target.value) || 0 }))}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Trips Per Year</label>
-                <input
-                  type="number"
-                  value={roiCalculator.tripsPerYear}
-                  onChange={(e) => setRoiCalculator(prev => ({ ...prev, tripsPerYear: parseInt(e.target.value) || 0 }))}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Hours Saved Per Trip</label>
-                <input
-                  type="number"
-                  value={roiCalculator.hoursSavedPerTrip}
-                  onChange={(e) => setRoiCalculator(prev => ({ ...prev, hoursSavedPerTrip: parseInt(e.target.value) || 0 }))}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Average Hourly Rate ($)</label>
-                <input
-                  type="number"
-                  value={roiCalculator.hourlyRate}
-                  onChange={(e) => setRoiCalculator(prev => ({ ...prev, hourlyRate: parseInt(e.target.value) || 0 }))}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-md"
-                />
-              </div>
-            </div>
-            
-            <div className="bg-card/50 rounded-xl p-6 space-y-4">
-              <h4 className="text-lg font-bold">Your Annual Savings</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span>Time Saved:</span>
-                  <span className="font-bold text-primary">{timeSaved.toLocaleString()} hours</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Cost Savings:</span>
-                  <span className="font-bold text-green-400">${annualSavings.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-lg font-bold pt-2 border-t border-border/50">
-                  <span>ROI:</span>
-                  <span className="text-accent">{Math.round(roi)}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* How Billing Works (Events only) */}
+      {activeTab === 'events' && (
+        <div className="max-w-4xl mx-auto rounded-xl border border-border/40 bg-card/20 backdrop-blur-sm p-4 md:p-6">
+          <div className="text-base sm:text-lg font-semibold mb-3 text-foreground">How billing works</div>
+          <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground list-disc pl-5">
+            <li>
+              "Joiner" = attendee who accepts the invite and enters the event space. Unopened/declined invites aren't billed.
+            </li>
+            <li>
+              <strong>Premium</strong>: $0.99 per joiner for 51–149 attendees, <strong>capped at $150 per event</strong>.
+            </li>
+            <li>
+              <strong>Premium Plus</strong>: $0.49 per joiner for 150–500 attendees.
+            </li>
+            <li>
+              <strong>Host Pass</strong>: covers <strong>2 events/month</strong> up to <strong>149 attendees each</strong> with <strong>no per-attendee fees</strong>. Extra events that month use Premium pricing or you can add another Host Pass.
+            </li>
+            <li>
+              Final charge occurs when you lock the event or 24h after the end date (whichever comes first).
+            </li>
+          </ul>
+          <p className="mt-3 text-[10px] sm:text-[11px] text-muted-foreground/60">
+            Prices USD. Features subject to fair-use. See Terms.
+          </p>
         </div>
       )}
 
       {/* FAQ Section */}
-      <div className="max-w-3xl mx-auto space-y-8">
-        <div className="text-center">
-          <h3 className="text-2xl font-bold mb-2">Frequently Asked Questions</h3>
-          <p className="text-muted-foreground">Get answers to common questions about our pricing</p>
-        </div>
-        
-        <div className="space-y-4">
-          {faqItems.map((faq, index) => (
+      <div className="max-w-3xl mx-auto">
+        <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground text-center mb-6 md:mb-8">Frequently Asked Questions</h3>
+        <div className="space-y-2 md:space-y-3">
+          {faqItems.map((item, index) => (
             <Collapsible key={index} open={openFaq === index} onOpenChange={() => setOpenFaq(openFaq === index ? null : index)}>
-              <CollapsibleTrigger className="w-full text-left">
-                <Card className="bg-card/50 border-border/50 hover:bg-card/80 transition-colors cursor-pointer">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-center">
-                      <h4 className="font-medium">{faq.question}</h4>
-                      <ChevronDown className={`w-5 h-5 transition-transform ${openFaq === index ? 'rotate-180' : ''}`} />
-                    </div>
-                  </CardContent>
-                </Card>
+              <CollapsibleTrigger className="w-full">
+                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-3 md:p-4 hover:bg-card/70 transition-colors">
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="text-left font-semibold text-foreground text-sm sm:text-base md:text-lg break-words">{item.question}</h4>
+                    <ChevronDown className={`text-foreground transition-transform flex-shrink-0 ${openFaq === index ? 'rotate-180' : ''}`} size={18} />
+                  </div>
+                </div>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="px-6 pb-4 text-muted-foreground">
-                  {faq.answer}
+                <div className="bg-card/30 border border-border/30 border-t-0 rounded-b-lg p-3 md:p-4 -mt-1">
+                  <p className="text-foreground text-xs sm:text-sm md:text-base break-words">{item.answer}</p>
                 </div>
               </CollapsibleContent>
             </Collapsible>
           ))}
         </div>
       </div>
+
     </div>
   );
 };

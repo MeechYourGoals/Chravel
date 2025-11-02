@@ -5,7 +5,18 @@ export const getOptimizedImageUrl = (
 ): string => {
   // For Unsplash images, use their optimization API
   if (url.includes('unsplash.com')) {
-    return `${url}?w=${width}&q=${quality}&fm=webp&auto=format`;
+    try {
+      const urlObj = new URL(url);
+      urlObj.searchParams.set('w', String(width));
+      urlObj.searchParams.set('q', String(quality));
+      urlObj.searchParams.set('fm', 'webp');
+      urlObj.searchParams.set('auto', 'format');
+      return urlObj.toString();
+    } catch {
+      // Fallback for invalid URLs
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}w=${width}&q=${quality}&fm=webp&auto=format`;
+    }
   }
   
   // For other images, return as-is (would integrate with image CDN in production)

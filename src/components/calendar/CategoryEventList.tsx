@@ -13,7 +13,7 @@ interface CategoryEventListProps {
 
 export const CategoryEventList = ({ events, selectedDate, assignments, getCategoryInfo }: CategoryEventListProps) => {
   return (
-    <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6">
+    <div className="h-full flex flex-col">
       <h3 className="text-lg font-semibold text-foreground mb-4">
         {selectedDate 
           ? `Events for ${format(selectedDate, 'EEEE, MMM d')}`

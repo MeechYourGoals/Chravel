@@ -4,6 +4,7 @@ import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 
 const TRIPS_CACHE_KEY = 'chravel_trips_cache';
+const DEMO_TRIPS_CACHE_KEY = 'demo_chravel_trips_cache'; // PHASE 0A: Separate cache for demo mode
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export const useTrips = () => {
@@ -17,7 +18,9 @@ export const useTrips = () => {
   useEffect(() => {
     const loadCachedTrips = () => {
       try {
-        const cached = localStorage.getItem(TRIPS_CACHE_KEY);
+        // PHASE 0A: Use separate cache keys for demo vs real mode to prevent collisions
+        const cacheKey = isDemoMode ? DEMO_TRIPS_CACHE_KEY : TRIPS_CACHE_KEY;
+        const cached = localStorage.getItem(cacheKey);
         if (cached) {
           const { data, timestamp } = JSON.parse(cached);
           const isExpired = Date.now() - timestamp > CACHE_DURATION;
@@ -33,7 +36,7 @@ export const useTrips = () => {
 
     loadCachedTrips();
     loadTrips();
-  }, [user]);
+  }, [user, isDemoMode]);
 
   const loadTrips = async () => {
     if (!user) {
@@ -49,8 +52,10 @@ export const useTrips = () => {
       setTrips(userTrips);
       
       // Phase 6: Cache trips to localStorage
+      // PHASE 0A: Use separate cache keys for demo vs real mode
       try {
-        localStorage.setItem(TRIPS_CACHE_KEY, JSON.stringify({
+        const cacheKey = isDemoMode ? DEMO_TRIPS_CACHE_KEY : TRIPS_CACHE_KEY;
+        localStorage.setItem(cacheKey, JSON.stringify({
           data: userTrips,
           timestamp: Date.now()
         }));

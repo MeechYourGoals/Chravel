@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, Crown, Sparkles, MessageCircle, Settings, Zap, Camera } from 'lucide-react';
+import { X, Crown, Sparkles, MessageCircle, Settings, Zap, Camera, Star, Globe } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
-import { TRIPS_PLUS_PRICE, TRIPS_PLUS_ANNUAL_PRICE } from '../types/consumer';
+import { CONSUMER_PRICING } from '../types/consumer';
 
 interface PlusUpsellModalProps {
   isOpen: boolean;
@@ -9,24 +9,28 @@ interface PlusUpsellModalProps {
 }
 
 export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
-  const { upgradeToPlus, isLoading } = useConsumerSubscription();
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const { upgradeToTier, isLoading } = useConsumerSubscription();
+  const [selectedTier, setSelectedTier] = useState<'explorer' | 'frequent-chraveler'>('explorer');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
 
   if (!isOpen) return null;
 
   const handleUpgrade = async () => {
-    await upgradeToPlus();
+    await upgradeToTier(selectedTier, billingCycle);
     onClose();
   };
 
-  const getPlusPrice = () => {
-    return billingCycle === 'monthly' ? TRIPS_PLUS_PRICE : TRIPS_PLUS_ANNUAL_PRICE;
+  const getPrice = () => {
+    const pricing = CONSUMER_PRICING[selectedTier];
+    return billingCycle === 'monthly' ? pricing.monthly : pricing.annual;
   };
 
-  const calculateSavings = () => {
-    const monthlyCost = TRIPS_PLUS_PRICE * 12;
-    const annualCost = TRIPS_PLUS_ANNUAL_PRICE;
-    return Math.round(((monthlyCost - annualCost) / monthlyCost) * 100);
+  const getSavings = () => {
+    return CONSUMER_PRICING[selectedTier].savings;
+  };
+
+  const getMonthlyEquivalent = () => {
+    return (CONSUMER_PRICING[selectedTier].annual / 12).toFixed(2);
   };
 
   return (
@@ -34,12 +38,19 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
       <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-2xl flex items-center justify-center">
-              <Crown size={24} className="text-white" />
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+              selectedTier === 'explorer' ? 'bg-gradient-to-r from-glass-orange to-glass-yellow' :
+              'bg-gradient-to-r from-purple-500 to-purple-600'
+            }`}>
+              {selectedTier === 'explorer' && <Globe size={24} className="text-white" />}
+              {selectedTier === 'frequent-chraveler' && <Sparkles size={24} className="text-white" />}
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-white">Upgrade to Plus</h2>
-              <p className="text-gray-400">AI-powered travel planning for smarter trips</p>
+              <h2 className="text-3xl font-bold text-white capitalize">Upgrade to {selectedTier}</h2>
+              <p className="text-gray-400">
+                {selectedTier === 'explorer' && 'Never lose a trip memory'}
+                {selectedTier === 'frequent-chraveler' && 'For travel pros and adventure enthusiasts'}
+              </p>
             </div>
           </div>
           <button
@@ -48,6 +59,23 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
           >
             <X size={24} />
           </button>
+        </div>
+
+        {/* Tier Selector */}
+        <div className="flex justify-center gap-2 mb-6">
+          {(['explorer', 'frequent-chraveler'] as const).map((tier) => (
+            <button
+              key={tier}
+              onClick={() => setSelectedTier(tier)}
+              className={`px-4 py-2 rounded-xl font-medium transition-all capitalize ${
+                selectedTier === tier
+                  ? 'bg-gradient-to-r from-glass-orange to-glass-yellow text-white'
+                  : 'text-gray-300 hover:text-white bg-white/5'
+              }`}
+            >
+              {tier === 'frequent-chraveler' ? 'Frequent Chraveler' : tier}
+            </button>
+          ))}
         </div>
 
         {/* Features Grid */}
@@ -95,30 +123,40 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
 
         {/* Comparison */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 mb-8">
-          <h3 className="text-lg font-bold text-white mb-4">Free vs. Plus</h3>
+          <h3 className="text-lg font-bold text-white mb-4">Free vs. {selectedTier === 'explorer' ? 'Explorer' : 'Frequent Chraveler'}</h3>
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <h4 className="text-white font-medium mb-3">Free Plan</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>• Up to 5 trips (delete to add new)</li>
+                <li>• Up to 3 active trips</li>
                 <li>• Basic group chat</li>
-                <li>• Group to-do list</li>
-                <li>• Shared trip calendar</li>
-                <li>• Up to 10 participants</li>
+                <li>• Shared calendar (manual)</li>
+                <li>• Photo & video sharing</li>
+                <li>• 5 AI queries per user per trip</li>
               </ul>
             </div>
             <div>
-              <h4 className="text-white font-medium mb-3">Plus</h4>
-              <ul className="space-y-2 text-sm text-green-300">
-                <li>• Unlimited trips & participants</li>
-                <li>• Photo sharing</li>
-                <li>• AI-powered recommendations</li>
-                <li>• Smart preference matching</li>
-                <li>• Basecamp-aware suggestions</li>
-                <li>• Concierge AI chat</li>
-                <li>• Personalized itinerary building</li>
-                <li>• Group preference management</li>
-              </ul>
+              <h4 className="text-white font-medium mb-3">{selectedTier === 'explorer' ? 'Explorer' : 'Frequent Chraveler'}</h4>
+              {selectedTier === 'explorer' ? (
+                <ul className="space-y-2 text-sm text-green-300">
+                  <li>• Unlimited saved trips</li>
+                  <li>• 10 AI queries per trip</li>
+                  <li>• Location-aware AI</li>
+                  <li>• Custom trip categories</li>
+                  <li>• Smart notifications</li>
+                  <li>• Priority support</li>
+                </ul>
+              ) : (
+                <ul className="space-y-2 text-sm text-purple-300">
+                  <li>• Everything in Explorer</li>
+                  <li>• Unlimited AI queries</li>
+                  <li>• Calendar sync & PDF export</li>
+                  <li>• 1 Chravel Pro trip/month</li>
+                  <li>• Role-based channels</li>
+                  <li>• Route optimization</li>
+                  <li>• Early feature access</li>
+                </ul>
+              )}
             </div>
           </div>
         </div>
@@ -141,7 +179,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
           </span>
           {billingCycle === 'annual' && (
             <div className="bg-green-500/20 text-green-400 px-2 py-1 rounded-lg text-xs font-medium">
-              Save {calculateSavings()}%
+              Save 17%
             </div>
           )}
         </div>
@@ -150,12 +188,17 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
         <div className="text-center">
           <div className="bg-gradient-to-r from-glass-orange/20 to-glass-yellow/20 backdrop-blur-sm border border-glass-orange/30 rounded-2xl p-6 mb-6">
             <div className="text-4xl font-bold text-white mb-2">
-              ${getPlusPrice()}{billingCycle === 'monthly' ? '/month' : '/year'}
+              ${getPrice()}{billingCycle === 'monthly' ? '/month' : '/year'}
             </div>
             {billingCycle === 'annual' && (
-              <div className="text-green-400 text-sm mb-2">Save {calculateSavings()}% with annual billing</div>
+              <>
+                <div className="text-sm text-gray-300 mb-1">
+                  ${getMonthlyEquivalent()}/month when billed annually
+                </div>
+                <div className="text-green-400 text-sm mb-2">Save ${getSavings()}/year (17% off)</div>
+              </>
             )}
-            <p className="text-gray-300 mb-4">7-day free trial • Cancel anytime</p>
+            <p className="text-gray-300 mb-4">14-day free trial • Cancel anytime</p>
             <div className="text-sm text-glass-yellow">
               No credit card required for trial
             </div>

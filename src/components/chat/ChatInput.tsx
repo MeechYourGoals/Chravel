@@ -1,9 +1,11 @@
 
 import React, { useState, useRef } from 'react';
-import { Send, MessageCircle, Megaphone, Share2, Image, Video, FileText, Mic, CreditCard } from 'lucide-react';
+import { Send, MessageCircle, Megaphone, Share2, Image, Video, FileText, Mic, CreditCard, Link } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { PaymentInput } from '../payments/PaymentInput';
+import { useShareAsset } from '@/hooks/useShareAsset';
+import { toast } from 'sonner';
 
 interface ChatInputProps {
   inputMessage: string;
@@ -16,22 +18,28 @@ interface ChatInputProps {
   tripMembers?: Array<{ id: string; name: string; avatar?: string }>;
   hidePayments?: boolean;
   isInChannelMode?: boolean; // 🆕 Flag to indicate we're in a role channel
+  isPro?: boolean; // 🆕 Flag for pro/enterprise trips
+  tripId: string; // Add tripId for asset sharing
 }
 
-export const ChatInput = ({ 
-  inputMessage, 
-  onInputChange, 
-  onSendMessage, 
-  onKeyPress, 
+export const ChatInput = ({
+  inputMessage,
+  onInputChange,
+  onSendMessage,
+  onKeyPress,
   onFileUpload,
   isTyping,
   tripMembers = [],
   hidePayments = false,
-  isInChannelMode = false
+  isInChannelMode = false,
+  isPro = false,
+  tripId
 }: ChatInputProps) => {
   const [isBroadcastMode, setIsBroadcastMode] = useState(false);
   const [isPaymentMode, setIsPaymentMode] = useState(false);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { shareFile, shareLink, shareMultipleFiles, isUploading } = useShareAsset(tripId);
 
   const handleSend = () => {
     if (!isPaymentMode) {
@@ -53,8 +61,8 @@ export const ChatInput = ({
     }
   };
 
-  const handleFileUpload = (type: 'image' | 'video' | 'document') => {
-    if (!onFileUpload || !fileInputRef.current) return;
+  const handleFileUpload = async (type: 'image' | 'video' | 'document') => {
+    if (!fileInputRef.current) return;
     
     const accept = {
       image: 'image/*',
@@ -63,30 +71,54 @@ export const ChatInput = ({
     };
     
     fileInputRef.current.accept = accept[type];
-    fileInputRef.current.onchange = (e) => {
+    fileInputRef.current.onchange = async (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files && files.length > 0) {
-        onFileUpload(files, type);
+        // Use the new share asset functionality
+        await shareMultipleFiles(files, type);
+        
+        // Also call the legacy callback if provided
+        if (onFileUpload) {
+          onFileUpload(files, type);
+        }
       }
     };
     fileInputRef.current.click();
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     const files = e.dataTransfer.files;
-    if (files && files.length > 0 && onFileUpload) {
+    if (files && files.length > 0) {
       // Determine file type based on first file
       const file = files[0];
       const isImage = file.type.startsWith('image/');
       const isVideo = file.type.startsWith('video/');
       const type = isImage ? 'image' : isVideo ? 'video' : 'document';
-      onFileUpload(files, type);
+      
+      // Use the new share asset functionality
+      await shareMultipleFiles(files, type);
+      
+      // Also call the legacy callback if provided
+      if (onFileUpload) {
+        onFileUpload(files, type);
+      }
     }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+  };
+
+  const handleLinkShare = async () => {
+    const url = prompt('Paste the link you want to share:');
+    if (url && url.trim()) {
+      try {
+        await shareLink(url.trim());
+      } catch (error) {
+        console.error('Failed to share link:', error);
+      }
+    }
   };
 
   return (
@@ -163,6 +195,10 @@ export const ChatInput = ({
                 <FileText className="w-4 h-4 mr-2" />
                 Document
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLinkShare}>
+                <Link className="w-4 h-4 mr-2" />
+                Link
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -206,7 +242,7 @@ export const ChatInput = ({
           />
           <button
             onClick={handleSend}
-            disabled={!inputMessage.trim() || isTyping}
+            disabled={(!inputMessage.trim() && !isUploading) || isTyping}
             className={`text-white p-3 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
               isBroadcastMode
                 ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700'

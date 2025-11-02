@@ -20,8 +20,7 @@ interface LinkItem {
   domain: string;
   image_url?: string;
   created_at: string;
-  source: 'chat' | 'manual' | 'pinned';
-  category?: 'Housing' | 'Eats' | 'Activities';
+  source: 'chat' | 'manual' | 'places';
   tags?: string[];
 }
 
@@ -166,10 +165,9 @@ export class UniversalMockDataService {
       title: 'Beautiful Downtown Loft - Perfect for Groups',
       description: 'Spacious 3BR/2BA loft in the heart of downtown. Sleeps 8 comfortably with modern amenities.',
       domain: 'airbnb.com',
-      image_url: '/mock/images/airbnb-listing.jpg',
+      image_url: '/mock/images/airbnb-home.png',
       created_at: new Date(Date.now() - 3600000).toISOString(),
-      source: 'chat',
-      category: 'Housing'
+      source: 'places' as const
     },
     {
       id: 'fallback-link-2',
@@ -177,10 +175,9 @@ export class UniversalMockDataService {
       title: 'Sunset Rooftop Restaurant - Reservations Available',
       description: 'Award-winning rooftop dining with panoramic city views. Perfect for group celebrations.',
       domain: 'opentable.com',
-      image_url: '/mock/images/restaurant-rooftop.jpg',
+      image_url: '/mock/images/restaurant-rooftop.png',
       created_at: new Date(Date.now() - 7200000).toISOString(),
-      source: 'manual',
-      category: 'Eats'
+      source: 'places' as const
     },
     {
       id: 'fallback-link-3',
@@ -188,10 +185,9 @@ export class UniversalMockDataService {
       title: 'Historic City Walking Tour - Small Groups Welcome',
       description: 'Discover hidden gems and local history on this 3-hour guided walking tour.',
       domain: 'viator.com',
-      image_url: '/mock/images/walking-tour.jpg',
+      image_url: '/mock/images/walking-tour.png',
       created_at: new Date(Date.now() - 10800000).toISOString(),
-      source: 'pinned',
-      category: 'Activities'
+      source: 'places' as const
     },
     {
       id: 'fallback-link-4',
@@ -200,8 +196,7 @@ export class UniversalMockDataService {
       description: 'Don\'t miss this incredible live performance. Group rates available for 6+ people.',
       domain: 'eventbrite.com',
       created_at: new Date(Date.now() - 14400000).toISOString(),
-      source: 'chat',
-      category: 'Activities'
+      source: 'places' as const
     }
   ];
 

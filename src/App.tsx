@@ -14,6 +14,9 @@ import { performanceService } from "./services/performanceService";
 import { useDemoModeStore } from "./store/demoModeStore";
 import { errorTracking } from "./services/errorTracking";
 import { supabase } from "./integrations/supabase/client";
+import { AppInitializer } from "./components/app/AppInitializer";
+import BuildBadge from "./components/BuildBadge";
+import { Navigate, useParams } from "react-router-dom";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -33,10 +36,17 @@ const OrganizationsHub = lazy(() => import("./pages/OrganizationsHub").then(modu
 const MobileEnterpriseHub = lazy(() => import("./pages/MobileEnterpriseHub").then(module => ({ default: module.MobileEnterpriseHub })));
 const MobileOrganizationPage = lazy(() => import("./pages/MobileOrganizationPage").then(module => ({ default: module.MobileOrganizationPage })));
 const AcceptOrganizationInvite = lazy(() => import("./pages/AcceptOrganizationInvite").then(module => ({ default: module.AcceptOrganizationInvite })));
-const CravelRecsPage = lazy(() => import("./pages/CravelRecsPage").then(module => ({ default: module.CravelRecsPage })));
+const ChravelRecsPage = lazy(() => import("./pages/ChravelRecsPage").then(module => ({ default: module.ChravelRecsPage })));
+const AdvertiserDashboard = lazy(() => import("./pages/AdvertiserDashboard"));
+const Healthz = lazy(() => import("./pages/Healthz"));
 
 // Note: Large components are already optimized with code splitting
 
+// Legacy redirect for old pro trip URLs using hyphen format
+const LegacyProTripRedirect = () => {
+  const { proTripId } = useParams();
+  return <Navigate to={`/tour/pro/${proTripId}`} replace />;
+};
 
 const queryClient = new QueryClient();
 
@@ -71,10 +81,12 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ConsumerSubscriptionProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
+            <AppInitializer>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BuildBadge />
+                <BrowserRouter>
                 <MobileAppLayout>
                   <Routes>
                     <Route path="/" element={
@@ -102,6 +114,11 @@ const App = () => {
                         <ProTripDetail />
                       </LazyRoute>
                     } />
+                    <Route path="/tour/pro-:proTripId" element={
+                      <LazyRoute>
+                        <LegacyProTripRedirect />
+                      </LazyRoute>
+                    } />
                     <Route path="/event/:eventId" element={
                       <LazyRoute>
                         <EventDetail />
@@ -114,7 +131,17 @@ const App = () => {
                     } />
                     <Route path="/recs" element={
                       <LazyRoute>
-                        <CravelRecsPage />
+                        <ChravelRecsPage />
+                      </LazyRoute>
+                    } />
+                    <Route path="/advertiser" element={
+                      <LazyRoute>
+                        <AdvertiserDashboard />
+                      </LazyRoute>
+                    } />
+                    <Route path="/healthz" element={
+                      <LazyRoute>
+                        <Healthz />
                       </LazyRoute>
                     } />
                     <Route path="/profile" element={
@@ -161,6 +188,7 @@ const App = () => {
                 </MobileAppLayout>
               </BrowserRouter>
             </TooltipProvider>
+            </AppInitializer>
           </ConsumerSubscriptionProvider>
         </AuthProvider>
       </QueryClientProvider>
