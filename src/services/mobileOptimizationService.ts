@@ -112,7 +112,7 @@ export class MobileOptimizationService {
 
   // 🆕 Mobile-specific performance monitoring
   static trackMobilePerformance() {
-    if (!this.isMobile) return;
+    if (!this.isMobile || import.meta.env.PROD) return;
 
     // Monitor memory usage
     if ('memory' in performance) {
@@ -127,8 +127,15 @@ export class MobileOptimizationService {
     // Monitor frame rate
     let frameCount = 0;
     let lastTime = performance.now();
+    let rafId: number;
+    let stopTime = Date.now() + 10000; // Stop after 10 seconds
     
     const countFrames = () => {
+      if (Date.now() > stopTime) {
+        console.log('Performance tracking stopped');
+        return;
+      }
+
       frameCount++;
       const currentTime = performance.now();
       
@@ -140,9 +147,12 @@ export class MobileOptimizationService {
         lastTime = currentTime;
       }
       
-      requestAnimationFrame(countFrames);
+      rafId = requestAnimationFrame(countFrames);
     };
     
-    requestAnimationFrame(countFrames);
+    rafId = requestAnimationFrame(countFrames);
+
+    // Return cleanup function
+    return () => cancelAnimationFrame(rafId);
   }
 }

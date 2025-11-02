@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, useCallback } from 'react';
+import { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Trip } from '@/services/tripService';
@@ -72,12 +72,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Phase 4: Prefetch trips as soon as session is available
-  const prefetchedTripsRef = useState<{ data: Trip[] | null; loading: boolean }>({ 
-    data: null, 
-    loading: false 
-  })[0];
 
   // Helper function to fetch user profile
   const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
@@ -171,95 +165,52 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Initialize auth state
   useEffect(() => {
-    let mounted = true;
+    const getSessionAndUser = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
 
-    // Phase 4: Helper to prefetch trips immediately when session is available
-    const prefetchTrips = async () => {
-      if (prefetchedTripsRef.loading || prefetchedTripsRef.data !== null) return;
-      
-      prefetchedTripsRef.loading = true;
-      try {
-        const { tripService } = await import('@/services/tripService');
-        const trips = await tripService.getUserTrips();
-        if (mounted) {
-          prefetchedTripsRef.data = trips;
-        }
-      } catch (error) {
-        console.error('Error prefetching trips:', error);
-      } finally {
-        prefetchedTripsRef.loading = false;
+      if (error) {
+        console.error('[Auth] Error getting session:', error);
+        setIsLoading(false);
+        return;
       }
+
+      setSession(session);
+
+      if (session?.user) {
+        try {
+          const transformedUser = await transformUser(session.user);
+          setUser(transformedUser);
+        } catch (err) {
+          console.error('[Auth] Error transforming user on init:', err);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
     };
 
-    // Set up auth state listener
+    getSessionAndUser();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return;
-
         setSession(session);
-        
         if (session?.user) {
-          // Phase 4: Start prefetching trips immediately
-          prefetchTrips();
-          
-          setTimeout(async () => {
-            if (!mounted) return;
-            try {
-              const transformedUser = await transformUser(session.user);
-              setUser(transformedUser);
-            } catch (error) {
-              console.error('[Auth] Error transforming user:', error);
-              setUser(null);
-            } finally {
-              setIsLoading(false);
-            }
-          }, 0);
+          try {
+            const transformedUser = await transformUser(session.user);
+            setUser(transformedUser);
+          } catch (err) {
+            console.error('[Auth] Error transforming user:', err);
+            setUser(null);
+          }
         } else {
           setUser(null);
-          setIsLoading(false);
         }
+        setIsLoading(false);
       }
     );
 
-    // Check for existing session
-    // PHASE 1 BUG FIX #2: Add .catch() handler to prevent unhandled promise rejection
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        if (!mounted) return;
-
-        setSession(session);
-        if (session?.user) {
-          // Phase 4: Start prefetching trips immediately
-          prefetchTrips();
-
-          transformUser(session.user)
-            .then(transformedUser => {
-              if (mounted) {
-                setUser(transformedUser);
-                setIsLoading(false);
-              }
-            })
-            .catch(error => {
-              console.error('[Auth] Error transforming user on init:', error);
-              if (mounted) {
-                setUser(null);
-                setIsLoading(false);
-              }
-            });
-        } else {
-          setIsLoading(false);
-        }
-      })
-      .catch(error => {
-        console.error('[Auth] Error getting session:', error);
-        if (mounted) {
-          setUser(null);
-          setIsLoading(false);
-        }
-      });
-
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
   }, [transformUser]);

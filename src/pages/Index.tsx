@@ -55,8 +55,10 @@ const Index = () => {
   // Use centralized trip data - only show if demo mode is enabled
   const trips = isDemoMode ? tripsData : [];
 
-  console.log('Index - proTripMockData IDs:', Object.keys(proTripMockData));
-  console.log('Index - eventsMockData IDs:', Object.keys(eventsMockData));
+  if (import.meta.env.DEV) {
+    console.log('Index - proTripMockData IDs:', Object.keys(proTripMockData));
+    console.log('Index - eventsMockData IDs:', Object.keys(eventsMockData));
+  }
 
   // Calculate stats for each view mode - gate by demo mode
   const tripStats = calculateTripStats(trips);
