@@ -236,6 +236,99 @@ export const getTripById = (id: number): Trip | null => {
 // 🚀 OPTIMIZATION: Cache for generated mock data
 const mockDataCache = new Map<number, ReturnType<typeof generateTripMockData>>();
 
+// City-specific link templates for realistic trip planning resources
+const getCitySpecificLinks = (location: string) => {
+  const city = location.split(',')[0].trim();
+  
+  const linkTemplates: Record<string, Array<{ title: string; url: string; category: string; domain: string; description: string }>> = {
+    'Cancun': [
+      { title: 'Cancun All-Inclusive Resort Deals', url: 'https://www.booking.com/city/mx/cancun.html', category: 'Accommodation', domain: 'booking.com', description: 'Top-rated beachfront resorts and hotels' },
+      { title: 'Chichen Itza Day Trip from Cancun', url: 'https://www.viator.com/Cancun/d631-ttd', category: 'Activities', domain: 'viator.com', description: 'Ancient Mayan ruins tour with guide' },
+      { title: 'Cancun Hotel Zone Nightlife Guide', url: 'https://www.timeout.com/cancun/nightlife', category: 'Nightlife', domain: 'timeout.com', description: 'Best clubs, bars, and beach parties' },
+      { title: 'Best Tacos and Seafood in Cancun', url: 'https://www.tripadvisor.com/Restaurants-g150807-Cancun_Yucatan_Peninsula.html', category: 'Food', domain: 'tripadvisor.com', description: 'Local favorites and beachfront dining' },
+      { title: 'Isla Mujeres Ferry & Snorkeling', url: 'https://www.getyourguide.com/cancun-l138/', category: 'Activities', domain: 'getyourguide.com', description: 'Island day trip with water activities' }
+    ],
+    'Tokyo': [
+      { title: 'Tokyo Shibuya & Shinjuku Hotel Guide', url: 'https://www.booking.com/city/jp/tokyo.html', category: 'Accommodation', domain: 'booking.com', description: 'Central hotels near train stations' },
+      { title: 'Tokyo Skytree Fast-Track Tickets', url: 'https://www.klook.com/activity/233-tokyo-skytree-tokyo/', category: 'Attractions', domain: 'klook.com', description: 'Skip-the-line observation deck access' },
+      { title: 'Tsukiji Outer Market Food Tour', url: 'https://www.viator.com/Tokyo-tours/Food-Tours/d332-g6', category: 'Food', domain: 'viator.com', description: 'Fresh sushi and street food experience' },
+      { title: 'Shibuya Nightlife & Karaoke Bars', url: 'https://www.timeout.com/tokyo/nightlife', category: 'Nightlife', domain: 'timeout.com', description: 'Best bars, izakayas, and karaoke spots' },
+      { title: 'Day Trip to Mount Fuji & Hakone', url: 'https://www.getyourguide.com/tokyo-l193/', category: 'Activities', domain: 'getyourguide.com', description: 'Scenic tour with onsen experience' }
+    ],
+    'Bali': [
+      { title: 'Ubud & Seminyak Luxury Villas', url: 'https://www.airbnb.com/s/Bali--Indonesia/homes', category: 'Accommodation', domain: 'airbnb.com', description: 'Private villas with pools and rice field views' },
+      { title: 'Tegallalang Rice Terraces & Swing', url: 'https://www.getyourguide.com/bali-l294/', category: 'Attractions', domain: 'getyourguide.com', description: 'Instagram-worthy jungle swings and terraces' },
+      { title: 'Balinese Cooking Class in Ubud', url: 'https://www.viator.com/Bali/d318-ttd', category: 'Activities', domain: 'viator.com', description: 'Traditional market tour and cooking lesson' },
+      { title: 'Best Beach Clubs in Canggu & Seminyak', url: 'https://www.timeout.com/bali/beach-clubs', category: 'Nightlife', domain: 'timeout.com', description: 'Sunset cocktails and beach party venues' },
+      { title: 'Tanah Lot Temple Sunset Tour', url: 'https://www.klook.com/activity/2347-tanah-lot-temple-tour-bali/', category: 'Attractions', domain: 'klook.com', description: 'Sacred sea temple with sunset views' }
+    ],
+    'Nashville': [
+      { title: 'Broadway Honky Tonks & Live Music', url: 'https://www.visitmusiccity.com/things-to-do/honky-tonks', category: 'Nightlife', domain: 'visitmusiccity.com', description: "Tootsie's, Robert's, and legendary bars" },
+      { title: 'Nashville Hot Chicken Tour', url: 'https://www.tripadvisor.com/Restaurants-g55229-Nashville_Tennessee.html', category: 'Food', domain: 'tripadvisor.com', description: "Prince's, Hattie B's, and local favorites" },
+      { title: 'Grand Ole Opry Show Tickets', url: 'https://www.opry.com/', category: 'Attractions', domain: 'opry.com', description: 'Legendary country music venue performances' },
+      { title: 'Downtown Nashville Hotels Near Broadway', url: 'https://www.booking.com/city/us/nashville.html', category: 'Accommodation', domain: 'booking.com', description: 'Walking distance to all honky-tonks' },
+      { title: 'Nashville Pedal Tavern Bar Crawl', url: 'https://www.nashvillepedaltavern.com/', category: 'Activities', domain: 'nashvillepedaltavern.com', description: 'Party bike tour through downtown' }
+    ],
+    'Indio': [
+      { title: 'Coachella Festival Official Site', url: 'https://www.coachella.com/', category: 'Event', domain: 'coachella.com', description: 'Lineup, tickets, and festival info' },
+      { title: 'Coachella Camping & Shuttle Passes', url: 'https://www.coachella.com/camping', category: 'Accommodation', domain: 'coachella.com', description: 'On-site camping and transportation options' },
+      { title: 'Palm Springs Hotels Near Coachella', url: 'https://www.booking.com/city/us/palm-springs.html', category: 'Accommodation', domain: 'booking.com', description: '30-minute drive to festival grounds' },
+      { title: 'Coachella Survival Guide & Tips', url: 'https://www.festivalpass.com/coachella-survival-guide', category: 'Tips', domain: 'festivalpass.com', description: 'What to pack, wear, and expect' },
+      { title: 'Coachella After-Parties & Pool Parties', url: 'https://edmidentity.com/coachella-parties/', category: 'Nightlife', domain: 'edmidentity.com', description: 'Official and unofficial festival events' }
+    ],
+    'Aspen': [
+      { title: 'Aspen Snowmass Ski Resort Info', url: 'https://www.aspensnowmass.com/', category: 'Activities', domain: 'aspensnowmass.com', description: 'Trail maps, lift tickets, and conditions' },
+      { title: 'Luxury Ski-In/Ski-Out Lodges', url: 'https://www.booking.com/city/us/aspen.html', category: 'Accommodation', domain: 'booking.com', description: 'Premium mountain hotels and condos' },
+      { title: 'Aspen Mountain Hiking Trails (Summer)', url: 'https://www.alltrails.com/parks/us/colorado/aspen', category: 'Activities', domain: 'alltrails.com', description: 'Maroon Bells and scenic backcountry routes' },
+      { title: 'Best Restaurants in Downtown Aspen', url: 'https://www.tripadvisor.com/Restaurants-g29141-Aspen_Colorado.html', category: 'Food', domain: 'tripadvisor.com', description: 'Fine dining and après-ski spots' },
+      { title: 'Aspen Spa & Wellness Centers', url: 'https://www.aspenchamber.org/wellness', category: 'Activities', domain: 'aspenchamber.org', description: 'Luxury spa treatments and hot springs' }
+    ],
+    'Phoenix': [
+      { title: 'Scottsdale Golf Course Tee Times', url: 'https://www.golfnow.com/phoenix', category: 'Activities', domain: 'golfnow.com', description: 'TPC Scottsdale and top desert courses' },
+      { title: 'Phoenix Steakhouses & Dining', url: 'https://www.tripadvisor.com/Restaurants-g31310-Phoenix_Arizona.html', category: 'Food', domain: 'tripadvisor.com', description: "Mastro's, Durant's, and local favorites" },
+      { title: 'Scottsdale Resort Hotels with Golf', url: 'https://www.booking.com/city/us/scottsdale.html', category: 'Accommodation', domain: 'booking.com', description: 'Luxury resorts with championship courses' },
+      { title: 'Old Town Scottsdale Nightlife', url: 'https://www.timeout.com/phoenix/bars', category: 'Nightlife', domain: 'timeout.com', description: 'Bars, clubs, and entertainment district' },
+      { title: 'Desert Jeep Tours & Hiking', url: 'https://www.viator.com/Phoenix/d4523-ttd', category: 'Activities', domain: 'viator.com', description: 'Sonoran Desert adventure experiences' }
+    ],
+    'Tulum': [
+      { title: 'Tulum Beachfront Boutique Hotels', url: 'https://www.booking.com/city/mx/tulum.html', category: 'Accommodation', domain: 'booking.com', description: 'Eco-chic resorts on the Caribbean coast' },
+      { title: 'Tulum Yoga Retreats & Classes', url: 'https://www.bookyogaretreats.com/tulum', category: 'Activities', domain: 'bookyogaretreats.com', description: 'Beachfront yoga studios and wellness centers' },
+      { title: 'Cenote Swimming & Snorkeling Tours', url: 'https://www.getyourguide.com/tulum-l1087/', category: 'Activities', domain: 'getyourguide.com', description: 'Underground caves and natural pools' },
+      { title: 'Tulum Mayan Ruins Tickets', url: 'https://www.viator.com/Tulum/d5165-ttd', category: 'Attractions', domain: 'viator.com', description: 'Clifftop archaeological site tours' },
+      { title: 'Best Vegan Restaurants in Tulum', url: 'https://www.tripadvisor.com/Restaurants-g150813-Tulum_Yucatan_Peninsula.html', category: 'Food', domain: 'tripadvisor.com', description: 'Healthy cafes and organic dining' }
+    ],
+    'Napa Valley': [
+      { title: 'Napa Valley Winery Tours & Tastings', url: 'https://www.viator.com/Napa-Valley/d909-ttd', category: 'Activities', domain: 'viator.com', description: 'Full-day wine tasting experiences' },
+      { title: 'Luxury Spa Resorts in Napa', url: 'https://www.booking.com/region/us/napa-valley.html', category: 'Accommodation', domain: 'booking.com', description: 'Auberge, Carneros, and vineyard estates' },
+      { title: 'Michelin-Star Restaurants Napa', url: 'https://www.tripadvisor.com/Restaurants-g32766-Napa_Napa_Valley_California.html', category: 'Food', domain: 'tripadvisor.com', description: 'French Laundry and fine dining' },
+      { title: 'Napa Valley Hot Air Balloon Rides', url: 'https://www.napavalleyballoons.com/', category: 'Activities', domain: 'napavalleyballoons.com', description: 'Sunrise flights over vineyards' },
+      { title: 'Calistoga Spa & Mud Bath Packages', url: 'https://www.visitcalifornia.com/experience/calistoga-spas/', category: 'Activities', domain: 'visitcalifornia.com', description: 'Volcanic mud treatments and hot springs' }
+    ],
+    'Port Canaveral': [
+      { title: 'Disney Cruise Line Official Site', url: 'https://disneycruise.disney.go.com/', category: 'Cruise', domain: 'disneycruise.disney.go.com', description: 'Booking, itineraries, and onboard activities' },
+      { title: 'Port Canaveral Parking & Hotels', url: 'https://www.portcanaveral.com/Cruise/Pre-Post-Cruise-Hotels', category: 'Accommodation', domain: 'portcanaveral.com', description: 'Pre-cruise hotels with shuttle service' },
+      { title: 'Kennedy Space Center Tickets', url: 'https://www.kennedyspacecenter.com/', category: 'Attractions', domain: 'kennedyspacecenter.com', description: 'NASA tours before or after cruise' },
+      { title: 'Cocoa Beach Restaurants & Dining', url: 'https://www.tripadvisor.com/Restaurants-g34044-Cocoa_Beach_Florida.html', category: 'Food', domain: 'tripadvisor.com', description: 'Fresh seafood and beachfront cafes' },
+      { title: 'Disney Cruise Packing Tips', url: 'https://www.disneycruiselineblog.com/packing-list/', category: 'Tips', domain: 'disneycruiselineblog.com', description: 'What to bring for families with kids' }
+    ],
+    'Yellowstone': [
+      { title: 'Yellowstone National Park Passes', url: 'https://www.nps.gov/yell/planyourvisit/fees.htm', category: 'Entrance', domain: 'nps.gov', description: 'Entry fees and annual pass options' },
+      { title: 'Old Faithful Inn & Park Lodges', url: 'https://www.yellowstonenationalparklodges.com/', category: 'Accommodation', domain: 'yellowstonenationalparklodges.com', description: 'Historic in-park lodging reservations' },
+      { title: 'Yellowstone Geyser & Wildlife Tours', url: 'https://www.viator.com/Yellowstone-National-Park/d5509-ttd', category: 'Activities', domain: 'viator.com', description: 'Guided tours of geysers, bison, and bears' },
+      { title: 'Best Hiking Trails in Yellowstone', url: 'https://www.alltrails.com/parks/us/wyoming/yellowstone-national-park', category: 'Activities', domain: 'alltrails.com', description: 'Grand Prismatic, Lamar Valley, and backcountry' },
+      { title: 'Yellowstone Safety & Wildlife Tips', url: 'https://www.nps.gov/yell/planyourvisit/safety.htm', category: 'Tips', domain: 'nps.gov', description: 'Bear safety and park regulations' }
+    ]
+  };
+  
+  return linkTemplates[city] || [
+    { title: `Visit ${city} - Official Guide`, url: `https://www.google.com/search?q=visit+${city.replace(/\s/g, '+')}`, category: 'General', domain: 'google.com', description: `Comprehensive ${city} travel information` },
+    { title: `Things to Do in ${city}`, url: `https://www.tripadvisor.com/Tourism-g${city.replace(/\s/g, '_')}.html`, category: 'Attractions', domain: 'tripadvisor.com', description: `Top-rated activities and sights` },
+    { title: `Best Restaurants ${city}`, url: `https://www.yelp.com/search?find_desc=restaurants&find_loc=${city.replace(/\s/g, '+')}`, category: 'Food', domain: 'yelp.com', description: `Local dining recommendations` },
+    { title: `${city} Hotels & Accommodation`, url: `https://www.booking.com/searchresults.html?ss=${city.replace(/\s/g, '+')}`, category: 'Accommodation', domain: 'booking.com', description: `Places to stay in ${city}` },
+    { title: `Getting Around ${city}`, url: `https://www.google.com/maps/place/${city.replace(/\s/g, '+')}`, category: 'Transportation', domain: 'google.com', description: `Maps and navigation for ${city}` }
+  ];
+};
+
 export const generateTripMockData = (trip: Trip) => {
   // Check cache first for performance
   if (mockDataCache.has(trip.id)) {
@@ -243,6 +336,7 @@ export const generateTripMockData = (trip: Trip) => {
   }
 
   const participantNames = trip.participants.map(p => p.name);
+  const cityLinks = getCitySpecificLinks(trip.location);
   
   const mockData = {
     basecamp: {
@@ -263,11 +357,14 @@ export const generateTripMockData = (trip: Trip) => {
         timestamp: "2025-01-15T10:00:00Z" 
       }
     ],
-    links: [
-      { id: 1, title: `Our Accommodation in ${trip.location.split(',')[0]}`, url: "https://example.com/accommodation", category: "Accommodation" },
-      { id: 2, title: `${trip.location.split(',')[0]} Attractions Guide`, url: "https://example.com/attractions", category: "Attractions" },
-      { id: 3, title: `Best Restaurants in ${trip.location.split(',')[0]}`, url: "https://example.com/restaurants", category: "Food" }
-    ],
+    links: cityLinks.map((link, index) => ({
+      id: index + 1,
+      title: link.title,
+      url: link.url,
+      category: link.category,
+      domain: link.domain,
+      description: link.description
+    })),
     itinerary: [
       {
         date: trip.dateRange.split(' - ')[0].replace(/\w{3} /, '2025-03-'),
