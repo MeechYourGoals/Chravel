@@ -1,11 +1,10 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group';
-import { Settings, User, LogIn, Plus, Crown } from 'lucide-react';
+import { Settings, User, LogIn, Plus, Crown, Bell, Search, UserCircle, Building, DollarSign, Users } from 'lucide-react';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { useAuth } from '../../hooks/useAuth';
 import { SearchBar } from '../SearchBar';
-import { NotificationBell } from '../NotificationBell';
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from '../ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,11 +38,17 @@ export const TripViewToggle = ({
 }: TripViewToggleProps) => {
   const isMobile = useIsMobile();
   const { user, signOut } = useAuth();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [notifications] = useState([
+    { id: '1', type: 'calendar', title: 'Event starts soon', description: 'Tokyo Adventure starts in 2 hours', tripId: 'trip1', timestamp: new Date(), isRead: false },
+    { id: '2', type: 'payment', title: 'Payment received', description: 'John paid $50 for hotel', tripId: 'trip2', timestamp: new Date(), isRead: false },
+  ]);
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
     <div className="w-full mb-6">
       {/* Two-Panel Layout */}
-      <div className="flex items-center justify-between gap-6">
+      <div className="flex items-center justify-center gap-4 lg:gap-8">
         {/* LEFT PANEL - View Mode Toggles */}
         <ToggleGroup
           type="single"
@@ -87,40 +92,17 @@ export const TripViewToggle = ({
           )}
         </ToggleGroup>
 
-        {/* RIGHT PANEL - Action Buttons */}
-        <div className="flex items-center gap-3">
-          {/* Search Bar */}
-          {onSearch && (
-            <div className="hidden lg:block max-w-xs">
-              <SearchBar
-                placeholder="Search trips..."
-                onSearch={onSearch}
-                className="w-full"
-              />
-            </div>
-          )}
-
-          {/* New Trip Button */}
-          {onCreateTrip && (
-            <button
-              onClick={onCreateTrip}
-              className="w-10 h-10 bg-card/90 backdrop-blur-xl border-2 border-border/50 hover:bg-card hover:border-primary/60 text-foreground rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary/30"
-              title="New Trip"
-            >
-              <Plus size={18} />
-            </button>
-          )}
-
-          {/* Notification Bell */}
-          <div className="w-10 h-10">
-            <NotificationBell />
-          </div>
-
-          {/* Settings Dropdown */}
+        {/* RIGHT PANEL - Action Pills (Matching Left Panel Style) */}
+        <div className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg inline-flex items-center gap-1">
+          {/* Settings Pill */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-10 h-10 bg-emerald-500/90 backdrop-blur-xl border-2 border-emerald-400/50 hover:bg-emerald-500 hover:border-emerald-400/80 text-white rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-emerald-500/50">
-                <Settings size={18} />
+              <button 
+                className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 rounded-xl font-medium text-xs sm:text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap"
+                aria-label="Settings"
+              >
+                <Settings size={16} className="flex-shrink-0" />
+                <span className="hidden sm:inline">Settings</span>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
@@ -145,35 +127,39 @@ export const TripViewToggle = ({
                 onClick={() => onSettings?.('consumer', 'profile')}
                 className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/80 cursor-pointer rounded-lg"
               >
-                <User size={16} />
+                <UserCircle size={16} />
                 Profile
               </DropdownMenuItem>
 
               <DropdownMenuItem 
                 onClick={() => onSettings?.('consumer')}
-                className="flex items-center gap-2 px-4 py-3 hover:bg-secondary/80 cursor-pointer rounded-lg"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/80 cursor-pointer rounded-lg"
               >
+                <Users size={16} />
                 Consumer
               </DropdownMenuItem>
               
               <DropdownMenuItem 
                 onClick={() => onSettings?.('enterprise')}
-                className="flex items-center gap-2 px-4 py-3 hover:bg-secondary/80 cursor-pointer rounded-lg"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/80 cursor-pointer rounded-lg"
               >
+                <Building size={16} />
                 Enterprise
               </DropdownMenuItem>
               
               <DropdownMenuItem 
                 onClick={() => onSettings?.('events')}
-                className="flex items-center gap-2 px-4 py-3 hover:bg-secondary/80 cursor-pointer rounded-lg"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/80 cursor-pointer rounded-lg"
               >
+                <Crown size={16} />
                 Events
               </DropdownMenuItem>
               
               <DropdownMenuItem 
                 onClick={() => onSettings?.('advertiser')}
-                className="flex items-center gap-2 px-4 py-3 hover:bg-secondary/80 cursor-pointer rounded-lg"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/80 cursor-pointer rounded-lg"
               >
+                <DollarSign size={16} />
                 Advertiser
               </DropdownMenuItem>
 
@@ -201,6 +187,99 @@ export const TripViewToggle = ({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Notifications Pill */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button 
+                className="relative px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 rounded-xl font-medium text-xs sm:text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap"
+                aria-label="Notifications"
+              >
+                <Bell size={16} className="flex-shrink-0" />
+                <span className="hidden sm:inline">Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="end" 
+              sideOffset={8}
+              className="w-80 bg-card/95 backdrop-blur-xl border-2 border-border/50 text-foreground z-50 rounded-xl shadow-xl"
+            >
+              <div className="flex items-center justify-between p-3 border-b border-border/50">
+                <h3 className="font-semibold text-sm">Notifications</h3>
+                <button className="text-xs text-primary hover:underline">
+                  Mark all read
+                </button>
+              </div>
+              <div className="max-h-96 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <Bell size={32} className="mx-auto mb-2 opacity-50" />
+                    <p>No notifications yet</p>
+                  </div>
+                ) : (
+                  notifications.map((notification) => (
+                    <DropdownMenuItem
+                      key={notification.id}
+                      className="p-3 cursor-pointer hover:bg-secondary/50 rounded-lg"
+                    >
+                      <div className="flex items-start gap-3 w-full">
+                        <Bell size={16} className="mt-1 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm">{notification.title}</p>
+                          <p className="text-xs text-muted-foreground">{notification.description}</p>
+                        </div>
+                      </div>
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* New Trip Pill */}
+          {onCreateTrip && (
+            <button
+              onClick={onCreateTrip}
+              className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 rounded-xl font-medium text-xs sm:text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap"
+              aria-label="Create New Trip"
+            >
+              <Plus size={16} className="flex-shrink-0" />
+              <span className="hidden sm:inline">New Trip</span>
+            </button>
+          )}
+
+          {/* Search Pill */}
+          {onSearch && (
+            <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+              <DialogTrigger asChild>
+                <button 
+                  className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 rounded-xl font-medium text-xs sm:text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap"
+                  aria-label="Search"
+                >
+                  <Search size={16} className="flex-shrink-0" />
+                  <span className="hidden sm:inline">Search</span>
+                </button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px] bg-card/95 backdrop-blur-xl border-2 border-border/50">
+                <DialogHeader>
+                  <DialogTitle>Search Trips</DialogTitle>
+                </DialogHeader>
+                <SearchBar 
+                  placeholder="Search trips, people, files..." 
+                  onSearch={(query) => {
+                    onSearch(query);
+                    if (query) setIsSearchOpen(false);
+                  }}
+                  className="w-full"
+                />
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
     </div>
