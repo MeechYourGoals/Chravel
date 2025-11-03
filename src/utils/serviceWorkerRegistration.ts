@@ -1,14 +1,13 @@
+import { isLovablePreview } from '@/utils/env';
+
 export const registerServiceWorker = async () => {
   // Don't register SW in Lovable preview environment
-  const isLovablePreview = 
-    typeof window !== 'undefined' && 
-    window.location.hostname.endsWith('lovableproject.com');
-  
-  if (isLovablePreview) {
+  // CRITICAL: Preview includes lovable.app, *.lovable.app, lovableproject.com, *.lovableproject.com
+  if (isLovablePreview()) {
     console.log('[SW] Skipping registration in Lovable preview');
     
-    // One-time cleanup of any existing SW in preview
-    const CLEANUP_KEY = 'lovable_sw_cleanup_v1';
+    // One-time cleanup of any existing SW in preview (v2 to re-run after domain fix)
+    const CLEANUP_KEY = 'lovable_sw_cleanup_v2';
     if (!localStorage.getItem(CLEANUP_KEY)) {
       if ('serviceWorker' in navigator) {
         const regs = await navigator.serviceWorker.getRegistrations();

@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import { ConsumerSubscriptionProvider } from "./hooks/useConsumerSubscription";
 import { MobileAppLayout } from "./components/mobile/MobileAppLayout";
@@ -17,6 +17,8 @@ import { supabase } from "./integrations/supabase/client";
 import { AppInitializer } from "./components/app/AppInitializer";
 import BuildBadge from "./components/BuildBadge";
 import { Navigate, useParams } from "react-router-dom";
+import { isLovablePreview } from "./utils/env";
+import { toast } from "@/hooks/use-toast";
 
 // Lazy load pages for better performance
 const retryImport = <T,>(importFn: () => Promise<T>, retries = 3): Promise<T> => {
@@ -66,6 +68,9 @@ const LegacyProTripRedirect = () => {
 
 const queryClient = new QueryClient();
 
+// Use HashRouter in preview to avoid hosting fallback issues
+const Router = isLovablePreview() ? HashRouter : BrowserRouter;
+
 const App = () => {
   const [demoModeInitialized, setDemoModeInitialized] = React.useState(false);
 
@@ -107,6 +112,34 @@ const App = () => {
     });
   }, []);
 
+  // Chunk load failure recovery (no auto-reload to avoid loops)
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const error = event.reason?.message || String(event.reason);
+      
+      if (error.includes('Loading chunk') || error.includes('Failed to fetch dynamically imported')) {
+        console.warn('[App] Chunk load failure detected:', error);
+        
+        toast({
+          title: "Update Available",
+          description: "Click to refresh and load the latest version.",
+          action: (
+            <button
+              onClick={() => window.location.reload()}
+              className="px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Refresh
+            </button>
+          ),
+          duration: 10000,
+        });
+      }
+    };
+    
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    return () => window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+  }, []);
+
   // Show loading screen until demo mode is initialized
   if (!demoModeInitialized) {
     return (
@@ -126,7 +159,7 @@ const App = () => {
                 <Toaster />
                 <Sonner />
                 <BuildBadge />
-                <BrowserRouter>
+                <Router>
                 <MobileAppLayout>
                   <Routes>
                     <Route path="/" element={
@@ -224,10 +257,10 @@ const App = () => {
                         <NotFound />
                       </LazyRoute>
                     } />
-                  </Routes>
-                </MobileAppLayout>
-              </BrowserRouter>
-            </TooltipProvider>
+                   </Routes>
+                 </MobileAppLayout>
+               </Router>
+             </TooltipProvider>
             </AppInitializer>
           </ConsumerSubscriptionProvider>
         </AuthProvider>
