@@ -1,23 +1,40 @@
 
 import React, { useState } from 'react';
-import { Calendar, Users, FileText, MessageSquare, ChevronDown } from 'lucide-react';
+import { Calendar, Users, FileText, MessageSquare, ChevronDown, User, Bell, CreditCard, Megaphone } from 'lucide-react';
 import { SimpleEventSetupSection } from './events/SimpleEventSetupSection';
 import { SimpleAttendeeSection } from './events/SimpleAttendeeSection';
 import { SimpleAgendaSection } from './events/SimpleAgendaSection';
 import { SimpleChatSection } from './events/SimpleChatSection';
+import { ProfileSection } from './settings/ProfileSection';
+import { NotificationsSection } from './settings/NotificationsSection';
+import { SubscriptionSection } from './settings/SubscriptionSection';
 import { useIsMobile } from '../hooks/use-mobile';
 
 interface EventsSettingsProps {
   currentUserId: string;
+  userOrganization?: { id: string; name: string; role: string; hasProAccess: boolean };
+  onShowProModal?: () => void;
+  onShowEnterpriseSettings?: () => void;
+  onShowAdvertiserHub?: () => void;
 }
 
-export const EventsSettings = ({ currentUserId }: EventsSettingsProps) => {
-  const [activeSection, setActiveSection] = useState('setup');
+export const EventsSettings = ({ 
+  currentUserId, 
+  userOrganization,
+  onShowProModal,
+  onShowEnterpriseSettings,
+  onShowAdvertiserHub
+}: EventsSettingsProps) => {
+  const [activeSection, setActiveSection] = useState('profile');
   const [eventData, setEventData] = useState({});
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const isMobile = useIsMobile();
 
   const sections = [
+    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'subscription', label: 'Subscription', icon: CreditCard },
+    { id: 'advertiser', label: 'Advertiser Hub', icon: Megaphone },
     { id: 'setup', label: 'Event Setup', icon: Calendar },
     { id: 'attendees', label: 'Attendees', icon: Users },
     { id: 'agenda', label: 'Agenda', icon: FileText },
@@ -30,11 +47,23 @@ export const EventsSettings = ({ currentUserId }: EventsSettingsProps) => {
 
   const renderSection = () => {
     switch (activeSection) {
+      case 'profile': return <ProfileSection userOrganization={userOrganization} />;
+      case 'notifications': return <NotificationsSection />;
+      case 'subscription': return (
+        <SubscriptionSection 
+          userOrganization={userOrganization}
+          onShowProModal={onShowProModal}
+          onShowEnterpriseSettings={onShowEnterpriseSettings}
+        />
+      );
+      case 'advertiser': 
+        if (onShowAdvertiserHub) onShowAdvertiserHub();
+        return null;
       case 'setup': return <SimpleEventSetupSection eventData={eventData} onEventDataChange={handleEventDataChange} />;
       case 'attendees': return <SimpleAttendeeSection />;
       case 'agenda': return <SimpleAgendaSection />;
       case 'chat': return <SimpleChatSection />;
-      default: return <SimpleEventSetupSection eventData={eventData} onEventDataChange={handleEventDataChange} />;
+      default: return <ProfileSection userOrganization={userOrganization} />;
     }
   };
 
