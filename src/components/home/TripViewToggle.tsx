@@ -48,7 +48,7 @@ export const TripViewToggle = ({
   return (
     <div className="w-full mb-6">
       {/* Two-Panel Layout */}
-      <div className="flex items-center justify-between gap-4 lg:gap-8">
+      <div className="flex items-center justify-between gap-3 lg:gap-4">
         {/* LEFT PANEL - View Mode Toggles */}
         <ToggleGroup
           type="single"
@@ -58,26 +58,26 @@ export const TripViewToggle = ({
               onViewModeChange(value);
             }
           }}
-          className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg flex flex-1 max-w-[48%]"
+          className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg flex flex-1 max-w-[48%] min-h-[56px]"
         >
           <ToggleGroupItem
             value="myTrips"
             aria-label="My Trips"
-            className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-base tracking-wide"
+            className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-4 sm:px-6 py-3 rounded-xl font-bold text-base tracking-wide"
           >
             My Trips
           </ToggleGroupItem>
           <ToggleGroupItem
             value="tripsPro"
             aria-label="Chravel Pro"
-            className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-base tracking-wide"
+            className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-4 sm:px-6 py-3 rounded-xl font-bold text-base tracking-wide"
           >
             Chravel Pro
           </ToggleGroupItem>
           <ToggleGroupItem
             value="events"
             aria-label="Events"
-            className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-base tracking-wide"
+            className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-4 sm:px-6 py-3 rounded-xl font-bold text-base tracking-wide"
           >
             Events
           </ToggleGroupItem>
@@ -85,7 +85,7 @@ export const TripViewToggle = ({
             <ToggleGroupItem
               value="travelRecs"
               aria-label="Chravel Recs"
-              className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-base tracking-wide"
+              className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-4 sm:px-6 py-3 rounded-xl font-bold text-base tracking-wide"
             >
               Chravel Recs
             </ToggleGroupItem>
@@ -93,12 +93,12 @@ export const TripViewToggle = ({
         </ToggleGroup>
 
         {/* RIGHT PANEL - Action Pills (Matching Left Panel Style) */}
-        <div className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg flex flex-1 max-w-[48%] items-center gap-1 justify-between">
+        <div className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg flex flex-1 max-w-[48%] items-center gap-0.5 justify-around min-h-[56px]">
           {/* Settings Pill */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button 
-                className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
+                className="px-3 sm:px-4 lg:px-5 py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
                 aria-label="Settings"
               >
                 <Settings size={16} className="flex-shrink-0" />
@@ -160,7 +160,7 @@ export const TripViewToggle = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button 
-                className="relative px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
+                className="relative px-3 sm:px-4 lg:px-5 py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
                 aria-label="Notifications"
               >
                 <Bell size={16} className="flex-shrink-0" />
@@ -213,7 +213,7 @@ export const TripViewToggle = ({
           {onCreateTrip && (
             <button
               onClick={onCreateTrip}
-              className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
+              className="px-3 sm:px-4 lg:px-5 py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
               aria-label="Create New Trip"
             >
               <Plus size={16} className="flex-shrink-0" />
@@ -226,7 +226,7 @@ export const TripViewToggle = ({
             <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
               <DialogTrigger asChild>
                 <button 
-                  className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
+                  className="px-3 sm:px-4 lg:px-5 py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
                   aria-label="Search"
                 >
                   <Search size={16} className="flex-shrink-0" />
