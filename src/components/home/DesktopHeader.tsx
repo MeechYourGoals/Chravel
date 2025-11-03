@@ -50,7 +50,7 @@ export const DesktopHeader = ({ viewMode, onCreateTrip, onUpgrade, onSettings }:
   return (
     <>
       {/* Brand positioned at top-left */}
-      <div className="mb-6">
+      <div className="mb-6 max-w-[1200px] mx-auto">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold text-foreground tracking-tight transition-all duration-300 hover:brightness-110 hover:scale-105" aria-label="Chravel Home">
             Chravel

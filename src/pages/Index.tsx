@@ -230,13 +230,6 @@ const Index = () => {
                 </div>
               )}
 
-              {/* Centered Demo Mode Toggle */}
-              <div className="flex justify-center mb-6">
-                <div className="w-[150px]">
-                  <DemoModeToggle />
-                </div>
-              </div>
-
               <div className="max-w-[1200px] mx-auto">
                 <div className="w-full animate-fade-in">
                   <TripViewToggle 
