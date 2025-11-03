@@ -108,7 +108,6 @@ export const MobileProTripCard = ({ trip }: MobileProTripCardProps) => {
                     style={{ zIndex: visibleMembers.length - index }}
                   >
                     <Avatar className="w-8 h-8 border-2 border-gray-900">
-                      <AvatarImage src={participant.avatar} alt={`${participant.name} - ${participant.role}`} />
                       <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
                         {getInitials(participant.name)}
                       </AvatarFallback>

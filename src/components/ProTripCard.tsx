@@ -200,7 +200,6 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
             <TravelerTooltip key={participant.id} name={`${participant.name} - ${participant.role}`}>
               <div style={{ zIndex: visibleMembers.length - index }}>
                 <Avatar className={`w-10 h-10 border-2 border-white/30 hover:scale-110 transition-transform duration-200 hover:border-${accentColors.primary}`}>
-                  <AvatarImage src={participant.avatar} alt={`${participant.name} - ${participant.role}`} />
                   <AvatarFallback className="bg-white/20 text-white font-semibold text-sm">
                     {getInitials(participant.name)}
                   </AvatarFallback>
