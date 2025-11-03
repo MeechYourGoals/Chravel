@@ -60,11 +60,11 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
   return (
     <div className="space-y-6">
       {/* Header Controls */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-white">Campaign Analytics</h2>
-        <div className="flex gap-4">
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold text-white text-center md:text-left">Campaign Analytics</h2>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
           <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Select campaign" />
             </SelectTrigger>
             <SelectContent>
@@ -78,7 +78,7 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
           </Select>
 
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-full sm:w-[150px]">
               <SelectValue placeholder="Time range" />
             </SelectTrigger>
             <SelectContent>

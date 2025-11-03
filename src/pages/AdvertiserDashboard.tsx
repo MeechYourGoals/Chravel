@@ -273,15 +273,17 @@ export const AdvertiserDashboard = () => {
           </TabsList>
 
           <TabsContent value="campaigns" className="space-y-6 mobile-safe-scroll overflow-y-auto">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-white">Your Campaigns</h2>
-              <Button 
-                onClick={() => setShowCampaignCreator(true)}
-                className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Campaign
-              </Button>
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-white text-center md:text-left">Your Campaigns</h2>
+              <div className="flex justify-center md:justify-start">
+                <Button 
+                  onClick={() => setShowCampaignCreator(true)}
+                  className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 w-full sm:w-auto"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Campaign
+                </Button>
+              </div>
             </div>
 
             <CampaignList 
