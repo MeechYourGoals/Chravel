@@ -230,51 +230,63 @@ const Index = () => {
                 </div>
               )}
 
-              <div className="w-full animate-fade-in mb-8">
-                <TripViewToggle 
-                  viewMode={viewMode} 
-                  onViewModeChange={handleViewModeChange}
-                  onUpgrade={() => setIsUpgradeModalOpen(true)}
-                  onSettings={(settingsType, activeSection) => {
-                    if (settingsType) setSettingsInitialType(settingsType);
-                    if (activeSection) setSettingsInitialConsumerSection(activeSection);
-                    setIsSettingsOpen(true);
-                  }}
-                  showRecsTab={showMarketingContent}
-                />
+              {/* Centered Demo Mode Toggle */}
+              <div className="flex justify-center mb-6">
+                <div className="w-[150px]">
+                  <DemoModeToggle />
+                </div>
               </div>
 
-              {!isMobile && (
-                <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                  <TripStatsOverview 
-                    stats={getCurrentStats()} 
+              <div className="max-w-[1200px] mx-auto">
+                <div className="w-full animate-fade-in">
+                  <TripViewToggle 
                     viewMode={viewMode} 
-                    activeFilter={activeFilter}
-                    onFilterClick={handleFilterClick}
+                    onViewModeChange={handleViewModeChange}
+                    onUpgrade={() => setIsUpgradeModalOpen(true)}
+                    onSettings={(settingsType, activeSection) => {
+                      if (settingsType) setSettingsInitialType(settingsType);
+                      if (activeSection) setSettingsInitialConsumerSection(activeSection);
+                      setIsSettingsOpen(true);
+                    }}
+                    onAuth={() => setIsAuthModalOpen(true)}
+                    onSearch={(query) => console.log('Search:', query)}
+                    onCreateTrip={handleCreateTrip}
+                    showRecsTab={showMarketingContent}
                   />
                 </div>
-              )}
 
-              {viewMode === 'travelRecs' && (
-                <div className="mb-6">
-                  <RecommendationFilters 
+                {!isMobile && (
+                  <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                    <TripStatsOverview 
+                      stats={getCurrentStats()} 
+                      viewMode={viewMode} 
+                      activeFilter={activeFilter}
+                      onFilterClick={handleFilterClick}
+                    />
+                  </div>
+                )}
+
+                {viewMode === 'travelRecs' && (
+                  <div className="mb-6">
+                    <RecommendationFilters 
+                      activeFilter={recsFilter}
+                      onFilterChange={setRecsFilter}
+                      showInlineSearch={true}
+                    />
+                  </div>
+                )}
+
+                <div className="mb-12 animate-fade-in w-full" style={{ animationDelay: '0.2s' }}>
+                  <TripGrid
+                    viewMode={viewMode}
+                    trips={filteredData.trips}
+                    proTrips={filteredData.proTrips}
+                    events={filteredData.events}
+                    loading={isLoading}
+                    onCreateTrip={handleCreateTrip}
                     activeFilter={recsFilter}
-                    onFilterChange={setRecsFilter}
-                    showInlineSearch={true}
                   />
                 </div>
-              )}
-
-              <div className="mb-12 animate-fade-in w-full" style={{ animationDelay: '0.2s' }}>
-                <TripGrid
-                  viewMode={viewMode}
-                  trips={filteredData.trips}
-                  proTrips={filteredData.proTrips}
-                  events={filteredData.events}
-                  loading={isLoading}
-                  onCreateTrip={handleCreateTrip}
-                  activeFilter={recsFilter}
-                />
               </div>
             </div>
 
