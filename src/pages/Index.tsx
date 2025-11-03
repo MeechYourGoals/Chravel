@@ -214,11 +214,32 @@ const Index = () => {
           // Demo mode content - full app interface
           <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
             <div className="container mx-auto px-4 py-6 max-w-7xl relative z-10">
+              {/* Desktop Header */}
+              {!isMobile && (
+                <div className="w-full">
+                  <DesktopHeader
+                    viewMode={viewMode}
+                    onCreateTrip={handleCreateTrip}
+                    onUpgrade={() => setIsUpgradeModalOpen(true)}
+                    onSettings={(settingsType, activeSection) => {
+                      if (settingsType) setSettingsInitialType(settingsType);
+                      if (activeSection) setSettingsInitialConsumerSection(activeSection);
+                      setIsSettingsOpen(true);
+                    }}
+                  />
+                </div>
+              )}
+
               <div className="w-full animate-fade-in mb-8">
                 <TripViewToggle 
                   viewMode={viewMode} 
                   onViewModeChange={handleViewModeChange}
                   onUpgrade={() => setIsUpgradeModalOpen(true)}
+                  onSettings={(settingsType, activeSection) => {
+                    if (settingsType) setSettingsInitialType(settingsType);
+                    if (activeSection) setSettingsInitialConsumerSection(activeSection);
+                    setIsSettingsOpen(true);
+                  }}
                   showRecsTab={showMarketingContent}
                 />
               </div>
@@ -282,6 +303,13 @@ const Index = () => {
           onClose={() => setIsUpgradeModalOpen(false)} 
         />
 
+        <SettingsMenu 
+          isOpen={isSettingsOpen} 
+          onClose={() => setIsSettingsOpen(false)} 
+          initialConsumerSection={settingsInitialConsumerSection}
+          initialSettingsType={settingsInitialType}
+        />
+
         <DemoModal
           isOpen={isDemoModalOpen}
           onClose={() => setIsDemoModalOpen(false)}
@@ -335,6 +363,11 @@ const Index = () => {
             viewMode={viewMode} 
             onViewModeChange={handleViewModeChange}
             onUpgrade={() => setIsUpgradeModalOpen(true)}
+            onSettings={(settingsType, activeSection) => {
+              if (settingsType) setSettingsInitialType(settingsType);
+              if (activeSection) setSettingsInitialConsumerSection(activeSection);
+              setIsSettingsOpen(true);
+            }}
             showRecsTab={showMarketingContent}
           />
         </div>
