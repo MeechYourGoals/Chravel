@@ -29,8 +29,29 @@ export const registerServiceWorker = async () => {
   // Production SW registration
   if ('serviceWorker' in navigator) {
     try {
-      const buildId = import.meta.env.VITE_BUILD_ID || Date.now().toString();
+      // Derive buildId from env (Render's git commit or VITE_BUILD_ID)
+      const buildId = import.meta.env.VITE_BUILD_ID || 
+                      import.meta.env.RENDER_GIT_COMMIT || 
+                      import.meta.env.RENDER_GIT_COMMIT_SHA || 
+                      'static';
       const swUrl = `/sw.js?v=${buildId}`;
+      
+      // One-time production cleanup migration (v1)
+      const PROD_MIGRATION_KEY = 'prod_sw_migration_v1';
+      if (!localStorage.getItem(PROD_MIGRATION_KEY)) {
+        console.log('[SW] Running production cleanup migration...');
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+        
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          const chravelCaches = keys.filter(k => k.startsWith('chravel-'));
+          await Promise.all(chravelCaches.map(k => caches.delete(k)));
+          console.log(`[SW] Cleared ${chravelCaches.length} old caches`);
+        }
+        
+        localStorage.setItem(PROD_MIGRATION_KEY, 'true');
+      }
       
       console.log(`[SW] Registering service worker with version: ${buildId}`);
       const registration = await navigator.serviceWorker.register(swUrl, {
@@ -68,6 +89,26 @@ export const registerServiceWorker = async () => {
       
     } catch (error) {
       console.error('[SW] Service Worker registration failed:', error);
+      
+      // On failure, trigger cleanup to recover from stale SW
+      const PROD_MIGRATION_KEY = 'prod_sw_migration_v1';
+      if (localStorage.getItem(PROD_MIGRATION_KEY)) {
+        console.log('[SW] Registration failed, forcing cleanup...');
+        localStorage.removeItem(PROD_MIGRATION_KEY);
+        
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+        
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          const chravelCaches = keys.filter(k => k.startsWith('chravel-'));
+          await Promise.all(chravelCaches.map(k => caches.delete(k)));
+        }
+        
+        console.log('[SW] Cleanup complete, please refresh the page');
+      }
     }
   }
 };

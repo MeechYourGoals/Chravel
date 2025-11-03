@@ -112,6 +112,44 @@ const App = () => {
     });
   }, []);
 
+  // Diagnostic banner on mount (production troubleshooting)
+  useEffect(() => {
+    const buildId = import.meta.env.VITE_BUILD_ID || 
+                    import.meta.env.RENDER_GIT_COMMIT || 
+                    import.meta.env.RENDER_GIT_COMMIT_SHA || 
+                    'vdev';
+    const envMode = import.meta.env.MODE;
+    const inPreview = isLovablePreview();
+    
+    let swStatus = 'not supported';
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then(reg => {
+        swStatus = reg ? `registered (${reg.active?.scriptURL || 'pending'})` : 'not registered';
+        console.log(`
+╔════════════════════════════════════════════════════════╗
+║  CHRAVEL DIAGNOSTICS                                   ║
+╠════════════════════════════════════════════════════════╣
+║  Build ID:      ${buildId.padEnd(40)} ║
+║  Environment:   ${envMode.padEnd(40)} ║
+║  Preview Mode:  ${String(inPreview).padEnd(40)} ║
+║  Service Worker: ${swStatus.padEnd(39)} ║
+╚════════════════════════════════════════════════════════╝
+        `);
+      });
+    } else {
+      console.log(`
+╔════════════════════════════════════════════════════════╗
+║  CHRAVEL DIAGNOSTICS                                   ║
+╠════════════════════════════════════════════════════════╣
+║  Build ID:      ${buildId.padEnd(40)} ║
+║  Environment:   ${envMode.padEnd(40)} ║
+║  Preview Mode:  ${String(inPreview).padEnd(40)} ║
+║  Service Worker: ${swStatus.padEnd(39)} ║
+╚════════════════════════════════════════════════════════╝
+      `);
+    }
+  }, []);
+
   // Chunk load failure recovery (no auto-reload to avoid loops)
   useEffect(() => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {

@@ -2,21 +2,21 @@ services:
   - type: web
     name: chravel
     runtime: static
-    buildCommand: npm install --no-audit --no-fund && vite build
+    buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
     envVars:
       - key: NODE_VERSION
         value: "18"
       - key: VITE_SUPABASE_URL
-        sync: false
+        value: https://jmjiyekmxwsxkfnqwyaa.supabase.co
       - key: VITE_SUPABASE_ANON_KEY
-        sync: false
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI
       - key: VITE_BUILD_ID
         value: $RENDER_GIT_COMMIT
     headers:
       - path: /*
         name: Cache-Control
-        value: public, max-age=0, must-revalidate
+        value: no-store, no-cache, must-revalidate
       - path: /assets/*
         name: Cache-Control
         value: public, max-age=31536000, immutable
