@@ -139,7 +139,7 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
           )}
 
           {/* Input Area */}
-          <div className="sticky bottom-0 z-10 border-t border-white/10 bg-black/30 p-3 mobile-safe-area-bottom">
+          <div className="sticky bottom-0 z-10 border-t border-white/10 bg-black/30 p-3 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-3">
             <ChatInput
               inputMessage={inputMessage}
               onInputChange={setInputMessage}

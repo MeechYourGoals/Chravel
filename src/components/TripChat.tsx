@@ -392,7 +392,7 @@ export const TripChat = ({
           )}
           
           {/* Input Area */}
-          <div className="border-t border-white/10 bg-black/30 p-3">
+          <div className="border-t border-white/10 bg-black/30 p-3 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-3">
             <ChatInput
               inputMessage={inputMessage}
               onInputChange={setInputMessage}

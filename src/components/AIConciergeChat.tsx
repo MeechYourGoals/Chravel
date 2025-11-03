@@ -365,7 +365,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       </div>
 
       {/* Input */}
-      <div className="sticky bottom-0 z-10 border-t border-white/10 bg-background/90 backdrop-blur-sm pt-3 flex-shrink-0" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="sticky bottom-0 z-10 border-t border-white/10 bg-background/90 backdrop-blur-sm pt-3 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-3 flex-shrink-0">
         <AiChatInput
           inputMessage={inputMessage}
           onInputChange={setInputMessage}
