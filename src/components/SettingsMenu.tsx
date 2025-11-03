@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { X, User, Bell, Crown, LogOut, Building, Megaphone } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { ScrollArea, ScrollBar } from './ui/scroll-area';
 
 import { ProUpgradeModal } from './ProUpgradeModal';
 import { EnterpriseSettings } from './EnterpriseSettings';
@@ -115,48 +116,51 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection }: Settin
 
           {/* Settings Type Toggle */}
           <div className="flex-shrink-0 p-6 border-b border-white/20">
-            <div className="bg-white/10 rounded-xl p-1 grid grid-cols-4">
-              <button
-                onClick={() => setSettingsType('consumer')}
-                className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                  settingsType === 'consumer'
-                    ? `bg-${accentColors.primary} text-white`
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Consumer
-              </button>
-              <button
-                onClick={() => setSettingsType('enterprise')}
-                className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                  settingsType === 'enterprise'
-                    ? `bg-${accentColors.primary} text-white`
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Enterprise
-              </button>
-              <button
-                onClick={() => setSettingsType('events')}
-                className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                  settingsType === 'events'
-                    ? `bg-${accentColors.primary} text-white`
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Events
-              </button>
-              <button
-                onClick={() => setSettingsType('advertiser')}
-                className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                  settingsType === 'advertiser'
-                    ? `bg-${accentColors.primary} text-white`
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Advertiser
-              </button>
-            </div>
+            <ScrollArea className="w-full">
+              <div className="bg-white/10 rounded-xl p-1.5 inline-flex md:grid md:grid-cols-4 gap-1">
+                <button
+                  onClick={() => setSettingsType('consumer')}
+                  className={`py-2.5 px-4 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
+                    settingsType === 'consumer'
+                      ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
+                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10'
+                  }`}
+                >
+                  Consumer
+                </button>
+                <button
+                  onClick={() => setSettingsType('enterprise')}
+                  className={`py-2.5 px-4 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
+                    settingsType === 'enterprise'
+                      ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
+                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10'
+                  }`}
+                >
+                  Enterprise
+                </button>
+                <button
+                  onClick={() => setSettingsType('events')}
+                  className={`py-2.5 px-4 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
+                    settingsType === 'events'
+                      ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
+                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10'
+                  }`}
+                >
+                  Events
+                </button>
+                <button
+                  onClick={() => setSettingsType('advertiser')}
+                  className={`py-2.5 px-4 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
+                    settingsType === 'advertiser'
+                      ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
+                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10'
+                  }`}
+                >
+                  Advertiser
+                </button>
+              </div>
+              <ScrollBar orientation="horizontal" className="md:hidden" />
+            </ScrollArea>
             
             {/* Helper text for Enterprise */}
             {settingsType === 'enterprise' && (
