@@ -18,14 +18,15 @@ interface SettingsMenuProps {
   isOpen: boolean;
   onClose: () => void;
   initialConsumerSection?: string;
+  initialSettingsType?: 'consumer' | 'enterprise' | 'events' | 'advertiser';
 }
 
-export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection }: SettingsMenuProps) => {
+export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialSettingsType }: SettingsMenuProps) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [showProModal, setShowProModal] = useState(false);
   const [activeSection, setActiveSection] = useState('profile');
-  const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events' | 'advertiser'>('consumer');
+  const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events' | 'advertiser'>(initialSettingsType || 'consumer');
   const { accentColors } = useTripVariant();
 
   // Create mock user for demo mode when no real user is authenticated

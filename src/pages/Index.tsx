@@ -44,6 +44,7 @@ const Index = () => {
   const [activeFilter, setActiveFilter] = useState<string>('');
   const [recsFilter, setRecsFilter] = useState('all');
   const [settingsInitialConsumerSection, setSettingsInitialConsumerSection] = useState<string | undefined>(undefined);
+  const [settingsInitialType, setSettingsInitialType] = useState<'consumer' | 'enterprise' | 'events' | 'advertiser'>('consumer');
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const location = useLocation();
@@ -319,7 +320,11 @@ const Index = () => {
               viewMode={viewMode}
               onCreateTrip={handleCreateTrip}
               onUpgrade={() => setIsUpgradeModalOpen(true)}
-              onSettings={() => setIsSettingsOpen(true)}
+              onSettings={(settingsType, activeSection) => {
+                if (settingsType) setSettingsInitialType(settingsType);
+                if (activeSection) setSettingsInitialConsumerSection(activeSection);
+                setIsSettingsOpen(true);
+              }}
             />
           </div>
         )}
@@ -397,6 +402,7 @@ const Index = () => {
         isOpen={isSettingsOpen} 
         onClose={() => setIsSettingsOpen(false)} 
         initialConsumerSection={settingsInitialConsumerSection}
+        initialSettingsType={settingsInitialType}
       />
 
       <DemoModal
