@@ -5,6 +5,7 @@ import { RecommendationCard } from '@/components/RecommendationCard';
 import { useRecommendations } from '@/hooks/useRecommendations';
 import { useSavedRecommendations } from '@/hooks/useSavedRecommendations';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 export const ChravelRecsPage = () => {
   const [activeFilter, setActiveFilter] = useState('all');
@@ -41,15 +42,18 @@ export const ChravelRecsPage = () => {
           </div>
           
           <Tabs value={activeFilter} onValueChange={setActiveFilter} className="w-full">
-            <TabsList className="grid w-full grid-cols-7 mb-6">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="hotel">Hotels</TabsTrigger>
-              <TabsTrigger value="restaurant">Dining</TabsTrigger>
-              <TabsTrigger value="activity">Activities</TabsTrigger>
-              <TabsTrigger value="tour">Tours</TabsTrigger>
-              <TabsTrigger value="experience">Experiences</TabsTrigger>
-              <TabsTrigger value="transportation">Transport</TabsTrigger>
-            </TabsList>
+            <ScrollArea className="w-full mb-6 md:mb-0">
+              <TabsList className="inline-flex w-auto md:grid md:w-full md:grid-cols-7 mb-6">
+                <TabsTrigger value="all" className="whitespace-nowrap">All</TabsTrigger>
+                <TabsTrigger value="hotel" className="whitespace-nowrap">Hotels</TabsTrigger>
+                <TabsTrigger value="restaurant" className="whitespace-nowrap">Dining</TabsTrigger>
+                <TabsTrigger value="activity" className="whitespace-nowrap">Activities</TabsTrigger>
+                <TabsTrigger value="tour" className="whitespace-nowrap">Tours</TabsTrigger>
+                <TabsTrigger value="experience" className="whitespace-nowrap">Experiences</TabsTrigger>
+                <TabsTrigger value="transportation" className="whitespace-nowrap">Transport</TabsTrigger>
+              </TabsList>
+              <ScrollBar orientation="horizontal" className="md:hidden" />
+            </ScrollArea>
 
             <TabsContent value={activeFilter} className="mt-0">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
