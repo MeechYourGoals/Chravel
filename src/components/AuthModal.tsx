@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, Mail, Phone, User, Eye, EyeOff } from 'lucide-react';
+import { X, Mail, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 interface AuthModalProps {
@@ -9,10 +9,9 @@ interface AuthModalProps {
 }
 
 export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
-  const { signIn, signInWithPhone, signInWithGoogle, signInWithApple, signUp, isLoading } = useAuth();
-  const [mode, setMode] = useState<'signin' | 'signup' | 'phone'>('signin');
+  const { signIn, signInWithGoogle, signUp, isLoading } = useAuth();
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -44,25 +43,6 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
     }
   };
 
-  const handlePhoneAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    try {
-      const result = await signInWithPhone(phone);
-      
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
-      
-      // Show success message for OTP
-      setError('Verification code sent to your phone!');
-    } catch (error) {
-      console.error('Phone auth error:', error);
-      setError('An unexpected error occurred');
-    }
-  };
-
   const handleGoogleAuth = async () => {
     setError('');
     try {
@@ -73,20 +53,6 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
       // Note: OAuth will redirect, so no need to close modal here
     } catch (error) {
       console.error('Google auth error:', error);
-      setError('An unexpected error occurred');
-    }
-  };
-
-  const handleAppleAuth = async () => {
-    setError('');
-    try {
-      const result = await signInWithApple();
-      if (result.error) {
-        setError(result.error);
-      }
-      // Note: OAuth will redirect, so no need to close modal here
-    } catch (error) {
-      console.error('Apple auth error:', error);
       setError('An unexpected error occurred');
     }
   };
@@ -166,49 +132,22 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
         {isLoading ? 'Loading...' : mode === 'signup' ? 'Create Account' : 'Sign In'}
       </button>
 
-      {/* Social Authentication */}
-      <div className="flex gap-2 mt-4">
-        <button
-          type="button"
-          onClick={handleGoogleAuth}
-          className="flex-1 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium py-3 rounded-xl transition-colors active:scale-95 min-h-[44px]"
-        >
-          Google
-        </button>
-        <button
-          type="button"
-          onClick={handleAppleAuth}
-          className="flex-1 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium py-3 rounded-xl transition-colors active:scale-95 min-h-[44px]"
-        >
-          Apple
-        </button>
-      </div>
-    </form>
-  );
-
-  const renderPhoneForm = () => (
-    <form onSubmit={handlePhoneAuth} className="space-y-4">
-      <div>
-        <label className="block text-gray-300 text-sm mb-2">Phone Number</label>
-        <div className="relative">
-          <Phone size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+1 (555) 123-4567"
-            required
-            className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange"
-          />
+      {/* Google Authentication */}
+      <div className="relative my-4">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-white/20"></div>
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-white/10 px-2 text-gray-400">Or continue with</span>
         </div>
       </div>
 
       <button
-        type="submit"
-        disabled={isLoading}
-        className="w-full bg-gradient-to-r from-glass-orange to-glass-yellow text-white font-medium py-3 rounded-xl hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 min-h-[44px]"
+        type="button"
+        onClick={handleGoogleAuth}
+        className="w-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium py-3 rounded-xl transition-colors active:scale-95 min-h-[44px]"
       >
-        {isLoading ? 'Sending...' : 'Send OTP'}
+        Sign in with Google
       </button>
     </form>
   );
@@ -218,49 +157,29 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
       <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-t-3xl tablet:rounded-3xl p-6 tablet:p-8 max-w-md w-full safe-bottom animate-slide-in-bottom tablet:animate-scale-in">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white">
-            {mode === 'phone' ? 'Sign in with Phone' : mode === 'signup' ? 'Create Account' : 'Welcome Back'}
+            {mode === 'signup' ? 'Create Account' : 'Welcome Back'}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X size={24} />
           </button>
         </div>
 
-        {/* Auth Method Tabs */}
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setMode('signin')}
-            className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-colors ${
-              mode === 'signin' || mode === 'signup' 
-                ? 'bg-glass-orange text-white' 
-                : 'bg-white/10 text-gray-300'
-            }`}
-          >
-            Email
-          </button>
-          <button
-            onClick={() => setMode('phone')}
-            className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-colors ${
-              mode === 'phone' 
-                ? 'bg-glass-orange text-white' 
-                : 'bg-white/10 text-gray-300'
-            }`}
-          >
-            Phone
-          </button>
-        </div>
-
-        {mode === 'phone' ? renderPhoneForm() : renderEmailForm()}
-
-        {mode !== 'phone' && (
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
-              className="text-glass-orange hover:text-glass-yellow transition-colors"
-            >
-              {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-            </button>
+        {error && (
+          <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm">
+            {error}
           </div>
         )}
+
+        {renderEmailForm()}
+
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+            className="text-glass-orange hover:text-glass-yellow transition-colors"
+          >
+            {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+          </button>
+        </div>
       </div>
     </div>
   );
