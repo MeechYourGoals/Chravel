@@ -309,7 +309,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
             )}
           </div>
         </div>
-        </div>
+          </div>
         </div>
 
         {/* Usage Limit Reached State */}
@@ -340,7 +340,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
 
         {/* Empty State - Compact for Mobile */}
         {messages.length === 0 && !(isFreeUser && usage?.isLimitReached) && (
-        <div className="text-center py-3 px-4 mb-2 flex-shrink-0 max-h-[45vh] overflow-y-auto sm:py-6 sm:px-6">
+        <div className="text-center py-6 px-4 flex-shrink-0">
           <h4 className="text-base font-semibold mb-1.5 text-white sm:text-lg sm:mb-2">Your AI Travel Concierge</h4>
           <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
             <p className="text-xs sm:text-sm mb-1.5">Ask me anything about your trip:</p>
