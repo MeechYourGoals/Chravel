@@ -1,4 +1,3 @@
-
 import { Recommendation } from './types';
 import uberBlack from '@/assets/recommendations/uber-black.png';
 import lyftCar from '@/assets/recommendations/lyft-car.png';
@@ -7,6 +6,12 @@ import orbitzPackages from '@/assets/recommendations/orbitz-packages.png';
 import airbnbHome from '@/assets/recommendations/airbnb-home.png';
 import navanBusiness from '@/assets/recommendations/navan-business.png';
 import bookingInterface from '@/assets/recommendations/booking-interface.png';
+import americanAirlines from '@/assets/recommendations/american-airlines.png';
+import tripadvisorExperiences from '@/assets/recommendations/tripadvisor-experiences.png';
+import deltaAirlines from '@/assets/recommendations/delta-airlines.png';
+import virginAtlantic from '@/assets/recommendations/virgin-atlantic.png';
+import luxuryCarRental from '@/assets/recommendations/luxury-car-rental.png';
+import waymoAutonomous from '@/assets/recommendations/waymo-autonomous.png';
 
 export const transportationRecommendations: Recommendation[] = [
   // American Airlines
@@ -21,7 +26,7 @@ export const transportationRecommendations: Recommendation[] = [
     rating: 4.6,
     priceLevel: 3,
     images: [
-      'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&h=400&fit=crop'
+      americanAirlines
     ],
     tags: ['Airline', 'Miles Rewards', 'Premium Service'],
     isSponsored: true,
@@ -46,7 +51,7 @@ export const transportationRecommendations: Recommendation[] = [
     rating: 4.6,
     priceLevel: 2,
     images: [
-      'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=400&fit=crop'
+      tripadvisorExperiences
     ],
     tags: ['Travel Planning', 'Reviews', 'Experiences'],
     isSponsored: true,
@@ -73,7 +78,7 @@ export const transportationRecommendations: Recommendation[] = [
     rating: 4.8,
     priceLevel: 3,
     images: [
-      'https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=600&h=400&fit=crop'
+      deltaAirlines
     ],
     tags: ['Airline', 'SkyMiles', 'Domestic Flights'],
     isSponsored: true,
@@ -98,7 +103,7 @@ export const transportationRecommendations: Recommendation[] = [
     rating: 4.7,
     priceLevel: 3,
     images: [
-      'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&h=400&fit=crop'
+      virginAtlantic
     ],
     tags: ['Airline', 'International', 'Premium Service'],
     isSponsored: true,
@@ -125,7 +130,7 @@ export const transportationRecommendations: Recommendation[] = [
     rating: 4.4,
     priceLevel: 3,
     images: [
-      'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=600&h=400&fit=crop'
+      luxuryCarRental
     ],
     tags: ['Car Rental', 'Luxury Vehicles', 'Premium Service'],
     isSponsored: true,
@@ -204,7 +209,7 @@ export const transportationRecommendations: Recommendation[] = [
     rating: 4.3,
     priceLevel: 2,
     images: [
-      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=400&fit=crop'
+      waymoAutonomous
     ],
     tags: ['Autonomous', 'Self-Driving', 'Innovation'],
     isSponsored: true,
