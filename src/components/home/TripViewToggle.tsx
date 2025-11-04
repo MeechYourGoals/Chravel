@@ -61,7 +61,7 @@ export const TripViewToggle = ({
                   onViewModeChange(value);
                 }
               }}
-              className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg flex w-full min-h-[56px]"
+              className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg flex w-full min-h-[56px] gap-0.5 justify-start md:justify-around lg:justify-start"
             >
               <ToggleGroupItem
                 value="myTrips"
