@@ -387,6 +387,20 @@
 
 /* Native App Feel Optimizations */
 @layer utilities {
+  /* Hide scrollbars while maintaining scroll functionality */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  /* Smooth momentum scrolling on iOS */
+  .scroll-touch {
+    -webkit-overflow-scrolling: touch;
+  }
+
   /* Momentum scrolling for iOS */
   .native-scroll {
     -webkit-overflow-scrolling: touch;
