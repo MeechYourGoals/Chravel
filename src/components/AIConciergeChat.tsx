@@ -359,16 +359,18 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         )}
 
         {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll chat-safe-scroll">
-          <ChatMessages 
-            messages={messages} 
-            isTyping={isTyping}
-            showMapWidgets={true} // 🆕 Enable map widget rendering
-          />
+        <div className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll">
+          {messages.length > 0 && (
+            <ChatMessages 
+              messages={messages} 
+              isTyping={isTyping}
+              showMapWidgets={true} // 🆕 Enable map widget rendering
+            />
+          )}
         </div>
 
         {/* Input */}
-        <div className="sticky bottom-0 z-10 border-t border-white/10 bg-black/30 p-3 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-3 flex-shrink-0">
+        <div className="sticky bottom-0 z-10 border-t border-white/10 bg-black/30 p-3 pb-[env(safe-area-inset-bottom)] md:pb-3 flex-shrink-0">
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}
