@@ -29,7 +29,6 @@ export default defineConfig(({ mode }) => ({
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select', '@radix-ui/react-tabs'],
           'supabase': ['@supabase/supabase-js'],
-          'stream': ['stream-chat', 'stream-chat-react'],
           'utils': ['date-fns', 'clsx', 'tailwind-merge'],
           'charts': ['recharts'],
           'pdf': ['jspdf', 'jspdf-autotable', 'html2canvas'],
