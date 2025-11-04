@@ -49,10 +49,10 @@ export const TripViewToggle = ({
   return (
     <div className="w-full mb-6">
       {/* Two-Panel Layout */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 lg:gap-6">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 lg:gap-4">
         {/* LEFT PANEL - View Mode Toggles (Desktop LEFT, Mobile BOTTOM) */}
-        <div className="w-full lg:max-w-[calc(50%-0.75rem)] lg:contents order-last lg:order-first">
-          <ScrollFadeContainer className="lg:contents">
+        <div className="w-full lg:flex-1 lg:max-w-[calc(50%-0.75rem)] order-last lg:order-first">
+          <ScrollFadeContainer className="w-full h-full">
             <ToggleGroup
               type="single"
               value={viewMode}
@@ -98,7 +98,7 @@ export const TripViewToggle = ({
         </div>
 
         {/* RIGHT PANEL - Action Pills (Desktop RIGHT, Mobile TOP) */}
-        <div className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg flex w-full lg:max-w-[calc(50%-0.75rem)] items-center gap-0.5 justify-around min-h-[56px] order-first lg:order-last">
+        <div className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg flex w-full lg:flex-1 lg:max-w-[calc(50%-0.75rem)] items-center gap-0.5 justify-around min-h-[56px] order-first lg:order-last">
           {/* Settings Pill */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
