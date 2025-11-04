@@ -132,7 +132,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     useEffect(() => {
       let mounted = true;
       
-      // Emergency timeout: if map doesn't load in 5 seconds, force iframe fallback
+      // Emergency timeout: if map doesn't load in 15 seconds, force iframe fallback
       loadingTimeoutRef.current = setTimeout(() => {
         if (mounted && isMapLoading) {
           console.warn('[MapCanvas] ⏱️ Map loading timeout - forcing iframe fallback');
@@ -140,7 +140,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           setUseFallbackEmbed(true);
           setIsMapLoading(false);
         }
-      }, 5000);
+      }, 15000);
 
       const initMap = async () => {
         try {
@@ -567,89 +567,12 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       return (
         <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
           <GoogleMapsEmbed className="w-full h-full" />
-          {!forceIframeFallback && mapError && (
-            <div className="absolute top-2 right-2 z-30 bg-amber-500/90 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-lg shadow-lg">
-              ℹ️ Using simplified map view
-            </div>
-          )}
         </div>
       );
     }
 
     return (
       <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
-        {/* Search Bar - Centered and Compact */}
-        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-20 w-auto max-w-xs">
-          <form onSubmit={handleSearchSubmit} className="relative">
-            <Search size={12} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => handleSearchInput(e.target.value)}
-              onFocus={() => {
-                if (suggestions.length > 0) setShowSuggestions(true);
-              }}
-              onBlur={() => {
-                // Delay to allow click on suggestion
-                setTimeout(() => setShowSuggestions(false), 200);
-              }}
-              placeholder="Search locations..."
-              disabled={isSearching || isMapLoading}
-              className="w-48 bg-white/95 backdrop-blur-sm border border-gray-300 rounded-lg pl-7 pr-7 py-1.5 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-lg text-xs disabled:opacity-70 disabled:cursor-not-allowed"
-            />
-            {/* Clear/Loading Button */}
-            {isSearching ? (
-              <Loader2 size={12} className="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-500 animate-spin z-10" />
-            ) : searchQuery && (
-              <button
-                type="button"
-                onClick={handleClearSearch}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors z-10"
-                aria-label="Clear search"
-              >
-                <X size={12} />
-              </button>
-            )}
-
-            {/* Autocomplete Suggestions Dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-2xl border border-gray-200 max-h-48 overflow-y-auto">
-                {suggestions.map((prediction) => (
-                  <button
-                    key={prediction.place_id}
-                    type="button"
-                    onClick={() => handleSuggestionClick(prediction)}
-                    className="w-full text-left px-2 py-1.5 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0 first:rounded-t-lg last:rounded-b-lg"
-                  >
-                    <div className="text-xs text-gray-900 font-medium">
-                      {prediction.structured_formatting?.main_text || prediction.description}
-                    </div>
-                    {prediction.structured_formatting?.secondary_text && (
-                      <div className="text-[10px] text-gray-500 mt-0.5">
-                        {prediction.structured_formatting.secondary_text}
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </form>
-
-          {/* Error Message */}
-          {searchError && (
-            <div className="mt-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
-              {searchError}
-            </div>
-          )}
-
-          {/* Context Info Chip */}
-          {searchOrigin && (
-            <div className="mt-1 bg-blue-50/95 backdrop-blur-sm border border-blue-200 rounded-md px-2 py-1 text-[10px] text-blue-700 text-center">
-              Searches biased to your <span className="font-semibold">{activeContext === 'trip' ? 'Trip' : 'Personal'} Base Camp</span>
-            </div>
-          )}
-        </div>
-
         {/* Place Info Overlay */}
         {selectedPlace && (
           <PlaceInfoOverlay

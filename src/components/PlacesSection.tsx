@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapCanvas, MapCanvasRef } from './places/MapCanvas';
-import { MapOverlayChips } from './places/MapOverlayChips';
+import { UnifiedMapControls } from './places/UnifiedMapControls';
 import { GreenNotice } from './places/GreenNotice';
 import { BasecampsPanel } from './places/BasecampsPanel';
 import { LinksPanel } from './places/LinksPanel';
@@ -40,6 +40,15 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   const [searchContext, setSearchContext] = useState<'trip' | 'personal'>('trip');
   const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
   const [showPersonalBasecampSelector, setShowPersonalBasecampSelector] = useState(false);
+  
+  // Search state (lifted from MapCanvas)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchOrigin, setSearchOrigin] = useState<{ lat: number; lng: number } | null>(null);
+  const [isMapLoading, setIsMapLoading] = useState(true);
   const [distanceSettings] = useState<DistanceCalculationSettings>({
     preferredMode: 'driving',
     unit: 'miles',
@@ -233,6 +242,17 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     };
   }, [tripId, isDemoMode, setContextBasecamp]);
 
+  // Update search origin when context or basecamps change
+  useEffect(() => {
+    if (searchContext === 'trip' && contextBasecamp?.coordinates) {
+      setSearchOrigin(contextBasecamp.coordinates);
+    } else if (searchContext === 'personal' && personalBasecamp?.latitude && personalBasecamp?.longitude) {
+      setSearchOrigin({ lat: personalBasecamp.latitude, lng: personalBasecamp.longitude });
+    } else {
+      setSearchOrigin(null);
+    }
+  }, [searchContext, contextBasecamp, personalBasecamp]);
+
   // Recalculate distances for existing places when basecamp changes
   useEffect(() => {
     if (isBasecampSet && contextBasecamp && places.length > 0) {
@@ -366,10 +386,12 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     // Always update the search context for proper toggle highlighting
     setSearchContext(context);
 
-    // Center the map on the appropriate basecamp when switching contexts
+    // Update search origin
     if (context === 'trip' && contextBasecamp?.coordinates) {
+      setSearchOrigin(contextBasecamp.coordinates);
       mapRef.current?.centerOn(contextBasecamp.coordinates, 15);
     } else if (context === 'personal' && personalBasecamp?.latitude && personalBasecamp?.longitude) {
+      setSearchOrigin({ lat: personalBasecamp.latitude, lng: personalBasecamp.longitude });
       mapRef.current?.centerOn({ lat: personalBasecamp.latitude, lng: personalBasecamp.longitude }, 15);
     }
 
@@ -379,12 +401,37 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     }
   };
 
+  // Search handlers
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('[PlacesSection] Search submitted:', searchQuery);
+    // TODO: Integrate with MapCanvas search functionality
+  };
+
+  const handleSuggestionClick = (prediction: google.maps.places.AutocompletePrediction) => {
+    setSearchQuery(prediction.description);
+    setShowSuggestions(false);
+    console.log('[PlacesSection] Suggestion clicked:', prediction.description);
+    // TODO: Integrate with MapCanvas search functionality
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setSearchError(null);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
+
   const toBasecampLocation = (pb: PersonalBasecamp): BasecampLocation => ({
     address: pb.address || '',
     name: pb.name,
     type: 'other',
     coordinates: pb.latitude && pb.longitude ? { lat: pb.latitude, lng: pb.longitude } : undefined
   });
+
+  const handleMapReady = () => {
+    setIsMapLoading(false);
+  };
 
   return (
     <div className="mb-12 mobile-safe-scroll">
@@ -402,14 +449,26 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
             tripBasecamp={contextBasecamp}
             personalBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : null}
             className="w-full h-full"
+            onMapReady={handleMapReady}
           />
 
-          {/* Map Overlay Chips - floating on map */}
-          <MapOverlayChips
+          {/* Unified Map Controls - floating on map */}
+          <UnifiedMapControls
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSearchSubmit={handleSearchSubmit}
+            suggestions={suggestions}
+            showSuggestions={showSuggestions}
+            isSearching={isSearching}
+            searchError={searchError}
+            searchOrigin={searchOrigin}
             activeContext={searchContext}
             onContextChange={handleContextChange}
             tripBasecampSet={isBasecampSet}
             personalBasecampSet={!!personalBasecamp}
+            onClearSearch={handleClearSearch}
+            onSuggestionClick={handleSuggestionClick}
+            isMapLoading={isMapLoading}
           />
         </div>
 
