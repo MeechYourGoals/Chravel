@@ -66,21 +66,21 @@ export const TripViewToggle = ({
               <ToggleGroupItem
                 value="myTrips"
                 aria-label="My Trips"
-                className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-4 sm:px-6 py-3 rounded-xl font-bold text-base tracking-wide flex-shrink-0 whitespace-nowrap"
+                className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base tracking-wide flex-shrink-0 whitespace-nowrap"
               >
                 My Trips
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="tripsPro"
                 aria-label="Chravel Pro"
-                className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-4 sm:px-6 py-3 rounded-xl font-bold text-base tracking-wide flex-shrink-0 whitespace-nowrap"
+                className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base tracking-wide flex-shrink-0 whitespace-nowrap"
               >
-                Chravel Pro
+                {isMobile ? 'Pro' : 'Chravel Pro'}
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="events"
                 aria-label="Events"
-                className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-4 sm:px-6 py-3 rounded-xl font-bold text-base tracking-wide flex-shrink-0 whitespace-nowrap"
+                className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base tracking-wide flex-shrink-0 whitespace-nowrap"
               >
                 Events
               </ToggleGroupItem>
@@ -88,9 +88,9 @@ export const TripViewToggle = ({
                 <ToggleGroupItem
                   value="travelRecs"
                   aria-label="Chravel Recs"
-                  className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-4 sm:px-6 py-3 rounded-xl font-bold text-base tracking-wide flex-shrink-0 whitespace-nowrap"
+                  className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base tracking-wide flex-shrink-0 whitespace-nowrap"
                 >
-                  Chravel Recs
+                  {isMobile ? 'Recs' : 'Chravel Recs'}
                 </ToggleGroupItem>
               )}
             </ToggleGroup>
