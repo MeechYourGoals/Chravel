@@ -52,7 +52,7 @@ export const TripViewToggle = ({
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 lg:gap-4">
         {/* LEFT PANEL - View Mode Toggles (Desktop LEFT, Mobile BOTTOM) */}
         <div className="w-full lg:flex-1 lg:max-w-[calc(50%-0.75rem)] order-last lg:order-first">
-          <ScrollFadeContainer className="w-full h-full">
+          <ScrollFadeContainer className="w-full h-full contents md:contents lg:block">
             <ToggleGroup
               type="single"
               value={viewMode}
@@ -61,26 +61,26 @@ export const TripViewToggle = ({
                   onViewModeChange(value);
                 }
               }}
-              className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg flex w-full min-h-[56px] gap-0.5 justify-start md:justify-around lg:justify-start"
+              className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 w-full min-h-[56px] gap-0.5 lg:flex lg:justify-start"
             >
               <ToggleGroupItem
                 value="myTrips"
                 aria-label="My Trips"
-                className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base tracking-wide flex-shrink-0 whitespace-nowrap"
+                className="justify-self-center data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base tracking-wide whitespace-nowrap"
               >
                 My Trips
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="tripsPro"
                 aria-label="Chravel Pro"
-                className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base tracking-wide flex-shrink-0 whitespace-nowrap"
+                className="justify-self-center data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base tracking-wide whitespace-nowrap"
               >
                 {isMobile ? 'Pro' : 'Chravel Pro'}
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="events"
                 aria-label="Events"
-                className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base tracking-wide flex-shrink-0 whitespace-nowrap"
+                className="justify-self-center data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base tracking-wide whitespace-nowrap"
               >
                 Events
               </ToggleGroupItem>
@@ -88,7 +88,7 @@ export const TripViewToggle = ({
                 <ToggleGroupItem
                   value="travelRecs"
                   aria-label="Chravel Recs"
-                  className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base tracking-wide flex-shrink-0 whitespace-nowrap"
+                  className="justify-self-center data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base tracking-wide whitespace-nowrap"
                 >
                   {isMobile ? 'Recs' : 'Chravel Recs'}
                 </ToggleGroupItem>
@@ -98,12 +98,12 @@ export const TripViewToggle = ({
         </div>
 
         {/* RIGHT PANEL - Action Pills (Desktop RIGHT, Mobile TOP) */}
-        <div className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg flex w-full lg:flex-1 lg:max-w-[calc(50%-0.75rem)] items-center gap-0.5 justify-around min-h-[56px] order-first lg:order-last">
+        <div className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 w-full lg:flex lg:flex-1 lg:max-w-[calc(50%-0.75rem)] lg:items-center gap-0.5 lg:justify-around min-h-[56px] order-first lg:order-last">
           {/* Settings Pill */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button 
-                className="px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
+                className="justify-self-center px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
                 aria-label="Settings"
               >
                 <Settings size={16} className="flex-shrink-0" />
@@ -165,7 +165,7 @@ export const TripViewToggle = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button 
-                className="relative px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
+                className="relative justify-self-center px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
                 aria-label="Notifications"
               >
                 <Bell size={16} className="flex-shrink-0" />
@@ -218,7 +218,7 @@ export const TripViewToggle = ({
           {onCreateTrip && (
             <button
               onClick={onCreateTrip}
-              className="px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
+              className="justify-self-center px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
               aria-label="Create New Trip"
             >
               <Plus size={16} className="flex-shrink-0" />
@@ -231,7 +231,7 @@ export const TripViewToggle = ({
             <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
               <DialogTrigger asChild>
                 <button 
-                  className="px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
+                  className="justify-self-center px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
                   aria-label="Search"
                 >
                   <Search size={16} className="flex-shrink-0" />
