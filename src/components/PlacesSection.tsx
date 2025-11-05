@@ -402,17 +402,62 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   // Search handlers
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('[PlacesSection] Search submitted:', searchQuery);
-    // TODO: Integrate with MapCanvas search functionality
+  const handleSearchChange = async (query: string) => {
+    setSearchQuery(query);
+    
+    if (query.trim().length >= 3) {
+      setIsSearching(true);
+      try {
+        const { loadMaps, autocomplete } = await import('@/services/googlePlaces');
+        const svc = await loadMaps();
+        const token = new svc.places.AutocompleteSessionToken();
+        const results = await autocomplete(query, token, searchOrigin);
+        setSuggestions(results);
+        setShowSuggestions(true);
+      } catch (error) {
+        console.error('[PlacesSection] Autocomplete error:', error);
+        setSearchError('Autocomplete failed');
+      } finally {
+        setIsSearching(false);
+      }
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
   };
 
-  const handleSuggestionClick = (prediction: google.maps.places.AutocompletePrediction) => {
+  const handleSearchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    
+    setIsSearching(true);
+    setShowSuggestions(false);
+    
+    try {
+      await mapRef.current?.search(searchQuery);
+      setSearchError(null);
+    } catch (error) {
+      console.error('[PlacesSection] Search error:', error);
+      setSearchError('Search failed. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSuggestionClick = async (prediction: google.maps.places.AutocompletePrediction) => {
     setSearchQuery(prediction.description);
     setShowSuggestions(false);
-    console.log('[PlacesSection] Suggestion clicked:', prediction.description);
-    // TODO: Integrate with MapCanvas search functionality
+    
+    setIsSearching(true);
+    try {
+      await mapRef.current?.search(prediction.description);
+      setSearchError(null);
+    } catch (error) {
+      console.error('[PlacesSection] Search error:', error);
+      setSearchError('Search failed.');
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleClearSearch = () => {
@@ -420,6 +465,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     setSearchError(null);
     setSuggestions([]);
     setShowSuggestions(false);
+    mapRef.current?.clearSearch();
   };
 
   const toBasecampLocation = (pb: PersonalBasecamp): BasecampLocation => ({
@@ -455,7 +501,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
           {/* Unified Map Controls - floating on map */}
           <UnifiedMapControls
             searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
+            onSearchChange={handleSearchChange}
             onSearchSubmit={handleSearchSubmit}
             suggestions={suggestions}
             showSuggestions={showSuggestions}

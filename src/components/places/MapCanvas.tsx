@@ -37,6 +37,8 @@ export interface MapCanvasRef {
   fitBounds: (bounds: { north: number; south: number; east: number; west: number }) => void;
   highlight: (markerId: string) => void;
   getMap: () => google.maps.Map | null;
+  search: (query: string) => Promise<void>;
+  clearSearch: () => void;
 }
 
 export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
@@ -125,7 +127,13 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           mapRef.current.setZoom(15);
         }
       },
-      getMap: () => mapRef.current
+      getMap: () => mapRef.current,
+      search: async (query: string) => {
+        await handleSearch(query);
+      },
+      clearSearch: () => {
+        handleClearSearch();
+      }
     }));
 
     // Initialize map
