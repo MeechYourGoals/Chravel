@@ -1,302 +1,351 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+/**
+ * Notification Preferences Component
+ * 
+ * Allows users to configure:
+ * - Which channels to receive notifications (push, email, SMS)
+ * - Which types of notifications to receive
+ * - Quiet hours
+ */
+
+import React, { useState, useEffect } from 'react';
 import { Switch } from '../ui/switch';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { Bell, Mail, MessageSquare, Calendar, Users, CreditCard } from 'lucide-react';
-import { useToast } from '../../hooks/use-toast';
+import { Label } from '../ui/label';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Bell, BellOff, Moon, Mail, MessageSquare, DollarSign, Calendar, Users, Megaphone } from 'lucide-react';
 
-interface NotificationSetting {
-  id: string;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-  category: 'push' | 'email' | 'sms';
-  enabled: boolean;
-  premium?: boolean;
+interface NotificationPrefs {
+  // Channels
+  push_enabled: boolean;
+  email_enabled: boolean;
+  sms_enabled: boolean;
+  
+  // Categories
+  chat_messages: boolean;
+  mentions_only: boolean;
+  broadcasts: boolean;
+  tasks: boolean;
+  payments: boolean;
+  calendar_reminders: boolean;
+  trip_invites: boolean;
+  join_requests: boolean;
+  
+  // Quiet hours
+  quiet_hours_enabled: boolean;
+  quiet_start: string;
+  quiet_end: string;
+  timezone: string;
 }
 
-export const NotificationPreferences: React.FC = () => {
-  const { toast } = useToast();
-  const [settings, setSettings] = useState<NotificationSetting[]>([
-    {
-      id: 'trip_updates',
-      label: 'Trip Updates',
-      description: 'Notifications about changes to your trip itinerary',
-      icon: <Calendar className="w-4 h-4" />,
-      category: 'push',
-      enabled: true
-    },
-    {
-      id: 'chat_messages',
-      label: 'Chat Messages',
-      description: 'New messages in your trip chat',
-      icon: <MessageSquare className="w-4 h-4" />,
-      category: 'push',
-      enabled: true
-    },
-    {
-      id: 'team_updates',
-      label: 'Team Updates',
-      description: 'When team members join or leave',
-      icon: <Users className="w-4 h-4" />,
-      category: 'push',
-      enabled: false
-    },
-    {
-      id: 'payment_alerts',
-      label: 'Payment Alerts',
-      description: 'Expense sharing and payment requests',
-      icon: <CreditCard className="w-4 h-4" />,
-      category: 'push',
-      enabled: true,
-      premium: true
-    },
-    {
-      id: 'email_digest',
-      label: 'Daily Digest',
-      description: 'Summary of trip activity via email',
-      icon: <Mail className="w-4 h-4" />,
-      category: 'email',
-      enabled: false
-    },
-    {
-      id: 'calendar_reminders',
-      label: 'Calendar Reminders',
-      description: 'Reminders for upcoming events',
-      icon: <Bell className="w-4 h-4" />,
-      category: 'push',
-      enabled: true
-    }
-  ]);
-
-  const [globalSettings, setGlobalSettings] = useState({
-    pushEnabled: true,
-    emailEnabled: true,
-    smsEnabled: false,
-    quietHours: false,
-    quietStart: '22:00',
-    quietEnd: '08:00'
+export const NotificationPreferences = () => {
+  const [prefs, setPrefs] = useState<NotificationPrefs>({
+    push_enabled: true,
+    email_enabled: true,
+    sms_enabled: false,
+    chat_messages: false,
+    mentions_only: true,
+    broadcasts: true,
+    tasks: true,
+    payments: true,
+    calendar_reminders: true,
+    trip_invites: true,
+    join_requests: true,
+    quiet_hours_enabled: false,
+    quiet_start: '22:00',
+    quiet_end: '08:00',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
   });
-
-  const handleSettingChange = (settingId: string, enabled: boolean) => {
-    setSettings(prev => prev.map(setting => 
-      setting.id === settingId ? { ...setting, enabled } : setting
-    ));
+  
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  
+  useEffect(() => {
+    loadPreferences();
+  }, []);
+  
+  const loadPreferences = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      if (data) {
+        setPrefs(data as NotificationPrefs);
+      }
+    } catch (error) {
+      console.error('Error loading notification preferences:', error);
+      toast.error('Failed to load notification preferences');
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const handleGlobalSettingChange = (key: string, value: boolean) => {
-    setGlobalSettings(prev => ({ ...prev, [key]: value }));
+  
+  const updatePreference = async (key: keyof NotificationPrefs, value: any) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { error } = await supabase
+        .from('notification_preferences')
+        .upsert({
+          user_id: user.id,
+          [key]: value,
+          updated_at: new Date().toISOString()
+        });
+      
+      if (error) throw error;
+      
+      setPrefs(prev => ({ ...prev, [key]: value }));
+    } catch (error) {
+      console.error('Error updating preference:', error);
+      toast.error('Failed to update preference');
+    }
   };
-
-  const savePreferences = async () => {
-    // This would normally save to the database
-    toast({
-      title: 'Preferences Saved',
-      description: 'Your notification preferences have been updated.'
-    });
+  
+  const saveAllPreferences = async () => {
+    try {
+      setSaving(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { error } = await supabase
+        .from('notification_preferences')
+        .upsert({
+          user_id: user.id,
+          ...prefs,
+          updated_at: new Date().toISOString()
+        });
+      
+      if (error) throw error;
+      
+      toast.success('Notification preferences saved!');
+    } catch (error) {
+      console.error('Error saving preferences:', error);
+      toast.error('Failed to save preferences');
+    } finally {
+      setSaving(false);
+    }
   };
-
-  const testNotification = async () => {
-    // This would normally trigger a test notification
-    toast({
-      title: 'Test Notification Sent',
-      description: 'Check your device for the test notification.'
-    });
-  };
-
-  const categoryGroups = {
-    push: settings.filter(s => s.category === 'push'),
-    email: settings.filter(s => s.category === 'email'),
-    sms: settings.filter(s => s.category === 'sms')
-  };
-
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+  
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6 max-w-2xl">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Notification Preferences</h2>
-          <p className="text-muted-foreground">
-            Control how and when you receive notifications
+          <h3 className="text-2xl font-bold">Notification Preferences</h3>
+          <p className="text-sm text-muted-foreground">
+            Manage how and when you receive notifications
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={testNotification} variant="outline">
-            Test Notification
-          </Button>
-          <Button onClick={savePreferences}>
-            Save Preferences
-          </Button>
+        <Bell className="h-8 w-8 text-primary" />
+      </div>
+      
+      {/* Channels */}
+      <div className="space-y-4 p-4 border rounded-lg">
+        <h4 className="font-semibold text-lg flex items-center gap-2">
+          <MessageSquare className="h-5 w-5" />
+          Notification Channels
+        </h4>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bell className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="push">Push Notifications</Label>
+            </div>
+            <Switch 
+              id="push"
+              checked={prefs.push_enabled}
+              onCheckedChange={(v) => updatePreference('push_enabled', v)}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="email">Email Notifications</Label>
+            </div>
+            <Switch 
+              id="email"
+              checked={prefs.email_enabled}
+              onCheckedChange={(v) => updatePreference('email_enabled', v)}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="sms">SMS Notifications</Label>
+            </div>
+            <Switch 
+              id="sms"
+              checked={prefs.sms_enabled}
+              onCheckedChange={(v) => updatePreference('sms_enabled', v)}
+            />
+          </div>
         </div>
       </div>
-
-      {/* Global Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Global Settings</CardTitle>
-          <CardDescription>
-            Master controls for all notification types
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      
+      {/* Categories */}
+      <div className="space-y-4 p-4 border rounded-lg">
+        <h4 className="font-semibold text-lg">What to notify me about</h4>
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">Push Notifications</p>
-              <p className="text-sm text-muted-foreground">
-                Receive notifications on your device
-              </p>
-            </div>
-            <Switch
-              checked={globalSettings.pushEnabled}
-              onCheckedChange={(checked) => 
-                handleGlobalSettingChange('pushEnabled', checked)
-              }
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Email Notifications</p>
-              <p className="text-sm text-muted-foreground">
-                Receive notifications via email
-              </p>
-            </div>
-            <Switch
-              checked={globalSettings.emailEnabled}
-              onCheckedChange={(checked) => 
-                handleGlobalSettingChange('emailEnabled', checked)
-              }
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">SMS Notifications</p>
-              <p className="text-sm text-muted-foreground">
-                Receive notifications via text message
-              </p>
-              <Badge variant="outline" className="mt-1">Premium</Badge>
-            </div>
-            <Switch
-              checked={globalSettings.smsEnabled}
-              onCheckedChange={(checked) => 
-                handleGlobalSettingChange('smsEnabled', checked)
-              }
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Quiet Hours</p>
-              <p className="text-sm text-muted-foreground">
-                Disable notifications during specified hours
-              </p>
-            </div>
-            <Switch
-              checked={globalSettings.quietHours}
-              onCheckedChange={(checked) => 
-                handleGlobalSettingChange('quietHours', checked)
-              }
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Push Notifications */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="w-5 h-5" />
-            Push Notifications
-          </CardTitle>
-          <CardDescription>
-            Instant notifications on your device
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {categoryGroups.push.map(setting => (
-            <div key={setting.id} className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {setting.icon}
-                <div>
-                  <p className="font-medium">{setting.label}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {setting.description}
-                  </p>
-                </div>
-                {setting.premium && (
-                  <Badge variant="secondary">Premium</Badge>
-                )}
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="mentions">@Mentions only (not all chat messages)</Label>
               </div>
-              <Switch
-                checked={setting.enabled}
-                onCheckedChange={(checked) => 
-                  handleSettingChange(setting.id, checked)
-                }
-                disabled={!globalSettings.pushEnabled}
+              <p className="text-xs text-muted-foreground ml-6">
+                Get notified when someone mentions you
+              </p>
+            </div>
+            <Switch 
+              id="mentions"
+              checked={prefs.mentions_only}
+              onCheckedChange={(v) => updatePreference('mentions_only', v)}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Megaphone className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="broadcasts">Broadcast messages</Label>
+            </div>
+            <Switch 
+              id="broadcasts"
+              checked={prefs.broadcasts}
+              onCheckedChange={(v) => updatePreference('broadcasts', v)}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="tasks">Task assignments</Label>
+            </div>
+            <Switch 
+              id="tasks"
+              checked={prefs.tasks}
+              onCheckedChange={(v) => updatePreference('tasks', v)}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="payments">Payment requests</Label>
+            </div>
+            <Switch 
+              id="payments"
+              checked={prefs.payments}
+              onCheckedChange={(v) => updatePreference('payments', v)}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="calendar">Calendar event reminders</Label>
+            </div>
+            <Switch 
+              id="calendar"
+              checked={prefs.calendar_reminders}
+              onCheckedChange={(v) => updatePreference('calendar_reminders', v)}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="invites">Trip invitations</Label>
+            </div>
+            <Switch 
+              id="invites"
+              checked={prefs.trip_invites}
+              onCheckedChange={(v) => updatePreference('trip_invites', v)}
+            />
+          </div>
+        </div>
+      </div>
+      
+      {/* Quiet Hours */}
+      <div className="space-y-4 p-4 border rounded-lg">
+        <h4 className="font-semibold text-lg flex items-center gap-2">
+          <Moon className="h-5 w-5" />
+          Quiet Hours
+        </h4>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <Label htmlFor="quiet">Enable quiet hours</Label>
+            <p className="text-xs text-muted-foreground">
+              Pause non-urgent notifications during these hours
+            </p>
+          </div>
+          <Switch 
+            id="quiet"
+            checked={prefs.quiet_hours_enabled}
+            onCheckedChange={(v) => updatePreference('quiet_hours_enabled', v)}
+          />
+        </div>
+        
+        {prefs.quiet_hours_enabled && (
+          <div className="flex gap-4 items-center ml-6">
+            <div>
+              <Label htmlFor="quiet_start" className="text-xs">From</Label>
+              <input
+                id="quiet_start"
+                type="time"
+                value={prefs.quiet_start}
+                onChange={(e) => updatePreference('quiet_start', e.target.value)}
+                className="block mt-1 px-3 py-2 border rounded bg-background"
               />
             </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Email Notifications */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="w-5 h-5" />
-            Email Notifications
-          </CardTitle>
-          <CardDescription>
-            Notifications sent to your email address
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {categoryGroups.email.map(setting => (
-            <div key={setting.id} className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {setting.icon}
-                <div>
-                  <p className="font-medium">{setting.label}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {setting.description}
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={setting.enabled}
-                onCheckedChange={(checked) => 
-                  handleSettingChange(setting.id, checked)
-                }
-                disabled={!globalSettings.emailEnabled}
+            <span className="mt-6">to</span>
+            <div>
+              <Label htmlFor="quiet_end" className="text-xs">Until</Label>
+              <input
+                id="quiet_end"
+                type="time"
+                value={prefs.quiet_end}
+                onChange={(e) => updatePreference('quiet_end', e.target.value)}
+                className="block mt-1 px-3 py-2 border rounded bg-background"
               />
             </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Device Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Device Status</CardTitle>
-          <CardDescription>
-            Current notification permissions and settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span>Browser Notifications</span>
-            <Badge variant="outline">Granted</Badge>
           </div>
-          <div className="flex items-center justify-between">
-            <span>Push Token</span>
-            <Badge variant="secondary">Registered</Badge>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Last Sync</span>
-            <span className="text-sm text-muted-foreground">
-              {new Date().toLocaleTimeString()}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
+      
+      {/* Save Button */}
+      <div className="flex justify-end gap-4">
+        <Button
+          variant="outline"
+          onClick={loadPreferences}
+          disabled={saving}
+        >
+          Reset
+        </Button>
+        <Button
+          onClick={saveAllPreferences}
+          disabled={saving}
+        >
+          {saving ? 'Saving...' : 'Save Preferences'}
+        </Button>
+      </div>
     </div>
   );
 };
