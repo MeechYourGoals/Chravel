@@ -402,28 +402,10 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   // Search handlers
-  const handleSearchChange = async (query: string) => {
+  const handleSearchChange = (query: string) => {
     setSearchQuery(query);
-    
-    if (query.trim().length >= 3) {
-      setIsSearching(true);
-      try {
-        const { loadMaps, autocomplete } = await import('@/services/googlePlaces');
-        const svc = await loadMaps();
-        const token = new svc.places.AutocompleteSessionToken();
-        const results = await autocomplete(query, token, searchOrigin);
-        setSuggestions(results);
-        setShowSuggestions(true);
-      } catch (error) {
-        console.error('[PlacesSection] Autocomplete error:', error);
-        setSearchError('Autocomplete failed');
-      } finally {
-        setIsSearching(false);
-      }
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
+    setSuggestions([]);
+    setShowSuggestions(false);
   };
 
   const handleSearchSubmit = async (e: React.FormEvent) => {
