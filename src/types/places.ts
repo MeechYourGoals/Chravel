@@ -23,6 +23,7 @@ export interface PlaceData {
   userRatingCount?: number;
   priceLevel?: string;
   addressComponents?: google.maps.GeocoderAddressComponent[];
+  photos?: string[]; // Array of photo URIs
 }
 
 /**
@@ -41,6 +42,7 @@ export interface ConvertedPlace {
   website?: string;
   url?: string;
   types?: string[];
+  photos?: string[]; // Array of photo URIs
 }
 
 /**
@@ -73,6 +75,7 @@ export interface ConvertedPrediction {
     main_text: string;
     secondary_text?: string;
   };
+  photoUri?: string; // First photo preview for autocomplete
 }
 
 /**
@@ -84,6 +87,7 @@ export const PLACE_FIELDS = {
   CONTACT: ['websiteURI', 'googleMapsURI'],
   ATMOSPHERE: ['rating', 'userRatingCount', 'priceLevel'],
   GEOMETRY: ['location', 'viewport'],
+  PHOTOS: ['photos'], // Photo field for image previews
   ALL: [
     'id',
     'displayName', 
@@ -96,7 +100,8 @@ export const PLACE_FIELDS = {
     'types',
     'businessStatus',
     'userRatingCount',
-    'priceLevel'
+    'priceLevel',
+    'photos'
   ]
 } as const;
 

@@ -691,7 +691,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           placeId: place.place_id,
           rating: place.rating,
           website: place.website,
-          distance: null
+          distance: null,
+          photos: place.photos
         };
 
         setSelectedPlace(placeInfo);

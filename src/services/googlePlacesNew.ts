@@ -87,6 +87,23 @@ export async function loadMaps(): Promise<typeof google.maps> {
 }
 
 /**
+ * Extract photo URIs from Place photos array
+ * Returns up to maxPhotos URIs with specified size
+ */
+export function extractPhotoUris(photos: any[], maxPhotos: number = 3, maxWidthPx: number = 800): string[] {
+  if (!photos || photos.length === 0) return [];
+  
+  return photos.slice(0, maxPhotos).map((photo: any) => {
+    // New API: photos have getURI() method
+    if (typeof photo.getURI === 'function') {
+      return photo.getURI({ maxWidth: maxWidthPx });
+    }
+    // Fallback: direct URI access
+    return photo.uri || '';
+  }).filter(Boolean);
+}
+
+/**
  * Convert new Place object to legacy PlaceResult format
  * Maintains backward compatibility with existing components
  */
@@ -103,6 +120,7 @@ export function convertPlaceToLegacy(place: PlaceData): ConvertedPlace {
     website: place.websiteURI,
     url: place.googleMapsURI,
     types: place.types,
+    photos: place.photos,
   };
 }
 
@@ -271,7 +289,8 @@ export async function searchNearby(
       'googleMapsURI',
       'types',
       'userRatingCount',
-      'priceLevel'
+      'priceLevel',
+      'photos'
     ],
     maxResultCount: Math.min(maxResults, 20), // API limit
     languageCode: 'en',
@@ -295,7 +314,7 @@ export async function searchNearby(
 
     console.log(`[GooglePlacesNew] ✅ searchNearby found ${places.length} results`);
     
-    // Convert and sort by rating
+    // Convert and sort by rating (with photos)
     const converted = places.map((place: any) => convertPlaceToLegacy({
       id: place.id,
       displayName: place.displayName?.text,
@@ -306,6 +325,7 @@ export async function searchNearby(
       websiteURI: place.websiteURI,
       googleMapsURI: place.googleMapsURI,
       types: place.types,
+      photos: place.photos ? extractPhotoUris(place.photos, 3) : undefined,
     }));
     
     // Sort by rating (best first)
@@ -344,7 +364,8 @@ export async function searchByText(
       'rating',
       'websiteURI',
       'googleMapsURI',
-      'types'
+      'types',
+      'photos'
     ],
     maxResultCount: maxResults,
     languageCode: 'en',
@@ -371,7 +392,7 @@ export async function searchByText(
 
     console.log(`[GooglePlacesNew] ✅ searchByText found ${places.length} results`);
     
-    // Convert to legacy format
+    // Convert to legacy format with photos
     return places.map((place: any) => convertPlaceToLegacy({
       id: place.id,
       displayName: place.displayName?.text,
@@ -382,6 +403,7 @@ export async function searchByText(
       websiteURI: place.websiteURI,
       googleMapsURI: place.googleMapsURI,
       types: place.types,
+      photos: place.photos ? extractPhotoUris(place.photos, 3) : undefined,
     }));
   } catch (error) {
     console.error('[GooglePlacesNew] searchByText error:', error);

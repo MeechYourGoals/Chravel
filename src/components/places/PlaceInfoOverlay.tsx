@@ -1,5 +1,6 @@
 import React from 'react';
 import { MapPin, ExternalLink, Navigation, X, Car } from 'lucide-react';
+import { PlacePhotoGallery } from './PlacePhotoGallery';
 
 export interface PlaceInfo {
   name: string;
@@ -13,6 +14,7 @@ export interface PlaceInfo {
     duration: string;
     mode: string;
   } | null;
+  photos?: string[];
 }
 
 interface PlaceInfoOverlayProps {
@@ -39,7 +41,14 @@ export const PlaceInfoOverlay: React.FC<PlaceInfoOverlayProps> = ({
   };
 
   return (
-    <div className="absolute top-4 left-4 z-20 bg-white rounded-xl shadow-2xl border border-gray-200 max-w-sm w-full md:w-80">
+    <div className="absolute top-4 left-4 z-20 bg-white rounded-xl shadow-2xl border border-gray-200 max-w-sm w-full md:w-80 overflow-hidden">
+      {/* Photo Gallery */}
+      <PlacePhotoGallery 
+        photos={place.photos} 
+        placeName={place.name}
+        maxPhotos={3}
+      />
+      
       <div className="p-4">
         {/* Header with close button */}
         <div className="flex items-start justify-between mb-3">
