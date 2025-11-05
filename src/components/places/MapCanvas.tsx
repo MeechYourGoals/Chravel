@@ -97,6 +97,35 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       duration: string;
     } | null>(null);
 
+    // Distance cache - stores distance calculations for 1 hour
+    const distanceCacheRef = useRef<Map<string, {
+      distance: string;
+      duration: string;
+      timestamp: number;
+    }>>(new Map());
+
+    // Cache helper functions
+    const getCachedDistance = (origin: string, destination: string) => {
+      const key = `${origin}→${destination}`;
+      const cached = distanceCacheRef.current.get(key);
+      
+      // Cache valid for 1 hour (3600000ms)
+      if (cached && Date.now() - cached.timestamp < 3600000) {
+        return cached;
+      }
+      
+      return null;
+    };
+
+    const setCachedDistance = (origin: string, destination: string, data: { distance: string; duration: string }) => {
+      const key = `${origin}→${destination}`;
+      distanceCacheRef.current.set(key, {
+        ...data,
+        timestamp: Date.now(),
+      });
+      console.log('[MapCanvas] Distance cached:', key);
+    };
+
     // Route rendering function
     const renderRoute = async (
       origin: { lat: number; lng: number },
@@ -441,7 +470,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
     }, [activeContext, tripBasecamp, personalBasecamp, userGeolocation]);
 
-    // ** PHASE 1: Non-blocking distance calculation using useEffect **
+    // ** PHASE 1 & 6: Non-blocking distance calculation with caching **
     useEffect(() => {
       if (!selectedPlace?.coordinates) return;
       
@@ -458,6 +487,18 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           const origin = `${activeBasecamp.coordinates.lat},${activeBasecamp.coordinates.lng}`;
           const destination = `${selectedPlace.coordinates.lat},${selectedPlace.coordinates.lng}`;
           
+          // ** PHASE 6: Check cache first **
+          const cached = getCachedDistance(origin, destination);
+          if (cached) {
+            console.log('[MapCanvas] ✅ Using cached distance:', cached);
+            setSelectedPlace(prev => prev?.placeId === selectedPlace.placeId 
+              ? { ...prev, distance: { ...cached, mode: 'driving' } } 
+              : prev
+            );
+            return;
+          }
+
+          // Cache miss - fetch from API
           const { GoogleMapsService } = await import('@/services/googleMapsService');
           
           const distanceData = await withTimeout(
@@ -471,13 +512,15 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
             const distanceInfo = {
               distance: element.distance.text,
               duration: element.duration.text,
-              mode: 'driving'
             };
             
-            console.log('[MapCanvas] Distance calculated:', distanceInfo);
+            // ** PHASE 6: Store in cache **
+            setCachedDistance(origin, destination, distanceInfo);
+            
+            console.log('[MapCanvas] Distance calculated from API:', distanceInfo);
             
             setSelectedPlace(prev => prev?.placeId === selectedPlace.placeId 
-              ? { ...prev, distance: distanceInfo } 
+              ? { ...prev, distance: { ...distanceInfo, mode: 'driving' } } 
               : prev
             );
           }
