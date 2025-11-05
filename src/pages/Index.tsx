@@ -186,7 +186,7 @@ const Index = () => {
 
         {!isDemoMode ? (
           // Marketing landing content
-          <div className="container mx-auto px-4 pt-2 pb-6 max-w-7xl relative z-10">
+          <div className="container mx-auto px-4 pt-2 pb-6 max-w-[1600px] relative z-10">
             <UnauthenticatedLanding 
               onSignIn={() => setIsAuthModalOpen(true)}
               onSignUp={() => setIsAuthModalOpen(true)}
@@ -213,7 +213,7 @@ const Index = () => {
         ) : (
           // Demo mode content - full app interface
           <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
-            <div className="container mx-auto px-4 py-6 max-w-7xl relative z-10">
+            <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
               {/* Desktop Header */}
               {!isMobile && (
                 <div className="w-full">
@@ -230,7 +230,7 @@ const Index = () => {
                 </div>
               )}
 
-              <div className="max-w-[1200px] mx-auto">
+              <div className="max-w-[1500px] mx-auto">
                 <div className="w-full animate-fade-in">
                   <TripViewToggle 
                     viewMode={viewMode} 
@@ -335,7 +335,7 @@ const Index = () => {
           <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-primary/6 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
         </div>
       )}
-      <div className="container mx-auto px-4 py-6 max-w-7xl relative z-10">
+      <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
         {/* Mobile Header */}
         <MobileHeader
           onCreateTrip={handleCreateTrip}
