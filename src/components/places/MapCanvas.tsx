@@ -92,6 +92,10 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     // Route state
     const [routePolyline, setRoutePolyline] = useState<google.maps.Polyline | null>(null);
     const [showRoute, setShowRoute] = useState(false);
+    const [routeInfo, setRouteInfo] = useState<{
+      distance: string;
+      duration: string;
+    } | null>(null);
 
     // Route rendering function
     const renderRoute = async (
@@ -121,8 +125,11 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         });
 
         if (result.routes[0]) {
+          const route = result.routes[0];
+          const leg = route.legs[0];
+
           const polyline = new google.maps.Polyline({
-            path: result.routes[0].overview_path,
+            path: route.overview_path,
             geodesic: true,
             strokeColor: '#3B82F6', // blue-500
             strokeOpacity: 0.8,
@@ -133,12 +140,18 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           setRoutePolyline(polyline);
           setShowRoute(true);
 
+          // Extract and store route info
+          setRouteInfo({
+            distance: leg.distance?.text || 'Unknown',
+            duration: leg.duration?.text || 'Unknown',
+          });
+
           // Fit map to show entire route
           const bounds = new google.maps.LatLngBounds();
-          result.routes[0].overview_path.forEach(point => bounds.extend(point));
+          route.overview_path.forEach(point => bounds.extend(point));
           mapRef.current.fitBounds(bounds);
 
-          console.log('[MapCanvas] ✅ Route rendered successfully');
+          console.log('[MapCanvas] ✅ Route rendered with distance:', leg.distance?.text);
         }
       } catch (error) {
         console.error('[MapCanvas] Route rendering error:', error);
@@ -150,6 +163,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         routePolyline.setMap(null);
         setRoutePolyline(null);
         setShowRoute(false);
+        setRouteInfo(null);
         console.log('[MapCanvas] Route cleared');
       }
     };
@@ -385,6 +399,13 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
             console.warn('[MapCanvas] Geolocation error:', error);
             // Fallback to NYC
             setUserGeolocation({ lat: 40.7580, lng: -73.9855 });
+            
+            // Notify user about geolocation failure
+            import('sonner').then(({ toast }) => {
+              toast.info('Location access denied. Defaulting to New York City. Set a Base Camp for better results.', {
+                duration: 5000,
+              });
+            });
           }
         );
       }
@@ -418,12 +439,55 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         mapRef.current.setZoom(13);
       }
 
-      // If place is selected, re-trigger search to recalculate distance from new basecamp
-      if (selectedPlace?.name && services && sessionToken) {
-        console.log(`[MapCanvas] Recalculating distance from ${activeContext} basecamp`);
-        handleSearch(selectedPlace.name);
-      }
     }, [activeContext, tripBasecamp, personalBasecamp, userGeolocation]);
+
+    // ** PHASE 1: Non-blocking distance calculation using useEffect **
+    useEffect(() => {
+      if (!selectedPlace?.coordinates) return;
+      
+      const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
+      
+      // Early exit if no basecamp coordinates
+      if (!activeBasecamp?.coordinates) {
+        console.log('[MapCanvas] No basecamp set, skipping distance calculation');
+        return;
+      }
+
+      const calculateDistance = async () => {
+        try {
+          const origin = `${activeBasecamp.coordinates.lat},${activeBasecamp.coordinates.lng}`;
+          const destination = `${selectedPlace.coordinates.lat},${selectedPlace.coordinates.lng}`;
+          
+          const { GoogleMapsService } = await import('@/services/googleMapsService');
+          
+          const distanceData = await withTimeout(
+            GoogleMapsService.getDistanceMatrix(origin, destination, 'DRIVING'),
+            5000,
+            'Distance calculation timed out'
+          );
+          
+          if (distanceData.status === 'OK' && distanceData.rows[0]?.elements[0]?.status === 'OK') {
+            const element = distanceData.rows[0].elements[0];
+            const distanceInfo = {
+              distance: element.distance.text,
+              duration: element.duration.text,
+              mode: 'driving'
+            };
+            
+            console.log('[MapCanvas] Distance calculated:', distanceInfo);
+            
+            setSelectedPlace(prev => prev?.placeId === selectedPlace.placeId 
+              ? { ...prev, distance: distanceInfo } 
+              : prev
+            );
+          }
+        } catch (error) {
+          console.warn('[MapCanvas] Distance calculation failed:', error);
+        }
+      };
+
+      calculateDistance();
+    }, [selectedPlace?.placeId, activeContext, tripBasecamp?.coordinates, personalBasecamp?.coordinates]);
 
     // Update basecamp markers
     useEffect(() => {
@@ -572,45 +636,6 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
         setSelectedPlace(placeInfo);
 
-        // ** NON-BLOCKING: Calculate distance in background **
-        const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
-        
-        if (activeBasecamp?.coordinates && place.geometry?.location) {
-          // Run async without blocking search completion
-          Promise.resolve().then(async () => {
-            try {
-              const origin = `${activeBasecamp.coordinates.lat},${activeBasecamp.coordinates.lng}`;
-              const destination = `${place.geometry.location.lat()},${place.geometry.location.lng()}`;
-              
-              const { GoogleMapsService } = await import('@/services/googleMapsService');
-              
-              // Wrap distance calc in 5s timeout
-              const distanceData = await withTimeout(
-                GoogleMapsService.getDistanceMatrix(origin, destination, 'DRIVING'),
-                5000,
-                'Distance calculation timed out'
-              );
-              
-              if (distanceData.status === 'OK' && distanceData.rows[0]?.elements[0]?.status === 'OK') {
-                const element = distanceData.rows[0].elements[0];
-                const distanceInfo = {
-                  distance: element.distance.text,
-                  duration: element.duration.text,
-                  mode: 'driving'
-                };
-                
-                console.log('[MapCanvas] Distance calculated:', distanceInfo);
-                
-                // Update place info with distance
-                setSelectedPlace(prev => prev ? { ...prev, distance: distanceInfo } : prev);
-              }
-            } catch (error) {
-              console.warn('[MapCanvas] Distance calculation skipped:', error);
-              // Silent fail - distance is optional
-            }
-          });
-        }
-
         // Reset session token after successful search
         const maps = await loadMaps();
         setSessionToken(new maps.places.AutocompleteSessionToken());
@@ -677,6 +702,24 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
     return (
       <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
+        {/* Route Info Overlay - Phase 4 */}
+        {routeInfo && showRoute && (
+          <div className="absolute top-20 left-4 z-20 bg-blue-600 text-white rounded-lg px-4 py-3 shadow-xl">
+            <div className="flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/>
+                <circle cx="7" cy="17" r="2"/>
+                <path d="M9 17h6"/>
+                <circle cx="17" cy="17" r="2"/>
+              </svg>
+              <div>
+                <div className="text-sm font-bold">{routeInfo.distance}</div>
+                <div className="text-xs opacity-90">{routeInfo.duration}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Place Info Overlay */}
         {selectedPlace && (
           <PlaceInfoOverlay

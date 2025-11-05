@@ -122,10 +122,29 @@ reject(new Error(`autocomplete failed: ${status}`));
 }
 
 /**
+ * Normalize query text for better matching
+ */
+function preprocessQuery(query: string): string {
+  const normalizations: Record<string, string> = {
+    'centre': 'center',
+    'theatre': 'theater',
+    'shoppe': 'shop',
+  };
+  
+  let processed = query.toLowerCase();
+  for (const [variant, standard] of Object.entries(normalizations)) {
+    processed = processed.replace(new RegExp(variant, 'g'), standard);
+  }
+  
+  return processed;
+}
+
+/**
  * Detect place type from query text for better search filtering
+ * Enhanced with sports venues, landmarks, and business types
  */
 function detectPlaceType(query: string): string | undefined {
-  const q = query.toLowerCase();
+  const q = preprocessQuery(query);
 
   // Food & Dining
   if (q.includes('restaurant') || q.includes('food') || q.includes('dining') ||
@@ -135,12 +154,16 @@ function detectPlaceType(query: string): string | undefined {
   if (q.includes('hotel') || q.includes('lodging') || q.includes('motel') ||
       q.includes('inn')) return 'lodging';
 
-  // Entertainment & Sports
-  if (q.includes('stadium') || q.includes('arena')) return 'stadium';
-  if (q.includes('theater') || q.includes('theatre') || q.includes('cinema') ||
-      q.includes('movie')) return 'movie_theater';
+  // Entertainment & Sports - ENHANCED
+  if (q.includes('stadium') || q.includes('arena') || q.includes('center') || 
+      q.includes('coliseum') || q.includes('amphitheater')) return 'stadium';
+  if (q.includes('theater') || q.includes('cinema') || q.includes('movie')) return 'movie_theater';
   if (q.includes('museum')) return 'museum';
   if (q.includes('park')) return 'park';
+
+  // Points of Interest - NEW
+  if (q.includes('landmark') || q.includes('monument')) return 'point_of_interest';
+  if (q.includes('attraction')) return 'tourist_attraction';
 
   // Transportation
   if (q.includes('airport')) return 'airport';
@@ -157,6 +180,12 @@ function detectPlaceType(query: string): string | undefined {
   if (q.includes('spa')) return 'spa';
   if (q.includes('bank')) return 'bank';
   if (q.includes('hospital') || q.includes('clinic')) return 'hospital';
+
+  // Business - NEW
+  if (q.includes('office') || q.includes('building')) return 'premise';
+
+  // Generic establishment fallback for named venues without street numbers
+  if (!q.match(/\d{3,}/)) return 'establishment';
 
   return undefined;
 }
