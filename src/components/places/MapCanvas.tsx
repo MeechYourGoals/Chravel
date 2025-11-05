@@ -39,6 +39,8 @@ export interface MapCanvasRef {
   getMap: () => google.maps.Map | null;
   search: (query: string) => Promise<void>;
   clearSearch: () => void;
+  showRoute: (origin: { lat: number; lng: number }, destination: { lat: number; lng: number }) => Promise<void>;
+  clearRoute: () => void;
 }
 
 export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
@@ -85,6 +87,71 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     const markersRef = useRef<google.maps.Marker[]>([]);
     const searchMarkerRef = useRef<google.maps.Marker | null>(null);
     const overlayObserverRef = useRef<MutationObserver | null>(null);
+
+    // Route state
+    const [routePolyline, setRoutePolyline] = useState<google.maps.Polyline | null>(null);
+    const [showRoute, setShowRoute] = useState(false);
+
+    // Route rendering function
+    const renderRoute = async (
+      origin: { lat: number; lng: number },
+      destination: { lat: number; lng: number }
+    ) => {
+      if (!mapRef.current || !window.google) {
+        console.warn('[MapCanvas] Cannot render route: map not ready');
+        return;
+      }
+
+      // Clear existing route
+      if (routePolyline) {
+        routePolyline.setMap(null);
+      }
+
+      try {
+        const google = window.google;
+        const directionsService = new google.maps.DirectionsService();
+
+        console.log('[MapCanvas] Rendering route:', { origin, destination });
+
+        const result = await directionsService.route({
+          origin: new google.maps.LatLng(origin.lat, origin.lng),
+          destination: new google.maps.LatLng(destination.lat, destination.lng),
+          travelMode: google.maps.TravelMode.DRIVING,
+        });
+
+        if (result.routes[0]) {
+          const polyline = new google.maps.Polyline({
+            path: result.routes[0].overview_path,
+            geodesic: true,
+            strokeColor: '#3B82F6', // blue-500
+            strokeOpacity: 0.8,
+            strokeWeight: 4,
+            map: mapRef.current,
+          });
+
+          setRoutePolyline(polyline);
+          setShowRoute(true);
+
+          // Fit map to show entire route
+          const bounds = new google.maps.LatLngBounds();
+          result.routes[0].overview_path.forEach(point => bounds.extend(point));
+          mapRef.current.fitBounds(bounds);
+
+          console.log('[MapCanvas] ✅ Route rendered successfully');
+        }
+      } catch (error) {
+        console.error('[MapCanvas] Route rendering error:', error);
+      }
+    };
+
+    const clearRoute = () => {
+      if (routePolyline) {
+        routePolyline.setMap(null);
+        setRoutePolyline(null);
+        setShowRoute(false);
+        console.log('[MapCanvas] Route cleared');
+      }
+    };
 
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
@@ -133,6 +200,12 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       },
       clearSearch: () => {
         handleClearSearch();
+      },
+      showRoute: async (origin: { lat: number; lng: number }, destination: { lat: number; lng: number }) => {
+        await renderRoute(origin, destination);
+      },
+      clearRoute: () => {
+        clearRoute();
       }
     }));
 
@@ -147,6 +220,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           setForceIframeFallback(true);
           setUseFallbackEmbed(true);
           setIsMapLoading(false);
+          onMapReady?.(); // Notify parent that loading is complete (even with fallback)
         }
       }, 15000);
 
@@ -258,16 +332,17 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
               clearTimeout(loadingTimeoutRef.current);
               loadingTimeoutRef.current = null;
             }
-            
+
             // Graceful fallback to embed if JS API fails to load/auth
             setUseFallbackEmbed(true);
             setForceIframeFallback(true);
-            const errorMessage = error instanceof Error 
+            const errorMessage = error instanceof Error
               ? error.message
               : 'Failed to load Google Maps JavaScript API.';
             setMapError(errorMessage);
             setIsMapLoading(false);
-            
+            onMapReady?.(); // Notify parent that loading is complete (even with error)
+
             console.error('[MapCanvas] Fallback to iframe embed mode due to error');
           }
         }
@@ -281,6 +356,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         setForceIframeFallback(true);
         setUseFallbackEmbed(true);
         setIsMapLoading(false);
+        onMapReady?.(); // Notify parent that loading is complete (even with sync error)
       }
 
       return () => {
@@ -546,27 +622,27 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       setSelectedPlace(null);
       setSuggestions([]);
       setShowSuggestions(false);
-      
+
       // Remove search marker
       if (searchMarkerRef.current) {
         searchMarkerRef.current.setMap(null);
         searchMarkerRef.current = null;
       }
+
+      // Clear route
+      clearRoute();
     };
 
-    const handleViewDirections = () => {
+    const handleViewDirections = async () => {
       if (!selectedPlace?.coordinates) return;
 
       const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
       if (!activeBasecamp?.coordinates) return;
 
-      // Open Google Maps directions in new tab
-      const origin = `${activeBasecamp.coordinates.lat},${activeBasecamp.coordinates.lng}`;
-      const destination = `${selectedPlace.coordinates.lat},${selectedPlace.coordinates.lng}`;
-      window.open(
-        `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`,
-        '_blank'
-      );
+      // Render route on the map
+      await renderRoute(activeBasecamp.coordinates, selectedPlace.coordinates);
+
+      console.log('[MapCanvas] Directions rendered on map');
     };
 
     // If fallback embed mode is enabled, show the iframe instead
