@@ -42,7 +42,7 @@ export const UnifiedMapControls: React.FC<UnifiedMapControlsProps> = ({
   isMapLoading
 }) => {
   return (
-    <div className="absolute top-2 right-2 z-20 flex flex-col gap-2 w-80 md:w-72 sm:portrait:w-56 lg:landscape:w-64">
+    <div className="absolute top-2 right-2 z-20 flex flex-col gap-2 w-48 md:w-44 sm:portrait:w-32 lg:landscape:w-40">
       {/* Search Bar Section */}
       <div className="bg-gray-900/90 backdrop-blur-lg rounded-lg p-2 shadow-lg border border-white/10">
         <form onSubmit={onSearchSubmit} className="relative">
