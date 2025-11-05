@@ -21,6 +21,25 @@ let loaderPromise: Promise<typeof google.maps> | null = null;
 export type SearchOrigin = { lat: number; lng: number } | null;
 
 /**
+ * Timeout wrapper for API calls to prevent indefinite hangs
+ * @param promise - The API promise to wrap
+ * @param timeoutMs - Timeout in milliseconds (default 10s)
+ * @param errorMsg - Error message if timeout occurs
+ */
+export async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number = 10000,
+  errorMsg: string = 'API request timed out'
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(errorMsg)), timeoutMs)
+    ),
+  ]);
+}
+
+/**
  * Lazy-load Google Maps JavaScript API with Places & Geocoding libraries
  */
 export async function loadMaps(): Promise<typeof google.maps> {

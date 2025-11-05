@@ -415,10 +415,19 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     setIsSearching(true);
     setShowSuggestions(false);
     
+    // Failsafe: Reset searching state after 15 seconds max
+    const timeoutId = setTimeout(() => {
+      setIsSearching(false);
+      setSearchError('Search timed out. Please try again.');
+      console.warn('[PlacesSection] Search timeout failsafe triggered');
+    }, 15000);
+    
     try {
       await mapRef.current?.search(searchQuery);
+      clearTimeout(timeoutId);
       setSearchError(null);
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('[PlacesSection] Search error:', error);
       setSearchError('Search failed. Please try again.');
     } finally {

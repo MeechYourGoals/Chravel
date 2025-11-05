@@ -56,9 +56,9 @@ export const UnifiedMapControls: React.FC<UnifiedMapControlsProps> = ({
                 // Trigger show suggestions via parent
               }
             }}
-            placeholder="Search locations..."
-            disabled={isSearching || isMapLoading}
-            className="w-full bg-white/95 backdrop-blur-sm border border-gray-300 rounded-md pl-9 pr-9 py-2 md:py-1.5 sm:py-1.5 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm md:text-xs sm:text-[10px] disabled:opacity-70 disabled:cursor-not-allowed"
+            placeholder={isSearching ? "Searching..." : "Search locations..."}
+            disabled={isMapLoading}
+            className={`w-full bg-white/95 backdrop-blur-sm border border-gray-300 rounded-md pl-9 pr-9 py-2 md:py-1.5 sm:py-1.5 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm md:text-xs sm:text-[10px] disabled:opacity-70 disabled:cursor-not-allowed ${isSearching ? 'opacity-75' : ''}`}
           />
           {/* Clear/Loading Button */}
           {isSearching ? (

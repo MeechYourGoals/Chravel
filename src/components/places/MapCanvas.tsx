@@ -11,6 +11,7 @@ import {
   resolveQuery,
   centerMapOnPlace,
   SearchOrigin,
+  withTimeout,
 } from '@/services/googlePlaces';
 import { GoogleMapsEmbed } from '@/components/GoogleMapsEmbed';
 
@@ -517,17 +518,21 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         const effectiveOrigin = overrideOrigin || searchOrigin;
         console.log('[MapCanvas] Searching for:', trimmedQuery, { origin: effectiveOrigin });
 
-        const place = await resolveQuery(
-          mapRef.current,
-          services,
-          trimmedQuery,
-          effectiveOrigin,
-          sessionToken
+        // Wrap search in 10s timeout to prevent indefinite hangs
+        const place = await withTimeout(
+          resolveQuery(
+            mapRef.current,
+            services,
+            trimmedQuery,
+            effectiveOrigin,
+            sessionToken
+          ),
+          10000,
+          'Search timed out after 10 seconds'
         );
 
         if (!place) {
           setSearchError('No results found. Try a different search term.');
-          setIsSearching(false);
           return;
         }
 
@@ -552,34 +557,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           });
         }
 
-        // ** Calculate distance from active basecamp **
-        const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
-        let distanceInfo: { distance: string; duration: string; mode: string } | null = null;
-
-        if (activeBasecamp?.coordinates && place.geometry?.location) {
-          try {
-            const origin = `${activeBasecamp.coordinates.lat},${activeBasecamp.coordinates.lng}`;
-            const destination = `${place.geometry.location.lat()},${place.geometry.location.lng()}`;
-            
-            // Use Distance Matrix API for driving distance/time
-            const { GoogleMapsService } = await import('@/services/googleMapsService');
-            const distanceData = await GoogleMapsService.getDistanceMatrix(origin, destination, 'DRIVING');
-            
-            if (distanceData.status === 'OK' && distanceData.rows[0]?.elements[0]?.status === 'OK') {
-              const element = distanceData.rows[0].elements[0];
-              distanceInfo = {
-                distance: element.distance.text,
-                duration: element.duration.text,
-                mode: 'driving'
-              };
-              console.log('[MapCanvas] Distance calculated:', distanceInfo);
-            }
-          } catch (error) {
-            console.error('[MapCanvas] Distance calculation error:', error);
-          }
-        }
-
-        // Set place info for overlay with distance
+        // Set initial place info WITHOUT distance (distance loads async)
         const placeInfo: PlaceInfo = {
           name: place.name || trimmedQuery,
           address: place.formatted_address,
@@ -589,19 +567,61 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           placeId: place.place_id,
           rating: place.rating,
           website: place.website,
-          distance: distanceInfo
+          distance: null
         };
 
         setSelectedPlace(placeInfo);
+
+        // ** NON-BLOCKING: Calculate distance in background **
+        const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
+        
+        if (activeBasecamp?.coordinates && place.geometry?.location) {
+          // Run async without blocking search completion
+          Promise.resolve().then(async () => {
+            try {
+              const origin = `${activeBasecamp.coordinates.lat},${activeBasecamp.coordinates.lng}`;
+              const destination = `${place.geometry.location.lat()},${place.geometry.location.lng()}`;
+              
+              const { GoogleMapsService } = await import('@/services/googleMapsService');
+              
+              // Wrap distance calc in 5s timeout
+              const distanceData = await withTimeout(
+                GoogleMapsService.getDistanceMatrix(origin, destination, 'DRIVING'),
+                5000,
+                'Distance calculation timed out'
+              );
+              
+              if (distanceData.status === 'OK' && distanceData.rows[0]?.elements[0]?.status === 'OK') {
+                const element = distanceData.rows[0].elements[0];
+                const distanceInfo = {
+                  distance: element.distance.text,
+                  duration: element.duration.text,
+                  mode: 'driving'
+                };
+                
+                console.log('[MapCanvas] Distance calculated:', distanceInfo);
+                
+                // Update place info with distance
+                setSelectedPlace(prev => prev ? { ...prev, distance: distanceInfo } : prev);
+              }
+            } catch (error) {
+              console.warn('[MapCanvas] Distance calculation skipped:', error);
+              // Silent fail - distance is optional
+            }
+          });
+        }
 
         // Reset session token after successful search
         const maps = await loadMaps();
         setSessionToken(new maps.places.AutocompleteSessionToken());
       } catch (error) {
         console.error('[MapCanvas] Search error:', error);
-        setSearchError('Search failed. Please try again.');
+        const errorMsg = error instanceof Error ? error.message : 'Search failed. Please try again.';
+        setSearchError(errorMsg);
       } finally {
+        // GUARANTEED to run - always reset searching state
         setIsSearching(false);
+        console.log('[MapCanvas] Search cleanup executed');
       }
     };
 
