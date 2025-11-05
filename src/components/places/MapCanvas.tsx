@@ -6,13 +6,13 @@ import { BasecampLocation } from '@/types/basecamp';
 import { PlaceInfoOverlay, PlaceInfo } from './PlaceInfoOverlay';
 import {
   loadMaps,
-  createServices,
   autocomplete,
   resolveQuery,
   centerMapOnPlace,
   SearchOrigin,
   withTimeout,
-} from '@/services/googlePlaces';
+  generateSessionToken,
+} from '@/services/googlePlacesNew';
 import { GoogleMapsEmbed } from '@/components/GoogleMapsEmbed';
 
 export interface MapMarker {
@@ -74,14 +74,10 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     const [searchError, setSearchError] = useState<string | null>(null);
     const [selectedPlace, setSelectedPlace] = useState<PlaceInfo | null>(null);
     const [showSuggestions, setShowSuggestions] = useState(false);
-    const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+    const [suggestions, setSuggestions] = useState<any[]>([]);
 
-    // Services state
-    const [services, setServices] = useState<{
-      places: google.maps.places.PlacesService;
-      geocoder: google.maps.Geocoder;
-    } | null>(null);
-    const [sessionToken, setSessionToken] = useState<google.maps.places.AutocompleteSessionToken | null>(null);
+    // Session token for autocomplete (New API uses string tokens)
+    const [sessionToken, setSessionToken] = useState<string>('');
     const [searchOrigin, setSearchOrigin] = useState<SearchOrigin>(null);
 
     // Markers state
@@ -257,23 +253,23 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     useEffect(() => {
       let mounted = true;
       
-      // Emergency timeout: if map doesn't load in 15 seconds, force iframe fallback
+      // Emergency timeout: if map doesn't load in 8 seconds, force iframe fallback
       loadingTimeoutRef.current = setTimeout(() => {
         if (mounted && isMapLoading) {
-          console.warn('[MapCanvas] ⏱️ Map loading timeout - forcing iframe fallback');
+          console.warn('[MapCanvas] ⏱️ Map loading timeout (8s) - forcing iframe fallback');
           setForceIframeFallback(true);
           setUseFallbackEmbed(true);
           setIsMapLoading(false);
           onMapReady?.(); // Notify parent that loading is complete (even with fallback)
         }
-      }, 15000);
+      }, 8000); // Reduced from 15s to 8s
 
       const initMap = async () => {
         try {
           setIsMapLoading(true);
           setMapError(null);
           
-          console.log('[MapCanvas] 🗺️ Initializing map...', {
+          console.log('[MapCanvas] 🗺️ Initializing map (New Places API)...', {
             tripBasecamp: !!tripBasecamp,
             personalBasecamp: !!personalBasecamp,
             activeContext
@@ -332,7 +328,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           });
 
           mapRef.current = map;
-          console.log('[MapCanvas] ✅ Map instance created');
+          console.log('[MapCanvas] ✅ Map instance created with New Places API');
 
           // Monitor for Google Maps error overlay
           const errorCheckInterval = setInterval(() => {
@@ -349,14 +345,9 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           // Stop checking after 3 seconds
           setTimeout(() => clearInterval(errorCheckInterval), 3000);
 
-          // Create services
-          console.log('[MapCanvas] Creating Places and Geocoding services...');
-          const svc = await createServices(map);
-          setServices(svc);
-          console.log('[MapCanvas] ✅ Services created');
-
-          // Create initial session token
-          setSessionToken(new maps.places.AutocompleteSessionToken());
+          // Generate initial session token for New API
+          setSessionToken(generateSessionToken());
+          console.log('[MapCanvas] ✅ Session token generated');
 
           // Clear emergency timeout - map loaded successfully
           if (loadingTimeoutRef.current) {
@@ -367,7 +358,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           setIsMapLoading(false);
           onMapReady?.();
 
-          console.log('[MapCanvas] ✅ Map fully initialized and ready');
+          console.log('[MapCanvas] ✅ Map fully initialized with New Places API');
         } catch (error) {
           console.error('[MapCanvas] ❌ Map initialization error:', error);
           if (mounted) {
@@ -462,12 +453,21 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       if (targetBasecamp?.coordinates) {
         mapRef.current.setCenter(targetBasecamp.coordinates);
         mapRef.current.setZoom(12);
+        console.log(`[MapCanvas] ✅ Re-centered map on ${activeContext} basecamp`);
       } else if (userGeolocation && !tripBasecamp && !personalBasecamp) {
         // Only fall back to geolocation if NO basecamps are set
         mapRef.current.setCenter(userGeolocation);
         mapRef.current.setZoom(13);
+        console.log('[MapCanvas] ✅ Re-centered map on geolocation');
+      } else {
+        console.log('[MapCanvas] No basecamp or geolocation to center on');
       }
 
+      // If place is selected, re-trigger search to recalculate distance from new basecamp
+      if (selectedPlace?.name && sessionToken) {
+        console.log(`[MapCanvas] Recalculating distance from ${activeContext} basecamp`);
+        handleSearch(selectedPlace.name);
+      }
     }, [activeContext, tripBasecamp, personalBasecamp, userGeolocation]);
 
     // ** PHASE 1 & 6: Non-blocking distance calculation with caching **
@@ -590,12 +590,12 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       }
     }, [tripBasecamp, personalBasecamp, activeContext]);
 
-    // Autocomplete handler
+    // Autocomplete handler (New API)
     const handleSearchInput = async (value: string) => {
       setSearchQuery(value);
       setSearchError(null);
 
-      if (!value.trim() || !services || !sessionToken) {
+      if (!value.trim() || !sessionToken) {
         setSuggestions([]);
         setShowSuggestions(false);
         return;
@@ -609,13 +609,15 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         console.error('[MapCanvas] Autocomplete error:', error);
         setSuggestions([]);
         setShowSuggestions(false);
+        // Reset session token on error to prevent billing issues
+        setSessionToken(generateSessionToken());
       }
     };
 
-    // Search submission handler
+    // Search submission handler (New API)
     const handleSearch = async (query: string, overrideOrigin?: SearchOrigin) => {
       const trimmedQuery = query.trim();
-      if (!trimmedQuery || !mapRef.current || !services || !sessionToken) return;
+      if (!trimmedQuery || !mapRef.current || !sessionToken) return;
 
       setIsSearching(true);
       setSearchError(null);
@@ -623,17 +625,11 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
       try {
         const effectiveOrigin = overrideOrigin || searchOrigin;
-        console.log('[MapCanvas] Searching for:', trimmedQuery, { origin: effectiveOrigin });
+        console.log('[MapCanvas] Searching with New Places API:', trimmedQuery, { origin: effectiveOrigin });
 
         // Wrap search in 10s timeout to prevent indefinite hangs
         const place = await withTimeout(
-          resolveQuery(
-            mapRef.current,
-            services,
-            trimmedQuery,
-            effectiveOrigin,
-            sessionToken
-          ),
+          resolveQuery(trimmedQuery, effectiveOrigin, sessionToken),
           10000,
           'Search timed out after 10 seconds'
         );
@@ -643,7 +639,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           return;
         }
 
-        console.log('[MapCanvas] ✅ Place found:', place);
+        console.log('[MapCanvas] ✅ Place found (New API):', place);
 
         // Center map on place
         centerMapOnPlace(mapRef.current, place);
@@ -679,13 +675,14 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
         setSelectedPlace(placeInfo);
 
-        // Reset session token after successful search
-        const maps = await loadMaps();
-        setSessionToken(new maps.places.AutocompleteSessionToken());
+        // Reset session token after successful search (New API)
+        setSessionToken(generateSessionToken());
       } catch (error) {
         console.error('[MapCanvas] Search error:', error);
         const errorMsg = error instanceof Error ? error.message : 'Search failed. Please try again.';
         setSearchError(errorMsg);
+        // Reset session token on error
+        setSessionToken(generateSessionToken());
       } finally {
         // GUARANTEED to run - always reset searching state
         setIsSearching(false);
@@ -698,7 +695,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       handleSearch(searchQuery);
     };
 
-    const handleSuggestionClick = (prediction: google.maps.places.AutocompletePrediction) => {
+    const handleSuggestionClick = (prediction: any) => {
       setSearchQuery(prediction.description);
       setShowSuggestions(false);
       handleSearch(prediction.description);
