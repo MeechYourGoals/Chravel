@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useDemoMode } from '@/hooks/useDemoMode';
@@ -21,6 +21,9 @@ export const useUniversalSearch = (query: string, filters: { status: string; typ
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
+  
+  // Phase A: Request deduplication to prevent race conditions
+  const activeRequestRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const searchTrips = async () => {
@@ -28,6 +31,15 @@ export const useUniversalSearch = (query: string, filters: { status: string; typ
         setResults([]);
         return;
       }
+
+      // Phase A: Cancel any in-flight request
+      if (activeRequestRef.current) {
+        activeRequestRef.current.abort();
+      }
+      
+      // Create new abort controller for this request
+      const abortController = new AbortController();
+      activeRequestRef.current = abortController;
 
       setIsLoading(true);
       
@@ -82,6 +94,11 @@ export const useUniversalSearch = (query: string, filters: { status: string; typ
           }
         });
 
+        // Phase A: Check if request was aborted
+        if (abortController.signal.aborted) {
+          return;
+        }
+
         if (error) throw error;
 
         if (data?.results) {
@@ -118,6 +135,11 @@ export const useUniversalSearch = (query: string, filters: { status: string; typ
           setResults([]);
         }
       } catch (error) {
+        // Phase A: Don't show error for aborted requests
+        if (abortController.signal.aborted) {
+          return;
+        }
+        
         console.error('Search error:', error);
         toast({
           title: "Search Error",
@@ -126,12 +148,23 @@ export const useUniversalSearch = (query: string, filters: { status: string; typ
         });
         setResults([]);
       } finally {
-        setIsLoading(false);
+        // Phase A: Only clear loading if this request wasn't aborted
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
+    // Phase C: Debounce increased from implicit to explicit 300ms
     const debounceTimer = setTimeout(searchTrips, 300);
-    return () => clearTimeout(debounceTimer);
+    
+    return () => {
+      clearTimeout(debounceTimer);
+      // Phase A: Cleanup - abort pending request on unmount
+      if (activeRequestRef.current) {
+        activeRequestRef.current.abort();
+      }
+    };
   }, [query, filters, toast, isDemoMode]);
 
   return { results, isLoading };

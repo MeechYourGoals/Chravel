@@ -41,64 +41,71 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
       setIsLoadingSuggestions(true);
       setShowSuggestions(true);
       
+      // Phase C: Debounce autocomplete by 300ms
       debounceTimerRef.current = setTimeout(async () => {
         try {
           // Detect query type for smarter API selection
           const queryType = GoogleMapsService.detectQueryType(value);
-          console.log(`Detected query type: ${queryType} for "${value}"`);
+          console.log(`[BasecampSelector] Detected query type: ${queryType} for "${value}"`);
           
           let foundSuggestions = false;
           
-          // Strategy 1: Try standard Autocomplete first (fast, cheap)
+          // Phase B: Use New Google Places API directly (client-side) instead of proxy
+          const { autocomplete, searchByText } = await import('@/services/googlePlacesNew');
+          
+          // Strategy 1: Try autocomplete first (fast, cheap) for non-venue queries
           if (queryType !== 'venue') {
-            const response = await GoogleMapsService.getPlaceAutocomplete(value);
-            if (response?.predictions?.length > 0) {
-              setSuggestions(response.predictions);
+            const sessionToken = `session-basecamp-${Date.now()}`;
+            const predictions = await autocomplete(value, sessionToken, undefined);
+            
+            if (predictions && predictions.length > 0) {
+              setSuggestions(predictions);
               foundSuggestions = true;
+              console.log(`[BasecampSelector] ✓ Found ${predictions.length} autocomplete results`);
             }
           }
           
           // Strategy 2: If venue query OR autocomplete failed, try Text Search
           if (!foundSuggestions) {
-            console.log('Autocomplete returned no results, trying Text Search...');
+            console.log('[BasecampSelector] Trying searchByText...');
             
-            // Use enhanced Text Search with optional location bias
-            const textSearchResponse = await GoogleMapsService.searchPlacesByText(value, {
-              // Location bias: If there's an existing basecamp, search near it
-              ...(currentBasecamp?.coordinates && {
-                location: `${currentBasecamp.coordinates.lat},${currentBasecamp.coordinates.lng}`
-              })
-            });
+            const searchOrigin = currentBasecamp?.coordinates 
+              ? { lat: currentBasecamp.coordinates.lat, lng: currentBasecamp.coordinates.lng }
+              : undefined;
             
-            if (textSearchResponse?.results?.length > 0) {
-              // Transform Text Search results to autocomplete format
-              const textSuggestions = textSearchResponse.results.slice(0, 8).map((place: any) => ({
-                place_id: place.place_id,
-                description: `${place.name} - ${place.formatted_address || place.vicinity}`,
-                name: place.name,
-                geometry: place.geometry,
-                source: 'text-search',
+            const textResults = await searchByText(value, searchOrigin);
+            
+            if (textResults && textResults.length > 0) {
+              // Transform New API results to autocomplete format
+              const textSuggestions = textResults.slice(0, 8).map((place: any) => ({
+                place_id: place.id,
+                description: place.formattedAddress || place.displayName?.text || '',
+                name: place.displayName?.text || '',
+                geometry: {
+                  location: place.location
+                },
+                source: 'text-search-new',
                 types: place.types || ['establishment'],
                 structured_formatting: {
-                  main_text: place.name,
-                  secondary_text: place.formatted_address || place.vicinity
+                  main_text: place.displayName?.text || '',
+                  secondary_text: place.formattedAddress || ''
                 }
               }));
               
               setSuggestions(textSuggestions);
               foundSuggestions = true;
-              console.log(`✓ Found ${textSuggestions.length} results via Text Search`);
+              console.log(`[BasecampSelector] ✓ Found ${textSuggestions.length} text search results`);
             }
           }
           
-          // No more results available
+          // No results found
           if (!foundSuggestions) {
-            console.log('No autocomplete suggestions found');
+            console.log('[BasecampSelector] No suggestions found');
             setSuggestions([]);
           }
           
         } catch (error) {
-          console.error('Error in autocomplete cascade:', error);
+          console.error('[BasecampSelector] Autocomplete error:', error);
           setSuggestions([]);
         } finally {
           setIsLoadingSuggestions(false);

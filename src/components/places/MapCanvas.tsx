@@ -79,6 +79,10 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     // Session token for autocomplete (New API uses string tokens)
     const [sessionToken, setSessionToken] = useState<string>('');
     const [searchOrigin, setSearchOrigin] = useState<SearchOrigin>(null);
+    
+    // Phase A: Request deduplication ref for autocomplete
+    const activeAutocompleteRequestRef = useRef<number>(0);
+    const searchDebounceTimerRef = useRef<NodeJS.Timeout>();
 
     // Markers state
     const markersRef = useRef<google.maps.Marker[]>([]);
@@ -590,28 +594,45 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       }
     }, [tripBasecamp, personalBasecamp, activeContext]);
 
-    // Autocomplete handler (New API)
-    const handleSearchInput = async (value: string) => {
+    // Autocomplete handler (New API) with debounce and deduplication
+    const handleSearchInput = (value: string) => {
       setSearchQuery(value);
       setSearchError(null);
 
       if (!value.trim() || !sessionToken) {
         setSuggestions([]);
         setShowSuggestions(false);
+        clearTimeout(searchDebounceTimerRef.current);
         return;
       }
 
-      try {
-        const predictions = await autocomplete(value, sessionToken, searchOrigin);
-        setSuggestions(predictions);
-        setShowSuggestions(predictions.length > 0);
-      } catch (error) {
-        console.error('[MapCanvas] Autocomplete error:', error);
-        setSuggestions([]);
-        setShowSuggestions(false);
-        // Reset session token on error to prevent billing issues
-        setSessionToken(generateSessionToken());
-      }
+      // Phase C: Clear previous debounce timer
+      clearTimeout(searchDebounceTimerRef.current);
+      
+      // Phase C: Debounce autocomplete requests by 300ms
+      searchDebounceTimerRef.current = setTimeout(async () => {
+        // Phase A: Increment request ID to invalidate previous requests
+        const currentRequestId = ++activeAutocompleteRequestRef.current;
+        
+        try {
+          const predictions = await autocomplete(value, sessionToken, searchOrigin);
+          
+          // Phase A: Only update if this is still the latest request
+          if (currentRequestId === activeAutocompleteRequestRef.current) {
+            setSuggestions(predictions);
+            setShowSuggestions(predictions.length > 0);
+          }
+        } catch (error) {
+          // Phase A: Only show error if this is still the latest request
+          if (currentRequestId === activeAutocompleteRequestRef.current) {
+            console.error('[MapCanvas] Autocomplete error:', error);
+            setSuggestions([]);
+            setShowSuggestions(false);
+            // Reset session token on error to prevent billing issues
+            setSessionToken(generateSessionToken());
+          }
+        }
+      }, 300);
     };
 
     // Search submission handler (New API)

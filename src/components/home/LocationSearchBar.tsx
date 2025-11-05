@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, MapPin, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { GoogleMapsService } from '../../services/googleMapsService';
@@ -17,6 +17,9 @@ export const LocationSearchBar = ({ onLocationSelect, currentLocation, autoFromB
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { basecamp } = useBasecamp();
+  
+  // Phase C: Debounce timer ref
+  const debounceTimerRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     if (autoFromBasecamp && basecamp && !currentLocation) {
@@ -31,27 +34,43 @@ export const LocationSearchBar = ({ onLocationSelect, currentLocation, autoFromB
     return parts[parts.length - 2]?.trim() || address;
   };
 
-  const handleSearch = async (value: string) => {
+  const handleSearch = (value: string) => {
     setSearchValue(value);
     
     if (value.length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
+      clearTimeout(debounceTimerRef.current);
       return;
     }
 
+    // Phase C: Clear previous debounce timer
+    clearTimeout(debounceTimerRef.current);
+    
     setIsLoading(true);
-    try {
-      const response = await GoogleMapsService.getPlaceAutocomplete(value);
-      if (response.predictions) {
-        setSuggestions(response.predictions.slice(0, 5));
-        setShowSuggestions(true);
+    
+    // Phase C: Debounce autocomplete requests by 300ms
+    debounceTimerRef.current = setTimeout(async () => {
+      try {
+        // Phase B: Use New Google Places API directly (client-side)
+        const { autocomplete } = await import('@/services/googlePlacesNew');
+        const predictions = await autocomplete(value, `session-location-${Date.now()}`, undefined);
+        
+        if (predictions && predictions.length > 0) {
+          setSuggestions(predictions.slice(0, 5));
+          setShowSuggestions(true);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      } catch (error) {
+        console.error('Location search error:', error);
+        setSuggestions([]);
+        setShowSuggestions(false);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Location search error:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    }, 300);
   };
 
   const handleLocationSelect = (location: string) => {
