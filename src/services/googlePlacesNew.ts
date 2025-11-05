@@ -176,6 +176,147 @@ function detectPlaceType(query: string): string | undefined {
 }
 
 /**
+ * Detect if query is a proximity-based "near me" type search
+ */
+function isProximityQuery(query: string): boolean {
+  const q = query.toLowerCase();
+  const proximityPatterns = [
+    'near me',
+    'nearby',
+    'close to me',
+    'around me',
+    'closest',
+    'nearest'
+  ];
+  return proximityPatterns.some(pattern => q.includes(pattern));
+}
+
+/**
+ * Map common search terms to Google Place types
+ * Used for nearby search filtering
+ */
+function mapQueryToPlaceTypes(query: string): string[] {
+  const q = preprocessQuery(query);
+  
+  // Food & Dining
+  if (q.includes('coffee') || q.includes('cafe')) return ['cafe', 'coffee_shop'];
+  if (q.includes('restaurant') || q.includes('food') || q.includes('dining')) return ['restaurant'];
+  if (q.includes('pizza')) return ['pizza_restaurant'];
+  if (q.includes('bar') || q.includes('pub')) return ['bar', 'night_club'];
+  if (q.includes('bakery')) return ['bakery'];
+  
+  // Accommodation
+  if (q.includes('hotel') || q.includes('lodging')) return ['lodging', 'hotel'];
+  
+  // Entertainment & Activities
+  if (q.includes('gym') || q.includes('fitness')) return ['gym'];
+  if (q.includes('park')) return ['park'];
+  if (q.includes('museum')) return ['museum'];
+  if (q.includes('movie') || q.includes('cinema') || q.includes('theater')) return ['movie_theater'];
+  if (q.includes('shopping') || q.includes('mall')) return ['shopping_mall'];
+  
+  // Services
+  if (q.includes('gas') || q.includes('fuel')) return ['gas_station'];
+  if (q.includes('pharmacy') || q.includes('drugstore')) return ['pharmacy'];
+  if (q.includes('atm') || q.includes('bank')) return ['atm', 'bank'];
+  if (q.includes('hospital') || q.includes('clinic')) return ['hospital'];
+  
+  // Transportation
+  if (q.includes('parking')) return ['parking'];
+  if (q.includes('airport')) return ['airport'];
+  if (q.includes('station')) return ['transit_station'];
+  
+  // Generic categories for broad searches
+  if (q.includes('attraction')) return ['tourist_attraction'];
+  if (q.includes('store') || q.includes('shop')) return ['store'];
+  
+  // Default: return empty to search all types
+  return [];
+}
+
+/**
+ * Search for nearby places using Nearby Search (New API)
+ * Ideal for proximity-based queries like "coffee near me"
+ * 
+ * @param location - Center point for search
+ * @param radius - Search radius in meters (default 5000m = 5km)
+ * @param placeTypes - Optional place types to filter (e.g., ['restaurant', 'cafe'])
+ * @param maxResults - Maximum number of results (default 10)
+ */
+export async function searchNearby(
+  location: { lat: number; lng: number },
+  radius: number = 5000,
+  placeTypes: string[] = [],
+  maxResults: number = 10
+): Promise<ConvertedPlace[]> {
+  await loadMaps();
+  
+  const { Place } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
+  
+  const request: any = {
+    locationRestriction: {
+      circle: {
+        center: { latitude: location.lat, longitude: location.lng },
+        radius: radius,
+      },
+    },
+    fields: [
+      'id',
+      'displayName',
+      'formattedAddress',
+      'location',
+      'viewport',
+      'rating',
+      'websiteURI',
+      'googleMapsURI',
+      'types',
+      'userRatingCount',
+      'priceLevel'
+    ],
+    maxResultCount: Math.min(maxResults, 20), // API limit
+    languageCode: 'en',
+  };
+
+  // Add place type filtering if specified
+  if (placeTypes.length > 0) {
+    request.includedTypes = placeTypes;
+  }
+
+  try {
+    console.log(`[GooglePlacesNew] Nearby search at (${location.lat}, ${location.lng}) radius=${radius}m types=${placeTypes.join(',')}`);
+    
+    // @ts-ignore - New API method
+    const { places } = await Place.searchNearby(request);
+    
+    if (!places || places.length === 0) {
+      console.log('[GooglePlacesNew] No results from searchNearby');
+      return [];
+    }
+
+    console.log(`[GooglePlacesNew] ✅ searchNearby found ${places.length} results`);
+    
+    // Convert and sort by rating
+    const converted = places.map((place: any) => convertPlaceToLegacy({
+      id: place.id,
+      displayName: place.displayName?.text,
+      formattedAddress: place.formattedAddress,
+      location: place.location,
+      viewport: place.viewport,
+      rating: place.rating,
+      websiteURI: place.websiteURI,
+      googleMapsURI: place.googleMapsURI,
+      types: place.types,
+    }));
+    
+    // Sort by rating (best first)
+    return converted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  } catch (error) {
+    console.error('[GooglePlacesNew] searchNearby error:', error);
+    return [];
+  }
+}
+
+/**
  * Search for places using Text Search (New API)
  * Replaces legacy textSearch method
  * 
@@ -360,9 +501,10 @@ export async function fetchPlaceDetails(
 }
 
 /**
- * Resolve query using 3-tier cascade with NEW API:
- * 1. searchByText (replaces findPlaceFromQuery + textSearch)
- * 2. geocode (fallback for addresses)
+ * Resolve query using 4-tier cascade with NEW API:
+ * 1. searchNearby for proximity queries (NEW - Phase D)
+ * 2. searchByText (replaces findPlaceFromQuery + textSearch)
+ * 3. geocode (fallback for addresses)
  * 
  * @param query - Search query
  * @param origin - Optional origin for location bias
@@ -377,7 +519,25 @@ export async function resolveQuery(
   
   console.log('[GooglePlacesNew] Resolving query:', query);
 
-  // 1) Try searchByText with type detection
+  // PHASE D: 1) Try nearby search for proximity queries
+  if (isProximityQuery(query) && origin) {
+    console.log('[GooglePlacesNew] Proximity query detected, using searchNearby');
+    const placeTypes = mapQueryToPlaceTypes(query);
+    const nearbyPlaces = await searchNearby(
+      origin,
+      5000, // 5km radius
+      placeTypes,
+      5
+    );
+    
+    if (nearbyPlaces.length > 0) {
+      console.log(`[GooglePlacesNew] ✅ Nearby search found ${nearbyPlaces.length} results`);
+      // Return the best match (already sorted by rating)
+      return nearbyPlaces[0];
+    }
+  }
+
+  // 2) Try searchByText with type detection
   const detectedType = detectPlaceType(query);
   console.log(`[GooglePlacesNew] Detected type: ${detectedType || 'none'}`);
   
@@ -389,7 +549,7 @@ export async function resolveQuery(
     return enriched || places[0];
   }
 
-  // 2) Fallback to geocode for addresses
+  // 3) Fallback to geocode for addresses
   console.log('[GooglePlacesNew] Trying geocode fallback...');
   const geocoder = new google.maps.Geocoder();
   
