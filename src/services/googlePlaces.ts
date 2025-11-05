@@ -103,13 +103,53 @@ reject(new Error(`autocomplete failed: ${status}`));
 }
 
 /**
+ * Detect place type from query text for better search filtering
+ */
+function detectPlaceType(query: string): string | undefined {
+  const q = query.toLowerCase();
+
+  // Food & Dining
+  if (q.includes('restaurant') || q.includes('food') || q.includes('dining') ||
+      q.includes('cafe') || q.includes('coffee')) return 'restaurant';
+
+  // Accommodation
+  if (q.includes('hotel') || q.includes('lodging') || q.includes('motel') ||
+      q.includes('inn')) return 'lodging';
+
+  // Entertainment & Sports
+  if (q.includes('stadium') || q.includes('arena')) return 'stadium';
+  if (q.includes('theater') || q.includes('theatre') || q.includes('cinema') ||
+      q.includes('movie')) return 'movie_theater';
+  if (q.includes('museum')) return 'museum';
+  if (q.includes('park')) return 'park';
+
+  // Transportation
+  if (q.includes('airport')) return 'airport';
+  if (q.includes('train') || q.includes('station')) return 'transit_station';
+
+  // Shopping
+  if (q.includes('shop') || q.includes('store') || q.includes('mall')) return 'shopping_mall';
+
+  // Nightlife
+  if (q.includes('bar') || q.includes('pub') || q.includes('nightclub')) return 'bar';
+
+  // Services
+  if (q.includes('gym') || q.includes('fitness')) return 'gym';
+  if (q.includes('spa')) return 'spa';
+  if (q.includes('bank')) return 'bank';
+  if (q.includes('hospital') || q.includes('clinic')) return 'hospital';
+
+  return undefined;
+}
+
+/**
  * Resolve a search query to a place using a 3-tier cascade:
  * 1. findPlaceFromQuery (fast, high precision)
- * 2. textSearch (broader, natural language)
+ * 2. textSearch (broader, natural language, with smart type filtering)
  * 3. geocode (addresses, fallback)
- * 
+ *
  * Enriches result with getDetails if place_id is available.
- * 
+ *
  * @param map - Google Maps instance
  * @param services - Places and Geocoder services
  * @param query - Search query string
@@ -138,22 +178,27 @@ const findPlace = await new Promise<google.maps.places.PlaceResult[] | null>(res
 });
 let candidate = findPlace?.[0];
 
-// 2) textSearch (broader)
+// 2) textSearch (broader, with smart type filtering)
 if (!candidate) {
+const detectedType = detectPlaceType(query);
 const text = await new Promise<google.maps.places.PlaceResult[] | null>(res => {
-services.places.textSearch(
-{
+const searchRequest: google.maps.places.TextSearchRequest = {
 query,
 ...(origin && {
 location: new google.maps.LatLng(origin.lat, origin.lng),
 radius: 50000, // 50km default; tune if needed
 }),
-// region/strictBounds can be added if you want to confine results
-},
+// Apply detected type for better filtering
+...(detectedType && { type: detectedType }),
+};
+
+services.places.textSearch(
+searchRequest,
 (results, status) => res(status === google.maps.places.PlacesServiceStatus.OK ? results! : null)
 );
 });
 candidate = text?.[0] ?? null;
+console.log(`[GooglePlaces] textSearch with type: ${detectedType || 'none'}, found: ${!!candidate}`);
 }
 
 // 3) geocode (addresses)
