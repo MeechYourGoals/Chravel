@@ -40,7 +40,7 @@ export interface UseChatComposerOptions {
 export const useChatComposer = ({ tripId, demoMode = false, isEvent = false }: UseChatComposerOptions = {}) => {
   const [inputMessage, setInputMessage] = useState('');
   const [replyingTo, setReplyingTo] = useState<ReplyContext | null>(null);
-  const [messageFilter, setMessageFilter] = useState<'all' | 'broadcast' | 'payments'>('all');
+  const [messageFilter, setMessageFilter] = useState<'all' | 'broadcast' | 'payments' | 'channels'>('all');
   
   const { user } = useAuth();
   const { parseMessage } = useChatMessageParser();

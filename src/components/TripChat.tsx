@@ -24,6 +24,8 @@ import { PaymentData } from '@/types/payments';
 import { hapticService } from '../services/hapticService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { WifiOff } from 'lucide-react';
+import { useRoleChannels } from '@/hooks/useRoleChannels';
+import { ChannelChatView } from './pro/channels/ChannelChatView';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -63,6 +65,7 @@ export const TripChat = ({
   const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
   const [demoLoading, setDemoLoading] = useState(true);
   const [reactions, setReactions] = useState<{ [messageId: string]: { [reaction: string]: { count: number; userReacted: boolean } } }>({});
+  const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   
   const { isOffline } = useOfflineStatus();
   const params = useParams<{ tripId?: string; proTripId?: string; eventId?: string }>();
@@ -96,6 +99,15 @@ export const TripChat = ({
     sendMessage,
     filterMessages
   } = useChatComposer({ tripId: resolvedTripId, demoMode: demoMode.isDemoMode, isEvent });
+
+  // Initialize role channels hook for Pro/Enterprise trips
+  const {
+    availableChannels,
+    activeChannel,
+    messages: channelMessages,
+    setActiveChannel,
+    sendMessage: sendChannelMessage
+  } = useRoleChannels(resolvedTripId, userRole);
 
   // Mobile-specific hooks
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -296,6 +308,17 @@ export const TripChat = ({
     loadDemoData();
   }, [shouldUseDemoData, isEvent, isPro, resolvedTripId, liveFormattedMessages.length, user?.id]);
 
+  // Auto-select first channel when switching to 'channels' filter
+  useEffect(() => {
+    if (messageFilter === 'channels' && availableChannels.length > 0 && !activeChannel) {
+      // Sort alphabetically and select first
+      const sortedChannels = [...availableChannels].sort((a, b) => 
+        a.channelName.localeCompare(b.channelName)
+      );
+      setActiveChannel(sortedChannels[0]);
+    }
+  }, [messageFilter, availableChannels, activeChannel, setActiveChannel]);
+
   // Determine which messages to show:
   // 1. Demo mode OR no tripId: show demo messages
   // 2. Consumer trip (1-12) with no live messages: show demo messages as fallback
@@ -335,29 +358,29 @@ export const TripChat = ({
             activeFilter={messageFilter}
             onFilterChange={setMessageFilter}
             hidePayments={true}
+            isPro={isPro}
+            hasChannels={availableChannels.length > 0}
+            channelCount={availableChannels.length}
           />
         </div>
       )}
 
       {/* Unified Chat Shell - Glassmorphic container */}
       <div className="pb-4 flex-1 flex flex-col">
-        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
-          {isLoading ? (
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-start gap-3 animate-pulse">
-                  <div className="w-10 h-10 rounded-full bg-slate-700" />
-                  <div className="flex-1">
-                    <div className="h-4 bg-slate-700 rounded w-1/4 mb-2" />
-                    <div className="h-16 bg-slate-700 rounded" />
-                  </div>
-                </div>
-              ))}
+        {messageFilter === 'channels' && activeChannel ? (
+          <ChannelChatView
+            channel={activeChannel}
+            availableChannels={availableChannels}
+            onChannelChange={setActiveChannel}
+          />
+        ) : (
+          <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
+            {isLoading ? (
+            <div className="flex-1 overflow-y-auto p-4">
+...
             </div>
-          </div>
-          ) : (
-            <VirtualizedMessageContainer
+            ) : (
+              <VirtualizedMessageContainer
               messages={filteredMessages}
               renderMessage={(message) => (
                 <MessageItem
@@ -406,7 +429,8 @@ export const TripChat = ({
               tripId={resolvedTripId}
             />
           </div>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

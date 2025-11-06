@@ -5,14 +5,20 @@ import { TripChannel, ChannelMessage } from '../types/roleChannels';
 
 const DEMO_TRIP_IDS = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026', '13', '14', '15', '16'];
 
-// Convert TripChannel to RoleChannel
-const convertToRoleChannel = (channel: TripChannel): RoleChannel => ({
+// Convert RoleChannel to TripChannel
+const convertToTripChannel = (channel: RoleChannel): TripChannel => ({
   id: channel.id,
   tripId: channel.tripId,
-  roleName: channel.requiredRoleName || channel.channelName,
+  channelName: channel.roleName,
+  channelSlug: channel.roleName.toLowerCase().replace(/\s+/g, '-'),
+  requiredRoleId: 'role-' + channel.id,
+  requiredRoleName: channel.roleName,
+  isPrivate: true,
+  isArchived: false,
   memberCount: channel.memberCount || 0,
+  createdBy: channel.createdBy,
   createdAt: channel.createdAt,
-  createdBy: channel.createdBy
+  updatedAt: channel.createdAt
 });
 
 // Convert ChannelMessage to RoleChannelMessage
@@ -27,8 +33,8 @@ const convertToRoleChannelMessage = (msg: ChannelMessage): RoleChannelMessage =>
 });
 
 export const useRoleChannels = (tripId: string, userRole: string) => {
-  const [availableChannels, setAvailableChannels] = useState<RoleChannel[]>([]);
-  const [activeChannel, setActiveChannel] = useState<RoleChannel | null>(null);
+  const [availableChannels, setAvailableChannels] = useState<TripChannel[]>([]);
+  const [activeChannel, setActiveChannel] = useState<TripChannel | null>(null);
   const [messages, setMessages] = useState<RoleChannelMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [demoMessages, setDemoMessages] = useState<Map<string, ChannelMessage[]>>(new Map());
@@ -40,10 +46,9 @@ export const useRoleChannels = (tripId: string, userRole: string) => {
     setIsLoading(true);
 
     if (isDemoTrip) {
-      // Load demo channels
+      // Load demo channels (already in TripChannel format)
       const { channels, messagesByChannel } = getDemoChannelsForTrip(tripId);
-      const roleChannels = channels.map(convertToRoleChannel);
-      setAvailableChannels(roleChannels);
+      setAvailableChannels(channels);
       setDemoMessages(messagesByChannel);
       setIsLoading(false);
       return;
@@ -51,10 +56,10 @@ export const useRoleChannels = (tripId: string, userRole: string) => {
 
     const channels = await roleChannelService.getRoleChannels(tripId);
     
-    // Filter to only show channels user can access
-    const accessibleChannels = channels.filter(channel =>
-      roleChannelService.canUserAccessChannel(channel, userRole)
-    );
+    // Filter to only show channels user can access and convert to TripChannel
+    const accessibleChannels = channels
+      .filter(channel => roleChannelService.canUserAccessChannel(channel, userRole))
+      .map(convertToTripChannel);
     
     setAvailableChannels(accessibleChannels);
     setIsLoading(false);

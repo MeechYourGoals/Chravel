@@ -13,7 +13,7 @@ interface DemoChannelData {
   messages: DemoMessage[];
 }
 
-// Lakers Road Trip Demo Channels
+// Lakers Road Trip Demo Channels (MAX 5 ROLES)
 const lakersChannels: DemoChannelData[] = [
   {
     channel: {
@@ -81,6 +81,81 @@ const lakersChannels: DemoChannelData[] = [
         timestamp: '12:00 PM',
         isBroadcast: true,
         category: 'logistics'
+      }
+    ]
+  },
+  {
+    channel: {
+      channelName: 'Medical Staff',
+      channelSlug: 'medical-staff',
+      description: 'Medical team coordination',
+      requiredRoleId: 'demo-role-medical',
+      requiredRoleName: 'Medical Staff',
+      isPrivate: true,
+      isArchived: false,
+      memberCount: 4,
+      createdBy: 'demo-user'
+    },
+    messages: [
+      {
+        senderName: 'Team Doctor',
+        content: 'Injury report: 2 players need treatment before game',
+        timestamp: '9:00 AM'
+      },
+      {
+        senderName: 'Physical Therapist',
+        content: 'Recovery sessions scheduled for 1pm',
+        timestamp: '9:15 AM'
+      }
+    ]
+  },
+  {
+    channel: {
+      channelName: 'Security',
+      channelSlug: 'security',
+      description: 'Security team coordination',
+      requiredRoleId: 'demo-role-security',
+      requiredRoleName: 'Security',
+      isPrivate: true,
+      isArchived: false,
+      memberCount: 6,
+      createdBy: 'demo-user'
+    },
+    messages: [
+      {
+        senderName: 'Security Chief',
+        content: 'Arena entrance secured. All checkpoints active.',
+        timestamp: '8:00 AM'
+      },
+      {
+        senderName: 'Security Lead',
+        content: 'VIP section ready. Badge system operational.',
+        timestamp: '8:30 AM'
+      }
+    ]
+  },
+  {
+    channel: {
+      channelName: 'Crew',
+      channelSlug: 'crew',
+      description: 'Operations and logistics crew',
+      requiredRoleId: 'demo-role-crew',
+      requiredRoleName: 'Crew',
+      isPrivate: true,
+      isArchived: false,
+      memberCount: 10,
+      createdBy: 'demo-user'
+    },
+    messages: [
+      {
+        senderName: 'Equipment Manager',
+        content: 'All gear loaded on bus. Ready for departure.',
+        timestamp: '7:00 AM'
+      },
+      {
+        senderName: 'Travel Coordinator',
+        content: 'Hotel check-in confirmed for 3pm arrival',
+        timestamp: '7:15 AM'
       }
     ]
   }
