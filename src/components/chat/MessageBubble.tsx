@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { getMockAvatar } from '@/utils/mockAvatars';
 import { MessageReactionBar } from './MessageReactionBar';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
-import { ChatMessageWithGrounding } from '@/types/grounding';
-import { ExternalLink } from 'lucide-react';
+import { GroundingCitationCard } from './GroundingCitationCard';
+import { ChatMessageWithGrounding, GroundingCitation } from '@/types/grounding';
+import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMobilePortrait } from '@/hooks/useMobilePortrait';
 import { useLongPress } from '@/hooks/useLongPress';
@@ -22,7 +23,7 @@ export interface MessageBubbleProps {
   showSenderInfo?: boolean;
   // 🆕 Grounding support
   grounding?: {
-    sources?: Array<{ id: string; title: string; url: string; snippet: string; source: string }>;
+    sources?: GroundingCitation[];
     googleMapsWidget?: string;
   };
 }
@@ -108,36 +109,25 @@ export const MessageBubble = ({
         
         {/* Grounding Sources */}
         {grounding?.sources && grounding.sources.length > 0 && (
-          <div className={cn("space-y-2", "mt-2")}>
+          <div className={cn("space-y-2", "mt-2", "w-full")}>
             <div className={cn(
               "font-medium text-white/80 flex items-center gap-2",
               isMobilePortrait ? "text-[10px]" : "text-xs"
             )}>
               <span>Sources:</span>
-              {grounding.sources.some(s => s.source === 'google_maps_grounding') && (
+              {grounding.sources.filter(s => s.source === 'google_maps_grounding').length > 0 && (
                 <span className={cn(
-                  "bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded",
+                  "bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded flex items-center gap-1",
                   isMobilePortrait ? "text-[9px]" : "text-[10px]"
                 )}>
-                  Verified by Google Maps
+                  <MapPin size={isMobilePortrait ? 10 : 12} />
+                  {grounding.sources.filter(s => s.source === 'google_maps_grounding').length} verified by Google
                 </span>
               )}
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               {grounding.sources.map((source, idx) => (
-                <a
-                  key={source.id || idx}
-                  href={source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(
-                    "block text-blue-400 hover:text-blue-300 flex items-center gap-1 bg-blue-500/10 rounded-lg transition-colors",
-                    isMobilePortrait ? "text-[10px] p-1.5" : "text-xs p-2"
-                  )}
-                >
-                  <ExternalLink size={isMobilePortrait ? 8 : 10} />
-                  <span className="truncate">{source.title}</span>
-                </a>
+                <GroundingCitationCard key={source.id || idx} citation={source} index={idx} />
               ))}
             </div>
           </div>

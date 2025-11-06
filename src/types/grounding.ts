@@ -20,6 +20,11 @@ export interface GroundingCitation {
   url: string;
   snippet: string;
   source: 'google_maps_grounding' | 'web' | 'other';
+  // 🆕 Enhanced fields for rich citation display
+  coordinates?: { lat: number; lng: number };
+  placeType?: string; // 'restaurant', 'hotel', 'attraction', etc.
+  distanceFromBasecamp?: { value: number; unit: 'mi' | 'km' };
+  thumbnailUrl?: string;
 }
 
 export interface ChatMessageWithGrounding {
