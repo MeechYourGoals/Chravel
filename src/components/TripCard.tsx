@@ -31,6 +31,7 @@ interface Trip {
   dateRange: string;
   participants: Participant[];
   coverPhoto?: string;
+  placesCount?: number;
 }
 
 interface TripCardProps {
@@ -154,7 +155,7 @@ export const TripCard = ({ trip }: TripCardProps) => {
             <div className="text-sm text-gray-400">Days</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-white">{trip.id === 3 ? '3' : '12'}</div>
+            <div className="text-2xl font-bold text-white">{trip.placesCount || 0}</div>
             <div className="text-sm text-gray-400">Places</div>
           </div>
         </div>

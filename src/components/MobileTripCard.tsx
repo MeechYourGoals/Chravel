@@ -19,6 +19,7 @@ interface Trip {
   dateRange: string;
   participants: Participant[];
   coverPhoto?: string;
+  placesCount?: number;
 }
 
 interface MobileTripCardProps {
@@ -90,7 +91,7 @@ export const MobileTripCard = ({ trip }: MobileTripCardProps) => {
             <div className="text-xs text-gray-400">Days</div>
           </div>
           <div className="text-center">
-            <div className="text-xl font-bold text-white">{trip.id === 3 ? '3' : '12'}</div>
+            <div className="text-xl font-bold text-white">{trip.placesCount || 0}</div>
             <div className="text-xs text-gray-400">Places</div>
           </div>
         </div>

@@ -28,6 +28,7 @@ interface Trip {
     name: string;
     avatar: string;
   }>;
+  placesCount?: number;
 }
 
 interface TripGridProps {

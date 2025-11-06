@@ -19,6 +19,8 @@ export interface TripParticipant {
   avatar: string;
 }
 
+// TODO: When connecting to Supabase, fetch placesCount with:
+// SELECT COUNT(*) as placesCount FROM trip_links WHERE trip_id = trips.id
 export interface Trip {
   id: number;
   title: string;
@@ -27,6 +29,7 @@ export interface Trip {
   description: string;
   participants: TripParticipant[];
   coverPhoto?: string;
+  placesCount?: number; // Number of saved trip links
   // Feature toggles for Pro/Event trips
   enabled_features?: string[];
   trip_type?: 'consumer' | 'pro' | 'event';
@@ -44,6 +47,7 @@ export const tripsData: Trip[] = [
     dateRange: "Mar 15 - Mar 22, 2026",
     description: "Brotherhood spring break getaway with beach activities, nightlife, and bonding experiences",
     coverPhoto: cancunSpringBreak,
+    placesCount: 15,
     participants: [
       { id: 1, name: "Marcus", avatar: getMockAvatar("Marcus") },
       { id: 2, name: "Jamal", avatar: getMockAvatar("Jamal") },
@@ -59,6 +63,7 @@ export const tripsData: Trip[] = [
     dateRange: "Oct 5 - Oct 15, 2025",
     description: "Cultural exploration of Japan's capital with temples, modern tech districts, and amazing cuisine",
     coverPhoto: tokyoAdventure,
+    placesCount: 18,
     participants: [
       { id: 4, name: "Alex", avatar: getMockAvatar("Alex") },
       { id: 5, name: "Maria", avatar: getMockAvatar("Maria") },
@@ -72,6 +77,7 @@ export const tripsData: Trip[] = [
     dateRange: "Dec 10 - Dec 20, 2025",
     description: "Romantic destination wedding celebration with family and friends in paradise",
     coverPhoto: baliDestinationWedding,
+    placesCount: 8,
     participants: [
       { id: 7, name: "Jack", avatar: getMockAvatar("Jack") },
       { id: 8, name: "Jill", avatar: getMockAvatar("Jill") },
@@ -86,6 +92,7 @@ export const tripsData: Trip[] = [
     dateRange: "Nov 8 - Nov 10, 2025",
     description: "Epic bachelorette celebration with honky-tonk bars, live music, and unforgettable memories",
     coverPhoto: nashvilleBachelorette,
+    placesCount: 12,
     participants: [
       { id: 10, name: "Kristen", avatar: getMockAvatar("Kristen") },
       { id: 11, name: "Ashley", avatar: getMockAvatar("Ashley") },
@@ -102,6 +109,7 @@ export const tripsData: Trip[] = [
     dateRange: "Apr 10 - Apr 13, 2026",
     description: "Music festival adventure with top artists, desert vibes, and group camping",
     coverPhoto: cochelleFestivalNew,
+    placesCount: 10,
     participants: [
       { id: 16, name: "Tyler", avatar: getMockAvatar("Tyler") },
       { id: 17, name: "Zoe", avatar: getMockAvatar("Zoe") },
@@ -117,6 +125,7 @@ export const tripsData: Trip[] = [
     dateRange: "Jul 20 - Jul 28, 2025",
     description: "Multi-generational family retreat with hiking, spa time, and quality family bonding",
     coverPhoto: aspenFamilySummer,
+    placesCount: 12,
     participants: [
       { id: 21, name: "Dad (Mike)", avatar: getMockAvatar("Mike") },
       { id: 22, name: "Mom (Linda)", avatar: getMockAvatar("Linda") },
@@ -132,6 +141,7 @@ export const tripsData: Trip[] = [
     dateRange: "Feb 20 - Feb 23, 2025",
     description: "Annual guys' golf trip with tournaments, poker nights, and fantasy football draft",
     coverPhoto: phoenixGolfOuting,
+    placesCount: 6,
     participants: [
       { id: 26, name: "Commissioner Mike", avatar: getMockAvatar("Mike") },
       { id: 27, name: "Big Rob", avatar: getMockAvatar("Rob") },
@@ -148,6 +158,7 @@ export const tripsData: Trip[] = [
     dateRange: "Nov 10 - Nov 16, 2025",
     description: "Yoga and wellness focused retreat with breathwork, meditation, and spa treatments",
     coverPhoto: tulumYogaWellness,
+    placesCount: 10,
     participants: [
       { id: 32, name: "Elena Ramirez", avatar: getMockAvatar("Elena") },
       { id: 33, name: "Jason Wu", avatar: getMockAvatar("Jason") },
@@ -166,6 +177,7 @@ export const tripsData: Trip[] = [
     dateRange: "May 2 - May 5, 2025",
     description: "Celebratory wine country escape with tastings, spa treatments, and new beginnings",
     coverPhoto: napaWineGetaway,
+    placesCount: 8,
     participants: [
       { id: 40, name: "Olivia Parker", avatar: getMockAvatar("Olivia") },
       { id: 41, name: "Mia Brooks", avatar: getMockAvatar("Mia") },
@@ -182,6 +194,7 @@ export const tripsData: Trip[] = [
     dateRange: "Dec 12 - Dec 17, 2025",
     description: "Company holiday celebration with skiing, team building, and winter activities",
     coverPhoto: aspenCorporateSki,
+    placesCount: 12,
     participants: [
       { id: 46, name: "Tom Nguyen", avatar: getMockAvatar("Tom") },
       { id: 47, name: "Heather Cole", avatar: getMockAvatar("Heather") },
@@ -202,6 +215,7 @@ export const tripsData: Trip[] = [
     dateRange: "Jun 15 - Jun 22, 2025",
     description: "Magical family cruise with Disney characters, activities, and island adventures",
     coverPhoto: disneyFamilyCruise,
+    placesCount: 10,
     participants: [
       { id: 56, name: "Liam Turner", avatar: getMockAvatar("Liam") },
       { id: 57, name: "Emma Turner", avatar: getMockAvatar("Emma") },
@@ -219,6 +233,7 @@ export const tripsData: Trip[] = [
     dateRange: "Jul 10 - Jul 17, 2025",
     description: "Outdoor adventure exploring geysers, wildlife, and backcountry hiking trails",
     coverPhoto: yellowstoneHikingGroup,
+    placesCount: 14,
     participants: [
       { id: 63, name: "Brent Miller", avatar: getMockAvatar("Brent") },
       { id: 64, name: "Nia Patel", avatar: getMockAvatar("Nia") },
