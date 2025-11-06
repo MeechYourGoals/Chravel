@@ -86,7 +86,7 @@ export const TripCard = ({ trip }: TripCardProps) => {
           <div className="flex-1 min-h-0 overflow-hidden">
             <div className="flex items-start gap-3 mb-2">
               <div className="flex-1">
-                <h3 className="text-2xl font-bold text-white group-hover:text-yellow-300 transition-colors line-clamp-2">
+                <h3 className="text-lg font-bold text-white group-hover:text-yellow-300 transition-colors line-clamp-2">
                   {trip.title}
                 </h3>
                 {/* Trip Status Badges */}
