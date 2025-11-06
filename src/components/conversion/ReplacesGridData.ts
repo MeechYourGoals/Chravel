@@ -55,8 +55,7 @@ export const CATEGORIES: Category[] = [
     full: [
       { name: "Signal", iosRatings: "1.0M (US)" },
       { name: "GroupMe" },
-      { name: "Facebook Messenger" },
-      { name: "Instagram DMs" }
+      { name: "Facebook Messenger" }
     ]
   },
   
@@ -92,11 +91,7 @@ export const CATEGORIES: Category[] = [
         iosRatings: "127.2K (US)"
       }
     ],
-    full: [
-      { name: "When2Meet" },
-      { name: "TimeTree", globalUsers: "65M users" },
-      { name: "Fantastical" }
-    ]
+    full: []
   },
 
   {

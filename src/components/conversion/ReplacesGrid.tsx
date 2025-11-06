@@ -19,7 +19,7 @@ export const ReplacesGrid = () => {
   };
 
   return (
-    <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+    <section className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
       {/* Header */}
       <div className="text-center mb-6 sm:mb-8 md:mb-12">
         <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-3 md:mb-4 break-words">
@@ -59,12 +59,22 @@ interface CategoryRowProps {
 }
 
 const CategoryRow: React.FC<CategoryRowProps> = ({ category, isExpanded, onToggle }) => {
-  const visibleApps = isExpanded 
-    ? [...category.hero, ...category.full]
-    : category.hero;
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile breakpoint
+  React.useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const allApps = [...category.hero, ...category.full];
+  const displayLimit = isMobile ? 18 : 16;
+  const needsExpansion = allApps.length > displayLimit;
   
-  const additionalCount = category.full.length;
-  const hasMore = additionalCount > 0;
+  const visibleApps = isExpanded ? allApps : allApps.slice(0, displayLimit);
+  const hiddenCount = Math.max(0, allApps.length - displayLimit);
 
   return (
     <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-3 sm:p-4 transition-all duration-200">
@@ -74,15 +84,15 @@ const CategoryRow: React.FC<CategoryRowProps> = ({ category, isExpanded, onToggl
           {category.title}
         </h3>
         
-        {hasMore && (
+        {needsExpansion && (
           <button
             onClick={onToggle}
             className="flex items-center gap-1.5 md:gap-2 text-sm sm:text-base text-primary hover:text-primary/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md px-2 py-1 flex-shrink-0"
             aria-expanded={isExpanded}
-            aria-label={isExpanded ? 'Show fewer apps' : `See ${additionalCount} more apps`}
+            aria-label={isExpanded ? 'Show fewer apps' : `See ${hiddenCount}+ more apps`}
           >
             <span>
-              {isExpanded ? 'Show fewer' : `See ${additionalCount}+ more`}
+              {isExpanded ? 'Show fewer' : `See ${hiddenCount}+ more`}
             </span>
             <ChevronDown 
               className={cn(
