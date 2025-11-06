@@ -83,15 +83,15 @@ export const TripCard = ({ trip }: TripCardProps) => {
         ></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
         <div className="relative z-10 flex justify-between items-start h-full">
-          <div className="flex-1">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <div className="flex items-start gap-3 mb-2">
               <div className="flex-1">
-                <h3 className="text-2xl font-bold text-white group-hover:text-yellow-300 transition-colors">
+                <h3 className="text-2xl font-bold text-white group-hover:text-yellow-300 transition-colors line-clamp-2">
                   {trip.title}
                 </h3>
                 {/* Trip Status Badges */}
                 {isConsumer && (
-                  <div className="flex gap-2 mt-1">
+                  <div className="flex gap-2 mt-1 flex-wrap max-h-8 overflow-hidden">
                     {momentum === 'hot' && (
                       <Badge variant="secondary" className="bg-red-500/20 text-red-300 border-red-500/30">
                         <Flame size={12} className="mr-1" />
@@ -115,11 +115,11 @@ export const TripCard = ({ trip }: TripCardProps) => {
             </div>
             <div className="flex items-center gap-2 text-white/80 mb-3">
               <MapPin size={18} className="text-yellow-400" />
-              <span className="font-medium">{trip.location}</span>
+              <span className="font-medium truncate">{trip.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/80">
               <Calendar size={18} className="text-yellow-400" />
-              <span className="font-medium">{trip.dateRange}</span>
+              <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
           <DropdownMenu>
