@@ -71,7 +71,7 @@ export const TripGrid = ({
   // Show loading skeleton
   if (loading) {
     return (
-      <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 xl:grid-cols-3'}`}>
+      <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
         <TripCardSkeleton count={isMobile ? 3 : 6} />
       </div>
     );
@@ -181,7 +181,7 @@ export const TripGrid = ({
         </Alert>
       )}
 
-      <div className={`grid gap-6 w-full ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 xl:grid-cols-3'}`}>
+      <div className={`grid gap-6 w-full ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
         {viewMode === 'myTrips' ? (
           activeTrips.map((trip) => (
             isMobile ? (

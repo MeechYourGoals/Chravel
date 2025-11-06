@@ -107,7 +107,7 @@ export const TripViewToggle = ({
                 aria-label="Settings"
               >
                 <Settings size={16} className="flex-shrink-0" />
-                <span className="hidden sm:inline">Settings</span>
+                <span className="hidden lg:inline">Settings</span>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
@@ -169,7 +169,7 @@ export const TripViewToggle = ({
                 aria-label="Notifications"
               >
                 <Bell size={16} className="flex-shrink-0" />
-                <span className="hidden sm:inline">Notifications</span>
+                <span className="hidden lg:inline">Notifications</span>
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg">
                     {unreadCount}
@@ -222,7 +222,7 @@ export const TripViewToggle = ({
               aria-label="Create New Trip"
             >
               <Plus size={16} className="flex-shrink-0" />
-              <span className="hidden sm:inline">New Trip</span>
+              <span className="hidden lg:inline">New Trip</span>
             </button>
           )}
 
@@ -235,7 +235,7 @@ export const TripViewToggle = ({
                   aria-label="Search"
                 >
                   <Search size={16} className="flex-shrink-0" />
-                  <span className="hidden sm:inline">Search</span>
+                  <span className="hidden lg:inline">Search</span>
                 </button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px] bg-card/95 backdrop-blur-xl border-2 border-border/50">
