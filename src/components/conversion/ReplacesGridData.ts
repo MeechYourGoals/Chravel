@@ -49,10 +49,10 @@ export const CATEGORIES: Category[] = [
         globalUsers: "200M MAU",
         iosRatings: "3.2M (US)",
         source: "https://play.google.com/store/apps/details?id=com.discord"
-      }
+      },
+      { name: "iMessage/SMS" }
     ],
     full: [
-      { name: "iMessage/SMS" },
       { name: "Signal", iosRatings: "1.0M (US)" },
       { name: "GroupMe" },
       { name: "Facebook Messenger" },

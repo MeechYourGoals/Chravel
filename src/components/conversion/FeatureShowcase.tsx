@@ -81,7 +81,7 @@ const features: Feature[] = [
 const beforeAfterScenarios = [
   {
     emoji: "🎢",
-    title: "Family Trip (Disney)",
+    title: "Family Trip",
     subtitle: "18 guests",
     before: "10 different group chats, 4 email threads, and lost PDFs containing tickets and reservations.",
     after: "One shared space for tickets, calendars, and park reservations — no confusion, just memories.",
@@ -110,6 +110,14 @@ const beforeAfterScenarios = [
     before: "Coaches juggling 80+ players, staff, trainers, and hotel spreadsheets with constantly shifting plans and unclear responsibilities.",
     after: "Role-based access, team calendars, and instant updates across staff and players — all organized.",
     savings: "15 hrs/week saved"
+  },
+  {
+    emoji: "💼",
+    title: "Corporate Business Trip",
+    subtitle: "8 colleagues",
+    before: "Eight colleagues flying into the same city, staying at different hotels, trying to coordinate conference schedules, dinner reservations, and shared transportation via scattered emails and texts.",
+    after: "Shared trip base camp with everyone's hotel locations, conference schedule, group dinner plans, and transportation—all synced in one place.",
+    savings: "12 hrs saved"
   }
 ];
 
@@ -126,40 +134,40 @@ export const FeatureShowcase = () => {
       {/* Before/After Comparison */}
       <div className="space-y-6">
         <div className="text-center space-y-4">
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">
+          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground">
             From chaos to coordination
           </h2>
-          <p className="text-xs sm:text-sm md:text-base text-foreground break-words">
+          <p className="text-sm sm:text-base md:text-lg text-foreground break-words">
             See how Chravel transforms complex group planning into seamless coordination.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
           {beforeAfterScenarios.map((scenario, index) => (
             <Card key={index} className="bg-card/80 backdrop-blur-sm border border-border/50">
               <CardHeader className="p-3 md:p-4">
-                <CardTitle className="text-base sm:text-lg md:text-xl break-words flex items-center gap-2">
+                <CardTitle className="text-lg sm:text-xl md:text-2xl break-words flex items-center gap-2">
                   <span className="text-2xl">{scenario.emoji}</span>
                   <div>
                     <div>{scenario.title}</div>
-                    <div className="text-xs text-muted-foreground font-normal">{scenario.subtitle}</div>
+                    <div className="text-sm text-muted-foreground font-normal">{scenario.subtitle}</div>
                   </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 md:space-y-3 p-3 md:p-4">
                 <div className="space-y-1">
-                  <div className="text-xs sm:text-sm font-medium text-red-400">Before Chravel:</div>
-                  <p className="text-[11px] sm:text-xs md:text-sm text-foreground bg-red-500/10 p-2 md:p-2.5 rounded-lg border-l-4 border-red-500 break-words">
+                  <div className="text-sm sm:text-base font-medium text-red-400">Before Chravel:</div>
+                  <p className="text-xs sm:text-sm md:text-base text-foreground bg-red-500/10 p-2 md:p-2.5 rounded-lg border-l-4 border-red-500 break-words">
                     {scenario.before}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-xs sm:text-sm font-medium text-green-400">After Chravel:</div>
-                  <p className="text-[11px] sm:text-xs md:text-sm text-foreground bg-green-500/10 p-2 md:p-2.5 rounded-lg border-l-4 border-green-500 break-words">
+                  <div className="text-sm sm:text-base font-medium text-green-400">After Chravel:</div>
+                  <p className="text-xs sm:text-sm md:text-base text-foreground bg-green-500/10 p-2 md:p-2.5 rounded-lg border-l-4 border-green-500 break-words">
                     {scenario.after}
                   </p>
                 </div>
-                <Badge variant="secondary" className="bg-accent/20 text-accent text-xs">
+                <Badge variant="secondary" className="bg-accent/20 text-accent text-sm">
                   {scenario.savings}
                 </Badge>
               </CardContent>
@@ -171,10 +179,10 @@ export const FeatureShowcase = () => {
       {/* Feature Grid */}
       <div className="space-y-6">
         <div className="text-center space-y-4">
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">
+          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground">
             Powerful features for every type of trip
           </h2>
-          <p className="text-xs sm:text-sm md:text-base text-foreground break-words">
+          <p className="text-sm sm:text-base md:text-lg text-foreground break-words">
             Everything you need for seamless trip coordination
           </p>
         </div>
@@ -195,25 +203,25 @@ export const FeatureShowcase = () => {
                   </div>
                   <div className="flex gap-1">
                     {feature.isNew && (
-                      <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-xs">
+                      <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-sm">
                         New
                       </Badge>
                     )}
                     {feature.isPro && (
-                      <Badge variant="outline" className="border-yellow-500/30 text-yellow-400 text-xs">
+                      <Badge variant="outline" className="border-yellow-500/30 text-yellow-400 text-sm">
                         Pro
                       </Badge>
                     )}
                   </div>
                 </div>
                 
-                <h3 className="font-semibold text-sm sm:text-base md:text-lg text-foreground mb-2 break-words">{feature.title}</h3>
-                <p className="text-[11px] sm:text-xs md:text-sm text-foreground mb-3 md:mb-4 leading-relaxed break-words">
+                <h3 className="font-semibold text-base sm:text-lg md:text-xl text-foreground mb-2 break-words">{feature.title}</h3>
+                <p className="text-xs sm:text-sm md:text-base text-foreground mb-3 md:mb-4 leading-relaxed break-words">
                   {feature.description}
                 </p>
                 
                 {feature.demo && (
-                  <Button variant="ghost" size="sm" className="w-full justify-between p-0 h-auto text-primary hover:text-primary text-xs">
+                  <Button variant="ghost" size="sm" className="w-full justify-between p-0 h-auto text-primary hover:text-primary text-sm">
                     <span className="flex items-center gap-1.5">
                       <Play size={12} />
                       See demo

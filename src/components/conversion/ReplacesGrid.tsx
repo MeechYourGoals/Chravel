@@ -22,14 +22,17 @@ export const ReplacesGrid = () => {
     <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
       {/* Header */}
       <div className="text-center mb-6 sm:mb-8 md:mb-12">
-        <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-foreground mb-3 md:mb-4 break-words">
-          Chravel — The Operating System for Group Travel
+        <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-3 md:mb-4 break-words">
+          The Operating System for Group Travel
         </h2>
-        <p className="text-xs sm:text-sm md:text-base lg:text-lg text-foreground max-w-3xl mx-auto leading-relaxed break-words">
-          Chravel brings your most-used travel tools — chat, calendar, polls, payments, and files — into one shared planning space. It keeps every plan, person, and payment in sync. No app switching. No chaos. Just Chravel.
+        <p className="text-sm sm:text-base md:text-lg lg:text-xl text-foreground max-w-3xl mx-auto leading-relaxed break-words">
+          Bring your most-used travel apps into one shared planning space. It keeps every plan, person, and payment in sync. Less changing apps. Less chaos. More Chravel.
         </p>
-        <p className="text-white/80 font-medium text-xs sm:text-sm md:text-base mt-4 md:mt-6 text-center max-w-3xl mx-auto">
+        <p className="text-white/80 font-medium text-sm sm:text-base md:text-lg mt-4 md:mt-6 text-center max-w-3xl mx-auto">
           Travel 365 for When You're Out of Office 365: Chravel simplifies the workflows typically juggled across 15+ apps.
+        </p>
+        <p className="text-white/90 font-semibold text-base sm:text-lg md:text-xl mt-6 md:mt-8 text-center max-w-4xl mx-auto">
+          Spend less time switching between the apps below — Chravel brings your files, photos, docs, and more into Tabs instead of separate Apps.
         </p>
       </div>
 
@@ -67,14 +70,14 @@ const CategoryRow: React.FC<CategoryRowProps> = ({ category, isExpanded, onToggl
     <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-3 sm:p-4 transition-all duration-200">
       {/* Category Header */}
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-foreground break-words">
+        <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-foreground break-words">
           {category.title}
         </h3>
         
         {hasMore && (
           <button
             onClick={onToggle}
-            className="flex items-center gap-1.5 md:gap-2 text-xs sm:text-sm text-primary hover:text-primary/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md px-2 py-1 flex-shrink-0"
+            className="flex items-center gap-1.5 md:gap-2 text-sm sm:text-base text-primary hover:text-primary/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md px-2 py-1 flex-shrink-0"
             aria-expanded={isExpanded}
             aria-label={isExpanded ? 'Show fewer apps' : `See ${additionalCount} more apps`}
           >
@@ -96,7 +99,7 @@ const CategoryRow: React.FC<CategoryRowProps> = ({ category, isExpanded, onToggl
         {visibleApps.map((app, index) => (
           <div
             key={`${app.name}-${index}`}
-            className="bg-background/80 hover:bg-background border border-border/30 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm text-foreground transition-colors duration-150 break-words"
+            className="bg-background/80 hover:bg-background border border-border/30 rounded-lg px-2.5 py-1.5 text-sm sm:text-base md:text-lg text-foreground transition-colors duration-150 break-words"
           >
             {app.name}
           </div>
