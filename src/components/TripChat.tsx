@@ -361,6 +361,17 @@ export const TripChat = ({
             isPro={isPro}
             hasChannels={availableChannels.length > 0}
             channelCount={availableChannels.length}
+            availableChannels={availableChannels}
+            activeChannel={activeChannel}
+            onChannelSelect={(channel) => {
+              if (channel) {
+                setActiveChannel(channel);
+                setMessageFilter('channels');
+              } else {
+                setActiveChannel(null);
+                setMessageFilter('all');
+              }
+            }}
           />
         </div>
       )}
@@ -368,11 +379,13 @@ export const TripChat = ({
       {/* Unified Chat Shell - Glassmorphic container */}
       <div className="pb-4 flex-1 flex flex-col">
         {messageFilter === 'channels' && activeChannel ? (
-          <ChannelChatView
-            channel={activeChannel}
-            availableChannels={availableChannels}
-            onChannelChange={setActiveChannel}
-          />
+          <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
+            <ChannelChatView
+              channel={activeChannel}
+              availableChannels={availableChannels}
+              onChannelChange={setActiveChannel}
+            />
+          </div>
         ) : (
           <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
             {isLoading ? (

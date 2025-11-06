@@ -1,6 +1,8 @@
 import React from 'react';
-import { MessageCircle, Megaphone, CreditCard, Hash, Lock } from 'lucide-react';
+import { MessageCircle, Megaphone, CreditCard, Hash, Lock, ChevronDown } from 'lucide-react';
 import { useMobilePortrait } from '@/hooks/useMobilePortrait';
+import { TripChannel } from '@/types/roleChannels';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface MessageFiltersProps {
   activeFilter: 'all' | 'broadcast' | 'payments' | 'channels';
@@ -9,6 +11,9 @@ interface MessageFiltersProps {
   isPro?: boolean;
   hasChannels?: boolean;
   channelCount?: number;
+  availableChannels?: TripChannel[];
+  activeChannel?: TripChannel | null;
+  onChannelSelect?: (channel: TripChannel | null) => void;
 }
 
 export const MessageFilters = ({ 
@@ -17,9 +22,36 @@ export const MessageFilters = ({
   hidePayments = false,
   isPro = false,
   hasChannels = false,
-  channelCount = 0
+  channelCount = 0,
+  availableChannels = [],
+  activeChannel = null,
+  onChannelSelect
 }: MessageFiltersProps) => {
   const isMobilePortrait = useMobilePortrait();
+
+  const handleChannelButtonClick = () => {
+    if (!hasChannels) return;
+    if (availableChannels.length === 1 && onChannelSelect) {
+      // Single channel - select it directly
+      onChannelSelect(availableChannels[0]);
+      onFilterChange('channels');
+    } else if (availableChannels.length === 0) {
+      // No channels - do nothing
+      return;
+    }
+    // Multiple channels - dropdown will handle it
+  };
+
+  const handleChannelSelect = (channel: TripChannel | null) => {
+    if (onChannelSelect) {
+      onChannelSelect(channel);
+      if (channel) {
+        onFilterChange('channels');
+      } else {
+        onFilterChange('all');
+      }
+    }
+  };
 
   // Mobile Portrait: Compressed tab bar (40px height)
   if (isMobilePortrait) {
@@ -60,9 +92,9 @@ export const MessageFilters = ({
             Payments
           </button>
         )}
-        {isPro && (
+        {isPro && availableChannels.length <= 1 && (
           <button
-            onClick={() => hasChannels && onFilterChange('channels')}
+            onClick={handleChannelButtonClick}
             disabled={!hasChannels}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all ${
               activeFilter === 'channels'
@@ -74,8 +106,37 @@ export const MessageFilters = ({
             title={!hasChannels ? 'No role channels available. Contact your admin to be added.' : ''}
           >
             {hasChannels ? <Hash size={14} /> : <Lock size={14} />}
-            Channels
+            {activeChannel ? `#${activeChannel.channelSlug}` : 'Channels'}
           </button>
+        )}
+        {isPro && availableChannels.length > 1 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                  activeFilter === 'channels'
+                    ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white'
+                    : 'border border-purple-600 text-purple-400 active:text-white active:bg-purple-600/10'
+                }`}
+              >
+                <Hash size={14} />
+                {activeChannel ? `#${activeChannel.channelSlug}` : 'Channels'}
+                <ChevronDown size={14} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 z-50 bg-gray-800 border-gray-700">
+              <DropdownMenuItem onClick={() => handleChannelSelect(null)}>
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Main Trip Chat
+              </DropdownMenuItem>
+              {availableChannels.map((channel) => (
+                <DropdownMenuItem key={channel.id} onClick={() => handleChannelSelect(channel)}>
+                  <Lock className="w-4 h-4 mr-2 text-purple-400" />
+                  #{channel.channelSlug} ({channel.memberCount || 0})
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
     );
@@ -119,9 +180,9 @@ export const MessageFilters = ({
           Payments
         </button>
       )}
-      {isPro && (
+      {isPro && availableChannels.length <= 1 && (
         <button
-          onClick={() => hasChannels && onFilterChange('channels')}
+          onClick={handleChannelButtonClick}
           disabled={!hasChannels}
           className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
             activeFilter === 'channels'
@@ -133,8 +194,37 @@ export const MessageFilters = ({
           title={!hasChannels ? 'No role channels available. Contact your admin to be added.' : ''}
         >
           {hasChannels ? <Hash size={16} /> : <Lock size={16} />}
-          Channels
+          {activeChannel ? `#${activeChannel.channelSlug}` : 'Channels'}
         </button>
+      )}
+      {isPro && availableChannels.length > 1 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                activeFilter === 'channels'
+                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white'
+                  : 'border border-purple-600 text-purple-400 hover:text-white hover:bg-purple-600/10'
+              }`}
+            >
+              <Hash size={16} />
+              {activeChannel ? `#${activeChannel.channelSlug}` : 'Channels'}
+              <ChevronDown size={16} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52 z-50 bg-gray-800 border-gray-700">
+            <DropdownMenuItem onClick={() => handleChannelSelect(null)}>
+              <MessageCircle className="w-4 h-4 mr-2" />
+              Main Trip Chat
+            </DropdownMenuItem>
+            {availableChannels.map((channel) => (
+              <DropdownMenuItem key={channel.id} onClick={() => handleChannelSelect(channel)}>
+                <Lock className="w-4 h-4 mr-2 text-purple-400" />
+                #{channel.channelSlug} ({channel.memberCount || 0})
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
     </div>
   );
