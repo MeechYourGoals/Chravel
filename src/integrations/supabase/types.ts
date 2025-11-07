@@ -681,6 +681,7 @@ export type Database = {
         Row: {
           chunk_index: number | null
           content: string | null
+          content_tsv: unknown
           created_at: string | null
           doc_id: string | null
           id: string
@@ -689,6 +690,7 @@ export type Database = {
         Insert: {
           chunk_index?: number | null
           content?: string | null
+          content_tsv?: unknown
           created_at?: string | null
           doc_id?: string | null
           id?: string
@@ -697,6 +699,7 @@ export type Database = {
         Update: {
           chunk_index?: number | null
           content?: string | null
+          content_tsv?: unknown
           created_at?: string | null
           doc_id?: string | null
           id?: string
@@ -1754,36 +1757,54 @@ export type Database = {
       trip_files: {
         Row: {
           ai_summary: string | null
+          chunk_count: number | null
           content_text: string | null
           created_at: string
+          error_message: string | null
+          extracted_entities: Json | null
           extracted_events: number
+          file_structure: Json | null
           file_type: string
           id: string
           name: string
+          ocr_confidence: number | null
+          processing_status: string | null
           trip_id: string
           updated_at: string
           uploaded_by: string
         }
         Insert: {
           ai_summary?: string | null
+          chunk_count?: number | null
           content_text?: string | null
           created_at?: string
+          error_message?: string | null
+          extracted_entities?: Json | null
           extracted_events?: number
+          file_structure?: Json | null
           file_type: string
           id?: string
           name: string
+          ocr_confidence?: number | null
+          processing_status?: string | null
           trip_id: string
           updated_at?: string
           uploaded_by: string
         }
         Update: {
           ai_summary?: string | null
+          chunk_count?: number | null
           content_text?: string | null
           created_at?: string
+          error_message?: string | null
+          extracted_entities?: Json | null
           extracted_events?: number
+          file_structure?: Json | null
           file_type?: string
           id?: string
           name?: string
+          ocr_confidence?: number | null
+          processing_status?: string | null
           trip_id?: string
           updated_at?: string
           uploaded_by?: string
@@ -2668,6 +2689,25 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      hybrid_search_trip_context: {
+        Args: {
+          p_match_count?: number
+          p_match_threshold?: number
+          p_query_embedding: string
+          p_query_text: string
+          p_trip_id: string
+        }
+        Returns: {
+          content_text: string
+          id: string
+          metadata: Json
+          rank: number
+          search_type: string
+          similarity: number
+          source_id: string
+          source_type: string
+        }[]
       }
       increment_campaign_stat: {
         Args: { p_campaign_id: string; p_stat_type: string }

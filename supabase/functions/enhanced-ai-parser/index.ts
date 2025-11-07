@@ -255,8 +255,7 @@ async function parseDocument(fileUrl: string, fileType: string) {
     throw new Error('Lovable API key not configured');
   }
 
-  // For PDFs and documents, we'd need additional processing
-  // This is a simplified version for images of documents
+  // 🆕 Enhanced document parsing with better OCR and structure extraction
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -268,21 +267,52 @@ async function parseDocument(fileUrl: string, fileType: string) {
       messages: [
         {
           role: 'system',
-          content: `Extract and structure information from travel documents.
+          content: `You are an expert OCR and document parser for travel documents. Extract ALL text with high accuracy and structure the information.
           
-          Return JSON format:
+          Return comprehensive JSON format:
           {
-            "document_type": "booking|itinerary|ticket|receipt|other",
-            "extracted_text": "all readable text",
+            "document_type": "booking|itinerary|ticket|receipt|invoice|contract|other",
+            "extracted_text": "complete readable text with proper line breaks",
             "structured_data": {
               "dates": ["YYYY-MM-DD"],
               "times": ["HH:MM"],
-              "locations": ["location names"],
-              "amounts": ["monetary amounts"],
-              "confirmation_codes": ["booking references"],
-              "contact_info": ["phone numbers, emails"]
+              "locations": ["city, venue, or address"],
+              "amounts": [{"value": number, "currency": "USD", "description": "what for"}],
+              "confirmation_codes": ["booking/confirmation numbers"],
+              "contact_info": {
+                "emails": ["email addresses"],
+                "phones": ["phone numbers"],
+                "websites": ["URLs"]
+              },
+              "parties": {
+                "travelers": ["passenger/guest names"],
+                "vendors": ["hotel/airline/vendor names"]
+              },
+              "key_details": {
+                "check_in": "YYYY-MM-DD HH:MM",
+                "check_out": "YYYY-MM-DD HH:MM",
+                "flight_number": "AA123",
+                "seat": "12A",
+                "room_number": "305",
+                "total_cost": 250.00,
+                "payment_method": "Visa ****1234"
+              }
             },
-            "confidence": 0.95
+            "tables": [
+              {
+                "headers": ["column names"],
+                "rows": [["cell values"]]
+              }
+            ],
+            "sections": [
+              {
+                "heading": "section title",
+                "content": "section text"
+              }
+            ],
+            "ocr_confidence": 0.95,
+            "language": "en",
+            "page_count": 1
           }`
         },
         {
@@ -290,7 +320,7 @@ async function parseDocument(fileUrl: string, fileType: string) {
           content: [
             {
               type: 'text',
-              text: `Parse this ${fileType} document and extract structured information:`
+              text: `Perform high-accuracy OCR and parsing on this ${fileType} document. Extract ALL visible text, structure data, detect tables, and identify key travel information:`
             },
             {
               type: 'image_url',
@@ -299,14 +329,15 @@ async function parseDocument(fileUrl: string, fileType: string) {
           ]
         }
       ],
-      max_tokens: 2000,
-      temperature: 0.1,
+      max_tokens: 4000,
+      temperature: 0.05,
       response_format: { type: "json_object" }
     })
   });
 
   if (!response.ok) {
-    throw new Error('Failed to parse document');
+    const errorText = await response.text();
+    throw new Error(`Document parsing failed: ${errorText}`);
   }
 
   const result = await response.json();
@@ -315,7 +346,8 @@ async function parseDocument(fileUrl: string, fileType: string) {
   return new Response(
     JSON.stringify({
       success: true,
-      parsed_data: parsedData
+      parsed_data: parsedData,
+      ocr_quality: parsedData.ocr_confidence >= 0.9 ? 'excellent' : parsedData.ocr_confidence >= 0.75 ? 'good' : 'fair'
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );

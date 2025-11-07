@@ -142,7 +142,7 @@ serve(async (req) => {
       }
     }
 
-    // 🆕 RAG RETRIEVAL: Semantic search for relevant trip context
+    // 🆕 HYBRID RAG RETRIEVAL: Semantic + Keyword search for relevant trip context
     let ragContext = ''
     if (tripId) {
       try {
@@ -150,15 +150,13 @@ serve(async (req) => {
           // Demo mode: Use mock embedding service
           console.log('[Demo Mode] Using mock embedding service for RAG')
           
-          // Import mock service (simulated - in real Deno, we'd use actual imports)
-          // For now, we'll use a simplified mock retrieval
           const mockResults = await getMockRAGResults(message, tripId)
           
           if (mockResults && mockResults.length > 0) {
             console.log(`[Demo Mode] Found ${mockResults.length} relevant context items via mock RAG`)
             
-            ragContext = '\n\n=== RELEVANT TRIP CONTEXT (RAG) ===\n'
-            ragContext += 'The following information was retrieved based on semantic similarity to your question:\n'
+            ragContext = '\n\n=== RELEVANT TRIP CONTEXT (HYBRID RAG) ===\n'
+            ragContext += 'The following information was retrieved using semantic + keyword search:\n'
             
             mockResults.forEach((result: any, idx: number) => {
               const relevancePercent = (result.similarity * 100).toFixed(0)
@@ -176,11 +174,11 @@ serve(async (req) => {
               ragContext += `\n[${idx + 1}] ${sourceIcon} [${result.source_type}] ${result.content_text} (${relevancePercent}% relevant)`
             })
             
-            ragContext += '\n\nIMPORTANT: Use this retrieved context to provide accurate, specific answers. Cite sources when possible (e.g., "Based on the chat messages..." or "According to the calendar...").'
+            ragContext += '\n\nIMPORTANT: Use this retrieved context to provide accurate, specific answers. Cite sources when possible (e.g., "Based on the chat messages..." or "According to the calendar..." or "From the uploaded document...").'
           }
         } else {
-          // Production mode: Use real embeddings
-          console.log('Generating query embedding for RAG retrieval')
+          // Production mode: Use HYBRID SEARCH (vector + keyword)
+          console.log('Generating query embedding for hybrid RAG retrieval')
           
           // Generate embedding for the user's query
           const queryEmbedResponse = await fetch('https://ai.gateway.lovable.dev/v1/embeddings', {
@@ -199,26 +197,50 @@ serve(async (req) => {
             const queryEmbedData = await queryEmbedResponse.json()
             const queryEmbedding = queryEmbedData.data[0].embedding
             
-            console.log('Performing RAG similarity search')
+            console.log('Performing HYBRID search (vector + keyword)')
             
-            // Retrieve relevant context using vector similarity
-            const { data: ragResults, error: ragError } = await supabase.rpc('match_trip_embeddings', {
-              query_embedding: queryEmbedding,
-              trip_id_input: tripId,
-              match_threshold: 0.6,
-              match_count: 15
+            // 🆕 Use hybrid search function (combines vector similarity + full-text search)
+            const { data: hybridResults, error: hybridError } = await supabase.rpc('hybrid_search_trip_context', {
+              p_trip_id: tripId,
+              p_query_text: message,
+              p_query_embedding: queryEmbedding,
+              p_match_threshold: 0.55,
+              p_match_count: 15
             })
             
-            if (ragError) {
-              console.error('RAG retrieval error:', ragError)
-            } else if (ragResults && ragResults.length > 0) {
-              console.log(`Found ${ragResults.length} relevant context items via RAG`)
+            if (hybridError) {
+              console.error('Hybrid search error:', hybridError)
               
-              ragContext = '\n\n=== RELEVANT TRIP CONTEXT (RAG) ===\n'
-              ragContext += 'The following information was retrieved based on semantic similarity to your question:\n'
+              // Fallback to vector-only search
+              console.log('Falling back to vector-only search')
+              const { data: ragResults, error: ragError } = await supabase.rpc('match_trip_embeddings', {
+                query_embedding: queryEmbedding,
+                trip_id_input: tripId,
+                match_threshold: 0.6,
+                match_count: 15
+              })
               
-              ragResults.forEach((result: any, idx: number) => {
-                const relevancePercent = (result.similarity * 100).toFixed(0)
+              if (!ragError && ragResults && ragResults.length > 0) {
+                ragContext = formatRAGContext(ragResults, 'Vector')
+              }
+            } else if (hybridResults && hybridResults.length > 0) {
+              console.log(`Found ${hybridResults.length} relevant context items via HYBRID search`)
+              
+              // Group by search type for better visibility
+              const vectorResults = hybridResults.filter((r: any) => r.search_type === 'vector')
+              const keywordResults = hybridResults.filter((r: any) => r.search_type === 'keyword')
+              
+              console.log(`  - ${vectorResults.length} from vector search`)
+              console.log(`  - ${keywordResults.length} from keyword search`)
+              
+              ragContext = '\n\n=== RELEVANT TRIP CONTEXT (HYBRID RAG) ===\n'
+              ragContext += 'Retrieved using semantic similarity + keyword matching:\n'
+              
+              hybridResults.forEach((result: any, idx: number) => {
+                const relevancePercent = result.similarity > 0 
+                  ? (result.similarity * 100).toFixed(0) 
+                  : 'keyword match'
+                
                 const sourceIcon = {
                   'chat': '💬',
                   'task': '✅',
@@ -230,19 +252,46 @@ serve(async (req) => {
                   'file': '📎'
                 }[result.source_type] || '📝'
                 
-                ragContext += `\n[${idx + 1}] ${sourceIcon} [${result.source_type}] ${result.content_text} (${relevancePercent}% relevant)`
+                const searchBadge = result.search_type === 'vector' ? '🔍' : '🔤'
+                
+                ragContext += `\n[${idx + 1}] ${sourceIcon} ${searchBadge} [${result.source_type}] ${result.content_text.substring(0, 300)} (${relevancePercent})`
               })
               
-              ragContext += '\n\nIMPORTANT: Use this retrieved context to provide accurate, specific answers. Cite sources when possible (e.g., "Based on the chat messages..." or "According to the calendar...").'
+              ragContext += '\n\n🎯 INSTRUCTIONS: Use this retrieved context to provide accurate answers. Always cite sources (e.g., "Based on the uploaded document..." or "According to the calendar..." or "From the chat history...").'
             }
           } else {
             console.error('Query embedding failed:', await queryEmbedResponse.text())
           }
         }
       } catch (ragError) {
-        console.error('RAG retrieval failed, falling back to basic context:', ragError)
+        console.error('Hybrid RAG retrieval failed, falling back to basic context:', ragError)
         // Don't fail the request if RAG fails
       }
+    }
+
+    // Helper function to format RAG context
+    function formatRAGContext(results: any[], searchType: string): string {
+      let context = `\n\n=== RELEVANT TRIP CONTEXT (${searchType} Search) ===\n`
+      context += 'The following information was retrieved:\n'
+      
+      results.forEach((result: any, idx: number) => {
+        const relevancePercent = (result.similarity * 100).toFixed(0)
+        const sourceIcon = {
+          'chat': '💬',
+          'task': '✅',
+          'poll': '📊',
+          'payment': '💰',
+          'broadcast': '📢',
+          'calendar': '📅',
+          'link': '🔗',
+          'file': '📎'
+        }[result.source_type] || '📝'
+        
+        context += `\n[${idx + 1}] ${sourceIcon} [${result.source_type}] ${result.content_text.substring(0, 300)} (${relevancePercent}% relevant)`
+      })
+      
+      context += '\n\nIMPORTANT: Use this retrieved context to provide accurate answers. Cite sources when possible.'
+      return context
     }
 
     // Skip privacy check in demo mode
