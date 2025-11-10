@@ -14,6 +14,7 @@ import {
   generateSessionToken,
 } from '@/services/googlePlacesNew';
 import { GoogleMapsEmbed } from '@/components/GoogleMapsEmbed';
+import { useDebouncedCallback } from '@/hooks/useDebounce';
 
 export interface MapMarker {
   id: string;
@@ -82,7 +83,12 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     
     // Phase A: Request deduplication ref for autocomplete
     const activeAutocompleteRequestRef = useRef<number>(0);
-    const searchDebounceTimerRef = useRef<NodeJS.Timeout>();
+    
+    // Configurable debounce delay (default: 300ms, can be adjusted via env or config)
+    const AUTocomplete_DEBOUNCE_MS = parseInt(
+      import.meta.env.VITE_AUTOCOMPLETE_DEBOUNCE_MS || '300',
+      10
+    );
 
     // Markers state
     const markersRef = useRef<google.maps.Marker[]>([]);
@@ -594,23 +600,15 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       }
     }, [tripBasecamp, personalBasecamp, activeContext]);
 
-    // Autocomplete handler (New API) with debounce and deduplication
-    const handleSearchInput = (value: string) => {
-      setSearchQuery(value);
-      setSearchError(null);
+    // Debounced autocomplete handler with configurable delay
+    const debouncedAutocomplete = useDebouncedCallback(
+      async (value: string) => {
+        if (!value.trim() || !sessionToken) {
+          setSuggestions([]);
+          setShowSuggestions(false);
+          return;
+        }
 
-      if (!value.trim() || !sessionToken) {
-        setSuggestions([]);
-        setShowSuggestions(false);
-        clearTimeout(searchDebounceTimerRef.current);
-        return;
-      }
-
-      // Phase C: Clear previous debounce timer
-      clearTimeout(searchDebounceTimerRef.current);
-      
-      // Phase C: Debounce autocomplete requests by 300ms
-      searchDebounceTimerRef.current = setTimeout(async () => {
         // Phase A: Increment request ID to invalidate previous requests
         const currentRequestId = ++activeAutocompleteRequestRef.current;
         
@@ -632,7 +630,23 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
             setSessionToken(generateSessionToken());
           }
         }
-      }, 300);
+      },
+      AUTocomplete_DEBOUNCE_MS
+    );
+
+    // Autocomplete handler (New API) with debounce and deduplication
+    const handleSearchInput = (value: string) => {
+      setSearchQuery(value);
+      setSearchError(null);
+
+      if (!value.trim() || !sessionToken) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      // Trigger debounced autocomplete
+      debouncedAutocomplete(value);
     };
 
     // Search submission handler (New API)

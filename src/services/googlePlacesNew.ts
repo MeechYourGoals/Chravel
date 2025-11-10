@@ -30,6 +30,155 @@ let loaderPromise: Promise<typeof google.maps> | null = null;
 export type SearchOrigin = { lat: number; lng: number } | null;
 
 /**
+ * API Quota Monitor
+ * Tracks API usage and provides fallback mechanisms
+ */
+class ApiQuotaMonitor {
+  private dailyRequests: Map<string, number> = new Map();
+  private hourlyRequests: Map<string, number> = new Map();
+  private cachedResults: Map<string, { data: any; timestamp: number }> = new Map();
+  private readonly CACHE_TTL = 3600000; // 1 hour cache
+  private readonly DAILY_LIMIT = 10000; // Conservative daily limit
+  private readonly HOURLY_LIMIT = 1000; // Conservative hourly limit
+
+  /**
+   * Check if we're approaching quota limits
+   */
+  checkQuota(): { canProceed: boolean; reason?: string } {
+    const today = new Date().toISOString().split('T')[0];
+    const hour = new Date().toISOString().slice(0, 13); // YYYY-MM-DDTHH
+
+    const dailyCount = this.dailyRequests.get(today) || 0;
+    const hourlyCount = this.hourlyRequests.get(hour) || 0;
+
+    if (dailyCount >= this.DAILY_LIMIT) {
+      return { canProceed: false, reason: 'Daily quota exceeded' };
+    }
+
+    if (hourlyCount >= this.HOURLY_LIMIT) {
+      return { canProceed: false, reason: 'Hourly quota exceeded' };
+    }
+
+    return { canProceed: true };
+  }
+
+  /**
+   * Record an API request
+   */
+  recordRequest(): void {
+    const today = new Date().toISOString().split('T')[0];
+    const hour = new Date().toISOString().slice(0, 13);
+
+    this.dailyRequests.set(today, (this.dailyRequests.get(today) || 0) + 1);
+    this.hourlyRequests.set(hour, (this.hourlyRequests.get(hour) || 0) + 1);
+
+    // Clean up old entries (keep last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    for (const [date] of this.dailyRequests) {
+      if (date < sevenDaysAgo.toISOString().split('T')[0]) {
+        this.dailyRequests.delete(date);
+      }
+    }
+  }
+
+  /**
+   * Cache a result with TTL
+   */
+  cacheResult(key: string, data: any): void {
+    this.cachedResults.set(key, {
+      data,
+      timestamp: Date.now(),
+    });
+
+    // Clean up expired cache entries
+    for (const [cacheKey, value] of this.cachedResults) {
+      if (Date.now() - value.timestamp > this.CACHE_TTL) {
+        this.cachedResults.delete(cacheKey);
+      }
+    }
+  }
+
+  /**
+   * Get cached result if available and not expired
+   */
+  getCachedResult(key: string): any | null {
+    const cached = this.cachedResults.get(key);
+    if (!cached) return null;
+
+    if (Date.now() - cached.timestamp > this.CACHE_TTL) {
+      this.cachedResults.delete(key);
+      return null;
+    }
+
+    return cached.data;
+  }
+
+  /**
+   * Generate cache key from query and origin
+   */
+  generateCacheKey(query: string, origin: SearchOrigin | null): string {
+    const originStr = origin ? `${origin.lat},${origin.lng}` : 'no-origin';
+    return `query:${query.toLowerCase().trim()}:origin:${originStr}`;
+  }
+
+  /**
+   * Get quota usage statistics
+   */
+  getQuotaStats(): { daily: number; hourly: number; dailyLimit: number; hourlyLimit: number } {
+    const today = new Date().toISOString().split('T')[0];
+    const hour = new Date().toISOString().slice(0, 13);
+
+    return {
+      daily: this.dailyRequests.get(today) || 0,
+      hourly: this.hourlyRequests.get(hour) || 0,
+      dailyLimit: this.DAILY_LIMIT,
+      hourlyLimit: this.HOURLY_LIMIT,
+    };
+  }
+}
+
+export const apiQuotaMonitor = new ApiQuotaMonitor();
+
+/**
+ * Retry utility with exponential backoff
+ * @param operation - The async operation to retry
+ * @param maxRetries - Maximum number of retries (default: 3)
+ * @param baseDelay - Base delay in milliseconds (default: 1000)
+ */
+export async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+      
+      // Don't retry on quota exhaustion - use cache instead
+      if ((error as any)?.message?.includes('quota') || 
+          (error as any)?.message?.includes('OVER_QUERY_LIMIT')) {
+        throw error;
+      }
+      
+      if (attempt === maxRetries) {
+        break;
+      }
+      
+      // Exponential backoff with jitter
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError!;
+}
+
+/**
  * Timeout wrapper for API calls to prevent indefinite hangs
  */
 export async function withTimeout<T>(
@@ -414,6 +563,7 @@ export async function searchByText(
 /**
  * Get autocomplete suggestions using new AutocompleteSuggestion API
  * Replaces legacy AutocompleteService
+ * Includes quota monitoring and caching
  */
 export async function autocomplete(
   input: string,
@@ -421,6 +571,27 @@ export async function autocomplete(
   origin: SearchOrigin
 ): Promise<ConvertedPrediction[]> {
   await loadMaps();
+  
+  // Check cache first
+  const cacheKey = apiQuotaMonitor.generateCacheKey(`autocomplete:${input}`, origin);
+  const cached = apiQuotaMonitor.getCachedResult(cacheKey);
+  if (cached) {
+    console.log('[GooglePlacesNew] ✅ Using cached autocomplete results');
+    return cached;
+  }
+
+  // Check quota before making request
+  const quotaCheck = apiQuotaMonitor.checkQuota();
+  if (!quotaCheck.canProceed) {
+    console.warn(`[GooglePlacesNew] ⚠️ Quota limit reached: ${quotaCheck.reason}`);
+    // Return cached results if available (even if expired)
+    const expiredCache = apiQuotaMonitor.getCachedResult(cacheKey);
+    if (expiredCache) {
+      console.log('[GooglePlacesNew] ⚠️ Using expired cache due to quota limit');
+      return expiredCache;
+    }
+    throw new Error(`API quota exceeded: ${quotaCheck.reason}. Please try again later.`);
+  }
   
   const { AutocompleteSuggestion } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
   
@@ -442,8 +613,14 @@ export async function autocomplete(
   }
 
   try {
-    // @ts-ignore - New API method
-    const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+    // Record API request
+    apiQuotaMonitor.recordRequest();
+
+    // Retry with exponential backoff
+    const { suggestions } = await retryWithBackoff(async () => {
+      // @ts-ignore - New API method
+      return await AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+    });
     
     if (!suggestions || suggestions.length === 0) {
       return [];
@@ -452,7 +629,7 @@ export async function autocomplete(
     console.log(`[GooglePlacesNew] ✅ Autocomplete found ${suggestions.length} suggestions`);
     
     // Convert to legacy prediction format
-    return suggestions
+    const results = suggestions
       .filter((s: any) => s.placePrediction) // Only place predictions
       .map((s: any) => ({
         place_id: s.placePrediction.placeId,
@@ -462,8 +639,24 @@ export async function autocomplete(
           secondary_text: s.placePrediction.structuredFormat.secondaryText?.text,
         } : undefined,
       }));
+
+    // Cache results
+    apiQuotaMonitor.cacheResult(cacheKey, results);
+    
+    return results;
   } catch (error) {
     console.error('[GooglePlacesNew] Autocomplete error:', error);
+    
+    // If quota error, try to return cached results
+    if ((error as any)?.message?.includes('quota') || 
+        (error as any)?.message?.includes('OVER_QUERY_LIMIT')) {
+      const expiredCache = apiQuotaMonitor.getCachedResult(cacheKey);
+      if (expiredCache) {
+        console.log('[GooglePlacesNew] ⚠️ Using expired cache due to quota error');
+        return expiredCache;
+      }
+    }
+    
     return [];
   }
 }
@@ -524,9 +717,12 @@ export async function fetchPlaceDetails(
 
 /**
  * Resolve query using 4-tier cascade with NEW API:
- * 1. searchNearby for proximity queries (NEW - Phase D)
- * 2. searchByText (replaces findPlaceFromQuery + textSearch)
- * 3. geocode (fallback for addresses)
+ * 1. Check cache
+ * 2. searchNearby for proximity queries (NEW - Phase D)
+ * 3. searchByText (replaces findPlaceFromQuery + textSearch)
+ * 4. geocode (fallback for addresses)
+ * 
+ * Includes quota monitoring and caching
  * 
  * @param query - Search query
  * @param origin - Optional origin for location bias
@@ -541,66 +737,115 @@ export async function resolveQuery(
   
   console.log('[GooglePlacesNew] Resolving query:', query);
 
-  // PHASE D: 1) Try nearby search for proximity queries
-  if (isProximityQuery(query) && origin) {
-    console.log('[GooglePlacesNew] Proximity query detected, using searchNearby');
-    const placeTypes = mapQueryToPlaceTypes(query);
-    const nearbyPlaces = await searchNearby(
-      origin,
-      5000, // 5km radius
-      placeTypes,
-      5
+  // Check cache first
+  const cacheKey = apiQuotaMonitor.generateCacheKey(`resolve:${query}`, origin);
+  const cached = apiQuotaMonitor.getCachedResult(cacheKey);
+  if (cached) {
+    console.log('[GooglePlacesNew] ✅ Using cached query result');
+    return cached;
+  }
+
+  // Check quota before making requests
+  const quotaCheck = apiQuotaMonitor.checkQuota();
+  if (!quotaCheck.canProceed) {
+    console.warn(`[GooglePlacesNew] ⚠️ Quota limit reached: ${quotaCheck.reason}`);
+    // Return cached results if available (even if expired)
+    const expiredCache = apiQuotaMonitor.getCachedResult(cacheKey);
+    if (expiredCache) {
+      console.log('[GooglePlacesNew] ⚠️ Using expired cache due to quota limit');
+      return expiredCache;
+    }
+    throw new Error(`API quota exceeded: ${quotaCheck.reason}. Please try again later.`);
+  }
+
+  try {
+    // Record API request
+    apiQuotaMonitor.recordRequest();
+
+    // PHASE D: 1) Try nearby search for proximity queries
+    if (isProximityQuery(query) && origin) {
+      console.log('[GooglePlacesNew] Proximity query detected, using searchNearby');
+      const placeTypes = mapQueryToPlaceTypes(query);
+      const nearbyPlaces = await retryWithBackoff(async () => 
+        searchNearby(origin, 5000, placeTypes, 5)
+      );
+      
+      if (nearbyPlaces.length > 0) {
+        console.log(`[GooglePlacesNew] ✅ Nearby search found ${nearbyPlaces.length} results`);
+        const result = nearbyPlaces[0];
+        // Cache result
+        apiQuotaMonitor.cacheResult(cacheKey, result);
+        return result;
+      }
+    }
+
+    // 2) Try searchByText with type detection
+    const detectedType = detectPlaceType(query);
+    console.log(`[GooglePlacesNew] Detected type: ${detectedType || 'none'}`);
+    
+    const places = await retryWithBackoff(async () => 
+      searchByText(query, origin, 1)
     );
     
-    if (nearbyPlaces.length > 0) {
-      console.log(`[GooglePlacesNew] ✅ Nearby search found ${nearbyPlaces.length} results`);
-      // Return the best match (already sorted by rating)
-      return nearbyPlaces[0];
+    if (places.length > 0) {
+      // Enrich with full details
+      const enriched = await retryWithBackoff(async () => 
+        fetchPlaceDetails(places[0].place_id, sessionToken)
+      );
+      const result = enriched || places[0];
+      // Cache result
+      apiQuotaMonitor.cacheResult(cacheKey, result);
+      return result;
     }
-  }
 
-  // 2) Try searchByText with type detection
-  const detectedType = detectPlaceType(query);
-  console.log(`[GooglePlacesNew] Detected type: ${detectedType || 'none'}`);
-  
-  const places = await searchByText(query, origin, 1);
-  
-  if (places.length > 0) {
-    // Enrich with full details
-    const enriched = await fetchPlaceDetails(places[0].place_id, sessionToken);
-    return enriched || places[0];
-  }
+    // 3) Fallback to geocode for addresses
+    console.log('[GooglePlacesNew] Trying geocode fallback...');
+    const geocoder = new google.maps.Geocoder();
+    
+    const result = await retryWithBackoff(async () => {
+      const geoResult = await geocoder.geocode({
+        address: query,
+        ...(origin && {
+          bounds: new google.maps.LatLngBounds(
+            new google.maps.LatLng(origin.lat - 0.4, origin.lng - 0.4),
+            new google.maps.LatLng(origin.lat + 0.4, origin.lng + 0.4)
+          ),
+        }),
+      });
 
-  // 3) Fallback to geocode for addresses
-  console.log('[GooglePlacesNew] Trying geocode fallback...');
-  const geocoder = new google.maps.Geocoder();
-  
-  try {
-    const result = await geocoder.geocode({
-      address: query,
-      ...(origin && {
-        bounds: new google.maps.LatLngBounds(
-          new google.maps.LatLng(origin.lat - 0.4, origin.lng - 0.4),
-          new google.maps.LatLng(origin.lat + 0.4, origin.lng + 0.4)
-        ),
-      }),
+      const geo = geoResult.results?.[0];
+      if (geo) {
+        console.log('[GooglePlacesNew] ✅ Geocode found result');
+        return {
+          place_id: geo.place_id!,
+          name: geo.formatted_address || 'Unknown',
+          formatted_address: geo.formatted_address,
+          geometry: {
+            location: geo.geometry.location,
+            viewport: geo.geometry.viewport,
+          },
+        };
+      }
+      return null;
     });
 
-    const geo = result.results?.[0];
-    if (geo) {
-      console.log('[GooglePlacesNew] ✅ Geocode found result');
-      return {
-        place_id: geo.place_id!,
-        name: geo.formatted_address || 'Unknown',
-        formatted_address: geo.formatted_address,
-        geometry: {
-          location: geo.geometry.location,
-          viewport: geo.geometry.viewport,
-        },
-      };
+    if (result) {
+      // Cache result
+      apiQuotaMonitor.cacheResult(cacheKey, result);
+      return result;
     }
   } catch (error) {
-    console.error('[GooglePlacesNew] Geocode error:', error);
+    console.error('[GooglePlacesNew] Resolve query error:', error);
+    
+    // If quota error, try to return cached results
+    if ((error as any)?.message?.includes('quota') || 
+        (error as any)?.message?.includes('OVER_QUERY_LIMIT')) {
+      const expiredCache = apiQuotaMonitor.getCachedResult(cacheKey);
+      if (expiredCache) {
+        console.log('[GooglePlacesNew] ⚠️ Using expired cache due to quota error');
+        return expiredCache;
+      }
+    }
   }
 
   console.log('[GooglePlacesNew] ❌ No results found');
