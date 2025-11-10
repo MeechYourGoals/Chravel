@@ -31,6 +31,12 @@ export interface CreateEventData {
   include_in_itinerary?: boolean;
   source_type?: string;
   source_data?: any;
+  // Recurring event support
+  recurrence_rule?: string;
+  recurrence_exceptions?: string[];
+  // Busy/free time blocking
+  is_busy?: boolean;
+  availability_status?: 'busy' | 'free' | 'tentative';
 }
 
 export const calendarService = {
@@ -57,7 +63,10 @@ export const calendarService = {
           p_location: eventData.location || '',
           p_start_time: eventData.start_time,
           p_end_time: eventData.end_time || null,
-          p_created_by: user.id
+          p_created_by: user.id,
+          p_recurrence_rule: eventData.recurrence_rule || null,
+          p_is_busy: eventData.is_busy ?? true,
+          p_availability_status: eventData.availability_status || 'busy'
         });
 
       if (error) throw error;
@@ -94,8 +103,61 @@ export const calendarService = {
         return await calendarStorageService.getEvents(tripId);
       }
 
-      // Use Supabase for authenticated users
-      const { data, error } = await supabase
+      // Use Supabase with timezone-aware function for authenticated users
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        // Fallback to direct query if no user
+        const { data, error } = await supabase
+          .from('trip_events')
+          .select(`
+            *,
+            creator:created_by (
+              id,
+              display_name,
+              avatar_url
+            )
+          `)
+          .eq('trip_id', tripId)
+          .order('start_time', { ascending: true });
+        
+        if (error) throw error;
+        return data || [];
+      }
+
+      // Use timezone-aware function
+      const { data: timezoneData, error: tzError } = await supabase
+        .rpc('get_events_in_user_tz', {
+          p_trip_id: tripId,
+          p_user_id: user.id
+        });
+
+      if (tzError) {
+        // Fallback to direct query if timezone function fails
+        console.warn('Timezone function failed, using direct query:', tzError);
+        const { data, error } = await supabase
+          .from('trip_events')
+          .select(`
+            *,
+            creator:created_by (
+              id,
+              display_name,
+              avatar_url
+            )
+          `)
+          .eq('trip_id', tripId)
+          .order('start_time', { ascending: true });
+        
+        if (error) throw error;
+        return data || [];
+      }
+
+      // Fetch full event details with creator info
+      if (!timezoneData || timezoneData.length === 0) {
+        return [];
+      }
+
+      const eventIds = timezoneData.map((e: any) => e.id);
+      const { data: fullEvents, error: fetchError } = await supabase
         .from('trip_events')
         .select(`
           *,
@@ -105,11 +167,11 @@ export const calendarService = {
             avatar_url
           )
         `)
-        .eq('trip_id', tripId)
+        .in('id', eventIds)
         .order('start_time', { ascending: true });
 
-      if (error) throw error;
-      return data || [];
+      if (fetchError) throw fetchError;
+      return fullEvents || [];
     } catch (error) {
       console.error('Error fetching events:', error);
       return [];
@@ -170,11 +232,12 @@ export const calendarService = {
 
   // Convert database event to CalendarEvent format
   convertToCalendarEvent(tripEvent: any): CalendarEvent {
+    const startDate = new Date(tripEvent.start_time);
     return {
       id: tripEvent.id,
       title: tripEvent.title,
-      date: new Date(tripEvent.start_time),
-      time: new Date(tripEvent.start_time).toLocaleTimeString('en-US', { 
+      date: startDate,
+      time: startDate.toLocaleTimeString('en-US', { 
         hour12: false, 
         hour: '2-digit', 
         minute: '2-digit' 
@@ -187,7 +250,15 @@ export const calendarService = {
       include_in_itinerary: tripEvent.include_in_itinerary,
       event_category: tripEvent.event_category as CalendarEvent['event_category'],
       source_type: tripEvent.source_type as any,
-      source_data: tripEvent.source_data
+      source_data: tripEvent.source_data,
+      // Recurring event support
+      recurrence_rule: tripEvent.recurrence_rule,
+      recurrence_exceptions: tripEvent.recurrence_exceptions,
+      parent_event_id: tripEvent.parent_event_id,
+      // Busy/free time blocking
+      is_busy: tripEvent.is_busy ?? true,
+      availability_status: tripEvent.availability_status || 'busy',
+      end_time: tripEvent.end_time ? new Date(tripEvent.end_time) : undefined
     };
   },
 
@@ -197,16 +268,28 @@ export const calendarService = {
     const [hours, minutes] = calendarEvent.time.split(':');
     startTime.setHours(parseInt(hours), parseInt(minutes));
 
+    let endTime: string | undefined;
+    if (calendarEvent.end_time) {
+      endTime = calendarEvent.end_time.toISOString();
+    }
+
     return {
       trip_id: tripId,
       title: calendarEvent.title,
       description: calendarEvent.description,
       start_time: startTime.toISOString(),
+      end_time: endTime,
       location: calendarEvent.location,
       event_category: calendarEvent.event_category || 'other',
       include_in_itinerary: calendarEvent.include_in_itinerary,
       source_type: calendarEvent.source_type || 'manual',
-      source_data: calendarEvent.source_data || {}
+      source_data: calendarEvent.source_data || {},
+      // Recurring event support
+      recurrence_rule: calendarEvent.recurrence_rule,
+      recurrence_exceptions: calendarEvent.recurrence_exceptions,
+      // Busy/free time blocking
+      is_busy: calendarEvent.is_busy ?? true,
+      availability_status: calendarEvent.availability_status || 'busy'
     };
   }
 };
