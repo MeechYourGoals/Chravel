@@ -3,9 +3,10 @@ import { supabase } from '../integrations/supabase/client';
 import { TripTask, CreateTaskRequest, ToggleTaskRequest } from '../types/tasks';
 import { useToast } from './use-toast';
 import { taskStorageService } from '../services/taskStorageService';
+import { taskOfflineQueue } from '../services/taskOfflineQueue';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 
 // Task form management types
 export interface TaskFormData {
@@ -262,6 +263,10 @@ export const useTripTasks = (tripId: string, options?: {
            dateRange.end !== undefined;
   }, [status, assignee, dateRange]);
 
+  // Pagination state - for large lists, we'll limit initial load
+  const TASKS_PER_PAGE = 100; // Load first 100 tasks initially
+  const [showAllTasks, setShowAllTasks] = useState(false);
+
   const tasksQuery = useQuery({
     queryKey: ['tripTasks', tripId, isDemoMode],
     queryFn: async (): Promise<TripTask[]> => {
@@ -277,7 +282,7 @@ export const useTripTasks = (tripId: string, options?: {
 
       // Authenticated mode: use Supabase
       try {
-      const { data: tasks, error } = await supabase
+      const query = supabase
         .from('trip_tasks')
         .select(`
           *,
@@ -290,6 +295,13 @@ export const useTripTasks = (tripId: string, options?: {
         `)
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false });
+
+      // Limit initial load for performance
+      if (!showAllTasks) {
+        query.limit(TASKS_PER_PAGE);
+      }
+
+      const { data: tasks, error } = await query;
 
         if (error) throw error;
 
@@ -336,6 +348,16 @@ export const useTripTasks = (tripId: string, options?: {
           ...task,
           assignedTo
         });
+      }
+
+      // Check if offline - queue the operation
+      if (!navigator.onLine) {
+        await taskOfflineQueue.enqueue({
+          type: 'create',
+          tripId,
+          data: task
+        });
+        throw new Error('OFFLINE: Task queued for sync when connection is restored.');
       }
 
       // Authenticated mode: use Supabase
@@ -425,47 +447,134 @@ export const useTripTasks = (tripId: string, options?: {
     },
     onError: (error: any) => {
       console.error('Create task mutation error:', error);
-      const errorMessage = error.message || 'Failed to create task. Please try again.';
+      
+      // Provide specific error messages
+      let errorTitle = 'Error Creating Task';
+      let errorDescription = 'Failed to create task. Please try again.';
+      let variant: 'default' | 'destructive' = 'destructive';
+
+      if (error.message?.includes('OFFLINE:')) {
+        errorTitle = 'Task Queued';
+        errorDescription = 'Task will be created when you\'re back online.';
+        variant = 'default';
+      } else if (error.message?.includes('Access denied') || error.code === 'PGRST116') {
+        errorTitle = 'Access Denied';
+        errorDescription = 'You must be a trip member to create tasks.';
+      } else if (error.message?.includes('Network error') || error.message?.includes('fetch')) {
+        errorTitle = 'Connection Error';
+        errorDescription = 'Please check your internet connection and try again.';
+      } else if (error.message?.includes('validation') || error.message?.includes('required')) {
+        errorTitle = 'Validation Error';
+        errorDescription = error.message;
+      } else if (error.message) {
+        errorDescription = error.message;
+      }
+
       toast({
-        title: 'Error Creating Task',
-        description: errorMessage,
-        variant: 'destructive'
+        title: errorTitle,
+        description: errorDescription,
+        variant
       });
     }
   });
 
-  const toggleTaskMutation = useMutation({
-    mutationFn: async ({ taskId, completed }: ToggleTaskRequest) => {
-      // Demo mode: use localStorage
-      if (isDemoMode || !user) {
-        const currentUserId = user?.id || 'demo-user';
-        return await taskStorageService.toggleTask(tripId, taskId, currentUserId, completed);
-      }
+  // Helper function for retry logic with exponential backoff
+  const toggleTaskWithRetry = async (
+    taskId: string,
+    completed: boolean,
+    retryCount = 0
+  ): Promise<{ taskId: string; completed: boolean }> => {
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 1000; // 1 second
 
-      // Authenticated mode: use atomic function with optimistic locking
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) throw new Error('User not authenticated');
+    // Demo mode: use localStorage
+    if (isDemoMode || !user) {
+      const currentUserId = user?.id || 'demo-user';
+      return await taskStorageService.toggleTask(tripId, taskId, currentUserId, completed);
+    }
 
-      // Get current task version for optimistic locking
-      const { data: task, error: fetchError } = await supabase
-        .from('trip_tasks')
-        .select('version')
-        .eq('id', taskId)
+    // Authenticated mode: use atomic function with optimistic locking
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser)       throw new Error('User not authenticated');
+
+    // Check if offline - queue the operation
+    if (!navigator.onLine) {
+      await taskOfflineQueue.enqueue({
+        type: 'toggle',
+        tripId,
+        data: { taskId, completed }
+      });
+      throw new Error('OFFLINE: Task update queued for sync when connection is restored.');
+    }
+
+    try {
+      // Get current task status to determine if we need to toggle
+      const { data: currentStatus, error: statusError } = await supabase
+        .from('task_status')
+        .select('is_completed, version')
+        .eq('task_id', taskId)
+        .eq('user_id', authUser.id)
         .single();
 
-      if (fetchError) throw fetchError;
+      if (statusError && statusError.code !== 'PGRST116') {
+        // PGRST116 means no rows found, which is OK for new status
+        throw new Error(`Failed to fetch task status: ${statusError.message}`);
+      }
+
+      const currentVersion = currentStatus?.version || 1;
 
       // Use atomic function to toggle task status
       const { error } = await supabase
         .rpc('toggle_task_status', {
           p_task_id: taskId,
           p_user_id: authUser.id,
-          p_completed: completed,
-          p_current_version: task.version
+          p_current_version: currentVersion
         });
 
-      if (error) throw error;
+      if (error) {
+        // Check for version conflict (concurrency error)
+        const isVersionConflict = error.message?.includes('modified by another user') || 
+                                 error.message?.includes('version') ||
+                                 error.code === 'P0001'; // PostgreSQL exception code
+
+        if (isVersionConflict && retryCount < MAX_RETRIES) {
+          // Wait before retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retryCount + 1)));
+          // Recursively retry
+          return toggleTaskWithRetry(taskId, completed, retryCount + 1);
+        }
+
+        // Map specific error messages
+        if (isVersionConflict) {
+          throw new Error('CONFLICT: This task was modified by another user. Please refresh and try again.');
+        }
+
+        if (error.code === 'PGRST116') {
+          throw new Error('Access denied. You must be a trip member to update tasks.');
+        }
+
+        throw new Error(error.message || 'Failed to update task status');
+      }
+
       return { taskId, completed };
+    } catch (error: any) {
+      // Re-throw with enhanced error message
+      if (error.message?.includes('CONFLICT:')) {
+        throw error; // Already formatted
+      }
+      
+      // Handle network errors
+      if (error.message?.includes('fetch') || error.message?.includes('network')) {
+        throw new Error('Network error. Please check your connection and try again.');
+      }
+
+      throw error;
+    }
+  };
+
+  const toggleTaskMutation = useMutation({
+    mutationFn: async ({ taskId, completed }: ToggleTaskRequest) => {
+      return toggleTaskWithRetry(taskId, completed);
     },
     onMutate: async ({ taskId, completed }) => {
       // Optimistic update
@@ -501,15 +610,38 @@ export const useTripTasks = (tripId: string, options?: {
 
       return { previousTasks };
     },
-    onError: (err, variables, context) => {
-      // Rollback on error
-      if (context?.previousTasks) {
+    onError: (err: any, variables, context) => {
+      // Rollback on error (unless it's an offline queue operation)
+      if (context?.previousTasks && !err?.message?.includes('OFFLINE:')) {
         queryClient.setQueryData(['tripTasks', tripId], context.previousTasks);
       }
+      
+      // Provide specific error messages
+      let errorTitle = 'Error Updating Task';
+      let errorDescription = 'Failed to update task. Please try again.';
+      let variant: 'default' | 'destructive' = 'destructive';
+
+      if (err?.message?.includes('OFFLINE:')) {
+        errorTitle = 'Task Update Queued';
+        errorDescription = 'Update will be synced when you\'re back online.';
+        variant = 'default';
+      } else if (err?.message?.includes('CONFLICT:')) {
+        errorTitle = 'Conflict Detected';
+        errorDescription = err.message.replace('CONFLICT: ', '');
+      } else if (err?.message?.includes('Access denied')) {
+        errorTitle = 'Access Denied';
+        errorDescription = err.message;
+      } else if (err?.message?.includes('Network error')) {
+        errorTitle = 'Connection Error';
+        errorDescription = err.message;
+      } else if (err?.message) {
+        errorDescription = err.message;
+      }
+
       toast({
-        title: 'Error',
-        description: 'Failed to update task. Please try again.',
-        variant: 'destructive'
+        title: errorTitle,
+        description: errorDescription,
+        variant
       });
     },
     onSettled: () => {
@@ -517,11 +649,48 @@ export const useTripTasks = (tripId: string, options?: {
     }
   });
 
+  // Process offline queue when online
+  useEffect(() => {
+    const processQueue = async () => {
+      if (navigator.onLine && user && !isDemoMode) {
+        await taskOfflineQueue.processQueue(
+          async (tripId, data) => {
+            // Re-run create mutation
+            await createTaskMutation.mutateAsync(data);
+          },
+          async (data) => {
+            // Re-run toggle mutation
+            await toggleTaskMutation.mutateAsync(data);
+          }
+        );
+      }
+    };
+
+    // Process queue on mount and when coming online
+    processQueue();
+    window.addEventListener('online', processQueue);
+    return () => window.removeEventListener('online', processQueue);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, isDemoMode, tripId]);
+
+  // Pagination helpers
+  const hasMoreTasks = (tasksQuery.data?.length || 0) >= TASKS_PER_PAGE && !showAllTasks;
+  const loadAllTasks = useCallback(() => {
+    if (!showAllTasks && !tasksQuery.isLoading) {
+      setShowAllTasks(true);
+      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+    }
+  }, [showAllTasks, tasksQuery.isLoading, queryClient, tripId, isDemoMode]);
+
   return {
     // Query data
     tasks: tasksQuery.data || [],
     isLoading: tasksQuery.isLoading,
     error: tasksQuery.error,
+    
+    // Pagination
+    hasMoreTasks,
+    loadAllTasks,
     
     // Task form management
     title,
