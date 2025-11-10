@@ -11,7 +11,7 @@ export const BalanceSummary = ({ summary }: BalanceSummaryProps) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: summary.baseCurrency || 'USD'
     }).format(amount);
   };
 

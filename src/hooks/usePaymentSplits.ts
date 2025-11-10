@@ -128,6 +128,7 @@ export const usePaymentSplits = (tripMembers: TripMember[] = []) => {
     setAmount,
     setCurrency,
     setDescription,
+    setSelectedParticipants,
     toggleParticipant,
     togglePaymentMethod,
     selectAllParticipants,

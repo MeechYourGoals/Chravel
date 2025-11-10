@@ -1,16 +1,19 @@
 import { supabase } from '../integrations/supabase/client';
 import { PaymentMethod } from '../types/payments';
+import { normalizeToBaseCurrency, convertCurrency } from './currencyService';
 
 export interface PersonalBalance {
   userId: string;
   userName: string;
   avatar?: string;
   amountOwed: number; // negative = you owe them, positive = they owe you
+  amountOwedCurrency: string; // Base currency (normalized)
   preferredPaymentMethod: PaymentMethod | null;
   unsettledPayments: Array<{
     paymentId: string;
     description: string;
     amount: number;
+    amountCurrency: string;
     date: string;
   }>;
   confirmationStatus?: 'none' | 'pending' | 'confirmed';
@@ -20,6 +23,7 @@ export interface BalanceSummary {
   totalOwed: number;
   totalOwedToYou: number;
   netBalance: number;
+  baseCurrency: string; // Currency all amounts are normalized to
   balances: PersonalBalance[];
 }
 
@@ -27,8 +31,13 @@ export const paymentBalanceService = {
   /**
    * Calculate personal balance summary for a user in a trip
    * Returns who owes what to whom with their preferred payment methods
+   * Supports multi-currency by normalizing all amounts to USD
    */
-  async getBalanceSummary(tripId: string, userId: string): Promise<BalanceSummary> {
+  async getBalanceSummary(
+    tripId: string, 
+    userId: string, 
+    baseCurrency: string = 'USD'
+  ): Promise<BalanceSummary> {
     try {
       // Fetch all payment messages for this trip
       const { data: paymentMessages, error: messagesError } = await supabase
@@ -44,6 +53,7 @@ export const paymentBalanceService = {
           totalOwed: 0,
           totalOwedToYou: 0,
           netBalance: 0,
+          baseCurrency,
           balances: []
         };
       }
@@ -95,39 +105,63 @@ export const paymentBalanceService = {
         return sorted[0];
       };
 
+      // Normalize all payment amounts to base currency
+      const amountsToNormalize = paymentMessages.map(payment => ({
+        amount: parseFloat(payment.amount.toString()),
+        currency: payment.currency || 'USD'
+      }));
+
+      const normalizedAmounts = await normalizeToBaseCurrency(amountsToNormalize, baseCurrency);
+      const normalizedMap = new Map<string, number>();
+      
+      paymentMessages.forEach((payment, index) => {
+        normalizedMap.set(payment.id, normalizedAmounts[index].amount);
+      });
+
       // Build ledger: Map<userId, netAmount>
       const ledger = new Map<string, {
         netAmount: number;
-        payments: Array<{ paymentId: string; description: string; amount: number; date: string }>;
+        payments: Array<{ 
+          paymentId: string; 
+          description: string; 
+          amount: number; 
+          amountCurrency: string;
+          date: string;
+        }>;
         confirmationStatus: 'none' | 'pending' | 'confirmed';
       }>();
 
       // Initialize current user in ledger
       ledger.set(userId, { netAmount: 0, payments: [], confirmationStatus: 'none' });
 
+      // Collect all conversions needed
+      const conversionsNeeded: Array<{
+        splitId: string;
+        amount: number;
+        currency: string;
+        paymentId: string;
+        debtorId: string;
+        payerId: string;
+        isDebtor: boolean;
+      }> = [];
+
       // Add amounts for payments current user made (positive - they are owed)
       paymentMessages?.forEach(payment => {
         if (payment.created_by === userId) {
-          // For each split participant (excluding payer), they owe the current user
           const relevantSplits = paymentSplits?.filter(
             s => s.payment_message_id === payment.id && s.debtor_user_id !== userId
           ) || [];
 
           relevantSplits.forEach(split => {
             if (!split.is_settled) {
-              const debtorId = split.debtor_user_id;
-              const confirmStatus = (split.confirmation_status as 'none' | 'pending' | 'confirmed') || 'none';
-              if (!ledger.has(debtorId)) {
-                ledger.set(debtorId, { netAmount: 0, payments: [], confirmationStatus: confirmStatus });
-              }
-              const entry = ledger.get(debtorId)!;
-              entry.netAmount += split.amount_owed; // They owe you
-              entry.confirmationStatus = confirmStatus;
-              entry.payments.push({
+              conversionsNeeded.push({
+                splitId: split.id,
+                amount: parseFloat(split.amount_owed.toString()),
+                currency: payment.currency || 'USD',
                 paymentId: payment.id,
-                description: payment.description,
-                amount: split.amount_owed,
-                date: payment.created_at
+                debtorId: split.debtor_user_id,
+                payerId: userId,
+                isDebtor: false
               });
             }
           });
@@ -139,22 +173,57 @@ export const paymentBalanceService = {
         if (split.debtor_user_id === userId && !split.is_settled) {
           const payment = paymentMessages?.find(m => m.id === split.payment_message_id);
           if (payment) {
-            const payerId = payment.created_by;
-            const confirmStatus = (split.confirmation_status as 'none' | 'pending' | 'confirmed') || 'none';
-            if (!ledger.has(payerId)) {
-              ledger.set(payerId, { netAmount: 0, payments: [], confirmationStatus: confirmStatus });
-            }
-            const entry = ledger.get(payerId)!;
-            entry.netAmount -= split.amount_owed; // You owe them
-            entry.confirmationStatus = confirmStatus;
-            entry.payments.push({
+            conversionsNeeded.push({
+              splitId: split.id,
+              amount: parseFloat(split.amount_owed.toString()),
+              currency: payment.currency || 'USD',
               paymentId: payment.id,
-              description: payment.description,
-              amount: -split.amount_owed,
-              date: payment.created_at
+              debtorId: userId,
+              payerId: payment.created_by,
+              isDebtor: true
             });
           }
         }
+      });
+
+      // Perform all conversions in parallel
+      const conversionResults = await Promise.all(
+        conversionsNeeded.map(async (conv) => {
+          const normalizedAmount = conv.currency === baseCurrency
+            ? conv.amount
+            : await convertCurrency(conv.amount, conv.currency, baseCurrency);
+          return { ...conv, normalizedAmount };
+        })
+      );
+
+      // Process conversion results
+      conversionResults.forEach(({ splitId, normalizedAmount, paymentId, debtorId, payerId, isDebtor }) => {
+        const payment = paymentMessages?.find(m => m.id === paymentId);
+        const split = paymentSplits?.find(s => s.id === splitId);
+        if (!payment || !split) return;
+
+        const confirmStatus = (split.confirmation_status as 'none' | 'pending' | 'confirmed') || 'none';
+        const targetUserId = isDebtor ? payerId : debtorId;
+
+        if (!ledger.has(targetUserId)) {
+          ledger.set(targetUserId, { netAmount: 0, payments: [], confirmationStatus: confirmStatus });
+        }
+        const entry = ledger.get(targetUserId)!;
+        
+        if (isDebtor) {
+          entry.netAmount -= normalizedAmount; // You owe them
+        } else {
+          entry.netAmount += normalizedAmount; // They owe you
+        }
+        
+        entry.confirmationStatus = confirmStatus;
+        entry.payments.push({
+          paymentId: payment.id,
+          description: payment.description,
+          amount: isDebtor ? -normalizedAmount : normalizedAmount,
+          amountCurrency: baseCurrency,
+          date: payment.created_at
+        });
       });
 
       // Build PersonalBalance array
@@ -177,6 +246,7 @@ export const paymentBalanceService = {
           userName: profile?.display_name || 'Unknown User',
           avatar: profile?.avatar_url,
           amountOwed: entry.netAmount,
+          amountOwedCurrency: baseCurrency,
           preferredPaymentMethod: primaryMethod ? {
             id: primaryMethod.id,
             type: primaryMethod.method_type as PaymentMethod['type'],
@@ -203,6 +273,7 @@ export const paymentBalanceService = {
         totalOwed,
         totalOwedToYou,
         netBalance: totalOwedToYou - totalOwed,
+        baseCurrency,
         balances: balances.filter(b => b.amountOwed !== 0) // Only show non-zero balances
       };
     } catch (error) {
@@ -211,6 +282,7 @@ export const paymentBalanceService = {
         totalOwed: 0,
         totalOwedToYou: 0,
         netBalance: 0,
+        baseCurrency,
         balances: []
       };
     }

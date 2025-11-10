@@ -1,5 +1,5 @@
-import React from 'react';
-import { DollarSign, Users, CheckSquare } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { DollarSign, Users, CheckSquare, Sparkles } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
@@ -9,6 +9,9 @@ import { Card, CardContent } from '../ui/card';
 import { usePaymentSplits } from '@/hooks/usePaymentSplits';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { PaymentMethodId } from '@/types/paymentMethods';
+import { getAutomaticParticipantSuggestions, detectPaymentParticipantsFromMessage } from '@/services/chatAnalysisService';
+import { useAuth } from '@/hooks/useAuth';
+import { Badge } from '../ui/badge';
 
 interface PaymentInputProps {
   onSubmit: (paymentData: {
@@ -21,9 +24,11 @@ interface PaymentInputProps {
   }) => void;
   tripMembers: Array<{ id: string; name: string; avatar?: string }>;
   isVisible: boolean;
+  tripId: string;
 }
 
-export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputProps) => {
+export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: PaymentInputProps) => {
+  const { user } = useAuth();
   const {
     amount,
     currency,
@@ -41,8 +46,12 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
     selectAllParticipants,
     selectAllPaymentMethods,
     getPaymentData,
-    resetForm
+    resetForm,
+    setSelectedParticipants
   } = usePaymentSplits(tripMembers);
+  
+  const [autoSuggestions, setAutoSuggestions] = useState<Array<{ userId: string; reason: string; confidence: number }>>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const paymentMethodOptions: Array<{ id: PaymentMethodId; label: string }> = [
     { id: 'venmo', label: 'Venmo' },
@@ -63,6 +72,86 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
 
   const amountPerPerson = perPersonAmount;
   const { isDemoMode } = useDemoMode();
+
+  // Auto-detect participants when description changes
+  useEffect(() => {
+    if (!user?.id || !tripId || isDemoMode || !description.trim()) {
+      return;
+    }
+
+    const analyzeDescription = async () => {
+      setIsAnalyzing(true);
+      try {
+        // Try to parse payment info from description
+        const result = await detectPaymentParticipantsFromMessage(
+          description,
+          tripId,
+          user.id
+        );
+
+        if (result.suggestedParticipants.length > 0 && result.confidence > 0.5) {
+          setAutoSuggestions(result.suggestedParticipants);
+          
+          // Auto-select high-confidence suggestions
+          const highConfidenceIds = result.suggestedParticipants
+            .filter(s => s.confidence >= 0.7)
+            .map(s => s.userId);
+          
+          if (highConfidenceIds.length > 0 && selectedParticipants.length === 0) {
+            setSelectedParticipants(highConfidenceIds);
+          }
+
+          // Auto-fill amount and currency if detected
+          if (result.amount && !amount) {
+            setAmount(result.amount);
+          }
+          if (result.currency && currency === 'USD') {
+            setCurrency(result.currency);
+          }
+        } else {
+          setAutoSuggestions([]);
+        }
+      } catch (error) {
+        console.error('Error analyzing payment description:', error);
+      } finally {
+        setIsAnalyzing(false);
+      }
+    };
+
+    // Debounce analysis
+    const timeoutId = setTimeout(analyzeDescription, 500);
+    return () => clearTimeout(timeoutId);
+  }, [description, tripId, user?.id, isDemoMode, amount, currency, selectedParticipants.length, setAmount, setCurrency, setSelectedParticipants]);
+
+  // Load automatic suggestions on mount
+  useEffect(() => {
+    if (!user?.id || !tripId || isDemoMode) {
+      return;
+    }
+
+    const loadSuggestions = async () => {
+      try {
+        const suggestions = await getAutomaticParticipantSuggestions(tripId, user.id);
+        setAutoSuggestions(suggestions);
+        
+        // Auto-select top suggestions if none selected
+        if (selectedParticipants.length === 0 && suggestions.length > 0) {
+          const topSuggestions = suggestions
+            .filter(s => s.confidence >= 0.6)
+            .slice(0, 3)
+            .map(s => s.userId);
+          
+          if (topSuggestions.length > 0) {
+            setSelectedParticipants(topSuggestions);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading automatic suggestions:', error);
+      }
+    };
+
+    loadSuggestions();
+  }, [tripId, user?.id, isDemoMode, selectedParticipants.length, setSelectedParticipants]);
 
   if (!isVisible) return null;
 
@@ -147,6 +236,9 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
                     </span>
                   )}
                 </h4>
+                {isAnalyzing && (
+                  <Sparkles size={14} className="text-emerald-400 animate-pulse" />
+                )}
               </div>
               <button
                 type="button"
@@ -156,6 +248,30 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible }: PaymentInputP
                 {allParticipantsSelected ? 'Deselect All' : 'Select All'}
               </button>
             </div>
+            
+            {/* Auto-suggestions badge */}
+            {autoSuggestions.length > 0 && !isDemoMode && (
+              <div className="mb-2 flex flex-wrap gap-1">
+                {autoSuggestions.slice(0, 3).map(suggestion => {
+                  const member = tripMembers.find(m => m.id === suggestion.userId);
+                  if (!member) return null;
+                  const isSelected = selectedParticipants.includes(suggestion.userId);
+                  return (
+                    <Badge
+                      key={suggestion.userId}
+                      variant={isSelected ? 'default' : 'outline'}
+                      className="text-xs cursor-pointer hover:bg-emerald-500/20"
+                      onClick={() => toggleParticipant(suggestion.userId)}
+                    >
+                      {member.name}
+                      {suggestion.confidence >= 0.7 && (
+                        <Sparkles size={10} className="ml-1" />
+                      )}
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
             
             <div className="grid grid-cols-2 gap-x-4 gap-y-3 max-h-48 overflow-y-auto">
               {tripMembers.map(member => (
