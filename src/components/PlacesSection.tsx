@@ -205,6 +205,10 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     loadPersonalBasecamp();
   }, [tripId, user, isDemoMode, effectiveUserId]);
 
+  // Track local updates to prevent toast spam
+  const lastLocalUpdateRef = useRef<{ timestamp: number; address: string } | null>(null);
+  const UPDATE_DEBOUNCE_MS = 2000; // 2 second window to detect local vs remote updates
+
   // Realtime sync for trip basecamp updates
   useEffect(() => {
     if (isDemoMode || !tripId) return;
@@ -221,14 +225,25 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
           filter: `id=eq.${tripId}`
         },
         async (payload) => {
-          console.log('[PlacesSection] Trip basecamp updated by another user:', payload);
+          console.log('[PlacesSection] Trip basecamp updated:', payload);
           
           // Fetch updated basecamp
           const updatedBasecamp = await basecampService.getTripBasecamp(tripId);
-          if (updatedBasecamp) {
+          if (!updatedBasecamp) return;
+
+          // Conflict resolution: Check if this update came from local user
+          const now = Date.now();
+          const isLocalUpdate = lastLocalUpdateRef.current &&
+            now - lastLocalUpdateRef.current.timestamp < UPDATE_DEBOUNCE_MS &&
+            updatedBasecamp.address === lastLocalUpdateRef.current.address;
+
+          if (isLocalUpdate) {
+            console.log('[PlacesSection] Skipping toast - this was a local update');
+            // Still update the context silently
             setContextBasecamp(updatedBasecamp);
-            
-            // Show toast notification
+          } else {
+            // Remote update - show notification
+            setContextBasecamp(updatedBasecamp);
             toast.success('Trip Base Camp updated by another member!', {
               description: updatedBasecamp.name || updatedBasecamp.address
             });
@@ -294,6 +309,13 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
 
   const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
     console.log('Setting basecamp:', newBasecamp);
+    
+    // Track local update for conflict resolution
+    lastLocalUpdateRef.current = {
+      timestamp: Date.now(),
+      address: newBasecamp.address
+    };
+    
     setContextBasecamp(newBasecamp);
     
     // Recalculate distances for existing places
