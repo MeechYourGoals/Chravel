@@ -49,8 +49,10 @@ export const TaskCreateModal = ({ tripId, onClose }: TaskCreateModalProps) => {
         setAssignedMembers([]);
         onClose();
       },
-      onError: (error) => {
+      onError: (error: any) => {
         console.error('Task creation failed:', error);
+        // Error handling is done in the mutation's onError callback
+        // This is just for logging
       }
     });
   };
