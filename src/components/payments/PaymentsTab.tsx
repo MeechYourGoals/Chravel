@@ -256,6 +256,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
           onSubmit={handlePaymentSubmit}
           tripMembers={tripMembers}
           isVisible={true}
+          tripId={tripId}
         />
       )}
 
