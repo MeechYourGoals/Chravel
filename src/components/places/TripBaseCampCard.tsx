@@ -22,19 +22,30 @@ export const TripBaseCampCard: React.FC<TripBaseCampCardProps> = ({
   const [showSelector, setShowSelector] = useState(false);
 
   const handleBasecampSet = async (location: BasecampLocation) => {
-    // Save to database with coordinates
-    const success = await basecampService.setTripBasecamp(tripId, {
+    // Save to database with coordinates (validation enabled by default)
+    const result = await basecampService.setTripBasecamp(tripId, {
       name: location.name,
       address: location.address,
       latitude: location.coordinates?.lat,
       longitude: location.coordinates?.lng
-    });
+    }, { validateAddress: true });
 
-    if (success) {
+    if (result.success) {
+      // Update location with validated coordinates if available
+      const updatedLocation: BasecampLocation = {
+        ...location,
+        coordinates: result.coordinates || location.coordinates
+      };
+      
       // Call the parent callback
-      await onBasecampSet(location);
+      await onBasecampSet(updatedLocation);
       
       // Close the modal
+      setShowSelector(false);
+    } else {
+      console.error('Failed to set trip basecamp:', result.error);
+      // Still allow saving - validation is best-effort
+      await onBasecampSet(location);
       setShowSelector(false);
     }
   };
