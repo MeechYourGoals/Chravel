@@ -7,20 +7,69 @@ import { toast } from 'sonner';
 
 type ShareKind = 'image' | 'video' | 'file' | 'link';
 
+export interface UploadProgress {
+  fileId: string;
+  fileName: string;
+  progress: number; // 0-100
+  status: 'uploading' | 'completed' | 'error';
+}
+
 export function useShareAsset(tripId: string) {
   const [isUploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, UploadProgress>>({});
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const userId = user?.id || '';
 
-  async function shareFile(kind: ShareKind, file: File) {
+  async function shareFile(kind: ShareKind, file: File, onProgress?: (progress: number) => void) {
+    const fileId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     setUploading(true);
     setError(null);
+    
+    // Initialize progress tracking
+    setUploadProgress(prev => ({
+      ...prev,
+      [fileId]: {
+        fileId,
+        fileName: file.name,
+        progress: 0,
+        status: 'uploading',
+      },
+    }));
+
+    // Simulate progress updates (Supabase doesn't provide native progress)
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        const current = prev[fileId];
+        if (current && current.progress < 90) {
+          const newProgress = Math.min(current.progress + 10, 90);
+          if (onProgress) onProgress(newProgress);
+          return {
+            ...prev,
+            [fileId]: { ...current, progress: newProgress },
+          };
+        }
+        return prev;
+      });
+    }, 200);
     
     try {
       // 1) Upload to storage
       const subdir = kind === 'image' ? 'images' : kind === 'video' ? 'videos' : 'files';
       const { publicUrl } = await uploadToStorage(file, tripId, subdir);
+      
+      // Mark as completed
+      clearInterval(progressInterval);
+      setUploadProgress(prev => ({
+        ...prev,
+        [fileId]: {
+          fileId,
+          fileName: file.name,
+          progress: 100,
+          status: 'completed',
+        },
+      }));
+      if (onProgress) onProgress(100);
 
       // 2) Create index record and chat message
       if (kind === 'image' || kind === 'video') {
@@ -76,11 +125,29 @@ export function useShareAsset(tripId: string) {
         return { type: 'file', ref: row };
       }
     } catch (e: any) {
+      clearInterval(progressInterval);
       const errorMsg = e.message ?? 'Upload failed';
       setError(errorMsg);
+      setUploadProgress(prev => ({
+        ...prev,
+        [fileId]: {
+          fileId,
+          fileName: file.name,
+          progress: 0,
+          status: 'error',
+        },
+      }));
       toast.error(errorMsg);
       throw e;
     } finally {
+      // Clean up progress after a delay
+      setTimeout(() => {
+        setUploadProgress(prev => {
+          const updated = { ...prev };
+          delete updated[fileId];
+          return updated;
+        });
+      }, 2000);
       setUploading(false);
     }
   }
@@ -159,5 +226,12 @@ export function useShareAsset(tripId: string) {
     return results;
   }
 
-  return { shareFile, shareLink, shareMultipleFiles, isUploading, error };
+  return { 
+    shareFile, 
+    shareLink, 
+    shareMultipleFiles, 
+    isUploading, 
+    uploadProgress,
+    error 
+  };
 }

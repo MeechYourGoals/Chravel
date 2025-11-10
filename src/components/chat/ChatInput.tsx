@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Send, MessageCircle, Megaphone, Share2, Image, Video, FileText, Mic, CreditCard, Link } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -20,6 +20,7 @@ interface ChatInputProps {
   isInChannelMode?: boolean; // 🆕 Flag to indicate we're in a role channel
   isPro?: boolean; // 🆕 Flag for pro/enterprise trips
   tripId: string; // Add tripId for asset sharing
+  onTypingChange?: (isTyping: boolean) => void; // Callback for typing indicator
 }
 
 export const ChatInput = ({
@@ -33,16 +34,26 @@ export const ChatInput = ({
   hidePayments = false,
   isInChannelMode = false,
   isPro = false,
-  tripId
+  tripId,
+  onTypingChange
 }: ChatInputProps) => {
   const [isBroadcastMode, setIsBroadcastMode] = useState(false);
   const [isPaymentMode, setIsPaymentMode] = useState(false);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { shareFile, shareLink, shareMultipleFiles, isUploading } = useShareAsset(tripId);
+  const { shareFile, shareLink, shareMultipleFiles, isUploading, uploadProgress } = useShareAsset(tripId);
+
+  // Track typing status
+  useEffect(() => {
+    if (onTypingChange) {
+      const hasText = inputMessage.trim().length > 0;
+      onTypingChange(hasText);
+    }
+  }, [inputMessage, onTypingChange]);
 
   const handleSend = () => {
     if (!isPaymentMode) {
+      onTypingChange?.(false);
       onSendMessage(isBroadcastMode, false);
     }
   };
@@ -243,6 +254,37 @@ export const ChatInput = ({
             className="hidden"
             multiple
           />
+        </div>
+      )}
+
+      {/* Upload Progress Indicators */}
+      {Object.values(uploadProgress).length > 0 && (
+        <div className="space-y-2 mt-2">
+          {Object.values(uploadProgress).map((progress) => (
+            <div key={progress.fileId} className="flex items-center gap-2 text-sm">
+              <div className="flex-1 bg-gray-700 rounded-full h-2 overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-300 ${
+                    progress.status === 'completed'
+                      ? 'bg-green-500'
+                      : progress.status === 'error'
+                      ? 'bg-red-500'
+                      : 'bg-blue-500'
+                  }`}
+                  style={{ width: `${progress.progress}%` }}
+                />
+              </div>
+              <span className="text-gray-400 text-xs truncate max-w-[150px]">
+                {progress.fileName}
+              </span>
+              {progress.status === 'completed' && (
+                <span className="text-green-500 text-xs">✓</span>
+              )}
+              {progress.status === 'error' && (
+                <span className="text-red-500 text-xs">✗</span>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>

@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
 import { rateLimiter } from '@/utils/concurrencyUtils';
 import { InputValidator } from '@/utils/securityUtils';
+import { queueMessage, processQueue } from '@/services/offlineMessageQueue';
+import { useOfflineStatus } from './useOfflineStatus';
 
 interface TripChatMessage {
   id: string;
@@ -31,6 +33,7 @@ interface CreateMessageRequest {
 export const useTripChat = (tripId: string) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { isOffline } = useOfflineStatus();
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
@@ -113,7 +116,28 @@ export const useTripChat = (tripId: string) => {
     };
   }, [tripId, queryClient]);
 
-  // Create message mutation with rate limiting
+  // Process offline queue when connection is restored
+  useEffect(() => {
+    if (!isOffline && tripId) {
+      processQueue().then(({ success, failed }) => {
+        if (success > 0) {
+          toast({
+            title: 'Messages sent',
+            description: `${success} message${success > 1 ? 's' : ''} sent successfully`,
+          });
+        }
+        if (failed > 0) {
+          toast({
+            title: 'Some messages failed',
+            description: `${failed} message${failed > 1 ? 's' : ''} could not be sent. Check your connection.`,
+            variant: 'destructive',
+          });
+        }
+      });
+    }
+  }, [isOffline, tripId, toast]);
+
+  // Create message mutation with rate limiting and offline support
   const createMessageMutation = useMutation({
     mutationFn: async (message: CreateMessageRequest) => {
       // Rate limit check - 30 messages per minute per user
@@ -133,15 +157,34 @@ export const useTripChat = (tripId: string) => {
         throw new Error('Message is too long. Please keep it under 1000 characters.');
       }
 
+      const messageData = {
+        trip_id: tripId,
+        content: sanitizedContent,
+        author_name: InputValidator.sanitizeText(message.author_name),
+        media_type: message.media_type,
+        media_url: message.media_url
+      };
+
+      // If offline, queue the message
+      if (isOffline) {
+        const queueId = await queueMessage(messageData);
+        toast({
+          title: 'Message queued',
+          description: 'Your message will be sent when connection is restored.',
+        });
+        // Return a temporary message object for optimistic UI
+        return {
+          id: queueId,
+          ...messageData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as TripChatMessage;
+      }
+
+      // Online - send immediately
       const { data, error } = await supabase
         .from('trip_chat_messages')
-        .insert({
-          trip_id: tripId,
-          content: sanitizedContent,
-          author_name: InputValidator.sanitizeText(message.author_name),
-          media_type: message.media_type,
-          media_url: message.media_url
-        })
+        .insert(messageData)
         .select()
         .single();
 

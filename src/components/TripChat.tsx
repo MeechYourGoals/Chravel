@@ -26,6 +26,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { WifiOff } from 'lucide-react';
 import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from './pro/channels/ChannelChatView';
+import { TypingIndicator } from './chat/TypingIndicator';
+import { TypingIndicatorService } from '@/services/typingIndicatorService';
+import { markMessageAsRead, subscribeToReadReceipts } from '@/services/readReceiptService';
+import { MessageSearch } from './chat/MessageSearch';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -66,6 +71,8 @@ export const TripChat = ({
   const [demoLoading, setDemoLoading] = useState(true);
   const [reactions, setReactions] = useState<{ [messageId: string]: { [reaction: string]: { count: number; userReacted: boolean } } }>({});
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
+  const typingServiceRef = useRef<TypingIndicatorService | null>(null);
   
   const { isOffline } = useOfflineStatus();
   const params = useParams<{ tripId?: string; proTripId?: string; eventId?: string }>();
@@ -149,6 +156,45 @@ export const TripChat = ({
   });
 
   const shouldUseDemoData = demoMode.isDemoMode || !resolvedTripId;
+
+  // Initialize typing indicators
+  useEffect(() => {
+    if (shouldUseDemoData || !user?.id || !resolvedTripId) return;
+
+    const userName = user?.displayName || user?.email?.split('@')[0] || 'You';
+    typingServiceRef.current = new TypingIndicatorService(resolvedTripId, user.id, userName);
+    
+    typingServiceRef.current.initialize(setTypingUsers).catch(console.error);
+
+    return () => {
+      typingServiceRef.current?.cleanup().catch(console.error);
+    };
+  }, [shouldUseDemoData, user?.id, resolvedTripId]);
+
+  // Mark messages as read when they come into view
+  useEffect(() => {
+    if (shouldUseDemoData || !user?.id || !resolvedTripId) return;
+
+    const subscription = subscribeToReadReceipts(resolvedTripId, () => {
+      // Read receipt updates handled via realtime
+    });
+
+    // Mark visible messages as read
+    const markVisibleAsRead = async () => {
+      const visibleMessages = liveMessages.slice(-10); // Last 10 messages
+      for (const msg of visibleMessages) {
+        if (msg.user_id !== user.id) {
+          await markMessageAsRead(msg.id, resolvedTripId, user.id).catch(console.error);
+        }
+      }
+    };
+
+    markVisibleAsRead();
+
+    return () => {
+      subscription.then(ch => supabase.removeChannel(ch)).catch(console.error);
+    };
+  }, [liveMessages, user?.id, resolvedTripId, shouldUseDemoData]);
 
   const liveFormattedMessages = useMemo(() => {
     if (shouldUseDemoData) return [];
@@ -351,10 +397,11 @@ export const TripChat = ({
         </Alert>
       )}
 
-      {/* Message Filters */}
+      {/* Message Filters and Search */}
       {filteredMessages.length > 0 && (
-        <div className="pb-2">
-          <MessageFilters
+        <div className="pb-2 flex items-center gap-2">
+          <div className="flex-1">
+            <MessageFilters
             activeFilter={messageFilter}
             onFilterChange={setMessageFilter}
             hidePayments={true}
@@ -373,6 +420,16 @@ export const TripChat = ({
               }
             }}
           />
+          </div>
+          {!shouldUseDemoData && (
+            <MessageSearch
+              tripId={resolvedTripId}
+              onMessageSelect={(messageId) => {
+                // Scroll to message (would need scroll ref implementation)
+                console.log('Navigate to message:', messageId);
+              }}
+            />
+          )}
         </div>
       )}
 
@@ -413,6 +470,11 @@ export const TripChat = ({
             />
           )}
           
+          {/* Typing Indicator */}
+          {!shouldUseDemoData && typingUsers.length > 0 && (
+            <TypingIndicator typingUsers={typingUsers} />
+          )}
+          
           {/* Reply Bar */}
           {replyingTo && (
             <div className="border-t border-white/10 bg-black/30 px-4 py-2">
@@ -440,6 +502,15 @@ export const TripChat = ({
               hidePayments={true}
               isPro={isPro}
               tripId={resolvedTripId}
+              onTypingChange={(isTyping) => {
+                if (!shouldUseDemoData && typingServiceRef.current) {
+                  if (isTyping) {
+                    typingServiceRef.current.startTyping().catch(console.error);
+                  } else {
+                    typingServiceRef.current.stopTyping().catch(console.error);
+                  }
+                }
+              }}
             />
           </div>
           </div>
