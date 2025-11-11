@@ -6,8 +6,11 @@ import { MediaSubTabs } from './MediaSubTabs';
 import { MediaGrid } from './media/MediaGrid';
 import { StorageQuotaBar } from './StorageQuotaBar';
 import { MediaUrlsPanel } from './media/MediaUrlsPanel';
+import { MediaSearchBar } from './media/MediaSearchBar';
 import { extractUrlsFromTripChat } from '@/services/chatUrlExtractor';
 import type { NormalizedUrl } from '@/services/chatUrlExtractor';
+import type { MediaSearchResult } from '@/services/mediaSearchService';
+import { filterMediaByAITags } from '@/services/mediaAITagging';
 
 interface UnifiedMediaHubProps {
   tripId: string;
@@ -17,6 +20,9 @@ interface UnifiedMediaHubProps {
 export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHubProps) => {
   const [activeTab, setActiveTab] = useState('all');
   const [urlsCount, setUrlsCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<MediaSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   
   const {
     mediaItems,
@@ -37,11 +43,22 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
   }, [tripId]);
 
   const filterMediaByType = (type: string) => {
-    if (type === 'all') return mediaItems;
-    if (type === 'photos') return mediaItems.filter(item => item.media_type === 'image');
-    if (type === 'videos') return mediaItems.filter(item => item.media_type === 'video');
-    if (type === 'files') return mediaItems.filter(item => item.media_type === 'document');
-    return mediaItems;
+    let filtered = mediaItems;
+    
+    if (type === 'photos') filtered = filtered.filter(item => item.media_type === 'image');
+    else if (type === 'videos') filtered = filtered.filter(item => item.media_type === 'video');
+    else if (type === 'files') filtered = filtered.filter(item => item.media_type === 'document');
+    
+    // Apply search filter if active
+    if (searchQuery && searchResults.length > 0) {
+      const resultIds = new Set(searchResults.map(r => r.id));
+      filtered = filtered.filter(item => resultIds.has(item.id));
+    } else if (searchQuery) {
+      // Fallback to AI tag filtering if search results empty
+      filtered = filterMediaByAITags(filtered, searchQuery);
+    }
+    
+    return filtered;
   };
 
   const renderAllItems = () => {
@@ -83,6 +100,19 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
     <div className="space-y-6">
       {/* Storage Quota */}
       <StorageQuotaBar tripId={tripId} showDetails={true} />
+
+      {/* Search Bar */}
+      <MediaSearchBar
+        tripId={tripId}
+        onSearchResults={(results) => {
+          setSearchResults(results);
+          setIsSearching(false);
+        }}
+        onSearchChange={(query) => {
+          setSearchQuery(query);
+          setIsSearching(query.length > 0);
+        }}
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5 bg-white/5 backdrop-blur-sm">
