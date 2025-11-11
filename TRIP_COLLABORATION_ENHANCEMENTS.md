@@ -212,14 +212,18 @@ const { activeUsers, activeUserCount } = useTripPresence(tripId, userId, 'calend
 ### 1. ✅ Universal Links Configuration
 **Status:** ✅ Implemented  
 **Files:**
-- `ios/App/App/Info.plist` (CFBundleURLTypes, associated-domains)
+- `ios/App/App/App.entitlements` (associated-domains - **CRITICAL: Must be in entitlements file, not Info.plist**)
+- `ios/App/App/Info.plist` (CFBundleURLTypes)
 - `ios/App/App/AppDelegate.swift` (handleUniversalLink method)
+- `ios/App/App.xcodeproj/project.pbxproj` (CODE_SIGN_ENTITLEMENTS configuration)
 - `public/.well-known/apple-app-site-association` (new file)
 
 **What was added:**
+- Created `App.entitlements` file with `com.apple.developer.associated-domains`
+- **CRITICAL:** Associated domains MUST be in `.entitlements` file, NOT `Info.plist` (iOS only reads from entitlements)
 - Configured Universal Links for `chravel.app` and `www.chravel.app`
-- Added URL schemes (`chravel://` and `https://`)
-- Added associated domains (`applinks:chravel.app`)
+- Added URL schemes (`chravel://` and `https://`) in Info.plist
+- Updated Xcode project to reference entitlements file (`CODE_SIGN_ENTITLEMENTS`)
 - Implemented Universal Link handler in AppDelegate
 - Routes `/join/{token}` URLs to app
 - Posts notification for view controllers to handle
@@ -230,10 +234,13 @@ const { activeUsers, activeUserCount } = useTripPresence(tripId, userId, 'calend
 - `/event/*` - Event pages
 - `/tour/pro/*` - Pro tour pages
 
-**Note:** The `apple-app-site-association` file must be:
-1. Served at `https://chravel.app/.well-known/apple-app-site-association`
-2. Content-Type: `application/json`
-3. Replace `TEAM_ID` with actual Apple Team ID
+**Important Notes:**
+- The `apple-app-site-association` file must be:
+  1. Served at `https://chravel.app/.well-known/apple-app-site-association`
+  2. Content-Type: `application/json`
+  3. Replace `TEAM_ID` with actual Apple Team ID
+- **Associated domains MUST be in `App.entitlements`, NOT `Info.plist`** - iOS only reads this entitlement from the `.entitlements` file
+- The entitlements file must be included in the provisioning profile
 
 ---
 
@@ -343,8 +350,9 @@ service.presentShareSheet(
 
 ### Files Modified:
 1. `src/hooks/useInviteLink.ts` - Added `resendInvite` function
-2. `ios/App/App/Info.plist` - Added Universal Links and Contacts permissions
+2. `ios/App/App/Info.plist` - Added URL schemes and Contacts permissions (removed associated-domains - moved to entitlements)
 3. `ios/App/App/AppDelegate.swift` - Added Universal Link handler
+4. `ios/App/App.xcodeproj/project.pbxproj` - Added entitlements file reference and CODE_SIGN_ENTITLEMENTS
 
 ---
 
