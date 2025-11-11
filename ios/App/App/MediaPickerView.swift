@@ -11,6 +11,7 @@
 
 import UIKit
 import PhotosUI
+import Photos
 import Capacitor
 
 @objc(MediaPickerView)

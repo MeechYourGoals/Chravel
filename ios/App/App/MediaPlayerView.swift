@@ -12,6 +12,7 @@
 import UIKit
 import AVKit
 import AVFoundation
+import Photos
 
 class MediaPlayerView: NSObject {
     
