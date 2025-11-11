@@ -717,3 +717,12 @@
   transform: scale(0.98);
 }
 
+/* Hide scrollbar for horizontal scroll */
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

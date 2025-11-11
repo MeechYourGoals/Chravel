@@ -133,7 +133,8 @@ export const useChatComposer = ({ tripId, demoMode = false, isEvent = false }: U
 
   const filterMessages = useCallback((messages: ChatMessage[]) => {
     if (messageFilter === 'all') return messages;
-    if (messageFilter === 'broadcasts') return messages.filter(m => m.isBroadcast);
+    if (messageFilter === 'broadcasts') return messages.filter(m => m.isBroadcast === true);
+    if (messageFilter === 'channels') return []; // Channels handled separately
     return messages;
   }, [messageFilter]);
 

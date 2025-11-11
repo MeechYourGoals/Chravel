@@ -132,9 +132,11 @@ export const TripTabs = ({
         prefill={linkPrefill}
       />
 
-      {/* Tab Navigation - Matches main navigation alignment */}
-      <div className="flex whitespace-nowrap gap-2 mb-2 justify-start">
-        {tabs.map((tab) => {
+      {/* Tab Navigation - Responsive max-width container */}
+      <div className="w-full flex justify-center mb-2">
+        <div className="w-full max-w-7xl overflow-x-auto scrollbar-hidden scroll-smooth px-2">
+          <div className="flex whitespace-nowrap gap-2">
+            {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           const enabled = tab.enabled;
@@ -166,6 +168,8 @@ export const TripTabs = ({
             </button>
           );
         })}
+          </div>
+        </div>
       </div>
 
       {/* Tab Content */}
