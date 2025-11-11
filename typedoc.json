@@ -1,0 +1,25 @@
+{
+  "entryPoints": ["supabase/functions/**/*.ts"],
+  "out": "docs/api",
+  "plugin": ["typedoc-plugin-markdown"],
+  "exclude": ["**/_shared/**", "**/node_modules/**"],
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "readme": "docs/API_DOCUMENTATION.md",
+  "name": "Chravel API Documentation",
+  "includeVersion": true,
+  "gitRevision": "main",
+  "sort": ["source-order"],
+  "categorizeByGroup": true,
+  "categoryOrder": [
+    "Authentication",
+    "Trip Management",
+    "Messaging & Chat",
+    "Media & Files",
+    "Payments & Expenses",
+    "Search & AI",
+    "Google Maps",
+    "Broadcasts",
+    "Health & Monitoring"
+  ]
+}
