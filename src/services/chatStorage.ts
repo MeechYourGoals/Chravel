@@ -35,7 +35,7 @@ async function getDB(): Promise<IDBPDatabase<ChatDB>> {
   if (dbInstance) return dbInstance;
 
   dbInstance = await openDB<ChatDB>(DB_NAME, DB_VERSION, {
-    upgrade(db, oldVersion) {
+    upgrade(db, oldVersion, newVersion, upgradeTransaction) {
       if (!db.objectStoreNames.contains('messages')) {
         const store = db.createObjectStore('messages', { keyPath: 'id' });
         store.createIndex('by-trip', 'trip_id');
@@ -43,7 +43,8 @@ async function getDB(): Promise<IDBPDatabase<ChatDB>> {
         store.createIndex('by-created-at', 'created_at');
       } else if (oldVersion < 2) {
         // Add new index for version 2
-        const store = db.transaction.objectStore('messages');
+        // Use upgradeTransaction parameter, not db.transaction (which is a function)
+        const store = upgradeTransaction.objectStore('messages');
         if (!store.indexNames.contains('by-created-at')) {
           store.createIndex('by-created-at', 'created_at');
         }
