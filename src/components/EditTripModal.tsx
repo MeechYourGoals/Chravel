@@ -69,7 +69,8 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
       return;
     }
 
-    if (new Date(formData.end_date) < new Date(formData.start_date)) {
+    // Reject zero-day trips: end date must be after start date (not equal)
+    if (new Date(formData.end_date) <= new Date(formData.start_date)) {
       toast({
         title: "Validation Error",
         description: "End date must be after start date",

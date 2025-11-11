@@ -75,7 +75,8 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
     
-    if (end < start) {
+    // Reject zero-day trips: end date must be after start date (not equal)
+    if (end <= start) {
       return 'End date must be after start date';
     }
     

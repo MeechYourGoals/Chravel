@@ -64,7 +64,8 @@ export const useTripForm = () => {
     const start = new Date(formData.startDate);
     const end = new Date(formData.endDate);
     
-    if (end < start) {
+    // Reject zero-day trips: end date must be after start date (not equal)
+    if (end <= start) {
       return { isValid: false, error: 'End date must be after start date' };
     }
 
