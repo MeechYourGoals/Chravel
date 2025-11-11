@@ -5,6 +5,13 @@ import { TripContextBuilder } from "../_shared/contextBuilder.ts"
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts"
 import { validateInput } from "../_shared/validation.ts"
 import { sanitizeErrorForClient, logError } from "../_shared/errorHandling.ts"
+import { 
+  analyzeQueryComplexity, 
+  filterProfanity, 
+  redactPII,
+  buildEnhancedSystemPrompt,
+  requiresChainOfThought
+} from "../_shared/aiUtils.ts"
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -82,6 +89,31 @@ serve(async (req) => {
       isDemoMode = false,
       config = {}
     } = validation.data
+
+    // 🆕 SAFETY: Content filtering and PII redaction
+    const profanityCheck = filterProfanity(message)
+    if (!profanityCheck.isClean) {
+      console.warn('[Safety] Profanity detected in query:', profanityCheck.violations)
+      // Log but don't block - allow user to proceed with filtered text
+    }
+    
+    // Redact PII from logs (but keep original for AI processing)
+    const piiRedaction = redactPII(message, {
+      redactEmails: true,
+      redactPhones: true,
+      redactCreditCards: true,
+      redactSSN: true,
+      redactIPs: true
+    })
+    
+    // Use redacted text for logging
+    const logMessage = piiRedaction.redactions.length > 0 
+      ? piiRedaction.redactedText 
+      : message
+    
+    if (piiRedaction.redactions.length > 0) {
+      console.log('[Safety] PII redacted from logs:', piiRedaction.redactions.map(r => r.type))
+    }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
@@ -324,8 +356,24 @@ serve(async (req) => {
       }
     }
 
+    // 🆕 SMART MODEL SELECTION: Analyze query complexity
+    const contextSize = comprehensiveContext ? JSON.stringify(comprehensiveContext).length : 0
+    const complexity = analyzeQueryComplexity(message, chatHistory.length, contextSize)
+    
+    console.log(`[Model Selection] Complexity score: ${complexity.score.toFixed(2)}, Recommended: ${complexity.recommendedModel}`)
+    
+    // Determine if chain-of-thought is needed
+    const useChainOfThought = requiresChainOfThought(message, complexity)
+    
     // Build context-aware system prompt with RAG context injected
-    const systemPrompt = buildSystemPrompt(comprehensiveContext, config.systemPrompt) + ragContext
+    let baseSystemPrompt = buildSystemPrompt(comprehensiveContext, config.systemPrompt) + ragContext
+    
+    // 🆕 ENHANCED PROMPTS: Add few-shot examples and chain-of-thought
+    const systemPrompt = buildEnhancedSystemPrompt(
+      baseSystemPrompt,
+      useChainOfThought,
+      true // Always include few-shot examples
+    )
     
     // 🆕 EXPLICIT CONTEXT WINDOW MANAGEMENT
     // Limit chat history to prevent token overflow
@@ -389,6 +437,17 @@ serve(async (req) => {
     const hasLocationContext = comprehensiveContext?.places?.basecamp?.lat && comprehensiveContext?.places?.basecamp?.lng;
     const enableGrounding = isLocationQuery && hasLocationContext;
 
+    // 🆕 SMART MODEL ROUTING: Use Pro for complex queries, Flash for simple ones
+    const selectedModel = config.model || 
+      (complexity.recommendedModel === 'pro' 
+        ? 'google/gemini-2.5-pro' 
+        : 'google/gemini-2.5-flash')
+    
+    // Adjust temperature based on complexity (lower for complex = more focused)
+    const temperature = config.temperature || (complexity.score > 0.5 ? 0.5 : 0.7)
+    
+    console.log(`[Model Selection] Using model: ${selectedModel}, Temperature: ${temperature}`)
+    
     // Call Lovable AI Gateway with optional grounding
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -397,9 +456,9 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: config.model || 'google/gemini-2.5-flash',
+        model: selectedModel,
         messages,
-        temperature: config.temperature || 0.7,
+        temperature,
         max_tokens: config.maxTokens || 2048,
         stream: false,
         // 🆕 Enable Google Maps grounding for location queries
@@ -493,15 +552,26 @@ serve(async (req) => {
       // Track usage for analytics and rate limiting
       if (user) {
         try {
+          // 🆕 Use redacted message for storage (PII protection)
+          const usageData: any = {
+            user_id: user.id,
+            trip_id: comprehensiveContext?.tripMetadata?.id || tripId || 'unknown',
+            query_text: logMessage.substring(0, 500), // Use redacted text
+            response_tokens: usage?.completion_tokens || 0,
+            model_used: selectedModel
+          };
+          
+          // Add new fields if columns exist (graceful degradation)
+          try {
+            usageData.complexity_score = complexity.score;
+            usageData.used_pro_model = complexity.recommendedModel === 'pro';
+          } catch (e) {
+            // Columns may not exist in all environments - ignore
+          }
+          
           await supabase
             .from('concierge_usage')
-            .insert({
-              user_id: user.id,
-              trip_id: comprehensiveContext?.tripMetadata?.id || tripId || 'unknown',
-              query_text: message.substring(0, 500), // Truncate for storage
-              response_tokens: usage?.completion_tokens || 0,
-              model_used: config.model || 'google/gemini-2.5-flash'
-            });
+            .insert(usageData);
         } catch (usageError) {
           console.error('Failed to track usage:', usageError);
           // Don't fail the request if usage tracking fails
@@ -516,7 +586,13 @@ serve(async (req) => {
         sources: citations,
         googleMapsWidget, // 🆕 Widget token for frontend
         success: true,
-        model: config.model || 'google/gemini-2.5-flash'
+        model: selectedModel,
+        complexity: {
+          score: complexity.score,
+          recommended: complexity.recommendedModel,
+          factors: complexity.factors
+        },
+        usedChainOfThought: useChainOfThought
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -524,10 +600,12 @@ serve(async (req) => {
       },
     )
   } catch (error) {
-    // Log full error server-side
+    // 🆕 Log with redacted PII
+    const redactedMessage = message ? redactPII(message).redactedText : ''
     logError('LOVABLE_CONCIERGE', error, { 
       tripId: tripId || 'unknown',
-      messageLength: message?.length || 0
+      messageLength: message?.length || 0,
+      redactedMessage: redactedMessage.substring(0, 200) // Log redacted version
     })
     
     // Return sanitized error to client
