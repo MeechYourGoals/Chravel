@@ -221,22 +221,22 @@ export async function updateMediaWithAITags(
  * @param query - Search query (e.g., "beach photos", "receipts")
  * @returns Filtered items
  */
-export function filterMediaByAITags(
-  items: Array<{ metadata?: Record<string, unknown> }>,
+export function filterMediaByAITags<T extends { metadata?: Record<string, unknown> }>(
+  items: T[],
   query: string
-): Array<{ metadata?: Record<string, unknown> }> {
+): T[] {
   const queryLower = query.toLowerCase();
   const queryWords = queryLower.split(/\s+/).filter(w => w.length > 0);
 
   return items.filter(item => {
     const metadata = item.metadata || {};
     const tags = [
-      ...(Array.isArray(metadata.tags) ? metadata.tags : []),
-      ...(Array.isArray(metadata.ai_tags) ? metadata.ai_tags : []),
+      ...(Array.isArray((metadata as any).tags) ? (metadata as any).tags : []),
+      ...(Array.isArray((metadata as any).ai_tags) ? (metadata as any).ai_tags : []),
     ].map((t: unknown) => String(t).toLowerCase());
 
-    const category = String(metadata.ai_category || '').toLowerCase();
-    const description = String(metadata.ai_description || '').toLowerCase();
+    const category = String((metadata as any).ai_category || '').toLowerCase();
+    const description = String((metadata as any).ai_description || '').toLowerCase();
 
     // Check if any query word matches tags, category, or description
     return queryWords.some(word => {
