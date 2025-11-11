@@ -47,7 +47,7 @@ BEGIN
     AND DATE(created_at) = target_date
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Create function to check if user has exceeded daily limit
 CREATE OR REPLACE FUNCTION has_exceeded_concierge_limit(user_uuid UUID, limit_count INTEGER DEFAULT 10)
@@ -55,7 +55,7 @@ RETURNS BOOLEAN AS $$
 BEGIN
   RETURN get_daily_concierge_usage(user_uuid) >= limit_count;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Grant necessary permissions
 GRANT SELECT ON concierge_usage TO authenticated;

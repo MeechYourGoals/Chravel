@@ -48,6 +48,7 @@ CREATE OR REPLACE FUNCTION public.increment_badge_count(
 RETURNS INTEGER
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_new_count INTEGER;
@@ -74,6 +75,7 @@ CREATE OR REPLACE FUNCTION public.reset_badge_count(
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   UPDATE public.notification_badges
@@ -230,6 +232,7 @@ RETURNS TABLE(
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_limit INTEGER;
@@ -271,6 +274,7 @@ CREATE OR REPLACE FUNCTION public.increment_ocr_usage(
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_window_start TIMESTAMP WITH TIME ZONE;
@@ -492,6 +496,7 @@ RETURNS TABLE(
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_limit INTEGER;
@@ -528,6 +533,7 @@ CREATE OR REPLACE FUNCTION public.increment_invite_usage(p_user_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_window_start TIMESTAMP WITH TIME ZONE;
@@ -601,6 +607,7 @@ RETURNS TABLE(
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_removing_user_role TEXT;
@@ -738,6 +745,7 @@ CREATE OR REPLACE FUNCTION public.cleanup_expired_prefetch()
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   DELETE FROM public.offline_prefetch_metadata
@@ -754,6 +762,7 @@ CREATE OR REPLACE FUNCTION public.cleanup_old_rate_limits()
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   DELETE FROM public.ocr_rate_limits WHERE window_start < now() - INTERVAL '7 days';

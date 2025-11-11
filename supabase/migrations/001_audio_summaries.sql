@@ -96,7 +96,7 @@ BEGIN
   -- Check if under quota
   RETURN current_usage < quota_limit;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE OR REPLACE FUNCTION increment_audio_usage(p_user_id UUID, p_duration INTEGER)
 RETURNS VOID AS $$
@@ -106,4 +106,4 @@ BEGIN
   ON CONFLICT (user_id) 
   DO UPDATE SET monthly_usage = audio_usage_quota.monthly_usage + p_duration;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
