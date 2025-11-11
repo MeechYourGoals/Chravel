@@ -10,6 +10,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { corsHeaders } from '../_shared/cors.ts';
+import { ReceiptOCRSchema, validateInput, validateExternalHttpsUrl } from '../_shared/validation.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -55,10 +56,19 @@ serve(async (req) => {
       return createErrorResponse('Unauthorized', 401);
     }
 
-    const payload: OCRRequest = await req.json();
+    // Validate request body with Zod schema (SSRF protection)
+    const rawBody = await req.json();
+    const validation = validateInput(ReceiptOCRSchema, rawBody);
+    
+    if (!validation.success) {
+      return createErrorResponse(validation.error, 400);
+    }
 
-    if (!payload.receiptId || (!payload.imageUrl && !payload.imageBase64)) {
-      return createErrorResponse('Missing required fields: receiptId and (imageUrl or imageBase64)', 400);
+    const payload = validation.data;
+
+    // Additional defense-in-depth: validate imageUrl if provided
+    if (payload.imageUrl && !validateExternalHttpsUrl(payload.imageUrl)) {
+      return createErrorResponse('Image URL must be HTTPS and external (no internal/private networks)', 400);
     }
 
     // Get user's subscription tier
@@ -221,10 +231,22 @@ serve(async (req) => {
 });
 
 async function fetchImageAsBase64(url: string): Promise<string> {
-  const response = await fetch(url);
+  // Additional validation before fetch (defense in depth)
+  if (!validateExternalHttpsUrl(url)) {
+    throw new Error('Invalid image URL: must be HTTPS and external');
+  }
+
+  const response = await fetch(url, {
+    signal: AbortSignal.timeout(30000), // 30 second timeout
+    headers: {
+      'User-Agent': 'Chravel-ReceiptOCR/1.0'
+    }
+  });
+  
   if (!response.ok) {
     throw new Error(`Failed to fetch image: ${response.statusText}`);
   }
+  
   const arrayBuffer = await response.arrayBuffer();
   const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
   return base64;

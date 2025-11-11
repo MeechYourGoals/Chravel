@@ -1,77 +1,53 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
+import { 
+  DocumentProcessorSchema, 
+  validateInput, 
+  verifyTripMembership,
+  validateExternalHttpsUrl 
+} from '../_shared/validation.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')!;
 
-interface DocumentProcessingRequest {
-  fileId: string;
-  tripId: string;
-  forceReprocess?: boolean;
-}
-
-/**
- * Validates that a file URL is from the Supabase storage bucket
- */
-function validateFileUrl(fileUrl: string): boolean {
-  if (!fileUrl || typeof fileUrl !== 'string') {
-    return false;
-  }
-  
-  // Extract Supabase project ID from SUPABASE_URL
-  const supabaseUrl = new URL(SUPABASE_URL);
-  const projectId = supabaseUrl.hostname.split('.')[0];
-  
-  // Allow Supabase storage URLs
-  const storagePattern = new RegExp(`^https://${projectId}\\.supabase\\.co/storage/`);
-  if (storagePattern.test(fileUrl)) {
-    return true;
-  }
-  
-  // Also allow the full storage path format
-  if (fileUrl.includes('/storage/v1/object/public/')) {
-    return true;
-  }
-  
-  return false;
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  let fileId: string | undefined;
+
   try {
-    // 🔒 SECURITY: Verify JWT authentication
+    // Validate request body with Zod schema
+    const rawBody = await req.json();
+    const validation = validateInput(DocumentProcessorSchema, rawBody);
+    
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({ error: validation.error, success: false }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const validated = validation.data;
+    fileId = validated.fileId;
+    const { tripId, forceReprocess } = validated;
+
+    // Get user ID from auth header
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized - authentication required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Create authenticated client to verify user
-    const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false }
-    });
-
-    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized - invalid or expired token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const { fileId, tripId, forceReprocess = false } = await req.json() as DocumentProcessingRequest;
-
-    if (!fileId || !tripId) {
-      throw new Error('fileId and tripId are required');
+    let userId: string | null = null;
+    
+    if (authHeader) {
+      const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user } } = await supabaseAuth.auth.getUser(token);
+      userId = user?.id || null;
     }
 
     // 🔒 SECURITY: Verify user is a member of the trip
@@ -104,11 +80,48 @@ serve(async (req) => {
       throw new Error(`File not found: ${fileId}`);
     }
 
-    // 🔒 SECURITY: Validate file URL is from Supabase storage
-    if (!validateFileUrl(fileData.file_url)) {
+    // Verify file belongs to the specified trip
+    if (fileData.trip_id !== tripId) {
       return new Response(
-        JSON.stringify({ error: 'Invalid file URL - must be from Supabase storage' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          error: 'File does not belong to the specified trip', 
+          success: false 
+        }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Verify user is a member of the trip (if authenticated)
+    if (userId) {
+      const membershipCheck = await verifyTripMembership(supabase, userId, tripId);
+      if (!membershipCheck.isMember) {
+        return new Response(
+          JSON.stringify({ 
+            error: membershipCheck.error || 'Unauthorized access to trip', 
+            success: false 
+          }),
+          { 
+            status: 403, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+    }
+
+    // Validate file_url is HTTPS and external (SSRF protection)
+    if (fileData.file_url && !validateExternalHttpsUrl(fileData.file_url)) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid file URL: must be HTTPS and external (no internal networks)', 
+          success: false 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       );
     }
 
@@ -252,21 +265,28 @@ serve(async (req) => {
   } catch (error) {
     console.error('Document processing error:', error);
 
-    // Try to update file status to failed
+    // Try to update file status to failed (only if we have fileId)
     if (fileId) {
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-      await supabase
-        .from('trip_files')
-        .update({
-          processing_status: 'failed',
-          error_message: error.message
-        })
-        .eq('id', fileId)
-        .catch(console.error);
+      try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        await supabase
+          .from('trip_files')
+          .update({
+            processing_status: 'failed',
+            error_message: error instanceof Error ? error.message : 'Unknown error'
+          })
+          .eq('id', fileId)
+          .catch(console.error);
+      } catch {
+        // Ignore errors in error handling
+      }
     }
 
     return new Response(
-      JSON.stringify({ error: error.message, success: false }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error', 
+        success: false 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
@@ -275,6 +295,11 @@ serve(async (req) => {
 // ============= HELPER FUNCTIONS =============
 
 async function extractWithGeminiVision(fileUrl: string, fileType: string) {
+  // Validate URL before fetching (SSRF protection)
+  if (!validateExternalHttpsUrl(fileUrl)) {
+    throw new Error('Invalid file URL: must be HTTPS and external');
+  }
+
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -339,6 +364,11 @@ async function extractWithGeminiVision(fileUrl: string, fileType: string) {
 }
 
 async function extractTextFromImage(imageUrl: string) {
+  // Validate URL before fetching (SSRF protection)
+  if (!validateExternalHttpsUrl(imageUrl)) {
+    throw new Error('Invalid image URL: must be HTTPS and external');
+  }
+
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -392,10 +422,22 @@ async function extractTextFromImage(imageUrl: string) {
 }
 
 async function fetchTextFile(fileUrl: string): Promise<string> {
-  const response = await fetch(fileUrl);
+  // Additional validation before fetch (defense in depth)
+  if (!validateExternalHttpsUrl(fileUrl)) {
+    throw new Error('Invalid file URL: must be HTTPS and external');
+  }
+
+  const response = await fetch(fileUrl, {
+    signal: AbortSignal.timeout(30000), // 30 second timeout
+    headers: {
+      'User-Agent': 'Chravel-DocumentProcessor/1.0'
+    }
+  });
+  
   if (!response.ok) {
     throw new Error(`Failed to fetch text file: ${response.status}`);
   }
+  
   return await response.text();
 }
 

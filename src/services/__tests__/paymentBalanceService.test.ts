@@ -11,7 +11,10 @@ import { supabase } from '../../integrations/supabase/client';
 // Mock Supabase
 vi.mock('../../integrations/supabase/client', () => ({
   supabase: {
-    from: vi.fn()
+    from: vi.fn(),
+    auth: {
+      getUser: vi.fn()
+    }
   }
 }));
 
@@ -24,17 +27,56 @@ vi.mock('../currencyService', () => ({
 describe('paymentBalanceService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Default mock: authenticated user with trip membership
+    (supabase.auth.getUser as any).mockResolvedValue({
+      data: { user: { id: 'user-1' } },
+      error: null
+    });
+    
+    // Default mock: user is a trip member
+    const mockMembershipCheck = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
+        })
+      })
+    });
+    
+    (supabase.from as any).mockImplementation((table: string) => {
+      if (table === 'trip_members') {
+        return mockMembershipCheck();
+      }
+      // For other tables, return the original mock
+      return {
+        select: vi.fn()
+      };
+    });
   });
 
   describe('getBalanceSummary', () => {
     it('should return empty summary when no payments exist', async () => {
-      const mockFrom = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ data: [], error: null })
+      // Mock trip_members check (membership validation)
+      const mockMembershipSelect = vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
         })
       });
 
-      (supabase.from as any).mockImplementation(mockFrom);
+      // Mock trip_payment_messages query
+      const mockPaymentSelect = vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ data: [], error: null })
+      });
+
+      (supabase.from as any).mockImplementation((table: string) => {
+        if (table === 'trip_members') {
+          return { select: mockMembershipSelect };
+        }
+        if (table === 'trip_payment_messages') {
+          return { select: mockPaymentSelect };
+        }
+        return { select: vi.fn() };
+      });
 
       const result = await paymentBalanceService.getBalanceSummary('trip-1', 'user-1');
 
@@ -78,23 +120,34 @@ describe('paymentBalanceService', () => {
 
       const mockPaymentMethods: any[] = [];
 
-      // Mock Supabase calls
-      const mockSelect = vi.fn()
-        .mockReturnValueOnce({
-          eq: vi.fn().mockResolvedValue({ data: mockPayments, error: null })
-        })
-        .mockReturnValueOnce({
-          in: vi.fn().mockResolvedValue({ data: mockSplits, error: null })
-        })
-        .mockReturnValueOnce({
-          in: vi.fn().mockResolvedValue({ data: mockProfiles, error: null })
-        })
-        .mockReturnValueOnce({
-          in: vi.fn().mockResolvedValue({ data: mockPaymentMethods, error: null })
-        });
-
-      (supabase.from as any).mockReturnValue({
-        select: mockSelect
+      // Mock Supabase calls - need to handle trip_members check first
+      (supabase.from as any).mockImplementation((table: string) => {
+        if (table === 'trip_members') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
+              })
+            })
+          };
+        }
+        
+        // For other tables, use chained mocks
+        const mockSelect = vi.fn()
+          .mockReturnValueOnce({
+            eq: vi.fn().mockResolvedValue({ data: mockPayments, error: null })
+          })
+          .mockReturnValueOnce({
+            in: vi.fn().mockResolvedValue({ data: mockSplits, error: null })
+          })
+          .mockReturnValueOnce({
+            in: vi.fn().mockResolvedValue({ data: mockProfiles, error: null })
+          })
+          .mockReturnValueOnce({
+            in: vi.fn().mockResolvedValue({ data: mockPaymentMethods, error: null })
+          });
+        
+        return { select: mockSelect };
       });
 
       // Mock currency conversion (same currency, no conversion needed)
@@ -358,6 +411,41 @@ describe('paymentBalanceService', () => {
       expect(result.balances[0].preferredPaymentMethod?.isPreferred).toBe(true);
     });
 
+    it('should throw error when user is not authenticated', async () => {
+      (supabase.auth.getUser as any).mockResolvedValue({
+        data: { user: null },
+        error: { message: 'Not authenticated' }
+      });
+
+      await expect(
+        paymentBalanceService.getBalanceSummary('trip-1', 'user-1')
+      ).rejects.toThrow('Unauthorized: Authentication required');
+    });
+
+    it('should throw error when user is not a trip member', async () => {
+      (supabase.auth.getUser as any).mockResolvedValue({
+        data: { user: { id: 'user-1' } },
+        error: null
+      });
+
+      (supabase.from as any).mockImplementation((table: string) => {
+        if (table === 'trip_members') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+              })
+            })
+          };
+        }
+        return { select: vi.fn() };
+      });
+
+      await expect(
+        paymentBalanceService.getBalanceSummary('trip-1', 'user-1')
+      ).rejects.toThrow('Unauthorized: Not a trip member');
+    });
+
     it('should handle errors gracefully', async () => {
       const mockSelect = vi.fn().mockReturnValue({
         eq: vi.fn().mockResolvedValue({ 
@@ -366,8 +454,17 @@ describe('paymentBalanceService', () => {
         })
       });
 
-      (supabase.from as any).mockReturnValue({
-        select: mockSelect
+      (supabase.from as any).mockImplementation((table: string) => {
+        if (table === 'trip_members') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
+              })
+            })
+          };
+        }
+        return { select: mockSelect };
       });
 
       const result = await paymentBalanceService.getBalanceSummary('trip-1', 'user-1');

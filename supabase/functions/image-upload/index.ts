@@ -1,5 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { 
+  ImageUploadSchema, 
+  validateInput,
+  isBlockedExtension,
+  isValidFileType,
+  ALLOWED_FILE_TYPES
+} from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,16 +43,55 @@ serve(async (req) => {
       throw new Error('No file provided');
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      throw new Error('Invalid file type. Only JPEG, PNG, and WebP are allowed.');
+    // Validate using Zod schema
+    const validation = validateInput(ImageUploadSchema, { file, folder });
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({ error: validation.error }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Additional explicit checks for better error messages
+    // Check file extension (block executables and scripts)
+    if (isBlockedExtension(file.name)) {
+      return new Response(
+        JSON.stringify({ 
+          error: `File type not allowed: ${file.name.split('.').pop()} files are blocked for security reasons` 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Validate file type (only images)
+    if (!isValidFileType(file.type, ALLOWED_FILE_TYPES.images)) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid file type. Only JPEG, PNG, and WebP images are allowed.' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Validate file size (5MB max)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      throw new Error('File too large. Maximum size is 5MB.');
+      return new Response(
+        JSON.stringify({ error: 'File too large. Maximum size is 5MB.' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Generate unique filename
