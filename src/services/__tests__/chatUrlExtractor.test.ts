@@ -6,9 +6,10 @@
  * @module services/__tests__/chatUrlExtractor.test
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
-import { extractUrlsFromTripChat, normalizeUrl, categorizeUrl } from '../chatUrlExtractor';
-import { categorizeUrl as categorizeUrlFromOG } from '../ogMetadataService';
+import { describe, it, expect } from '@jest/globals';
+import { extractUrlsFromTripChat } from '../chatUrlExtractor';
+import { normalizeUrl } from '../urlUtils';
+import { categorizeUrl } from '../ogMetadataService';
 
 // Mock Supabase client
 jest.mock('@/integrations/supabase/client', () => ({
@@ -51,25 +52,25 @@ describe('chatUrlExtractor', () => {
   describe('categorizeUrl', () => {
     it('should categorize receipt URLs', () => {
       const receiptUrl = 'https://venmo.com/receipt/123';
-      const category = categorizeUrlFromOG(receiptUrl);
+      const category = categorizeUrl(receiptUrl);
       expect(category).toBe('receipt');
     });
 
     it('should categorize booking URLs', () => {
       const bookingUrl = 'https://airbnb.com/rooms/123';
-      const category = categorizeUrlFromOG(bookingUrl);
+      const category = categorizeUrl(bookingUrl);
       expect(category).toBe('booking');
     });
 
     it('should categorize schedule URLs', () => {
       const scheduleUrl = 'https://calendar.google.com/event/123';
-      const category = categorizeUrlFromOG(scheduleUrl);
+      const category = categorizeUrl(scheduleUrl);
       expect(category).toBe('schedule');
     });
 
     it('should default to general for unknown URLs', () => {
       const generalUrl = 'https://example.com/page';
-      const category = categorizeUrlFromOG(generalUrl);
+      const category = categorizeUrl(generalUrl);
       expect(category).toBe('general');
     });
   });
