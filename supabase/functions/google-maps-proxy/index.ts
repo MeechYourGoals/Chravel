@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from "../_shared/cors.ts";
 import { validateAndSanitizeInput, checkRateLimit, addSecurityHeaders } from "../_shared/security.ts";
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
 serve(async (req) => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
@@ -11,9 +15,25 @@ serve(async (req) => {
   }
 
   try {
-    // Rate limiting
-    const clientIP = req.headers.get('x-forwarded-for') || 'unknown';
-    const rateLimit = checkRateLimit(clientIP, 100, 60000);
+    // 🔒 SECURITY: Verify JWT authentication to prevent quota abuse
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return createErrorResponse('Unauthorized - authentication required', 401);
+    }
+
+    // Create authenticated client to verify user
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false }
+    });
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return createErrorResponse('Unauthorized - invalid or expired token', 401);
+    }
+
+    // Rate limiting (per user instead of IP for better security)
+    const rateLimit = checkRateLimit(user.id, 100, 60000);
     
     if (!rateLimit.allowed) {
       return new Response(

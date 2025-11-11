@@ -2,12 +2,81 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { corsHeaders } from '../_shared/cors.ts';
 
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-);
-
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
+/**
+ * 🔒 SECURITY: Validates image/file URLs to prevent SSRF attacks
+ * Only allows:
+ * - Supabase storage URLs
+ * - Public HTTPS URLs (but blocks localhost/internal IPs)
+ */
+function validateImageUrl(url: string): { valid: boolean; error?: string } {
+  if (!url || typeof url !== 'string') {
+    return { valid: false, error: 'Invalid URL format' };
+  }
+
+  try {
+    const urlObj = new URL(url);
+
+    // Must be HTTPS
+    if (urlObj.protocol !== 'https:') {
+      return { valid: false, error: 'Only HTTPS URLs are allowed' };
+    }
+
+    // Extract Supabase project ID from SUPABASE_URL
+    const supabaseUrlObj = new URL(SUPABASE_URL);
+    const projectId = supabaseUrlObj.hostname.split('.')[0];
+
+    // Allow Supabase storage URLs
+    const storagePattern = new RegExp(`^https://${projectId}\\.supabase\\.co/storage/`);
+    if (storagePattern.test(url)) {
+      return { valid: true };
+    }
+
+    // Also allow the full storage path format
+    if (url.includes('/storage/v1/object/public/')) {
+      return { valid: true };
+    }
+
+    // Block localhost and internal IPs
+    const hostname = urlObj.hostname.toLowerCase();
+    const blockedHosts = [
+      'localhost',
+      '127.0.0.1',
+      '0.0.0.0',
+      '::1',
+      '[::1]',
+      '169.254.169.254', // AWS metadata service
+      'metadata.google.internal', // GCP metadata service
+    ];
+
+    if (blockedHosts.includes(hostname)) {
+      return { valid: false, error: 'Localhost and internal IPs are not allowed' };
+    }
+
+    // Block private IP ranges
+    const privateIpPatterns = [
+      /^10\./,
+      /^172\.(1[6-9]|2[0-9]|3[01])\./,
+      /^192\.168\./,
+      /^fc00:/,
+      /^fe80:/,
+    ];
+
+    for (const pattern of privateIpPatterns) {
+      if (pattern.test(hostname)) {
+        return { valid: false, error: 'Private IP ranges are not allowed' };
+      }
+    }
+
+    // Allow other public HTTPS URLs
+    return { valid: true };
+  } catch (error) {
+    return { valid: false, error: 'Invalid URL format' };
+  }
+}
 
 serve(async (req) => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
@@ -17,7 +86,46 @@ serve(async (req) => {
   }
 
   try {
+    // 🔒 SECURITY: Verify JWT authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return createErrorResponse('Unauthorized - authentication required', 401);
+    }
+
+    // Create authenticated client to verify user
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false }
+    });
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return createErrorResponse('Unauthorized - invalid or expired token', 401);
+    }
+
     const { messageText, fileUrl, fileType, extractionType, tripId } = await req.json();
+
+    // 🔒 SECURITY: Validate fileUrl if provided (prevent SSRF)
+    if (fileUrl) {
+      const urlValidation = validateImageUrl(fileUrl);
+      if (!urlValidation.valid) {
+        return createErrorResponse(`Invalid file URL: ${urlValidation.error}`, 400);
+      }
+    }
+
+    // 🔒 SECURITY: Verify trip membership if tripId is provided
+    if (tripId) {
+      const { data: membershipCheck, error: membershipError } = await supabase
+        .from('trip_members')
+        .select('user_id, status')
+        .eq('trip_id', tripId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (membershipError || !membershipCheck || membershipCheck.status !== 'active') {
+        return createErrorResponse('Forbidden - you must be an active member of this trip', 403);
+      }
+    }
     
     switch (extractionType) {
       case 'calendar':
@@ -187,6 +295,12 @@ async function analyzePhoto(fileUrl: string) {
     throw new Error('Lovable API key not configured');
   }
 
+  // 🔒 SECURITY: Validate URL before fetching (prevent SSRF)
+  const urlValidation = validateImageUrl(fileUrl);
+  if (!urlValidation.valid) {
+    throw new Error(`Invalid image URL: ${urlValidation.error}`);
+  }
+
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -253,6 +367,12 @@ async function analyzePhoto(fileUrl: string) {
 async function parseDocument(fileUrl: string, fileType: string) {
   if (!LOVABLE_API_KEY) {
     throw new Error('Lovable API key not configured');
+  }
+
+  // 🔒 SECURITY: Validate URL before fetching (prevent SSRF)
+  const urlValidation = validateImageUrl(fileUrl);
+  if (!urlValidation.valid) {
+    throw new Error(`Invalid document URL: ${urlValidation.error}`);
   }
 
   // 🆕 Enhanced document parsing with better OCR and structure extraction

@@ -10,6 +10,7 @@ import {
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')!;
 
 serve(async (req) => {
@@ -49,7 +50,22 @@ serve(async (req) => {
       userId = user?.id || null;
     }
 
-    // Use service role to bypass RLS
+    // 🔒 SECURITY: Verify user is a member of the trip
+    const { data: membershipCheck, error: membershipError } = await supabaseAuth
+      .from('trip_members')
+      .select('user_id, status')
+      .eq('trip_id', tripId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (membershipError || !membershipCheck || membershipCheck.status !== 'active') {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden - you must be an active member of this trip' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Use service role to bypass RLS for file operations
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Fetch file metadata
@@ -57,6 +73,7 @@ serve(async (req) => {
       .from('trip_files')
       .select('*')
       .eq('id', fileId)
+      .eq('trip_id', tripId) // Ensure file belongs to the trip
       .single();
 
     if (fileError || !fileData) {

@@ -10,7 +10,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.google-maps-proxy]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-features]
 verify_jwt = true
