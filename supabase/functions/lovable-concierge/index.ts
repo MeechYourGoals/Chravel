@@ -327,12 +327,59 @@ serve(async (req) => {
     // Build context-aware system prompt with RAG context injected
     const systemPrompt = buildSystemPrompt(comprehensiveContext, config.systemPrompt) + ragContext
     
+    // 🆕 EXPLICIT CONTEXT WINDOW MANAGEMENT
+    // Limit chat history to prevent token overflow
+    const MAX_CHAT_HISTORY_MESSAGES = 10;
+    const MAX_SYSTEM_PROMPT_LENGTH = 8000; // Characters, not tokens (rough estimate)
+    const MAX_TOTAL_CONTEXT_LENGTH = 12000; // Characters
+    
+    // Truncate chat history if too long
+    const limitedChatHistory = chatHistory.slice(-MAX_CHAT_HISTORY_MESSAGES);
+    
+    // Truncate system prompt if too long (preserve most important parts)
+    let finalSystemPrompt = systemPrompt;
+    if (systemPrompt.length > MAX_SYSTEM_PROMPT_LENGTH) {
+      // Keep first part (base prompt) and last part (RAG context)
+      const basePromptEnd = systemPrompt.indexOf('=== TRIP CONTEXT ===');
+      const ragStart = systemPrompt.indexOf('=== RELEVANT TRIP CONTEXT');
+      
+      if (basePromptEnd > 0 && ragStart > 0) {
+        const basePrompt = systemPrompt.substring(0, basePromptEnd);
+        const ragContext = systemPrompt.substring(ragStart);
+        const middlePart = systemPrompt.substring(basePromptEnd, ragStart);
+        
+        // Truncate middle part if needed
+        const availableLength = MAX_SYSTEM_PROMPT_LENGTH - basePrompt.length - ragContext.length;
+        const truncatedMiddle = middlePart.length > availableLength 
+          ? '...\n[Context truncated for efficiency]\n...' + middlePart.substring(middlePart.length - availableLength + 50)
+          : middlePart;
+        
+        finalSystemPrompt = basePrompt + truncatedMiddle + ragContext;
+      } else {
+        // Fallback: simple truncation
+        finalSystemPrompt = systemPrompt.substring(0, MAX_SYSTEM_PROMPT_LENGTH) + '\n\n[Context truncated...]';
+      }
+      
+      console.log(`[Context Management] Truncated system prompt from ${systemPrompt.length} to ${finalSystemPrompt.length} characters`);
+    }
+    
     // Prepare messages for Lovable AI
     const messages: ChatMessage[] = [
-      { role: 'system', content: systemPrompt },
-      ...chatHistory,
+      { role: 'system', content: finalSystemPrompt },
+      ...limitedChatHistory,
       { role: 'user', content: message }
     ]
+    
+    // Log context size for monitoring
+    const totalContextLength = finalSystemPrompt.length + 
+      limitedChatHistory.reduce((sum, msg) => sum + msg.content.length, 0) + 
+      message.length;
+    
+    if (totalContextLength > MAX_TOTAL_CONTEXT_LENGTH) {
+      console.warn(`[Context Management] Total context length (${totalContextLength}) exceeds recommended limit (${MAX_TOTAL_CONTEXT_LENGTH})`);
+    } else {
+      console.log(`[Context Management] Total context length: ${totalContextLength} characters`);
+    }
 
     // 🆕 Smart grounding detection - only enable for location queries
     const isLocationQuery = message.toLowerCase().match(
