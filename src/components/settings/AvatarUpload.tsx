@@ -250,9 +250,10 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
       const compressedFile = await compressImage(croppedFile);
 
       // Upload to Supabase Storage
+      // Note: Path should start with user.id (not 'avatars/') since we're already using .from('avatars')
+      // Storage policies require the first path segment to match auth.uid()
       const fileExt = compressedFile.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const filePath = `${user.id}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')

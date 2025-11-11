@@ -49,10 +49,11 @@
 - **Storage Bucket**: `avatars` (public)
 - **Features**:
   - Automatic file upload to Supabase Storage
-  - User-scoped folder structure (`avatars/{userId}/{timestamp}.jpg`)
+  - User-scoped folder structure (`{userId}/{timestamp}.jpg` - note: no `avatars/` prefix since `.from('avatars')` specifies bucket)
   - Public URL generation
   - Profile table update integration
 - **Status**: ✅ Complete (requires bucket creation - see Migration section)
+- **Important**: Path must start with `{userId}/` to match storage policies that check `(storage.foldername(name))[1] = auth.uid()`
 
 ### 5. Mobile-Responsive UI ✅
 - **Implementation**: `src/components/settings/AvatarUpload.tsx`
@@ -237,6 +238,9 @@ When implementing native iOS features, refer to:
 2. **Storage Upload Pattern**:
    ```typescript
    // Web implementation pattern (reference for iOS)
+   // IMPORTANT: Path must start with userId/ (not 'avatars/') since .from('avatars') specifies bucket
+   // Storage policies require first path segment to match auth.uid()
+   const filePath = `${userId}/${timestamp}.${ext}`;
    const { error } = await supabase.storage
      .from('avatars')
      .upload(filePath, file, { upsert: true });

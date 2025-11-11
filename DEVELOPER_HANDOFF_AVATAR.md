@@ -137,7 +137,8 @@ const COMPRESSION_MAX_HEIGHT = 800;  // Max height
 ### Storage Bucket
 - **Bucket ID**: `avatars`
 - **Public**: `true`
-- **Path Pattern**: `avatars/{userId}/{timestamp}.jpg`
+- **Path Pattern**: `{userId}/{timestamp}.jpg` (no `avatars/` prefix - bucket specified via `.from('avatars')`)
+- **Important**: Path must start with `{userId}/` to match storage policies
 
 ---
 
