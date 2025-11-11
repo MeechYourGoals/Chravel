@@ -1,6 +1,13 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
+import { 
+  FileUploadSchema, 
+  validateInput,
+  isBlockedExtension,
+  isValidFileType,
+  ALLOWED_FILE_TYPES
+} from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,10 +39,45 @@ serve(async (req) => {
       );
     }
 
-    // Validate file size (50MB max)
+    // Validate using Zod schema
+    const validation = validateInput(FileUploadSchema, { file, tripId, userId });
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({ error: validation.error }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Additional explicit checks for better error messages
+    // Check file extension (block executables and scripts)
+    if (isBlockedExtension(file.name)) {
+      return new Response(
+        JSON.stringify({ 
+          error: `File type not allowed: ${file.name.split('.').pop()} files are blocked for security reasons` 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check file size (50MB max)
     if (file.size > 50 * 1024 * 1024) {
       return new Response(
         JSON.stringify({ error: 'File size too large (max 50MB)' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check MIME type
+    const allowedTypes = [
+      ...ALLOWED_FILE_TYPES.images,
+      ...ALLOWED_FILE_TYPES.documents,
+      ...ALLOWED_FILE_TYPES.media
+    ];
+    if (!isValidFileType(file.type, allowedTypes)) {
+      return new Response(
+        JSON.stringify({ 
+          error: `File type not allowed: ${file.type}. Allowed types: images, documents (PDF, DOCX, XLSX, TXT, CSV), and media (MP4, MOV, MP3, WAV)` 
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
