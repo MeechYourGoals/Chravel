@@ -169,7 +169,9 @@ export async function generateClientPDF(
   }
 ): Promise<Blob> {
   const { customization, onProgress } = options || {};
-  const maxItems = customization?.maxItemsPerSection || 100;
+  // Clamp maxItemsPerSection to ensure it's always >= 1 to prevent infinite loops
+  // Negative or zero values would cause chunkArray's loop to never progress
+  const maxItems = Math.max(1, Math.floor(customization?.maxItemsPerSection || 100));
   const primaryColor = customization?.primaryColor || '#428BCA';
   const secondaryColor = customization?.secondaryColor || '#5BC0DE';
   const [primaryR, primaryG, primaryB] = hexToRgb(primaryColor);
