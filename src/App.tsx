@@ -19,6 +19,7 @@ import BuildBadge from "./components/BuildBadge";
 import { Navigate, useParams } from "react-router-dom";
 import { isLovablePreview } from "./utils/env";
 import { toast } from "@/hooks/use-toast";
+import { setupGlobalSyncProcessor } from "./services/globalSyncProcessor";
 
 // Lazy load pages for better performance
 const retryImport = <T,>(importFn: () => Promise<T>, retries = 3): Promise<T> => {
@@ -110,6 +111,11 @@ const App = () => {
         });
       }
     });
+  }, []);
+
+  // Setup global offline sync processor
+  useEffect(() => {
+    return setupGlobalSyncProcessor();
   }, []);
 
   // Diagnostic banner on mount (production troubleshooting)

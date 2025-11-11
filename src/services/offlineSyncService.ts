@@ -383,39 +383,59 @@ class OfflineSyncService {
         await this.updateOperationStatus(operation.id, 'syncing');
 
         let result: any;
+        let handlerRan = false;
 
         // Route to appropriate handler
         switch (operation.entityType) {
           case 'chat_message':
             if (operation.operationType === 'create' && handlers.onChatMessageCreate) {
               result = await handlers.onChatMessageCreate(operation.tripId, operation.data);
+              handlerRan = true;
             } else if (operation.operationType === 'update' && handlers.onChatMessageUpdate) {
               result = await handlers.onChatMessageUpdate(operation.entityId!, operation.data);
+              handlerRan = true;
             }
             break;
 
           case 'task':
             if (operation.operationType === 'create' && handlers.onTaskCreate) {
               result = await handlers.onTaskCreate(operation.tripId, operation.data);
+              handlerRan = true;
             } else if (operation.operationType === 'update' && handlers.onTaskUpdate) {
               result = await handlers.onTaskUpdate(operation.entityId!, operation.data);
+              handlerRan = true;
             } else if (operation.operationType === 'update' && operation.data.completed !== undefined && handlers.onTaskToggle) {
               result = await handlers.onTaskToggle(operation.entityId!, operation.data);
+              handlerRan = true;
             }
             break;
 
           case 'calendar_event':
             if (operation.operationType === 'create' && handlers.onCalendarEventCreate) {
               result = await handlers.onCalendarEventCreate(operation.tripId, operation.data);
+              handlerRan = true;
             } else if (operation.operationType === 'update' && handlers.onCalendarEventUpdate) {
               result = await handlers.onCalendarEventUpdate(operation.entityId!, operation.data);
+              handlerRan = true;
             } else if (operation.operationType === 'delete' && handlers.onCalendarEventDelete) {
               result = await handlers.onCalendarEventDelete(operation.entityId!);
+              handlerRan = true;
             }
             break;
         }
 
-        // Success - remove from queue
+        // Only remove operation if a handler actually ran and succeeded
+        if (!handlerRan) {
+          // No handler for this operation type - skip it (don't remove, don't fail)
+          console.warn(
+            `No handler provided for ${operation.entityType}:${operation.operationType} operation ${operation.id}. Skipping.`
+          );
+          // Reset status back to pending so it can be processed later with proper handlers
+          await this.updateOperationStatus(operation.id, 'pending');
+          continue;
+        }
+
+        // Handler ran successfully - remove from queue
         await this.removeOperation(operation.id);
         processed++;
       } catch (error: any) {
