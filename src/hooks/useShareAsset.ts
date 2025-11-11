@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { uploadToStorage, insertMediaIndex, insertFileIndex } from '@/services/uploadService';
 import { insertLinkIndex, fetchOpenGraphData } from '@/services/linkService';
 import { sendChatMessage, AttachmentType } from '@/services/chatService';
+import { autoParseContent, ParsedContent } from '@/services/chatContentParser';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -18,6 +19,7 @@ export function useShareAsset(tripId: string) {
   const [isUploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, UploadProgress>>({});
   const [error, setError] = useState<string | null>(null);
+  const [parsedContent, setParsedContent] = useState<ParsedContent | null>(null);
   const { user } = useAuth();
   const userId = user?.id || '';
 
@@ -84,7 +86,7 @@ export function useShareAsset(tripId: string) {
         });
         
         // Create chat message with attachment
-        await sendChatMessage({
+        const messageResult = await sendChatMessage({
           trip_id: tripId,
           user_id: userId,
           author_name: user?.email?.split('@')[0] || 'Unknown User',
@@ -98,6 +100,35 @@ export function useShareAsset(tripId: string) {
           }],
         });
         
+        // 🆕 Auto-parse content for receipts and itineraries
+        if (kind === 'image') {
+          try {
+            const parsed = await autoParseContent(
+              publicUrl,
+              'image',
+              file.type,
+              tripId,
+              messageResult?.id?.toString()
+            );
+            if (parsed && parsed.suggestions && parsed.suggestions.length > 0) {
+              setParsedContent(parsed);
+              // Show toast with parsing result
+              if (parsed.type === 'receipt') {
+                toast.success('Receipt detected! Check suggestions below.', {
+                  duration: 5000,
+                });
+              } else if (parsed.type === 'itinerary') {
+                toast.success(`Found ${parsed.itinerary?.events.length || 0} calendar events!`, {
+                  duration: 5000,
+                });
+              }
+            }
+          } catch (parseError) {
+            // Silently fail parsing - don't interrupt upload flow
+            console.warn('[useShareAsset] Content parsing failed:', parseError);
+          }
+        }
+        
         toast.success(`${kind === 'image' ? 'Photo' : 'Video'} uploaded successfully`);
         return { type: kind, ref: row };
       } else {
@@ -109,7 +140,7 @@ export function useShareAsset(tripId: string) {
           uploadedBy: userId,
         });
         
-        await sendChatMessage({
+        const messageResult = await sendChatMessage({
           trip_id: tripId,
           user_id: userId,
           author_name: user?.email?.split('@')[0] || 'Unknown User',
@@ -120,6 +151,27 @@ export function useShareAsset(tripId: string) {
             url: publicUrl,
           }],
         });
+        
+        // 🆕 Auto-parse documents for itineraries (PDFs, etc.)
+        if (file.type === 'application/pdf' || file.name.toLowerCase().includes('itinerary')) {
+          try {
+            const parsed = await autoParseContent(
+              publicUrl,
+              'document',
+              file.type,
+              tripId,
+              messageResult?.id?.toString()
+            );
+            if (parsed && parsed.suggestions && parsed.suggestions.length > 0) {
+              setParsedContent(parsed);
+              toast.success(`Found ${parsed.itinerary?.events.length || 0} calendar events!`, {
+                duration: 5000,
+              });
+            }
+          } catch (parseError) {
+            console.warn('[useShareAsset] Document parsing failed:', parseError);
+          }
+        }
         
         toast.success('File uploaded successfully');
         return { type: 'file', ref: row };
@@ -232,6 +284,8 @@ export function useShareAsset(tripId: string) {
     shareMultipleFiles, 
     isUploading, 
     uploadProgress,
-    error 
+    error,
+    parsedContent, // 🆕 Return parsed content for UI to display suggestions
+    clearParsedContent: () => setParsedContent(null), // 🆕 Clear parsed content
   };
 }

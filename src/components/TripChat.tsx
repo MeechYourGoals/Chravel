@@ -30,7 +30,9 @@ import { TypingIndicator } from './chat/TypingIndicator';
 import { TypingIndicatorService } from '@/services/typingIndicatorService';
 import { markMessageAsRead, subscribeToReadReceipts } from '@/services/readReceiptService';
 import { MessageSearch } from './chat/MessageSearch';
+import { ParsedContentSuggestions } from './chat/ParsedContentSuggestions';
 import { supabase } from '@/integrations/supabase/client';
+import { parseMessage } from '@/services/chatContentParser';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -245,6 +247,21 @@ export const TripChat = ({
     const authorName = user?.displayName || user?.email?.split('@')[0] || 'You';
     try {
       await sendTripMessage(message.text, authorName);
+      
+      // 🆕 Auto-parse message for entities (dates, times, locations)
+      if (message.text && message.text.trim().length > 10) {
+        try {
+          const parsed = await parseMessage(message.text, resolvedTripId);
+          if (parsed && parsed.suggestions && parsed.suggestions.length > 0) {
+            // Store parsed content for UI display (would need state management)
+            // For now, just log - UI integration can be added later
+            console.log('[TripChat] Parsed message suggestions:', parsed.suggestions);
+          }
+        } catch (parseError) {
+          // Silently fail - don't interrupt message sending
+          console.warn('[TripChat] Message parsing failed:', parseError);
+        }
+      }
     } catch (error) {
       console.error('Failed to send chat message:', error);
     }

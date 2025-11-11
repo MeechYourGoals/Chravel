@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { PaymentInput } from '../payments/PaymentInput';
 import { useShareAsset } from '@/hooks/useShareAsset';
+import { ParsedContentSuggestions } from './ParsedContentSuggestions';
 import { toast } from 'sonner';
 
 interface ChatInputProps {
@@ -41,7 +42,15 @@ export const ChatInput = ({
   const [isPaymentMode, setIsPaymentMode] = useState(false);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { shareFile, shareLink, shareMultipleFiles, isUploading, uploadProgress } = useShareAsset(tripId);
+  const { 
+    shareFile, 
+    shareLink, 
+    shareMultipleFiles, 
+    isUploading, 
+    uploadProgress,
+    parsedContent,
+    clearParsedContent
+  } = useShareAsset(tripId);
 
   // Track typing status
   useEffect(() => {
@@ -134,6 +143,16 @@ export const ChatInput = ({
 
   return (
     <div className="space-y-4">
+      {/* Parsed Content Suggestions */}
+      {parsedContent && (
+        <ParsedContentSuggestions
+          parsedContent={parsedContent}
+          tripId={tripId}
+          onDismiss={clearParsedContent}
+          onSuggestionApplied={clearParsedContent}
+        />
+      )}
+      
       {/* Header Row - Mode toggles */}
       <div className="flex justify-center gap-4">
         <button

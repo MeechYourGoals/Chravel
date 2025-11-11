@@ -37,21 +37,51 @@ export async function fetchOpenGraphData(url: string): Promise<{
   domain: string;
 }> {
   try {
-    // Try to extract metadata from the URL
-    const urlObj = new URL(url);
-    const domain = urlObj.hostname;
+    // Use the fetch-og-metadata edge function to get rich previews
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     
-    // For now, we'll use a simple approach - you can integrate with an OG parser API later
-    // or use an edge function to fetch and parse the metadata
+    if (!supabaseUrl || !supabaseAnonKey) {
+      // Fallback to basic URL parsing
+      const urlObj = new URL(url);
+      return {
+        domain: urlObj.hostname,
+        title: urlObj.hostname,
+      };
+    }
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/fetch-og-metadata`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+      },
+      body: JSON.stringify({ url }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch OG metadata: ${response.statusText}`);
+    }
+
+    const metadata = await response.json();
+    
     return {
-      domain,
-      title: urlObj.hostname,
-      // These would be populated by an actual OG parser
-      image: undefined,
-      description: undefined,
+      domain: metadata.siteName || new URL(url).hostname,
+      title: metadata.title,
+      image: metadata.image,
+      description: metadata.description,
     };
   } catch (error) {
-    console.error('Failed to parse URL:', error);
-    return { domain: 'unknown' };
+    console.error('Failed to fetch OG metadata:', error);
+    // Fallback to basic URL parsing
+    try {
+      const urlObj = new URL(url);
+      return {
+        domain: urlObj.hostname,
+        title: urlObj.hostname,
+      };
+    } catch {
+      return { domain: 'unknown' };
+    }
   }
 }
