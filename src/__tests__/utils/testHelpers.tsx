@@ -154,6 +154,17 @@ export const createMockCalendarEvent = (overrides = {}) => ({
   ...overrides,
 });
 
+/**
+ * Test factories for backward compatibility
+ */
+export const testFactories = {
+  createTrip: createMockTrip,
+  createUser: createMockUserProfile,
+  createMessage: createMockChatMessage,
+  createPayment: createMockPayment,
+  createEvent: createMockCalendarEvent,
+};
+
 // Re-export everything from testing-library
 export * from '@testing-library/react';
 export { default as userEvent } from '@testing-library/user-event';

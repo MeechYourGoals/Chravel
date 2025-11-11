@@ -450,10 +450,10 @@ export const TripChat = ({
         </div>
       )}
 
-      {/* Unified Chat Shell - Glassmorphic container */}
-      <div className="pb-4 flex-1 flex flex-col">
+      {/* Chat Container - Messages Only */}
+      <div className="flex-1 flex flex-col min-h-0 pb-4">
         {messageFilter === 'channels' && activeChannel ? (
-          <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
+          <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col">
             <ChannelChatView
               channel={activeChannel}
               availableChannels={availableChannels}
@@ -461,77 +461,79 @@ export const TripChat = ({
             />
           </div>
         ) : (
-          <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
+          <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col">
             {isLoading ? (
-            <div className="flex-1 overflow-y-auto p-4">
-...
-            </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                <MessageSkeleton />
+              </div>
             ) : (
               <VirtualizedMessageContainer
-              messages={filteredMessages}
-              renderMessage={(message) => (
-                <MessageItem
-                  message={message}
-                  reactions={reactions[message.id]}
-                  onReaction={handleReaction}
-                />
-              )}
-              onLoadMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? () => {} : loadMoreMessages}
-              hasMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? false : hasMore}
-              isLoading={isLoadingMore}
-              initialVisibleCount={10}
-              className="chat-scroll-container native-scroll px-3"
-              autoScroll={true}
-              restoreScroll={true}
-              scrollKey={`chat-scroll-${resolvedTripId}`}
-            />
-          )}
-          
-          {/* Typing Indicator */}
-          {!shouldUseDemoData && typingUsers.length > 0 && (
-            <TypingIndicator typingUsers={typingUsers} />
-          )}
-          
-          {/* Reply Bar */}
-          {replyingTo && (
-            <div className="border-t border-white/10 bg-black/30 px-4 py-2">
-              <InlineReplyComponent 
-                replyTo={{ 
-                  id: replyingTo.id, 
-                  text: replyingTo.text,
-                  senderName: replyingTo.senderName 
-                }}
-                onCancel={clearReply} 
+                messages={filteredMessages}
+                renderMessage={(message) => (
+                  <MessageItem
+                    message={message}
+                    reactions={reactions[message.id]}
+                    onReaction={handleReaction}
+                  />
+                )}
+                onLoadMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? () => {} : loadMoreMessages}
+                hasMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? false : hasMore}
+                isLoading={isLoadingMore}
+                initialVisibleCount={10}
+                className="chat-scroll-container native-scroll px-3"
+                autoScroll={true}
+                restoreScroll={true}
+                scrollKey={`chat-scroll-${resolvedTripId}`}
               />
-            </div>
-          )}
-          
-          {/* Input Area */}
-          <div className="border-t border-white/10 bg-black/30 p-3 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-3">
-            <ChatInput
-              inputMessage={inputMessage}
-              onInputChange={setInputMessage}
-              onSendMessage={handleSendMessage}
-              onKeyPress={handleKeyPress}
-              apiKey=""
-              isTyping={isSendingMessage}
-              tripMembers={tripMembers}
-              hidePayments={true}
-              isPro={isPro}
-              tripId={resolvedTripId}
-              onTypingChange={(isTyping) => {
-                if (!shouldUseDemoData && typingServiceRef.current) {
-                  if (isTyping) {
-                    typingServiceRef.current.startTyping().catch(console.error);
-                  } else {
-                    typingServiceRef.current.stopTyping().catch(console.error);
-                  }
-                }
-              }}
-            />
-          </div>
+            )}
+            
+            {/* Typing Indicator */}
+            {!shouldUseDemoData && typingUsers.length > 0 && (
+              <TypingIndicator typingUsers={typingUsers} />
+            )}
+            
+            {/* Reply Bar */}
+            {replyingTo && (
+              <div className="border-t border-white/10 bg-black/30 px-4 py-2">
+                <InlineReplyComponent 
+                  replyTo={{ 
+                    id: replyingTo.id, 
+                    text: replyingTo.text,
+                    senderName: replyingTo.senderName 
+                  }}
+                  onCancel={clearReply} 
+                />
+              </div>
+            )}
           </div>
         )}
+      </div>
+
+      {/* Persistent Chat Input - Fixed at Bottom */}
+      <div className="chat-input-persistent pb-[env(safe-area-inset-bottom)]">
+        <div className="px-4 py-3">
+          <ChatInput
+            inputMessage={inputMessage}
+            onInputChange={setInputMessage}
+            onSendMessage={handleSendMessage}
+            onKeyPress={handleKeyPress}
+            apiKey=""
+            isTyping={isSendingMessage}
+            tripMembers={tripMembers}
+            hidePayments={true}
+            isPro={isPro}
+            tripId={resolvedTripId}
+            onTypingChange={(isTyping) => {
+              if (!shouldUseDemoData && typingServiceRef.current) {
+                if (isTyping) {
+                  typingServiceRef.current.startTyping().catch(console.error);
+                } else {
+                  typingServiceRef.current.stopTyping().catch(console.error);
+                }
+              }
+            }}
+          />
+        </div>
       </div>
     </div>
   );

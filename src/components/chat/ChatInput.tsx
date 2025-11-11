@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, MessageCircle, Megaphone, Share2, Image, Video, FileText, Mic, CreditCard, Link } from 'lucide-react';
+import { Send, MessageCircle, Megaphone, Share2, Image, Video, FileText, Mic, CreditCard, Link, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { PaymentInput } from '../payments/PaymentInput';
@@ -41,6 +41,7 @@ export const ChatInput = ({
   const [isBroadcastMode, setIsBroadcastMode] = useState(false);
   const [isPaymentMode, setIsPaymentMode] = useState(false);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [isModeRowExpanded, setIsModeRowExpanded] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { 
     shareFile, 
@@ -153,67 +154,102 @@ export const ChatInput = ({
         />
       )}
       
-      {/* Header Row - Mode toggles */}
-      <div className="flex justify-center gap-4">
-        <button
-          onClick={() => {
-            setIsBroadcastMode(false);
-            setIsPaymentMode(false);
-          }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-            !isBroadcastMode && !isPaymentMode
-              ? 'bg-blue-600 text-white' 
-              : 'border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
-          }`}
-        >
-          <MessageCircle size={16} />
-          {isInChannelMode ? 'Chat' : 'Group Chat'}
-        </button>
-        <button
-          onClick={() => {
-            setIsBroadcastMode(true);
-            setIsPaymentMode(false);
-          }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-            isBroadcastMode 
-              ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white' 
-              : 'border border-orange-600 text-orange-400 hover:text-white hover:bg-orange-600/10'
-          }`}
-        >
-          <Megaphone size={16} />
-          Broadcast
-        </button>
-        
-        {/* Share Button */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button 
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500 transition-all"
-              aria-label="Share media, files, or links"
+      {/* Collapsible Mode Row */}
+      <div className="border-b border-neutral-800/50 mode-row-transition">
+        {isModeRowExpanded ? (
+          <div className="flex items-center justify-center gap-3 px-4 py-2">
+            <button
+              onClick={() => {
+                setIsBroadcastMode(false);
+                setIsPaymentMode(false);
+              }}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                !isBroadcastMode && !isPaymentMode
+                  ? 'bg-blue-600 text-white' 
+                  : 'border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
+              }`}
             >
-              <Share2 size={16} />
-              Share
+              <MessageCircle size={14} />
+              {isInChannelMode ? 'Chat' : 'Group Chat'}
             </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 z-50 bg-gray-800 border-gray-700">
-            <DropdownMenuItem onClick={() => handleFileUpload('image')}>
-              <Image className="w-4 h-4 mr-2" />
-              Photo/Image
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleFileUpload('video')}>
-              <Video className="w-4 h-4 mr-2" />
-              Video
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleFileUpload('document')}>
-              <FileText className="w-4 h-4 mr-2" />
-              Document
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleLinkShare}>
-              <Link className="w-4 h-4 mr-2" />
-              Link
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <button
+              onClick={() => {
+                setIsBroadcastMode(true);
+                setIsPaymentMode(false);
+              }}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                isBroadcastMode 
+                  ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white' 
+                  : 'border border-orange-600 text-orange-400 hover:text-white hover:bg-orange-600/10'
+              }`}
+            >
+              <Megaphone size={14} />
+              Broadcast
+            </button>
+            
+            {/* Share Button */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button 
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500 transition-all"
+                  aria-label="Share media, files, or links"
+                >
+                  <Share2 size={14} />
+                  Share
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 z-50 bg-gray-800 border-gray-700">
+                <DropdownMenuItem onClick={() => handleFileUpload('image')}>
+                  <Image className="w-4 h-4 mr-2" />
+                  Photo/Image
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleFileUpload('video')}>
+                  <Video className="w-4 h-4 mr-2" />
+                  Video
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleFileUpload('document')}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Document
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLinkShare}>
+                  <Link className="w-4 h-4 mr-2" />
+                  Link
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <button 
+              onClick={() => setIsModeRowExpanded(false)} 
+              className="ml-auto text-neutral-400 hover:text-white p-1 transition-colors"
+              aria-label="Collapse mode selector"
+            >
+              <ChevronDown size={16} />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between px-4 py-1.5">
+            <span className="text-xs text-neutral-400 flex items-center gap-2">
+              {isBroadcastMode ? (
+                <>
+                  <Megaphone size={14} className="text-orange-400" />
+                  Broadcast
+                </>
+              ) : (
+                <>
+                  <MessageCircle size={14} className="text-blue-400" />
+                  {isInChannelMode ? 'Chat' : 'Group Chat'}
+                </>
+              )}
+            </span>
+            <button 
+              onClick={() => setIsModeRowExpanded(true)}
+              className="text-neutral-400 hover:text-white p-1 transition-colors"
+              aria-label="Expand mode selector"
+            >
+              <ChevronUp size={16} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Payment Input Form */}
@@ -239,32 +275,26 @@ export const ChatInput = ({
             onKeyPress={handleKeyPress}
             placeholder={
               isBroadcastMode 
-                ? "Send an announcement to all trip members..." 
-                : isPaymentMode
-                ? "Payment mode active - use the form above to create a payment..."
-                : "Type a message or drag & drop files..."
+                ? "Send an announcement..." 
+                : "Type a message…"
             }
-            rows={2}
-            className={`flex-1 border rounded-xl px-4 py-3 focus:outline-none resize-none transition-all ${
+            rows={1}
+            className={`flex-1 border rounded-2xl px-3 py-2 focus:outline-none resize-none transition-all min-h-[44px] sm:min-h-[48px] ${
               isBroadcastMode
-                ? 'bg-gradient-to-r from-orange-900/20 to-red-900/20 border-orange-500/50 focus:border-orange-400 text-black placeholder-black'
-                : isPaymentMode
-                ? 'bg-gradient-to-r from-green-900/20 to-emerald-900/20 border-green-500/50 focus:border-green-400 text-white placeholder-gray-500'
+                ? 'bg-gradient-to-r from-orange-900/20 to-red-900/20 border-orange-500/50 focus:border-orange-400 text-white placeholder-white/60'
                 : 'bg-gray-800 border-gray-700 focus:border-blue-500 text-white placeholder-gray-500'
             }`}
           />
           <button
             onClick={handleSend}
             disabled={(!inputMessage.trim() && !isUploading) || isTyping}
-            className={`text-white p-3 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`text-white p-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
               isBroadcastMode
                 ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700'
-                : isPaymentMode
-                ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
                 : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
             }`}
           >
-            <Send size={16} />
+            <Send size={18} />
           </button>
 
           {/* Hidden file input */}

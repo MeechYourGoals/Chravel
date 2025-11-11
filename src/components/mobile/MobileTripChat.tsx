@@ -100,12 +100,10 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
     : (isKeyboardVisible ? 'calc(100dvh - 180px)' : 'calc(100dvh - 160px)');
 
   return (
-    <div className="flex flex-col min-h-screen bg-black">
-      {/* Unified Chat Shell - Teams-like container */}
-      <div className="flex-1 flex flex-col p-4 overflow-hidden">
-        <div
-          className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1"
-        >
+    <div className="flex flex-col h-full bg-black">
+      {/* Chat Container - Messages Only */}
+      <div className="flex-1 flex flex-col min-h-0 p-4">
+        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col">
           {isLoading ? (
             <div className="flex-1 overflow-y-auto p-4">
               <MessageSkeleton />
@@ -137,26 +135,28 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
               />
             </div>
           )}
+        </div>
+      </div>
 
-          {/* Input Area */}
-          <div className="sticky bottom-0 z-10 border-t border-white/10 bg-black/30 p-3 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-3">
-            <ChatInput
-              inputMessage={inputMessage}
-              onInputChange={setInputMessage}
-              onSendMessage={handleMobileSendMessage}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleMobileSendMessage();
-                }
-              }}
-              apiKey=""
-              isTyping={false}
-              tripMembers={[]}
-              hidePayments={true}
-              tripId={tripId}
-            />
-          </div>
+      {/* Persistent Chat Input - Fixed at Bottom */}
+      <div className="chat-input-persistent pb-[calc(env(safe-area-inset-bottom)+60px)] md:pb-[env(safe-area-inset-bottom)]">
+        <div className="px-4 py-3">
+          <ChatInput
+            inputMessage={inputMessage}
+            onInputChange={setInputMessage}
+            onSendMessage={handleMobileSendMessage}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleMobileSendMessage();
+              }
+            }}
+            apiKey=""
+            isTyping={false}
+            tripMembers={[]}
+            hidePayments={true}
+            tripId={tripId}
+          />
         </div>
       </div>
     </div>

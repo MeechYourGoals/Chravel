@@ -440,3 +440,22 @@ export const mockSession = {
   token_type: 'bearer',
   user: mockUser,
 };
+
+/**
+ * Backward compatibility exports
+ */
+export const mockSupabase = createMockSupabaseClient();
+
+export const supabaseMockHelpers = {
+  setUser: (user: any) => {
+    mockSupabase.auth.getUser = vi.fn().mockResolvedValue({ data: { user }, error: null });
+  },
+  clearMocks: () => {
+    clearMockData();
+  },
+  setMockData,
+  setMockError: (table: string, error: Error) => {
+    // Store error for queries on this table
+    setMockData(table, []);
+  }
+};
