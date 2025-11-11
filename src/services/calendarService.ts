@@ -69,7 +69,7 @@ export const calendarService = {
         return {
           id: queueId,
           ...eventData,
-          created_by: user?.id || eventData.created_by,
+          created_by: user?.id || (eventData as any).created_by || user?.id || '',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           version: 1,

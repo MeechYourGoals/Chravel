@@ -13,6 +13,7 @@ import { useUnifiedMessages } from '../../hooks/useUnifiedMessages';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { MessageSkeleton } from './SkeletonLoader';
 import { hapticService } from '../../services/hapticService';
+import { ChatFilterTabs } from '../chat/ChatFilterTabs';
 
 interface MobileTripChatProps {
   tripId: string;
@@ -24,6 +25,7 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [reactions, setReactions] = useState<{ [messageId: string]: { [reaction: string]: { count: number; userReacted: boolean } } }>({});
+  const [messageFilter, setMessageFilter] = useState<'all' | 'broadcasts' | 'channels'>('all');
   
   // Use unified messages hook for real-time chat
   const {
@@ -53,7 +55,8 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
     setInputMessage,
     replyingTo,
     clearReply,
-    sendMessage
+    sendMessage,
+    filterMessages
   } = useChatComposer({ tripId });
 
   // Handle keyboard visibility for better UX
@@ -99,18 +102,28 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
     ? (isKeyboardVisible ? 'calc(100dvh - 240px)' : 'calc(100dvh - 220px)')
     : (isKeyboardVisible ? 'calc(100dvh - 180px)' : 'calc(100dvh - 160px)');
 
+  const filteredMessages = filterMessages(messages);
+
   return (
     <div className="flex flex-col h-full bg-black">
-      {/* Chat Container - Messages Only */}
+      {/* Chat Container - Messages with Integrated Filter Tabs */}
       <div className="flex-1 flex flex-col min-h-0 p-4">
         <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col">
+          {/* Filter Tabs - Sticky Inside Chat Pane */}
+          <ChatFilterTabs
+            activeFilter={messageFilter}
+            onFilterChange={setMessageFilter}
+            hasChannels={false}
+            isPro={false}
+          />
+          
           {isLoading ? (
             <div className="flex-1 overflow-y-auto p-4">
               <MessageSkeleton />
             </div>
           ) : (
             <VirtualizedMessageContainer
-              messages={messages}
+              messages={filteredMessages}
               renderMessage={(message) => (
                 <MessageItem
                   message={message}

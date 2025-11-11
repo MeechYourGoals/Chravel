@@ -33,6 +33,7 @@ import { MessageSearch } from './chat/MessageSearch';
 import { ParsedContentSuggestions } from './chat/ParsedContentSuggestions';
 import { supabase } from '@/integrations/supabase/client';
 import { parseMessage } from '@/services/chatContentParser';
+import { ChatFilterTabs } from './chat/ChatFilterTabs';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -414,43 +415,7 @@ export const TripChat = ({
         </Alert>
       )}
 
-      {/* Message Filters and Search */}
-      {filteredMessages.length > 0 && (
-        <div className="pb-2 flex items-center gap-2">
-          <div className="flex-1">
-            <MessageFilters
-            activeFilter={messageFilter}
-            onFilterChange={setMessageFilter}
-            hidePayments={true}
-            isPro={isPro}
-            hasChannels={availableChannels.length > 0}
-            channelCount={availableChannels.length}
-            availableChannels={availableChannels}
-            activeChannel={activeChannel}
-            onChannelSelect={(channel) => {
-              if (channel) {
-                setActiveChannel(channel);
-                setMessageFilter('channels');
-              } else {
-                setActiveChannel(null);
-                setMessageFilter('all');
-              }
-            }}
-          />
-          </div>
-          {!shouldUseDemoData && (
-            <MessageSearch
-              tripId={resolvedTripId}
-              onMessageSelect={(messageId) => {
-                // Scroll to message (would need scroll ref implementation)
-                console.log('Navigate to message:', messageId);
-              }}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Chat Container - Messages Only */}
+      {/* Chat Container - Messages with Integrated Filter Tabs */}
       <div className="flex-1 flex flex-col min-h-0 pb-4">
         {messageFilter === 'channels' && activeChannel ? (
           <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col">
@@ -462,6 +427,13 @@ export const TripChat = ({
           </div>
         ) : (
           <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col">
+            {/* Filter Tabs - Sticky Inside Chat Pane */}
+            <ChatFilterTabs
+              activeFilter={messageFilter}
+              onFilterChange={setMessageFilter}
+              hasChannels={availableChannels.length > 0}
+              isPro={isPro}
+            />
             {isLoading ? (
               <div className="flex-1 overflow-y-auto p-4">
                 <MessageSkeleton />
