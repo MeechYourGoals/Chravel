@@ -62,11 +62,13 @@ This migration addresses **all critical security vulnerabilities** identified in
 
 **Issue:** 
 - Functions missing `SET search_path` vulnerable to search_path manipulation attacks
-- `match_kb_chunks` and `hybrid_search_trip_context` are SECURITY DEFINER and bypass RLS, allowing any authenticated user to query any trip's data
+- `match_kb_chunks` was changed to SECURITY DEFINER, bypassing RLS and allowing unauthorized access
+- `hybrid_search_trip_context` is SECURITY DEFINER and bypasses RLS, allowing any authenticated user to query any trip's data
 
 **Fix Applied:** 
 - Added `SET search_path = public` to all SECURITY DEFINER functions
-- **CRITICAL:** Added trip membership checks to `match_kb_chunks` and `hybrid_search_trip_context` before returning data
+- **CRITICAL:** Reverted `match_kb_chunks` to `SECURITY INVOKER` so RLS policies can filter rows (original security model)
+- **CRITICAL:** Added trip membership check to `hybrid_search_trip_context` before returning data (kept as DEFINER with explicit check)
 
 **Functions Fixed:**
 
@@ -84,7 +86,7 @@ This migration addresses **all critical security vulnerabilities** identified in
 - `check_trip_access()` - Trip access validator
 - `is_trip_creator()` - Trip creator check
 - `get_visible_profile_fields()` - Profile fields getter (new)
-- `match_kb_chunks()` - **Added trip membership check** (prevents unauthorized access to KB chunks)
+- `match_kb_chunks()` - **Reverted to SECURITY INVOKER** (relies on RLS policies for security)
 - `hybrid_search_trip_context()` - **Added trip membership check** (prevents unauthorized access to trip context)
 
 **Security Impact:** 
@@ -94,10 +96,19 @@ This migration addresses **all critical security vulnerabilities** identified in
 ## Critical Security Fix: SECURITY DEFINER Functions
 
 ### Issue Discovered
-The `match_kb_chunks` and `hybrid_search_trip_context` functions are `SECURITY DEFINER`, which means they run with elevated privileges and **bypass RLS policies**. This allowed any authenticated user to call these functions with an arbitrary `trip_id` and retrieve all chunks/documents for that trip, even if they weren't a member.
+The `match_kb_chunks` function was changed to `SECURITY DEFINER`, which means it runs with elevated privileges and **bypasses RLS policies**. This allowed any authenticated user to call the function with an arbitrary `trip_id` and retrieve all chunks/documents for that trip, even if they weren't a member.
+
+The `hybrid_search_trip_context` function is also `SECURITY DEFINER` and has the same vulnerability.
 
 ### Fix Applied
-Both functions now include explicit trip membership verification at the start:
+
+**For `match_kb_chunks`:**
+- **Reverted to `SECURITY INVOKER`** - This restores the original security model where RLS policies filter rows automatically
+- The function now runs with the caller's privileges, so RLS policies on `kb_chunks` and `kb_documents` tables will enforce access control
+
+**For `hybrid_search_trip_context`:**
+- **Kept as `SECURITY DEFINER`** (it was already DEFINER in the original migration)
+- **Added explicit trip membership check** at the start of the function:
 
 ```sql
 -- SECURITY: Verify caller is an active member of the trip before returning data
@@ -111,7 +122,7 @@ IF NOT EXISTS (
 END IF;
 ```
 
-This ensures that even though the functions bypass RLS, they still enforce trip membership before returning any data.
+This ensures that even though the function bypasses RLS, it still enforces trip membership before returning any data.
 
 ## Migration Details
 

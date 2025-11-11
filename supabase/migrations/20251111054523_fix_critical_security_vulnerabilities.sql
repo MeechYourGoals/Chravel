@@ -456,7 +456,8 @@ END;
 $$;
 
 -- Fix match_kb_chunks function (if it exists)
--- SECURITY: Added trip membership check since SECURITY DEFINER bypasses RLS
+-- SECURITY: Reverted to SECURITY INVOKER so RLS policies can filter rows
+-- This function originally relied on RLS, so we keep that security model
 CREATE OR REPLACE FUNCTION public.match_kb_chunks(
   p_trip_id text,
   p_query_embedding vector,
@@ -472,20 +473,10 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 STABLE
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = public
 AS $$
 BEGIN
-  -- SECURITY: Verify caller is an active member of the trip before returning data
-  IF NOT EXISTS (
-    SELECT 1 FROM trip_members tm
-    WHERE tm.trip_id::text = p_trip_id
-      AND tm.user_id = auth.uid()
-      AND tm.status = 'active'
-  ) THEN
-    RAISE EXCEPTION 'Access denied: User is not an active member of this trip';
-  END IF;
-
   RETURN QUERY
   SELECT 
     kc.id,
