@@ -24,8 +24,9 @@ BEGIN
 
   -- The INSERT into broadcast_views will be protected by RLS policy which checks:
   -- 1. auth.uid() = user_id (user can only mark their own views)
-  -- 2. User is a trip member (via EXISTS check joining broadcasts -> trip_members)
+  -- 2. User is an active trip member (via EXISTS check joining broadcasts -> trip_members)
   -- If user is not a trip member, RLS will block the INSERT and raise an error
+  -- The ON CONFLICT DO UPDATE is protected by the UPDATE RLS policy with the same checks
   INSERT INTO public.broadcast_views (broadcast_id, user_id, viewed_at)
   VALUES (broadcast_uuid, v_user_id, now())
   ON CONFLICT (broadcast_id, user_id) 
@@ -108,6 +109,33 @@ CREATE POLICY "Trip members can view broadcast read receipts"
 ON public.broadcast_views
 FOR SELECT
 USING (
+  EXISTS (
+    SELECT 1 FROM broadcasts b
+    JOIN trip_members tm ON tm.trip_id = b.trip_id
+    WHERE b.id = broadcast_views.broadcast_id 
+    AND tm.user_id = auth.uid()
+    AND tm.status = 'active'
+  )
+);
+
+-- Add UPDATE policy to allow refreshing view timestamps (required for ON CONFLICT DO UPDATE)
+-- Users can only update their own view records if they're active trip members
+DROP POLICY IF EXISTS "Users can update their own broadcast views" ON public.broadcast_views;
+CREATE POLICY "Users can update their own broadcast views"
+ON public.broadcast_views
+FOR UPDATE
+USING (
+  auth.uid() = user_id AND
+  EXISTS (
+    SELECT 1 FROM broadcasts b
+    JOIN trip_members tm ON tm.trip_id = b.trip_id
+    WHERE b.id = broadcast_views.broadcast_id 
+    AND tm.user_id = auth.uid()
+    AND tm.status = 'active'
+  )
+)
+WITH CHECK (
+  auth.uid() = user_id AND
   EXISTS (
     SELECT 1 FROM broadcasts b
     JOIN trip_members tm ON tm.trip_id = b.trip_id
