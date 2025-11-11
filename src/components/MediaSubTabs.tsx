@@ -33,9 +33,10 @@ interface LinkItem {
 interface MediaSubTabsProps {
   items: MediaItem[] | LinkItem[];
   type: 'photos' | 'videos' | 'files' | 'urls';
+  searchQuery?: string;
 }
 
-export const MediaSubTabs = ({ items, type }: MediaSubTabsProps) => {
+export const MediaSubTabs = ({ items, type, searchQuery }: MediaSubTabsProps) => {
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -173,7 +174,11 @@ export const MediaSubTabs = ({ items, type }: MediaSubTabsProps) => {
           <div className="text-center py-8">
             {type === 'photos' ? <Camera className="mx-auto h-8 w-8 text-muted-foreground mb-2" /> : <Video className="mx-auto h-8 w-8 text-muted-foreground mb-2" />}
             <p className="text-muted-foreground text-sm">
-              {type.charAt(0).toUpperCase() + type.slice(1)} shared in chat will appear here
+              {searchQuery ? (
+                <>No {type} found matching "{searchQuery}". Try a different search term.</>
+              ) : (
+                <>{type.charAt(0).toUpperCase() + type.slice(1)} shared in chat will appear here</>
+              )}
             </p>
           </div>
         ) : (
@@ -283,7 +288,11 @@ export const MediaSubTabs = ({ items, type }: MediaSubTabsProps) => {
           <div className="text-center py-8">
             <FileText className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
             <p className="text-muted-foreground text-sm">
-              Documents, receipts, and schedules shared in chat will appear here
+              {searchQuery ? (
+                <>No files found matching "{searchQuery}". Try a different search term.</>
+              ) : (
+                <>Documents, receipts, and schedules shared in chat will appear here</>
+              )}
             </p>
           </div>
         ) : (
