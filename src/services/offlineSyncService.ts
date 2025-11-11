@@ -380,7 +380,13 @@ class OfflineSyncService {
 
     for (const operation of readyOps) {
       try {
-        await this.updateOperationStatus(operation.id, 'syncing');
+        // Atomically update status to 'syncing' - if operation was already removed, this returns null
+        // This prevents concurrent processors from handling the same operation
+        const updated = await this.updateOperationStatus(operation.id, 'syncing');
+        if (!updated) {
+          // Operation was already removed or is being processed by another sync
+          continue;
+        }
 
         let result: any;
         let handlerRan = false;
@@ -424,18 +430,22 @@ class OfflineSyncService {
             break;
         }
 
-        // Only remove operation if a handler actually ran and succeeded
+        // CRITICAL: Only remove operation if a handler actually ran and succeeded
+        // This prevents data loss when handlers are not provided for all entity types
         if (!handlerRan) {
           // No handler for this operation type - skip it (don't remove, don't fail)
           console.warn(
-            `No handler provided for ${operation.entityType}:${operation.operationType} operation ${operation.id}. Skipping.`
+            `[OfflineSync] No handler provided for ${operation.entityType}:${operation.operationType} operation ${operation.id}. ` +
+            `Operation preserved in queue for later processing.`
           );
           // Reset status back to pending so it can be processed later with proper handlers
+          // DO NOT remove from queue - this would cause permanent data loss
           await this.updateOperationStatus(operation.id, 'pending');
-          continue;
+          continue; // Skip to next operation - do NOT call removeOperation
         }
 
-        // Handler ran successfully - remove from queue
+        // Handler ran successfully - safe to remove from queue
+        // Only reached if handlerRan === true
         await this.removeOperation(operation.id);
         processed++;
       } catch (error: any) {

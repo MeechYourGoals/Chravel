@@ -140,34 +140,30 @@ export const useTripChat = (tripId: string) => {
   }, [tripId, queryClient]);
 
   // Process offline queue when connection is restored
+  // Note: Global sync processor in App.tsx handles all entity types.
+  // This hook-specific processing is for immediate feedback on chat messages only.
+  // Operations without handlers are preserved (not deleted) to prevent data loss.
   useEffect(() => {
     if (!isOffline && tripId) {
-      // Process both old queue and new unified sync service
-      Promise.all([
-        processQueue(),
-        offlineSyncService.processSyncQueue({
-          onChatMessageCreate: async (tripId, data) => {
-            return await sendChatMessage(data);
-          },
-        }),
-      ]).then(([oldResult, newResult]) => {
-        const totalSuccess = oldResult.success + newResult.processed;
-        const totalFailed = oldResult.failed + newResult.failed;
-        
-        if (totalSuccess > 0) {
+      // Process old queue (backward compatibility)
+      processQueue().then((oldResult) => {
+        if (oldResult.success > 0) {
           toast({
             title: 'Messages sent',
-            description: `${totalSuccess} message${totalSuccess > 1 ? 's' : ''} sent successfully`,
+            description: `${oldResult.success} message${oldResult.success > 1 ? 's' : ''} sent successfully`,
           });
         }
-        if (totalFailed > 0) {
+        if (oldResult.failed > 0) {
           toast({
             title: 'Some messages failed',
-            description: `${totalFailed} message${totalFailed > 1 ? 's' : ''} could not be sent. Check your connection.`,
+            description: `${oldResult.failed} message${oldResult.failed > 1 ? 's' : ''} could not be sent. Check your connection.`,
             variant: 'destructive',
           });
         }
       });
+
+      // Note: Global sync processor will handle unified sync queue with all handlers
+      // This ensures no operations are dropped due to missing handlers
     }
   }, [isOffline, tripId, toast]);
 
