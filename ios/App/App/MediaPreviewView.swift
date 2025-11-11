@@ -12,7 +12,7 @@
 import UIKit
 import QuickLook
 
-class MediaPreviewView: NSObject, QLPreviewingController {
+class MediaPreviewView: NSObject {
     
     static let shared = MediaPreviewView()
     
