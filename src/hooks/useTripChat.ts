@@ -5,7 +5,10 @@ import { useToast } from './use-toast';
 import { rateLimiter } from '@/utils/concurrencyUtils';
 import { InputValidator } from '@/utils/securityUtils';
 import { queueMessage, processQueue } from '@/services/offlineMessageQueue';
+import { offlineSyncService } from '@/services/offlineSyncService';
+import { saveMessagesToCache, loadMessagesFromCache } from '@/services/chatStorage';
 import { useOfflineStatus } from './useOfflineStatus';
+import { sendChatMessage } from '@/services/chatService';
 
 interface TripChatMessage {
   id: string;
@@ -37,23 +40,43 @@ export const useTripChat = (tripId: string) => {
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Fetch initial messages (last 10)
+  // Fetch initial messages (last 10) with offline cache support
   const { data: messages = [], isLoading, error } = useQuery({
     queryKey: ['tripChat', tripId],
     queryFn: async (): Promise<TripChatMessage[]> => {
-      const { data, error } = await supabase
-        .from('trip_chat_messages')
-        .select('*')
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: false })
-        .limit(10);
+      // Try to load from cache first for instant display
+      const cachedMessages = await loadMessagesFromCache(tripId);
+      
+      try {
+        const { data, error } = await supabase
+          .from('trip_chat_messages')
+          .select('*')
+          .eq('trip_id', tripId)
+          .order('created_at', { ascending: false })
+          .limit(10);
 
-      if (error) throw error;
-      const reversed = (data || []).reverse();
-      setHasMore(data && data.length === 10);
-      return reversed;
+        if (error) throw error;
+        
+        const reversed = (data || []).reverse();
+        setHasMore(data && data.length === 10);
+        
+        // Cache messages for offline access
+        if (data && data.length > 0) {
+          await saveMessagesToCache(tripId, data);
+        }
+        
+        return reversed;
+      } catch (err) {
+        // If online fetch fails, return cached messages
+        if (cachedMessages.length > 0) {
+          console.warn('Using cached messages due to fetch error:', err);
+          return cachedMessages.slice(-10); // Last 10 cached messages
+        }
+        throw err;
+      }
     },
-    enabled: !!tripId
+    enabled: !!tripId,
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
 
   // Enhanced real-time subscription with rate limiting and batching
@@ -119,17 +142,28 @@ export const useTripChat = (tripId: string) => {
   // Process offline queue when connection is restored
   useEffect(() => {
     if (!isOffline && tripId) {
-      processQueue().then(({ success, failed }) => {
-        if (success > 0) {
+      // Process both old queue and new unified sync service
+      Promise.all([
+        processQueue(),
+        offlineSyncService.processSyncQueue({
+          onChatMessageCreate: async (tripId, data) => {
+            return await sendChatMessage(data);
+          },
+        }),
+      ]).then(([oldResult, newResult]) => {
+        const totalSuccess = oldResult.success + newResult.processed;
+        const totalFailed = oldResult.failed + newResult.failed;
+        
+        if (totalSuccess > 0) {
           toast({
             title: 'Messages sent',
-            description: `${success} message${success > 1 ? 's' : ''} sent successfully`,
+            description: `${totalSuccess} message${totalSuccess > 1 ? 's' : ''} sent successfully`,
           });
         }
-        if (failed > 0) {
+        if (totalFailed > 0) {
           toast({
             title: 'Some messages failed',
-            description: `${failed} message${failed > 1 ? 's' : ''} could not be sent. Check your connection.`,
+            description: `${totalFailed} message${totalFailed > 1 ? 's' : ''} could not be sent. Check your connection.`,
             variant: 'destructive',
           });
         }
@@ -165,30 +199,43 @@ export const useTripChat = (tripId: string) => {
         media_url: message.media_url
       };
 
-      // If offline, queue the message
+      // If offline, queue the message using unified sync service
       if (isOffline) {
-        const queueId = await queueMessage(messageData);
+        const queueId = await offlineSyncService.queueOperation(
+          'chat_message',
+          'create',
+          tripId,
+          messageData
+        );
+        
+        // Also queue in old system for backward compatibility
+        await queueMessage(messageData);
+        
         toast({
           title: 'Message queued',
           description: 'Your message will be sent when connection is restored.',
         });
-        // Return a temporary message object for optimistic UI
-        return {
+        
+        // Cache the optimistic message locally
+        const optimisticMessage: TripChatMessage = {
           id: queueId,
           ...messageData,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        } as TripChatMessage;
+        };
+        
+        // Save to cache for immediate display
+        await saveMessagesToCache(tripId, [optimisticMessage]);
+        
+        return optimisticMessage;
       }
 
       // Online - send immediately
-      const { data, error } = await supabase
-        .from('trip_chat_messages')
-        .insert(messageData)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await sendChatMessage(messageData);
+      
+      // Cache the new message
+      await saveMessagesToCache(tripId, [data]);
+      
       return data;
     },
     onError: (error: any) => {
