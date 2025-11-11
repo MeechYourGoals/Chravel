@@ -364,6 +364,7 @@ END;
 $$;
 
 -- Fix hybrid_search_trip_context function (from 20251107001035 migration)
+-- SECURITY: Added trip membership check since SECURITY DEFINER bypasses RLS
 CREATE OR REPLACE FUNCTION hybrid_search_trip_context(
   p_trip_id text,
   p_query_text text,
@@ -387,6 +388,16 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  -- SECURITY: Verify caller is an active member of the trip before returning data
+  IF NOT EXISTS (
+    SELECT 1 FROM trip_members tm
+    WHERE tm.trip_id::text = p_trip_id
+      AND tm.user_id = auth.uid()
+      AND tm.status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'Access denied: User is not an active member of this trip';
+  END IF;
+
   RETURN QUERY
   WITH vector_results AS (
     SELECT 
@@ -445,6 +456,7 @@ END;
 $$;
 
 -- Fix match_kb_chunks function (if it exists)
+-- SECURITY: Added trip membership check since SECURITY DEFINER bypasses RLS
 CREATE OR REPLACE FUNCTION public.match_kb_chunks(
   p_trip_id text,
   p_query_embedding vector,
@@ -464,6 +476,16 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  -- SECURITY: Verify caller is an active member of the trip before returning data
+  IF NOT EXISTS (
+    SELECT 1 FROM trip_members tm
+    WHERE tm.trip_id::text = p_trip_id
+      AND tm.user_id = auth.uid()
+      AND tm.status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'Access denied: User is not an active member of this trip';
+  END IF;
+
   RETURN QUERY
   SELECT 
     kc.id,
