@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PaymentMethod, PaymentMessage, PaymentSplit } from '../types/payments';
 import { demoModeService } from './demoModeService';
 import { mockPayments } from '@/mockData/payments';
+import { recordPaymentSplitPattern } from './chatAnalysisService';
 
 interface MockPayment {
   id: string;
@@ -127,6 +128,17 @@ export const paymentService = {
         });
 
       if (error) throw error;
+
+      // Record payment split patterns for ML-based suggestions (non-blocking)
+      // This helps improve future participant suggestions
+      if (paymentId && paymentData.splitParticipants.length > 0) {
+        recordPaymentSplitPattern(tripId, userId, paymentData.splitParticipants)
+          .catch(err => {
+            // Silently fail - pattern recording is optional and shouldn't block payment creation
+            console.debug('[paymentService] Failed to record split pattern:', err);
+          });
+      }
+
       return paymentId;
     } catch (error) {
       console.error('Error creating payment message:', error);
