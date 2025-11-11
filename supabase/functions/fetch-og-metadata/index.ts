@@ -9,6 +9,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from '../_shared/cors.ts';
+import { FetchOGMetadataSchema, validateInput, validateExternalHttpsUrl } from '../_shared/validation.ts';
 
 interface OGMetadata {
   title?: string;
@@ -26,11 +27,26 @@ serve(async (req) => {
   }
 
   try {
-    const { url } = await req.json();
-
-    if (!url || typeof url !== 'string') {
+    // Validate request body with Zod schema (SSRF protection)
+    const rawBody = await req.json();
+    const validation = validateInput(FetchOGMetadataSchema, rawBody);
+    
+    if (!validation.success) {
       return new Response(
-        JSON.stringify({ error: 'URL is required' }),
+        JSON.stringify({ error: validation.error }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const { url } = validation.data;
+
+    // Additional defense-in-depth check
+    if (!validateExternalHttpsUrl(url)) {
+      return new Response(
+        JSON.stringify({ error: 'URL must be HTTPS and external (no internal/private networks)' }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
