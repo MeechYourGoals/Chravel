@@ -38,7 +38,15 @@ class SupabaseNativeService {
         Task {
             do {
                 let response = try await client.auth.signIn(email: email, password: password)
-                await saveAuthToken(response.session.accessToken)
+                
+                // Session is optional - nil for email confirmation or 2FA flows
+                if let session = response.session {
+                    await saveAuthToken(session.accessToken)
+                } else {
+                    // Clear any existing token when session is nil (email confirmation/2FA required)
+                    await clearAuthToken()
+                }
+                
                 await MainActor.run {
                     completion(.success(response))
                 }
