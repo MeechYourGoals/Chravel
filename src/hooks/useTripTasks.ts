@@ -490,7 +490,8 @@ export const useTripTasks = (tripId: string, options?: {
     // Demo mode: use localStorage
     if (isDemoMode || !user) {
       const currentUserId = user?.id || 'demo-user';
-      return await taskStorageService.toggleTask(tripId, taskId, currentUserId, completed);
+      const result = await taskStorageService.toggleTask(tripId, taskId, currentUserId, completed);
+      return { taskId: result.taskId, completed: result.completed };
     }
 
     // Authenticated mode: use atomic function with optimistic locking

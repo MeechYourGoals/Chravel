@@ -105,16 +105,18 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
 
     setLoading(true);
     try {
-      // Get member role
-      // @ts-ignore - permissions column not yet in generated types
+      // Get member role with type assertion for missing permissions column
       const { data: member, error } = await supabase
         .from('trip_members')
         .select('role, permissions')
         .eq('trip_id', tripId)
         .eq('user_id', userId)
-        .single() as { data: { role: string; permissions?: Record<string, any> } | null; error: any };
+        .single();
 
-      if (error || !member) {
+      // Cast to expected type since permissions column is missing from generated types
+      const typedMember = member as { role: string; permissions?: PermissionMatrix } | null;
+
+      if (error || !typedMember) {
         // Not a member - no permissions
         setPermissions({});
         setRole('');
@@ -122,16 +124,16 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
         return;
       }
 
-      setRole(member.role || 'member');
+      setRole(typedMember.role || 'member');
 
       // Check if custom permissions exist (stored as JSONB)
-      if (member.permissions && typeof member.permissions === 'object') {
+      if (typedMember.permissions && typeof typedMember.permissions === 'object') {
         // Custom permissions override defaults
-        const customPerms = member.permissions as PermissionMatrix;
+        const customPerms = typedMember.permissions as PermissionMatrix;
         setPermissions(customPerms);
       } else {
         // Use default permissions for role
-        const defaultPerms = defaultPermissions[member.role] || defaultPermissions.member;
+        const defaultPerms = defaultPermissions[typedMember.role] || defaultPermissions.member;
         setPermissions(defaultPerms);
       }
     } catch (error) {
@@ -171,7 +173,7 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
     }
 
     try {
-      // Get current permissions
+      // Get current permissions with type assertion
       const { data: member } = await supabase
         .from('trip_members')
         .select('permissions')
@@ -179,7 +181,8 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
         .eq('user_id', targetUserId)
         .single();
 
-      const currentPerms = (member?.permissions as PermissionMatrix) || {};
+      const typedMember = member as { permissions?: PermissionMatrix } | null;
+      const currentPerms = typedMember?.permissions || {};
       const updatedPerms = { ...currentPerms, ...newPermissions };
 
       // @ts-ignore - permissions column not yet in generated types

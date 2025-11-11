@@ -188,13 +188,13 @@ export const ChatInput = ({
                 Broadcast
               </DropdownMenuItem>
               
-              {/* Document Link */}
+              {/* File */}
               <DropdownMenuItem 
-                onClick={handleLinkShare}
+                onClick={() => handleFileUpload('document')}
                 className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
               >
-                <Link className="w-4 h-4" />
-                Document Link
+                <FileText className="w-4 h-4" />
+                File
               </DropdownMenuItem>
               
               {/* Image */}
@@ -204,6 +204,15 @@ export const ChatInput = ({
               >
                 <Image className="w-4 h-4" />
                 Image
+              </DropdownMenuItem>
+              
+              {/* Link */}
+              <DropdownMenuItem 
+                onClick={handleLinkShare}
+                className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+              >
+                <Link className="w-4 h-4" />
+                Link
               </DropdownMenuItem>
               
               {/* Photo */}

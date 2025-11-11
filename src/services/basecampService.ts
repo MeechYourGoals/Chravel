@@ -156,6 +156,7 @@ class BasecampService {
       // Log to history (if not skipped and user is authenticated)
       if (!options?.skipHistory && userId) {
         try {
+          // @ts-ignore - Edge function not in generated types yet
           await supabase.rpc('log_basecamp_change', {
             p_trip_id: tripId,
             p_user_id: userId,
@@ -279,6 +280,7 @@ class BasecampService {
       // Log to history (if not skipped)
       if (!options?.skipHistory) {
         try {
+          // @ts-ignore - Edge function not in generated types yet
           await supabase.rpc('log_basecamp_change', {
             p_trip_id: payload.trip_id,
             p_user_id: user.id,
@@ -342,6 +344,7 @@ class BasecampService {
       // Log to history (if not skipped)
       if (!options?.skipHistory && basecamp) {
         try {
+          // @ts-ignore - Edge function not in generated types yet
           await supabase.rpc('log_basecamp_change', {
             p_trip_id: basecamp.trip_id,
             p_user_id: user.id,
@@ -377,6 +380,7 @@ class BasecampService {
     options?: { basecampType?: 'trip' | 'personal'; limit?: number }
   ): Promise<BasecampChangeHistory[]> {
     try {
+      // @ts-ignore - Table not in generated types yet
       let query = supabase
         .from('basecamp_change_history')
         .select('*')
@@ -384,6 +388,7 @@ class BasecampService {
         .order('created_at', { ascending: false });
 
       if (options?.basecampType) {
+        // @ts-ignore - Column type assertion
         query = query.eq('basecamp_type', options.basecampType);
       }
 
@@ -398,7 +403,7 @@ class BasecampService {
         return [];
       }
 
-      return (data || []) as BasecampChangeHistory[];
+      return (data || []) as any as BasecampChangeHistory[];
     } catch (error) {
       console.error('Error getting basecamp history:', error);
       return [];

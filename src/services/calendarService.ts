@@ -65,9 +65,11 @@ export const calendarService = {
         );
         
         // Return optimistic event for immediate UI update
+        const { data: { user } } = await supabase.auth.getUser();
         return {
           id: queueId,
           ...eventData,
+          created_by: user?.id || eventData.created_by,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           version: 1,
@@ -260,7 +262,7 @@ export const calendarService = {
       // Check if offline - queue the operation
       if (!navigator.onLine) {
         const tripId = updates.trip_id || '';
-        const version = updates.version;
+        const version = (updates as any).version;
         
         await calendarOfflineQueue.queueUpdate(tripId, eventId, updates, version);
         await offlineSyncService.queueOperation(
@@ -290,7 +292,7 @@ export const calendarService = {
             eventId,
             cached.tripId,
             { ...cached.data, ...updates },
-            (updates.version as number) || cached.version || 1
+            ((updates as any).version as number) || cached.version || 1
           );
         }
       }

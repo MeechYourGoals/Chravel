@@ -197,6 +197,7 @@ export const broadcastService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // @ts-ignore - Edge function not in generated types yet
       const { error } = await supabase.rpc('mark_broadcast_viewed', {
         broadcast_uuid: broadcastId
       });
@@ -211,12 +212,13 @@ export const broadcastService = {
   // Get read receipt count for a broadcast
   async getBroadcastReadCount(broadcastId: string): Promise<number> {
     try {
+      // @ts-ignore - Edge function not in generated types yet
       const { data, error } = await supabase.rpc('get_broadcast_read_count', {
         broadcast_uuid: broadcastId
       });
 
       if (error) throw error;
-      return data || 0;
+      return Number(data || 0);
     } catch (error) {
       console.error('Error getting read count:', error);
       return 0;
@@ -263,6 +265,7 @@ export const broadcastService = {
 
       // Get push tokens for members
       const userIds = members.map(m => m.user_id);
+      // @ts-ignore - Table not in generated types yet
       const { data: tokens, error: tokensError } = await supabase
         .from('push_tokens')
         .select('token, platform')
@@ -282,7 +285,7 @@ export const broadcastService = {
         body: {
           action: 'send_push',
           userId: user.id,
-          tokens: tokens.map(t => t.token),
+          tokens: (tokens as any[]).map((t: any) => t.token),
           title: broadcast.priority === 'urgent' ? '🚨 Urgent Broadcast' : '📢 Broadcast',
           body: broadcast.message.substring(0, 100),
           data: {
