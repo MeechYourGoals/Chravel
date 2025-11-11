@@ -23,6 +23,18 @@ import type {
   AutocompleteRequest,
   PLACE_FIELDS
 } from '@/types/places';
+import {
+  generateCacheKey,
+  getCachedPlace,
+  setCachedPlace,
+  recordApiUsage,
+} from './googlePlacesCache';
+import {
+  searchPlacesOSM,
+  geocodeAddressOSM,
+  convertOSMToGoogleFormat,
+  shouldUseOSMFallback,
+} from './openStreetMapFallback';
 
 let mapsApi: typeof google.maps | null = null;
 let loaderPromise: Promise<typeof google.maps> | null = null;
@@ -404,6 +416,7 @@ function mapQueryToPlaceTypes(query: string): string[] {
 /**
  * Search for nearby places using Nearby Search (New API)
  * Ideal for proximity-based queries like "coffee near me"
+ * Includes Supabase caching and OSM fallback
  * 
  * @param location - Center point for search
  * @param radius - Search radius in meters (default 5000m = 5km)
@@ -417,6 +430,14 @@ export async function searchNearby(
   maxResults: number = 10
 ): Promise<ConvertedPlace[]> {
   await loadMaps();
+  
+  // Check Supabase cache first
+  const cacheKey = generateCacheKey('nearby-search', `${location.lat},${location.lng}`, null, { radius, types: placeTypes.join(','), maxResults });
+  const cached = await getCachedPlace<ConvertedPlace[]>(cacheKey);
+  if (cached) {
+    console.log('[GooglePlacesNew] ✅ Using Supabase cached nearby search results');
+    return cached;
+  }
   
   const { Place } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
   
@@ -451,6 +472,9 @@ export async function searchNearby(
   }
 
   try {
+    // Record API usage
+    await recordApiUsage('nearby-search');
+
     console.log(`[GooglePlacesNew] Nearby search at (${location.lat}, ${location.lng}) radius=${radius}m types=${placeTypes.join(',')}`);
     
     // @ts-ignore - New API method
@@ -478,9 +502,32 @@ export async function searchNearby(
     }));
     
     // Sort by rating (best first)
-    return converted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    const results = converted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+    // Cache in Supabase (30-day TTL)
+    await setCachedPlace(cacheKey, 'nearby-search', `${location.lat},${location.lng}`, results, undefined, { lat: location.lat, lng: location.lng });
+    
+    return results;
   } catch (error) {
     console.error('[GooglePlacesNew] searchNearby error:', error);
+    
+    // Try OSM fallback if Google Maps API fails
+    if (shouldUseOSMFallback(error)) {
+      console.log('[GooglePlacesNew] ⚠️ Using OSM fallback for nearby search');
+      // OSM doesn't support nearby search with radius, so we use text search with location hint
+      const query = placeTypes.length > 0 ? placeTypes[0] : 'place';
+      const osmPlaces = await searchPlacesOSM(query, maxResults);
+      return osmPlaces.map(osmPlace => {
+        const converted = convertOSMToGoogleFormat(osmPlace);
+        return {
+          place_id: converted.place_id,
+          name: converted.name,
+          formatted_address: converted.formatted_address,
+          geometry: converted.geometry,
+        };
+      });
+    }
+    
     return [];
   }
 }
@@ -488,6 +535,7 @@ export async function searchNearby(
 /**
  * Search for places using Text Search (New API)
  * Replaces legacy textSearch method
+ * Includes Supabase caching and OSM fallback
  * 
  * @param query - Search query text
  * @param origin - Optional origin for location bias
@@ -499,6 +547,14 @@ export async function searchByText(
   maxResults: number = 5
 ): Promise<ConvertedPlace[]> {
   await loadMaps();
+  
+  // Check Supabase cache first
+  const cacheKey = generateCacheKey('text-search', query, origin, { maxResults });
+  const cached = await getCachedPlace<ConvertedPlace[]>(cacheKey);
+  if (cached) {
+    console.log('[GooglePlacesNew] ✅ Using Supabase cached text search results');
+    return cached;
+  }
   
   const { Place } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
   
@@ -531,6 +587,9 @@ export async function searchByText(
   }
 
   try {
+    // Record API usage
+    await recordApiUsage('text-search');
+
     // @ts-ignore - New API method not in @types yet
     const { places } = await Place.searchByText(request);
     
@@ -542,7 +601,7 @@ export async function searchByText(
     console.log(`[GooglePlacesNew] ✅ searchByText found ${places.length} results`);
     
     // Convert to legacy format with photos
-    return places.map((place: any) => convertPlaceToLegacy({
+    const results = places.map((place: any) => convertPlaceToLegacy({
       id: place.id,
       displayName: place.displayName?.text,
       formattedAddress: place.formattedAddress,
@@ -554,8 +613,29 @@ export async function searchByText(
       types: place.types,
       photos: place.photos ? extractPhotoUris(place.photos, 3) : undefined,
     }));
+
+    // Cache in Supabase (30-day TTL)
+    await setCachedPlace(cacheKey, 'text-search', query, results, undefined, origin);
+    
+    return results;
   } catch (error) {
     console.error('[GooglePlacesNew] searchByText error:', error);
+    
+    // Try OSM fallback if Google Maps API fails
+    if (shouldUseOSMFallback(error)) {
+      console.log('[GooglePlacesNew] ⚠️ Using OSM fallback for text search');
+      const osmPlaces = await searchPlacesOSM(query, maxResults);
+      return osmPlaces.map(osmPlace => {
+        const converted = convertOSMToGoogleFormat(osmPlace);
+        return {
+          place_id: converted.place_id,
+          name: converted.name,
+          formatted_address: converted.formatted_address,
+          geometry: converted.geometry,
+        };
+      });
+    }
+    
     return [];
   }
 }
@@ -563,7 +643,7 @@ export async function searchByText(
 /**
  * Get autocomplete suggestions using new AutocompleteSuggestion API
  * Replaces legacy AutocompleteService
- * Includes quota monitoring and caching
+ * Includes Supabase caching, quota monitoring, and OSM fallback
  */
 export async function autocomplete(
   input: string,
@@ -572,12 +652,20 @@ export async function autocomplete(
 ): Promise<ConvertedPrediction[]> {
   await loadMaps();
   
-  // Check cache first
-  const cacheKey = apiQuotaMonitor.generateCacheKey(`autocomplete:${input}`, origin);
-  const cached = apiQuotaMonitor.getCachedResult(cacheKey);
+  // Check Supabase cache first (30-day TTL)
+  const cacheKey = generateCacheKey('autocomplete', input, origin);
+  const cached = await getCachedPlace<ConvertedPrediction[]>(cacheKey);
   if (cached) {
-    console.log('[GooglePlacesNew] ✅ Using cached autocomplete results');
+    console.log('[GooglePlacesNew] ✅ Using Supabase cached autocomplete results');
     return cached;
+  }
+
+  // Check client-side cache (1-hour TTL)
+  const clientCacheKey = apiQuotaMonitor.generateCacheKey(`autocomplete:${input}`, origin);
+  const clientCached = apiQuotaMonitor.getCachedResult(clientCacheKey);
+  if (clientCached) {
+    console.log('[GooglePlacesNew] ✅ Using client-side cached autocomplete results');
+    return clientCached;
   }
 
   // Check quota before making request
@@ -585,12 +673,14 @@ export async function autocomplete(
   if (!quotaCheck.canProceed) {
     console.warn(`[GooglePlacesNew] ⚠️ Quota limit reached: ${quotaCheck.reason}`);
     // Return cached results if available (even if expired)
-    const expiredCache = apiQuotaMonitor.getCachedResult(cacheKey);
+    const expiredCache = apiQuotaMonitor.getCachedResult(clientCacheKey);
     if (expiredCache) {
       console.log('[GooglePlacesNew] ⚠️ Using expired cache due to quota limit');
       return expiredCache;
     }
-    throw new Error(`API quota exceeded: ${quotaCheck.reason}. Please try again later.`);
+    // Note: OSM doesn't support autocomplete, so we return empty array
+    console.warn('[GooglePlacesNew] ⚠️ No fallback available for autocomplete');
+    return [];
   }
   
   const { AutocompleteSuggestion } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
@@ -615,6 +705,7 @@ export async function autocomplete(
   try {
     // Record API request
     apiQuotaMonitor.recordRequest();
+    await recordApiUsage('autocomplete');
 
     // Retry with exponential backoff
     const { suggestions } = await retryWithBackoff(async () => {
@@ -640,8 +731,9 @@ export async function autocomplete(
         } : undefined,
       }));
 
-    // Cache results
-    apiQuotaMonitor.cacheResult(cacheKey, results);
+    // Cache results (both client-side and Supabase)
+    apiQuotaMonitor.cacheResult(clientCacheKey, results);
+    await setCachedPlace(cacheKey, 'autocomplete', input, results, undefined, origin);
     
     return results;
   } catch (error) {
@@ -650,13 +742,14 @@ export async function autocomplete(
     // If quota error, try to return cached results
     if ((error as any)?.message?.includes('quota') || 
         (error as any)?.message?.includes('OVER_QUERY_LIMIT')) {
-      const expiredCache = apiQuotaMonitor.getCachedResult(cacheKey);
+      const expiredCache = apiQuotaMonitor.getCachedResult(clientCacheKey);
       if (expiredCache) {
         console.log('[GooglePlacesNew] ⚠️ Using expired cache due to quota error');
         return expiredCache;
       }
     }
     
+    // Note: OSM doesn't support autocomplete, so we return empty array
     return [];
   }
 }
@@ -664,6 +757,7 @@ export async function autocomplete(
 /**
  * Fetch place details by Place ID using new Place class
  * Replaces legacy PlacesService.getDetails
+ * Includes Supabase caching (30-day TTL) and OSM fallback
  */
 export async function fetchPlaceDetails(
   placeId: string,
@@ -671,9 +765,20 @@ export async function fetchPlaceDetails(
 ): Promise<ConvertedPlace | null> {
   await loadMaps();
   
+  // Check Supabase cache first (30-day TTL)
+  const cacheKey = generateCacheKey('place-details', placeId, null);
+  const cached = await getCachedPlace<ConvertedPlace>(cacheKey);
+  if (cached) {
+    console.log('[GooglePlacesNew] ✅ Using Supabase cached place details');
+    return cached;
+  }
+  
   const { Place } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
   
   try {
+    // Record API usage
+    await recordApiUsage('place-details');
+
     // @ts-ignore - New API
     const place = new Place({
       id: placeId,
@@ -698,7 +803,7 @@ export async function fetchPlaceDetails(
 
     console.log('[GooglePlacesNew] ✅ Place details fetched');
     
-    return convertPlaceToLegacy({
+    const result = convertPlaceToLegacy({
       id: place.id,
       displayName: (place as any).displayName?.text || 'Unknown',
       formattedAddress: (place as any).formattedAddress,
@@ -709,20 +814,36 @@ export async function fetchPlaceDetails(
       googleMapsURI: (place as any).googleMapsURI,
       types: (place as any).types,
     });
+
+    // Cache in Supabase (30-day TTL)
+    await setCachedPlace(cacheKey, 'place-details', placeId, result, placeId);
+    
+    return result;
   } catch (error) {
     console.error('[GooglePlacesNew] fetchPlaceDetails error:', error);
+    
+    // Try OSM fallback if Google Maps API fails
+    if (shouldUseOSMFallback(error)) {
+      console.log('[GooglePlacesNew] ⚠️ Using OSM fallback for place details');
+      // OSM doesn't have place IDs, so we can't fetch details
+      // Return null - caller should handle gracefully
+      return null;
+    }
+    
     return null;
   }
 }
 
 /**
- * Resolve query using 4-tier cascade with NEW API:
- * 1. Check cache
- * 2. searchNearby for proximity queries (NEW - Phase D)
- * 3. searchByText (replaces findPlaceFromQuery + textSearch)
- * 4. geocode (fallback for addresses)
+ * Resolve query using 5-tier cascade with NEW API + OSM fallback:
+ * 1. Check Supabase cache (30-day TTL)
+ * 2. Check client-side cache (1-hour TTL)
+ * 3. searchNearby for proximity queries (NEW - Phase D)
+ * 4. searchByText (replaces findPlaceFromQuery + textSearch)
+ * 5. geocode (fallback for addresses)
+ * 6. OSM fallback (if Google Maps API fails)
  * 
- * Includes quota monitoring and caching
+ * Includes Supabase caching, quota monitoring, and OSM fallback
  * 
  * @param query - Search query
  * @param origin - Optional origin for location bias
@@ -737,12 +858,20 @@ export async function resolveQuery(
   
   console.log('[GooglePlacesNew] Resolving query:', query);
 
-  // Check cache first
-  const cacheKey = apiQuotaMonitor.generateCacheKey(`resolve:${query}`, origin);
-  const cached = apiQuotaMonitor.getCachedResult(cacheKey);
+  // Check Supabase cache first (30-day TTL)
+  const cacheKey = generateCacheKey('text-search', query, origin);
+  const cached = await getCachedPlace<ConvertedPlace>(cacheKey);
   if (cached) {
-    console.log('[GooglePlacesNew] ✅ Using cached query result');
+    console.log('[GooglePlacesNew] ✅ Using Supabase cached query result');
     return cached;
+  }
+
+  // Check client-side cache (1-hour TTL)
+  const clientCacheKey = apiQuotaMonitor.generateCacheKey(`resolve:${query}`, origin);
+  const clientCached = apiQuotaMonitor.getCachedResult(clientCacheKey);
+  if (clientCached) {
+    console.log('[GooglePlacesNew] ✅ Using client-side cached query result');
+    return clientCached;
   }
 
   // Check quota before making requests
@@ -750,17 +879,20 @@ export async function resolveQuery(
   if (!quotaCheck.canProceed) {
     console.warn(`[GooglePlacesNew] ⚠️ Quota limit reached: ${quotaCheck.reason}`);
     // Return cached results if available (even if expired)
-    const expiredCache = apiQuotaMonitor.getCachedResult(cacheKey);
+    const expiredCache = apiQuotaMonitor.getCachedResult(clientCacheKey);
     if (expiredCache) {
       console.log('[GooglePlacesNew] ⚠️ Using expired cache due to quota limit');
       return expiredCache;
     }
-    throw new Error(`API quota exceeded: ${quotaCheck.reason}. Please try again later.`);
+    // Try OSM fallback
+    console.log('[GooglePlacesNew] ⚠️ Trying OSM fallback due to quota limit');
+    return await resolveQueryOSM(query, origin);
   }
 
   try {
     // Record API request
     apiQuotaMonitor.recordRequest();
+    await recordApiUsage('text-search');
 
     // PHASE D: 1) Try nearby search for proximity queries
     if (isProximityQuery(query) && origin) {
@@ -773,8 +905,9 @@ export async function resolveQuery(
       if (nearbyPlaces.length > 0) {
         console.log(`[GooglePlacesNew] ✅ Nearby search found ${nearbyPlaces.length} results`);
         const result = nearbyPlaces[0];
-        // Cache result
-        apiQuotaMonitor.cacheResult(cacheKey, result);
+        // Cache result (both client-side and Supabase)
+        apiQuotaMonitor.cacheResult(clientCacheKey, result);
+        await setCachedPlace(cacheKey, 'text-search', query, result, result.place_id, origin);
         return result;
       }
     }
@@ -793,13 +926,15 @@ export async function resolveQuery(
         fetchPlaceDetails(places[0].place_id, sessionToken)
       );
       const result = enriched || places[0];
-      // Cache result
-      apiQuotaMonitor.cacheResult(cacheKey, result);
+      // Cache result (both client-side and Supabase)
+      apiQuotaMonitor.cacheResult(clientCacheKey, result);
+      await setCachedPlace(cacheKey, 'text-search', query, result, result.place_id, origin);
       return result;
     }
 
     // 3) Fallback to geocode for addresses
     console.log('[GooglePlacesNew] Trying geocode fallback...');
+    await recordApiUsage('geocode');
     const geocoder = new google.maps.Geocoder();
     
     const result = await retryWithBackoff(async () => {
@@ -830,8 +965,9 @@ export async function resolveQuery(
     });
 
     if (result) {
-      // Cache result
-      apiQuotaMonitor.cacheResult(cacheKey, result);
+      // Cache result (both client-side and Supabase)
+      apiQuotaMonitor.cacheResult(clientCacheKey, result);
+      await setCachedPlace(cacheKey, 'text-search', query, result, result.place_id, origin);
       return result;
     }
   } catch (error) {
@@ -840,15 +976,67 @@ export async function resolveQuery(
     // If quota error, try to return cached results
     if ((error as any)?.message?.includes('quota') || 
         (error as any)?.message?.includes('OVER_QUERY_LIMIT')) {
-      const expiredCache = apiQuotaMonitor.getCachedResult(cacheKey);
+      const expiredCache = apiQuotaMonitor.getCachedResult(clientCacheKey);
       if (expiredCache) {
         console.log('[GooglePlacesNew] ⚠️ Using expired cache due to quota error');
         return expiredCache;
       }
     }
+    
+    // Try OSM fallback if Google Maps API fails
+    if (shouldUseOSMFallback(error)) {
+      console.log('[GooglePlacesNew] ⚠️ Using OSM fallback due to API error');
+      return await resolveQueryOSM(query, origin);
+    }
   }
 
-  console.log('[GooglePlacesNew] ❌ No results found');
+  // Final fallback: Try OSM
+  console.log('[GooglePlacesNew] ❌ No Google results, trying OSM fallback');
+  return await resolveQueryOSM(query, origin);
+}
+
+/**
+ * Resolve query using OpenStreetMap (fallback when Google Maps API fails)
+ */
+async function resolveQueryOSM(
+  query: string,
+  origin: SearchOrigin
+): Promise<ConvertedPlace | null> {
+  try {
+    // Try OSM search
+    const osmPlaces = await searchPlacesOSM(query, 1);
+    if (osmPlaces.length > 0) {
+      const osmPlace = osmPlaces[0];
+      const converted = convertOSMToGoogleFormat(osmPlace);
+      console.log('[GooglePlacesNew] ✅ OSM fallback found result');
+      return {
+        place_id: converted.place_id,
+        name: converted.name,
+        formatted_address: converted.formatted_address,
+        geometry: converted.geometry,
+      };
+    }
+
+    // Try OSM geocoding for addresses
+    const geocodeResult = await geocodeAddressOSM(query);
+    if (geocodeResult) {
+      console.log('[GooglePlacesNew] ✅ OSM geocode fallback found result');
+      return {
+        place_id: `osm_${geocodeResult.place_id}`,
+        name: geocodeResult.display_name,
+        formatted_address: geocodeResult.display_name,
+        geometry: {
+          location: new google.maps.LatLng(
+            parseFloat(geocodeResult.lat),
+            parseFloat(geocodeResult.lon)
+          ),
+        },
+      };
+    }
+  } catch (error) {
+    console.error('[GooglePlacesNew] OSM fallback error:', error);
+  }
+
   return null;
 }
 
