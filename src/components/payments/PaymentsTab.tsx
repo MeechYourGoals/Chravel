@@ -116,11 +116,13 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
           totalOwed: avgPerPerson * 0.6,
           totalOwedToYou: avgPerPerson * 0.4,
           netBalance: avgPerPerson * 0.2,
+          baseCurrency: 'USD',
           balances: mockMembers.slice(0, 3).map((m, i) => ({
             userId: m.user_id,
             userName: m.display_name,
             avatar: m.avatar_url,
             amountOwed: (i === 0 ? avgPerPerson * 0.5 : avgPerPerson * 0.3) * (i % 2 === 0 ? 1 : -1),
+            amountOwedCurrency: 'USD',
             preferredPaymentMethod: null,
             unsettledPayments: []
           }))
@@ -130,12 +132,13 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       }
       
       if (!user?.id) {
-        setBalanceSummary({
-          totalOwed: 0,
-          totalOwedToYou: 0,
-          netBalance: 0,
-          balances: []
-        });
+          setBalanceSummary({
+            totalOwed: 0,
+            totalOwedToYou: 0,
+            netBalance: 0,
+            baseCurrency: 'USD',
+            balances: []
+          });
         setLoading(false);
         return;
       }
@@ -159,12 +162,13 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
             variant: "destructive"
           });
         }
-        setBalanceSummary({
-          totalOwed: 0,
-          totalOwedToYou: 0,
-          netBalance: 0,
-          balances: []
-        });
+          setBalanceSummary({
+            totalOwed: 0,
+            totalOwedToYou: 0,
+            netBalance: 0,
+            baseCurrency: 'USD',
+            balances: []
+          });
       } finally {
         setLoading(false);
       }
@@ -205,11 +209,13 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
           totalOwed: avgPerPerson * 0.6,
           totalOwedToYou: avgPerPerson * 0.4,
           netBalance: avgPerPerson * 0.2,
+          baseCurrency: 'USD',
           balances: mockMembers.slice(0, 3).map((m, i) => ({
             userId: m.user_id,
             userName: m.display_name,
             avatar: m.avatar_url,
             amountOwed: (i === 0 ? avgPerPerson * 0.5 : avgPerPerson * 0.3) * (i % 2 === 0 ? 1 : -1),
+            amountOwedCurrency: 'USD',
             preferredPaymentMethod: null,
             unsettledPayments: []
           }))

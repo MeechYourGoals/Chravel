@@ -134,6 +134,9 @@ export const calendarService = {
   },
 
   async getTripEvents(tripId: string): Promise<TripEvent[]> {
+    // Declare outside try block for catch block access
+    let cachedEvents: any[] = [];
+    
     try {
       // Check if in demo mode
       const isDemoMode = await demoModeService.isDemoModeEnabled();
@@ -144,7 +147,7 @@ export const calendarService = {
       }
 
       // Try to load from cache first for instant display
-      const cachedEvents = await offlineSyncService.getCachedEntities(tripId, 'calendar_event');
+      cachedEvents = await offlineSyncService.getCachedEntities(tripId, 'calendar_event');
 
       // Use Supabase with timezone-aware function for authenticated users
       const { data: { user } } = await supabase.auth.getUser();

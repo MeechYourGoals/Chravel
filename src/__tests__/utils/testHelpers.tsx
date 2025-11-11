@@ -27,7 +27,7 @@ const createTestQueryClient = () =>
     defaultOptions: {
       queries: {
         retry: false,
-        cacheTime: 0,
+        gcTime: 0, // Renamed from cacheTime in TanStack Query v5
       },
       mutations: {
         retry: false,
