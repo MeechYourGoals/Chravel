@@ -141,9 +141,33 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       }
       
       setLoading(true);
-      const summary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
-      setBalanceSummary(summary);
-      setLoading(false);
+      try {
+        const summary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
+        setBalanceSummary(summary);
+      } catch (error) {
+        console.error('Error loading balance summary:', error);
+        if (error instanceof Error && error.message.includes('Unauthorized')) {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to view payment balances for this trip.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to load payment balances.",
+            variant: "destructive"
+          });
+        }
+        setBalanceSummary({
+          totalOwed: 0,
+          totalOwedToYou: 0,
+          netBalance: 0,
+          balances: []
+        });
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadBalances();
@@ -205,8 +229,14 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       
       // Refresh balance summary
       if (user?.id) {
-        const summary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
-        setBalanceSummary(summary);
+        try {
+          const summary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
+          setBalanceSummary(summary);
+        } catch (error) {
+          console.error('Error refreshing balance summary:', error);
+          // Don't show toast here - user just created a payment, don't interrupt with error
+          // The next time they visit the tab, the error will be shown
+        }
       }
     } else {
       toast({
