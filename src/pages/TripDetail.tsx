@@ -32,12 +32,10 @@ import { generateClientPDF } from '../utils/exportPdfClient';
 import { openOrDownloadBlob } from '../utils/download';
 import { toast } from 'sonner';
 import { demoModeService } from '../services/demoModeService';
-import { useEmbeddingGeneration } from '../hooks/useEmbeddingGeneration';
 
 const TripDetail = () => {
   const isMobile = useIsMobile();
   const { tripId } = useParams();
-  const { generateInitialEmbeddings } = useEmbeddingGeneration(tripId);
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('chat');
@@ -65,13 +63,6 @@ const TripDetail = () => {
       setTripDescription(trip.description);
     }
   }, [trip, tripDescription]);
-
-  // Generate initial embeddings for RAG when trip loads
-  React.useEffect(() => {
-    if (tripId && user) {
-      generateInitialEmbeddings();
-    }
-  }, [tripId, user, generateInitialEmbeddings]);
 
   // Handle trip updates from edit modal
   const handleTripUpdate = (updates: Partial<Trip>) => {
