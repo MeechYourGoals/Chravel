@@ -7,8 +7,34 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Register for push notifications
+        PushNotificationService.shared.requestAuthorization { granted in
+            if granted {
+                PushNotificationService.shared.registerForRemoteNotifications()
+            }
+        }
+        
+        // Register background fetch
+        BackgroundFetchService.shared.registerBackgroundTask()
+        BackgroundFetchService.shared.scheduleBackgroundFetch()
+        
         return true
+    }
+    
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        // Send device token to backend/Supabase
+        let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
+        let token = tokenParts.joined()
+        print("Device Token: \(token)")
+        // TODO: Send token to Supabase for push notification delivery
+    }
+    
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("Failed to register for remote notifications: \(error.localizedDescription)")
+    }
+    
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        PushNotificationService.shared.handleRemoteNotification(userInfo: userInfo, completionHandler: completionHandler)
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
