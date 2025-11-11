@@ -10,7 +10,6 @@ import Capacitor
 class AuthenticationViewController: UIViewController {
     
     // MARK: - Properties
-    private var webView: WKWebView?
     private let biometricAuth = BiometricAuthService.shared
     
     // MARK: - Lifecycle
