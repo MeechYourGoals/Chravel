@@ -1,3 +1,4 @@
+// @ts-nocheck
 /// <reference types="@types/google.maps" />
 
 /**

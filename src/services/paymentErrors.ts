@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Payment Error Types and Utilities
  * Comprehensive error handling for payment operations

@@ -93,6 +93,7 @@ export async function processGlobalSyncQueue(): Promise<{
       const { error } = await supabase.rpc('toggle_task_status', {
         p_task_id: entityId,
         p_user_id: user.id,
+        p_completed: data.completed,
         p_current_version: data.version || 1,
       });
 

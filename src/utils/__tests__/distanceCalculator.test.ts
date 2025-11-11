@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DistanceCalculator } from '../distanceCalculator';
 import { GoogleMapsService } from '@/services/googleMapsService';

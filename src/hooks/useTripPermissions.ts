@@ -114,7 +114,7 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
         .single();
 
       // Cast to expected type since permissions column is missing from generated types
-      const typedMember = (member || null) as { role: string; permissions?: PermissionMatrix } | null;
+      const typedMember = (member || null) as unknown as { role: string; permissions?: PermissionMatrix } | null;
 
       if (error || !typedMember) {
         // Not a member - no permissions
@@ -181,7 +181,7 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
         .eq('user_id', targetUserId)
         .single();
 
-      const typedMember = member as { permissions?: PermissionMatrix } | null;
+      const typedMember = member as unknown as { permissions?: PermissionMatrix } | null;
       const currentPerms = typedMember?.permissions || {};
       const updatedPerms = { ...currentPerms, ...newPermissions };
 

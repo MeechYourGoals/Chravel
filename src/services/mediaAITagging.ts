@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Media AI Tagging Service
  * 

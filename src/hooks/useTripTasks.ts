@@ -491,8 +491,9 @@ export const useTripTasks = (tripId: string, options?: {
     if (isDemoMode || !user) {
       const currentUserId = user?.id || 'demo-user';
       const result = await taskStorageService.toggleTask(tripId, taskId, currentUserId, completed);
-      // Return the expected interface format
-      return { taskId, completed: result.completed };
+      // Extract completed status from task_status array for current user
+      const userStatus = result?.task_status?.find(s => s.user_id === currentUserId);
+      return { taskId, completed: userStatus?.completed ?? completed };
     }
 
     // Authenticated mode: use atomic function with optimistic locking

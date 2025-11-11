@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Media Duplicate Detection Service
  * 

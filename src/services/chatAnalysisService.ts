@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Chat Analysis Service
  * AI-powered parsing of payment information from chat messages

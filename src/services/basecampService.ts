@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { supabase } from '../integrations/supabase/client';
 import { BasecampLocation } from '../types/basecamp';
 

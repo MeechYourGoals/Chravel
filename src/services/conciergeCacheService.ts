@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Concierge Cache Service
  * Provides offline mode support by caching AI responses

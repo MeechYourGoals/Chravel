@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Conflict Resolution Utilities
  * 

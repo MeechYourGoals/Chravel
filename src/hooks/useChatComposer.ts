@@ -40,7 +40,7 @@ export interface UseChatComposerOptions {
 export const useChatComposer = ({ tripId, demoMode = false, isEvent = false }: UseChatComposerOptions = {}) => {
   const [inputMessage, setInputMessage] = useState('');
   const [replyingTo, setReplyingTo] = useState<ReplyContext | null>(null);
-  const [messageFilter, setMessageFilter] = useState<'all' | 'broadcast' | 'payments' | 'channels'>('all');
+  const [messageFilter, setMessageFilter] = useState<'all' | 'broadcasts' | 'channels'>('all');
   
   const { user } = useAuth();
   const { parseMessage } = useChatMessageParser();
@@ -133,10 +133,7 @@ export const useChatComposer = ({ tripId, demoMode = false, isEvent = false }: U
 
   const filterMessages = useCallback((messages: ChatMessage[]) => {
     if (messageFilter === 'all') return messages;
-    if (messageFilter === 'broadcast') return messages.filter(m => m.isBroadcast);
-    if (messageFilter === 'payments') return messages.filter(m => 
-      m.text.includes('💳 Payment') || m.tags?.includes('payment')
-    );
+    if (messageFilter === 'broadcasts') return messages.filter(m => m.isBroadcast);
     return messages;
   }, [messageFilter]);
 
