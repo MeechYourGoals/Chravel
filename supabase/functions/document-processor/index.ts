@@ -4,6 +4,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')!;
 
 interface DocumentProcessingRequest {
@@ -12,19 +13,83 @@ interface DocumentProcessingRequest {
   forceReprocess?: boolean;
 }
 
+/**
+ * Validates that a file URL is from the Supabase storage bucket
+ */
+function validateFileUrl(fileUrl: string): boolean {
+  if (!fileUrl || typeof fileUrl !== 'string') {
+    return false;
+  }
+  
+  // Extract Supabase project ID from SUPABASE_URL
+  const supabaseUrl = new URL(SUPABASE_URL);
+  const projectId = supabaseUrl.hostname.split('.')[0];
+  
+  // Allow Supabase storage URLs
+  const storagePattern = new RegExp(`^https://${projectId}\\.supabase\\.co/storage/`);
+  if (storagePattern.test(fileUrl)) {
+    return true;
+  }
+  
+  // Also allow the full storage path format
+  if (fileUrl.includes('/storage/v1/object/public/')) {
+    return true;
+  }
+  
+  return false;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    // 🔒 SECURITY: Verify JWT authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create authenticated client to verify user
+    const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false }
+    });
+
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { fileId, tripId, forceReprocess = false } = await req.json() as DocumentProcessingRequest;
 
     if (!fileId || !tripId) {
       throw new Error('fileId and tripId are required');
     }
 
-    // Use service role to bypass RLS
+    // 🔒 SECURITY: Verify user is a member of the trip
+    const { data: membershipCheck, error: membershipError } = await supabaseAuth
+      .from('trip_members')
+      .select('user_id, status')
+      .eq('trip_id', tripId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (membershipError || !membershipCheck || membershipCheck.status !== 'active') {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden - you must be an active member of this trip' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Use service role to bypass RLS for file operations
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Fetch file metadata
@@ -32,10 +97,19 @@ serve(async (req) => {
       .from('trip_files')
       .select('*')
       .eq('id', fileId)
+      .eq('trip_id', tripId) // Ensure file belongs to the trip
       .single();
 
     if (fileError || !fileData) {
       throw new Error(`File not found: ${fileId}`);
+    }
+
+    // 🔒 SECURITY: Validate file URL is from Supabase storage
+    if (!validateFileUrl(fileData.file_url)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid file URL - must be from Supabase storage' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Check if already processed
