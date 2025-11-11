@@ -24,7 +24,15 @@ SELECT * FROM vulnerable_function();
 ## ✅ Fixes Applied
 
 ### Migration File
-`supabase/migrations/20250102000000_fix_security_definer_search_path.sql`
+`supabase/migrations/20251221_fix_security_definer_search_path.sql`
+
+**Important**: This migration is timestamped `20251221` to ensure it runs AFTER all existing migrations that define these functions:
+- `20251107001035_5087e291-c88b-4cf7-86f9-6672d86652df.sql` (defines `hybrid_search_trip_context`)
+- `20251026_address_known_issues.sql` (defines badge, rate limiting, and cleanup functions)
+- `20250120000002_ai_concierge_usage_tracking.sql` (defines concierge usage functions)
+- `001_audio_summaries.sql` (defines audio quota functions)
+
+This ensures that on a fresh database, the secure versions are the final ones applied.
 
 ### Functions Fixed
 

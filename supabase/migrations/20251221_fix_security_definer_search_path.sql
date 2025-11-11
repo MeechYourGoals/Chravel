@@ -2,6 +2,15 @@
 -- SECURITY FIX: Add SET search_path to SECURITY DEFINER Functions
 -- =====================================================
 -- 
+-- Migration Timestamp: 20251221
+-- 
+-- IMPORTANT: This migration is timestamped to run AFTER all migrations
+-- that define these functions, ensuring secure versions are the final ones:
+-- - 20251107001035: hybrid_search_trip_context
+-- - 20251026: badge, rate limiting, cleanup functions
+-- - 20250120000002: concierge usage functions
+-- - 001_audio_summaries: audio quota functions
+--
 -- Issue: Functions with SECURITY DEFINER but no SET search_path 
 --        can be exploited via search_path manipulation attacks
 --
