@@ -128,7 +128,7 @@ export class MobileOptimizationService {
     let frameCount = 0;
     let lastTime = performance.now();
     let rafId: number;
-    let stopTime = Date.now() + 10000; // Stop after 10 seconds
+    const stopTime = Date.now() + 10000; // Stop after 10 seconds
     
     const countFrames = () => {
       if (Date.now() > stopTime) {
