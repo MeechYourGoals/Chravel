@@ -18,7 +18,10 @@
     "prepare": "husky install",
     "ios:build": "npm run build && npx cap sync ios",
     "ios:open": "npx cap open ios",
-    "ios:run": "npm run build && npx cap sync ios && npx cap run ios"
+    "ios:run": "npm run build && npx cap sync ios && npx cap run ios",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "docs:generate": "typedoc"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.2",
