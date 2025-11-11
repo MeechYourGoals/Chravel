@@ -191,7 +191,18 @@ const TripDetail = () => {
               role: m.role
             })),
           },
-          sections
+          sections,
+          {
+            customization: {
+              compress: true,
+              maxItemsPerSection: 100,
+            },
+            onProgress: (progress) => {
+              if (progress.stage === 'rendering') {
+                toast.info(`${progress.message} (${progress.current}/${progress.total})`);
+              }
+            }
+          }
         );
       } else {
         // Fetch real data for Supabase trips
@@ -212,7 +223,18 @@ const TripDetail = () => {
             places: realData.places,
             roster: realData.roster,
           },
-          sections
+          sections,
+          {
+            customization: {
+              compress: true,
+              maxItemsPerSection: 100,
+            },
+            onProgress: (progress) => {
+              if (progress.stage === 'rendering') {
+                toast.info(`${progress.message} (${progress.current}/${progress.total})`);
+              }
+            }
+          }
         );
       }
 
