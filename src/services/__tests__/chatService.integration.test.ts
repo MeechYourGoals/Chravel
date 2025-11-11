@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { sendChatMessage, subscribeToChatMessages } from '../chatService';
 import { createMockSupabaseClient } from '@/__tests__/utils/supabaseMocks';

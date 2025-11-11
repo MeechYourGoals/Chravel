@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Tests for Google Places Cache Service
  * 

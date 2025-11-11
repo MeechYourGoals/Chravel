@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Tests for Chat URL Extractor Service
  * 

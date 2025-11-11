@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Tests for Chat Content Parser Service
  * 

@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, MessageCircle, Megaphone, Share2, Image, Video, FileText, Mic, CreditCard, Link, ChevronDown, ChevronUp } from 'lucide-react';
+import { Send, Plus, Megaphone, Link, Image, Camera, Video, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { PaymentInput } from '../payments/PaymentInput';
@@ -14,14 +14,14 @@ interface ChatInputProps {
   onSendMessage: (isBroadcast?: boolean, isPayment?: boolean, paymentData?: any) => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
   onFileUpload?: (files: FileList, type: 'image' | 'video' | 'document') => void;
-  apiKey: string; // Keep for backward compatibility but won't be used
+  apiKey: string;
   isTyping: boolean;
   tripMembers?: Array<{ id: string; name: string; avatar?: string }>;
   hidePayments?: boolean;
-  isInChannelMode?: boolean; // 🆕 Flag to indicate we're in a role channel
-  isPro?: boolean; // 🆕 Flag for pro/enterprise trips
-  tripId: string; // Add tripId for asset sharing
-  onTypingChange?: (isTyping: boolean) => void; // Callback for typing indicator
+  isInChannelMode?: boolean;
+  isPro?: boolean;
+  tripId: string;
+  onTypingChange?: (isTyping: boolean) => void;
 }
 
 export const ChatInput = ({
@@ -40,8 +40,6 @@ export const ChatInput = ({
 }: ChatInputProps) => {
   const [isBroadcastMode, setIsBroadcastMode] = useState(false);
   const [isPaymentMode, setIsPaymentMode] = useState(false);
-  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
-  const [isModeRowExpanded, setIsModeRowExpanded] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { 
     shareFile, 
@@ -95,10 +93,7 @@ export const ChatInput = ({
     fileInputRef.current.onchange = async (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files && files.length > 0) {
-        // Use the new share asset functionality
         await shareMultipleFiles(files, type);
-        
-        // Also call the legacy callback if provided
         if (onFileUpload) {
           onFileUpload(files, type);
         }
@@ -111,16 +106,12 @@ export const ChatInput = ({
     e.preventDefault();
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      // Determine file type based on first file
       const file = files[0];
       const isImage = file.type.startsWith('image/');
       const isVideo = file.type.startsWith('video/');
       const type = isImage ? 'image' : isVideo ? 'video' : 'document';
       
-      // Use the new share asset functionality
       await shareMultipleFiles(files, type);
-      
-      // Also call the legacy callback if provided
       if (onFileUpload) {
         onFileUpload(files, type);
       }
@@ -143,7 +134,7 @@ export const ChatInput = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Parsed Content Suggestions */}
       {parsedContent && (
         <ParsedContentSuggestions
@@ -153,104 +144,6 @@ export const ChatInput = ({
           onSuggestionApplied={clearParsedContent}
         />
       )}
-      
-      {/* Collapsible Mode Row */}
-      <div className="border-b border-neutral-800/50 mode-row-transition">
-        {isModeRowExpanded ? (
-          <div className="flex items-center justify-center gap-3 px-4 py-2">
-            <button
-              onClick={() => {
-                setIsBroadcastMode(false);
-                setIsPaymentMode(false);
-              }}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                !isBroadcastMode && !isPaymentMode
-                  ? 'bg-blue-600 text-white' 
-                  : 'border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
-              }`}
-            >
-              <MessageCircle size={14} />
-              {isInChannelMode ? 'Chat' : 'Group Chat'}
-            </button>
-            <button
-              onClick={() => {
-                setIsBroadcastMode(true);
-                setIsPaymentMode(false);
-              }}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                isBroadcastMode 
-                  ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white' 
-                  : 'border border-orange-600 text-orange-400 hover:text-white hover:bg-orange-600/10'
-              }`}
-            >
-              <Megaphone size={14} />
-              Broadcast
-            </button>
-            
-            {/* Share Button */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button 
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500 transition-all"
-                  aria-label="Share media, files, or links"
-                >
-                  <Share2 size={14} />
-                  Share
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 z-50 bg-gray-800 border-gray-700">
-                <DropdownMenuItem onClick={() => handleFileUpload('image')}>
-                  <Image className="w-4 h-4 mr-2" />
-                  Photo/Image
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleFileUpload('video')}>
-                  <Video className="w-4 h-4 mr-2" />
-                  Video
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleFileUpload('document')}>
-                  <FileText className="w-4 h-4 mr-2" />
-                  Document
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleLinkShare}>
-                  <Link className="w-4 h-4 mr-2" />
-                  Link
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            <button 
-              onClick={() => setIsModeRowExpanded(false)} 
-              className="ml-auto text-neutral-400 hover:text-white p-1 transition-colors"
-              aria-label="Collapse mode selector"
-            >
-              <ChevronDown size={16} />
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between px-4 py-1.5">
-            <span className="text-xs text-neutral-400 flex items-center gap-2">
-              {isBroadcastMode ? (
-                <>
-                  <Megaphone size={14} className="text-orange-400" />
-                  Broadcast
-                </>
-              ) : (
-                <>
-                  <MessageCircle size={14} className="text-blue-400" />
-                  {isInChannelMode ? 'Chat' : 'Group Chat'}
-                </>
-              )}
-            </span>
-            <button 
-              onClick={() => setIsModeRowExpanded(true)}
-              className="text-neutral-400 hover:text-white p-1 transition-colors"
-              aria-label="Expand mode selector"
-            >
-              <ChevronUp size={16} />
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* Payment Input Form */}
       {isPaymentMode && (
@@ -262,13 +155,78 @@ export const ChatInput = ({
         />
       )}
 
-      {/* Composer Row - Input and Send Button Only */}
+      {/* Composer Row with + Button */}
       {!isPaymentMode && (
         <div 
-          className="flex gap-3 items-end"
+          className="flex items-center gap-2 px-3 py-2 bg-neutral-950/90 backdrop-blur-md border-t border-neutral-800 sticky bottom-0"
+          style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
         >
+          {/* + Button with Dropdown Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button 
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-neutral-900 hover:bg-neutral-800 transition-all"
+                aria-label="Message options"
+              >
+                <Plus className="w-5 h-5 text-neutral-300" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              side="top" 
+              align="start"
+              sideOffset={8}
+              className="w-52 p-1 bg-neutral-900/95 backdrop-blur-lg border border-neutral-800 rounded-xl shadow-lg animate-slide-in-right z-50"
+            >
+              {/* Broadcast - Special Orange Styling */}
+              <DropdownMenuItem 
+                onClick={() => setIsBroadcastMode(!isBroadcastMode)}
+                className="flex items-center gap-2 px-3 py-2 border border-orange-500/60 text-orange-400 font-medium hover:bg-orange-500/10 rounded-lg mb-1 cursor-pointer"
+              >
+                <Megaphone className="w-4 h-4" />
+                Broadcast
+              </DropdownMenuItem>
+              
+              {/* Document Link */}
+              <DropdownMenuItem 
+                onClick={handleLinkShare}
+                className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+              >
+                <Link className="w-4 h-4" />
+                Document Link
+              </DropdownMenuItem>
+              
+              {/* Image */}
+              <DropdownMenuItem 
+                onClick={() => handleFileUpload('image')}
+                className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+              >
+                <Image className="w-4 h-4" />
+                Image
+              </DropdownMenuItem>
+              
+              {/* Photo */}
+              <DropdownMenuItem 
+                onClick={() => handleFileUpload('image')}
+                className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+              >
+                <Camera className="w-4 h-4" />
+                Photo
+              </DropdownMenuItem>
+              
+              {/* Video */}
+              <DropdownMenuItem 
+                onClick={() => handleFileUpload('video')}
+                className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+              >
+                <Video className="w-4 h-4" />
+                Video
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Message Input */}
           <textarea
             value={inputMessage}
             onChange={(e) => onInputChange(e.target.value)}
@@ -279,22 +237,24 @@ export const ChatInput = ({
                 : "Type a message…"
             }
             rows={1}
-            className={`flex-1 border rounded-2xl px-3 py-2 focus:outline-none resize-none transition-all min-h-[44px] sm:min-h-[48px] ${
+            className={`flex-1 min-h-[44px] sm:min-h-[48px] px-4 py-2 rounded-2xl resize-none focus:outline-none focus:ring-0 transition-all ${
               isBroadcastMode
-                ? 'bg-gradient-to-r from-orange-900/20 to-red-900/20 border-orange-500/50 focus:border-orange-400 text-white placeholder-white/60'
-                : 'bg-gray-800 border-gray-700 focus:border-blue-500 text-white placeholder-gray-500'
+                ? 'bg-gradient-to-r from-orange-900/20 to-red-900/20 border border-orange-500/50 focus:border-orange-400 text-white placeholder-white/60'
+                : 'bg-neutral-900 border border-neutral-800 focus:border-blue-500 text-white placeholder-neutral-500'
             }`}
           />
+
+          {/* Send Button */}
           <button
             onClick={handleSend}
             disabled={(!inputMessage.trim() && !isUploading) || isTyping}
-            className={`text-white p-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`p-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
               isBroadcastMode
-                ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700'
-                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+                ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:opacity-90'
+                : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90'
             }`}
           >
-            <Send size={18} />
+            <Send size={18} className="text-white" />
           </button>
 
           {/* Hidden file input */}
@@ -307,12 +267,28 @@ export const ChatInput = ({
         </div>
       )}
 
+      {/* Broadcast Mode Indicator */}
+      {isBroadcastMode && !isPaymentMode && (
+        <div className="flex items-center justify-between px-4 py-2 bg-orange-500/10 border-t border-orange-500/30">
+          <span className="text-xs text-orange-400 flex items-center gap-2">
+            <Megaphone size={14} />
+            Broadcasting to all members
+          </span>
+          <button 
+            onClick={() => setIsBroadcastMode(false)}
+            className="text-xs text-orange-400 hover:text-orange-300 underline"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
       {/* Upload Progress Indicators */}
       {Object.values(uploadProgress).length > 0 && (
-        <div className="space-y-2 mt-2">
+        <div className="space-y-2 px-3">
           {Object.values(uploadProgress).map((progress) => (
             <div key={progress.fileId} className="flex items-center gap-2 text-sm">
-              <div className="flex-1 bg-gray-700 rounded-full h-2 overflow-hidden">
+              <div className="flex-1 bg-neutral-700 rounded-full h-2 overflow-hidden">
                 <div
                   className={`h-full transition-all duration-300 ${
                     progress.status === 'completed'
@@ -324,7 +300,7 @@ export const ChatInput = ({
                   style={{ width: `${progress.progress}%` }}
                 />
               </div>
-              <span className="text-gray-400 text-xs truncate max-w-[150px]">
+              <span className="text-neutral-400 text-xs truncate max-w-[150px]">
                 {progress.fileName}
               </span>
               {progress.status === 'completed' && (

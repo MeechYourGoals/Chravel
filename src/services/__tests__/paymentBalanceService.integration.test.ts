@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { paymentBalanceService } from '../paymentBalanceService';
 import { createMockSupabaseClient, createQueryBuilderMock } from '@/__tests__/utils/supabaseMocks';

@@ -65,12 +65,16 @@ export const useTripChat = (tripId: string) => {
           await saveMessagesToCache(tripId, data);
         }
         
-        return reversed;
+        return reversed as TripChatMessage[];
       } catch (err) {
         // If online fetch fails, return cached messages
         if (cachedMessages.length > 0) {
           console.warn('Using cached messages due to fetch error:', err);
-          return cachedMessages.slice(-10); // Last 10 cached messages
+          const messagesWithTimestamp = cachedMessages.slice(-10).map(msg => ({
+            ...msg,
+            updated_at: msg.updated_at || msg.created_at
+          })) as TripChatMessage[];
+          return messagesWithTimestamp;
         }
         throw err;
       }

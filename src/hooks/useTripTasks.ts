@@ -509,12 +509,13 @@ export const useTripTasks = (tripId: string, options?: {
 
     try {
       // Get current task status to determine if we need to toggle
-      const { data: currentStatus, error: statusError } = await supabase
+      // @ts-ignore - is_completed and version columns not yet in generated types
+      const { data: currentStatus, error: statusError } = await (supabase as any)
         .from('task_status')
         .select('is_completed, version')
         .eq('task_id', taskId)
         .eq('user_id', authUser.id)
-        .single();
+        .single() as { data: { is_completed: boolean; version: number } | null; error: any };
 
       if (statusError && statusError.code !== 'PGRST116') {
         // PGRST116 means no rows found, which is OK for new status
@@ -524,12 +525,14 @@ export const useTripTasks = (tripId: string, options?: {
       const currentVersion = currentStatus?.version || 1;
 
       // Use atomic function to toggle task status
+      // @ts-ignore - p_completed param not yet in generated types
       const { error } = await supabase
         .rpc('toggle_task_status', {
           p_task_id: taskId,
           p_user_id: authUser.id,
-          p_current_version: currentVersion
-        });
+          p_current_version: currentVersion,
+          p_completed: completed
+        } as any);
 
       if (error) {
         // Check for version conflict (concurrency error)

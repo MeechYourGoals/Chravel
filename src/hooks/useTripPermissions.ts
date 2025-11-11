@@ -106,12 +106,13 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
     setLoading(true);
     try {
       // Get member role
+      // @ts-ignore - permissions column not yet in generated types
       const { data: member, error } = await supabase
         .from('trip_members')
         .select('role, permissions')
         .eq('trip_id', tripId)
         .eq('user_id', userId)
-        .single();
+        .single() as { data: { role: string; permissions?: Record<string, any> } | null; error: any };
 
       if (error || !member) {
         // Not a member - no permissions
@@ -181,9 +182,10 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
       const currentPerms = (member?.permissions as PermissionMatrix) || {};
       const updatedPerms = { ...currentPerms, ...newPermissions };
 
+      // @ts-ignore - permissions column not yet in generated types
       const { error } = await supabase
         .from('trip_members')
-        .update({ permissions: updatedPerms })
+        .update({ permissions: updatedPerms } as any)
         .eq('trip_id', tripId)
         .eq('user_id', targetUserId);
 
@@ -213,12 +215,13 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
     try {
       const defaultPerms = defaultPermissions[newRole] || defaultPermissions.member;
 
+      // @ts-ignore - permissions column not yet in generated types
       const { error } = await supabase
         .from('trip_members')
         .update({
           role: newRole,
           permissions: defaultPerms
-        })
+        } as any)
         .eq('trip_id', tripId)
         .eq('user_id', targetUserId);
 
