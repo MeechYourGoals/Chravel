@@ -295,7 +295,7 @@ export class AdvertiserService {
     }
   ): Promise<CampaignWithTargeting[]> {
     try {
-      let query = supabase
+      const query = supabase
         .from('campaigns')
         .select(`
           *,

@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { User, Mail, Phone, Building } from 'lucide-react';
+import { Mail, Phone, Building } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useTripVariant } from '../../contexts/TripVariantContext';
+import { AvatarUpload } from './AvatarUpload';
 
 interface ProfileSectionProps {
   userOrganization?: {
@@ -20,16 +21,28 @@ export const ProfileSection = ({ userOrganization }: ProfileSectionProps) => {
     updateProfile({ display_name: e.target.value });
   };
 
+  const handleAvatarUploadComplete = (avatarUrl: string) => {
+    // Avatar is already updated via updateProfile in AvatarUpload component
+    // This callback can be used for additional actions like showing a success toast
+    console.log('Avatar uploaded successfully:', avatarUrl);
+  };
+
+  const handleAvatarUploadError = (error: string) => {
+    console.error('Avatar upload error:', error);
+    // Could show a toast notification here
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <div className={`w-20 h-20 bg-gradient-to-r ${accentColors.gradient} rounded-full mx-auto mb-4 flex items-center justify-center`}>
-          {user.avatar ? (
-            <img src={user.avatar} alt="Profile" className="w-full h-full rounded-full" />
-          ) : (
-            <User size={32} className="text-white" />
-          )}
-        </div>
+        <AvatarUpload
+          currentAvatarUrl={user.avatar}
+          displayName={user.displayName}
+          size="lg"
+          onUploadComplete={handleAvatarUploadComplete}
+          onUploadError={handleAvatarUploadError}
+          className="mb-4"
+        />
         <h3 className="text-xl font-semibold text-white mb-2">{user.displayName}</h3>
         <p className="text-gray-400 text-sm">{user.email || user.phone}</p>
         {userOrganization && (

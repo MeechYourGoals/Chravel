@@ -65,9 +65,9 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
 
   const generateTripLink = async () => {
     setLoading(true);
-    let baseUrl = 'https://chravel.app';
+    const baseUrl = 'https://chravel.app';
     let tripUrl = '';
-    let actualTripId = proTripId || tripId;
+    const actualTripId = proTripId || tripId;
     
     if (!actualTripId) {
       // Fallback to generic join link if no trip ID

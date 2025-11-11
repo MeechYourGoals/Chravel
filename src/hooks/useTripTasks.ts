@@ -203,7 +203,7 @@ export const useTripTasks = (tripId: string, options?: {
 
   // Task filtering functions
   const applyFilters = useCallback((tasks: TripTask[]): TripTask[] => {
-    let filtered = tasks.filter(task => {
+    const filtered = tasks.filter(task => {
       // Status filter
       const isCompleted = task.is_poll 
         ? (task.task_status?.filter(s => s.completed).length || 0) >= (task.task_status?.length || 1)
