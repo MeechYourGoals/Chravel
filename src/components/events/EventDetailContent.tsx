@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Sparkles, Users, Calendar, MessageCircle, Camera, BarChart3 } from 'lucide-react';
+import { Sparkles, Users, Calendar, MessageCircle, Camera, BarChart3, CheckCircle2, UserCheck } from 'lucide-react';
 import { TripChat } from '../TripChat';
 import { AIConciergeChat } from '../AIConciergeChat';
 import { GroupCalendar } from '../GroupCalendar';
@@ -8,6 +8,9 @@ import { UnifiedMediaHub } from '../UnifiedMediaHub';
 import { CommentsWall } from '../CommentsWall';
 import { EnhancedAgendaTab } from './EnhancedAgendaTab';
 import { SpeakerDirectory } from './SpeakerDirectory';
+import { EventRSVPManager } from './EventRSVPManager';
+import { EventCheckIn } from './EventCheckIn';
+import { useEventPermissions } from '@/hooks/useEventPermissions';
 
 import { EventData } from '../../types/events';
 import { TripContext } from '@/types';
@@ -33,20 +36,28 @@ export const EventDetailContent = ({
   tripContext
 }: EventDetailContentProps) => {
   const { accentColors } = useTripVariant();
+  const { isAdmin, isLoading: permissionsLoading } = useEventPermissions(tripId);
 
-  // 🆕 Updated Events tab order (Alphabetical): Agenda, Calendar, Chat, Concierge, Media, Performers, Polls
+  // 🆕 Updated Events tab order (Alphabetical): Agenda, Calendar, Chat, Check-In (organizers), Concierge, Media, Performers, Polls, RSVP
   const tabs = [
     { id: 'agenda', label: 'Agenda', icon: Calendar, enabled: true, eventOnly: true },
     { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: true },
     { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: eventData.chatEnabled !== false },
+    { id: 'check-in', label: 'Check-In', icon: UserCheck, enabled: isAdmin, eventOnly: true, organizerOnly: true },
     { id: 'ai-chat', label: 'Concierge', icon: Sparkles, enabled: eventData.conciergeEnabled === true },
     { id: 'media', label: 'Media', icon: Camera, enabled: eventData.mediaUploadEnabled !== false },
     { id: 'performers', label: 'Performers', icon: Users, enabled: true, eventOnly: true },
-    { id: 'polls', label: 'Polls', icon: BarChart3, enabled: eventData.pollsEnabled !== false }
+    { id: 'polls', label: 'Polls', icon: BarChart3, enabled: eventData.pollsEnabled !== false },
+    { id: 'rsvp', label: 'RSVP', icon: CheckCircle2, enabled: true, eventOnly: true }
   ];
 
-  // Filter tabs based on enabled settings
-  const visibleTabs = tabs.filter(tab => tab.enabled);
+  // Filter tabs based on enabled settings and user permissions
+  const visibleTabs = tabs.filter(tab => {
+    if (!tab.enabled) return false;
+    // Hide organizer-only tabs for non-admins
+    if (tab.organizerOnly && !isAdmin) return false;
+    return true;
+  });
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -81,6 +92,17 @@ export const EventDetailContent = ({
             isEvent={true}
           />
         );
+      case 'rsvp':
+        return (
+          <EventRSVPManager
+            eventId={tripId}
+            eventTitle={eventData.title}
+            eventCapacity={eventData.capacity}
+            registrationStatus={eventData.registrationStatus}
+          />
+        );
+      case 'check-in':
+        return <EventCheckIn eventId={tripId} />;
       default:
         return <TripChat enableGroupChat={true} showBroadcasts={true} isEvent={true} tripId={tripId} />;
     }
