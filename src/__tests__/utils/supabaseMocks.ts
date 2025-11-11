@@ -148,11 +148,14 @@ function createQueryBuilderWithStorage(table: string) {
   const range = vi.fn().mockReturnThis();
 
   const resolveData = () => {
-    if (currentData !== null && currentData !== undefined) {
+    // Always ensure we return an array, never undefined
+    // This prevents TypeError when accessing data.length
+    if (Array.isArray(currentData)) {
       return currentData;
     }
-    // No filter applied, return all data or empty array
-    return getMockData(table) || [];
+    // No filter applied or currentData is null/undefined, return all data or empty array
+    const allData = getMockData(table);
+    return Array.isArray(allData) ? allData : [];
   };
 
   const single = vi.fn().mockImplementation(async () => {
