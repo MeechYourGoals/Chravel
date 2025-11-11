@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, Users, Building, PartyPopper, ChevronDown, Settings } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, Calendar, MapPin, Users, Building, PartyPopper, ChevronDown, Settings, AlertCircle, Sparkles } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Switch } from './ui/switch';
@@ -19,6 +19,14 @@ interface CreateTripModalProps {
   onClose: () => void;
 }
 
+interface ValidationErrors {
+  title?: string;
+  location?: string;
+  startDate?: string;
+  endDate?: string;
+  duplicateName?: string;
+}
+
 export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   const { user } = useAuth();
   const [tripType, setTripType] = useState<'consumer' | 'pro' | 'event'>('consumer');
@@ -32,19 +40,92 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     description: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [isFirstTrip, setIsFirstTrip] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   
-  const { createTrip } = useTrips();
+  const { createTrip, trips } = useTrips();
   const { organizations, fetchUserOrganizations } = useOrganization();
   const [enableAllFeatures, setEnableAllFeatures] = useState(true);
   const [selectedFeatures, setSelectedFeatures] = useState<Record<string, boolean>>(
     DEFAULT_FEATURES.reduce((acc, feature) => ({ ...acc, [feature]: true }), {})
   );
 
+  // Check if this is user's first trip
+  useEffect(() => {
+    if (isOpen && user && trips.length === 0) {
+      setIsFirstTrip(true);
+      setShowOnboarding(true);
+    } else {
+      setIsFirstTrip(false);
+      setShowOnboarding(false);
+    }
+  }, [isOpen, user, trips.length]);
+
   useEffect(() => {
     if (isOpen) {
       fetchUserOrganizations();
     }
   }, [isOpen]);
+
+  // Validate date range
+  const validateDateRange = useCallback((startDate: string, endDate: string): string | undefined => {
+    if (!startDate || !endDate) return undefined;
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (end < start) {
+      return 'End date must be after start date';
+    }
+    
+    // Optional: Warn if trip is more than 1 year
+    const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff > 365) {
+      return 'Trip duration exceeds 1 year. Please verify dates.';
+    }
+    
+    return undefined;
+  }, []);
+
+  // Check for duplicate trip names
+  const checkDuplicateName = useCallback(async (tripName: string): Promise<boolean> => {
+    if (!user || !tripName.trim()) return false;
+    
+    try {
+      const { data, error } = await supabase
+        .from('trips')
+        .select('id, name')
+        .eq('created_by', user.id)
+        .eq('is_archived', false)
+        .ilike('name', tripName.trim());
+      
+      if (error) {
+        console.error('Error checking duplicate trip name:', error);
+        return false;
+      }
+      
+      return (data?.length ?? 0) > 0;
+    } catch (error) {
+      console.error('Error checking duplicate trip name:', error);
+      return false;
+    }
+  }, [user]);
+
+  // Real-time validation
+  useEffect(() => {
+    const errors: ValidationErrors = {};
+    
+    // Validate date range
+    if (formData.startDate && formData.endDate) {
+      const dateError = validateDateRange(formData.startDate, formData.endDate);
+      if (dateError) {
+        errors.endDate = dateError;
+      }
+    }
+    
+    setValidationErrors(errors);
+  }, [formData.startDate, formData.endDate, validateDateRange]);
 
   // Update privacy mode when trip type changes
   const handleTripTypeChange = (newTripType: 'consumer' | 'pro' | 'event') => {
@@ -64,15 +145,64 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
       return;
     }
     
+    // Clear previous validation errors
+    setValidationErrors({});
+    
+    // Validate required fields
+    const errors: ValidationErrors = {};
+    
+    if (!formData.title.trim()) {
+      errors.title = 'Trip title is required';
+    }
+    
+    if (!formData.location.trim()) {
+      errors.location = 'Location is required';
+    }
+    
+    if (!formData.startDate) {
+      errors.startDate = 'Start date is required';
+    }
+    
+    if (!formData.endDate) {
+      errors.endDate = 'End date is required';
+    }
+    
+    // Validate date range
+    if (formData.startDate && formData.endDate) {
+      const dateError = validateDateRange(formData.startDate, formData.endDate);
+      if (dateError) {
+        errors.endDate = dateError;
+      }
+    }
+    
+    // Check for duplicate trip name
+    if (formData.title.trim()) {
+      const isDuplicate = await checkDuplicateName(formData.title.trim());
+      if (isDuplicate) {
+        errors.duplicateName = 'You already have a trip with this name. Please choose a different name.';
+        errors.title = errors.duplicateName;
+      }
+    }
+    
+    // If there are validation errors, show them and stop
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      const firstError = Object.values(errors)[0];
+      if (firstError) {
+        toast.error(firstError);
+      }
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
       const tripData = {
-        name: formData.title,
-        description: formData.description || undefined,
+        name: formData.title.trim(),
+        description: formData.description.trim() || undefined,
         start_date: formData.startDate || undefined,
         end_date: formData.endDate || undefined,
-        destination: formData.location || undefined,
+        destination: formData.location.trim() || undefined,
         trip_type: tripType,
         privacy_mode: privacyMode,
         ai_access_enabled: privacyMode === 'standard'
@@ -101,6 +231,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         }
         
         toast.success('Trip created successfully!');
+        setShowOnboarding(false); // Hide onboarding after successful creation
         onClose();
         // Reset form
         setFormData({
@@ -113,6 +244,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         setTripType('consumer');
         setPrivacyMode(getDefaultPrivacyMode('consumer'));
         setSelectedOrganization('');
+        setValidationErrors({});
       } else {
         toast.error('Failed to create trip. Please try again.');
       }
@@ -164,6 +296,30 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           </button>
         </div>
 
+        {/* First-time User Onboarding Banner */}
+        {showOnboarding && isFirstTrip && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-xl">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Sparkles size={20} className="text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-white mb-1">Welcome to Chravel! 🎉</h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Create your first trip to start planning adventures with friends. You can invite collaborators, 
+                  share expenses, and use AI to discover amazing places.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowOnboarding(false)}
+                className="text-slate-400 hover:text-white transition-colors flex-shrink-0"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Trip Type Toggle */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-slate-300 mb-3">
@@ -211,10 +367,20 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none transition-colors"
+              className={`w-full bg-slate-700/50 border rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none transition-colors ${
+                validationErrors.title 
+                  ? 'border-red-500 focus:border-red-500' 
+                  : 'border-slate-600 focus:border-blue-500'
+              }`}
               placeholder="e.g., Summer in Paris"
               required
             />
+            {validationErrors.title && (
+              <div className="flex items-center gap-1.5 mt-1.5 text-red-400 text-xs">
+                <AlertCircle size={14} />
+                <span>{validationErrors.title}</span>
+              </div>
+            )}
           </div>
 
           {/* Location */}
@@ -228,10 +394,20 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               name="location"
               value={formData.location}
               onChange={handleInputChange}
-              className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none transition-colors"
+              className={`w-full bg-slate-700/50 border rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none transition-colors ${
+                validationErrors.location 
+                  ? 'border-red-500 focus:border-red-500' 
+                  : 'border-slate-600 focus:border-blue-500'
+              }`}
               placeholder="e.g., Paris, France"
               required
             />
+            {validationErrors.location && (
+              <div className="flex items-center gap-1.5 mt-1.5 text-red-400 text-xs">
+                <AlertCircle size={14} />
+                <span>{validationErrors.location}</span>
+              </div>
+            )}
           </div>
 
           {/* Date Range */}
@@ -246,9 +422,19 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleInputChange}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                className={`w-full bg-slate-700/50 border rounded-xl px-4 py-3 text-white focus:outline-none transition-colors ${
+                  validationErrors.startDate 
+                    ? 'border-red-500 focus:border-red-500' 
+                    : 'border-slate-600 focus:border-blue-500'
+                }`}
                 required
               />
+              {validationErrors.startDate && (
+                <div className="flex items-center gap-1.5 mt-1.5 text-red-400 text-xs">
+                  <AlertCircle size={14} />
+                  <span>{validationErrors.startDate}</span>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -259,9 +445,20 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleInputChange}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                min={formData.startDate || undefined}
+                className={`w-full bg-slate-700/50 border rounded-xl px-4 py-3 text-white focus:outline-none transition-colors ${
+                  validationErrors.endDate 
+                    ? 'border-red-500 focus:border-red-500' 
+                    : 'border-slate-600 focus:border-blue-500'
+                }`}
                 required
               />
+              {validationErrors.endDate && (
+                <div className="flex items-center gap-1.5 mt-1.5 text-red-400 text-xs">
+                  <AlertCircle size={14} />
+                  <span>{validationErrors.endDate}</span>
+                </div>
+              )}
             </div>
           </div>
 
