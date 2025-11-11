@@ -39,6 +39,28 @@ export const paymentBalanceService = {
     baseCurrency: string = 'USD'
   ): Promise<BalanceSummary> {
     try {
+      // Security: Verify current user is a trip member before accessing payment data
+      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !currentUser) {
+        throw new Error('Unauthorized: Authentication required');
+      }
+
+      const { data: membership, error: membershipError } = await supabase
+        .from('trip_members')
+        .select('id')
+        .eq('trip_id', tripId)
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+      if (membershipError) {
+        throw new Error(`Failed to verify trip membership: ${membershipError.message}`);
+      }
+
+      if (!membership) {
+        throw new Error('Unauthorized: Not a trip member');
+      }
+
       // Fetch all payment messages for this trip
       const { data: paymentMessages, error: messagesError } = await supabase
         .from('trip_payment_messages')
@@ -277,6 +299,11 @@ export const paymentBalanceService = {
         balances: balances.filter(b => b.amountOwed !== 0) // Only show non-zero balances
       };
     } catch (error) {
+      // Re-throw authorization errors - they should be handled by the caller
+      if (error instanceof Error && error.message.includes('Unauthorized')) {
+        throw error;
+      }
+      
       console.error('Error calculating balance summary:', error);
       return {
         totalOwed: 0,

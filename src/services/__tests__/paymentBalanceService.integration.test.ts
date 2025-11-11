@@ -18,6 +18,13 @@ describe('paymentBalanceService - Integration Tests', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Default mock: authenticated user with trip membership
+    const mockSupabase = vi.mocked(supabase);
+    mockSupabase.auth.getUser = vi.fn().mockResolvedValue({
+      data: { user: { id: userId } },
+      error: null
+    });
   });
 
   describe('getBalanceSummary', () => {
@@ -108,10 +115,16 @@ describe('paymentBalanceService - Integration Tests', () => {
       const paymentMethods: any[] = [];
 
       // Setup mocks
-      let callCount = 0;
       mockSupabase.from = vi.fn((table: string) => {
         const builder = createQueryBuilderMock();
-        if (table === 'trip_payment_messages') {
+        if (table === 'trip_members') {
+          // Mock membership check
+          builder.select.mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
+            })
+          });
+        } else if (table === 'trip_payment_messages') {
           builder.selectReturn.mockResolvedValue({ data: paymentMessages, error: null });
         } else if (table === 'payment_splits') {
           builder.in.mockReturnValue({
@@ -147,7 +160,13 @@ describe('paymentBalanceService - Integration Tests', () => {
 
       mockSupabase.from = vi.fn((table: string) => {
         const builder = createQueryBuilderMock();
-        if (table === 'trip_payment_messages') {
+        if (table === 'trip_members') {
+          builder.select.mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
+            })
+          });
+        } else if (table === 'trip_payment_messages') {
           builder.selectReturn.mockResolvedValue({ data: [], error: null });
         }
         return builder as any;
@@ -167,7 +186,13 @@ describe('paymentBalanceService - Integration Tests', () => {
 
       mockSupabase.from = vi.fn((table: string) => {
         const builder = createQueryBuilderMock();
-        if (table === 'trip_payment_messages') {
+        if (table === 'trip_members') {
+          builder.select.mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
+            })
+          });
+        } else if (table === 'trip_payment_messages') {
           builder.selectReturn.mockResolvedValue({ data: null, error });
         }
         return builder as any;
