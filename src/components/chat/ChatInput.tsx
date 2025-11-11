@@ -248,7 +248,7 @@ export const ChatInput = ({
             rows={1}
             className={`flex-1 min-h-[44px] sm:min-h-[48px] px-4 py-2 rounded-2xl resize-none focus:outline-none focus:ring-0 transition-all ${
               isBroadcastMode
-                ? 'bg-gradient-to-r from-orange-900/20 to-red-900/20 border border-orange-500/50 focus:border-orange-400 text-white placeholder-white/60'
+                ? 'bg-neutral-900 border border-orange-500/50 focus:border-orange-400 text-white placeholder-red-800/80'
                 : 'bg-neutral-900 border border-neutral-800 focus:border-blue-500 text-white placeholder-neutral-500'
             }`}
           />
