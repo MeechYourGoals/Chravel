@@ -85,6 +85,16 @@ STABLE SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  -- Security: Validate that the calling user is a member of the trip
+  IF NOT EXISTS (
+    SELECT 1 FROM trip_members
+    WHERE trip_id = p_trip_id
+      AND user_id = auth.uid()
+      AND status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'Access denied: User is not a member of this trip';
+  END IF;
+
   RETURN QUERY
   WITH vector_results AS (
     SELECT 
@@ -150,4 +160,4 @@ COMMENT ON COLUMN trip_files.chunk_count IS 'Number of chunks created from this 
 COMMENT ON COLUMN trip_files.ocr_confidence IS 'OCR confidence score (0-1) for image-based documents';
 COMMENT ON COLUMN trip_files.extracted_entities IS 'Entities extracted: dates, locations, amounts, names, etc';
 COMMENT ON COLUMN trip_files.file_structure IS 'Document structure: pages, sections, headings, etc';
-COMMENT ON FUNCTION hybrid_search_trip_context IS 'Hybrid search combining vector similarity and keyword matching with re-ranking';
+COMMENT ON FUNCTION hybrid_search_trip_context IS 'Hybrid search combining vector similarity and keyword matching with re-ranking. Validates trip membership before allowing search access.';

@@ -70,4 +70,4 @@ BEGIN
   ORDER BY c.created_at DESC
   LIMIT limit_count;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;

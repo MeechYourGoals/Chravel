@@ -26,13 +26,17 @@ SELECT * FROM vulnerable_function();
 ### Migration File
 `supabase/migrations/20251221_fix_security_definer_search_path.sql`
 
-**Important**: This migration is timestamped `20251221` to ensure it runs AFTER all existing migrations that define these functions:
-- `20251107001035_5087e291-c88b-4cf7-86f9-6672d86652df.sql` (defines `hybrid_search_trip_context`)
-- `20251026_address_known_issues.sql` (defines badge, rate limiting, and cleanup functions)
-- `20250120000002_ai_concierge_usage_tracking.sql` (defines concierge usage functions)
-- `001_audio_summaries.sql` (defines audio quota functions)
+**Important**: This migration is timestamped `20251221` to ensure it runs AFTER all existing migrations that define these functions. However, **the original migration files have also been updated** to include security fixes directly, ensuring:
 
-This ensures that on a fresh database, the secure versions are the final ones applied.
+1. **Fresh databases**: Get secure versions from the start (original migrations are secure)
+2. **Existing databases**: The later migration patches any insecure versions that were already applied
+
+**Updated Original Migrations**:
+- ✅ `20251107001035_5087e291-c88b-4cf7-86f9-6672d86652df.sql` - Added trip membership check to `hybrid_search_trip_context`
+- ✅ `20251026_address_known_issues.sql` - Added `SET search_path = public` to all SECURITY DEFINER functions
+- ✅ `20250120000002_ai_concierge_usage_tracking.sql` - Added `SET search_path = public` to all SECURITY DEFINER functions
+- ✅ `001_audio_summaries.sql` - Added `SET search_path = public` to all SECURITY DEFINER functions
+- ✅ `20250115000002_ai_conversations_table.sql` - Already secure (no SECURITY DEFINER functions)
 
 ### Functions Fixed
 
