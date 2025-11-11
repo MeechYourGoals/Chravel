@@ -29,6 +29,7 @@ import { ChannelChatView } from './pro/channels/ChannelChatView';
 import { TypingIndicator } from './chat/TypingIndicator';
 import { TypingIndicatorService } from '@/services/typingIndicatorService';
 import { markMessageAsRead, subscribeToReadReceipts } from '@/services/readReceiptService';
+import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { MessageSearch } from './chat/MessageSearch';
 import { ParsedContentSuggestions } from './chat/ParsedContentSuggestions';
 import { supabase } from '@/integrations/supabase/client';
@@ -159,6 +160,14 @@ export const TripChat = ({
   });
 
   const shouldUseDemoData = demoMode.isDemoMode || !resolvedTripId;
+
+  // Track unread counts with real-time updates
+  const { unreadCount, broadcastCount } = useUnreadCounts({
+    tripId: resolvedTripId,
+    messages: liveMessages as any,
+    userId: user?.id || null,
+    enabled: !shouldUseDemoData && !!user?.id
+  });
 
   // Initialize typing indicators
   useEffect(() => {
@@ -433,6 +442,8 @@ export const TripChat = ({
               onFilterChange={setMessageFilter}
               hasChannels={availableChannels.length > 0}
               isPro={isPro}
+              broadcastCount={broadcastCount}
+              unreadCount={unreadCount}
             />
             {isLoading ? (
               <div className="flex-1 overflow-y-auto p-4">

@@ -10,10 +10,13 @@ import { useKeyboardHandler } from '../../hooks/useKeyboardHandler';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { useSwipeGesture } from '../../hooks/useSwipeGesture';
 import { useUnifiedMessages } from '../../hooks/useUnifiedMessages';
+import { useUnreadCounts } from '../../hooks/useUnreadCounts';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { MessageSkeleton } from './SkeletonLoader';
 import { hapticService } from '../../services/hapticService';
 import { ChatFilterTabs } from '../chat/ChatFilterTabs';
+import { supabase } from '@/integrations/supabase/client';
+import { markMessageAsRead } from '@/services/readReceiptService';
 
 interface MobileTripChatProps {
   tripId: string;
@@ -26,6 +29,14 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
   const containerRef = useRef<HTMLDivElement>(null);
   const [reactions, setReactions] = useState<{ [messageId: string]: { [reaction: string]: { count: number; userReacted: boolean } } }>({});
   const [messageFilter, setMessageFilter] = useState<'all' | 'broadcasts' | 'channels'>('all');
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Get current user
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUserId(data.user?.id || null);
+    });
+  }, []);
   
   // Use unified messages hook for real-time chat
   const {
@@ -49,6 +60,37 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
     createdAt: new Date(msg.created_at).toISOString(),
     isBroadcast: msg.privacy_mode === 'broadcast'
   }));
+
+  // Track unread counts with real-time updates
+  const { unreadCount, broadcastCount } = useUnreadCounts({
+    tripId,
+    messages: rawMessages,
+    userId,
+    enabled: true
+  });
+
+  // Mark messages as read when viewing
+  useEffect(() => {
+    if (!userId || rawMessages.length === 0) return;
+
+    const markVisibleMessagesAsRead = async () => {
+      // Mark the latest messages as read
+      const latestMessages = rawMessages.slice(-10);
+      for (const msg of latestMessages) {
+        if (msg.user_id !== userId) {
+          try {
+            await markMessageAsRead(msg.id, tripId, userId);
+          } catch (error) {
+            console.error('Failed to mark message as read:', error);
+          }
+        }
+      }
+    };
+
+    // Debounce to avoid excessive updates
+    const timer = setTimeout(markVisibleMessagesAsRead, 1000);
+    return () => clearTimeout(timer);
+  }, [rawMessages, tripId, userId]);
   
   const {
     inputMessage,
@@ -115,6 +157,8 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
             onFilterChange={setMessageFilter}
             hasChannels={false}
             isPro={false}
+            broadcastCount={broadcastCount}
+            unreadCount={unreadCount}
           />
           
           {isLoading ? (
