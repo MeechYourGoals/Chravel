@@ -59,6 +59,8 @@
 	<string>Chravel uses your location to keep your travel group updated on your whereabouts.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>Chravel needs access to your contacts to suggest people to invite to your trips.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Chravel needs access to your microphone to record voice messages for your travel group.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
