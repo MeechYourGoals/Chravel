@@ -161,6 +161,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in accept-organization-invite:', error);
-    return createErrorResponse(error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    return createErrorResponse(errorMessage);
   }
 });

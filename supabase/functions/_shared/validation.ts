@@ -52,9 +52,9 @@ export function validateExternalHttpsUrl(url: string): boolean {
 }
 
 /**
- * Zod refinement for external HTTPS URLs
+ * Zod refinement for external HTTPS URLs with max length
  */
-export const externalHttpsUrlSchema = z.string().url().refine(
+export const externalHttpsUrlSchema = z.string().url().max(2000, "URL too long").refine(
   (url) => validateExternalHttpsUrl(url),
   { message: "URL must be HTTPS and external (no internal/private networks)" }
 );
@@ -174,7 +174,7 @@ export const DocumentProcessorSchema = z.object({
 // ============= URL FETCHING SCHEMAS (SSRF Protection) =============
 
 export const FetchOGMetadataSchema = z.object({
-  url: externalHttpsUrlSchema.max(2000, "URL too long")
+  url: externalHttpsUrlSchema
 });
 
 export const ReceiptOCRSchema = z.object({
@@ -216,7 +216,8 @@ export async function verifyTripMembership(
 
     return { isMember: true };
   } catch (error) {
-    return { isMember: false, error: `Verification failed: ${error.message}` };
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return { isMember: false, error: `Verification failed: ${errorMessage}` };
   }
 }
 
@@ -248,7 +249,7 @@ export const AIFeaturesSchema = z.object({
   feature: z.enum(['review-analysis', 'message-template', 'priority-classify', 'send-time-suggest'], {
     errorMap: () => ({ message: "Invalid feature type" })
   }),
-  url: externalHttpsUrlSchema.max(2000).optional(),
+  url: externalHttpsUrlSchema.optional(),
   venue_name: z.string().max(200).optional(),
   place_id: z.string().max(100).optional(),
   address: z.string().max(500).optional(),
@@ -292,7 +293,7 @@ export const CreateTripSchema = z.object({
   start_date: z.string().datetime({ message: "Invalid date format. Use ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)" }).optional(),
   end_date: z.string().datetime({ message: "Invalid date format. Use ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)" }).optional(),
   trip_type: z.enum(['consumer', 'pro', 'event']).optional(),
-  cover_image_url: externalHttpsUrlSchema.max(500).optional()
+  cover_image_url: z.string().url().max(500).optional()
 });
 
 // ============= GENERIC VALIDATION HELPER =============

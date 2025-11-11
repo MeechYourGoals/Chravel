@@ -51,7 +51,7 @@ serve(async (req) => {
     }
 
     // 🔒 SECURITY: Verify user is a member of the trip
-    const { data: membershipCheck, error: membershipError } = await supabaseAuth
+    const { data: membershipCheck, error: membershipError } = await supabase
       .from('trip_members')
       .select('user_id, status')
       .eq('trip_id', tripId)

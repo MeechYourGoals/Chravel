@@ -23,7 +23,8 @@ serve(async (req) => {
     const { data, error } = await supabase
       .from('realtime_locations')
       .delete()
-      .lt('updated_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString());
+      .lt('updated_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+      .select();
 
     if (error) {
       console.error('Error deleting stale locations:', error);
@@ -33,12 +34,13 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Deleted ${data?.length || 0} stale location records`);
+    const deletedCount = Array.isArray(data) ? data.length : 0;
+    console.log(`Deleted ${deletedCount} stale location records`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        deletedCount: data?.length || 0,
+        deletedCount,
         message: 'Stale locations cleaned up successfully' 
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

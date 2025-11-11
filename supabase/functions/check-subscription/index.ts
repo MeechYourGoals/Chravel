@@ -103,8 +103,10 @@ serve(async (req) => {
       if (tier === 'pro') {
         await supabaseClient
           .from('user_roles')
-          .insert({ user_id: user.id, role: 'pro' })
-          .onConflict('user_id,role')
+          .upsert({ user_id: user.id, role: 'pro' }, {
+            onConflict: 'user_id,role',
+            ignoreDuplicates: true
+          })
           .select();
         logStep("Pro role granted");
       }

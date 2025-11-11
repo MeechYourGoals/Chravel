@@ -172,7 +172,8 @@ serve(async (req) => {
 
   } catch (err) {
     console.error('Daily Digest Error:', err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

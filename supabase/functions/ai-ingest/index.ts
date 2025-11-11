@@ -332,7 +332,8 @@ async function ingestSingleItem(supabase: any, source: string, sourceId: string,
     return { success: true, docId: doc.id };
   } catch (error) {
     console.error(`Error ingesting ${source} ${sourceId}:`, error);
-    return { success: false, error: error.message };
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, error: errorMessage };
   }
 }
 
