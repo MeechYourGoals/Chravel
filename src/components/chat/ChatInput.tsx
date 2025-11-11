@@ -222,6 +222,7 @@ export const ChatInput = ({
           onSubmit={handlePaymentSubmit}
           tripMembers={tripMembers}
           isVisible={isPaymentMode}
+          tripId={tripId}
         />
       )}
 

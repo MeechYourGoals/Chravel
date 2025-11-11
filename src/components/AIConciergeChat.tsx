@@ -211,9 +211,12 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
     setIsTyping(true);
     setAiStatus('thinking');
 
+    // Declare outside try block so accessible in catch
+    let tripContext: any;
+    let basecampLocation: { name: string; address: string } | undefined;
+
     try {
       // Get full trip context with enhanced contextual data
-      let tripContext;
       try {
         tripContext = await EnhancedTripContextService.getEnhancedTripContext(tripId, false);
       } catch (error) {
@@ -244,8 +247,8 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         content: msg.content
       }));
 
-      // Prepare basecamp location
-      const basecampLocation = globalBasecamp ? {
+      // Prepare basecamp location (already declared above)
+      basecampLocation = globalBasecamp ? {
         name: globalBasecamp.name || 'Basecamp',
         address: globalBasecamp.address
       } : (basecamp ? {

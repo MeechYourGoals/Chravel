@@ -194,7 +194,7 @@ export const TripChat = ({
     markVisibleAsRead();
 
     return () => {
-      subscription.then(ch => supabase.removeChannel(ch)).catch(console.error);
+      supabase.removeChannel(subscription).catch(console.error);
     };
   }, [liveMessages, user?.id, resolvedTripId, shouldUseDemoData]);
 

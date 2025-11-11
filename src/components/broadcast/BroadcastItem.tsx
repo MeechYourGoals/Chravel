@@ -173,7 +173,7 @@ export const BroadcastItem = ({
           <Eye size={12} />
           <span>{readCount} {readCount === 1 ? 'view' : 'views'}</span>
           {hasViewed && (
-            <CheckCircle2 size={12} className="text-green-500" title="You've viewed this" />
+            <CheckCircle2 size={12} className="text-green-500" aria-label="You've viewed this" />
           )}
         </div>
       )}
