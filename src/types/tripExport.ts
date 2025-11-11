@@ -29,11 +29,45 @@ export type ExportSection =
 export type ExportLayout = 'onepager' | 'pro';
 
 /**
+ * PDF customization options
+ */
+export interface PDFCustomizationOptions {
+  /** Primary brand color (hex) */
+  primaryColor?: string;
+  /** Secondary/accent color (hex) */
+  secondaryColor?: string;
+  /** Custom logo URL (base64 or URL) */
+  logoUrl?: string;
+  /** Custom footer text */
+  footerText?: string;
+  /** Section order override */
+  sectionOrder?: ExportSection[];
+  /** Enable compression for smaller file size */
+  compress?: boolean;
+  /** Maximum items per section before pagination */
+  maxItemsPerSection?: number;
+}
+
+/**
+ * Progress callback for PDF generation
+ */
+export interface PDFProgressCallback {
+  (progress: {
+    stage: 'preparing' | 'rendering' | 'finalizing';
+    current: number;
+    total: number;
+    message: string;
+  }): void;
+}
+
+/**
  * Request payload for trip export
  */
 export interface TripExportRequest {
   tripId: string;
   includeSections: ExportSection[];
+  customization?: PDFCustomizationOptions;
+  onProgress?: PDFProgressCallback;
 }
 
 /**
