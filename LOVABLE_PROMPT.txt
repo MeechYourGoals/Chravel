@@ -1,0 +1,80 @@
+Fix all TypeScript build errors and Supabase type issues in the Chravel codebase. The code references database tables, columns, and functions that either don't exist in generated types or are referenced incorrectly.
+
+CRITICAL ISSUES TO FIX:
+
+1. REGENERATE SUPABASE TYPES
+   - Run: `npx supabase gen types typescript --project-id <project-id> > src/types/database.types.ts`
+   - OR if local: `npx supabase gen types typescript --local > src/types/database.types.ts`
+   - This will generate types for: basecamp_change_history, push_tokens, payment_split_patterns, trip_presence tables
+
+2. FIX TYPE ERRORS IN THESE FILES:
+
+   A. src/hooks/useTripPermissions.ts (lines 110-115, 186, 219)
+      - Issue: `permissions` column in `trip_members` not in types
+      - Fix: Add type assertion: `const typedMember = member as { role: string; permissions?: PermissionMatrix } | null;`
+      - If column missing: Add migration to add `permissions JSONB` to `trip_members`
+
+   B. src/hooks/useTripTasks.ts (lines 513-518, 529)
+      - Issue: `is_completed` and `version` columns in `task_status` not in types
+      - Fix: Add type assertion for query result
+      - If columns missing: Add migration to add `is_completed BOOLEAN DEFAULT false, version INTEGER DEFAULT 1` to `task_status`
+
+   C. src/services/basecampService.ts (lines 159, 282, 345, 381)
+      - Issue: `log_basecamp_change` is database RPC function (correct), but `basecamp_change_history` table not in types
+      - Fix: Keep RPC calls as-is, add type assertion for table queries: `const typedHistory = (data || []) as BasecampChangeHistory[];`
+
+   D. src/services/broadcastService.ts (lines 200, 214, 266-267, 285)
+      - Issue: `mark_broadcast_viewed` returns void (not data), `get_broadcast_read_count` returns INTEGER, `push_tokens` table not in types
+      - Fix: 
+        * Line 200: Change to `const { error } = await supabase.rpc(...)` and return `!error`
+        * Line 214: Change to `const { data, error } = await supabase.rpc(...)` and return `Number(data || 0)`
+        * Lines 266-267: Add type assertion: `const typedTokens = (tokens || []) as Array<{ token: string; platform: string }>;`
+
+   E. src/services/calendarService.ts (lines 68, 263, 293)
+      - Issue: Missing `created_by` property in offline event, `version` column handling
+      - Fix: 
+        * Line 68: Add `created_by: user?.id || ''` to returned object
+        * Lines 263, 293: Add safe version check: `if (updates.version !== undefined && typeof updates.version === 'number')`
+
+   F. src/services/chatAnalysisService.ts (lines 416-422, 659-687)
+      - Issue: `payment_split_patterns` table not in types
+      - Fix: Add type assertions for all queries to this table (code already has try-catch for missing table)
+
+3. CREATE MISSING MIGRATIONS (if columns don't exist):
+
+   Migration 1: Add permissions to trip_members
+   ```sql
+   ALTER TABLE trip_members 
+   ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT NULL;
+   ```
+
+   Migration 2: Add version to trip_events
+   ```sql
+   ALTER TABLE trip_events 
+   ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;
+   ```
+
+   Migration 3: Add is_completed and version to task_status
+   ```sql
+   ALTER TABLE task_status 
+   ADD COLUMN IF NOT EXISTS is_completed BOOLEAN DEFAULT false,
+   ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;
+   ```
+
+4. VERIFY BUILD PASSES:
+   - Run: `npm run typecheck` (must pass with zero errors)
+   - Run: `npm run lint` (must pass)
+   - Run: `npm run build` (must complete successfully)
+
+REQUIREMENTS:
+- Keep all existing functionality - only fix types, don't change logic
+- Use proper TypeScript types instead of `@ts-ignore` or `as any` where possible
+- If types can't be generated, use minimal, well-documented type assertions
+- All fixes must maintain backward compatibility
+- Preserve all features: permissions, tasks, basecamp history, broadcasts, push notifications, calendar events, payment patterns
+
+EXPECTED OUTCOME:
+- Zero TypeScript build errors
+- Zero lint errors
+- Successful production build
+- All features continue to work as before
