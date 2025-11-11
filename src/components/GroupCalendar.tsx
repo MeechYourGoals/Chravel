@@ -6,6 +6,8 @@ import { useCalendarManagement } from '@/hooks/useCalendarManagement';
 import { CalendarHeader } from './calendar/CalendarHeader';
 import { AddEventModal } from './calendar/AddEventModal';
 import { EventList } from './calendar/EventList';
+import { exportTripEventsToICal } from '@/services/calendarSync';
+import { useToast } from '@/hooks/use-toast';
 
 interface GroupCalendarProps {
   tripId: string;
@@ -32,6 +34,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
     isLoading,
     isSaving
   } = useCalendarManagement(tripId);
+  const { toast } = useToast();
 
   const handleEdit = (event: any) => {
     setEditingEvent(event);
@@ -62,6 +65,23 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
     resetForm();
   };
 
+  const handleExport = async () => {
+    try {
+      await exportTripEventsToICal(tripId, 'Trip Calendar');
+      toast({
+        title: 'Calendar exported',
+        description: 'Your calendar has been downloaded as an .ics file.'
+      });
+    } catch (error) {
+      console.error('Failed to export calendar:', error);
+      toast({
+        title: 'Export failed',
+        description: 'Unable to export calendar. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : [];
   const datesWithEvents = events.map(event => event.date);
 
@@ -82,6 +102,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           viewMode={viewMode}
           onToggleView={toggleViewMode}
           onAddEvent={() => setShowAddEvent(!showAddEvent)}
+          onExport={handleExport}
         />
         <ItineraryView events={events} tripName="Trip Itinerary" />
       </div>
@@ -94,6 +115,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         viewMode={viewMode}
         onToggleView={toggleViewMode}
         onAddEvent={() => setShowAddEvent(!showAddEvent)}
+        onExport={handleExport}
       />
 
       {isLoading ? (

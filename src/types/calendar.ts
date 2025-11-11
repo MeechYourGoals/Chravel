@@ -16,6 +16,14 @@ export interface CalendarEvent {
     original_text?: string;
     venue_details?: any;
   };
+  // Recurring event support
+  recurrence_rule?: string; // RRULE format (e.g., "FREQ=DAILY;INTERVAL=1;COUNT=7")
+  recurrence_exceptions?: string[]; // Array of exception dates (ISO format)
+  parent_event_id?: string; // For recurring series
+  // Busy/free time blocking
+  is_busy?: boolean; // true = busy, false = free/tentative
+  availability_status?: 'busy' | 'free' | 'tentative';
+  end_time?: Date; // End time for the event
 }
 
 export interface ItineraryDay {
@@ -27,8 +35,15 @@ export interface AddToCalendarData {
   title: string;
   date: Date;
   time: string;
+  endTime?: string; // End time (HH:mm format)
   location?: string;
   description?: string;
   category: CalendarEvent['event_category'];
   include_in_itinerary?: boolean;
+  // Recurring event support
+  recurrence_rule?: string; // RRULE format
+  recurrence_exceptions?: string[];
+  // Busy/free time blocking
+  is_busy?: boolean;
+  availability_status?: 'busy' | 'free' | 'tentative';
 }
