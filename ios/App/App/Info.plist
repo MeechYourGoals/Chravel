@@ -57,5 +57,33 @@
 	<string>Chravel uses your location to provide real-time location sharing with your travel companions.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Chravel uses your location to keep your travel group updated on your whereabouts.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Chravel needs access to your contacts to suggest people to invite to your trips.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.chravel.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>chravel</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.chravel.app.universal</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>https</string>
+			</array>
+		</dict>
+	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:chravel.app</string>
+		<string>applinks:www.chravel.app</string>
+	</array>
 </dict>
 </plist>
