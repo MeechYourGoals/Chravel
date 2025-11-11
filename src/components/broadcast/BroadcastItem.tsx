@@ -1,5 +1,6 @@
-import React from 'react';
-import { Clock, MapPin, Users } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Clock, MapPin, Users, Eye, CheckCircle2 } from 'lucide-react';
+import { broadcastService } from '@/services/broadcastService';
 
 interface BroadcastItemProps {
   id: string;
@@ -15,6 +16,8 @@ interface BroadcastItemProps {
     cant: number;
   };
   userResponse?: 'coming' | 'wait' | 'cant';
+  attachmentUrls?: string[];
+  readCount?: number;
   onRespond: (broadcastId: string, response: 'coming' | 'wait' | 'cant') => void;
 }
 
@@ -28,8 +31,36 @@ export const BroadcastItem = ({
   recipients,
   responses,
   userResponse,
+  attachmentUrls = [],
+  readCount: initialReadCount,
   onRespond
 }: BroadcastItemProps) => {
+  const [readCount, setReadCount] = useState(initialReadCount || 0);
+  const [hasViewed, setHasViewed] = useState(false);
+
+  // Mark as viewed when component mounts (read receipt)
+  useEffect(() => {
+    const markViewed = async () => {
+      if (!hasViewed) {
+        const success = await broadcastService.markBroadcastViewed(id);
+        if (success) {
+          setHasViewed(true);
+          // Refresh read count
+          const count = await broadcastService.getBroadcastReadCount(id);
+          setReadCount(count);
+        }
+      }
+    };
+
+    markViewed();
+  }, [id, hasViewed]);
+
+  // Fetch read count on mount if not provided
+  useEffect(() => {
+    if (initialReadCount === undefined) {
+      broadcastService.getBroadcastReadCount(id).then(setReadCount);
+    }
+  }, [id, initialReadCount]);
   const getCategoryColors = () => {
     switch (category) {
       case 'chill':
@@ -95,11 +126,55 @@ export const BroadcastItem = ({
       {/* Message */}
       <p className="text-white mb-3 leading-relaxed font-bold">{message}</p>
 
+      {/* Attachments */}
+      {attachmentUrls && attachmentUrls.length > 0 && (
+        <div className="mb-3 grid grid-cols-2 gap-2">
+          {attachmentUrls.map((url, index) => (
+            <div key={index} className="relative">
+              {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                <img
+                  src={url}
+                  alt={`Attachment ${index + 1}`}
+                  className="w-full h-32 object-cover rounded border border-slate-600 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => window.open(url, '_blank')}
+                />
+              ) : url.match(/\.(mp4|mov|quicktime)$/i) ? (
+                <video
+                  src={url}
+                  className="w-full h-32 object-cover rounded border border-slate-600"
+                  controls
+                />
+              ) : (
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full h-32 bg-slate-700 rounded border border-slate-600 flex items-center justify-center hover:bg-slate-600 transition-colors"
+                >
+                  <span className="text-xs text-slate-300">View File</span>
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Location */}
       {location && (
         <div className="flex items-center gap-2 text-slate-300 text-sm mb-3">
           <MapPin size={14} />
           {location}
+        </div>
+      )}
+
+      {/* Read receipts */}
+      {readCount > 0 && (
+        <div className="flex items-center gap-2 text-slate-400 text-xs mb-3">
+          <Eye size={12} />
+          <span>{readCount} {readCount === 1 ? 'view' : 'views'}</span>
+          {hasViewed && (
+            <CheckCircle2 size={12} className="text-green-500" title="You've viewed this" />
+          )}
         </div>
       )}
 
