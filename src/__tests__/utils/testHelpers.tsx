@@ -94,6 +94,7 @@ export const createMockTrip = (overrides = {}) => ({
  * Create mock user profile
  */
 export const createMockUserProfile = (overrides = {}) => ({
+  id: 'user-123',
   user_id: 'user-123',
   display_name: 'Test User',
   first_name: 'Test',

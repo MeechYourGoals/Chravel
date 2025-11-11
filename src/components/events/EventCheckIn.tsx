@@ -55,7 +55,7 @@ export const EventCheckIn: React.FC<EventCheckInProps> = ({ eventId }) => {
       setIsLoading(true);
 
       const { data, error } = await supabase
-        .from('event_rsvps')
+        .from('event_rsvps' as any)
         .select('id, user_name, user_email, status, checked_in, checked_in_at')
         .eq('event_id', eventId)
         .in('status', ['going', 'waitlist'])
@@ -92,7 +92,7 @@ export const EventCheckIn: React.FC<EventCheckInProps> = ({ eventId }) => {
     try {
       setIsCheckingIn(true);
 
-      const { error } = await supabase.rpc('check_in_attendee', {
+      const { error } = await supabase.rpc('check_in_attendee' as any, {
         _rsvp_id: rsvpId,
         _checked_in_by: user.id
       });
@@ -126,7 +126,7 @@ export const EventCheckIn: React.FC<EventCheckInProps> = ({ eventId }) => {
 
       // Find RSVP by user_id
       const { data: rsvp, error } = await supabase
-        .from('event_rsvps')
+        .from('event_rsvps' as any)
         .select('id, user_name, checked_in')
         .eq('event_id', eventId)
         .eq('user_id', userId)
@@ -137,14 +137,14 @@ export const EventCheckIn: React.FC<EventCheckInProps> = ({ eventId }) => {
         return;
       }
 
-      if (rsvp.checked_in) {
-        alert(`${rsvp.user_name} is already checked in`);
+      if ((rsvp as any).checked_in) {
+        alert(`${(rsvp as any).user_name} is already checked in`);
         return;
       }
 
-      const success = await checkInAttendee(rsvp.id);
+      const success = await checkInAttendee((rsvp as any).id);
       if (success) {
-        alert(`Checked in: ${rsvp.user_name}`);
+        alert(`Checked in: ${(rsvp as any).user_name}`);
         setScanResult(null);
       }
     } catch (error) {

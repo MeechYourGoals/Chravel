@@ -4,9 +4,14 @@
  */
 import React from 'react';
 import { Check, CheckCheck } from 'lucide-react';
-import type { Database } from '@/integrations/supabase/types';
 
-type ReadStatus = Database['public']['Tables']['message_read_status']['Row'];
+type ReadStatus = {
+  id: string;
+  message_id: string;
+  user_id: string;
+  read_at: string;
+  created_at: string;
+};
 
 interface ReadReceiptsProps {
   readStatuses: ReadStatus[];

@@ -74,21 +74,21 @@ export const useEventRSVP = (eventId: string) => {
 
       // Get RSVP count
       const { count: rsvpCount } = await supabase
-        .from('event_rsvps')
+        .from('event_rsvps' as any)
         .select('*', { count: 'exact', head: true })
         .eq('event_id', eventId)
         .eq('status', 'going');
 
       // Get waitlist count
       const { count: waitlistCount } = await supabase
-        .from('event_rsvps')
+        .from('event_rsvps' as any)
         .select('*', { count: 'exact', head: true })
         .eq('event_id', eventId)
         .eq('status', 'waitlist');
 
       // Get current user's RSVP
       const { data: userRsvp, error: rsvpError } = await supabase
-        .from('event_rsvps')
+        .from('event_rsvps' as any)
         .select('*')
         .eq('event_id', eventId)
         .eq('user_id', user.id)
@@ -98,7 +98,7 @@ export const useEventRSVP = (eventId: string) => {
         console.error('Failed to load RSVP:', rsvpError);
       }
 
-      const totalCapacity = eventData.capacity || 0;
+      const totalCapacity = (eventData as any)?.capacity || 0;
       const currentCount = rsvpCount || 0;
       const waitlist = waitlistCount || 0;
 
@@ -108,22 +108,22 @@ export const useEventRSVP = (eventId: string) => {
         available: Math.max(0, totalCapacity - currentCount),
         waitlistCount: waitlist,
         isFull: currentCount >= totalCapacity,
-        isWaitlistEnabled: eventData.registration_status === 'waitlist'
+        isWaitlistEnabled: (eventData as any)?.registration_status === 'waitlist'
       });
 
       if (userRsvp) {
         setRsvp({
-          id: userRsvp.id,
-          eventId: userRsvp.event_id,
-          userId: userRsvp.user_id,
-          userName: userRsvp.user_name || user.email || 'Unknown',
-          userEmail: userRsvp.user_email || user.email || '',
-          status: userRsvp.status as RSVPStatus,
-          rsvpedAt: userRsvp.rsvped_at,
-          ticketQrCode: userRsvp.ticket_qr_code,
-          checkedIn: userRsvp.checked_in || false,
-          checkedInAt: userRsvp.checked_in_at,
-          waitlistPosition: userRsvp.waitlist_position
+          id: (userRsvp as any).id,
+          eventId: (userRsvp as any).event_id,
+          userId: (userRsvp as any).user_id,
+          userName: (userRsvp as any).user_name || user.email || 'Unknown',
+          userEmail: (userRsvp as any).user_email || user.email || '',
+          status: (userRsvp as any).status as RSVPStatus,
+          rsvpedAt: (userRsvp as any).rsvped_at,
+          ticketQrCode: (userRsvp as any).ticket_qr_code,
+          checkedIn: (userRsvp as any).checked_in || false,
+          checkedInAt: (userRsvp as any).checked_in_at,
+          waitlistPosition: (userRsvp as any).waitlist_position
         });
       }
     } catch (error) {
@@ -152,8 +152,8 @@ export const useEventRSVP = (eventId: string) => {
         .eq('id', user.id)
         .single();
 
-      const userName = profile?.full_name || user.email || 'Unknown';
-      const userEmail = profile?.email || user.email || '';
+      const userName = (profile as any)?.full_name || user.email || 'Unknown';
+      const userEmail = (profile as any)?.email || user.email || '';
 
       // Generate QR code for ticket if going
       let ticketQrCode: string | undefined;
@@ -165,7 +165,7 @@ export const useEventRSVP = (eventId: string) => {
       let waitlistPosition: number | undefined;
       if (status === 'going' && capacity?.isFull && capacity.isWaitlistEnabled) {
         const { count } = await supabase
-          .from('event_rsvps')
+          .from('event_rsvps' as any)
           .select('*', { count: 'exact', head: true })
           .eq('event_id', eventId)
           .eq('status', 'waitlist');
@@ -174,7 +174,7 @@ export const useEventRSVP = (eventId: string) => {
 
       // Upsert RSVP
       const { data, error } = await supabase
-        .from('event_rsvps')
+        .from('event_rsvps' as any)
         .upsert({
           event_id: eventId,
           user_id: user.id,
