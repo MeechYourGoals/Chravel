@@ -47,7 +47,7 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.author_name}`
     },
     createdAt: new Date(msg.created_at).toISOString(),
-    isBroadcast: false
+    isBroadcast: msg.privacy_mode === 'broadcast'
   }));
   
   const {
