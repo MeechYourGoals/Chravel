@@ -32,8 +32,14 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     description: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{
+    title?: string;
+    startDate?: string;
+    endDate?: string;
+    location?: string;
+  }>({});
   
-  const { createTrip } = useTrips();
+  const { createTrip, trips } = useTrips();
   const { organizations, fetchUserOrganizations } = useOrganization();
   const [enableAllFeatures, setEnableAllFeatures] = useState(true);
   const [selectedFeatures, setSelectedFeatures] = useState<Record<string, boolean>>(
@@ -43,6 +49,19 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   useEffect(() => {
     if (isOpen) {
       fetchUserOrganizations();
+    } else {
+      // Reset form and validation errors when modal closes
+      setFormData({
+        title: '',
+        location: '',
+        startDate: '',
+        endDate: '',
+        description: ''
+      });
+      setValidationErrors({});
+      setTripType('consumer');
+      setPrivacyMode(getDefaultPrivacyMode('consumer'));
+      setSelectedOrganization('');
     }
   }, [isOpen]);
 
@@ -50,6 +69,58 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   const handleTripTypeChange = (newTripType: 'consumer' | 'pro' | 'event') => {
     setTripType(newTripType);
     setPrivacyMode(getDefaultPrivacyMode(newTripType));
+  };
+
+  // Validation functions
+  const validateDateRange = (startDate: string, endDate: string): string | undefined => {
+    if (!startDate || !endDate) return undefined;
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (end < start) {
+      return 'End date must be after start date';
+    }
+    
+    return undefined;
+  };
+
+  const validateDuplicateName = (title: string): string | undefined => {
+    if (!title.trim() || !user) return undefined;
+    
+    // Check if user already has a trip with the same name (case-insensitive)
+    const duplicateTrip = trips.find(
+      trip => trip.name.toLowerCase().trim() === title.toLowerCase().trim() && !trip.is_archived
+    );
+    
+    if (duplicateTrip) {
+      return 'You already have a trip with this name';
+    }
+    
+    return undefined;
+  };
+
+  const validateForm = (): boolean => {
+    const errors: typeof validationErrors = {};
+    
+    // Validate date range
+    if (formData.startDate && formData.endDate) {
+      const dateError = validateDateRange(formData.startDate, formData.endDate);
+      if (dateError) {
+        errors.endDate = dateError;
+      }
+    }
+    
+    // Validate duplicate name
+    if (formData.title.trim()) {
+      const nameError = validateDuplicateName(formData.title);
+      if (nameError) {
+        errors.title = nameError;
+      }
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   if (!isOpen) return null;
@@ -61,6 +132,12 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     if (!user) {
       toast.error('Please sign in to create a trip');
       onClose();
+      return;
+    }
+    
+    // Validate form before submission
+    if (!validateForm()) {
+      toast.error('Please fix the errors before submitting');
       return;
     }
     
@@ -110,6 +187,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           endDate: '',
           description: ''
         });
+        setValidationErrors({});
         setTripType('consumer');
         setPrivacyMode(getDefaultPrivacyMode('consumer'));
         setSelectedOrganization('');
@@ -129,10 +207,43 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+    
+    // Clear validation errors for this field when user types
+    if (validationErrors[name as keyof typeof validationErrors]) {
+      setValidationErrors({
+        ...validationErrors,
+        [name]: undefined
+      });
+    }
+    
+    // Real-time validation for date range
+    if (name === 'startDate' || name === 'endDate') {
+      const startDate = name === 'startDate' ? value : formData.startDate;
+      const endDate = name === 'endDate' ? value : formData.endDate;
+      
+      if (startDate && endDate) {
+        const dateError = validateDateRange(startDate, endDate);
+        setValidationErrors(prev => ({
+          ...prev,
+          endDate: dateError
+        }));
+      }
+    }
+    
+    // Real-time validation for duplicate name
+    if (name === 'title' && value.trim()) {
+      const nameError = validateDuplicateName(value);
+      setValidationErrors(prev => ({
+        ...prev,
+        title: nameError
+      }));
+    }
   };
 
   const handleFeatureToggle = (feature: string, enabled: boolean) => {
@@ -211,10 +322,17 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none transition-colors"
+              className={`w-full bg-slate-700/50 border rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none transition-colors ${
+                validationErrors.title 
+                  ? 'border-red-500 focus:border-red-500' 
+                  : 'border-slate-600 focus:border-blue-500'
+              }`}
               placeholder="e.g., Summer in Paris"
               required
             />
+            {validationErrors.title && (
+              <p className="text-red-400 text-xs mt-1">{validationErrors.title}</p>
+            )}
           </div>
 
           {/* Location */}
@@ -246,9 +364,17 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleInputChange}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                max={formData.endDate || undefined}
+                className={`w-full bg-slate-700/50 border rounded-xl px-4 py-3 text-white focus:outline-none transition-colors ${
+                  validationErrors.startDate 
+                    ? 'border-red-500 focus:border-red-500' 
+                    : 'border-slate-600 focus:border-blue-500'
+                }`}
                 required
               />
+              {validationErrors.startDate && (
+                <p className="text-red-400 text-xs mt-1">{validationErrors.startDate}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -259,9 +385,17 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleInputChange}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                min={formData.startDate || undefined}
+                className={`w-full bg-slate-700/50 border rounded-xl px-4 py-3 text-white focus:outline-none transition-colors ${
+                  validationErrors.endDate 
+                    ? 'border-red-500 focus:border-red-500' 
+                    : 'border-slate-600 focus:border-blue-500'
+                }`}
                 required
               />
+              {validationErrors.endDate && (
+                <p className="text-red-400 text-xs mt-1">{validationErrors.endDate}</p>
+              )}
             </div>
           </div>
 
