@@ -8,6 +8,7 @@ import { MessageItem } from '../../chat/MessageItem';
 import { ChatInput } from '../../chat/ChatInput';
 import { useAuth } from '@/hooks/useAuth';
 import { getMockAvatar } from '@/utils/mockAvatars';
+import { ChannelSwitcher } from '../../chat/ChannelSwitcher';
 
 interface ChannelChatViewProps {
   channel: TripChannel;
@@ -143,6 +144,30 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
 
   return (
     <>
+      {/* Channel Switcher Header */}
+      {availableChannels && availableChannels.length > 1 && onChannelChange && (
+        <div className="border-b border-white/10 bg-black/30 p-3">
+          <ChannelSwitcher
+            activeChannel={channel.id}
+            roleChannels={availableChannels.map(ch => ({
+              id: ch.id,
+              roleName: ch.channelName,
+              tripId: ch.tripId,
+              createdAt: ch.createdAt,
+              createdBy: ch.createdBy,
+              memberCount: 0 // TODO: Fetch actual member count
+            }))}
+            onChannelChange={(channelId) => {
+              if (channelId === 'main') return; // Ignore main chat selection
+              const newChannel = availableChannels.find(ch => ch.id === channelId);
+              if (newChannel && onChannelChange) {
+                onChannelChange(newChannel);
+              }
+            }}
+          />
+        </div>
+      )}
+
       {/* Reuse VirtualizedMessageContainer */}
       <div className="flex-1">
         {loading ? (
@@ -169,7 +194,7 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
       </div>
 
       {/* Reuse ChatInput */}
-      <div className="border-t border-white/10 bg-black/30 p-3 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-3">
+      <div className="bg-black/30 p-3 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-3">
         <ChatInput
           inputMessage={inputMessage}
           onInputChange={setInputMessage}

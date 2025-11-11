@@ -492,32 +492,34 @@ export const TripChat = ({
         )}
       </div>
 
-      {/* Persistent Chat Input - Fixed at Bottom */}
-      <div className="chat-input-persistent pb-[env(safe-area-inset-bottom)]">
-        <div className="px-4 py-3">
-          <ChatInput
-            inputMessage={inputMessage}
-            onInputChange={setInputMessage}
-            onSendMessage={handleSendMessage}
-            onKeyPress={handleKeyPress}
-            apiKey=""
-            isTyping={isSendingMessage}
-            tripMembers={tripMembers}
-            hidePayments={true}
-            isPro={isPro}
-            tripId={resolvedTripId}
-            onTypingChange={(isTyping) => {
-              if (!shouldUseDemoData && typingServiceRef.current) {
-                if (isTyping) {
-                  typingServiceRef.current.startTyping().catch(console.error);
-                } else {
-                  typingServiceRef.current.stopTyping().catch(console.error);
+      {/* Persistent Chat Input - Fixed at Bottom (Hidden when in Channels mode) */}
+      {messageFilter !== 'channels' && (
+        <div className="chat-input-persistent pb-[env(safe-area-inset-bottom)]">
+          <div className="px-4 py-3 pb-4">
+            <ChatInput
+              inputMessage={inputMessage}
+              onInputChange={setInputMessage}
+              onSendMessage={handleSendMessage}
+              onKeyPress={handleKeyPress}
+              apiKey=""
+              isTyping={isSendingMessage}
+              tripMembers={tripMembers}
+              hidePayments={true}
+              isPro={isPro}
+              tripId={resolvedTripId}
+              onTypingChange={(isTyping) => {
+                if (!shouldUseDemoData && typingServiceRef.current) {
+                  if (isTyping) {
+                    typingServiceRef.current.startTyping().catch(console.error);
+                  } else {
+                    typingServiceRef.current.stopTyping().catch(console.error);
+                  }
                 }
-              }
-            }}
-          />
+              }}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

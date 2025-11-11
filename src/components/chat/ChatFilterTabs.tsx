@@ -20,7 +20,7 @@ export const ChatFilterTabs = ({
   unreadCount = 0,
 }: ChatFilterTabsProps) => {
   return (
-    <div className="sticky top-0 z-10 bg-black/40 backdrop-blur-lg px-4 py-3 rounded-t-2xl">
+    <div className="sticky top-0 z-10 backdrop-blur-lg px-4 py-3 rounded-t-2xl overflow-hidden">
       {/* Centered Segmented Control Container */}
       <div className="flex items-center justify-center">
         <div className="inline-flex items-center bg-neutral-900/70 backdrop-blur-md border border-white/10 rounded-lg p-0.5 shadow-lg">
