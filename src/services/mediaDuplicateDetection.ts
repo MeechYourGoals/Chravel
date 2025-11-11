@@ -82,6 +82,7 @@ export async function detectDuplicates(
     ];
 
     const duplicateGroups: Map<string, DuplicateGroup> = new Map();
+    const itemsGroupedByHash = new Set<string>(); // Track items already grouped by hash
 
     // Group by hash (most accurate)
     if (useHash) {
@@ -99,6 +100,9 @@ export async function detectDuplicates(
       // Add groups with 2+ items
       for (const [hash, items] of hashGroups.entries()) {
         if (items.length >= 2) {
+          // Mark all items in this group as already processed
+          items.forEach(item => itemsGroupedByHash.add(item.id));
+          
           duplicateGroups.set(`hash-${hash}`, {
             hash,
             files: items.map(item => ({
@@ -114,45 +118,50 @@ export async function detectDuplicates(
       }
     }
 
-    // Group by filename similarity (fallback)
-    if (useFilename && duplicateGroups.size === 0) {
-      const filenameGroups = new Map<string, typeof allItems>();
+    // Group by filename similarity (runs independently, only checks items not grouped by hash)
+    if (useFilename) {
+      // Filter to items that weren't already grouped by hash
+      const unhashedItems = allItems.filter(item => !itemsGroupedByHash.has(item.id));
       
-      for (let i = 0; i < allItems.length; i++) {
-        const item1 = allItems[i];
-        const normalizedName1 = normalizeFilename(item1.filename);
+      if (unhashedItems.length > 0) {
+        const filenameGroups = new Map<string, typeof allItems>();
         
-        let added = false;
-        for (const [key, group] of filenameGroups.entries()) {
-          const normalizedName2 = normalizeFilename(key);
-          const similarity = calculateSimilarity(normalizedName1, normalizedName2);
+        for (let i = 0; i < unhashedItems.length; i++) {
+          const item1 = unhashedItems[i];
+          const normalizedName1 = normalizeFilename(item1.filename);
           
-          if (similarity >= similarityThreshold) {
-            group.push(item1);
-            added = true;
-            break;
+          let added = false;
+          for (const [key, group] of filenameGroups.entries()) {
+            const normalizedName2 = normalizeFilename(key);
+            const similarity = calculateSimilarity(normalizedName1, normalizedName2);
+            
+            if (similarity >= similarityThreshold) {
+              group.push(item1);
+              added = true;
+              break;
+            }
+          }
+          
+          if (!added) {
+            filenameGroups.set(item1.filename, [item1]);
           }
         }
-        
-        if (!added) {
-          filenameGroups.set(item1.filename, [item1]);
-        }
-      }
 
-      // Add groups with 2+ items
-      for (const [filename, items] of filenameGroups.entries()) {
-        if (items.length >= 2) {
-          duplicateGroups.set(`filename-${filename}`, {
-            hash: `filename-${filename}`,
-            files: items.map(item => ({
-              id: item.id,
-              media_url: item.media_url,
-              filename: item.filename,
-              created_at: item.created_at,
-              source: item.source,
-            })),
-            count: items.length,
-          });
+        // Add groups with 2+ items
+        for (const [filename, items] of filenameGroups.entries()) {
+          if (items.length >= 2) {
+            duplicateGroups.set(`filename-${filename}`, {
+              hash: `filename-${filename}`,
+              files: items.map(item => ({
+                id: item.id,
+                media_url: item.media_url,
+                filename: item.filename,
+                created_at: item.created_at,
+                source: item.source,
+              })),
+              count: items.length,
+            });
+          }
         }
       }
     }
