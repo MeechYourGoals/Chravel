@@ -148,10 +148,10 @@ function createQueryBuilderWithStorage(table: string) {
   const range = vi.fn().mockReturnThis();
 
   const resolveData = () => {
-    if (currentData !== null) {
+    if (currentData !== null && currentData !== undefined) {
       return currentData;
     }
-    // No filter applied, return all data
+    // No filter applied, return all data or empty array
     return getMockData(table) || [];
   };
 
@@ -185,7 +185,7 @@ function createQueryBuilderWithStorage(table: string) {
 
   const eq = vi.fn((column: string, value: any) => {
     currentFilter = { column, value, operator: 'eq' };
-    currentData = getMockData(table, { column, value });
+    currentData = getMockData(table, { column, value }) || [];
     return createFilteredChain();
   });
 
@@ -194,6 +194,8 @@ function createQueryBuilderWithStorage(table: string) {
     const allData = getMockData(table);
     if (allData) {
       currentData = allData.filter((record: any) => record[column] !== value);
+    } else {
+      currentData = [];
     }
     return createFilteredChain();
   });
@@ -203,6 +205,8 @@ function createQueryBuilderWithStorage(table: string) {
     const allData = getMockData(table);
     if (allData) {
       currentData = allData.filter((record: any) => record[column] > value);
+    } else {
+      currentData = [];
     }
     return createFilteredChain();
   });
@@ -212,6 +216,8 @@ function createQueryBuilderWithStorage(table: string) {
     const allData = getMockData(table);
     if (allData) {
       currentData = allData.filter((record: any) => record[column] >= value);
+    } else {
+      currentData = [];
     }
     return createFilteredChain();
   });
@@ -221,6 +227,8 @@ function createQueryBuilderWithStorage(table: string) {
     const allData = getMockData(table);
     if (allData) {
       currentData = allData.filter((record: any) => record[column] < value);
+    } else {
+      currentData = [];
     }
     return createFilteredChain();
   });
@@ -230,6 +238,8 @@ function createQueryBuilderWithStorage(table: string) {
     const allData = getMockData(table);
     if (allData) {
       currentData = allData.filter((record: any) => record[column] <= value);
+    } else {
+      currentData = [];
     }
     return createFilteredChain();
   });
