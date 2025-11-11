@@ -106,13 +106,20 @@ serve(async (req) => {
       }
 
       // Get user's push tokens
-      const { data: tokens } = await supabase
+      // Note: This works because we're using service role key (bypasses RLS)
+      const { data: tokens, error: tokensError } = await supabase
         .from('push_tokens')
         .select('token, platform')
-        .eq('user_id', member.user_id);
+        .eq('user_id', member.user_id)
+        .eq('active', true);
+
+      if (tokensError) {
+        console.error(`Error fetching push tokens for user ${member.user_id}:`, tokensError);
+        continue;
+      }
 
       if (!tokens || tokens.length === 0) {
-        console.log(`No push tokens for user ${member.user_id}`);
+        console.log(`No active push tokens for user ${member.user_id}`);
         continue;
       }
 

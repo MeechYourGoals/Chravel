@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAM_ID.com.chravel.app",
+        "paths": [
+          "/join/*",
+          "/trip/*",
+          "/event/*",
+          "/tour/pro/*"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "TEAM_ID.com.chravel.app"
+    ]
+  }
+}

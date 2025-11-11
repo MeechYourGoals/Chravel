@@ -130,6 +130,49 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
     toast.success('New invite link generated!');
   };
 
+  /**
+   * Resend an existing invite link via email or SMS
+   * This allows trip organizers to resend invites without generating new tokens
+   */
+  const resendInvite = async (recipientEmail?: string, recipientPhone?: string) => {
+    if (!inviteLink) {
+      toast.error('No invite link available. Please generate one first.');
+      return false;
+    }
+
+    setLoading(true);
+    try {
+      if (recipientEmail) {
+        const subject = encodeURIComponent(`Join my trip: ${tripName}`);
+        const body = encodeURIComponent(
+          `Hi there!\n\nYou're invited to join my trip "${tripName}"!\n\n` +
+          `Click here to join: ${inviteLink}\n\n` +
+          `If you have the Chravel app installed, this link will open it directly. ` +
+          `Otherwise, you can join through your browser!\n\nSee you there!`
+        );
+        window.open(`mailto:${recipientEmail}?subject=${subject}&body=${body}`);
+        toast.success(`Invite sent to ${recipientEmail}`);
+        return true;
+      } else if (recipientPhone) {
+        const message = encodeURIComponent(
+          `You're invited to join my trip "${tripName}"! ${inviteLink} (Opens in Chravel app if installed)`
+        );
+        window.open(`sms:${recipientPhone}?body=${message}`);
+        toast.success(`Invite sent to ${recipientPhone}`);
+        return true;
+      } else {
+        toast.error('Please provide an email or phone number');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error resending invite:', error);
+      toast.error('Failed to resend invite. Please try again.');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCopyLink = async () => {
     if (!inviteLink) return;
     
@@ -189,6 +232,7 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
     inviteLink,
     loading,
     regenerateInviteToken,
+    resendInvite,
     handleCopyLink,
     handleShare,
     handleEmailInvite,

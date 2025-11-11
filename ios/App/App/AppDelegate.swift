@@ -66,10 +66,38 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
+        // Handle Universal Links for trip invitations
+        if userActivity.activityType == NSUserActivityTypeBrowsingWeb,
+           let url = userActivity.webpageURL {
+            handleUniversalLink(url: url)
+        }
+        
         // Called when the app was launched with an activity, including Universal Links.
         // Feel free to add additional processing here, but if you want the App API to support
         // tracking app url opens, make sure to keep this call
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
+    }
+    
+    /**
+     * Handle Universal Links for trip invitations
+     * Routes /join/{token} URLs to the appropriate view controller
+     */
+    private func handleUniversalLink(url: URL) {
+        // Extract invite token from URL path like /join/{token}
+        let pathComponents = url.pathComponents
+        
+        if pathComponents.count >= 2 && pathComponents[1] == "join" && pathComponents.count >= 3 {
+            let inviteToken = pathComponents[2]
+            
+            // Post notification to handle in view controllers
+            NotificationCenter.default.post(
+                name: NSNotification.Name("ChravelUniversalLinkInvite"),
+                object: nil,
+                userInfo: ["inviteToken": inviteToken, "url": url.absoluteString]
+            )
+            
+            print("📱 Universal Link handled - Invite token: \(inviteToken)")
+        }
     }
 
 }
