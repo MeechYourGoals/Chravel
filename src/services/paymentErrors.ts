@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Payment Error Types and Utilities
  * Comprehensive error handling for payment operations
@@ -226,6 +225,7 @@ export class PaymentErrorHandler {
       [PaymentErrorCode.RATE_LIMIT_EXCEEDED]: 'Too many requests. Please wait a moment and try again.',
       [PaymentErrorCode.INVALID_AMOUNT]: 'Invalid payment amount.',
       [PaymentErrorCode.INVALID_RECIPIENT]: 'Invalid recipient information.',
+      [PaymentErrorCode.INVALID_REQUEST]: 'Invalid request. Please check your payment details.',
       [PaymentErrorCode.PROCESSOR_NOT_CONFIGURED]: 'Payment processor is not configured.',
       [PaymentErrorCode.UNKNOWN_ERROR]: 'An unexpected error occurred. Please try again.',
       [PaymentErrorCode.PROCESSING_FAILED]: 'Payment processing failed. Please try again.',

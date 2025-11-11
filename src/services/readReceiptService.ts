@@ -2,19 +2,18 @@
  * Read Receipts Service
  * Tracks and syncs message read status across users
  */
-// @ts-nocheck
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
 
-type ReadStatus = Database['public']['Tables']['message_read_status']['Row'];
-type ReadStatusInsert = Database['public']['Tables']['message_read_status']['Insert'];
+// Temporary type definitions until database types regenerated
+type ReadStatus = any;
+type ReadStatusInsert = any;
 
 /**
  * Mark a message as read for the current user
  */
 export async function markMessageAsRead(messageId: string, tripId: string, userId: string): Promise<void> {
   const { error } = await supabase
-    .from('message_read_status')
+    .from('message_read_status' as any)
     .upsert({
       message_id: messageId,
       user_id: userId,
@@ -42,7 +41,7 @@ export async function markMessagesAsRead(messageIds: string[], tripId: string, u
   }));
 
   const { error } = await supabase
-    .from('message_read_status')
+    .from('message_read_status' as any)
     .upsert(readStatuses, {
       onConflict: 'message_id,user_id'
     });
@@ -58,7 +57,7 @@ export async function markMessagesAsRead(messageIds: string[], tripId: string, u
  */
 export async function getMessageReadStatus(messageId: string): Promise<ReadStatus[]> {
   const { data, error } = await supabase
-    .from('message_read_status')
+    .from('message_read_status' as any)
     .select('*')
     .eq('message_id', messageId)
     .order('read_at', { ascending: false });
@@ -76,7 +75,7 @@ export async function getMessageReadStatus(messageId: string): Promise<ReadStatu
  */
 export async function getMessagesReadStatus(messageIds: string[]): Promise<Record<string, ReadStatus[]>> {
   const { data, error } = await supabase
-    .from('message_read_status')
+    .from('message_read_status' as any)
     .select('*')
     .in('message_id', messageIds);
 
@@ -87,7 +86,7 @@ export async function getMessagesReadStatus(messageIds: string[]): Promise<Recor
 
   // Group by message_id
   const grouped: Record<string, ReadStatus[]> = {};
-  (data || []).forEach(status => {
+  (data || []).forEach((status: any) => {
     if (!grouped[status.message_id]) {
       grouped[status.message_id] = [];
     }

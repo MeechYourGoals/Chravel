@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck - Temporary until RPC functions added to generated types
 /**
  * Google Places API Cache Service
  * 
@@ -60,7 +60,7 @@ export async function getCachedPlace<T extends ConvertedPlace | ConvertedPredict
   cacheKey: string
 ): Promise<T | null> {
   try {
-    const { data, error } = await supabase.rpc('get_places_cache', {
+    const { data, error } = await supabase.rpc('get_places_cache' as any, {
       p_cache_key: cacheKey,
     });
 

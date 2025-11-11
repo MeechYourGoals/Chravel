@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Chat Analysis Service
  * AI-powered parsing of payment information from chat messages
@@ -414,9 +413,9 @@ async function getHistoricalPaymentSuggestions(
   try {
     // Try to use payment_split_patterns table first (ML-based patterns)
     try {
-      // @ts-ignore - Table not in generated types yet
+      // Table not in generated types yet - temporary until types regenerated
       const { data: patterns, error: patternError } = await supabase
-        .from('payment_split_patterns')
+        .from('payment_split_patterns' as any)
         .select('participant_id, frequency, last_split_at')
         .eq('trip_id', tripId)
         .eq('user_id', userId)
@@ -642,9 +641,9 @@ export async function recordPaymentSplitPattern(
 ): Promise<void> {
   try {
     // Check if payment_split_patterns table exists
-    // @ts-ignore - Table not in generated types yet
+    // Table not in generated types yet - temporary until types regenerated
     const { error: checkError } = await supabase
-      .from('payment_split_patterns')
+      .from('payment_split_patterns' as any)
       .select('id')
       .limit(1);
 
@@ -659,22 +658,22 @@ export async function recordPaymentSplitPattern(
       if (participantId === userId) continue; // Skip self
 
       // Check if pattern exists
-      // @ts-ignore - Table not in generated types yet
+      // Table not in generated types yet - temporary until types regenerated
       const { data: existing } = await supabase
-        .from('payment_split_patterns')
+        .from('payment_split_patterns' as any)
         .select('id, frequency')
         .eq('trip_id', tripId)
         .eq('user_id', userId)
         .eq('participant_id', participantId)
         .single();
 
-      const typedExisting = existing as { id: string; frequency: number } | null;
+      const typedExisting = existing as unknown as { id: string; frequency: number } | null;
 
       if (typedExisting) {
         // Update frequency and last_split_at
-        // @ts-ignore - Table not in generated types yet
+        // Table not in generated types yet - temporary until types regenerated
         await supabase
-          .from('payment_split_patterns')
+          .from('payment_split_patterns' as any)
           .update({
             frequency: (typedExisting.frequency || 0) + 1,
             last_split_at: new Date().toISOString(),
@@ -683,9 +682,9 @@ export async function recordPaymentSplitPattern(
           .eq('id', typedExisting.id);
       } else {
         // Insert new pattern
-        // @ts-ignore - Table not in generated types yet
+        // Table not in generated types yet - temporary until types regenerated
         await supabase
-          .from('payment_split_patterns')
+          .from('payment_split_patterns' as any)
           .insert({
             trip_id: tripId,
             user_id: userId,

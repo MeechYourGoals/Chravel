@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck - Temporary until trip_members type instantiation fixed
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Broadcast {
@@ -249,12 +249,12 @@ export const broadcastService = {
       }
 
       // Get trip members
-      const { data: members, error: membersError } = await supabase
+      const { data: members, error: membersError } = (await supabase
         .from('trip_members')
         .select('user_id')
         .eq('trip_id', tripId)
         .eq('status', 'active')
-        .neq('user_id', user.id); // Don't notify the sender
+        .neq('user_id', user.id)) as { data: { user_id: string }[] | null; error: any }; // Don't notify the sender
 
       if (membersError) {
         throw membersError;
@@ -266,9 +266,9 @@ export const broadcastService = {
 
       // Get push tokens for members
       const userIds = members.map(m => m.user_id);
-      // @ts-ignore - Table not in generated types yet
+      // Table not in generated types yet - temporary until types regenerated
       const { data: tokens, error: tokensError } = await supabase
-        .from('push_tokens')
+        .from('push_tokens' as any)
         .select('token, platform')
         .in('user_id', userIds);
 

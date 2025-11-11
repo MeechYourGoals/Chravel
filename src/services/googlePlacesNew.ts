@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck - Temporary until cache type constraints resolved
 /// <reference types="@types/google.maps" />
 
 /**

@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck - Temporary until trip_files columns added to generated types
 /**
  * Media AI Tagging Service
  * 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { supabase } from '../integrations/supabase/client';
 import { BasecampLocation } from '../types/basecamp';
 
@@ -381,15 +380,14 @@ class BasecampService {
     options?: { basecampType?: 'trip' | 'personal'; limit?: number }
   ): Promise<BasecampChangeHistory[]> {
     try {
-      // @ts-ignore - Table not in generated types yet
+      // Table not in generated types yet - temporary until types regenerated
       let query = supabase
-        .from('basecamp_change_history')
+        .from('basecamp_change_history' as any)
         .select('*')
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false });
 
       if (options?.basecampType) {
-        // @ts-ignore - Column type assertion
         query = query.eq('basecamp_type', options.basecampType);
       }
 

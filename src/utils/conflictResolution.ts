@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Conflict Resolution Utilities
  * 
@@ -166,7 +165,7 @@ export function mergeChanges<T extends VersionedEntity>(
   local: T,
   server: T
 ): T {
-  return resolveConflict(local, server);
+  return resolveConflict(local, server) as T;
 }
 
 /**

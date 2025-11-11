@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck - Temporary until ChatMessage export resolved
 /**
  * Concierge Cache Service
  * Provides offline mode support by caching AI responses
