@@ -1,20 +1,16 @@
-
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { MessageCircle, Users, Calendar, Camera, Radio, Link, BarChart3, FileText, ClipboardList, Lock, MapPin, Sparkles, DollarSign } from 'lucide-react';
-import { TripChat } from './TripChat';
-import { GroupCalendar } from './GroupCalendar';
-import { PhotoAlbum } from './PhotoAlbum';
-import { Broadcasts } from './Broadcasts';
-import { VenueIdeas } from './VenueIdeas';
-import { CommentsWall } from './CommentsWall';
-import { FilesTab } from './FilesTab';
-import { TripTasksTab } from './todo/TripTasksTab';
-import { UnifiedMediaHub } from './UnifiedMediaHub';
-import { EnhancedMediaAggregatedLinks } from './EnhancedMediaAggregatedLinks';
-import { PlacesSection } from './PlacesSection';
-import { AIConciergeChat } from './AIConciergeChat';
-import { PaymentsTab } from './payments/PaymentsTab';
-import { AddLinkModal } from './AddLinkModal';
+
+// 🚀 Lazy load tab components for faster initial render
+const TripChat = lazy(() => import('./TripChat').then(m => ({ default: m.TripChat })));
+const GroupCalendar = lazy(() => import('./GroupCalendar').then(m => ({ default: m.GroupCalendar })));
+const CommentsWall = lazy(() => import('./CommentsWall').then(m => ({ default: m.CommentsWall })));
+const TripTasksTab = lazy(() => import('./todo/TripTasksTab').then(m => ({ default: m.TripTasksTab })));
+const UnifiedMediaHub = lazy(() => import('./UnifiedMediaHub').then(m => ({ default: m.UnifiedMediaHub })));
+const PlacesSection = lazy(() => import('./PlacesSection').then(m => ({ default: m.PlacesSection })));
+const AIConciergeChat = lazy(() => import('./AIConciergeChat').then(m => ({ default: m.AIConciergeChat })));
+const PaymentsTab = lazy(() => import('./payments/PaymentsTab').then(m => ({ default: m.PaymentsTab })));
+const AddLinkModal = lazy(() => import('./AddLinkModal').then(m => ({ default: m.AddLinkModal })));
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { useFeatureToggle } from '../hooks/useFeatureToggle';
 import { TripPreferences as TripPreferencesType } from '../types/consumer';
@@ -93,6 +89,16 @@ export const TripTabs = ({
     }
   };
 
+  // Tab skeleton for lazy loading fallback
+  const TabSkeleton = () => (
+    <div className="flex items-center justify-center h-full min-h-[400px]">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </div>
+    </div>
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'chat':
@@ -126,11 +132,13 @@ export const TripTabs = ({
   return (
     <>
       {/* Add Link Modal */}
-      <AddLinkModal
-        isOpen={isAddLinkModalOpen}
-        onClose={handleCloseLinkModal}
-        prefill={linkPrefill}
-      />
+      <Suspense fallback={null}>
+        <AddLinkModal
+          isOpen={isAddLinkModalOpen}
+          onClose={handleCloseLinkModal}
+          prefill={linkPrefill}
+        />
+      </Suspense>
 
       {/* Tab Navigation - Responsive max-width container */}
       <div className="w-full flex justify-center mb-2">
@@ -174,7 +182,9 @@ export const TripTabs = ({
 
       {/* Tab Content */}
       <div className="overflow-y-auto native-scroll pb-24 sm:pb-4 h-auto min-h-0 max-h-none md:h-[calc(100vh-240px)] md:max-h-[1000px] md:min-h-[600px]">
-        {renderTabContent()}
+        <Suspense fallback={<TabSkeleton />}>
+          {renderTabContent()}
+        </Suspense>
       </div>
     </>
   );
