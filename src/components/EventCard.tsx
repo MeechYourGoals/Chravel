@@ -28,8 +28,6 @@ export const EventCard = ({ event }: EventCardProps) => {
   const { accentColors } = useTripVariant();
 
   const handleViewEvent = () => {
-    console.log('EventCard - Navigating to event ID:', event.id);
-    console.log('EventCard - Full URL will be:', `/event/${event.id}`);
     navigate(`/event/${event.id}`);
   };
 

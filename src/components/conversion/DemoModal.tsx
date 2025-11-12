@@ -25,8 +25,6 @@ export const DemoModal = ({ isOpen, onClose, demoType = 'pro' }: DemoModalProps)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Demo request:', { ...formData, demoType });
-    // Handle demo request submission
     onClose();
   };
 

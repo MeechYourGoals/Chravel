@@ -98,7 +98,9 @@ Return ONLY valid JSON, no other text.`;
     });
 
     if (error || !data) {
-      console.warn('[chatAnalysisService] AI parsing failed:', error);
+      if (import.meta.env.DEV) {
+        console.warn('[chatAnalysisService] AI parsing failed:', error);
+      }
       return null;
     }
 
@@ -125,7 +127,9 @@ Return ONLY valid JSON, no other text.`;
     try {
       parsed = JSON.parse(aiResponse);
     } catch (parseError) {
-      console.warn('[chatAnalysisService] Failed to parse AI JSON response:', parseError);
+      if (import.meta.env.DEV) {
+        console.warn('[chatAnalysisService] Failed to parse AI JSON response:', parseError);
+      }
       return null;
     }
 
@@ -162,7 +166,9 @@ Return ONLY valid JSON, no other text.`;
       confidence: parsed.confidence || 0.5
     };
   } catch (error) {
-    console.error('[chatAnalysisService] Error in AI parsing:', error);
+    if (import.meta.env.DEV) {
+      console.error('[chatAnalysisService] Error in AI parsing:', error);
+    }
     return null;
   }
 }
@@ -213,7 +219,9 @@ export async function detectPaymentParticipantsFromMessage(
     try {
       aiResult = await parseWithAI(messageText, tripId, profiles, senderId);
     } catch (aiError) {
-      console.warn('[chatAnalysisService] AI parsing failed, falling back to pattern matching:', aiError);
+      if (import.meta.env.DEV) {
+        console.warn('[chatAnalysisService] AI parsing failed, falling back to pattern matching:', aiError);
+      }
     }
 
     // Step 4: Fallback to pattern matching (enhanced)
@@ -391,7 +399,9 @@ export async function detectPaymentParticipantsFromMessage(
       confidence
     };
   } catch (error) {
-    console.error('Error detecting payment participants:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error detecting payment participants:', error);
+    }
     return {
       suggestedParticipants: [],
       confidence: 0
@@ -447,7 +457,9 @@ async function getHistoricalPaymentSuggestions(
       }
     } catch (patternTableError) {
       // Table might not exist yet, fall through to legacy method
-      console.debug('[chatAnalysisService] payment_split_patterns table not available, using legacy method');
+      if (import.meta.env.DEV) {
+        console.debug('[chatAnalysisService] payment_split_patterns table not available, using legacy method');
+      }
     }
 
     // Fallback: Get recent payment messages where user was involved
@@ -495,7 +507,9 @@ async function getHistoricalPaymentSuggestions(
     // Sort by confidence (frequency)
     return suggestions.sort((a, b) => b.confidence - a.confidence);
   } catch (error) {
-    console.error('Error getting historical payment suggestions:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error getting historical payment suggestions:', error);
+    }
     return [];
   }
 }
@@ -556,7 +570,9 @@ export async function getAutomaticParticipantSuggestions(
       reason: 'Trip member'
     }));
   } catch (error) {
-    console.error('Error getting automatic participant suggestions:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error getting automatic participant suggestions:', error);
+    }
     return [];
   }
 }
@@ -621,7 +637,9 @@ export async function analyzeChatMessagesForPayment(
 
     return null;
   } catch (error) {
-    console.error('[chatAnalysisService] Error analyzing chat messages:', error);
+    if (import.meta.env.DEV) {
+      console.error('[chatAnalysisService] Error analyzing chat messages:', error);
+    }
     return null;
   }
 }
@@ -649,7 +667,9 @@ export async function recordPaymentSplitPattern(
 
     if (checkError) {
       // Table doesn't exist yet, skip recording (will be created by migration)
-      console.debug('[chatAnalysisService] payment_split_patterns table not available yet');
+      if (import.meta.env.DEV) {
+        console.debug('[chatAnalysisService] payment_split_patterns table not available yet');
+      }
       return;
     }
 
@@ -696,6 +716,8 @@ export async function recordPaymentSplitPattern(
     }
   } catch (error) {
     // Silently fail - pattern recording is optional
-    console.debug('[chatAnalysisService] Error recording payment split pattern:', error);
+    if (import.meta.env.DEV) {
+      console.debug('[chatAnalysisService] Error recording payment split pattern:', error);
+    }
   }
 }

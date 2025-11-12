@@ -63,7 +63,6 @@ export const TripCoverPhotoUpload = ({
             onPhotoUploaded(data.publicUrl);
           }
         } catch (error) {
-          console.log('Supabase upload failed, using demo mode:', error);
           // Demo mode fallback already handled above
         }
       }

@@ -135,7 +135,9 @@ export class TripContextAggregator {
         media: { files, links }
       };
     } catch (error) {
-      console.error('Error building trip context:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error building trip context:', error);
+      }
       throw new Error('Failed to build comprehensive trip context');
     }
   }
@@ -248,7 +250,9 @@ export class TripContextAggregator {
         type: (data.trip_type || 'consumer') as 'consumer' | 'pro' | 'event'
       };
     } catch (error) {
-      console.error('Error fetching trip metadata:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching trip metadata:', error);
+      }
       return {
         id: tripId,
         name: 'Unknown Trip',
@@ -280,7 +284,9 @@ export class TripContextAggregator {
         email: m.profiles?.email
       })) || [];
     } catch (error) {
-      console.error('Error fetching collaborators:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching collaborators:', error);
+      }
       return [];
     }
   }
@@ -304,7 +310,9 @@ export class TripContextAggregator {
         type: (m.message_type === 'broadcast' ? 'broadcast' : 'message') as 'broadcast' | 'message'
       })).reverse() || [];
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching messages:', error);
+      }
       return [];
     }
   }
@@ -328,7 +336,9 @@ export class TripContextAggregator {
         description: e.description
       })) || [];
     } catch (error) {
-      console.error('Error fetching calendar:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching calendar:', error);
+      }
       return [];
     }
   }
@@ -350,7 +360,9 @@ export class TripContextAggregator {
         isComplete: t.is_complete
       })) || [];
     } catch (error) {
-      console.error('Error fetching tasks:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching tasks:', error);
+      }
       return [];
     }
   }
@@ -373,7 +385,9 @@ export class TripContextAggregator {
         isSettled: p.is_settled
       })) || [];
     } catch (error) {
-      console.error('Error fetching payments:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching payments:', error);
+      }
       return [];
     }
   }
@@ -394,7 +408,9 @@ export class TripContextAggregator {
         status: p.status as 'active' | 'closed'
       })) || [];
     } catch (error) {
-      console.error('Error fetching polls:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching polls:', error);
+      }
       return [];
     }
   }
@@ -455,7 +471,9 @@ export class TripContextAggregator {
         })) || []
       };
     } catch (error) {
-      console.error('Error fetching places:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching places:', error);
+      }
       return {
         basecamp: undefined,
         userAccommodation: undefined,
@@ -482,7 +500,9 @@ export class TripContextAggregator {
         uploadedAt: f.created_at
       })) || [];
     } catch (error) {
-      console.error('Error fetching files:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching files:', error);
+      }
       return [];
     }
   }
@@ -504,7 +524,9 @@ export class TripContextAggregator {
         addedBy: l.profiles?.full_name || 'Unknown'
       })) || [];
     } catch (error) {
-      console.error('Error fetching links:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching links:', error);
+      }
       return [];
     }
   }

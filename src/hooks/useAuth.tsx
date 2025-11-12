@@ -83,13 +83,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching profile:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error fetching profile:', error);
+        }
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching profile:', error);
+      }
       return null;
     }
   };
@@ -98,7 +102,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const transformUser = useCallback(async (supabaseUser: SupabaseUser, profile?: UserProfile | null): Promise<User | null> => {
     // CRITICAL: Validate that we have a valid user ID before proceeding
     if (!supabaseUser || !supabaseUser.id) {
-      console.error('[transformUser] Invalid Supabase user - missing ID', { supabaseUser });
+      if (import.meta.env.DEV) {
+        console.error('[transformUser] Invalid Supabase user - missing ID', { supabaseUser });
+      }
       return null;
     }
     
@@ -169,7 +175,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data: { session }, error } = await supabase.auth.getSession();
 
       if (error) {
-        console.error('[Auth] Error getting session:', error);
+        if (import.meta.env.DEV) {
+          console.error('[Auth] Error getting session:', error);
+        }
         setIsLoading(false);
         return;
       }
@@ -181,7 +189,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const transformedUser = await transformUser(session.user);
           setUser(transformedUser);
         } catch (err) {
-          console.error('[Auth] Error transforming user on init:', err);
+          if (import.meta.env.DEV) {
+            console.error('[Auth] Error transforming user on init:', err);
+          }
           setUser(null);
         }
       } else {
@@ -200,7 +210,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const transformedUser = await transformUser(session.user);
             setUser(transformedUser);
           } catch (err) {
-            console.error('[Auth] Error transforming user:', err);
+            if (import.meta.env.DEV) {
+              console.error('[Auth] Error transforming user:', err);
+            }
             setUser(null);
           }
         } else {
@@ -218,7 +230,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
     try {
       setIsLoading(true);
-      console.log('[Auth] Attempting sign in with email:', email);
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -226,7 +237,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        console.error('[Auth] Sign in error:', error);
+        if (import.meta.env.DEV) {
+          console.error('[Auth] Sign in error:', error);
+        }
         setIsLoading(false);
 
         // Provide more specific error messages
@@ -240,10 +253,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
-      console.log('[Auth] Sign in successful:', data.user?.email);
       return {};
     } catch (error) {
-      console.error('[Auth] Unexpected sign in error:', error);
+      if (import.meta.env.DEV) {
+        console.error('[Auth] Unexpected sign in error:', error);
+      }
       setIsLoading(false);
       return { error: 'An unexpected error occurred. Please try again.' };
     }
@@ -252,14 +266,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithPhone = async (phone: string): Promise<{ error?: string }> => {
     try {
       setIsLoading(true);
-      console.log('[Auth] Attempting phone OTP sign in:', phone);
 
       const { error } = await supabase.auth.signInWithOtp({
         phone,
       });
 
       if (error) {
-        console.error('[Auth] Phone OTP error:', error);
+        if (import.meta.env.DEV) {
+          console.error('[Auth] Phone OTP error:', error);
+        }
         setIsLoading(false);
 
         // Provide more specific error messages
@@ -274,10 +289,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       setIsLoading(false);
-      console.log('[Auth] Phone OTP sent successfully');
       return {};
     } catch (error) {
-      console.error('[Auth] Unexpected phone OTP error:', error);
+      if (import.meta.env.DEV) {
+        console.error('[Auth] Unexpected phone OTP error:', error);
+      }
       setIsLoading(false);
       return { error: 'An unexpected error occurred. Please try again.' };
     }
@@ -285,8 +301,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async (): Promise<{ error?: string }> => {
     try {
-      console.log('[Auth] Attempting Google sign in');
-
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -295,7 +309,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        console.error('[Auth] Google sign in error:', error);
+        if (import.meta.env.DEV) {
+          console.error('[Auth] Google sign in error:', error);
+        }
 
         // Provide more specific error messages
         if (error.message.includes('not configured') || error.message.includes('OAuth')) {
@@ -305,18 +321,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
-      console.log('[Auth] Google sign in initiated, redirecting...');
       return {};
     } catch (error) {
-      console.error('[Auth] Unexpected Google sign in error:', error);
+      if (import.meta.env.DEV) {
+        console.error('[Auth] Unexpected Google sign in error:', error);
+      }
       return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
 
   const signInWithApple = async (): Promise<{ error?: string }> => {
     try {
-      console.log('[Auth] Attempting Apple sign in');
-
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
@@ -325,7 +340,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        console.error('[Auth] Apple sign in error:', error);
+        if (import.meta.env.DEV) {
+          console.error('[Auth] Apple sign in error:', error);
+        }
 
         // Provide more specific error messages
         if (error.message.includes('not configured') || error.message.includes('OAuth')) {
@@ -335,10 +352,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
-      console.log('[Auth] Apple sign in initiated, redirecting...');
       return {};
     } catch (error) {
-      console.error('[Auth] Unexpected Apple sign in error:', error);
+      if (import.meta.env.DEV) {
+        console.error('[Auth] Unexpected Apple sign in error:', error);
+      }
       return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
@@ -346,7 +364,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string, firstName: string, lastName: string): Promise<{ error?: string }> => {
     try {
       setIsLoading(true);
-      console.log('[Auth] Attempting sign up with email:', email);
 
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -362,7 +379,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        console.error('[Auth] Sign up error:', error);
+        if (import.meta.env.DEV) {
+          console.error('[Auth] Sign up error:', error);
+        }
         setIsLoading(false);
 
         // Provide more specific error messages
@@ -376,11 +395,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
-      console.log('[Auth] Sign up successful:', data.user?.email);
-
       // Check if email confirmation is required
       if (data.user && !data.session) {
-        console.log('[Auth] Email confirmation required');
         setIsLoading(false);
         return { error: 'Account created! Please check your email to confirm your account.' };
       }
@@ -388,7 +404,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(false);
       return {};
     } catch (error) {
-      console.error('[Auth] Unexpected sign up error:', error);
+      if (import.meta.env.DEV) {
+        console.error('[Auth] Unexpected sign up error:', error);
+      }
       setIsLoading(false);
       return { error: 'An unexpected error occurred. Please try again.' };
     }
@@ -410,7 +428,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('Error updating profile:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error updating profile:', error);
+        }
         return;
       }
 
@@ -425,7 +445,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       setUser(updatedUser);
     } catch (error) {
-      console.error('Error updating profile:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating profile:', error);
+      }
     }
   };
 
@@ -445,7 +467,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       setUser(updatedUser);
     } catch (error) {
-      console.error('Error updating notification settings:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating notification settings:', error);
+      }
     }
   };
 

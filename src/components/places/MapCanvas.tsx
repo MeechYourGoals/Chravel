@@ -129,7 +129,6 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         ...data,
         timestamp: Date.now(),
       });
-      console.log('[MapCanvas] Distance cached:', key);
     };
 
     // Route rendering function
@@ -138,7 +137,6 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       destination: { lat: number; lng: number }
     ) => {
       if (!mapRef.current || !window.google) {
-        console.warn('[MapCanvas] Cannot render route: map not ready');
         return;
       }
 
@@ -150,8 +148,6 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       try {
         const google = window.google;
         const directionsService = new google.maps.DirectionsService();
-
-        console.log('[MapCanvas] Rendering route:', { origin, destination });
 
         const result = await directionsService.route({
           origin: new google.maps.LatLng(origin.lat, origin.lng),
@@ -185,11 +181,11 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           const bounds = new google.maps.LatLngBounds();
           route.overview_path.forEach(point => bounds.extend(point));
           mapRef.current.fitBounds(bounds);
-
-          console.log('[MapCanvas] ✅ Route rendered with distance:', leg.distance?.text);
         }
       } catch (error) {
-        console.error('[MapCanvas] Route rendering error:', error);
+        if (import.meta.env.DEV) {
+          console.error('[MapCanvas] Route rendering error:', error);
+        }
       }
     };
 
@@ -199,7 +195,6 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         setRoutePolyline(null);
         setShowRoute(false);
         setRouteInfo(null);
-        console.log('[MapCanvas] Route cleared');
       }
     };
 
@@ -266,7 +261,6 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       // Emergency timeout: if map doesn't load in 8 seconds, force iframe fallback
       loadingTimeoutRef.current = setTimeout(() => {
         if (mounted && isMapLoading) {
-          console.warn('[MapCanvas] ⏱️ Map loading timeout (8s) - forcing iframe fallback');
           setForceIframeFallback(true);
           setUseFallbackEmbed(true);
           setIsMapLoading(false);
@@ -278,17 +272,10 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         try {
           setIsMapLoading(true);
           setMapError(null);
-          
-          console.log('[MapCanvas] 🗺️ Initializing map (New Places API)...', {
-            tripBasecamp: !!tripBasecamp,
-            personalBasecamp: !!personalBasecamp,
-            activeContext
-          });
 
           const maps = await loadMaps();
 
           if (!mounted || !mapContainerRef.current) {
-            console.log('[MapCanvas] Component unmounted or container missing, aborting init');
             return;
           }
 
@@ -300,24 +287,17 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           if (tripBasecamp?.coordinates) {
             center = tripBasecamp.coordinates;
             zoom = 12;
-            console.log('[MapCanvas] ✅ Centered on Trip Basecamp:', tripBasecamp.name);
-          } 
+          }
           // Priority 2: Personal Basecamp
           else if (personalBasecamp?.coordinates) {
             center = personalBasecamp.coordinates;
             zoom = 12;
-            console.log('[MapCanvas] ✅ Centered on Personal Basecamp:', personalBasecamp.name);
-          } 
+          }
           // Priority 3: User Geolocation
           else if (userGeolocation) {
             center = userGeolocation;
             zoom = 13;
-            console.log('[MapCanvas] ✅ Centered on User Geolocation');
-          } else {
-            console.log('[MapCanvas] ℹ️ Using default center (NYC)');
           }
-
-          console.log('[MapCanvas] Creating map instance with center:', center);
 
           // Create map instance
           const map = new maps.Map(mapContainerRef.current, {
@@ -338,14 +318,15 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           });
 
           mapRef.current = map;
-          console.log('[MapCanvas] ✅ Map instance created with New Places API');
 
           // Monitor for Google Maps error overlay
           const errorCheckInterval = setInterval(() => {
             const hasGmError = !!mapContainerRef.current?.querySelector('.gm-err-container');
             if (hasGmError) {
               clearInterval(errorCheckInterval);
-              console.error('[MapCanvas] ❌ Detected Google Maps error overlay – likely API key or billing issue');
+              if (import.meta.env.DEV) {
+                console.error('[MapCanvas] Detected Google Maps error overlay – likely API key or billing issue');
+              }
               setUseFallbackEmbed(true);
               setMapError('Google Maps API Error: Please check your API key, enabled APIs, and billing status in Google Cloud Console.');
               setIsMapLoading(false);
@@ -357,20 +338,19 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
           // Generate initial session token for New API
           setSessionToken(generateSessionToken());
-          console.log('[MapCanvas] ✅ Session token generated');
 
           // Clear emergency timeout - map loaded successfully
           if (loadingTimeoutRef.current) {
             clearTimeout(loadingTimeoutRef.current);
             loadingTimeoutRef.current = null;
           }
-          
+
           setIsMapLoading(false);
           onMapReady?.();
-
-          console.log('[MapCanvas] ✅ Map fully initialized with New Places API');
         } catch (error) {
-          console.error('[MapCanvas] ❌ Map initialization error:', error);
+          if (import.meta.env.DEV) {
+            console.error('[MapCanvas] Map initialization error:', error);
+          }
           if (mounted) {
             // Clear emergency timeout
             if (loadingTimeoutRef.current) {
@@ -387,8 +367,6 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
             setMapError(errorMessage);
             setIsMapLoading(false);
             onMapReady?.(); // Notify parent that loading is complete (even with error)
-
-            console.error('[MapCanvas] Fallback to iframe embed mode due to error');
           }
         }
       };
@@ -397,7 +375,9 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       try {
         initMap();
       } catch (syncError) {
-        console.error('[MapCanvas] Synchronous error during init:', syncError);
+        if (import.meta.env.DEV) {
+          console.error('[MapCanvas] Synchronous error during init:', syncError);
+        }
         setForceIframeFallback(true);
         setUseFallbackEmbed(true);
         setIsMapLoading(false);
@@ -423,10 +403,11 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
               lat: position.coords.latitude,
               lng: position.coords.longitude
             });
-            console.log('[MapCanvas] User geolocation obtained:', position.coords);
           },
           (error) => {
-            console.warn('[MapCanvas] Geolocation error:', error);
+            if (import.meta.env.DEV) {
+              console.warn('[MapCanvas] Geolocation error:', error);
+            }
             // Fallback to NYC
             setUserGeolocation({ lat: 40.7580, lng: -73.9855 });
             
@@ -454,8 +435,6 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         targetBasecamp = personalBasecamp || null;
       }
 
-      console.log(`[MapCanvas] Context changed to ${activeContext}`, targetBasecamp);
-
       // Update search origin for biasing
       setSearchOrigin(targetBasecamp?.coordinates || null);
 
@@ -463,19 +442,14 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       if (targetBasecamp?.coordinates) {
         mapRef.current.setCenter(targetBasecamp.coordinates);
         mapRef.current.setZoom(12);
-        console.log(`[MapCanvas] ✅ Re-centered map on ${activeContext} basecamp`);
       } else if (userGeolocation && !tripBasecamp && !personalBasecamp) {
         // Only fall back to geolocation if NO basecamps are set
         mapRef.current.setCenter(userGeolocation);
         mapRef.current.setZoom(13);
-        console.log('[MapCanvas] ✅ Re-centered map on geolocation');
-      } else {
-        console.log('[MapCanvas] No basecamp or geolocation to center on');
       }
 
       // If place is selected, re-trigger search to recalculate distance from new basecamp
       if (selectedPlace?.name && sessionToken) {
-        console.log(`[MapCanvas] Recalculating distance from ${activeContext} basecamp`);
         handleSearch(selectedPlace.name);
       }
     }, [activeContext, tripBasecamp, personalBasecamp, userGeolocation]);
@@ -485,10 +459,10 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       if (!selectedPlace?.coordinates) return;
       
       const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
-      
+
+
       // Early exit if no basecamp coordinates
       if (!activeBasecamp?.coordinates) {
-        console.log('[MapCanvas] No basecamp set, skipping distance calculation');
         return;
       }
 
@@ -500,9 +474,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           // ** PHASE 6: Check cache first **
           const cached = getCachedDistance(origin, destination);
           if (cached) {
-            console.log('[MapCanvas] ✅ Using cached distance:', cached);
-            setSelectedPlace(prev => prev?.placeId === selectedPlace.placeId 
-              ? { ...prev, distance: { ...cached, mode: 'driving' } } 
+            setSelectedPlace(prev => prev?.placeId === selectedPlace.placeId
+              ? { ...prev, distance: { ...cached, mode: 'driving' } }
               : prev
             );
             return;
@@ -523,19 +496,20 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
               distance: element.distance.text,
               duration: element.duration.text,
             };
-            
+
+
             // ** PHASE 6: Store in cache **
             setCachedDistance(origin, destination, distanceInfo);
-            
-            console.log('[MapCanvas] Distance calculated from API:', distanceInfo);
-            
-            setSelectedPlace(prev => prev?.placeId === selectedPlace.placeId 
-              ? { ...prev, distance: { ...distanceInfo, mode: 'driving' } } 
+
+            setSelectedPlace(prev => prev?.placeId === selectedPlace.placeId
+              ? { ...prev, distance: { ...distanceInfo, mode: 'driving' } }
               : prev
             );
           }
         } catch (error) {
-          console.warn('[MapCanvas] Distance calculation failed:', error);
+          if (import.meta.env.DEV) {
+            console.warn('[MapCanvas] Distance calculation failed:', error);
+          }
         }
       };
 
@@ -623,7 +597,9 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         } catch (error) {
           // Phase A: Only show error if this is still the latest request
           if (currentRequestId === activeAutocompleteRequestRef.current) {
-            console.error('[MapCanvas] Autocomplete error:', error);
+            if (import.meta.env.DEV) {
+              console.error('[MapCanvas] Autocomplete error:', error);
+            }
             setSuggestions([]);
             setShowSuggestions(false);
             // Reset session token on error to prevent billing issues
@@ -660,7 +636,6 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
       try {
         const effectiveOrigin = overrideOrigin || searchOrigin;
-        console.log('[MapCanvas] Searching with New Places API:', trimmedQuery, { origin: effectiveOrigin });
 
         // Wrap search in 10s timeout to prevent indefinite hangs
         const place = await withTimeout(
@@ -673,8 +648,6 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           setSearchError('No results found. Try a different search term.');
           return;
         }
-
-        console.log('[MapCanvas] ✅ Place found (New API):', place);
 
         // Center map on place
         centerMapOnPlace(mapRef.current, place);
@@ -714,7 +687,9 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         // Reset session token after successful search (New API)
         setSessionToken(generateSessionToken());
       } catch (error) {
-        console.error('[MapCanvas] Search error:', error);
+        if (import.meta.env.DEV) {
+          console.error('[MapCanvas] Search error:', error);
+        }
         const errorMsg = error instanceof Error ? error.message : 'Search failed. Please try again.';
         setSearchError(errorMsg);
         // Reset session token on error
@@ -722,7 +697,6 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       } finally {
         // GUARANTEED to run - always reset searching state
         setIsSearching(false);
-        console.log('[MapCanvas] Search cleanup executed');
       }
     };
 
@@ -762,13 +736,10 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
       // Render route on the map
       await renderRoute(activeBasecamp.coordinates, selectedPlace.coordinates);
-
-      console.log('[MapCanvas] Directions rendered on map');
     };
 
     // If fallback embed mode is enabled, show the iframe instead
     if (useFallbackEmbed || forceIframeFallback) {
-      console.log('[MapCanvas] Rendering iframe fallback mode');
       return (
         <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
           <GoogleMapsEmbed className="w-full h-full" />

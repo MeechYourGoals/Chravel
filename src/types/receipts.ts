@@ -1,3 +1,18 @@
+export interface ParsedReceiptData {
+  vendor?: string;
+  date?: string;
+  items?: Array<{
+    name: string;
+    quantity?: number;
+    price?: number;
+  }>;
+  subtotal?: number;
+  tax?: number;
+  tip?: number;
+  total?: number;
+  paymentMethod?: string;
+  confidence?: number;
+}
 
 export interface Receipt {
   id: string;
@@ -7,7 +22,7 @@ export interface Receipt {
   fileUrl: string;
   totalAmount: number | null;
   currency: string | null;
-  parsedData?: any;
+  parsedData?: ParsedReceiptData;
   preferredMethod: 'venmo' | 'cashapp' | 'zelle' | 'paypal' | 'applecash';
   splitCount?: number;
   perPersonAmount?: number;

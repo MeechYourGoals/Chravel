@@ -126,7 +126,6 @@ export const FeatureShowcase = () => {
 
   const handleFeatureClick = (featureId: string) => {
     // In a real implementation, this would show a modal or demo
-    console.log(`Showing demo for ${featureId}`);
   };
 
   return (

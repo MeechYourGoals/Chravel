@@ -34,16 +34,12 @@ export const ConsumerNotificationsSection = () => {
       ...prev,
       [setting]: !prev[setting as keyof typeof prev]
     }));
-    
-    // In a real app, this would update the backend
-    console.log(`Toggled ${setting} to:`, !notificationSettings[setting as keyof typeof notificationSettings]);
   };
 
   const handleTestNotification = async (type: string) => {
     setIsTesting(type);
-    
+
     try {
-      console.log(`Testing ${type} notification for user:`, currentUser.id);
       // Mock test notification
       if (type === 'push' && 'Notification' in window) {
         new Notification('Test Notification', {

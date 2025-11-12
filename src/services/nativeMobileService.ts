@@ -9,9 +9,8 @@ const loadNativePlugins = async () => {
   if (Capacitor.isNativePlatform()) {
     try {
       // Only load plugins when actually needed to avoid build issues
-      console.log('Native plugins will be loaded on demand');
     } catch (error) {
-      console.warn('Failed to load native plugins:', error);
+      if (import.meta.env.DEV) console.error('Failed to load native plugins:', error);
     }
   }
 };
@@ -47,7 +46,7 @@ export class NativeMobileService {
         path: image.path || ''
       };
     } catch (error) {
-      console.error('Camera error:', error);
+      if (import.meta.env.DEV) console.error('Camera error:', error);
       return null;
     }
   }
@@ -68,7 +67,7 @@ export class NativeMobileService {
         path: image.path || ''
       };
     } catch (error) {
-      console.error('Gallery error:', error);
+      if (import.meta.env.DEV) console.error('Gallery error:', error);
       return null;
     }
   }
@@ -90,7 +89,7 @@ export class NativeMobileService {
         accuracy: position.coords.accuracy
       };
     } catch (error) {
-      console.error('Location error:', error);
+      if (import.meta.env.DEV) console.error('Location error:', error);
       return null;
     }
   }
@@ -112,7 +111,7 @@ export class NativeMobileService {
 
       return watchId;
     } catch (error) {
-      console.error('Location watch error:', error);
+      if (import.meta.env.DEV) console.error('Location watch error:', error);
       return null;
     }
   }
@@ -131,25 +130,22 @@ export class NativeMobileService {
 
       // Listen for notification events
       PushNotifications.addListener('registration', (token) => {
-        console.log('Push registration success, token: ' + token.value);
         // Send token to your backend
       });
 
       PushNotifications.addListener('registrationError', (error) => {
-        console.error('Push registration error: ' + JSON.stringify(error));
+        if (import.meta.env.DEV) console.error('Push registration error: ' + JSON.stringify(error));
       });
 
       PushNotifications.addListener('pushNotificationReceived', (notification) => {
-        console.log('Push notification received: ', notification);
         // Handle notification received
       });
 
       PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-        console.log('Push notification action performed: ', notification);
         // Handle notification action
       });
     } catch (error) {
-      console.error('Push notification setup error:', error);
+      if (import.meta.env.DEV) console.error('Push notification setup error:', error);
     }
   }
 
@@ -173,7 +169,7 @@ export class NativeMobileService {
         ]
       });
     } catch (error) {
-      console.error('Local notification error:', error);
+      if (import.meta.env.DEV) console.error('Local notification error:', error);
     }
   }
 
@@ -200,7 +196,7 @@ export class NativeMobileService {
           break;
       }
     } catch (error) {
-      console.error('Haptic feedback error:', error);
+      if (import.meta.env.DEV) console.error('Haptic feedback error:', error);
     }
   }
 
@@ -210,26 +206,22 @@ export class NativeMobileService {
 
     try {
       App.addListener('appStateChange', ({ isActive }) => {
-        console.log('App state changed. Is active?', isActive);
         // Handle app state changes
       });
 
       App.addListener('backButton', () => {
-        console.log('Back button pressed');
         // Handle back button
       });
 
       App.addListener('pause', () => {
-        console.log('App paused');
         // Handle app pause
       });
 
       App.addListener('resume', () => {
-        console.log('App resumed');
         // Handle app resume
       });
     } catch (error) {
-      console.error('App state handling error:', error);
+      if (import.meta.env.DEV) console.error('App state handling error:', error);
     }
   }
 
@@ -253,7 +245,7 @@ export class NativeMobileService {
       this.setupNativeCSS();
       this.setupNativeTouch();
     } catch (error) {
-      console.error('Native optimization error:', error);
+      if (import.meta.env.DEV) console.error('Native optimization error:', error);
     }
   }
 
@@ -331,42 +323,28 @@ export class NativeMobileService {
   static trackNativePerformance() {
     if (!this.isNative || import.meta.env.PROD) return;
 
-    // Monitor memory usage
-    if ('memory' in performance) {
-      const memory = (performance as any).memory;
-      console.log('Native Memory Usage:', {
-        used: Math.round(memory.usedJSHeapSize / 1024 / 1024) + 'MB',
-        total: Math.round(memory.totalJSHeapSize / 1024 / 1024) + 'MB',
-        limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024) + 'MB'
-      });
-    }
-
     // Monitor frame rate
     let frameCount = 0;
     let lastTime = performance.now();
     let rafId: number;
     const stopTime = Date.now() + 10000; // Stop after 10 seconds
-    
+
     const countFrames = () => {
       if (Date.now() > stopTime) {
-        console.log('Native performance tracking stopped');
         return;
       }
 
       frameCount++;
       const currentTime = performance.now();
-      
+
       if (currentTime - lastTime >= 1000) {
-        const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
-        console.log('Native FPS:', fps);
-        
         frameCount = 0;
         lastTime = currentTime;
       }
-      
+
       rafId = requestAnimationFrame(countFrames);
     };
-    
+
     rafId = requestAnimationFrame(countFrames);
 
     // Return cleanup function

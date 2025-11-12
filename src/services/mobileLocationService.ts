@@ -36,7 +36,9 @@ export class MobileLocationService {
 
   async requestPermission(): Promise<boolean> {
     if (!('geolocation' in navigator)) {
-      console.warn('Geolocation not supported');
+      if (import.meta.env.DEV) {
+        console.warn('Geolocation not supported');
+      }
       return false;
     }
 
@@ -45,7 +47,9 @@ export class MobileLocationService {
       const position = await this.getCurrentPosition();
       return true;
     } catch (error) {
-      console.error('Location permission denied:', error);
+      if (import.meta.env.DEV) {
+        console.error('Location permission denied:', error);
+      }
       return false;
     }
   }
@@ -91,7 +95,9 @@ export class MobileLocationService {
           this.updateUserLocation(userId, tripId, position);
         },
         (error) => {
-          console.error('Location watch error:', error);
+          if (import.meta.env.DEV) {
+            console.error('Location watch error:', error);
+          }
         },
         {
           enableHighAccuracy: true,
@@ -103,7 +109,9 @@ export class MobileLocationService {
       this.isWatching = true;
       return true;
     } catch (error) {
-      console.error('Failed to start location sharing:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to start location sharing:', error);
+      }
       return false;
     }
   }
@@ -138,10 +146,14 @@ export class MobileLocationService {
         });
 
       if (error) {
-        console.error('Error updating location:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error updating location:', error);
+        }
       }
     } catch (error) {
-      console.error('Error updating user location:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating user location:', error);
+      }
     }
   }
 
@@ -157,7 +169,9 @@ export class MobileLocationService {
         .gte('updated_at', new Date(Date.now() - 1000 * 60 * 60).toISOString()); // Last hour
 
       if (error) {
-        console.error('Error fetching user locations:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error fetching user locations:', error);
+        }
         return [];
       }
 
@@ -174,7 +188,9 @@ export class MobileLocationService {
         updatedAt: new Date(location.updated_at)
       })) || [];
     } catch (error) {
-      console.error('Error fetching user locations:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching user locations:', error);
+      }
       return [];
     }
   }
@@ -188,10 +204,14 @@ export class MobileLocationService {
         .eq('trip_id', tripId);
 
       if (error) {
-        console.error('Error removing user location:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error removing user location:', error);
+        }
       }
     } catch (error) {
-      console.error('Error removing user location:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error removing user location:', error);
+      }
     }
   }
 
@@ -204,7 +224,7 @@ export class MobileLocationService {
         return Math.round(battery.level * 100);
       }
     } catch (error) {
-      console.log('Battery API not available');
+      // Battery API not available - silent fail
     }
     return undefined;
   }

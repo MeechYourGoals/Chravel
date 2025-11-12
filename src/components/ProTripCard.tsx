@@ -32,13 +32,10 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
   const { toast } = useToast();
 
   const handleViewTrip = () => {
-    console.log('ProTripCard - Navigating to trip ID:', trip.id);
-    console.log('ProTripCard - Full URL will be:', `/tour/pro/${trip.id}`);
     navigate(`/tour/pro/${trip.id}`);
   };
 
   const handleDuplicateTrip = () => {
-    console.log('Duplicating trip:', trip.title);
     // This would open a modal or redirect to create a new trip with this template
   };
 

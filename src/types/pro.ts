@@ -1,3 +1,17 @@
+// Media metadata interface for photos, videos, audio, and files
+export interface MediaMetadata {
+  size?: number;
+  mimeType?: string;
+  duration?: number; // For video/audio in seconds
+  width?: number; // For images/video
+  height?: number; // For images/video
+  thumbnail?: string;
+  uploadedBy?: string;
+  caption?: string;
+  tags?: string[];
+  [key: string]: unknown; // Allow additional metadata fields
+}
+
 export interface Tour {
   id: string;
   name: string;
@@ -318,7 +332,7 @@ export interface ProTripData {
     id: string;
     media_url: string;
     filename: string;
-    metadata: any;
+    metadata: MediaMetadata | null;
     created_at: string;
     source: 'chat' | 'upload';
   }>;
@@ -326,7 +340,7 @@ export interface ProTripData {
     id: string;
     media_url: string;
     filename: string;
-    metadata: any;
+    metadata: MediaMetadata | null;
     created_at: string;
     source: 'chat' | 'upload';
   }>;
@@ -334,7 +348,7 @@ export interface ProTripData {
     id: string;
     media_url: string;
     filename: string;
-    metadata: any;
+    metadata: MediaMetadata | null;
     created_at: string;
     source: 'chat' | 'upload';
   }>;
@@ -342,7 +356,7 @@ export interface ProTripData {
     id: string;
     media_url: string;
     filename: string;
-    metadata: any;
+    metadata: MediaMetadata | null;
     created_at: string;
     source: 'chat' | 'upload';
   }>;

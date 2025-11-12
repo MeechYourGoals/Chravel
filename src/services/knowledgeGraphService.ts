@@ -16,14 +16,13 @@ export class KnowledgeGraphService {
       });
 
       if (error) {
-        console.error('Error ingesting message:', error);
+        if (import.meta.env.DEV) console.error('Error ingesting message:', error);
         return false;
       }
 
-      console.log('Message ingested successfully:', data);
       return true;
     } catch (error) {
-      console.error('Failed to ingest message:', error);
+      if (import.meta.env.DEV) console.error('Failed to ingest message:', error);
       return false;
     }
   }
@@ -42,14 +41,13 @@ export class KnowledgeGraphService {
       });
 
       if (error) {
-        console.error('Error ingesting poll:', error);
+        if (import.meta.env.DEV) console.error('Error ingesting poll:', error);
         return false;
       }
 
-      console.log('Poll ingested successfully:', data);
       return true;
     } catch (error) {
-      console.error('Failed to ingest poll:', error);
+      if (import.meta.env.DEV) console.error('Failed to ingest poll:', error);
       return false;
     }
   }
@@ -68,14 +66,13 @@ export class KnowledgeGraphService {
       });
 
       if (error) {
-        console.error('Error ingesting file:', error);
+        if (import.meta.env.DEV) console.error('Error ingesting file:', error);
         return false;
       }
 
-      console.log('File ingested successfully:', data);
       return true;
     } catch (error) {
-      console.error('Failed to ingest file:', error);
+      if (import.meta.env.DEV) console.error('Failed to ingest file:', error);
       return false;
     }
   }
@@ -94,14 +91,13 @@ export class KnowledgeGraphService {
       });
 
       if (error) {
-        console.error('Error ingesting link:', error);
+        if (import.meta.env.DEV) console.error('Error ingesting link:', error);
         return false;
       }
 
-      console.log('Link ingested successfully:', data);
       return true;
     } catch (error) {
-      console.error('Failed to ingest link:', error);
+      if (import.meta.env.DEV) console.error('Failed to ingest link:', error);
       return false;
     }
   }
@@ -111,8 +107,6 @@ export class KnowledgeGraphService {
    */
   static async batchIngestTripData(tripId: string) {
     try {
-      console.log('Starting batch ingestion for trip:', tripId);
-      
       // Ingest existing messages
       const { data: messages } = await supabase
         .from('trip_chat_messages')
@@ -121,11 +115,10 @@ export class KnowledgeGraphService {
         .limit(50); // Limit to recent messages
 
       if (messages && messages.length > 0) {
-        console.log(`Ingesting ${messages.length} messages...`);
         for (const message of messages) {
           await this.ingestMessage(
-            message.id, 
-            tripId, 
+            message.id,
+            tripId,
             `${message.author_name}: ${message.content}`
           );
           // Small delay to avoid overwhelming the API
@@ -140,7 +133,6 @@ export class KnowledgeGraphService {
         .eq('trip_id', tripId);
 
       if (polls && polls.length > 0) {
-        console.log(`Ingesting ${polls.length} polls...`);
         for (const poll of polls) {
           await this.ingestPoll(poll.id, tripId);
           await new Promise(resolve => setTimeout(resolve, 100));
@@ -154,7 +146,6 @@ export class KnowledgeGraphService {
         .eq('trip_id', tripId);
 
       if (files && files.length > 0) {
-        console.log(`Ingesting ${files.length} files...`);
         for (const file of files) {
           await this.ingestFile(file.id, tripId);
           await new Promise(resolve => setTimeout(resolve, 100));
@@ -168,17 +159,15 @@ export class KnowledgeGraphService {
         .eq('trip_id', tripId);
 
       if (links && links.length > 0) {
-        console.log(`Ingesting ${links.length} links...`);
         for (const link of links) {
           await this.ingestLink(link.id, tripId);
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
 
-      console.log('Batch ingestion completed for trip:', tripId);
       return true;
     } catch (error) {
-      console.error('Failed to batch ingest trip data:', error);
+      if (import.meta.env.DEV) console.error('Failed to batch ingest trip data:', error);
       return false;
     }
   }
@@ -206,7 +195,7 @@ export class KnowledgeGraphService {
         lastIngested: docs.length > 0 ? Math.max(...docs.map(d => new Date(d.created_at).getTime())) : null
       };
     } catch (error) {
-      console.error('Failed to get knowledge graph stats:', error);
+      if (import.meta.env.DEV) console.error('Failed to get knowledge graph stats:', error);
       return null;
     }
   }

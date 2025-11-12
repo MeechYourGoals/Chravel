@@ -38,27 +38,28 @@ export class RunwareService {
   private connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.ws = new WebSocket(API_ENDPOINT);
-      
+
       this.ws.onopen = () => {
-        console.log("WebSocket connected");
         this.authenticate().then(resolve).catch(reject);
       };
 
       this.ws.onmessage = (event) => {
-        console.log("WebSocket message received:", event.data);
-
         // PHASE 1 BUG FIX #1: Add try-catch around JSON.parse to prevent crashes
         let response;
         try {
           response = JSON.parse(event.data);
         } catch (error) {
-          console.error("Invalid JSON received from WebSocket:", error, "Data:", event.data);
+          if (import.meta.env.DEV) {
+            console.error("Invalid JSON received from WebSocket:", error, "Data:", event.data);
+          }
           toast.error("Received invalid data from image service");
           return;
         }
 
         if (response.error || response.errors) {
-          console.error("WebSocket error response:", response);
+          if (import.meta.env.DEV) {
+            console.error("WebSocket error response:", response);
+          }
           const errorMessage = response.errorMessage || response.errors?.[0]?.message || "An error occurred";
           toast.error(errorMessage);
           return;
@@ -67,7 +68,6 @@ export class RunwareService {
         if (response.data) {
           response.data.forEach((item: any) => {
             if (item.taskType === "authentication") {
-              console.log("Authentication successful, session UUID:", item.connectionSessionUUID);
               this.connectionSessionUUID = item.connectionSessionUUID;
               this.isAuthenticated = true;
             } else {
@@ -82,13 +82,14 @@ export class RunwareService {
       };
 
       this.ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
+        if (import.meta.env.DEV) {
+          console.error("WebSocket error:", error);
+        }
         toast.error("Connection error. Please try again.");
         reject(error);
       };
 
       this.ws.onclose = () => {
-        console.log("WebSocket closed, attempting to reconnect...");
         this.isAuthenticated = false;
         setTimeout(() => {
           this.connectionPromise = this.connect();
@@ -109,9 +110,7 @@ export class RunwareService {
         apiKey: this.apiKey,
         ...(this.connectionSessionUUID && { connectionSessionUUID: this.connectionSessionUUID }),
       }];
-      
-      console.log("Sending authentication message");
-      
+
       // Set up a one-time authentication callback
       const authCallback = (event: MessageEvent) => {
         // PHASE 1 BUG FIX #1: Add try-catch around JSON.parse
@@ -122,7 +121,9 @@ export class RunwareService {
             resolve();
           }
         } catch (error) {
-          console.error("Invalid JSON during authentication:", error);
+          if (import.meta.env.DEV) {
+            console.error("Invalid JSON during authentication:", error);
+          }
           this.ws?.removeEventListener("message", authCallback);
           reject(new Error("Invalid authentication response"));
         }
@@ -168,8 +169,6 @@ export class RunwareService {
       if (message[0].model === "runware:100@1") {
         delete message[0].promptWeighting;
       }
-
-      console.log("Sending image generation message:", message);
 
       this.messageCallbacks.set(taskUUID, (data) => {
         if (data.error) {

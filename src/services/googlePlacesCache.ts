@@ -65,7 +65,9 @@ export async function getCachedPlace<T extends ConvertedPlace | ConvertedPredict
     });
 
     if (error) {
-      console.warn('[PlacesCache] Error fetching cache:', error);
+      if (import.meta.env.DEV) {
+        console.warn('[PlacesCache] Error fetching cache:', error);
+      }
       return null;
     }
 
@@ -73,10 +75,11 @@ export async function getCachedPlace<T extends ConvertedPlace | ConvertedPredict
       return null;
     }
 
-    console.log('[PlacesCache] ✅ Cache hit:', cacheKey.substring(0, 20) + '...');
     return data as T;
   } catch (error) {
-    console.warn('[PlacesCache] Cache fetch failed:', error);
+    if (import.meta.env.DEV) {
+      console.warn('[PlacesCache] Cache fetch failed:', error);
+    }
     return null;
   }
 }
@@ -104,13 +107,15 @@ export async function setCachedPlace(
     });
 
     if (error) {
-      console.warn('[PlacesCache] Error storing cache:', error);
+      if (import.meta.env.DEV) {
+        console.warn('[PlacesCache] Error storing cache:', error);
+      }
       // Don't throw - caching is best-effort
-    } else {
-      console.log('[PlacesCache] ✅ Cached:', cacheKey.substring(0, 20) + '...');
     }
   } catch (error) {
-    console.warn('[PlacesCache] Cache store failed:', error);
+    if (import.meta.env.DEV) {
+      console.warn('[PlacesCache] Cache store failed:', error);
+    }
     // Don't throw - caching is best-effort, shouldn't break API calls
   }
 }
@@ -146,11 +151,15 @@ export async function recordApiUsage(
     });
 
     if (error) {
-      console.warn('[PlacesCache] Error recording usage:', error);
+      if (import.meta.env.DEV) {
+        console.warn('[PlacesCache] Error recording usage:', error);
+      }
       // Don't throw - usage tracking is best-effort
     }
   } catch (error) {
-    console.warn('[PlacesCache] Usage recording failed:', error);
+    if (import.meta.env.DEV) {
+      console.warn('[PlacesCache] Usage recording failed:', error);
+    }
     // Don't throw - usage tracking shouldn't break API calls
   }
 }
@@ -169,13 +178,17 @@ export async function getHourlyUsage(
     });
 
     if (error) {
-      console.warn('[PlacesCache] Error fetching hourly usage:', error);
+      if (import.meta.env.DEV) {
+        console.warn('[PlacesCache] Error fetching hourly usage:', error);
+      }
       return [];
     }
 
     return (data || []) as Array<{ request_count: number; estimated_cost_usd: number; date_hour: string }>;
   } catch (error) {
-    console.warn('[PlacesCache] Hourly usage fetch failed:', error);
+    if (import.meta.env.DEV) {
+      console.warn('[PlacesCache] Hourly usage fetch failed:', error);
+    }
     return [];
   }
 }
@@ -196,13 +209,17 @@ export async function getDailyUsage(
     });
 
     if (error) {
-      console.warn('[PlacesCache] Error fetching daily usage:', error);
+      if (import.meta.env.DEV) {
+        console.warn('[PlacesCache] Error fetching daily usage:', error);
+      }
       return [];
     }
 
     return (data || []) as Array<{ request_count: number; estimated_cost_usd: number; date_day: string }>;
   } catch (error) {
-    console.warn('[PlacesCache] Daily usage fetch failed:', error);
+    if (import.meta.env.DEV) {
+      console.warn('[PlacesCache] Daily usage fetch failed:', error);
+    }
     return [];
   }
 }

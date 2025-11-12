@@ -15,7 +15,7 @@ export const ConsumerProfileSection = () => {
   };
 
   const currentUser = user || mockUser;
-  const currentUpdateProfile = user ? updateProfile : () => console.log('Demo mode - profile update clicked');
+  const currentUpdateProfile = user ? updateProfile : () => {};
 
   const handleProfileUpdate = (field: string, value: string) => {
     currentUpdateProfile({ [field]: value });

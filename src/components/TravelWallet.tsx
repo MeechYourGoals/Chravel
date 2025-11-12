@@ -334,8 +334,8 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
             key={program.id}
             program={program}
             type={activeTab}
-            onEdit={() => console.log('Edit', program.id)}
-            onDelete={() => console.log('Delete', program.id)}
+            onEdit={() => {}}
+            onDelete={() => {}}
           />
         ))}
       </div>

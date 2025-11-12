@@ -22,7 +22,6 @@ export class CapacitorIntegrationService {
 
   async initializeApp(): Promise<void> {
     if (!Capacitor.isNativePlatform()) {
-      console.log('Running in web mode');
       return;
     }
 
@@ -36,7 +35,9 @@ export class CapacitorIntegrationService {
       await StatusBar.setStyle({ style: Style.Dark });
       await StatusBar.setBackgroundColor({ color: '#000000' });
     } catch (error) {
-      console.error('Error initializing status bar:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error initializing status bar:', error);
+      }
     }
   }
 
@@ -46,22 +47,26 @@ export class CapacitorIntegrationService {
       await PushNotifications.register();
 
       PushNotifications.addListener('registration', (token) => {
-        console.log('Push registration success, token: ' + token.value);
+        // Push registration successful
       });
 
       PushNotifications.addListener('registrationError', (error) => {
-        console.error('Error on registration: ' + JSON.stringify(error));
+        if (import.meta.env.DEV) {
+          console.error('Error on registration: ' + JSON.stringify(error));
+        }
       });
 
       PushNotifications.addListener('pushNotificationReceived', (notification) => {
-        console.log('Push notification received: ', notification);
+        // Push notification received
       });
 
       PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-        console.log('Push notification action performed', notification);
+        // Push notification action performed
       });
     } catch (error) {
-      console.error('Error initializing push notifications:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error initializing push notifications:', error);
+      }
     }
   }
 
@@ -69,7 +74,9 @@ export class CapacitorIntegrationService {
     try {
       await LocalNotifications.requestPermissions();
     } catch (error) {
-      console.error('Error initializing local notifications:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error initializing local notifications:', error);
+      }
     }
   }
 
@@ -84,7 +91,9 @@ export class CapacitorIntegrationService {
 
       return image.webPath || null;
     } catch (error) {
-      console.error('Error taking picture:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error taking picture:', error);
+      }
       return null;
     }
   }
@@ -100,7 +109,9 @@ export class CapacitorIntegrationService {
 
       return image.webPath || null;
     } catch (error) {
-      console.error('Error selecting image:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error selecting image:', error);
+      }
       return null;
     }
   }
@@ -115,7 +126,9 @@ export class CapacitorIntegrationService {
       // Return the Capacitor position object directly (it's compatible with GeolocationPosition)
       return coordinates as GeolocationPosition;
     } catch (error) {
-      console.error('Error getting current position:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error getting current position:', error);
+      }
       return null;
     }
   }
@@ -130,7 +143,9 @@ export class CapacitorIntegrationService {
       });
       return true;
     } catch (error) {
-      console.error('Error sharing content:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error sharing content:', error);
+      }
       return false;
     }
   }
@@ -145,7 +160,9 @@ export class CapacitorIntegrationService {
 
       return result.uri;
     } catch (error) {
-      console.error('Error saving file:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error saving file:', error);
+      }
       return null;
     }
   }
@@ -167,7 +184,9 @@ export class CapacitorIntegrationService {
         ]
       });
     } catch (error) {
-      console.error('Error scheduling local notification:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error scheduling local notification:', error);
+      }
     }
   }
 

@@ -1,4 +1,6 @@
 import { TripTask } from './tasks';
+import { CalendarEvent } from './calendar';
+import { Broadcast } from './pro';
 
 export interface TripFile {
   id: string;
@@ -85,7 +87,7 @@ export interface TripContext {
     time?: string;
     location?: string;
     description?: string;
-    events?: any[];
+    events?: CalendarEvent[];
   }>;
   accommodation?: {
     name: string;
@@ -153,7 +155,7 @@ export interface TripContext {
     address: string;
     coordinates?: { lat: number; lng: number };
   };
-  broadcasts?: any[];
+  broadcasts?: Broadcast[];
   proData?: {
     category: string;
   };

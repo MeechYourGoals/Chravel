@@ -42,16 +42,15 @@ export class NotificationService {
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       try {
         this.serviceWorker = await navigator.serviceWorker.register('/sw.js');
-        console.log('Service Worker registered');
       } catch (error) {
-        console.error('Service Worker registration failed:', error);
+        if (import.meta.env.DEV) console.error('Service Worker registration failed:', error);
       }
     }
   }
 
   async requestPermission(): Promise<NotificationPermission> {
     if (!('Notification' in window)) {
-      console.warn('This browser does not support notifications');
+      if (import.meta.env.DEV) console.warn('This browser does not support notifications');
       return 'denied';
     }
 
@@ -73,7 +72,7 @@ export class NotificationService {
     }
 
     if (!this.serviceWorker) {
-      console.error('Service Worker not available');
+      if (import.meta.env.DEV) console.error('Service Worker not available');
       return null;
     }
 
@@ -87,13 +86,13 @@ export class NotificationService {
       });
 
       const token = JSON.stringify(subscription);
-      
+
       // Save token to database
       await this.savePushToken(userId, token, 'web');
-      
+
       return token;
     } catch (error) {
-      console.error('Push subscription failed:', error);
+      if (import.meta.env.DEV) console.error('Push subscription failed:', error);
       return null;
     }
   }
@@ -101,10 +100,9 @@ export class NotificationService {
   async savePushToken(userId: string, token: string, platform: 'ios' | 'android' | 'web') {
     try {
       // Mock implementation until database tables are available
-      console.log('Push token saved:', { userId, platform, token: token.slice(0, 20) + '...' });
       return true;
     } catch (error) {
-      console.error('Error saving push token:', error);
+      if (import.meta.env.DEV) console.error('Error saving push token:', error);
       return false;
     }
   }
@@ -126,7 +124,7 @@ export class NotificationService {
         quietEnd: '08:00'
       };
     } catch (error) {
-      console.error('Error getting notification preferences:', error);
+      if (import.meta.env.DEV) console.error('Error getting notification preferences:', error);
       return null;
     }
   }
@@ -134,17 +132,16 @@ export class NotificationService {
   async updateNotificationPreferences(userId: string, preferences: Partial<NotificationPreference>) {
     try {
       // Mock implementation until database tables are available
-      console.log('Notification preferences updated:', { userId, preferences });
       return true;
     } catch (error) {
-      console.error('Error updating notification preferences:', error);
+      if (import.meta.env.DEV) console.error('Error updating notification preferences:', error);
       return false;
     }
   }
 
   async sendLocalNotification(payload: NotificationPayload) {
     if (Notification.permission !== 'granted') {
-      console.warn('Notification permission not granted');
+      if (import.meta.env.DEV) console.warn('Notification permission not granted');
       return;
     }
 
@@ -171,36 +168,33 @@ export class NotificationService {
       }, 5000);
 
     } catch (error) {
-      console.error('Failed to show notification:', error);
+      if (import.meta.env.DEV) console.error('Failed to show notification:', error);
     }
   }
 
   async sendPushNotification(userId: string, payload: NotificationPayload) {
     try {
-      console.log('[Demo] sendPushNotification', { userId, payload });
       return true;
     } catch (error) {
-      console.error('Error sending push notification:', error);
+      if (import.meta.env.DEV) console.error('Error sending push notification:', error);
       return false;
     }
   }
 
   async sendEmailNotification(userId: string, subject: string, content: string) {
     try {
-      console.log('[Demo] sendEmailNotification', { userId, subject });
       return true;
     } catch (error) {
-      console.error('Error sending email notification:', error);
+      if (import.meta.env.DEV) console.error('Error sending email notification:', error);
       return false;
     }
   }
 
   async sendSMSNotification(userId: string, message: string) {
     try {
-      console.log('[Demo] sendSMSNotification', { userId });
       return true;
     } catch (error) {
-      console.error('Error sending SMS notification:', error);
+      if (import.meta.env.DEV) console.error('Error sending SMS notification:', error);
       return false;
     }
   }
@@ -239,8 +233,6 @@ export class NotificationService {
 
   async unsubscribe(userId: string) {
     try {
-      console.log('Unsubscribing user:', userId);
-      
       // Unsubscribe from service worker
       if (this.serviceWorker) {
         const subscription = await this.serviceWorker.pushManager.getSubscription();
@@ -249,7 +241,7 @@ export class NotificationService {
         }
       }
     } catch (error) {
-      console.error('Error unsubscribing from notifications:', error);
+      if (import.meta.env.DEV) console.error('Error unsubscribing from notifications:', error);
     }
   }
 }

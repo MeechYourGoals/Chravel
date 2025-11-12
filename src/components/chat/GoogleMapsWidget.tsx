@@ -56,9 +56,8 @@ export const GoogleMapsWidget = ({ widgetToken, height = 300 }: GoogleMapsWidget
               `;
             }
           });
-          
+
           containerRef.current.appendChild(widget);
-          console.log('✅ Google Maps widget loaded successfully');
         } catch (error) {
           console.error('Failed to create Google Maps widget:', error);
           if (containerRef.current) {

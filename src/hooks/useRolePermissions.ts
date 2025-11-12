@@ -36,7 +36,6 @@ export const useRolePermissions = (tripId: string) => {
         .single();
 
       if (error || !roleData?.trip_roles) {
-        console.log('No role found, defaulting to view permissions');
         setPermissionLevel('view');
         setFeaturePermissions(null);
         return;

@@ -56,16 +56,15 @@ export class ProductionNotificationService {
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       try {
         this.serviceWorker = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-        console.log('Service Worker registered successfully');
       } catch (error) {
-        console.error('Service Worker registration failed:', error);
+        if (import.meta.env.DEV) console.error('Service Worker registration failed:', error);
       }
     }
   }
 
   async requestPermission(): Promise<NotificationPermission> {
     if (!('Notification' in window)) {
-      console.warn('This browser does not support notifications');
+      if (import.meta.env.DEV) console.warn('This browser does not support notifications');
       return 'denied';
     }
 
@@ -87,7 +86,7 @@ export class ProductionNotificationService {
     }
 
     if (!this.serviceWorker || !this.fcmVapidKey) {
-      console.error('Service Worker or VAPID key not available');
+      if (import.meta.env.DEV) console.error('Service Worker or VAPID key not available');
       return null;
     }
 
@@ -98,13 +97,13 @@ export class ProductionNotificationService {
       });
 
       const token = JSON.stringify(subscription);
-      
+
       // Save token to database
       await this.savePushToken(userId, token, 'web');
-      
+
       return token;
     } catch (error) {
-      console.error('Push subscription failed:', error);
+      if (import.meta.env.DEV) console.error('Push subscription failed:', error);
       return null;
     }
   }
@@ -122,13 +121,13 @@ export class ProductionNotificationService {
       });
 
       if (error) {
-        console.error('Error saving push token:', error);
+        if (import.meta.env.DEV) console.error('Error saving push token:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error saving push token:', error);
+      if (import.meta.env.DEV) console.error('Error saving push token:', error);
       return false;
     }
   }
@@ -142,7 +141,7 @@ export class ProductionNotificationService {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error getting notification preferences:', error);
+        if (import.meta.env.DEV) console.error('Error getting notification preferences:', error);
         return null;
       }
 
@@ -182,7 +181,7 @@ export class ProductionNotificationService {
         quietEnd: (data as any).quiet_end
       };
     } catch (error) {
-      console.error('Error getting notification preferences:', error);
+      if (import.meta.env.DEV) console.error('Error getting notification preferences:', error);
       return null;
     }
   }
@@ -206,13 +205,13 @@ export class ProductionNotificationService {
         });
 
       if (error) {
-        console.error('Error updating notification preferences:', error);
+        if (import.meta.env.DEV) console.error('Error updating notification preferences:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error updating notification preferences:', error);
+      if (import.meta.env.DEV) console.error('Error updating notification preferences:', error);
       return false;
     }
   }
@@ -232,13 +231,13 @@ export class ProductionNotificationService {
       });
 
       if (error) {
-        console.error('Failed to send push notification:', error);
+        if (import.meta.env.DEV) console.error('Failed to send push notification:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error sending push notification:', error);
+      if (import.meta.env.DEV) console.error('Error sending push notification:', error);
       return false;
     }
   }
@@ -255,13 +254,13 @@ export class ProductionNotificationService {
       });
 
       if (error) {
-        console.error('Failed to send email notification:', error);
+        if (import.meta.env.DEV) console.error('Failed to send email notification:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error sending email notification:', error);
+      if (import.meta.env.DEV) console.error('Error sending email notification:', error);
       return false;
     }
   }
@@ -277,20 +276,20 @@ export class ProductionNotificationService {
       });
 
       if (error) {
-        console.error('Failed to send SMS notification:', error);
+        if (import.meta.env.DEV) console.error('Failed to send SMS notification:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error sending SMS notification:', error);
+      if (import.meta.env.DEV) console.error('Error sending SMS notification:', error);
       return false;
     }
   }
 
   async sendLocalNotification(payload: NotificationPayload): Promise<void> {
     if (Notification.permission !== 'granted') {
-      console.warn('Notification permission not granted');
+      if (import.meta.env.DEV) console.warn('Notification permission not granted');
       return;
     }
 
@@ -315,7 +314,7 @@ export class ProductionNotificationService {
         notification.close();
       }, 5000);
     } catch (error) {
-      console.error('Failed to show notification:', error);
+      if (import.meta.env.DEV) console.error('Failed to show notification:', error);
     }
   }
 
@@ -325,7 +324,7 @@ export class ProductionNotificationService {
         const subscription = await this.serviceWorker.pushManager.getSubscription();
         if (subscription) {
           await subscription.unsubscribe();
-          
+
           // Remove from database
           await supabase.functions.invoke('push-notifications', {
             body: {
@@ -337,7 +336,7 @@ export class ProductionNotificationService {
         }
       }
     } catch (error) {
-      console.error('Error unsubscribing from notifications:', error);
+      if (import.meta.env.DEV) console.error('Error unsubscribing from notifications:', error);
     }
   }
 
