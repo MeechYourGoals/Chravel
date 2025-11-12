@@ -65,17 +65,21 @@ export const ChatFilterTabs = ({
             )}
           </button>
 
-          {/* Channels Segment (Pro/Events only) */}
-          {hasChannels && isPro && (
+          {/* Channels Segment (Pro/Events only) - Always show but disable if no channels */}
+          {isPro && (
             <button
-              onClick={() => onFilterChange('channels')}
+              onClick={() => hasChannels && onFilterChange('channels')}
+              disabled={!hasChannels}
               className={cn(
                 "relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
-                activeFilter === 'channels'
+                !hasChannels && "opacity-40 cursor-not-allowed",
+                activeFilter === 'channels' && hasChannels
                   ? "bg-purple-500 text-white shadow-md"
-                  : "text-purple-400/70 hover:text-purple-400 hover:bg-purple-500/10"
+                  : "text-purple-400/70 hover:text-purple-400 hover:bg-purple-500/10",
+                !hasChannels && "hover:bg-transparent"
               )}
               aria-pressed={activeFilter === 'channels'}
+              title={!hasChannels ? "No role-based channels for this trip" : undefined}
             >
               <Hash className="w-3.5 h-3.5" />
               <span>Channels</span>

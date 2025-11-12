@@ -43,6 +43,7 @@ interface TripChatProps {
   tripId?: string;
   isPro?: boolean; // 🆕 Flag to enable role channels for enterprise trips
   userRole?: string; // 🆕 User's role for channel access
+  participants?: Array<{ id: string; name: string; role?: string }>; // 🆕 Participants with roles for channel generation
 }
 
 interface MockMessage {
@@ -69,7 +70,8 @@ export const TripChat = ({
   isEvent = false,
   tripId: tripIdProp,
   isPro = false,
-  userRole = 'member'
+  userRole = 'member',
+  participants = []
 }: TripChatProps) => {
   const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
   const [demoLoading, setDemoLoading] = useState(true);
@@ -111,6 +113,12 @@ export const TripChat = ({
     filterMessages
   } = useChatComposer({ tripId: resolvedTripId, demoMode: demoMode.isDemoMode, isEvent });
 
+  // Extract unique roles from participants for channel generation
+  const participantRoles = useMemo(() => {
+    if (!isPro) return [];
+    return [...new Set(participants.map(p => p.role).filter(Boolean))];
+  }, [isPro, participants]);
+
   // Initialize role channels hook for Pro/Enterprise trips
   const {
     availableChannels,
@@ -118,7 +126,7 @@ export const TripChat = ({
     messages: channelMessages,
     setActiveChannel,
     sendMessage: sendChannelMessage
-  } = useRoleChannels(resolvedTripId, userRole);
+  } = useRoleChannels(resolvedTripId, userRole, participantRoles);
 
   // Mobile-specific hooks
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -431,7 +439,7 @@ export const TripChat = ({
           <ChatFilterTabs
             activeFilter={messageFilter}
             onFilterChange={setMessageFilter}
-            hasChannels={availableChannels.length > 0}
+            hasChannels={availableChannels.length > 0 || participantRoles.length > 0}
             isPro={isPro}
             broadcastCount={broadcastCount}
             unreadCount={unreadCount}

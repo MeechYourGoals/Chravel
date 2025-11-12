@@ -32,7 +32,7 @@ const convertToRoleChannelMessage = (msg: ChannelMessage): RoleChannelMessage =>
   createdAt: msg.createdAt
 });
 
-export const useRoleChannels = (tripId: string, userRole: string) => {
+export const useRoleChannels = (tripId: string, userRole: string, roles?: string[]) => {
   const [availableChannels, setAvailableChannels] = useState<TripChannel[]>([]);
   const [activeChannel, setActiveChannel] = useState<TripChannel | null>(null);
   const [messages, setMessages] = useState<RoleChannelMessage[]>([]);
@@ -46,8 +46,8 @@ export const useRoleChannels = (tripId: string, userRole: string) => {
     setIsLoading(true);
 
     if (isDemoTrip) {
-      // Load demo channels (already in TripChannel format)
-      const { channels, messagesByChannel } = getDemoChannelsForTrip(tripId);
+      // Load demo channels (already in TripChannel format), pass roles for dynamic generation
+      const { channels, messagesByChannel } = getDemoChannelsForTrip(tripId, roles);
       setAvailableChannels(channels);
       setDemoMessages(messagesByChannel);
       setIsLoading(false);

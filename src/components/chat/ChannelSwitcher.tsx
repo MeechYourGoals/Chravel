@@ -24,30 +24,30 @@ export const ChannelSwitcher = ({
 }: ChannelSwitcherProps) => {
   return (
     <Select value={activeChannel} onValueChange={onChannelChange}>
-      <SelectTrigger className={`bg-gray-800 border-gray-700 ${className}`}>
+      <SelectTrigger className={`w-full max-w-[420px] mx-auto bg-gray-800/50 border-gray-700/50 hover:bg-gray-800 hover:border-gray-600 transition-colors duration-200 md:max-w-[420px] sm:max-w-[380px] ${className}`}>
         <SelectValue>
           {activeChannel === 'main' ? (
             <div className="flex items-center gap-2">
-              <Hash size={16} className="text-gray-400" />
-              <span>Main Trip Chat</span>
+              <Hash size={14} className="text-gray-400" />
+              <span className="text-sm truncate">Main Trip Chat</span>
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Lock size={16} className="text-purple-400" />
-              <span>
+              <Lock size={14} className="text-purple-400" />
+              <span className="text-sm truncate">
                 #{roleChannels.find(ch => ch.id === activeChannel)?.roleName.toLowerCase().replace(/\s+/g, '-')}
               </span>
             </div>
           )}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent className="bg-gray-800 border-gray-700">
+      <SelectContent className="max-w-[420px] bg-gray-800 border-gray-700 md:max-w-[420px] sm:max-w-[380px]">
         {/* Main Chat */}
         <SelectItem value="main" className="text-white hover:bg-gray-700">
           <div className="flex items-center gap-2">
-            <Hash size={16} className="text-gray-400" />
-            <span>Main Trip Chat</span>
-            <Users size={14} className="text-gray-500 ml-auto" />
+            <Hash size={14} className="text-gray-400" />
+            <span className="text-sm">Main Trip Chat</span>
+            <Users size={12} className="text-gray-500 ml-auto" />
           </div>
         </SelectItem>
 
@@ -60,8 +60,8 @@ export const ChannelSwitcher = ({
             {roleChannels.map(channel => (
               <SelectItem key={channel.id} value={channel.id} className="text-white hover:bg-gray-700">
                 <div className="flex items-center gap-2">
-                  <Lock size={16} className="text-purple-400" />
-                  <span>#{channel.roleName.toLowerCase().replace(/\s+/g, '-')}</span>
+                  <Lock size={14} className="text-purple-400" />
+                  <span className="text-sm truncate">#{channel.roleName.toLowerCase().replace(/\s+/g, '-')}</span>
                   <span className="text-xs text-gray-500 ml-auto">
                     Private
                   </span>

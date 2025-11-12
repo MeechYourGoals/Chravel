@@ -366,7 +366,38 @@ const teslaChannels: DemoChannelData[] = [
   }
 ];
 
-export const getDemoChannelsForTrip = (tripId: string): { channels: TripChannel[]; messagesByChannel: Map<string, ChannelMessage[]> } => {
+// Generate demo channels dynamically from roles
+export const generateDemoChannelsFromRoles = (
+  tripId: string,
+  roles: string[]
+): { channels: TripChannel[]; messagesByChannel: Map<string, ChannelMessage[]> } => {
+  const now = new Date().toISOString();
+  const uniqueRoles = [...new Set(roles.filter(Boolean))];
+
+  const channels: TripChannel[] = uniqueRoles.map((role, index) => ({
+    id: `demo-channel-${tripId}-${index}`,
+    tripId: tripId,
+    channelName: role,
+    channelSlug: role.toLowerCase().replace(/\s+/g, '-'),
+    description: `${role} coordination channel`,
+    requiredRoleId: `demo-role-${role.toLowerCase()}`,
+    requiredRoleName: role,
+    isPrivate: true,
+    isArchived: false,
+    memberCount: 1,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: 'demo-user'
+  }));
+
+  // Return empty messages for auto-generated channels
+  const messagesByChannel = new Map<string, ChannelMessage[]>();
+  channels.forEach(ch => messagesByChannel.set(ch.id, []));
+
+  return { channels, messagesByChannel };
+};
+
+export const getDemoChannelsForTrip = (tripId: string, roles?: string[]): { channels: TripChannel[]; messagesByChannel: Map<string, ChannelMessage[]> } => {
   const now = new Date().toISOString();
   
   let demoData: DemoChannelData[] = [];
@@ -385,6 +416,11 @@ export const getDemoChannelsForTrip = (tripId: string): { channels: TripChannel[
   }
   else if (tripIdStr === '16' || tripIdStr === 'eli-lilly-c-suite-retreat-2026') {
     demoData = eliLillyChannels;
+  }
+  
+  // If no hardcoded channels exist but roles are provided, generate channels from roles
+  if (demoData.length === 0 && roles && roles.length > 0) {
+    return generateDemoChannelsFromRoles(tripId, roles);
   }
   
   const channels: TripChannel[] = demoData.map((data, index) => ({

@@ -174,6 +174,11 @@ export const MobileProTripDetail = () => {
         tripId={proTripId}
         basecamp={basecamp}
         variant="pro"
+        participants={(tripData.participants || []).map(p => ({
+          id: String(p.id),
+          name: p.name,
+          role: p.role
+        }))}
       />
 
       {/* Trip Info Drawer */}

@@ -60,7 +60,18 @@ export const ProTabContent = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'chat':
-        return <TripChat enableGroupChat={true} showBroadcasts={true} tripId={tripId} isPro={true} userRole={userRole} />;
+        return <TripChat 
+          enableGroupChat={true} 
+          showBroadcasts={true} 
+          tripId={tripId} 
+          isPro={true} 
+          userRole={userRole} 
+          participants={(tripData.participants || []).map(p => ({ 
+            id: String(p.id), 
+            name: p.name, 
+            role: p.role 
+          }))} 
+        />;
       case 'calendar':
         return <GroupCalendar tripId={tripId} />;
       case 'tasks':

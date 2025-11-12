@@ -19,6 +19,7 @@ interface MobileTripTabsProps {
   tripId: string;
   basecamp: { name: string; address: string };
   variant?: 'consumer' | 'pro' | 'event';
+  participants?: Array<{ id: string; name: string; role?: string }>; // 🆕 For Pro/Event trips with role channels
 }
 
 export const MobileTripTabs = ({
@@ -26,7 +27,8 @@ export const MobileTripTabs = ({
   onTabChange,
   tripId,
   basecamp,
-  variant = 'consumer'
+  variant = 'consumer',
+  participants = []
 }: MobileTripTabsProps) => {
   const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
@@ -93,7 +95,12 @@ export const MobileTripTabs = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'chat':
-        return <TripChat tripId={tripId} />;
+        return <TripChat 
+          tripId={tripId} 
+          isPro={variant === 'pro'} 
+          isEvent={variant === 'event'}
+          participants={participants}
+        />;
       case 'calendar':
         return <MobileGroupCalendar tripId={tripId} />;
       case 'tasks':
