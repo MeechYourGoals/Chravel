@@ -145,6 +145,14 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
     setReactions(updatedReactions);
   };
 
+  // Calculate member count from available channels
+  const memberCount = useMemo(() => {
+    if (!channel?.id || !availableChannels || availableChannels.length === 0) return 0;
+
+    const currentChannel = availableChannels.find(c => c.id === channel.id);
+    return currentChannel?.memberCount ?? 0;
+  }, [channel?.id, availableChannels]);
+
   return (
     <>
       {/* Channel Switcher Header */}
@@ -158,7 +166,7 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
               tripId: ch.tripId,
               createdAt: ch.createdAt,
               createdBy: ch.createdBy,
-              memberCount: 0 // TODO: Fetch actual member count
+              memberCount: ch.memberCount ?? 0
             }))}
             onChannelChange={(channelId) => {
               if (channelId === 'main') return; // Ignore main chat selection
