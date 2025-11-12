@@ -106,18 +106,18 @@ export const RolesView = ({
       )}
 
       {/* Header with Stats and Actions */}
-      <div className="bg-gradient-to-br from-white/5 via-white/3 to-transparent backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 shadow-xl">
+      <div className="bg-gradient-to-br from-white/5 via-white/3 to-transparent backdrop-blur-sm border border-gray-700/50 rounded-xl p-4 shadow-xl">
         {/* Row 1: Team Label + Stats */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Users className="text-red-400" size={24} />
-            <h2 className="text-xl font-bold text-white">{teamLabel}</h2>
-            <span className="text-gray-400">{roster.length} members</span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Users className="text-red-400" size={20} />
+            <h2 className="text-lg font-bold text-white">{teamLabel}</h2>
+            <span className="text-gray-400 text-sm">{roster.length} members</span>
           </div>
         </div>
 
         {/* Row 2: Centered Action Buttons */}
-        <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-6">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-3 mb-4">
           {/* Secondary Action Buttons */}
           <div className="flex flex-wrap items-center justify-center gap-2">
             {/* Bulk Edit Button */}
@@ -214,16 +214,16 @@ export const RolesView = ({
                   <div key={role} className="flex items-center gap-1">
                     <button
                       onClick={() => setSelectedRole(role)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
                         selectedRole === role
                           ? 'bg-red-600 text-white shadow-lg shadow-red-600/30 scale-105'
                           : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 hover:scale-102 border border-gray-600'
                       }`}
                     >
-                      {role === 'all' ? 'All Roles' : role}
+                      {role === 'all' ? 'All' : role}
                       {role !== 'all' && (
-                        <span className="ml-1.5 text-xs opacity-75">
-                          ({roleMembers.length})
+                        <span className="ml-1 text-xs opacity-75">
+                          {roleMembers.length}
                         </span>
                       )}
                     </button>
@@ -254,30 +254,30 @@ export const RolesView = ({
         )}
       </div>
 
-      {/* Team Grid View */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {/* Team Grid View - Optimized for 3-4 columns */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
         {filteredRoster.map((member) => (
-          <div key={member.id} className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-xl p-4">
-            <div className="flex items-start gap-3">
+          <div key={member.id} className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-lg p-3">
+            <div className="flex items-start gap-2.5">
               <img
                 src={member.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'}
                 alt={member.name}
-                className="w-12 h-12 rounded-full border-2 border-gray-600"
+                className="w-10 h-10 rounded-full border-2 border-gray-600 flex-shrink-0"
               />
               <div className="flex-1 min-w-0">
                 <QuickContactMenu
                   member={member}
                 >
-                  <h3 className="text-white font-medium truncate cursor-pointer hover:text-blue-400 transition-colors">
+                  <h3 className="text-white text-sm font-medium truncate cursor-pointer hover:text-blue-400 transition-colors leading-tight">
                     {member.name}
                   </h3>
                 </QuickContactMenu>
-                <p className="text-gray-400 text-sm">{member.email}</p>
+                <p className="text-gray-400 text-xs truncate leading-tight">{member.email}</p>
                 {member.phone && (
-                  <p className="text-gray-500 text-xs">{member.phone}</p>
+                  <p className="text-gray-500 text-xs truncate leading-tight">{member.phone}</p>
                 )}
-                <div className="flex items-center gap-2 mt-2">
-                  <span className={`${getRoleColorClass(member.role, category)} px-2 py-1 rounded text-xs font-medium`}>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <span className={`${getRoleColorClass(member.role, category)} px-1.5 py-0.5 rounded text-xs font-medium`}>
                     {member.role}
                   </span>
                 </div>
@@ -285,31 +285,28 @@ export const RolesView = ({
               {userRole === 'admin' && !isReadOnly && onUpdateMemberRole && (
                 <button 
                   onClick={() => handleEditMember(member)}
-                  className="text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-white/10 group relative"
-                  title="Click to edit member role"
+                  className="text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-white/10 flex-shrink-0"
+                  title="Edit role"
                 >
-                  <Settings size={16} />
-                  <span className="absolute -top-8 right-0 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                    Edit Role
-                  </span>
+                  <Settings size={14} />
                 </button>
               )}
             </div>
 
-            {/* Medical Alerts */}
+            {/* Medical Alerts - Compact */}
             {member.medicalNotes && (
-              <div className="mt-3 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle size={14} className="text-yellow-400" />
-                  <span className="text-yellow-400 text-xs font-medium">Medical Alert</span>
-                </div>
+              <div className="mt-2 p-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded flex items-center gap-1.5">
+                <AlertTriangle size={12} className="text-yellow-400 flex-shrink-0" />
+                <span className="text-yellow-400 text-xs font-medium">Medical Alert</span>
               </div>
             )}
 
-            {/* Dietary Restrictions */}
+            {/* Dietary Restrictions - Compact */}
             {member.dietaryRestrictions && member.dietaryRestrictions.length > 0 && (
-              <div className="mt-2">
-                <p className="text-gray-400 text-xs">Dietary: {member.dietaryRestrictions.join(', ')}</p>
+              <div className="mt-1.5">
+                <p className="text-gray-400 text-xs leading-tight">
+                  Dietary: {member.dietaryRestrictions.join(', ')}
+                </p>
               </div>
             )}
           </div>

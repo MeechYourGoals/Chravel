@@ -9,6 +9,8 @@ import { ChatInput } from '../../chat/ChatInput';
 import { useAuth } from '@/hooks/useAuth';
 import { getMockAvatar } from '@/utils/mockAvatars';
 import { ChannelSwitcher } from '../../chat/ChannelSwitcher';
+import { useRolePermissions } from '@/hooks/useRolePermissions';
+import { Lock } from 'lucide-react';
 
 interface ChannelChatViewProps {
   channel: TripChannel;
@@ -25,6 +27,7 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
   const [reactions, setReactions] = useState<Record<string, Record<string, { count: number; userReacted: boolean }>>>({});
   const { user } = useAuth();
   const { toast } = useToast();
+  const { canPerformAction, permissionLevel } = useRolePermissions(channel.tripId);
 
   // Transform ChannelMessage to ChatMessage format for MessageItem
   const formattedMessages = useMemo(() => {
@@ -193,21 +196,28 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
         )}
       </div>
 
-      {/* Reuse ChatInput */}
+      {/* Reuse ChatInput with permission check */}
       <div className="bg-black/30 p-3 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-3">
-        <ChatInput
-          inputMessage={inputMessage}
-          onInputChange={setInputMessage}
-          onSendMessage={handleSendMessage}
-          onKeyPress={handleKeyPress}
-          apiKey=""
-          isTyping={sending}
-          tripMembers={[]}
-          hidePayments={true}
-          isInChannelMode={true}
-          isPro={true}
-          tripId={channel.tripId}
-        />
+        {canPerformAction('channels', 'can_post') ? (
+          <ChatInput
+            inputMessage={inputMessage}
+            onInputChange={setInputMessage}
+            onSendMessage={handleSendMessage}
+            onKeyPress={handleKeyPress}
+            apiKey=""
+            isTyping={sending}
+            tripMembers={[]}
+            hidePayments={true}
+            isInChannelMode={true}
+            isPro={true}
+            tripId={channel.tripId}
+          />
+        ) : (
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 flex items-center gap-2 text-gray-400">
+            <Lock size={16} />
+            <span className="text-sm">You have view-only access to this channel</span>
+          </div>
+        )}
       </div>
     </>
   );

@@ -8,6 +8,7 @@ import { AddEventModal } from './calendar/AddEventModal';
 import { EventList } from './calendar/EventList';
 import { exportTripEventsToICal } from '@/services/calendarSync';
 import { useToast } from '@/hooks/use-toast';
+import { useRolePermissions } from '@/hooks/useRolePermissions';
 
 interface GroupCalendarProps {
   tripId: string;
@@ -35,8 +36,17 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
     isSaving
   } = useCalendarManagement(tripId);
   const { toast } = useToast();
+  const { canPerformAction } = useRolePermissions(tripId);
 
   const handleEdit = (event: any) => {
+    if (!canPerformAction('calendar', 'can_edit_events')) {
+      toast({
+        title: 'Permission denied',
+        description: 'You do not have permission to edit events',
+        variant: 'destructive'
+      });
+      return;
+    }
     setEditingEvent(event);
     setShowAddEvent(true);
     // Populate form with event data
@@ -98,12 +108,12 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
   if (viewMode === 'itinerary') {
     return (
       <div className="p-6">
-        <CalendarHeader
-          viewMode={viewMode}
-          onToggleView={toggleViewMode}
-          onAddEvent={() => setShowAddEvent(!showAddEvent)}
-          onExport={handleExport}
-        />
+      <CalendarHeader
+        viewMode={viewMode}
+        onToggleView={toggleViewMode}
+        onAddEvent={canPerformAction('calendar', 'can_create_events') ? () => setShowAddEvent(!showAddEvent) : undefined}
+        onExport={handleExport}
+      />
         <ItineraryView events={events} tripName="Trip Itinerary" />
       </div>
     );
@@ -114,7 +124,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
       <CalendarHeader
         viewMode={viewMode}
         onToggleView={toggleViewMode}
-        onAddEvent={() => setShowAddEvent(!showAddEvent)}
+        onAddEvent={canPerformAction('calendar', 'can_create_events') ? () => setShowAddEvent(!showAddEvent) : undefined}
         onExport={handleExport}
       />
 

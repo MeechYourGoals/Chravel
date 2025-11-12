@@ -2266,7 +2266,11 @@ export type Database = {
           created_at: string | null
           created_by: string
           description: string | null
+          feature_permissions: Json | null
           id: string
+          permission_level:
+            | Database["public"]["Enums"]["permission_level"]
+            | null
           role_name: string
           trip_id: string
           updated_at: string | null
@@ -2275,7 +2279,11 @@ export type Database = {
           created_at?: string | null
           created_by: string
           description?: string | null
+          feature_permissions?: Json | null
           id?: string
+          permission_level?:
+            | Database["public"]["Enums"]["permission_level"]
+            | null
           role_name: string
           trip_id: string
           updated_at?: string | null
@@ -2284,7 +2292,11 @@ export type Database = {
           created_at?: string | null
           created_by?: string
           description?: string | null
+          feature_permissions?: Json | null
           id?: string
+          permission_level?:
+            | Database["public"]["Enums"]["permission_level"]
+            | null
           role_name?: string
           trip_id?: string
           updated_at?: string | null
@@ -2769,6 +2781,7 @@ export type Database = {
         | "growing"
         | "enterprise"
         | "enterprise-plus"
+      permission_level: "view" | "edit" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2905,6 +2918,7 @@ export const Constants = {
         "enterprise",
         "enterprise-plus",
       ],
+      permission_level: ["view", "edit", "admin"],
     },
   },
 } as const

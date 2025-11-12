@@ -6,11 +6,49 @@ export interface TripAdmin {
   grantedAt: string;
 }
 
+export type PermissionLevel = 'view' | 'edit' | 'admin';
+
+export interface FeaturePermissions {
+  channels: {
+    can_view: boolean;
+    can_post: boolean;
+    can_edit_messages: boolean;
+    can_delete_messages: boolean;
+    can_manage_members: boolean;
+  };
+  calendar: {
+    can_view: boolean;
+    can_create_events: boolean;
+    can_edit_events: boolean;
+    can_delete_events: boolean;
+  };
+  tasks: {
+    can_view: boolean;
+    can_create: boolean;
+    can_assign: boolean;
+    can_complete: boolean;
+    can_delete: boolean;
+  };
+  media: {
+    can_view: boolean;
+    can_upload: boolean;
+    can_delete_own: boolean;
+    can_delete_any: boolean;
+  };
+  payments: {
+    can_view: boolean;
+    can_create: boolean;
+    can_approve: boolean;
+  };
+}
+
 export interface TripRole {
   id: string;
   tripId: string;
   roleName: string;
   description?: string;
+  permissionLevel?: PermissionLevel;
+  featurePermissions?: FeaturePermissions;
   memberCount?: number;
   createdBy: string;
   createdAt: string;

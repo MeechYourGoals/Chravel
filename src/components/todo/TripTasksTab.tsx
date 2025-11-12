@@ -7,6 +7,7 @@ import { TaskCreateModal } from './TaskCreateModal';
 import { useTripTasks } from '../../hooks/useTripTasks';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useRolePermissions } from '@/hooks/useRolePermissions';
 
 interface TripTasksTabProps {
   tripId: string;
@@ -18,6 +19,7 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
   const { accentColors } = useTripVariant();
   const { tasks, isLoading, applyFilters, status, setStatus, assignee, setAssignee, dateRange, setDateRange, sortBy, setSortBy, hasActiveFilters, clearFilters } = useTripTasks(tripId);
   const { isDemoMode } = useDemoMode();
+  const { canPerformAction } = useRolePermissions(tripId);
   
 
   // Mock task items for demo
@@ -103,13 +105,15 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
           <h2 className="text-xl font-semibold text-white">Tasks</h2>
           <p className="text-gray-400 text-sm">Keep track of everything that needs to get done</p>
         </div>
-        <Button
-          onClick={() => setShowCreateModal(true)}
-          className={`bg-gradient-to-r ${accentColors.gradient} hover:opacity-90`}
-        >
-          <Plus size={16} className="mr-2" />
-          Add Task
-        </Button>
+        {canPerformAction('tasks', 'can_create') && (
+          <Button
+            onClick={() => setShowCreateModal(true)}
+            className={`bg-gradient-to-r ${accentColors.gradient} hover:opacity-90`}
+          >
+            <Plus size={16} className="mr-2" />
+            Add Task
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
