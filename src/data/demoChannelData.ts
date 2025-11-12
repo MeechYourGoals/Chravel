@@ -366,15 +366,28 @@ const teslaChannels: DemoChannelData[] = [
   }
 ];
 
-// Generate demo channels dynamically from roles
+/**
+ * Generate demo channels dynamically from roles
+ * MVP: Capped at 5 roles maximum per trip
+ */
 export const generateDemoChannelsFromRoles = (
   tripId: string,
   roles: string[]
 ): { channels: TripChannel[]; messagesByChannel: Map<string, ChannelMessage[]> } => {
   const now = new Date().toISOString();
   const uniqueRoles = [...new Set(roles.filter(Boolean))];
+  
+  // MVP: Cap at 5 roles maximum
+  const MAX_ROLES = 5;
+  const cappedRoles = uniqueRoles.slice(0, MAX_ROLES);
+  
+  if (uniqueRoles.length > MAX_ROLES) {
+    console.warn(
+      `Trip ${tripId} has ${uniqueRoles.length} roles, capping at ${MAX_ROLES} for MVP`
+    );
+  }
 
-  const channels: TripChannel[] = uniqueRoles.map((role, index) => ({
+  const channels: TripChannel[] = cappedRoles.map((role, index) => ({
     id: `demo-channel-${tripId}-${index}`,
     tripId: tripId,
     channelName: role,

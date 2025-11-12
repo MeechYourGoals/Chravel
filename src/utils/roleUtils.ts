@@ -1,5 +1,11 @@
 import { ProTripCategory, getCategoryConfig } from '../types/proCategories';
 
+/**
+ * MVP constraint: Maximum 5 roles per Pro trip
+ * This limit can be expanded post-MVP based on user feedback and infrastructure scaling
+ */
+export const MAX_ROLES_PER_TRIP = 5;
+
 export interface RoleOption {
   value: string;
   label: string;
@@ -44,6 +50,19 @@ export const getRoleOptions = (category: ProTripCategory, existingRoles: string[
 export const extractUniqueRoles = (participants: Array<{ role: string }>): string[] => {
   const roles = participants.map(p => p.role).filter(Boolean);
   return [...new Set(roles)].sort();
+};
+
+/**
+ * Validate role count against MVP limit
+ */
+export const validateRoleCount = (currentRoleCount: number): { isValid: boolean; error?: string } => {
+  if (currentRoleCount >= MAX_ROLES_PER_TRIP) {
+    return { 
+      isValid: false, 
+      error: `Maximum ${MAX_ROLES_PER_TRIP} roles allowed per trip for MVP` 
+    };
+  }
+  return { isValid: true };
 };
 
 /**

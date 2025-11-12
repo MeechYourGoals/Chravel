@@ -8,6 +8,8 @@ import { TripRole, UserRoleAssignment, TripChannel } from '../../../types/roleCh
 import { channelService } from '../../../services/channelService';
 import { useToast } from '../../../hooks/use-toast';
 import { ProParticipant } from '../../../types/pro';
+import { validateRoleCount, MAX_ROLES_PER_TRIP } from '../../../utils/roleUtils';
+import { cn } from '../../../lib/utils';
 
 interface AdminRoleManagerProps {
   isOpen: boolean;
@@ -96,6 +98,17 @@ export const AdminRoleManager = ({
     if (!newRoleName.trim()) {
       toast({
         title: 'Role name required',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Check role count limit (MVP constraint)
+    const roleCountValidation = validateRoleCount(roles.length);
+    if (!roleCountValidation.isValid) {
+      toast({
+        title: 'Role limit reached',
+        description: roleCountValidation.error,
         variant: 'destructive'
       });
       return;
@@ -351,6 +364,14 @@ export const AdminRoleManager = ({
                 <Users size={18} className="text-blue-400" />
                 Manage Roles (Job Titles)
               </h3>
+              <span className={cn(
+                "text-sm font-medium px-3 py-1 rounded-lg",
+                roles.length >= MAX_ROLES_PER_TRIP 
+                  ? "bg-red-500/20 text-red-400" 
+                  : "bg-gray-700 text-gray-300"
+              )}>
+                {roles.length} / {MAX_ROLES_PER_TRIP} roles
+              </span>
             </div>
 
             {/* Existing Roles */}
@@ -432,11 +453,11 @@ export const AdminRoleManager = ({
               </div>
               <Button
                 onClick={handleCreateRole}
-                disabled={!newRoleName.trim()}
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                disabled={!newRoleName.trim() || roles.length >= MAX_ROLES_PER_TRIP}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus size={16} className="mr-2" />
-                Create Role
+                {roles.length >= MAX_ROLES_PER_TRIP ? `Max ${MAX_ROLES_PER_TRIP} Roles Reached` : 'Create Role'}
               </Button>
             </div>
           </div>

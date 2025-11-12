@@ -28,7 +28,7 @@ export const PRO_CATEGORY_CONFIGS: Record<ProTripCategory, ProCategoryConfig> = 
     id: 'Sports – Pro, Collegiate, Youth',
     name: 'Sports – Pro, Collegiate, Youth',
     description: 'Professional, collegiate, and youth sports teams, tournaments, and athletic events',
-    roles: ['Player', 'Coach', 'Crew', 'VIP', 'Security', 'Medical', 'Tech'],
+    roles: ['Player', 'Coach', 'Crew', 'Medical', 'Security'], // MVP: Capped at 5 roles
     availableTabs: ['chat', 'calendar', 'tasks', 'polls', 'places', 'team', 'finance', 'medical', 'compliance', 'ai-chat'],
     requiredTabs: ['team', 'medical'],
     terminology: {
