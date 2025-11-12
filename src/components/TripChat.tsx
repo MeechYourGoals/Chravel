@@ -183,11 +183,19 @@ export const TripChat = ({
 
     const userName = user?.displayName || user?.email?.split('@')[0] || 'You';
     typingServiceRef.current = new TypingIndicatorService(resolvedTripId, user.id, userName);
-    
-    typingServiceRef.current.initialize(setTypingUsers).catch(console.error);
+
+    typingServiceRef.current.initialize(setTypingUsers).catch(error => {
+      if (import.meta.env.DEV) {
+        console.error(error);
+      }
+    });
 
     return () => {
-      typingServiceRef.current?.cleanup().catch(console.error);
+      typingServiceRef.current?.cleanup().catch(error => {
+        if (import.meta.env.DEV) {
+          console.error(error);
+        }
+      });
     };
   }, [shouldUseDemoData, user?.id, resolvedTripId]);
 
@@ -204,7 +212,11 @@ export const TripChat = ({
       const visibleMessages = liveMessages.slice(-10); // Last 10 messages
       for (const msg of visibleMessages) {
         if (msg.user_id !== user.id) {
-          await markMessageAsRead(msg.id, resolvedTripId, user.id).catch(console.error);
+          await markMessageAsRead(msg.id, resolvedTripId, user.id).catch(error => {
+            if (import.meta.env.DEV) {
+              console.error(error);
+            }
+          });
         }
       }
     };
@@ -212,7 +224,11 @@ export const TripChat = ({
     markVisibleAsRead();
 
     return () => {
-      supabase.removeChannel(subscription).catch(console.error);
+      supabase.removeChannel(subscription).catch(error => {
+        if (import.meta.env.DEV) {
+          console.error(error);
+        }
+      });
     };
   }, [liveMessages, user?.id, resolvedTripId, shouldUseDemoData]);
 
@@ -270,18 +286,18 @@ export const TripChat = ({
       if (message.text && message.text.trim().length > 10) {
         try {
           const parsed = await parseMessage(message.text, resolvedTripId);
-          if (parsed && parsed.suggestions && parsed.suggestions.length > 0) {
-            // Store parsed content for UI display (would need state management)
-            // For now, just log - UI integration can be added later
-            console.log('[TripChat] Parsed message suggestions:', parsed.suggestions);
-          }
+          // Parsed content available for future UI integration
         } catch (parseError) {
           // Silently fail - don't interrupt message sending
-          console.warn('[TripChat] Message parsing failed:', parseError);
+          if (import.meta.env.DEV) {
+            console.warn('[TripChat] Message parsing failed:', parseError);
+          }
         }
       }
     } catch (error) {
-      console.error('Failed to send chat message:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to send chat message:', error);
+      }
     }
   };
 
@@ -520,9 +536,17 @@ export const TripChat = ({
               onTypingChange={(isTyping) => {
                 if (!shouldUseDemoData && typingServiceRef.current) {
                   if (isTyping) {
-                    typingServiceRef.current.startTyping().catch(console.error);
+                    typingServiceRef.current.startTyping().catch(error => {
+                      if (import.meta.env.DEV) {
+                        console.error(error);
+                      }
+                    });
                   } else {
-                    typingServiceRef.current.stopTyping().catch(console.error);
+                    typingServiceRef.current.stopTyping().catch(error => {
+                      if (import.meta.env.DEV) {
+                        console.error(error);
+                      }
+                    });
                   }
                 }
               }}

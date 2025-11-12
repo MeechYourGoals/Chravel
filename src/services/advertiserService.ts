@@ -26,7 +26,9 @@ export class AdvertiserService {
       if (error && error.code !== 'PGRST116') throw error;
       return data as unknown as Advertiser | null;
     } catch (error) {
-      console.error('Error fetching advertiser profile:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching advertiser profile:', error);
+      }
       return null;
     }
   }
@@ -68,7 +70,9 @@ export class AdvertiserService {
       if (error) throw error;
       return data as unknown as Advertiser;
     } catch (error) {
-      console.error('Error creating advertiser profile:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error creating advertiser profile:', error);
+      }
       throw error;
     }
   }
@@ -91,7 +95,9 @@ export class AdvertiserService {
       if (error) throw error;
       return (data || []) as unknown as CampaignWithTargeting[];
     } catch (error) {
-      console.error('Error fetching campaigns:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching campaigns:', error);
+      }
       return [];
     }
   }
@@ -110,7 +116,9 @@ export class AdvertiserService {
       if (error) throw error;
       return data as unknown as CampaignWithTargeting | null;
     } catch (error) {
-      console.error('Error fetching campaign:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching campaign:', error);
+      }
       return null;
     }
   }
@@ -158,7 +166,9 @@ export class AdvertiserService {
 
       return campaign as unknown as Campaign;
     } catch (error) {
-      console.error('Error creating campaign:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error creating campaign:', error);
+      }
       throw error;
     }
   }
@@ -194,7 +204,9 @@ export class AdvertiserService {
 
       return campaign as unknown as Campaign;
     } catch (error) {
-      console.error('Error updating campaign:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating campaign:', error);
+      }
       throw error;
     }
   }
@@ -209,7 +221,9 @@ export class AdvertiserService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error deleting campaign:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error deleting campaign:', error);
+      }
       return false;
     }
   }
@@ -228,7 +242,9 @@ export class AdvertiserService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error updating campaign status:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating campaign status:', error);
+      }
       return false;
     }
   }
@@ -253,7 +269,9 @@ export class AdvertiserService {
 
       return stats;
     } catch (error) {
-      console.error('Error fetching campaign stats:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching campaign stats:', error);
+      }
       return null;
     }
   }
@@ -282,7 +300,9 @@ export class AdvertiserService {
         p_stat_type: eventType
       });
     } catch (error) {
-      console.error('Error tracking event:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error tracking event:', error);
+      }
     }
   }
 
@@ -340,7 +360,9 @@ export class AdvertiserService {
 
       return filteredCampaigns as unknown as CampaignWithTargeting[];
     } catch (error) {
-      console.error('Error fetching active campaigns:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching active campaigns:', error);
+      }
       return [];
     }
   }
@@ -364,7 +386,9 @@ export class AdvertiserService {
 
       return data.publicUrl;
     } catch (error) {
-      console.error('Error uploading image:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error uploading image:', error);
+      }
       return null;
     }
   }

@@ -25,8 +25,6 @@ class ApiHealthCheckService {
    * Initialize health checks on app startup
    */
   async initialize(): Promise<void> {
-    console.log('🏥 Initializing API Health Checks...');
-    
     // Immediate checks
     await Promise.all([
       this.checkConciergeHealth(),
@@ -44,10 +42,8 @@ class ApiHealthCheckService {
    */
   async checkConciergeHealth(): Promise<HealthStatus> {
     const serviceName = 'concierge';
-    
+
     try {
-      console.log('🤖 Checking AI Concierge health...');
-      
       // Simple ping test with minimal payload
       const { data, error } = await supabase.functions.invoke('lovable-concierge', {
         body: {
@@ -85,8 +81,7 @@ class ApiHealthCheckService {
       
       this.healthStatus.set(serviceName, status);
       this.retryAttempts.set(serviceName, 0);
-      console.log('✅ AI Concierge: HEALTHY');
-      
+
       return status;
       
     } catch (error) {
@@ -108,7 +103,6 @@ class ApiHealthCheckService {
       // Auto-retry with exponential backoff
       if (attempts < this.MAX_RETRY_ATTEMPTS) {
         const backoffMs = Math.pow(2, attempts) * 1000;
-        console.log(`🔄 Retrying AI Concierge in ${backoffMs}ms...`);
         setTimeout(() => this.checkConciergeHealth(), backoffMs);
       }
       
@@ -121,10 +115,8 @@ class ApiHealthCheckService {
    */
   async checkGoogleMapsHealth(): Promise<HealthStatus> {
     const serviceName = 'google_maps';
-    
+
     try {
-      console.log('🗺️ Checking Google Maps health...');
-      
       // Check if API key is configured
       const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
       
@@ -140,8 +132,7 @@ class ApiHealthCheckService {
         
         this.healthStatus.set(serviceName, status);
         this.retryAttempts.set(serviceName, 0);
-        console.log('⚠️ Google Maps: DEGRADED (embed-only, no API key)');
-        
+
         return status;
       }
 
@@ -177,8 +168,7 @@ class ApiHealthCheckService {
       
       this.healthStatus.set(serviceName, status);
       this.retryAttempts.set(serviceName, 0);
-      console.log('✅ Google Maps: HEALTHY');
-      
+
       return status;
       
     } catch (error) {
@@ -200,7 +190,6 @@ class ApiHealthCheckService {
       // Auto-retry with exponential backoff
       if (attempts < this.MAX_RETRY_ATTEMPTS) {
         const backoffMs = Math.pow(2, attempts) * 1000;
-        console.log(`🔄 Retrying Google Maps in ${backoffMs}ms...`);
         setTimeout(() => this.checkGoogleMapsHealth(), backoffMs);
       }
       
@@ -226,7 +215,6 @@ class ApiHealthCheckService {
    * Force re-check of all services
    */
   async recheckAll(): Promise<void> {
-    console.log('🔄 Force rechecking all services...');
     await Promise.all([
       this.checkConciergeHealth(),
       this.checkGoogleMapsHealth()

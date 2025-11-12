@@ -140,6 +140,15 @@ export interface PaymentData {
   methods?: PaymentMethod[];
 }
 
+// Unsettled Payment Detail
+export interface UnsettledPayment {
+  paymentId: string;
+  amount: number;
+  description: string;
+  date: string;
+  settled: boolean;
+}
+
 // Personal Balance with currency support
 export interface PersonalBalance {
   userId: string;
@@ -147,8 +156,8 @@ export interface PersonalBalance {
   avatar: string;
   amountOwed: number;
   amountOwedCurrency: string; // Currency code (e.g., 'USD')
-  preferredPaymentMethod: any;
-  unsettledPayments: any[];
+  preferredPaymentMethod: PaymentMethod | null;
+  unsettledPayments: UnsettledPayment[];
 }
 
 // Balance Summary with base currency

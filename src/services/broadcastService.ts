@@ -60,7 +60,9 @@ export const broadcastService = {
       if (error) throw error;
       return data as Broadcast;
     } catch (error) {
-      console.error('Error creating broadcast:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error creating broadcast:', error);
+      }
       return null;
     }
   },
@@ -76,7 +78,9 @@ export const broadcastService = {
       if (error) throw error;
       return (data || []) as Broadcast[];
     } catch (error) {
-      console.error('Error fetching broadcasts:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching broadcasts:', error);
+      }
       return [];
     }
   },
@@ -90,7 +94,9 @@ export const broadcastService = {
 
       return !error;
     } catch (error) {
-      console.error('Error updating broadcast:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating broadcast:', error);
+      }
       return false;
     }
   },
@@ -112,7 +118,9 @@ export const broadcastService = {
 
       return !error;
     } catch (error) {
-      console.error('Error adding reaction:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error adding reaction:', error);
+      }
       return false;
     }
   },
@@ -130,7 +138,9 @@ export const broadcastService = {
 
       return !error;
     } catch (error) {
-      console.error('Error removing reaction:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error removing reaction:', error);
+      }
       return false;
     }
   },
@@ -145,7 +155,9 @@ export const broadcastService = {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching reactions:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching reactions:', error);
+      }
       return [];
     }
   },
@@ -205,7 +217,9 @@ export const broadcastService = {
 
       return !error;
     } catch (error) {
-      console.error('Error marking broadcast as viewed:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error marking broadcast as viewed:', error);
+      }
       return false;
     }
   },
@@ -221,7 +235,9 @@ export const broadcastService = {
       if (error) throw error;
       return Number(data || 0);
     } catch (error) {
-      console.error('Error getting read count:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error getting read count:', error);
+      }
       return 0;
     }
   },
@@ -273,7 +289,9 @@ export const broadcastService = {
         .in('user_id', userIds);
 
       if (tokensError) {
-        console.warn('Failed to fetch push tokens:', tokensError);
+        if (import.meta.env.DEV) {
+          console.warn('Failed to fetch push tokens:', tokensError);
+        }
         return true; // Don't fail broadcast creation if push tokens unavailable
       }
 
@@ -299,13 +317,17 @@ export const broadcastService = {
       });
 
       if (pushError) {
-        console.warn('Failed to send push notification:', pushError);
+        if (import.meta.env.DEV) {
+          console.warn('Failed to send push notification:', pushError);
+        }
         return true; // Don't fail broadcast creation if push fails
       }
 
       return true;
     } catch (error) {
-      console.error('Error sending push notification:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error sending push notification:', error);
+      }
       return false;
     }
   }

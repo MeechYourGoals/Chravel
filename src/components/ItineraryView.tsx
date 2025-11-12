@@ -64,7 +64,6 @@ export const ItineraryView = ({ events, tripName = 'Trip Itinerary' }: Itinerary
 
   const handleExportPDF = () => {
     // Implement PDF export using html2canvas + jsPDF
-    console.log('Exporting itinerary to PDF...');
   };
 
   const handleShare = () => {

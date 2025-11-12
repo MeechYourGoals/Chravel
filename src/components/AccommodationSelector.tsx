@@ -49,20 +49,14 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
     try {
       // Handle unauthenticated users - show UI but no personal accommodation
       if (!user) {
-        console.log('No user authenticated, showing public trip basecamp only');
         setPersonalAccommodation(null);
         setLoading(false);
         return;
       }
-      
-      console.log('Loading accommodations for trip:', tripId, 'user:', user.id);
+
       // Load personal accommodation
       const personal = await personalAccommodationService.getUserAccommodation(tripId, user.id);
-      console.log('Loaded personal accommodation:', personal);
       setPersonalAccommodation(personal);
-
-      // Trip basecamp is already loaded from BasecampContext
-      console.log('Trip basecamp from context:', tripBasecamp);
     } catch (err: any) {
       console.error('Failed to load accommodations:', err);
       setError(err?.message || 'Failed to load accommodations. Please try again.');

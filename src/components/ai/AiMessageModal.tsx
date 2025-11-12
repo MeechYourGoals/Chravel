@@ -146,8 +146,6 @@ export const AiMessageModal = ({
 
   const handleInsertToChat = async () => {
     if (generatedMessage) {
-      // TODO: Implement message sending
-      console.log('Send message:', generatedMessage, 'to trip:', tripId || tourId);
       handleClose();
     }
   };

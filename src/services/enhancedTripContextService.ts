@@ -18,10 +18,10 @@ export class EnhancedTripContextService {
 
       // Enhance with comprehensive data
       const enhancedContext = await this.enhanceWithContextualData(baseContext);
-      
+
       return enhancedContext;
     } catch (error) {
-      console.error('Error fetching enhanced trip context:', error);
+      if (import.meta.env.DEV) console.error('Error fetching enhanced trip context:', error);
       throw new Error('Failed to fetch enhanced trip context');
     }
   }
@@ -133,11 +133,11 @@ export class EnhancedTripContextService {
             basecamp.lng = coords.lng;
           }
         } catch (error) {
-          console.warn('Failed to geocode basecamp:', error);
+          if (import.meta.env.DEV) console.warn('Failed to geocode basecamp:', error);
         }
       }
     }
-    
+
     // Analyze patterns
     const spendingPatterns = this.analyzeSpendingPatterns(receipts);
     const groupDynamics = this.analyzeGroupDynamics(chatHistory, polls);
@@ -173,7 +173,7 @@ export class EnhancedTripContextService {
       });
 
       if (error || !data?.results?.[0]) {
-        console.warn('Geocoding failed:', error);
+        if (import.meta.env.DEV) console.warn('Geocoding failed:', error);
         return null;
       }
 
@@ -183,7 +183,7 @@ export class EnhancedTripContextService {
         lng: location.lng
       };
     } catch (error) {
-      console.warn('Geocoding error:', error);
+      if (import.meta.env.DEV) console.warn('Geocoding error:', error);
       return null;
     }
   }
@@ -207,7 +207,7 @@ export class EnhancedTripContextService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.warn('Failed to fetch trip files:', error);
+        if (import.meta.env.DEV) console.warn('Failed to fetch trip files:', error);
         return [];
       }
 
@@ -222,7 +222,7 @@ export class EnhancedTripContextService {
         uploadedAt: file.created_at
       }));
     } catch (error) {
-      console.warn('Error fetching trip files:', error);
+      if (import.meta.env.DEV) console.warn('Error fetching trip files:', error);
       return [];
     }
   }
@@ -268,7 +268,7 @@ export class EnhancedTripContextService {
         .order('votes', { ascending: false });
 
       if (error) {
-        console.warn('Failed to fetch trip links:', error);
+        if (import.meta.env.DEV) console.warn('Failed to fetch trip links:', error);
         return [];
       }
 
@@ -283,7 +283,7 @@ export class EnhancedTripContextService {
         addedAt: link.created_at
       }));
     } catch (error) {
-      console.warn('Error fetching trip links:', error);
+      if (import.meta.env.DEV) console.warn('Error fetching trip links:', error);
       return [];
     }
   }
@@ -305,7 +305,7 @@ export class EnhancedTripContextService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.warn('Failed to fetch trip polls:', error);
+        if (import.meta.env.DEV) console.warn('Failed to fetch trip polls:', error);
         return [];
       }
 
@@ -319,7 +319,7 @@ export class EnhancedTripContextService {
         status: (poll.status as 'active' | 'closed') || 'active'
       }));
     } catch (error) {
-      console.warn('Error fetching trip polls:', error);
+      if (import.meta.env.DEV) console.warn('Error fetching trip polls:', error);
       return [];
     }
   }
@@ -340,7 +340,7 @@ export class EnhancedTripContextService {
         .limit(50);
 
       if (error) {
-        console.warn('Failed to fetch chat history:', error);
+        if (import.meta.env.DEV) console.warn('Failed to fetch chat history:', error);
         return [];
       }
 
@@ -352,7 +352,7 @@ export class EnhancedTripContextService {
         sentiment: message.sentiment as 'positive' | 'neutral' | 'negative' | undefined
       }));
     } catch (error) {
-      console.warn('Error fetching chat history:', error);
+      if (import.meta.env.DEV) console.warn('Error fetching chat history:', error);
       return [];
     }
   }
@@ -391,7 +391,7 @@ export class EnhancedTripContextService {
         .maybeSingle();
 
       if (error || !data) {
-        console.warn('Failed to fetch trip preferences:', error);
+        if (import.meta.env.DEV) console.warn('Failed to fetch trip preferences:', error);
         return {
           dietary: [],
           vibe: [],
@@ -417,7 +417,7 @@ export class EnhancedTripContextService {
         timePreference: data.time_preference || 'flexible'
       };
     } catch (error) {
-      console.warn('Error fetching trip preferences:', error);
+      if (import.meta.env.DEV) console.warn('Error fetching trip preferences:', error);
       return {
         dietary: [],
         vibe: [],
@@ -519,7 +519,7 @@ export class EnhancedTripContextService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching trip tasks:', error);
+      if (import.meta.env.DEV) console.error('Error fetching trip tasks:', error);
       return [];
     }
   }
@@ -528,10 +528,10 @@ export class EnhancedTripContextService {
     try {
       // Note: trip_payments table doesn't exist in current schema
       // Using mock data for now - this should be replaced with actual payment data
-      console.warn('trip_payments table not found, returning empty array');
+      if (import.meta.env.DEV) console.warn('trip_payments table not found, returning empty array');
       return [];
     } catch (error) {
-      console.error('Error fetching trip payments:', error);
+      if (import.meta.env.DEV) console.error('Error fetching trip payments:', error);
       return [];
     }
   }
@@ -547,7 +547,7 @@ export class EnhancedTripContextService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching trip calendar:', error);
+      if (import.meta.env.DEV) console.error('Error fetching trip calendar:', error);
       return [];
     }
   }

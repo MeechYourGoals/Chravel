@@ -134,7 +134,9 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
           const demoPlaces = await loadDemoPlacesFromTripsData();
           setPlaces(demoPlaces);
         } catch (error) {
-          console.error('Failed to load demo places:', error);
+          if (import.meta.env.DEV) {
+            console.error('Failed to load demo places:', error);
+          }
         }
       } else {
         // Load real data for authenticated users
@@ -144,7 +146,9 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
           .eq('trip_id', tripId);
 
         if (error) {
-          console.error('Failed to load places:', error);
+          if (import.meta.env.DEV) {
+            console.error('Failed to load places:', error);
+          }
           return;
         }
 
@@ -198,7 +202,9 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
           setPersonalBasecamp(dbBasecamp);
         }
       } catch (error) {
-        console.error('Failed to load personal basecamp:', error);
+        if (import.meta.env.DEV) {
+          console.error('Failed to load personal basecamp:', error);
+        }
       }
     };
 
@@ -225,8 +231,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
           filter: `id=eq.${tripId}`
         },
         async (payload) => {
-          console.log('[PlacesSection] Trip basecamp updated:', payload);
-          
           // Fetch updated basecamp
           const updatedBasecamp = await basecampService.getTripBasecamp(tripId);
           if (!updatedBasecamp) return;
@@ -238,7 +242,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
             updatedBasecamp.address === lastLocalUpdateRef.current.address;
 
           if (isLocalUpdate) {
-            console.log('[PlacesSection] Skipping toast - this was a local update');
             // Still update the context silently
             setContextBasecamp(updatedBasecamp);
           } else {
@@ -294,12 +297,14 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
               await updateLinkByPlaceId(place.id, updatedPlace, tripId, user?.id);
               return updatedPlace;
             } catch (error) {
-              console.warn(`Failed to calculate distance for place ${place.id}:`, error);
+              if (import.meta.env.DEV) {
+                console.warn(`Failed to calculate distance for place ${place.id}:`, error);
+              }
               return place;
             }
           })
         );
-        
+
         setPlaces(updatedPlaces);
       };
 
@@ -308,7 +313,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   }, [contextBasecamp, isBasecampSet, distanceSettings.preferredMode, distanceSettings.unit]);
 
   const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
-    console.log('Setting basecamp:', newBasecamp);
     
     // Track local update for conflict resolution
     lastLocalUpdateRef.current = {
@@ -347,8 +351,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   const handlePlaceAdded = async (newPlace: PlaceWithDistance) => {
-    console.log('Adding place:', newPlace);
-
     // Calculate distance if basecamp is set
     if (contextBasecamp && distanceSettings.showDistances) {
       const distance = await DistanceCalculator.calculateDistance(
@@ -376,7 +378,9 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
       setLinkedPlaceIds(prev => new Set(prev).add(place.id));
       return true;
     } catch (error) {
-      console.error('Failed to add place to links:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to add place to links:', error);
+      }
       return false;
     }
   };
@@ -392,7 +396,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   const handleEventAdded = (eventData: AddToCalendarData) => {
-    console.log('Event added to calendar:', eventData);
+    // Event added to calendar
   };
 
   const handleCenterMap = (coords: { lat: number; lng: number }, type?: 'trip' | 'personal') => {
@@ -403,7 +407,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   const handleContextChange = (context: 'trip' | 'personal') => {
-    console.log(`Search context set to: ${context}`);
 
     // Always update the search context for proper toggle highlighting
     setSearchContext(context);
@@ -441,16 +444,17 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     const timeoutId = setTimeout(() => {
       setIsSearching(false);
       setSearchError('Search timed out. Please try again.');
-      console.warn('[PlacesSection] Search timeout failsafe triggered');
     }, 15000);
-    
+
     try {
       await mapRef.current?.search(searchQuery);
       clearTimeout(timeoutId);
       setSearchError(null);
     } catch (error) {
       clearTimeout(timeoutId);
-      console.error('[PlacesSection] Search error:', error);
+      if (import.meta.env.DEV) {
+        console.error('[PlacesSection] Search error:', error);
+      }
       setSearchError('Search failed. Please try again.');
     } finally {
       setIsSearching(false);
@@ -460,13 +464,15 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   const handleSuggestionClick = async (prediction: google.maps.places.AutocompletePrediction) => {
     setSearchQuery(prediction.description);
     setShowSuggestions(false);
-    
+
     setIsSearching(true);
     try {
       await mapRef.current?.search(prediction.description);
       setSearchError(null);
     } catch (error) {
-      console.error('[PlacesSection] Search error:', error);
+      if (import.meta.env.DEV) {
+        console.error('[PlacesSection] Search error:', error);
+      }
       setSearchError('Search failed.');
     } finally {
       setIsSearching(false);

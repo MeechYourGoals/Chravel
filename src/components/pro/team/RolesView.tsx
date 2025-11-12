@@ -73,14 +73,11 @@ export const RolesView = ({
 
   const handleCreateRole = () => {
     if (!newRoleName.trim()) return;
-    
-    // In a real implementation, this would create the role in the database
-    console.log('Creating new role:', newRoleName);
-    
+
     // Reset form
     setNewRoleName('');
     setShowRoleCreation(false);
-    
+
     // Show success feedback
     alert(`Role "${newRoleName}" created! You can now assign this role to team members.`);
   };

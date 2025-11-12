@@ -16,12 +16,6 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
   const [retryCount, setRetryCount] = useState(0);
   
   useEffect(() => {
-    console.log('[GoogleMapsEmbed] Initializing embed...', {
-      hasBasecamp: !!basecamp,
-      isBasecampSet,
-      retryCount
-    });
-    
     setIsLoading(true);
     setHasError(false);
     
@@ -30,16 +24,13 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
       
       if (isBasecampSet && basecamp?.address) {
         // Initialize with Base Camp
-        console.log('[GoogleMapsEmbed] Using basecamp:', basecamp.address);
         url = GoogleMapsService.buildEmbeddableUrl(basecamp.address, basecamp.coordinates);
       } else {
         // Default fallback - show world map centered on US
-        console.log('[GoogleMapsEmbed] Using default fallback');
         url = 'https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d25211418.31451683!2d-95.665!3d37.6!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sus!4v1234567890!5m2!1sen!2sus';
       }
-      
+
       setEmbedUrl(url);
-      console.log('[GoogleMapsEmbed] Embed URL set successfully');
     } catch (error) {
       console.error('[GoogleMapsEmbed] Error building URL:', error);
       // Ultimate fallback - simple embed without API key
@@ -55,7 +46,6 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
   }, [isBasecampSet, basecamp, retryCount]);
 
   const handleIframeLoad = () => {
-    console.log('[GoogleMapsEmbed] ✅ Iframe loaded successfully');
     setIsLoading(false);
     setHasError(false);
   };
@@ -67,7 +57,6 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
   };
   
   const handleRetry = () => {
-    console.log('[GoogleMapsEmbed] Retrying map load...');
     setRetryCount(prev => prev + 1);
     setHasError(false);
     setIsLoading(true);

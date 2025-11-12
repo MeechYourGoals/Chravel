@@ -10,7 +10,9 @@ export class GoogleMapsService {
     });
 
     if (error) {
-      console.error('Google Maps proxy error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Google Maps proxy error:', error);
+      }
       throw new Error(`Google Maps API error: ${error.message}`);
     }
 
@@ -54,7 +56,9 @@ export class GoogleMapsService {
       
       return null;
     } catch (error) {
-      console.error('Geocoding error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Geocoding error:', error);
+      }
       return null;
     }
   }
@@ -66,7 +70,9 @@ export class GoogleMapsService {
         types: types.join('|')
       });
     } catch (error) {
-      console.error('Autocomplete error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Autocomplete error:', error);
+      }
       return { predictions: [] };
     }
   }
@@ -75,7 +81,9 @@ export class GoogleMapsService {
     try {
       return await this.callProxy('place-details', { placeId });
     } catch (error) {
-      console.error('Place details error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Place details error:', error);
+      }
       return null;
     }
   }
@@ -106,8 +114,6 @@ export class GoogleMapsService {
     destination?: string
   ): string {
     try {
-      console.log('[GoogleMapsService.buildEmbeddableUrl]', { basecampAddress, coords, destination });
-      
       const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
       
       // With API key: use official Embed API v1 (more stable)
@@ -115,60 +121,44 @@ export class GoogleMapsService {
         if (destination && basecampAddress) {
           const origin = encodeURIComponent(basecampAddress);
           const dest = encodeURIComponent(destination);
-          const url = `https://www.google.com/maps/embed/v1/directions?key=${apiKey}&origin=${origin}&destination=${dest}`;
-          console.log('[GoogleMapsService] ✅ Built directions URL with API key');
-          return url;
+          return `https://www.google.com/maps/embed/v1/directions?key=${apiKey}&origin=${origin}&destination=${dest}`;
         }
-        
+
         if (basecampAddress) {
           const query = encodeURIComponent(basecampAddress);
-          const url = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${query}`;
-          console.log('[GoogleMapsService] ✅ Built place URL with API key');
-          return url;
+          return `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${query}`;
         }
-        
+
         if (coords) {
-          const url = `https://www.google.com/maps/embed/v1/view?key=${apiKey}&center=${coords.lat},${coords.lng}&zoom=12&maptype=roadmap`;
-          console.log('[GoogleMapsService] ✅ Built view URL with API key');
-          return url;
+          return `https://www.google.com/maps/embed/v1/view?key=${apiKey}&center=${coords.lat},${coords.lng}&zoom=12&maptype=roadmap`;
         }
-        
+
         // Fallback: NYC
-        const url = `https://www.google.com/maps/embed/v1/view?key=${apiKey}&center=40.7580,-73.9855&zoom=12&maptype=roadmap`;
-        console.log('[GoogleMapsService] ✅ Built default NYC URL with API key');
-        return url;
+        return `https://www.google.com/maps/embed/v1/view?key=${apiKey}&center=40.7580,-73.9855&zoom=12&maptype=roadmap`;
       }
-      
+
       // Without API key: use keyless embed (www.google.com is more stable than maps.google.com)
-      console.log('[GoogleMapsService] No API key, using keyless embed');
-      
       if (destination && basecampAddress) {
         const s = encodeURIComponent(basecampAddress);
         const d = encodeURIComponent(destination);
-        const url = `https://www.google.com/maps?output=embed&saddr=${s}&daddr=${d}`;
-        console.log('[GoogleMapsService] ✅ Built keyless directions URL');
-        return url;
+        return `https://www.google.com/maps?output=embed&saddr=${s}&daddr=${d}`;
       }
-      
+
       if (basecampAddress) {
         const q = encodeURIComponent(basecampAddress);
-        const url = `https://www.google.com/maps?output=embed&q=${q}`;
-        console.log('[GoogleMapsService] ✅ Built keyless place URL');
-        return url;
+        return `https://www.google.com/maps?output=embed&q=${q}`;
       }
-      
+
       if (coords) {
-        const url = `https://www.google.com/maps?output=embed&ll=${coords.lat},${coords.lng}&z=12`;
-        console.log('[GoogleMapsService] ✅ Built keyless coords URL');
-        return url;
+        return `https://www.google.com/maps?output=embed&ll=${coords.lat},${coords.lng}&z=12`;
       }
-      
+
       // Fallback: NYC default
-      const url = `https://www.google.com/maps?output=embed&ll=40.7580,-73.9855&z=12`;
-      console.log('[GoogleMapsService] ✅ Built keyless default URL');
-      return url;
+      return `https://www.google.com/maps?output=embed&ll=40.7580,-73.9855&z=12`;
     } catch (error) {
-      console.error('[GoogleMapsService] ❌ Error building URL, using emergency fallback:', error);
+      if (import.meta.env.DEV) {
+        console.error('[GoogleMapsService] ❌ Error building URL, using emergency fallback:', error);
+      }
       // Emergency fallback - guaranteed to work without API key
       return 'https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d25211418.31451683!2d-95.665!3d37.6!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sus!4v1234567890!5m2!1sen!2sus';
     }
@@ -204,7 +194,9 @@ export class GoogleMapsService {
         ...(options?.type && { type: options.type })
       });
     } catch (error) {
-      console.error('Text search error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Text search error:', error);
+      }
       return { results: [], status: 'ZERO_RESULTS' };
     }
   }

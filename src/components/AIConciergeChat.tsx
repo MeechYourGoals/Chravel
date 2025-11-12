@@ -90,7 +90,11 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
             setRemainingQueries(remaining);
           }
         })
-        .catch(err => console.error('Failed to get remaining queries:', err));
+        .catch(err => {
+          if (import.meta.env.DEV) {
+            console.error('Failed to get remaining queries:', err);
+          }
+        });
       
       // Load reset countdown timer
       conciergeRateLimitService.getTimeUntilReset(user.id, tripId, getUserTier())
@@ -99,7 +103,11 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
             setResetCountdown(timeUntilReset);
           }
         })
-        .catch(err => console.error('Failed to get reset time:', err));
+        .catch(err => {
+          if (import.meta.env.DEV) {
+            console.error('Failed to get reset time:', err);
+          }
+        });
     }
     
     // Load cached messages for offline mode
@@ -119,7 +127,9 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
             setResetCountdown(timeUntilReset);
           }
         } catch (err) {
-          console.error('Failed to update countdown:', err);
+          if (import.meta.env.DEV) {
+            console.error('Failed to update countdown:', err);
+          }
         }
       };
       
@@ -220,11 +230,15 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       try {
         tripContext = await EnhancedTripContextService.getEnhancedTripContext(tripId, false);
       } catch (error) {
-        console.warn('Enhanced context failed, falling back to basic context:', error);
+        if (import.meta.env.DEV) {
+          console.warn('Enhanced context failed, falling back to basic context:', error);
+        }
         try {
           tripContext = await TripContextService.getTripContext(tripId, false);
         } catch (fallbackError) {
-          console.warn('Basic context also failed, using minimal context:', fallbackError);
+          if (import.meta.env.DEV) {
+            console.warn('Basic context also failed, using minimal context:', fallbackError);
+          }
           tripContext = {
             tripId,
             title: 'Current Trip',
@@ -282,7 +296,6 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
           if (error && retryCount < MAX_RETRIES) {
             retryCount++;
             lastError = error;
-            console.log(`🔄 Retry attempt ${retryCount}/${MAX_RETRIES} for AI Concierge...`);
             await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
             continue;
           }
@@ -299,7 +312,6 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
           lastError = attemptError;
           if (retryCount < MAX_RETRIES) {
             retryCount++;
-            console.log(`🔄 Retry attempt ${retryCount}/${MAX_RETRIES} after error:`, attemptError);
             await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
             continue;
           }
@@ -310,7 +322,9 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
 
       // Graceful degradation: If AI service unavailable, provide helpful fallback
       if (!data || error || lastError) {
-        console.warn('AI service unavailable, using graceful degradation');
+        if (import.meta.env.DEV) {
+          console.warn('AI service unavailable, using graceful degradation');
+        }
         setAiStatus('degraded');
         
         // Try to provide context-aware fallback response
@@ -344,7 +358,9 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
             setResetCountdown(resetTime);
           }
         } catch (error) {
-          console.error('Failed to increment usage:', error);
+          if (import.meta.env.DEV) {
+            console.error('Failed to increment usage:', error);
+          }
         }
       }
 
@@ -364,7 +380,9 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       conciergeCacheService.cacheMessage(tripId, currentInput, assistantMessage);
 
     } catch (error) {
-      console.error('❌ AI Concierge error:', error);
+      if (import.meta.env.DEV) {
+        console.error('❌ AI Concierge error:', error);
+      }
       setAiStatus('error');
       
       // Try graceful degradation

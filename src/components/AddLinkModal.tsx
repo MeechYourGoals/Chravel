@@ -196,14 +196,6 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
         finalTitle = title || resolvedPlace?.name || '';
       }
 
-      console.log('Adding link:', { 
-        url: finalUrl, 
-        title: finalTitle, 
-        description,
-        linkType: selectedLinkOption?.type,
-        fromPlace: inputMode === 'place'
-      });
-      
       onClose();
       resetForm();
     } catch (error) {

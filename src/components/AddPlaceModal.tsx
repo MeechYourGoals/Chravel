@@ -135,12 +135,6 @@ export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPl
         })
       };
 
-      console.log('Adding place:', { 
-        place: newPlace, 
-        calculateDistance, 
-        hasBasecamp: !!basecamp 
-      });
-      
       if (onPlaceAdded) {
         onPlaceAdded(newPlace);
       }

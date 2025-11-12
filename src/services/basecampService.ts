@@ -51,7 +51,7 @@ class BasecampService {
         .single();
 
       if (error) {
-        console.error('Failed to get trip basecamp:', error);
+        if (import.meta.env.DEV) console.error('Failed to get trip basecamp:', error);
         return null;
       }
 
@@ -68,7 +68,7 @@ class BasecampService {
           : undefined
       };
     } catch (error) {
-      console.error('Error getting trip basecamp:', error);
+      if (import.meta.env.DEV) console.error('Error getting trip basecamp:', error);
       return null;
     }
   }
@@ -95,10 +95,11 @@ class BasecampService {
           };
         }
       }
-      
+
+
       return coordinates;
     } catch (error) {
-      console.error('Error validating address:', error);
+      if (import.meta.env.DEV) console.error('Error validating address:', error);
       return null;
     }
   }
@@ -128,10 +129,6 @@ class BasecampService {
         if (validatedCoords) {
           finalLatitude = validatedCoords.lat;
           finalLongitude = validatedCoords.lng;
-          console.log('[BasecampService] Validated and geocoded address:', validatedCoords);
-        } else {
-          // Warn but allow saving - user might have entered a valid address that geocoding couldn't resolve
-          console.warn('[BasecampService] Could not geocode address, saving without coordinates:', basecamp.address);
         }
       }
 
@@ -149,7 +146,7 @@ class BasecampService {
         .eq('id', tripId);
 
       if (error) {
-        console.error('Failed to set trip basecamp:', error);
+        if (import.meta.env.DEV) console.error('Failed to set trip basecamp:', error);
         return { success: false, error: error.message };
       }
 
@@ -173,7 +170,7 @@ class BasecampService {
           });
         } catch (historyError) {
           // Don't fail the operation if history logging fails
-          console.warn('[BasecampService] Failed to log history:', historyError);
+          if (import.meta.env.DEV) console.error('[BasecampService] Failed to log history:', historyError);
         }
       }
 
@@ -182,7 +179,7 @@ class BasecampService {
         coordinates: finalLatitude && finalLongitude ? { lat: finalLatitude, lng: finalLongitude } : undefined
       };
     } catch (error) {
-      console.error('Error setting trip basecamp:', error);
+      if (import.meta.env.DEV) console.error('Error setting trip basecamp:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -206,13 +203,13 @@ class BasecampService {
         .maybeSingle();
 
       if (error) {
-        console.error('Failed to get personal basecamp:', error);
+        if (import.meta.env.DEV) console.error('Failed to get personal basecamp:', error);
         return null;
       }
 
       return data as PersonalBasecamp | null;
     } catch (error) {
-      console.error('Error getting personal basecamp:', error);
+      if (import.meta.env.DEV) console.error('Error getting personal basecamp:', error);
       return null;
     }
   }
@@ -251,9 +248,6 @@ class BasecampService {
         if (validatedCoords) {
           finalLatitude = validatedCoords.lat;
           finalLongitude = validatedCoords.lng;
-          console.log('[BasecampService] Validated and geocoded personal basecamp address:', validatedCoords);
-        } else {
-          console.warn('[BasecampService] Could not geocode personal basecamp address, saving without coordinates:', payload.address);
         }
       }
 
@@ -273,7 +267,7 @@ class BasecampService {
         .single();
 
       if (error) {
-        console.error('Failed to upsert personal basecamp:', error);
+        if (import.meta.env.DEV) console.error('Failed to upsert personal basecamp:', error);
         throw error;
       }
 
@@ -297,13 +291,13 @@ class BasecampService {
           });
         } catch (historyError) {
           // Don't fail the operation if history logging fails
-          console.warn('[BasecampService] Failed to log history:', historyError);
+          if (import.meta.env.DEV) console.error('[BasecampService] Failed to log history:', historyError);
         }
       }
 
       return data as PersonalBasecamp;
     } catch (error) {
-      console.error('Error upserting personal basecamp:', error);
+      if (import.meta.env.DEV) console.error('Error upserting personal basecamp:', error);
       return null;
     }
   }
@@ -322,7 +316,7 @@ class BasecampService {
         .single();
 
       if (fetchError) {
-        console.error('Failed to fetch personal basecamp for deletion:', fetchError);
+        if (import.meta.env.DEV) console.error('Failed to fetch personal basecamp for deletion:', fetchError);
         return false;
       }
 
@@ -337,7 +331,7 @@ class BasecampService {
         .eq('id', basecampId);
 
       if (error) {
-        console.error('Failed to delete personal basecamp:', error);
+        if (import.meta.env.DEV) console.error('Failed to delete personal basecamp:', error);
         return false;
       }
 
@@ -361,13 +355,13 @@ class BasecampService {
           });
         } catch (historyError) {
           // Don't fail the operation if history logging fails
-          console.warn('[BasecampService] Failed to log deletion history:', historyError);
+          if (import.meta.env.DEV) console.error('[BasecampService] Failed to log deletion history:', historyError);
         }
       }
 
       return true;
     } catch (error) {
-      console.error('Error deleting personal basecamp:', error);
+      if (import.meta.env.DEV) console.error('Error deleting personal basecamp:', error);
       return false;
     }
   }
@@ -398,13 +392,13 @@ class BasecampService {
       const { data, error } = await query;
 
       if (error) {
-        console.error('Failed to get basecamp history:', error);
+        if (import.meta.env.DEV) console.error('Failed to get basecamp history:', error);
         return [];
       }
 
       return (data || []) as any as BasecampChangeHistory[];
     } catch (error) {
-      console.error('Error getting basecamp history:', error);
+      if (import.meta.env.DEV) console.error('Error getting basecamp history:', error);
       return [];
     }
   }

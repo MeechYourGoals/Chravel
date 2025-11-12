@@ -19,8 +19,6 @@ export const MobileEventCard = ({ event }: MobileEventCardProps) => {
   const { accentColors } = useTripVariant();
 
   const handleViewEvent = () => {
-    console.log('MobileEventCard - Navigating to event ID:', event.id);
-    console.log('MobileEventCard - Full URL will be:', `/event/${event.id}`);
     navigate(`/event/${event.id}`);
   };
 

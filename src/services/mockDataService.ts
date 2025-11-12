@@ -694,14 +694,7 @@ class MockDataService {
   }
 
   static isUsingMockData(): boolean {
-    const result = this.USE_MOCK_DATA;
-    console.log('[MockDataService] isUsingMockData check:', {
-      result,
-      VITE_USE_MOCK_DATA: import.meta.env.VITE_USE_MOCK_DATA,
-      DEV: import.meta.env.DEV,
-      MODE: import.meta.env.MODE
-    });
-    return result;
+    return this.USE_MOCK_DATA;
   }
 
   static getStorageKey(tripId: string, type: 'media' | 'links'): string {
@@ -720,22 +713,14 @@ class MockDataService {
   }
 
   static async getMockPlaceItems(tripId: string, forceLoad: boolean = false): Promise<MockPlaceItem[]> {
-    console.log('[MockDataService] getMockPlaceItems called for tripId:', tripId);
-    console.log('[MockDataService] USE_MOCK_DATA:', this.USE_MOCK_DATA);
-    console.log('[MockDataService] forceLoad:', forceLoad);
-
     if (!this.USE_MOCK_DATA && !forceLoad) {
-      console.log('[MockDataService] ⚠️ Not using mock data, returning empty array');
       return [];
     }
 
     const storageKey = `${this.STORAGE_PREFIX}${tripId}_places`;
-    console.log('[MockDataService] Storage key:', storageKey);
-
     const stored = await getStorageItem<MockPlaceItem[]>(storageKey);
 
     if (stored) {
-      console.log('[MockDataService] ✅ Found stored places:', stored.length);
       return stored;
     }
 
@@ -744,7 +729,6 @@ class MockDataService {
     const tripNum = parseInt(tripId, 10) || 0;
     const citySet = tripNum % 4;
     const mockData = this.getMockPlacesData(citySet);
-    console.log('[MockDataService] 🆕 Initializing with fresh mock data (city set', citySet, '):', mockData.length);
     await setStorageItem(storageKey, mockData);
     return mockData;
   }
@@ -777,8 +761,6 @@ class MockDataService {
     await this.getMockMediaItems(tripId);
     await this.getMockLinkItems(tripId);
     await this.getMockPlaceItems(tripId);
-
-    console.log('Mock data reseeded for trip:', tripId);
   }
 
   static async clearMockData(tripId?: string): Promise<void> {
@@ -789,7 +771,9 @@ class MockDataService {
     } else {
       // Note: platformStorage doesn't expose Object.keys() like localStorage
       // This will be handled by individual clearMockData calls per trip
-      console.warn('Clear all mock data not fully supported with platformStorage');
+      if (import.meta.env.DEV) {
+        console.warn('Clear all mock data not fully supported with platformStorage');
+      }
     }
   }
 }

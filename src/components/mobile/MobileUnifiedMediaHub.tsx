@@ -68,7 +68,6 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
     try {
       const result = await capacitorIntegration.takePicture();
       if (result) {
-        console.log('Photo captured:', result);
         // Upload logic here
       }
     } catch (error) {
@@ -81,7 +80,6 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
     try {
       const result = await capacitorIntegration.selectImage();
       if (result) {
-        console.log('Image selected:', result);
         // Upload logic here
       }
     } catch (error) {

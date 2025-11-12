@@ -124,7 +124,6 @@ export const SeatManagementSection = ({ organization, tripCategory = 'Business T
 
   const handleEditMember = (member: RosterMember) => {
     // Implementation for editing member
-    console.log('Edit member:', member);
   };
 
   const handleDeleteMember = (memberId: string) => {
@@ -142,12 +141,11 @@ export const SeatManagementSection = ({ organization, tripCategory = 'Business T
 
   const handleSendBatchInvitations = async (batch: InvitationBatch) => {
     // Update member statuses
-    setMembers(prev => prev.map(m => 
+    setMembers(prev => prev.map(m =>
       batch.members.includes(m.id)
         ? { ...m, status: 'invited', invitationSent: true, invitedAt: new Date().toISOString() }
         : m
     ));
-    console.log('Sending batch invitations:', batch);
   };
 
   const handleClearSelection = () => {

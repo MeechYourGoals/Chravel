@@ -21,8 +21,6 @@ export const MobileProTripCard = ({ trip }: MobileProTripCardProps) => {
   const { accentColors } = useTripVariant();
 
   const handleViewTrip = () => {
-    console.log('MobileProTripCard - Navigating to trip ID:', trip.id);
-    console.log('MobileProTripCard - Full URL will be:', `/tour/pro/${trip.id}`);
     navigate(`/tour/pro/${trip.id}`);
   };
 
