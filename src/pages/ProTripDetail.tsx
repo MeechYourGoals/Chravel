@@ -8,7 +8,8 @@ import { TripVariantProvider } from '../contexts/TripVariantContext';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useIsMobile } from '../hooks/use-mobile';
-import { proTripMockData } from '../data/proTripMockData';
+import { loadProTripData, availableProTripIds } from '../data/proTripMockData';
+import { ProTripData } from '../types/pro';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { ProTripCategory } from '../types/proCategories';
 import { ExportSection } from '../types/tripExport';
@@ -45,6 +46,8 @@ const ProTripDetail = () => {
   const [showTripSettings, setShowTripSettings] = useState(false);
   const [showTripsPlusModal, setShowTripsPlusModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [tripData, setTripData] = useState<ProTripData | null>(null);
+  const [isLoadingTrip, setIsLoadingTrip] = useState(true);
 
   // Auto-enable demo mode for Pro pages on first visit
   React.useEffect(() => {
@@ -53,23 +56,47 @@ const ProTripDetail = () => {
     }
   }, [isDemoMode, enableDemoMode]);
 
+  // 🚀 OPTIMIZATION: Dynamically load trip data on demand
+  React.useEffect(() => {
+    if (!proTripId) return;
+
+    const loadTrip = async () => {
+      setIsLoadingTrip(true);
+      const data = await loadProTripData(proTripId);
+      setTripData(data);
+      setIsLoadingTrip(false);
+    };
+
+    loadTrip();
+  }, [proTripId]);
+
+  // Show loading state while trip data loads
+  if (isLoadingTrip || !tripData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading trip data...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!proTripId) {
     return (
       <ProTripNotFound message="No trip ID provided." />
     );
   }
 
-  if (!(proTripId in proTripMockData)) {
+  if (!availableProTripIds.includes(proTripId)) {
     return (
       <ProTripNotFound 
         message="The requested trip could not be found."
         details={`Trip ID: ${proTripId}`}
-        availableIds={Object.keys(proTripMockData)}
+        availableIds={availableProTripIds}
       />
     );
   }
-
-  const tripData = proTripMockData[proTripId];
 
   // Transform trip data to match consumer trip structure
   const participants = tripData.participants || [];

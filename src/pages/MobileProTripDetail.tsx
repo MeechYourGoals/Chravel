@@ -7,7 +7,8 @@ import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer'
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
-import { proTripMockData } from '../data/proTripMockData';
+import { loadProTripData, availableProTripIds } from '../data/proTripMockData';
+import { ProTripData } from '../types/pro';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { useDemoMode } from '../hooks/useDemoMode';
 
@@ -19,6 +20,8 @@ export const MobileProTripDetail = () => {
   const [activeTab, setActiveTab] = useState('chat');
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
+  const [tripData, setTripData] = useState<ProTripData | null>(null);
+  const [isLoadingTrip, setIsLoadingTrip] = useState(true);
   const headerRef = React.useRef<HTMLDivElement>(null);
  
   // Keyboard handling for mobile inputs
@@ -26,6 +29,32 @@ export const MobileProTripDetail = () => {
     preventZoom: true,
     adjustViewport: true
   });
+
+  // 🚀 OPTIMIZATION: Dynamically load trip data on demand
+  React.useEffect(() => {
+    if (!proTripId) return;
+
+    const loadTrip = async () => {
+      setIsLoadingTrip(true);
+      const data = await loadProTripData(proTripId);
+      setTripData(data);
+      setIsLoadingTrip(false);
+    };
+
+    loadTrip();
+  }, [proTripId]);
+
+  // Show loading state while trip data loads
+  if (isLoadingTrip || !tripData) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading trip...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Gate demo content
   if (!isDemoMode) {
@@ -48,7 +77,7 @@ export const MobileProTripDetail = () => {
     );
   }
 
-  if (!proTripId || !(proTripId in proTripMockData)) {
+  if (!proTripId || !availableProTripIds.includes(proTripId)) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">
@@ -67,8 +96,6 @@ export const MobileProTripDetail = () => {
       </div>
     );
   }
-
-  const tripData = proTripMockData[proTripId];
   
   React.useEffect(() => {
     if (tripData && !tripDescription) {
