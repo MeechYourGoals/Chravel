@@ -53,18 +53,6 @@ const ProTripDetail = () => {
     }
   }, [isDemoMode, enableDemoMode]);
 
-  // Show loading spinner while demo mode initializes
-  if (!isDemoMode) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading demo content...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (!proTripId) {
     return (
       <ProTripNotFound message="No trip ID provided." />
@@ -301,7 +289,7 @@ const ProTripDetail = () => {
 
   return (
     <TripVariantProvider variant="pro">
-      <div className="min-h-screen bg-black text-white">
+      <div className={`min-h-screen bg-black text-white transition-opacity duration-300 ${!isDemoMode ? 'opacity-75' : 'opacity-100'}`}>
         <ProTripDetailHeader
           tripContext={tripContext}
           showInbox={showInbox}
