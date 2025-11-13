@@ -8,7 +8,7 @@ import { MessageItem } from '../../chat/MessageItem';
 import { ChatInput } from '../../chat/ChatInput';
 import { useAuth } from '@/hooks/useAuth';
 import { getMockAvatar } from '@/utils/mockAvatars';
-import { ChannelSwitcher } from '../../chat/ChannelSwitcher';
+
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { Lock } from 'lucide-react';
 
@@ -92,7 +92,7 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
       const newMsg: ChannelMessage = {
         id: `demo-msg-${Date.now()}`,
         channelId: channel.id,
-        senderId: user?.id || 'current-user',
+        senderId: user?.id || 'demo-user',
         senderName: user?.displayName || 'You',
         content: inputMessage.trim(),
         messageType: isBroadcast ? 'system' : 'text',
@@ -155,30 +155,6 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
 
   return (
     <>
-      {/* Channel Switcher Header */}
-      {availableChannels && availableChannels.length > 1 && onChannelChange && (
-        <div className="border-b border-white/10 bg-black/30 p-3">
-          <ChannelSwitcher
-            activeChannel={channel.id}
-            roleChannels={availableChannels.map(ch => ({
-              id: ch.id,
-              roleName: ch.channelName,
-              tripId: ch.tripId,
-              createdAt: ch.createdAt,
-              createdBy: ch.createdBy,
-              memberCount: ch.memberCount ?? 0
-            }))}
-            onChannelChange={(channelId) => {
-              if (channelId === 'main') return; // Ignore main chat selection
-              const newChannel = availableChannels.find(ch => ch.id === channelId);
-              if (newChannel && onChannelChange) {
-                onChannelChange(newChannel);
-              }
-            }}
-          />
-        </div>
-      )}
-
       {/* Reuse VirtualizedMessageContainer */}
       <div className="flex-1">
         {loading ? (

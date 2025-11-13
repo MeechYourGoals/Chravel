@@ -63,7 +63,7 @@ export const useChatComposer = ({ tripId, demoMode = false, isEvent = false }: U
       return {
         id: messageId,
         text: `${paymentData.description} - ${paymentData.currency} ${paymentData.amount.toFixed(2)} (split ${paymentData.splitCount} ways) • Pay me $${perPersonAmount} via ${preferredPaymentMethod}`,
-        sender: { id: user?.id || 'user1', name: 'You', avatar: user?.avatar || getMockAvatar('You') },
+        sender: { id: user?.id || 'demo-user', name: 'You', avatar: user?.avatar || getMockAvatar('You') },
         createdAt: new Date().toISOString(),
         isBroadcast: false,
         isPayment: true,
@@ -80,7 +80,7 @@ export const useChatComposer = ({ tripId, demoMode = false, isEvent = false }: U
     return {
       id: messageId,
       text: content,
-      sender: { id: user?.id || 'user1', name: 'You', avatar: user?.avatar || getMockAvatar('You') },
+      sender: { id: user?.id || 'demo-user', name: 'You', avatar: user?.avatar || getMockAvatar('You') },
       createdAt: new Date().toISOString(),
       isBroadcast,
       reactions: {},

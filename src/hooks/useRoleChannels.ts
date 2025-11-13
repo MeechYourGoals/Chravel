@@ -131,7 +131,7 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
       const newMessage: RoleChannelMessage = {
         id: `demo-msg-${Date.now()}`,
         channelId: activeChannel.id,
-        senderId: 'current-user',
+        senderId: 'demo-user',
         senderName: 'You',
         content,
         createdAt: new Date().toISOString()
