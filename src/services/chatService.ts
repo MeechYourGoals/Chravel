@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { retryWithBackoff } from '@/utils/retry';
 
 type Row = Database['public']['Tables']['trip_chat_messages']['Row'];
 type Insert = Database['public']['Tables']['trip_chat_messages']['Insert'];
@@ -15,16 +16,28 @@ export interface ChatMessageInsert extends Omit<Insert, 'attachments'> {
 }
 
 export async function sendChatMessage(msg: ChatMessageInsert) {
-  const { data, error } = await supabase
-    .from('trip_chat_messages')
-    .insert({
-      ...msg,
-      attachments: msg.attachments as any,
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  return retryWithBackoff(
+    async () => {
+      const { data, error } = await supabase
+        .from('trip_chat_messages')
+        .insert({
+          ...msg,
+          attachments: msg.attachments as any,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    {
+      maxRetries: 3,
+      onRetry: (attempt, error) => {
+        if (import.meta.env.DEV) {
+          console.warn(`Retry attempt ${attempt}/3 for sending chat message:`, error.message);
+        }
+      }
+    }
+  );
 }
 
 export function subscribeToChatMessages(tripId: string, onInsert: (row: Row) => void) {

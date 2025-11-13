@@ -68,7 +68,9 @@ export class FeatureErrorBoundary extends Component<Props, State> {
 
     // If errors keep happening, we might want to disable retries
     if (this.state.errorCount > 3) {
-      console.error(`[FeatureErrorBoundary] Too many errors in ${featureName}, stopping retries`);
+      if (import.meta.env.DEV) {
+        console.error(`[FeatureErrorBoundary] Too many errors in ${featureName}, stopping retries`);
+      }
     }
   }
 

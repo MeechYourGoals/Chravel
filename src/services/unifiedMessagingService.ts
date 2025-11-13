@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { ScheduledMessage as UIScheduledMessage } from '@/types/messaging';
+import { retryWithBackoff } from '@/utils/retry';
 export interface Message {
   id: string;
   trip_id: string;
@@ -137,22 +138,34 @@ class UnifiedMessagingService {
    * Send a message to a trip
    */
   async sendMessage(options: SendMessageOptions): Promise<Message> {
-    const { data, error } = await supabase
-      .from('trip_chat_messages')
-      .insert({
-        trip_id: options.tripId,
-        content: options.content,
-        author_name: options.userName,
-        user_id: options.userId,
-        reply_to_id: options.replyToId,
-        thread_id: options.threadId,
-        attachments: options.attachments || []
-      })
-      .select()
-      .single();
+    return retryWithBackoff(
+      async () => {
+        const { data, error } = await supabase
+          .from('trip_chat_messages')
+          .insert({
+            trip_id: options.tripId,
+            content: options.content,
+            author_name: options.userName,
+            user_id: options.userId,
+            reply_to_id: options.replyToId,
+            thread_id: options.threadId,
+            attachments: options.attachments || []
+          })
+          .select()
+          .single();
 
-    if (error) throw error;
-    return this.transformMessage(data);
+        if (error) throw error;
+        return this.transformMessage(data);
+      },
+      {
+        maxRetries: 3,
+        onRetry: (attempt, error) => {
+          if (import.meta.env.DEV) {
+            console.warn(`Retry attempt ${attempt}/3 for sending message:`, error.message);
+          }
+        }
+      }
+    );
   }
 
   /**
