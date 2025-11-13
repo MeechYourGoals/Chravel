@@ -147,11 +147,10 @@ export const MessageTypeBar = ({
                 <PopoverContent
                   side="bottom"
                   align="center"
-                  className="channel-dropdown rounded-full backdrop-blur-md bg-neutral-900/90 border border-white/10 shadow-lg p-2 mt-1 z-30"
-                  style={{ width: `${pillBarWidth}px` }}
+                  className="channel-dropdown rounded-xl backdrop-blur-md bg-neutral-900 border border-white/10 shadow-lg p-2 mt-1 z-50 w-auto"
                   sideOffset={4}
                 >
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1 min-w-[200px]">
                     {availableChannels
                       .sort((a, b) => a.channelName.localeCompare(b.channelName))
                       .map(channel => (
@@ -159,15 +158,15 @@ export const MessageTypeBar = ({
                           key={channel.id}
                           onClick={() => handleChannelSelect(channel)}
                           className={cn(
-                            "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 text-left",
+                            "flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
                             activeChannel?.id === channel.id
                               ? "bg-purple-500 text-white shadow-md"
                               : "text-white/70 hover:text-white hover:bg-white/10"
                           )}
                         >
                           <Hash className="w-3.5 h-3.5 flex-shrink-0" />
-                          <span className="truncate">{channel.channelName.toLowerCase().replace(/\s+/g, '-')}</span>
-                          <span className="ml-auto text-xs text-white/50 flex-shrink-0">
+                          <span className="whitespace-nowrap">{channel.channelName.toLowerCase().replace(/\s+/g, '-')}</span>
+                          <span className="text-xs text-white/50 flex-shrink-0">
                             {channel.memberCount || 0}
                           </span>
                         </button>
