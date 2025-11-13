@@ -81,7 +81,7 @@ export const ProAdminDashboard: React.FC<ProAdminDashboardProps> = ({
             </TabsContent>
 
             <TabsContent value="requests" className="mt-0">
-              <JoinRequestsPanel tripId={tripId} isAdmin={isAdmin} />
+              <JoinRequestsPanel tripId={tripId} />
             </TabsContent>
           </div>
         </Tabs>

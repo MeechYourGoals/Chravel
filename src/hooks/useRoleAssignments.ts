@@ -119,7 +119,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
     setIsProcessing(true);
     
     try {
-      const { data, error } = await supabase.rpc('assign_user_to_role', {
+      const { data, error } = await supabase.rpc('assign_user_to_role' as any, {
         _trip_id: tripId,
         _user_id: userId,
         _role_id: roleId
@@ -149,7 +149,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
     setIsProcessing(true);
     
     try {
-      const { data, error } = await supabase.rpc('remove_user_from_role', {
+      const { data, error } = await supabase.rpc('remove_user_from_role' as any, {
         _trip_id: tripId,
         _user_id: userId,
         _role_id: roleId
