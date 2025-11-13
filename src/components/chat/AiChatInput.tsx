@@ -37,12 +37,12 @@ export const AiChatInput = ({
         placeholder="Ask about your trip..."
         rows={2}
         disabled={disabled}
-        className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed"
       />
       <button
         onClick={onSendMessage}
         disabled={!inputMessage.trim() || isTyping || disabled}
-        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white p-3 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 text-white size-10 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
       >
         <Send size={16} />
       </button>

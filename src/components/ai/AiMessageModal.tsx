@@ -153,17 +153,20 @@ export const AiMessageModal = ({
 
     setIsSending(true);
     try {
+      // Get current user for message attribution
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('You must be logged in to send messages.');
+        return;
+      }
+
+      const userName = user.email?.split('@')[0] || 'Unknown User';
+
       await unifiedMessagingService.sendMessage({
         tripId,
         content: generatedMessage,
-        metadata: {
-          aiGenerated: true,
-          tone: tone,
-          template: selectedTemplate?.id,
-          timestamp: new Date().toISOString(),
-          scheduled: scheduleDate ? true : false,
-          scheduledFor: scheduleDate || undefined
-        }
+        userName,
+        userId: user.id
       });
 
       toast.success(scheduleDate ? 'Message scheduled successfully!' : 'Message sent to trip chat!');
