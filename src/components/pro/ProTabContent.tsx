@@ -9,6 +9,7 @@ import { AIConciergeChat } from '../AIConciergeChat';
 import { GroupCalendar } from '../GroupCalendar';
 import { UnifiedMediaHub } from '../UnifiedMediaHub';
 import { PaymentsTab } from '../payments/PaymentsTab';
+import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
 
 import { TeamTab } from './TeamTab';
 import { TripTasksTab } from '../todo/TripTasksTab';
@@ -60,40 +61,70 @@ export const ProTabContent = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'chat':
-        return <TripChat 
-          enableGroupChat={true} 
-          showBroadcasts={true} 
-          tripId={tripId} 
-          isPro={true} 
-          userRole={userRole} 
-          participants={(tripData.participants || []).map(p => ({ 
-            id: String(p.id), 
-            name: p.name, 
-            role: p.role 
-          }))} 
-        />;
+        return (
+          <FeatureErrorBoundary featureName="Trip Chat">
+            <TripChat
+              enableGroupChat={true}
+              showBroadcasts={true}
+              tripId={tripId}
+              isPro={true}
+              userRole={userRole}
+              participants={(tripData.participants || []).map(p => ({
+                id: String(p.id),
+                name: p.name,
+                role: p.role
+              }))}
+            />
+          </FeatureErrorBoundary>
+        );
       case 'calendar':
-        return <GroupCalendar tripId={tripId} />;
+        return (
+          <FeatureErrorBoundary featureName="Calendar & Events">
+            <GroupCalendar tripId={tripId} />
+          </FeatureErrorBoundary>
+        );
       case 'tasks':
-        return <TripTasksTab tripId={tripId} />;
+        return (
+          <FeatureErrorBoundary featureName="Tasks & Todo">
+            <TripTasksTab tripId={tripId} />
+          </FeatureErrorBoundary>
+        );
       case 'polls':
-        return <CommentsWall tripId={tripId} />;
+        return (
+          <FeatureErrorBoundary featureName="Polls & Comments">
+            <CommentsWall tripId={tripId} />
+          </FeatureErrorBoundary>
+        );
       case 'media':
-        return <UnifiedMediaHub tripId={tripId} />;
+        return (
+          <FeatureErrorBoundary featureName="Media Hub">
+            <UnifiedMediaHub tripId={tripId} />
+          </FeatureErrorBoundary>
+        );
       case 'payments':
-        return <PaymentsTab tripId={tripId} />;
+        return (
+          <FeatureErrorBoundary featureName="Payments & Expenses">
+            <PaymentsTab tripId={tripId} />
+          </FeatureErrorBoundary>
+        );
       case 'places':
-        return <PlacesSection />;
+        return (
+          <FeatureErrorBoundary featureName="Places & Map">
+            <PlacesSection />
+          </FeatureErrorBoundary>
+        );
       case 'team':
         return (
-          <TeamTab
-            roster={tripData.roster || []}
-            userRole={userRole}
-            isReadOnly={isReadOnly}
-            category={category}
-            tripId={tripId}
-            onUpdateMemberRole={onUpdateMemberRole}
-          />
+          <FeatureErrorBoundary featureName="Team Management">
+            <TeamTab
+              roster={tripData.roster || []}
+              userRole={userRole}
+              isReadOnly={isReadOnly}
+              category={category}
+              tripId={tripId}
+              onUpdateMemberRole={onUpdateMemberRole}
+            />
+          </FeatureErrorBoundary>
         );
       case 'finance':
         return (

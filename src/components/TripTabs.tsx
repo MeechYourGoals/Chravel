@@ -11,6 +11,7 @@ const PlacesSection = lazy(() => import('./PlacesSection').then(m => ({ default:
 const AIConciergeChat = lazy(() => import('./AIConciergeChat').then(m => ({ default: m.AIConciergeChat })));
 const PaymentsTab = lazy(() => import('./payments/PaymentsTab').then(m => ({ default: m.PaymentsTab })));
 const AddLinkModal = lazy(() => import('./AddLinkModal').then(m => ({ default: m.AddLinkModal })));
+import { FeatureErrorBoundary } from './FeatureErrorBoundary';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { useFeatureToggle } from '../hooks/useFeatureToggle';
 import { TripPreferences as TripPreferencesType } from '../types/consumer';
@@ -102,30 +103,64 @@ export const TripTabs = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'chat':
-        return <TripChat tripId={tripId} />;
+        return (
+          <FeatureErrorBoundary featureName="Trip Chat">
+            <TripChat tripId={tripId} />
+          </FeatureErrorBoundary>
+        );
       case 'polls':
-        return <CommentsWall tripId={tripId} />;
+        return (
+          <FeatureErrorBoundary featureName="Polls & Comments">
+            <CommentsWall tripId={tripId} />
+          </FeatureErrorBoundary>
+        );
       case 'tasks':
-        return <TripTasksTab tripId={tripId} />;
+        return (
+          <FeatureErrorBoundary featureName="Tasks & Todo">
+            <TripTasksTab tripId={tripId} />
+          </FeatureErrorBoundary>
+        );
       case 'calendar':
-        return <GroupCalendar tripId={tripId} />;
+        return (
+          <FeatureErrorBoundary featureName="Calendar & Events">
+            <GroupCalendar tripId={tripId} />
+          </FeatureErrorBoundary>
+        );
       case 'media':
-        return <UnifiedMediaHub tripId={tripId} onPromoteToTripLink={handlePromoteToTripLink} />;
+        return (
+          <FeatureErrorBoundary featureName="Media Hub">
+            <UnifiedMediaHub tripId={tripId} onPromoteToTripLink={handlePromoteToTripLink} />
+          </FeatureErrorBoundary>
+        );
       case 'payments':
-        return <PaymentsTab tripId={tripId} />;
+        return (
+          <FeatureErrorBoundary featureName="Payments & Expenses">
+            <PaymentsTab tripId={tripId} />
+          </FeatureErrorBoundary>
+        );
       case 'places':
-        return <PlacesSection tripId={tripId} tripName={tripName} />;
+        return (
+          <FeatureErrorBoundary featureName="Places & Map">
+            <PlacesSection tripId={tripId} tripName={tripName} />
+          </FeatureErrorBoundary>
+        );
       case 'concierge':
         return (
-          <AIConciergeChat 
-            tripId={tripId}
-            basecamp={basecamp}
-            preferences={tripPreferences}
-            isDemoMode={isDemoMode}
-          />
+          <FeatureErrorBoundary featureName="AI Concierge">
+            <AIConciergeChat
+              tripId={tripId}
+              basecamp={basecamp}
+              preferences={tripPreferences}
+              isDemoMode={isDemoMode}
+            />
+          </FeatureErrorBoundary>
         );
       default:
-        return <TripChat tripId={tripId} />;
+        return (
+          <FeatureErrorBoundary featureName="Trip Chat">
+            <TripChat tripId={tripId} />
+          </FeatureErrorBoundary>
+        );
     }
   };
 
