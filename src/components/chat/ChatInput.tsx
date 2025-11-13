@@ -167,7 +167,7 @@ export const ChatInput = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button 
-                className="flex items-center justify-center w-9 h-9 rounded-xl bg-neutral-900 hover:bg-neutral-800 transition-all"
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-neutral-900 hover:bg-neutral-800 transition-all"
                 aria-label="Message options"
               >
                 <Plus className="w-5 h-5 text-neutral-300" />

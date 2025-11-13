@@ -145,7 +145,7 @@ export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
               onChange={(e) => setMessageInput(e.target.value)}
               onKeyPress={handleKeyPress}
               disabled={sending}
-              className="flex-1 !rounded-full bg-white/5 border-white/10 text-white placeholder-neutral-400 focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm"
+              className="flex-1 !rounded-full bg-white/5 border border-white/10 text-white placeholder-neutral-400 focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm"
             />
             <Button
               onClick={handleSendMessage}

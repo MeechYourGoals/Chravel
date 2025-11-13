@@ -205,7 +205,7 @@
     font-size: 16px !important;
     /* Remove iOS input shadows */
     -webkit-appearance: none;
-    border-radius: 0;
+    /* Respect component-specific rounding (e.g., rounded-full) */
   }
   
   /* iOS button styling */
