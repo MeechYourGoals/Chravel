@@ -58,7 +58,7 @@ export const ProTabContent = ({
     );
   }
 
-  const isReadOnly = isReadOnlyTab(activeTab, userRole, userPermissions);
+  const isReadOnly = isReadOnlyTab(activeTab, userRole, userPermissions, isDemoMode);
 
   const renderTabContent = () => {
     switch (activeTab) {

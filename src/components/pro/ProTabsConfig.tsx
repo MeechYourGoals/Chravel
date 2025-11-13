@@ -68,7 +68,10 @@ export const getVisibleTabs = (userRole: string, userPermissions: string[], cate
   });
 };
 
-export const isReadOnlyTab = (tabId: string, userRole: string, userPermissions: string[]): boolean => {
+export const isReadOnlyTab = (tabId: string, userRole: string, userPermissions: string[], isDemoMode?: boolean): boolean => {
+  // Demo mode overrides all read-only restrictions
+  if (isDemoMode) return false;
+  
   // Finance and compliance tabs are read-only for certain roles
   if ((tabId === 'finance' || tabId === 'compliance') && 
       ['talent', 'cast', 'student', 'artist'].includes(userRole.toLowerCase())) {

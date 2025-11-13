@@ -3,6 +3,7 @@ import React from 'react';
 import { Crown, Lock } from 'lucide-react';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useAuth } from '../../hooks/useAuth';
+import { useDemoMode } from '../../hooks/useDemoMode';
 import { ProTab, isReadOnlyTab } from './ProTabsConfig';
 import { ProTripCategory } from '../../types/proCategories';
 
@@ -16,6 +17,7 @@ interface ProTabNavigationProps {
 export const ProTabNavigation = ({ tabs, activeTab, onTabChange, category }: ProTabNavigationProps) => {
   const { accentColors } = useTripVariant();
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
 
   const userRole = user?.proRole || 'staff';
   const userPermissions = user?.permissions || ['read'];
@@ -27,7 +29,7 @@ export const ProTabNavigation = ({ tabs, activeTab, onTabChange, category }: Pro
     <div className="flex whitespace-nowrap gap-2 mb-2 justify-start overflow-x-auto scrollbar-thin scrollbar-thumb-white/20">
       {tabs.map((tab) => {
         const Icon = tab.icon;
-        const isReadOnly = isReadOnlyTab(tab.id, userRole, userPermissions);
+        const isReadOnly = isReadOnlyTab(tab.id, userRole, userPermissions, isDemoMode);
         const displayLabel =
           tab.id === 'team' && category === 'Content' ? 'Cast & Crew' : tab.label;
         
