@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { TripRole } from '@/types/roleChannels';
+import { useDemoMode } from './useDemoMode';
+import { MockRolesService } from '@/services/mockRolesService';
+import { useAuth } from './useAuth';
 
 interface UseTripRolesProps {
   tripId: string;
@@ -9,6 +12,8 @@ interface UseTripRolesProps {
 }
 
 export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
+  const { isDemoMode } = useDemoMode();
+  const { user } = useAuth();
   const [roles, setRoles] = useState<TripRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -21,6 +26,18 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
 
     try {
       setIsLoading(true);
+
+      // 🆕 CHECK FOR DEMO MODE
+      if (isDemoMode) {
+        const mockRoles = MockRolesService.getRolesForTrip(tripId);
+        if (mockRoles) {
+          setRoles(mockRoles);
+        } else {
+          setRoles([]);
+        }
+        setIsLoading(false);
+        return;
+      }
 
       const { data, error } = await supabase
         .from('trip_roles')
@@ -69,7 +86,7 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [tripId, enabled]);
+  }, [tripId, enabled, isDemoMode]);
 
   useEffect(() => {
     fetchRoles();
@@ -108,6 +125,33 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
     setIsProcessing(true);
     
     try {
+      // 🆕 DEMO MODE: Add to mock storage
+      if (isDemoMode) {
+        const existingRoles = MockRolesService.getRolesForTrip(tripId) || [];
+        const newRole: TripRole = {
+          id: `mock-role-${tripId}-${Date.now()}`,
+          tripId,
+          roleName,
+          description: '',
+          permissionLevel,
+          featurePermissions: featurePermissions as any,
+          createdBy: user?.id || 'demo-user',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          memberCount: 0,
+        };
+        
+        const updatedRoles = [...existingRoles, newRole];
+        localStorage.setItem('demo_pro_trip_roles', JSON.stringify({
+          ...JSON.parse(localStorage.getItem('demo_pro_trip_roles') || '{}'),
+          [tripId]: updatedRoles
+        }));
+        
+        toast.success('✅ Role created successfully');
+        await fetchRoles();
+        return { success: true, message: 'Role created', role_id: newRole.id };
+      }
+
       const { data, error } = await supabase.rpc('create_trip_role' as any, {
         _trip_id: tripId,
         _role_name: roleName,
@@ -133,12 +177,27 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
     } finally {
       setIsProcessing(false);
     }
-  }, [tripId, fetchRoles]);
+  }, [tripId, fetchRoles, isDemoMode, user?.id]);
 
   const deleteRole = useCallback(async (roleId: string) => {
     setIsProcessing(true);
     
     try {
+      // 🆕 DEMO MODE: Remove from mock storage
+      if (isDemoMode) {
+        const existingRoles = MockRolesService.getRolesForTrip(tripId) || [];
+        const updatedRoles = existingRoles.filter(r => r.id !== roleId);
+        
+        localStorage.setItem('demo_pro_trip_roles', JSON.stringify({
+          ...JSON.parse(localStorage.getItem('demo_pro_trip_roles') || '{}'),
+          [tripId]: updatedRoles
+        }));
+        
+        toast.success('Role deleted successfully');
+        await fetchRoles();
+        return { success: true, message: 'Role deleted' };
+      }
+
       const { data, error } = await supabase.rpc('delete_trip_role' as any, {
         _role_id: roleId
       });

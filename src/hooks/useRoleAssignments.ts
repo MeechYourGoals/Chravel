@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useDemoMode } from './useDemoMode';
+import { useAuth } from './useAuth';
 
 export interface RoleAssignment {
   id: string;
@@ -28,6 +30,8 @@ interface UseRoleAssignmentsProps {
 }
 
 export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignmentsProps) => {
+  const { isDemoMode } = useDemoMode();
+  const { user } = useAuth();
   const [assignments, setAssignments] = useState<RoleAssignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -40,6 +44,15 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
 
     try {
       setIsLoading(true);
+
+      // 🆕 DEMO MODE: Load from localStorage
+      if (isDemoMode) {
+        const stored = localStorage.getItem('demo_pro_trip_assignments');
+        const allAssignments = stored ? JSON.parse(stored) : {};
+        setAssignments(allAssignments[tripId] || []);
+        setIsLoading(false);
+        return;
+      }
 
       const { data, error } = await supabase
         .from('user_trip_roles')
@@ -84,7 +97,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
     } finally {
       setIsLoading(false);
     }
-  }, [tripId, enabled]);
+  }, [tripId, enabled, isDemoMode]);
 
   useEffect(() => {
     fetchAssignments();
@@ -119,6 +132,30 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
     setIsProcessing(true);
     
     try {
+      // 🆕 DEMO MODE: Add to localStorage
+      if (isDemoMode) {
+        const stored = localStorage.getItem('demo_pro_trip_assignments');
+        const allAssignments = stored ? JSON.parse(stored) : {};
+        const tripAssignments = allAssignments[tripId] || [];
+        
+        const newAssignment: RoleAssignment = {
+          id: `mock-assignment-${Date.now()}`,
+          trip_id: tripId,
+          user_id: userId,
+          role_id: roleId,
+          is_primary: true,
+          assigned_at: new Date().toISOString(),
+          assigned_by: user?.id,
+        };
+        
+        allAssignments[tripId] = [...tripAssignments, newAssignment];
+        localStorage.setItem('demo_pro_trip_assignments', JSON.stringify(allAssignments));
+        
+        toast.success('✅ Role assigned successfully');
+        await fetchAssignments();
+        return { success: true, message: 'Role assigned' };
+      }
+
       const { data, error } = await supabase.rpc('assign_user_to_role' as any, {
         _trip_id: tripId,
         _user_id: userId,
@@ -143,12 +180,28 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
     } finally {
       setIsProcessing(false);
     }
-  }, [tripId, fetchAssignments]);
+  }, [tripId, fetchAssignments, isDemoMode, user?.id]);
 
   const removeRole = useCallback(async (userId: string, roleId: string) => {
     setIsProcessing(true);
     
     try {
+      // 🆕 DEMO MODE: Remove from localStorage
+      if (isDemoMode) {
+        const stored = localStorage.getItem('demo_pro_trip_assignments');
+        const allAssignments = stored ? JSON.parse(stored) : {};
+        const tripAssignments = allAssignments[tripId] || [];
+        
+        allAssignments[tripId] = tripAssignments.filter(
+          (a: RoleAssignment) => !(a.user_id === userId && a.role_id === roleId)
+        );
+        localStorage.setItem('demo_pro_trip_assignments', JSON.stringify(allAssignments));
+        
+        toast.success('Role removed successfully');
+        await fetchAssignments();
+        return { success: true, message: 'Role removed' };
+      }
+
       const { data, error } = await supabase.rpc('remove_user_from_role' as any, {
         _trip_id: tripId,
         _user_id: userId,
@@ -173,7 +226,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
     } finally {
       setIsProcessing(false);
     }
-  }, [tripId, fetchAssignments]);
+  }, [tripId, fetchAssignments, isDemoMode]);
 
   return {
     assignments,

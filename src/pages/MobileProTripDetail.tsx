@@ -10,6 +10,7 @@ import { hapticService } from '../services/hapticService';
 import { proTripMockData } from '../data/proTripMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { MockRolesService } from '../services/mockRolesService';
 
 export const MobileProTripDetail = () => {
   const { proTripId } = useParams();
@@ -26,6 +27,23 @@ export const MobileProTripDetail = () => {
     preventZoom: true,
     adjustViewport: true
   });
+
+  // 🆕 Initialize mock roles and channels
+  React.useEffect(() => {
+    if (isDemoMode && proTripId && proTripId in proTripMockData) {
+      const tripData = proTripMockData[proTripId];
+      const existingRoles = MockRolesService.getRolesForTrip(proTripId);
+      
+      if (!existingRoles) {
+        const roles = MockRolesService.seedRolesForTrip(
+          proTripId,
+          tripData.proTripCategory,
+          user?.id || 'demo-user'
+        );
+        MockRolesService.seedChannelsForRoles(proTripId, roles, user?.id || 'demo-user');
+      }
+    }
+  }, [isDemoMode, proTripId, user?.id]);
 
   // Gate demo content
   if (!isDemoMode) {
