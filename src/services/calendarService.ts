@@ -124,13 +124,15 @@ export const calendarService = {
       
       return createdEvent;
     } catch (error) {
-      console.error('Error creating event:', error);
-      
+      if (import.meta.env.DEV) {
+        console.error('Error creating event:', error);
+      }
+
       // If offline, the operation was already queued above
       if (!navigator.onLine) {
         return null; // Return null, optimistic update already handled
       }
-      
+
       return null;
     }
   },
@@ -181,7 +183,9 @@ export const calendarService = {
 
       if (tzError) {
         // Fallback to direct query if timezone function fails
-        console.warn('Timezone function failed, using direct query:', tzError);
+        if (import.meta.env.DEV) {
+          console.warn('Timezone function failed, using direct query:', tzError);
+        }
         const { data, error } = await supabase
           .from('trip_events')
           .select(`
@@ -235,14 +239,18 @@ export const calendarService = {
       
       return events;
     } catch (error) {
-      console.error('Error fetching events:', error);
-      
+      if (import.meta.env.DEV) {
+        console.error('Error fetching events:', error);
+      }
+
       // If fetch fails, return cached events if available
       if (cachedEvents.length > 0) {
-        console.warn('Using cached events due to fetch error');
+        if (import.meta.env.DEV) {
+          console.warn('Using cached events due to fetch error');
+        }
         return cachedEvents.map(c => c.data as TripEvent);
       }
-      
+
       return [];
     }
   },
@@ -299,7 +307,9 @@ export const calendarService = {
 
       return !error;
     } catch (error) {
-      console.error('Error updating event:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating event:', error);
+      }
       return false;
     }
   },
@@ -308,11 +318,13 @@ export const calendarService = {
     try {
       // Check if in demo mode
       const isDemoMode = await demoModeService.isDemoModeEnabled();
-      
+
       if (isDemoMode) {
         // For demo mode, we need the trip ID to delete from localStorage
         if (!tripId) {
-          console.error('Trip ID required for demo mode event deletion');
+          if (import.meta.env.DEV) {
+            console.error('Trip ID required for demo mode event deletion');
+          }
           return false;
         }
         return await calendarStorageService.deleteEvent(tripId, eventId);
@@ -348,7 +360,9 @@ export const calendarService = {
 
       return !error;
     } catch (error) {
-      console.error('Error deleting event:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error deleting event:', error);
+      }
       return false;
     }
   },

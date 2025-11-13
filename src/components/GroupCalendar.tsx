@@ -83,7 +83,9 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         description: 'Your calendar has been downloaded as an .ics file.'
       });
     } catch (error) {
-      console.error('Failed to export calendar:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to export calendar:', error);
+      }
       toast({
         title: 'Export failed',
         description: 'Unable to export calendar. Please try again.',
