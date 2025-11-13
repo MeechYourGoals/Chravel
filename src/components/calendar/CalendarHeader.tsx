@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Calendar as CalendarIcon, List, Download } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, List, Download, Grid3x3 } from 'lucide-react';
 import { ViewMode } from '@/hooks/useCalendarManagement';
 
 interface CalendarHeaderProps {
@@ -11,10 +11,37 @@ interface CalendarHeaderProps {
 }
 
 export const CalendarHeader = ({ viewMode, onToggleView, onAddEvent, onExport }: CalendarHeaderProps) => {
+  const getViewButtonContent = () => {
+    switch (viewMode) {
+      case 'grid':
+        return (
+          <>
+            <List className="mr-2 h-4 w-4" />
+            Itinerary View
+          </>
+        );
+      case 'itinerary':
+        return (
+          <>
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            Day View
+          </>
+        );
+      case 'calendar':
+      default:
+        return (
+          <>
+            <Grid3x3 className="mr-2 h-4 w-4" />
+            Month Grid
+          </>
+        );
+    }
+  };
+
   return (
     <div className="flex items-center justify-between mb-6">
       <h2 className="text-2xl font-bold text-foreground">Group Calendar</h2>
-      
+
       <div className="flex gap-2">
         {onExport && (
           <Button variant="outline" onClick={onExport} size="sm">
@@ -22,21 +49,11 @@ export const CalendarHeader = ({ viewMode, onToggleView, onAddEvent, onExport }:
             Export
           </Button>
         )}
-        
+
         <Button variant="outline" onClick={onToggleView}>
-          {viewMode === 'calendar' ? (
-            <>
-              <List className="mr-2 h-4 w-4" />
-              Itinerary View
-            </>
-          ) : (
-            <>
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              Calendar View
-            </>
-          )}
+          {getViewButtonContent()}
         </Button>
-        
+
         <Button onClick={onAddEvent}>
           <Plus className="mr-2 h-4 w-4" />
           Add Event

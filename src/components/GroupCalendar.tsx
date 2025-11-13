@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { ItineraryView } from './ItineraryView';
 import { useCalendarManagement } from '@/hooks/useCalendarManagement';
 import { CalendarHeader } from './calendar/CalendarHeader';
+import { CalendarGrid } from './calendar/CalendarGrid';
 import { AddEventModal } from './calendar/AddEventModal';
 import { EventList } from './calendar/EventList';
 import { exportTripEventsToICal } from '@/services/calendarSync';
@@ -18,6 +19,8 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
   const {
     selectedDate,
     setSelectedDate,
+    currentMonth,
+    setCurrentMonth,
     events,
     showAddEvent,
     setShowAddEvent,
@@ -103,6 +106,53 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-6 text-center text-muted-foreground">
           Trip calendar is unavailable without a valid trip.
         </div>
+      </div>
+    );
+  }
+
+  if (viewMode === 'grid') {
+    return (
+      <div className="p-6">
+        <CalendarHeader
+          viewMode={viewMode}
+          onToggleView={toggleViewMode}
+          onAddEvent={canPerformAction('calendar', 'can_create_events') ? () => setShowAddEvent(!showAddEvent) : undefined}
+          onExport={handleExport}
+        />
+
+        {isLoading ? (
+          <div className="flex justify-center items-center py-16">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          </div>
+        ) : (
+          <CalendarGrid
+            events={events}
+            selectedDate={selectedDate || new Date()}
+            onSelectDate={setSelectedDate}
+            onAddEvent={canPerformAction('calendar', 'can_create_events') ? (date) => {
+              setSelectedDate(date);
+              setShowAddEvent(true);
+            } : undefined}
+            currentMonth={currentMonth}
+            onMonthChange={setCurrentMonth}
+          />
+        )}
+
+        {/* Event Modal */}
+        <AddEventModal
+          open={showAddEvent}
+          onClose={() => {
+            setShowAddEvent(false);
+            setEditingEvent(null);
+            resetForm();
+          }}
+          newEvent={newEvent}
+          onUpdateField={updateEventField}
+          onSubmit={handleFormSubmit}
+          isSubmitting={isSaving}
+          isEditing={!!editingEvent}
+          selectedDate={selectedDate}
+        />
       </div>
     );
   }
