@@ -115,7 +115,7 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
   const handleMobileSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: any) => {
     await hapticService.light();
     if (inputMessage.trim()) {
-      await sendUnifiedMessage(inputMessage);
+      await sendUnifiedMessage(inputMessage, isBroadcast ? 'broadcast' : 'normal');
       setInputMessage('');
     }
   };

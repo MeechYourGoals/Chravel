@@ -280,7 +280,7 @@ export const TripChat = ({
 
     const authorName = user?.displayName || user?.email?.split('@')[0] || 'You';
     try {
-      await sendTripMessage(message.text, authorName);
+      await sendTripMessage(message.text, authorName, undefined, undefined, user?.id, isBroadcast ? 'broadcast' : 'normal');
       
       // 🆕 Auto-parse message for entities (dates, times, locations)
       if (message.text && message.text.trim().length > 10) {

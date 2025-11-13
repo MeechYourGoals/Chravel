@@ -87,7 +87,7 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
   }, [enabled, user, tripId, toast]);
 
   // Send message
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, privacyMode?: string) => {
     if (!user) {
       toast({
         title: 'Not Authenticated',
@@ -104,7 +104,8 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
         content,
         tripId,
         userName,
-        userId: user.id
+        userId: user.id,
+        privacyMode: privacyMode || 'normal'
       });
       
       // Update cache with new message

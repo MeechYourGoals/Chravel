@@ -35,6 +35,7 @@ export interface SendMessageOptions {
   userId?: string;
   replyToId?: string;
   threadId?: string;
+  privacyMode?: string;
   attachments?: Array<{ type: string; url: string; name?: string }>;
 }
 
@@ -147,6 +148,7 @@ class UnifiedMessagingService {
             content: options.content,
             author_name: options.userName,
             user_id: options.userId,
+            privacy_mode: options.privacyMode || 'normal',
             reply_to_id: options.replyToId,
             thread_id: options.threadId,
             attachments: options.attachments || []

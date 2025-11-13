@@ -31,6 +31,8 @@ interface CreateMessageRequest {
   author_name: string;
   media_type?: string;
   media_url?: string;
+  userId?: string;
+  privacyMode?: string;
 }
 
 export const useTripChat = (tripId: string) => {
@@ -195,6 +197,8 @@ export const useTripChat = (tripId: string) => {
         trip_id: tripId,
         content: sanitizedContent,
         author_name: InputValidator.sanitizeText(message.author_name),
+        user_id: message.userId,
+        privacy_mode: message.privacyMode || 'normal',
         media_type: message.media_type,
         media_url: message.media_url
       };
@@ -249,21 +253,25 @@ export const useTripChat = (tripId: string) => {
     }
   });
 
-  const sendMessage = (content: string, authorName: string, mediaType?: string, mediaUrl?: string) => {
+  const sendMessage = (content: string, authorName: string, mediaType?: string, mediaUrl?: string, userId?: string, privacyMode?: string) => {
     createMessageMutation.mutate({
       content,
       author_name: authorName,
       media_type: mediaType,
-      media_url: mediaUrl
+      media_url: mediaUrl,
+      userId,
+      privacyMode
     });
   };
 
-  const sendMessageAsync = (content: string, authorName: string, mediaType?: string, mediaUrl?: string) => {
+  const sendMessageAsync = (content: string, authorName: string, mediaType?: string, mediaUrl?: string, userId?: string, privacyMode?: string) => {
     return createMessageMutation.mutateAsync({
       content,
       author_name: authorName,
       media_type: mediaType,
-      media_url: mediaUrl
+      media_url: mediaUrl,
+      userId,
+      privacyMode
     });
   };
 
