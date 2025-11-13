@@ -132,7 +132,7 @@ const EventDetail = () => {
       id: index.toString(),
       title: `Day ${index + 1}`,
       date: day.date,
-      events: day.events
+      events: day.events as any // Mock data for demo - type assertion for simplified event structure
     })),
     accommodation: basecamp.name,
     currentDate: new Date().toISOString().split('T')[0],
@@ -155,7 +155,7 @@ const EventDetail = () => {
     })),
     basecamp,
     isPro: false,
-    broadcasts: mockBroadcasts,
+    broadcasts: mockBroadcasts as any, // Mock data for demo - type assertion for simplified broadcast structure
     links: mockLinks
   };
 

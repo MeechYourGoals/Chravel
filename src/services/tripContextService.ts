@@ -77,7 +77,7 @@ export class TripContextService {
         id: index.toString(),
         title: `Day ${index + 1}`,
         date: day.date,
-        events: day.events
+        events: day.events as any // Mock data - type assertion for simplified event structure
       })),
       accommodation: `${proTrip.location} Accommodation`,
       currentDate: today,
