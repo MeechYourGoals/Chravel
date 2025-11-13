@@ -44,6 +44,13 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
   const [showPersonalBasecampSelector, setShowPersonalBasecampSelector] = useState(false);
   
+  // Track most recent location for priority centering
+  const [lastUpdatedLocation, setLastUpdatedLocation] = useState<{
+    type: 'trip' | 'personal' | 'search';
+    timestamp: number;
+    coords: { lat: number; lng: number };
+  } | null>(null);
+  
   // Search state (lifted from MapCanvas)
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
@@ -316,6 +323,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   }, [contextBasecamp, isBasecampSet, distanceSettings.preferredMode, distanceSettings.unit]);
 
   const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
+    console.log('[PlacesSection] Setting trip basecamp:', newBasecamp);
     
     // Track local update for conflict resolution
     lastLocalUpdateRef.current = {
@@ -324,6 +332,12 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     };
     
     setContextBasecamp(newBasecamp);
+    
+    // Center map immediately on new basecamp
+    if (newBasecamp.coordinates) {
+      console.log('[PlacesSection] Centering map on trip basecamp:', newBasecamp.coordinates);
+      handleCenterMap(newBasecamp.coordinates, 'trip');
+    }
     
     // Recalculate distances for existing places
     if (places.length > 0) {
@@ -402,10 +416,28 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     // Event added to calendar
   };
 
-  const handleCenterMap = (coords: { lat: number; lng: number }, type?: 'trip' | 'personal') => {
+  const handleCenterMap = (coords: { lat: number; lng: number }, type?: 'trip' | 'personal' | 'search') => {
+    console.log('[PlacesSection] handleCenterMap called:', { coords, type });
+    
+    if (!coords?.lat || !coords?.lng) {
+      console.warn('[PlacesSection] Invalid coordinates provided to handleCenterMap');
+      return;
+    }
+    
     mapRef.current?.centerOn(coords, 15);
+    
     if (type) {
-      setSearchContext(type);
+      // Track most recent location update
+      setLastUpdatedLocation({
+        type: type === 'search' ? 'trip' : type,
+        timestamp: Date.now(),
+        coords: coords
+      });
+      
+      // Update search context (for UI highlighting)
+      if (type !== 'search') {
+        setSearchContext(type);
+      }
     }
   };
 
