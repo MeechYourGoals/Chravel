@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Settings, AlertTriangle, UserPlus, UsersRound, Mail, Hash } from 'lucide-react';
+import { Users, Settings, AlertTriangle, UserPlus, UsersRound } from 'lucide-react';
 import { ProParticipant } from '../../../types/pro';
 import { ProTripCategory, getCategoryConfig } from '../../../types/proCategories';
 import { EditMemberRoleModal } from '../EditMemberRoleModal';
@@ -18,6 +18,10 @@ interface RolesViewProps {
   isReadOnly?: boolean;
   category: ProTripCategory;
   onUpdateMemberRole?: (memberId: string, newRole: string) => Promise<void>;
+  canManageRoles?: boolean;
+  onCreateRole?: () => void;
+  isLoadingRoles?: boolean;
+  adminLoading?: boolean;
 }
 
 export const RolesView = ({ 
@@ -25,7 +29,11 @@ export const RolesView = ({
   userRole, 
   isReadOnly = false, 
   category, 
-  onUpdateMemberRole 
+  onUpdateMemberRole,
+  canManageRoles = false,
+  onCreateRole,
+  isLoadingRoles = false,
+  adminLoading = false
 }: RolesViewProps) => {
   const { isDemoMode } = useDemoMode();
   const [selectedRole, setSelectedRole] = useState<string>('all');
@@ -103,63 +111,46 @@ export const RolesView = ({
         </div>
       )}
 
-      {/* Header with Stats and Actions */}
+      {/* Header with Stats and Admin Indicator */}
       <div className="bg-gradient-to-br from-white/5 via-white/3 to-transparent backdrop-blur-sm border border-gray-700/50 rounded-xl p-4 shadow-xl">
-        {/* Row 1: Team Label + Stats */}
-        <div className="flex items-center justify-between mb-4">
+        {/* Row 1: Team Label + Stats + Admin Badge */}
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Users className="text-red-400" size={20} />
             <h2 className="text-lg font-bold text-white">{teamLabel}</h2>
             <span className="text-gray-400 text-sm">{roster.length} members</span>
           </div>
+          {canManageRoles && !isReadOnly && (
+            <span className="text-xs text-gray-500">Admin Access</span>
+          )}
         </div>
 
-        {/* Row 2: Centered Action Buttons */}
-        <div className="flex flex-col md:flex-row items-center justify-center gap-3 mb-4">
-          {/* Secondary Action Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {/* Assign Roles Button */}
-            {!isReadOnly && onUpdateMemberRole && (
-              <Button
-                onClick={() => setShowBulkModal(true)}
-                variant="outline"
-                size="sm"
-                className="border-gray-600 hover:bg-white/10 hover:border-gray-500 transition-all duration-200"
-                title="Assign roles to multiple members"
-              >
-                <UsersRound size={16} className="mr-2" />
-                Assign Roles
-              </Button>
-            )}
-            
-            {/* Quick Assign Roles Button */}
-            {hasUnassignedRoles && !isReadOnly && (
-              <Button
-                onClick={handleAssignRolesClick}
-                size="sm"
-                className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white transition-all duration-200"
-                title="Assign roles to team members"
-              >
-                <UserPlus size={16} className="mr-2" />
-                Assign Roles
-              </Button>
-            )}
-
-            {/* Create Role Button - Admin Only */}
-            {isAdmin && !isReadOnly && (
-              <Button
-                onClick={() => setShowRoleCreation(!showRoleCreation)}
-                size="sm"
-                variant="outline"
-                className="border-purple-600 text-purple-400 hover:bg-purple-600/10 transition-all duration-200"
-                title="Create a new custom role"
-              >
-                <UserPlus size={16} className="mr-2" />
-                Create Role
-              </Button>
-            )}
+        {/* Row 2: Centered Admin Action Buttons */}
+        {canManageRoles && !isReadOnly && (
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Button
+              onClick={onCreateRole}
+              disabled={adminLoading || isLoadingRoles}
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Create Role
+            </Button>
+            <Button
+              onClick={() => setShowBulkModal(true)}
+              variant="outline"
+              size="sm"
+              disabled={roster.length === 0}
+              className="rounded-full"
+              title="Assign roles to multiple members"
+            >
+              <UsersRound size={16} className="mr-2" />
+              Assign Roles
+            </Button>
           </div>
-        </div>
+        )}
 
         {/* Role Creation Form - Admin Only */}
         {showRoleCreation && isAdmin && !isReadOnly && (
@@ -224,25 +215,6 @@ export const RolesView = ({
                     {role !== 'all' && (
                       <span className="ml-1 text-xs opacity-75">
                         {roleMembers.length}
-                      </span>
-                    )}
-                    {/* Contact All icon inside pill */}
-                    {hasMembers && (
-                      <span title={`Email all ${role} members`}>
-                        <Mail 
-                          size={12} 
-                          className="text-blue-400 ml-1 cursor-pointer hover:text-blue-300" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setRoleContactSheet({ role, members: roleMembers });
-                          }}
-                        />
-                      </span>
-                    )}
-                    {/* Channel indicator badge */}
-                    {role !== 'all' && (
-                      <span title="Has private channel">
-                        <Hash size={10} className="text-purple-400 ml-0.5" />
                       </span>
                     )}
                   </button>

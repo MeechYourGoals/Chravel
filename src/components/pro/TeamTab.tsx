@@ -8,7 +8,7 @@ import { AssignRoleDialog } from './admin/AssignRoleDialog';
 import { useProTripAdmin } from '@/hooks/useProTripAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { TripRole } from '@/types/roleChannels';
-import { Plus, UserPlus, Shield } from 'lucide-react';
+import { Plus, UserPlus } from 'lucide-react';
 import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface TeamTabProps {
@@ -79,28 +79,6 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
 
   return (
     <div className="space-y-6">
-      {/* Admin Controls */}
-      {canManageRoles && !isReadOnly && (
-        <div className="flex items-center justify-between py-2.5 px-4 bg-accent/30 border border-border rounded-lg">
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-primary" />
-            <div>
-              <div className="font-medium">Admin Controls</div>
-              <div className="text-sm text-muted-foreground">
-                Manage roles and assignments for this trip
-              </div>
-            </div>
-          </div>
-          <Button
-            onClick={() => setCreateRoleOpen(true)}
-            disabled={adminLoading || isLoadingRoles}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Role
-          </Button>
-        </div>
-      )}
-
       {/* Roles View */}
       <RolesView
         roster={roster}
@@ -108,6 +86,10 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
         isReadOnly={isReadOnly}
         category={category}
         onUpdateMemberRole={onUpdateMemberRole}
+        canManageRoles={canManageRoles}
+        onCreateRole={() => setCreateRoleOpen(true)}
+        isLoadingRoles={isLoadingRoles}
+        adminLoading={adminLoading}
       />
 
       {/* Dialogs */}
