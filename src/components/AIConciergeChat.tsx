@@ -607,7 +607,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         </div>
 
         {/* Input */}
-        <div className="sticky bottom-0 z-10 bg-black/30 p-3 pb-[env(safe-area-inset-bottom)] md:pb-3 flex-shrink-0">
+        <div className="chat-composer sticky bottom-0 z-10 bg-black/30 p-3 pb-[env(safe-area-inset-bottom)] md:pb-3 flex-shrink-0">
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}

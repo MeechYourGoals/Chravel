@@ -158,7 +158,7 @@ export const ChatInput = ({
       {/* Composer Row with + Button */}
       {!isPaymentMode && (
         <div 
-          className="flex items-center gap-2 px-3 py-2 bg-neutral-950/90 backdrop-blur-md sticky bottom-0"
+          className="chat-composer flex items-center gap-2 px-3 py-2 bg-neutral-950/90 backdrop-blur-md sticky bottom-0"
           style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
           onDrop={handleDrop}
           onDragOver={handleDragOver}

@@ -29,7 +29,7 @@ export const AiChatInput = ({
   };
 
   return (
-    <div className="flex gap-3 items-end">
+    <div className="chat-composer flex gap-3 items-end">
       <textarea
         value={inputMessage}
         onChange={(e) => onInputChange(e.target.value)}

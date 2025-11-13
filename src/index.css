@@ -15,7 +15,12 @@
     background: rgba(10, 10, 10, 0.95);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Pill rounding safety net for chat composers */
+  .chat-composer input,
+  .chat-composer textarea {
+    border-radius: 9999px !important;
   }
 
   /* Mode Row Smooth Transitions */
