@@ -72,7 +72,7 @@ export class MockRolesService {
       tripId,
       channelName: `#${role.roleName.toLowerCase().replace(/\s+/g, '-')}`,
       channelSlug: role.roleName.toLowerCase().replace(/\s+/g, '-'),
-      description: `Private channel for ${role.roleName}`,
+      description: `Private channel for ${role.roleName} only`,
       isPrivate: true,
       isArchived: false,
       requiredRoleId: role.id,

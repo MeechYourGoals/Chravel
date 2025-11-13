@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Settings, AlertTriangle, UserPlus, UsersRound } from 'lucide-react';
+import { Users, Settings, AlertTriangle, UserPlus, UsersRound, Mail, Hash } from 'lucide-react';
 import { ProParticipant } from '../../../types/pro';
 import { ProTripCategory, getCategoryConfig } from '../../../types/proCategories';
 import { EditMemberRoleModal } from '../EditMemberRoleModal';
@@ -10,7 +10,6 @@ import { RoleContactSheet } from '../RoleContactSheet';
 import { extractUniqueRoles, getRoleColorClass } from '../../../utils/roleUtils';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
-import { MessageCircle } from 'lucide-react';
 import { useDemoMode } from '../../../hooks/useDemoMode';
 
 interface RolesViewProps {
@@ -209,34 +208,44 @@ export const RolesView = ({
             <div className="flex flex-wrap gap-2 justify-center items-center max-w-5xl">
               {roles.map((role) => {
                 const roleMembers = roster.filter(m => m.role === role);
+                const hasMembers = role !== 'all' && roleMembers.length > 0;
+                
                 return (
-                  <div key={role} className="flex items-center gap-1">
-                    <button
-                      onClick={() => setSelectedRole(role)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
-                        selectedRole === role
-                          ? 'bg-red-600 text-white shadow-lg shadow-red-600/30 scale-105'
-                          : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 hover:scale-102 border border-gray-600'
-                      }`}
-                    >
-                      {role === 'all' ? 'All' : role}
-                      {role !== 'all' && (
-                        <span className="ml-1 text-xs opacity-75">
-                          {roleMembers.length}
-                        </span>
-                      )}
-                    </button>
-                    {/* Contact All Button for specific roles */}
-                    {role !== 'all' && roleMembers.length > 0 && (
-                      <button
-                        onClick={() => setRoleContactSheet({ role, members: roleMembers })}
-                        className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
-                        title={`Contact all ${role}`}
-                      >
-                        <MessageCircle size={14} className="text-blue-400" />
-                      </button>
+                  <button
+                    key={role}
+                    onClick={() => setSelectedRole(role)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                      selectedRole === role
+                        ? 'bg-red-600 text-white shadow-lg shadow-red-600/30 scale-105'
+                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 hover:scale-102 border border-gray-600'
+                    }`}
+                  >
+                    {role === 'all' ? 'All' : role}
+                    {role !== 'all' && (
+                      <span className="ml-1 text-xs opacity-75">
+                        {roleMembers.length}
+                      </span>
                     )}
-                  </div>
+                    {/* Contact All icon inside pill */}
+                    {hasMembers && (
+                      <span title={`Email all ${role} members`}>
+                        <Mail 
+                          size={12} 
+                          className="text-blue-400 ml-1 cursor-pointer hover:text-blue-300" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRoleContactSheet({ role, members: roleMembers });
+                          }}
+                        />
+                      </span>
+                    )}
+                    {/* Channel indicator badge */}
+                    {role !== 'all' && (
+                      <span title="Has private channel">
+                        <Hash size={10} className="text-purple-400 ml-0.5" />
+                      </span>
+                    )}
+                  </button>
                 );
               })}
             </div>
