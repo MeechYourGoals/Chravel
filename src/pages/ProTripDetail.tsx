@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { supabase } from '../integrations/supabase/client';
 import { MobileProTripDetail } from './MobileProTripDetail';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { JoinRequestsPanel } from '../components/pro/admin/JoinRequestsPanel';
 
 // 🚀 OPTIMIZATION: Lazy load heavy components for faster initial render
 const TripHeader = lazy(() =>
@@ -354,6 +355,16 @@ const ProTripDetail = () => {
             />
           </Suspense>
         </div>
+
+        {/* Join Requests Panel - Only visible for Pro trips with admin access */}
+        {proTripId && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+            <JoinRequestsPanel
+              tripId={proTripId}
+              isAdmin={true}
+            />
+          </div>
+        )}
 
         <TripDetailModals
           showSettings={showSettings}

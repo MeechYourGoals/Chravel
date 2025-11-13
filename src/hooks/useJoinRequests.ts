@@ -40,27 +40,30 @@ export const useJoinRequests = ({ tripId, enabled = true }: UseJoinRequestsProps
 
       const { data, error } = await supabase
         .from('trip_join_requests')
-        .select(`
-          *,
-          profiles!user_id(
-            display_name,
-            avatar_url,
-            email
-          )
-        `)
+        .select('*')
         .eq('trip_id', tripId)
         .eq('status', 'pending')
         .order('requested_at', { ascending: false });
 
       if (error) throw error;
 
-      // Map profiles to user_profile for consistency
-      const mappedData = (data || []).map(req => ({
-        ...req,
-        user_profile: req.profiles
-      }));
+      // Fetch user profiles separately
+      const requestsWithProfiles = await Promise.all(
+        (data || []).map(async (req) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name, avatar_url, email')
+            .eq('user_id', req.user_id)
+            .single();
 
-      setRequests(mappedData as JoinRequest[]);
+          return {
+            ...req,
+            user_profile: profile || undefined
+          };
+        })
+      );
+
+      setRequests(requestsWithProfiles as JoinRequest[]);
     } catch (error) {
       console.error('Error fetching join requests:', error);
       toast.error('Failed to load join requests');
