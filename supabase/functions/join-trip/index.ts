@@ -152,7 +152,7 @@ serve(async (req) => {
     // Get trip details
     const { data: trip, error: tripError } = await supabaseClient
       .from("trips")
-      .select("name, trip_type, created_by")
+      .select("*")
       .eq("id", invite.trip_id)
       .single();
 
@@ -169,11 +169,75 @@ serve(async (req) => {
 
     logStep("Trip found", { tripName: trip.name, tripType: trip.trip_type });
 
-    // Check if invite requires approval
-    const requiresApproval = invite.require_approval || false;
+    // Check if invite requires approval (Pro/Event trips with require_approval flag)
+    const requiresApproval = invite.require_approval === true;
 
     if (requiresApproval) {
-      // Create join request instead of auto-joining
+      logStep("Trip requires approval - creating join request");
+      
+      // Check for existing join request
+      const { data: existingRequest } = await supabaseClient
+        .from("trip_join_requests")
+        .select("id, status")
+        .eq("trip_id", invite.trip_id)
+        .eq("user_id", user.id)
+        .single();
+      
+      if (existingRequest) {
+        if (existingRequest.status === 'pending') {
+          logStep("User already has pending request");
+          return new Response(
+            JSON.stringify({
+              success: true,
+              requires_approval: true,
+              status: 'pending',
+              trip_id: invite.trip_id,
+              trip_name: trip.name,
+              trip_type: trip.trip_type,
+              message: "Your join request is already pending approval from the trip organizer."
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        } else if (existingRequest.status === 'rejected') {
+          // Update rejected request back to pending
+          logStep("Updating rejected request to pending");
+          await supabaseClient
+            .from("trip_join_requests")
+            .update({ status: 'pending', requested_at: new Date().toISOString() })
+            .eq("id", existingRequest.id);
+            
+          logStep("Join request resubmitted successfully");
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              requires_approval: true,
+              status: 'pending',
+              trip_id: invite.trip_id,
+              trip_name: trip.name,
+              trip_type: trip.trip_type,
+              message: "Your join request has been resubmitted for approval."
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        } else if (existingRequest.status === 'approved') {
+          // Already approved, should be a member
+          logStep("Request already approved");
+          return new Response(
+            JSON.stringify({
+              success: true,
+              already_member: true,
+              trip_id: invite.trip_id,
+              trip_name: trip.name,
+              trip_type: trip.trip_type,
+              message: "You've already been approved for this trip!"
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+      
+      // Create new join request
       const { error: requestError } = await supabaseClient
         .from("trip_join_requests")
         .insert({
@@ -184,21 +248,31 @@ serve(async (req) => {
         });
 
       if (requestError) {
-        // Check if request already exists
-        if (requestError.code === '23505') {
-          logStep("Join request already exists");
-          return new Response(
-            JSON.stringify({
-              success: true,
-              requires_approval: true,
-              trip_id: invite.trip_id,
-              trip_name: trip.name,
-              trip_type: trip.trip_type,
-              message: "Your join request is pending approval from the trip organizer."
-            }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+        logStep("ERROR: Failed to create join request", { error: requestError.message });
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: "Failed to submit join request. Please try again." 
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      logStep("Join request created successfully");
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          requires_approval: true,
+          status: 'pending',
+          trip_id: invite.trip_id,
+          trip_name: trip.name,
+          trip_type: trip.trip_type,
+          message: "Your join request has been submitted. You'll be notified once it's approved."
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
         logStep("ERROR: Failed to create join request", { error: requestError.message });
         return new Response(
