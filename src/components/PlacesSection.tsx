@@ -27,7 +27,7 @@ interface PlacesSectionProps {
   tripName?: string;
 }
 
-type TabView = 'overview' | 'basecamps' | 'links';
+type TabView = 'basecamps' | 'links';
 
 export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSectionProps) => {
   const { variant } = useTripVariant();
@@ -533,7 +533,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
         {/* Centered Tab Navigation */}
         <div className="flex-1 flex justify-center">
           <div className="bg-white/5 backdrop-blur-sm rounded-xl p-1 flex gap-1">
-            {(['overview', 'basecamps', 'links'] as TabView[]).map(tab => (
+            {(['basecamps', 'links'] as TabView[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -552,24 +552,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
 
       {/* Tab Content - ABOVE map */}
       <div className="w-full px-4 mb-6">
-        {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-6 shadow-lg">
-              <h4 className="text-gray-400 text-sm mb-1">Active Context</h4>
-              <p className="text-white text-xl font-semibold capitalize">{searchContext} Base Camp</p>
-            </div>
-            <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-6 shadow-lg">
-              <h4 className="text-gray-400 text-sm mb-1">Saved Links</h4>
-              <p className="text-white text-xl font-semibold">{places.length}</p>
-            </div>
-            <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-6 shadow-lg">
-              <h4 className="text-gray-400 text-sm mb-1">Basecamps Set</h4>
-              <p className="text-white text-xl font-semibold">
-                {(isBasecampSet ? 1 : 0) + (personalBasecamp ? 1 : 0)} / 2
-              </p>
-            </div>
-          </div>
-        )}
 
             {activeTab === 'basecamps' && (
               <BasecampsPanel
