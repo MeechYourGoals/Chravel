@@ -28,6 +28,7 @@ export const SettlePaymentDialog = ({
 }: SettlePaymentDialogProps) => {
   const { toast } = useToast();
   const [settling, setSettling] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -38,6 +39,7 @@ export const SettlePaymentDialog = ({
 
   const handleSettle = async () => {
     setSettling(true);
+    setError(null);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -91,10 +93,14 @@ export const SettlePaymentDialog = ({
       onOpenChange(false);
       window.location.reload();
     } catch (error) {
-      console.error('Error settling payment:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error settling payment:', error);
+      }
+      const errorMessage = error instanceof Error ? error.message : 'Failed to settle payment';
+      setError(errorMessage);
       toast({
         title: 'Error',
-        description: 'Failed to settle payment. Please try again.',
+        description: errorMessage + '. Please try again.',
         variant: 'destructive'
       });
     } finally {
@@ -142,6 +148,21 @@ export const SettlePaymentDialog = ({
           <p className="text-sm text-muted-foreground mt-4">
             This will mark all associated payments as settled. This action cannot be undone.
           </p>
+
+          {error && (
+            <div className="mt-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+              <p className="text-sm text-destructive font-medium">Error: {error}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSettle}
+                disabled={settling}
+                className="mt-2 w-full"
+              >
+                Retry Settlement
+              </Button>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -154,7 +175,7 @@ export const SettlePaymentDialog = ({
           </Button>
           <Button onClick={handleSettle} disabled={settling}>
             {settling && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Confirm Settlement
+            {settling ? 'Settling...' : 'Confirm Settlement'}
           </Button>
         </DialogFooter>
       </DialogContent>
