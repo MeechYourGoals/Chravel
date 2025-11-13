@@ -65,44 +65,25 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
 
   const generateTripLink = async () => {
     setLoading(true);
-    const baseUrl = 'https://chravel.app';
-    let tripUrl = '';
+    const baseUrl = window.location.origin;
     const actualTripId = proTripId || tripId;
     
     if (!actualTripId) {
-      // Fallback to generic join link if no trip ID
-      const mockToken = crypto.randomUUID();
-      tripUrl = `${baseUrl}/join/${mockToken}`;
-      setInviteLink(tripUrl);
+      toast.error('No trip ID provided');
       setLoading(false);
       return;
     }
 
-    // Generate unique invite code
     const inviteCode = crypto.randomUUID();
-    
-    // Create invite in database
     const created = await createInviteInDatabase(actualTripId, inviteCode);
     
     if (!created) {
-      toast.error('Failed to create invite link. Please try again.');
+      toast.error('Failed to create invite link.');
       setLoading(false);
       return;
     }
 
-    // Generate the join URL with the invite code
-    tripUrl = `${baseUrl}/join/${inviteCode}`;
-    
-    // Add parameters for display purposes (actual validation happens server-side)
-    const params = new URLSearchParams();
-    if (requireApproval) params.append('approval', 'true');
-    if (expireIn7Days) params.append('expires', '7d');
-    
-    if (params.toString()) {
-      tripUrl += `?${params.toString()}`;
-    }
-
-    setInviteLink(tripUrl);
+    setInviteLink(`${baseUrl}/join/${inviteCode}`);
     setLoading(false);
     toast.success('Invite link created!');
   };
