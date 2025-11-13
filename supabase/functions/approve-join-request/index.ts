@@ -61,78 +61,28 @@ serve(async (req) => {
 
     logStep("Processing request", { requestId, action });
 
-    // Fetch join request
-    const { data: joinRequest, error: requestError } = await supabaseClient
-      .from("trip_join_requests")
-      .select("*, trips!inner(created_by, name, trip_type)")
-      .eq("id", requestId)
-      .single();
+    // Call the appropriate database function
+    const functionName = action === 'approve' ? 'approve_join_request' : 'reject_join_request';
+    const { data, error } = await supabaseClient.rpc(functionName, {
+      _request_id: requestId
+    });
 
-    if (requestError || !joinRequest) {
-      logStep("ERROR: Join request not found", { error: requestError?.message });
+    if (error) {
+      logStep("ERROR: Database function failed", { error: error.message });
       return new Response(
-        JSON.stringify({ success: false, message: "Join request not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    logStep("Join request found", { tripId: joinRequest.trip_id, userId: joinRequest.user_id });
-
-    // Verify user is trip creator
-    if (joinRequest.trips.created_by !== user.id) {
-      logStep("ERROR: User is not trip creator");
-      return new Response(
-        JSON.stringify({ success: false, message: "Only trip creators can approve join requests" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Check if already resolved
-    if (joinRequest.status !== 'pending') {
-      logStep("ERROR: Request already resolved", { status: joinRequest.status });
-      return new Response(
-        JSON.stringify({ success: false, message: `This request has already been ${joinRequest.status}` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Update request status
-    const { error: updateError } = await supabaseClient
-      .from("trip_join_requests")
-      .update({
-        status: action === 'approve' ? 'approved' : 'rejected',
-        resolved_at: new Date().toISOString(),
-        resolved_by: user.id
-      })
-      .eq("id", requestId);
-
-    if (updateError) {
-      logStep("ERROR: Failed to update request", { error: updateError.message });
-      return new Response(
-        JSON.stringify({ success: false, message: "Failed to update request" }),
+        JSON.stringify({ success: false, message: "Failed to process request" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // If approved, add user to trip_members
-    if (action === 'approve') {
-      const { error: memberError } = await supabaseClient
-        .from("trip_members")
-        .insert({
-          trip_id: joinRequest.trip_id,
-          user_id: joinRequest.user_id,
-          role: "member"
-        });
+    const result = data as { success: boolean; message: string; trip_id?: string; user_id?: string };
 
-      if (memberError) {
-        logStep("ERROR: Failed to add member", { error: memberError.message });
-        return new Response(
-          JSON.stringify({ success: false, message: "Failed to add member to trip" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      logStep("Member added successfully");
+    if (!result.success) {
+      logStep("ERROR: Request processing failed", { message: result.message });
+      return new Response(
+        JSON.stringify({ success: false, message: result.message }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     logStep("Request processed successfully", { action, requestId });
@@ -141,12 +91,11 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         action,
-        message: action === 'approve' 
-          ? `User approved and added to ${joinRequest.trips.name}`
-          : `Join request rejected`
+        message: result.message
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
