@@ -5,10 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { ProParticipant } from '@/types/pro';
 import { TripRole } from '@/types/roleChannels';
 import { Users, UserPlus } from 'lucide-react';
+import { useRoleAssignments } from '@/hooks/useRoleAssignments';
 
 interface AssignRoleDialogProps {
   open: boolean;
@@ -28,10 +28,9 @@ export const AssignRoleDialog: React.FC<AssignRoleDialogProps> = ({
   onRoleAssigned
 }) => {
   const { toast } = useToast();
+  const { assignRole, isProcessing } = useRoleAssignments({ tripId, enabled: !!tripId });
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-  const [isPrimary, setIsPrimary] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,26 +44,11 @@ export const AssignRoleDialog: React.FC<AssignRoleDialogProps> = ({
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
       // Assign role to each selected member
-      const assignments = selectedMembers.map(memberId => ({
-        trip_id: tripId,
-        user_id: memberId,
-        role_id: selectedRole,
-        assigned_by: user.id,
-        is_primary: isPrimary
-      }));
-
-      const { error } = await supabase
-        .from('user_trip_roles')
-        .insert(assignments);
-
-      if (error) throw error;
+      for (const memberId of selectedMembers) {
+        await assignRole(memberId, selectedRole);
+      }
 
       toast({
         title: 'Roles Assigned',
@@ -74,7 +58,6 @@ export const AssignRoleDialog: React.FC<AssignRoleDialogProps> = ({
       // Reset form
       setSelectedRole('');
       setSelectedMembers([]);
-      setIsPrimary(true);
       onOpenChange(false);
       onRoleAssigned();
     } catch (error) {
@@ -84,8 +67,6 @@ export const AssignRoleDialog: React.FC<AssignRoleDialogProps> = ({
         description: error instanceof Error ? error.message : 'An error occurred',
         variant: 'destructive'
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -135,17 +116,6 @@ export const AssignRoleDialog: React.FC<AssignRoleDialogProps> = ({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="isPrimary"
-              checked={isPrimary}
-              onCheckedChange={(checked) => setIsPrimary(checked as boolean)}
-            />
-            <Label htmlFor="isPrimary" className="text-sm cursor-pointer">
-              Set as primary role (grants channel access)
-            </Label>
           </div>
 
           <div className="space-y-2">
@@ -204,13 +174,13 @@ export const AssignRoleDialog: React.FC<AssignRoleDialogProps> = ({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
+              disabled={isProcessing}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || selectedMembers.length === 0}>
+            <Button type="submit" disabled={isProcessing || selectedMembers.length === 0}>
               <UserPlus className="w-4 h-4 mr-2" />
-              {isSubmitting ? 'Assigning...' : `Assign to ${selectedMembers.length} Member(s)`}
+              {isProcessing ? 'Assigning...' : `Assign to ${selectedMembers.length} Member(s)`}
             </Button>
           </div>
         </form>
