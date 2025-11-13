@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Home } from 'lucide-react';
 import { MapCanvas, MapCanvasRef } from './places/MapCanvas';
 import { UnifiedMapControls } from './places/UnifiedMapControls';
 import { GreenNotice } from './places/GreenNotice';
 import { BasecampsPanel } from './places/BasecampsPanel';
 import { LinksPanel } from './places/LinksPanel';
+import { TripBaseCampCard } from './places/TripBaseCampCard';
+import { PersonalBaseCampCard } from './places/PersonalBaseCampCard';
 import { BasecampLocation, PlaceWithDistance, DistanceCalculationSettings, PlaceCategory } from '../types/basecamp';
 import { DistanceCalculator } from '../utils/distanceCalculator';
 import { useTripVariant } from '../contexts/TripVariantContext';
@@ -523,64 +526,58 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
 
   return (
     <div className="mb-12 mobile-safe-scroll">
-      {/* Header with Tabs */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4">
-        <h2 className="text-3xl font-bold text-white">Places</h2>
+      {/* ROW 1: Header with LEFT-aligned title and CENTERED tabs */}
+      <div className="mb-6 flex flex-row items-center w-full px-4">
+        <h2 className="flex-none text-3xl font-bold text-white">Places</h2>
         
-        {/* Segmented Control Navigation */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-1 flex gap-1 w-full sm:w-auto sm:max-w-md">
-          {(['overview', 'basecamps', 'links'] as TabView[]).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-medium transition-all capitalize ${
-                activeTab === tab
-                  ? 'bg-white/10 text-white shadow-lg'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              {tab === 'basecamps' ? 'Base Camps' : tab}
-            </button>
-          ))}
+        {/* Centered Tab Navigation */}
+        <div className="flex-1 flex justify-center">
+          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-1 flex gap-1">
+            {(['overview', 'basecamps', 'links'] as TabView[]).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`py-2.5 px-4 rounded-lg text-xs sm:text-sm font-medium transition-all capitalize ${
+                  activeTab === tab
+                    ? 'bg-white/10 text-white shadow-lg'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {tab === 'basecamps' ? 'Base Camps' : tab}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Base Camp Context Buttons */}
-      <div className="mb-6 flex justify-center px-4">
-        <div className="grid grid-cols-2 gap-3 w-full max-w-2xl">
-          <button
-            onClick={() => isBasecampSet && handleContextChange('trip')}
-            disabled={!isBasecampSet}
-            className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-              !isBasecampSet
-                ? 'bg-gray-800/50 text-gray-500 cursor-not-allowed opacity-50'
-                : searchContext === 'trip'
-                ? 'bg-sky-500 text-white shadow-lg ring-2 ring-sky-400'
-                : 'bg-sky-900/30 text-sky-300 hover:bg-sky-800/40'
-            }`}
-          >
-            Trip Base Camp
-            {!isBasecampSet && <span className="block text-xs mt-1">(Not Set)</span>}
-          </button>
-          
-          <button
-            onClick={() => personalBasecamp && handleContextChange('personal')}
-            disabled={!personalBasecamp}
-            className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-              !personalBasecamp
-                ? 'bg-gray-800/50 text-gray-500 cursor-not-allowed opacity-50'
-                : searchContext === 'personal'
-                ? 'bg-emerald-500 text-white shadow-lg ring-2 ring-emerald-400'
-                : 'bg-emerald-900/30 text-emerald-300 hover:bg-emerald-800/40'
-            }`}
-          >
-            Personal Base Camp
-            {!personalBasecamp && <span className="block text-xs mt-1">(Not Set)</span>}
-          </button>
+      {/* ROW 2: Banner + Full Base Camp Cards (DELETED OLD COMPACT BUTTONS) */}
+      <div className="w-full px-4 mb-6">
+        {/* Banner */}
+        <div className="mb-4 rounded-xl px-4 py-3 text-sm bg-white/5 text-gray-300 border border-white/10">
+          <div className="flex items-center gap-2">
+            <Home size={16} className="flex-shrink-0" />
+            <span>
+              All searches use <strong>Base Camp</strong> as your starting point
+            </span>
+          </div>
+        </div>
+
+        {/* Two Full Base Camp Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <TripBaseCampCard
+            tripId={tripId}
+            basecamp={contextBasecamp}
+            onBasecampSet={handleBasecampSet}
+            isDemo={isDemoMode}
+          />
+          <PersonalBaseCampCard
+            tripId={tripId}
+            tripBasecampCity={contextBasecamp?.address.split(',')[0].trim()}
+          />
         </div>
       </div>
 
-      {/* Map - MOVED TO THIRD */}
+      {/* ROW 3: Map */}
       <div className="mb-6">
         <div className="relative h-[52.5vh] md:h-[450px] rounded-2xl overflow-hidden shadow-2xl">
           <MapCanvas
