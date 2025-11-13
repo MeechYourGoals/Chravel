@@ -3,7 +3,7 @@ import { useTripAdmins } from '@/hooks/useTripAdmins';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Shield, Crown, UserPlus, X } from 'lucide-react';
+import { Shield, Crown, UserPlus, X, AlertTriangle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -11,6 +11,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AdminManagerProps {
@@ -25,6 +35,8 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
   const [members, setMembers] = useState<any[]>([]);
   const [selectedMember, setSelectedMember] = useState<string>('');
   const [loadingMembers, setLoadingMembers] = useState(false);
+  const [confirmPromote, setConfirmPromote] = useState<string | null>(null);
+  const [confirmDemote, setConfirmDemote] = useState<string | null>(null);
 
   React.useEffect(() => {
     const fetchMembers = async () => {
@@ -58,9 +70,16 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
   }, [tripId, admins]);
 
   const handlePromote = async () => {
-    if (!selectedMember) return;
-    await promoteToAdmin(selectedMember);
+    if (!confirmPromote) return;
+    await promoteToAdmin(confirmPromote);
+    setConfirmPromote(null);
     setSelectedMember('');
+  };
+
+  const handleDemote = async () => {
+    if (!confirmDemote) return;
+    await demoteFromAdmin(confirmDemote);
+    setConfirmDemote(null);
   };
 
   if (isLoading) {
@@ -125,7 +144,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => demoteFromAdmin(admin.user_id)}
+                  onClick={() => setConfirmDemote(admin.user_id)}
                   disabled={isProcessing}
                   className="rounded-full border-white/20 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-500 h-9 px-4"
                 >
@@ -164,7 +183,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
           </Select>
 
           <Button
-            onClick={handlePromote}
+            onClick={() => setConfirmPromote(selectedMember)}
             disabled={!selectedMember || isProcessing}
             className="rounded-full bg-blue-600 hover:bg-blue-700 text-white"
           >
@@ -173,6 +192,71 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
           </Button>
         </div>
       </div>
+
+      {/* Promotion Confirmation Dialog */}
+      <AlertDialog open={!!confirmPromote} onOpenChange={(open) => !open && setConfirmPromote(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-blue-500" />
+              Promote to Admin?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>This member will gain admin privileges including:</p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Ability to manage roles and channels</li>
+                <li>Permission to assign roles to members</li>
+                <li>Access to admin dashboard</li>
+              </ul>
+              <p className="text-yellow-500 flex items-center gap-1 mt-3">
+                <AlertTriangle className="w-4 h-4" />
+                Only the trip creator can revoke admin permissions.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handlePromote}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Confirm Promotion
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Demotion Confirmation Dialog */}
+      <AlertDialog open={!!confirmDemote} onOpenChange={(open) => !open && setConfirmDemote(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              Demote from Admin?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>This admin will lose the following privileges:</p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Ability to manage roles and channels</li>
+                <li>Permission to assign roles to members</li>
+                <li>Access to admin dashboard</li>
+              </ul>
+              <p className="text-muted-foreground mt-3">
+                They will remain a trip member but without admin rights.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDemote}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Confirm Demotion
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

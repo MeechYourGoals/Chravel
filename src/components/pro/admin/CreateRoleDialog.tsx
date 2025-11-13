@@ -6,10 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { PermissionLevel } from '@/types/roleChannels';
 import { Shield, Users, Eye } from 'lucide-react';
 import { validateRole, normalizeRole, MAX_ROLES_PER_TRIP } from '@/utils/roleUtils';
+import { useTripRoles } from '@/hooks/useTripRoles';
 
 interface CreateRoleDialogProps {
   open: boolean;
@@ -27,10 +27,10 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
   onRoleCreated
 }) => {
   const { toast } = useToast();
+  const { createRole, isProcessing } = useTripRoles({ tripId, enabled: !!tripId });
   const [roleName, setRoleName] = useState('');
   const [description, setDescription] = useState('');
   const [permissionLevel, setPermissionLevel] = useState<PermissionLevel>('edit');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,24 +58,8 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      // Create role
-      const { error } = await supabase
-        .from('trip_roles')
-        .insert({
-          trip_id: tripId,
-          role_name: normalized,
-          description: description.trim() || null,
-          permission_level: permissionLevel,
-          created_by: user.id
-        });
-
-      if (error) throw error;
+      await createRole(normalized, permissionLevel);
 
       toast({
         title: 'Role Created',
@@ -95,8 +79,6 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
         description: error instanceof Error ? error.message : 'An error occurred',
         variant: 'destructive'
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -183,12 +165,12 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
+              disabled={isProcessing}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating...' : 'Create Role'}
+            <Button type="submit" disabled={isProcessing}>
+              {isProcessing ? 'Creating...' : 'Create Role'}
             </Button>
           </div>
         </form>
