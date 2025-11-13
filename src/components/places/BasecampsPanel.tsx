@@ -96,6 +96,12 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
 
   const handlePersonalBasecampSet = async (location: BasecampLocation) => {
     try {
+      console.log('[BasecampsPanel] Setting personal basecamp:', location);
+      
+      if (!location.coordinates) {
+        console.warn('[BasecampsPanel] No coordinates provided for personal basecamp');
+      }
+      
       if (isDemoMode) {
         const sessionBasecamp = demoModeService.setSessionPersonalBasecamp({
           trip_id: tripId,
@@ -110,6 +116,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         // Switch to personal context and center map on newly set basecamp
         onContextChange('personal');
         if (location.coordinates) {
+          console.log('[BasecampsPanel] Centering map on personal basecamp (demo):', location.coordinates);
           onCenterMap(location.coordinates, 'personal');
         }
       } else if (user) {
@@ -125,12 +132,13 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         // Switch to personal context and center map on newly set basecamp
         onContextChange('personal');
         if (location.coordinates) {
+          console.log('[BasecampsPanel] Centering map on personal basecamp (auth):', location.coordinates);
           onCenterMap(location.coordinates, 'personal');
         }
       }
       setShowPersonalSelector(false);
     } catch (error) {
-      console.error('Failed to set personal basecamp:', error);
+      console.error('[BasecampsPanel] Failed to set personal basecamp:', error);
     }
   };
 
@@ -202,9 +210,19 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   </div>
                 </div>
 
-                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4 flex-1">
+                {/* Clickable basecamp info section */}
+                <button
+                  onClick={handleCenterOnTrip}
+                  disabled={!tripBasecamp.coordinates}
+                  className={`bg-gray-800/50 rounded-xl p-4 border mb-4 flex-1 text-left transition-all cursor-pointer group disabled:cursor-not-allowed disabled:opacity-50 ${
+                    activeContext === 'trip'
+                      ? 'border-sky-500/50 ring-2 ring-sky-500/20 hover:bg-gray-800/70 hover:ring-sky-500/30'
+                      : 'border-gray-700 hover:bg-gray-800/70 hover:border-gray-600'
+                  }`}
+                  title="Click to center map on this basecamp"
+                >
                   <div className="flex items-start gap-2">
-                    <MapPin size={14} className="text-sky-400 mt-1 flex-shrink-0" />
+                    <MapPin size={14} className="text-sky-400 mt-1 flex-shrink-0 group-hover:scale-110 transition-transform" />
                     <div className="flex-1 min-w-0">
                       {tripBasecamp.name && (
                         <p className="text-white font-medium text-sm mb-0.5">{tripBasecamp.name}</p>
@@ -212,7 +230,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                       <p className="text-gray-400 text-sm break-words">{tripBasecamp.address}</p>
                     </div>
                   </div>
-                </div>
+                </button>
 
                 <div className="flex gap-2 mt-auto">
                   <button
@@ -294,9 +312,19 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                     </button>
                   </div>
                 </div>
-                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4 flex-1">
+                {/* Clickable basecamp info section */}
+                <button
+                  onClick={handleCenterOnPersonal}
+                  disabled={!personalBasecamp?.latitude || !personalBasecamp?.longitude}
+                  className={`bg-gray-800/50 rounded-xl p-4 border mb-4 flex-1 text-left transition-all cursor-pointer group disabled:cursor-not-allowed disabled:opacity-50 ${
+                    activeContext === 'personal'
+                      ? 'border-emerald-500/50 ring-2 ring-emerald-500/20 hover:bg-gray-800/70 hover:ring-emerald-500/30'
+                      : 'border-gray-700 hover:bg-gray-800/70 hover:border-emerald-600/30'
+                  }`}
+                  title="Click to center map on this basecamp"
+                >
                   <div className="flex items-start gap-2">
-                    <MapPin size={14} className="text-emerald-400 mt-1 flex-shrink-0" />
+                    <MapPin size={14} className="text-emerald-400 mt-1 flex-shrink-0 group-hover:scale-110 transition-transform" />
                     <div className="flex-1 min-w-0">
                       {personalBasecamp.name && (
                         <p className="text-white font-medium text-sm mb-0.5">{personalBasecamp.name}</p>
@@ -304,7 +332,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                       <p className="text-gray-400 text-sm break-words">{personalBasecamp.address}</p>
                     </div>
                   </div>
-                </div>
+                </button>
 
                 <div className="flex gap-2 mt-auto">
                   <button
