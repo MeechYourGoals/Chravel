@@ -325,6 +325,23 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
     console.log('[PlacesSection] Setting trip basecamp:', newBasecamp);
     
+    // 🆕 Validate coordinates before proceeding
+    if (!newBasecamp.coordinates?.lat || !newBasecamp.coordinates?.lng) {
+      console.error('[PlacesSection] ❌ Invalid coordinates for trip basecamp:', newBasecamp.coordinates);
+      toast.error('Unable to set location - invalid coordinates');
+      return;
+    }
+    
+    // Validate coordinate ranges
+    if (newBasecamp.coordinates.lat < -90 || newBasecamp.coordinates.lat > 90 || 
+        newBasecamp.coordinates.lng < -180 || newBasecamp.coordinates.lng > 180) {
+      console.error('[PlacesSection] ❌ Coordinates out of range:', newBasecamp.coordinates);
+      toast.error('Invalid location coordinates');
+      return;
+    }
+    
+    console.log('[PlacesSection] ✅ Valid coordinates:', newBasecamp.coordinates);
+    
     // Track local update for conflict resolution
     lastLocalUpdateRef.current = {
       timestamp: Date.now(),
@@ -334,10 +351,9 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     setContextBasecamp(newBasecamp);
     
     // Center map immediately on new basecamp
-    if (newBasecamp.coordinates) {
-      console.log('[PlacesSection] Centering map on trip basecamp:', newBasecamp.coordinates);
-      handleCenterMap(newBasecamp.coordinates, 'trip');
-    }
+    console.log('[PlacesSection] Centering map on trip basecamp:', newBasecamp.coordinates);
+    handleCenterMap(newBasecamp.coordinates, 'trip');
+    console.log('[PlacesSection] ✅ Trip basecamp set successfully');
     
     // Recalculate distances for existing places
     if (places.length > 0) {
@@ -417,19 +433,26 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   const handleCenterMap = (coords: { lat: number; lng: number }, type?: 'trip' | 'personal' | 'search') => {
-    console.log('[PlacesSection] handleCenterMap called:', { coords, type });
+    console.log('[Map] handleCenterMap called:', { coords, type });
     
     if (!coords?.lat || !coords?.lng) {
-      console.warn('[PlacesSection] Invalid coordinates provided to handleCenterMap');
+      console.warn('[Map] Invalid coordinates provided to handleCenterMap:', coords);
+      return;
+    }
+    
+    // Validate coordinate ranges
+    if (coords.lat < -90 || coords.lat > 90 || coords.lng < -180 || coords.lng > 180) {
+      console.error('[Map] Coordinates out of valid range:', coords);
       return;
     }
     
     mapRef.current?.centerOn(coords, 15);
+    console.log(`[Map] ✅ Centered on ${type}:`, coords);
     
     if (type) {
-      // Track most recent location update
+      // Track most recent location update for "most recent wins" logic
       setLastUpdatedLocation({
-        type: type === 'search' ? 'trip' : type,
+        type: type,
         timestamp: Date.now(),
         coords: coords
       });
@@ -505,9 +528,15 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     }, 15000);
 
     try {
+      // Search will center the map internally
       await mapRef.current?.search(searchQuery);
       clearTimeout(timeoutId);
       setSearchError(null);
+      
+      // 🆕 Track this search as the most recent location update
+      // Note: We can't easily get coordinates from a text search without using Places API
+      // The map's internal search already centered, so we just log the action
+      console.log('[PlacesSection] Text search completed for:', searchQuery);
     } catch (error) {
       clearTimeout(timeoutId);
       if (import.meta.env.DEV) {
@@ -525,8 +554,26 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
 
     setIsSearching(true);
     try {
+      // Search will center the map internally
       await mapRef.current?.search(prediction.description);
       setSearchError(null);
+      
+      // 🆕 Extract coordinates from the prediction result and track as 'search' type
+      // The map has already centered, but we need to track this as the most recent update
+      const placesService = new google.maps.places.PlacesService(mapRef.current?.getMap()!);
+      placesService.getDetails(
+        { placeId: prediction.place_id },
+        (place, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
+            const coords = {
+              lat: place.geometry.location.lat(),
+              lng: place.geometry.location.lng()
+            };
+            console.log('[PlacesSection] Search completed, centering on:', coords);
+            handleCenterMap(coords, 'search');
+          }
+        }
+      );
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('[PlacesSection] Search error:', error);

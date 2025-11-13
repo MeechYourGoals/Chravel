@@ -7,6 +7,7 @@ import { demoModeService } from '@/services/demoModeService';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useBasecamp } from '@/contexts/BasecampContext';
+import { toast } from 'sonner';
 
 export interface BasecampsPanelProps {
   tripId: string;
@@ -98,9 +99,22 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
     try {
       console.log('[BasecampsPanel] Setting personal basecamp:', location);
       
-      if (!location.coordinates) {
-        console.warn('[BasecampsPanel] No coordinates provided for personal basecamp');
+      // 🆕 Validate coordinates before proceeding
+      if (!location.coordinates?.lat || !location.coordinates?.lng) {
+        console.error('[BasecampsPanel] ❌ Invalid coordinates for personal basecamp:', location.coordinates);
+        toast.error('Unable to set location - invalid coordinates');
+        return;
       }
+      
+      // Validate coordinate ranges
+      if (location.coordinates.lat < -90 || location.coordinates.lat > 90 || 
+          location.coordinates.lng < -180 || location.coordinates.lng > 180) {
+        console.error('[BasecampsPanel] ❌ Coordinates out of range:', location.coordinates);
+        toast.error('Invalid location coordinates');
+        return;
+      }
+      
+      console.log('[BasecampsPanel] ✅ Valid coordinates:', location.coordinates);
       
       if (isDemoMode) {
         const sessionBasecamp = demoModeService.setSessionPersonalBasecamp({
@@ -108,37 +122,35 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           user_id: effectiveUserId,
           name: location.name,
           address: location.address,
-          latitude: location.coordinates?.lat,
-          longitude: location.coordinates?.lng
+          latitude: location.coordinates.lat,
+          longitude: location.coordinates.lng
         });
         setPersonalBasecamp(sessionBasecamp);
         
-        // Switch to personal context and center map on newly set basecamp
+        // 🆕 Center map FIRST, then switch context
+        console.log('[BasecampsPanel] Centering map on personal basecamp (demo):', location.coordinates);
+        onCenterMap(location.coordinates, 'personal');
         onContextChange('personal');
-        if (location.coordinates) {
-          console.log('[BasecampsPanel] Centering map on personal basecamp (demo):', location.coordinates);
-          onCenterMap(location.coordinates, 'personal');
-        }
       } else if (user) {
         const dbBasecamp = await basecampService.upsertPersonalBasecamp({
           trip_id: tripId,
           name: location.name,
           address: location.address,
-          latitude: location.coordinates?.lat,
-          longitude: location.coordinates?.lng
+          latitude: location.coordinates.lat,
+          longitude: location.coordinates.lng
         });
         setPersonalBasecamp(dbBasecamp);
         
-        // Switch to personal context and center map on newly set basecamp
+        // 🆕 Center map FIRST, then switch context
+        console.log('[BasecampsPanel] Centering map on personal basecamp (auth):', location.coordinates);
+        onCenterMap(location.coordinates, 'personal');
         onContextChange('personal');
-        if (location.coordinates) {
-          console.log('[BasecampsPanel] Centering map on personal basecamp (auth):', location.coordinates);
-          onCenterMap(location.coordinates, 'personal');
-        }
       }
       setShowPersonalSelector(false);
+      console.log('[BasecampsPanel] ✅ Personal basecamp set successfully');
     } catch (error) {
-      console.error('[BasecampsPanel] Failed to set personal basecamp:', error);
+      console.error('[BasecampsPanel] ❌ Failed to set personal basecamp:', error);
+      toast.error('Failed to set personal base camp');
     }
   };
 
