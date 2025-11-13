@@ -50,6 +50,7 @@ export interface TripRole {
   permissionLevel?: PermissionLevel;
   featurePermissions?: FeaturePermissions;
   memberCount?: number;
+  channels?: any[];
   createdBy: string;
   createdAt: string;
   updatedAt: string;
