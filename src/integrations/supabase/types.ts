@@ -862,6 +862,39 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          title: string
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          title: string
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          title?: string
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       organization_billing: {
         Row: {
           billing_email: string
@@ -1821,6 +1854,7 @@ export type Database = {
           id: string
           is_active: boolean
           max_uses: number | null
+          require_approval: boolean | null
           trip_id: string
           updated_at: string
         }
@@ -1833,6 +1867,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           max_uses?: number | null
+          require_approval?: boolean | null
           trip_id: string
           updated_at?: string
         }
@@ -1845,6 +1880,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           max_uses?: number | null
+          require_approval?: boolean | null
           trip_id?: string
           updated_at?: string
         }
@@ -2606,6 +2642,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_join_request: { Args: { _request_id: string }; Returns: Json }
       can_access_channel: {
         Args: { _channel_id: string; _user_id: string }
         Returns: boolean
@@ -2619,6 +2656,16 @@ export type Database = {
           p_start_time: string
           p_title: string
           p_trip_id: string
+        }
+        Returns: string
+      }
+      create_notification: {
+        Args: {
+          _message?: string
+          _metadata?: Json
+          _title: string
+          _type?: string
+          _user_id: string
         }
         Returns: string
       }
@@ -2648,6 +2695,7 @@ export type Database = {
         }
         Returns: string
       }
+      deactivate_expired_invites: { Args: never; Returns: undefined }
       ensure_trip_membership: {
         Args: { p_trip_id: string; p_user_id: string }
         Returns: boolean
@@ -2753,6 +2801,7 @@ export type Database = {
           source_type: string
         }[]
       }
+      reject_join_request: { Args: { _request_id: string }; Returns: Json }
       toggle_task_status: {
         Args: {
           p_completed: boolean
