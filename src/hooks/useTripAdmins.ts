@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useDemoMode } from './useDemoMode';
+import { useAuth } from './useAuth';
 
 export interface TripAdmin {
   id: string;
@@ -26,6 +28,8 @@ interface UseTripAdminsProps {
 }
 
 export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) => {
+  const { isDemoMode } = useDemoMode();
+  const { user } = useAuth();
   const [admins, setAdmins] = useState<TripAdmin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -38,6 +42,29 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
 
     try {
       setIsLoading(true);
+
+      // 🆕 DEMO MODE: Return current user as admin
+      if (isDemoMode && user?.id) {
+        setAdmins([{
+          id: `mock-admin-${tripId}`,
+          trip_id: tripId,
+          user_id: user.id,
+          granted_by: user.id,
+          granted_at: new Date().toISOString(),
+          permissions: {
+            can_manage_roles: true,
+            can_manage_channels: true,
+            can_designate_admins: true,
+          },
+          profile: {
+            display_name: user.email?.split('@')[0] || 'Demo User',
+            avatar_url: undefined,
+            email: user.email,
+          }
+        }]);
+        setIsLoading(false);
+        return;
+      }
 
       const { data, error } = await supabase
         .from('trip_admins')
@@ -70,7 +97,7 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
     } finally {
       setIsLoading(false);
     }
-  }, [tripId, enabled]);
+  }, [tripId, enabled, isDemoMode, user?.id, user?.email]);
 
   useEffect(() => {
     fetchAdmins();
@@ -101,13 +128,19 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
     };
   }, [tripId, enabled, fetchAdmins]);
 
-  const promoteToAdmin = useCallback(async (userId: string) => {
+  const promoteToAdmin = useCallback(async (targetUserId: string) => {
     setIsProcessing(true);
     
     try {
+      // 🆕 DEMO MODE: Show success toast only
+      if (isDemoMode) {
+        toast.success('✅ User promoted to admin');
+        return { success: true, message: 'User promoted' };
+      }
+
       const { data, error } = await supabase.rpc('promote_to_admin' as any, {
-        trip_id: tripId,
-        target_user: userId
+        _trip_id: tripId,
+        _target_user_id: targetUserId
       });
 
       if (error) throw error;
@@ -128,15 +161,21 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
     } finally {
       setIsProcessing(false);
     }
-  }, [tripId, fetchAdmins]);
+  }, [tripId, fetchAdmins, isDemoMode]);
 
-  const demoteFromAdmin = useCallback(async (userId: string) => {
+  const demoteFromAdmin = useCallback(async (targetUserId: string) => {
     setIsProcessing(true);
     
     try {
+      // 🆕 DEMO MODE: Show success toast only
+      if (isDemoMode) {
+        toast.success('User demoted from admin');
+        return { success: true, message: 'User demoted' };
+      }
+
       const { data, error } = await supabase.rpc('demote_from_admin' as any, {
-        trip_id: tripId,
-        target_user: userId
+        _trip_id: tripId,
+        _target_user_id: targetUserId
       });
 
       if (error) throw error;
@@ -157,7 +196,7 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
     } finally {
       setIsProcessing(false);
     }
-  }, [tripId, fetchAdmins]);
+  }, [tripId, fetchAdmins, isDemoMode]);
 
   return {
     admins,

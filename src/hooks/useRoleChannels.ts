@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { roleChannelService, RoleChannel, RoleChannelMessage } from '../services/roleChannelService';
 import { getDemoChannelsForTrip } from '../data/demoChannelData';
 import { TripChannel, ChannelMessage } from '../types/roleChannels';
+import { useDemoMode } from './useDemoMode';
+import { MockRolesService } from '@/services/mockRolesService';
 
 const DEMO_TRIP_IDS = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026', '13', '14', '15', '16'];
 
@@ -33,6 +35,7 @@ const convertToRoleChannelMessage = (msg: ChannelMessage): RoleChannelMessage =>
 });
 
 export const useRoleChannels = (tripId: string, userRole: string, roles?: string[]) => {
+  const { isDemoMode } = useDemoMode();
   const [availableChannels, setAvailableChannels] = useState<TripChannel[]>([]);
   const [activeChannel, setActiveChannel] = useState<TripChannel | null>(null);
   const [messages, setMessages] = useState<RoleChannelMessage[]>([]);
@@ -45,8 +48,17 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
   const loadChannels = useCallback(async () => {
     setIsLoading(true);
 
-    if (isDemoTrip) {
-      // Load demo channels (already in TripChannel format), pass roles for dynamic generation
+    // 🆕 DEMO MODE: Load from mock service
+    if (isDemoMode || isDemoTrip) {
+      // First try mock service (user-created channels)
+      const mockChannels = MockRolesService.getChannelsForTrip(tripId);
+      if (mockChannels && mockChannels.length > 0) {
+        setAvailableChannels(mockChannels);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Fallback to demo channels with dynamic generation
       const { channels, messagesByChannel } = getDemoChannelsForTrip(tripId, roles);
       setAvailableChannels(channels);
       setDemoMessages(messagesByChannel);
@@ -63,7 +75,7 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
     
     setAvailableChannels(accessibleChannels);
     setIsLoading(false);
-  }, [tripId, userRole, isDemoTrip]);
+  }, [tripId, userRole, isDemoMode, isDemoTrip, roles]);
 
   useEffect(() => {
     loadChannels();

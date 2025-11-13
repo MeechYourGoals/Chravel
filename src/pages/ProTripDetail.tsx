@@ -20,6 +20,7 @@ import { MobileProTripDetail } from './MobileProTripDetail';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ProAdminDashboard } from '../components/pro/admin/ProAdminDashboard';
 import { useProTripAdmin } from '../hooks/useProTripAdmin';
+import { MockRolesService } from '../services/mockRolesService';
 
 // 🚀 OPTIMIZATION: Lazy load heavy components for faster initial render
 const TripHeader = lazy(() =>
@@ -57,6 +58,23 @@ const ProTripDetail = () => {
       enableDemoMode();
     }
   }, [isDemoMode, enableDemoMode]);
+
+  // 🆕 Initialize mock roles and channels for Pro trips
+  React.useEffect(() => {
+    if (isDemoMode && proTripId && proTripId in proTripMockData) {
+      const tripData = proTripMockData[proTripId];
+      const existingRoles = MockRolesService.getRolesForTrip(proTripId);
+      
+      if (!existingRoles) {
+        const roles = MockRolesService.seedRolesForTrip(
+          proTripId,
+          tripData.proTripCategory,
+          user?.id || 'demo-user'
+        );
+        MockRolesService.seedChannelsForRoles(proTripId, roles, user?.id || 'demo-user');
+      }
+    }
+  }, [isDemoMode, proTripId, user?.id]);
 
   // Show loading spinner while demo mode initializes
   if (!isDemoMode) {
