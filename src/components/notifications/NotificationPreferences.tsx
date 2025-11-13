@@ -15,7 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Bell, BellOff, Moon, Mail, MessageSquare, DollarSign, Calendar, Users, Megaphone } from 'lucide-react';
 import { userPreferencesService, NotificationPreferences as NotificationPrefs } from '@/services/userPreferencesService';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/hooks/useAuth';
 
 export const NotificationPreferences = () => {
   const { user } = useAuth();

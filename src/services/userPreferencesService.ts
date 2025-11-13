@@ -101,7 +101,8 @@ export const userPreferencesService = {
 
   async getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
     try {
-      const { data, error } = await supabase
+      // Temporary type assertion until notification_preferences table is added to database types
+      const { data, error } = await (supabase as any)
         .from('notification_preferences')
         .select('*')
         .eq('user_id', userId)
@@ -132,7 +133,8 @@ export const userPreferencesService = {
     preferences: Partial<NotificationPreferences>
   ): Promise<NotificationPreferences | null> {
     try {
-      const { data, error } = await supabase
+      // Temporary type assertion until notification_preferences table is added to database types
+      const { data, error } = await (supabase as any)
         .from('notification_preferences')
         .upsert(
           { user_id: userId, ...preferences },

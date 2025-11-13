@@ -92,10 +92,7 @@ export const calendarService = {
               p_location: eventData.location || '',
               p_start_time: eventData.start_time,
               p_end_time: eventData.end_time || null,
-              p_created_by: user.id,
-              p_recurrence_rule: eventData.recurrence_rule || null,
-              p_is_busy: eventData.is_busy ?? true,
-              p_availability_status: eventData.availability_status || 'busy'
+              p_created_by: user.id
             });
 
           if (error) throw error;
