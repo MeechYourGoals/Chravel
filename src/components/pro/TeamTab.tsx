@@ -9,6 +9,7 @@ import { useProTripAdmin } from '@/hooks/useProTripAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { TripRole } from '@/types/roleChannels';
 import { Plus, UserPlus, Shield } from 'lucide-react';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface TeamTabProps {
   roster: ProParticipant[];
@@ -21,6 +22,7 @@ interface TeamTabProps {
 
 export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId, onUpdateMemberRole }: TeamTabProps) => {
   const { isAdmin, hasPermission, isLoading: adminLoading } = useProTripAdmin(tripId || '');
+  const { isDemoMode } = useDemoMode();
   const [roles, setRoles] = useState<TripRole[]>([]);
   const [isLoadingRoles, setIsLoadingRoles] = useState(true);
   const [createRoleOpen, setCreateRoleOpen] = useState(false);
@@ -73,7 +75,7 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
     // Optionally refresh roster data
   };
 
-  const canManageRoles = isAdmin && hasPermission('can_manage_roles');
+  const canManageRoles = (isAdmin && hasPermission('can_manage_roles')) || isDemoMode;
 
   return (
     <div className="space-y-6">

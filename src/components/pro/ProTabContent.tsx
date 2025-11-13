@@ -18,6 +18,7 @@ import { ProTripData } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 import { isReadOnlyTab, hasTabAccess } from './ProTabsConfig';
 import { useAuth } from '../../hooks/useAuth';
+import { useDemoMode } from '../../hooks/useDemoMode';
 
 interface ProTabContentProps {
   activeTab: string;
@@ -39,6 +40,7 @@ export const ProTabContent = ({
   onUpdateMemberRole
 }: ProTabContentProps) => {
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   
   const userRole = user?.proRole || 'staff';
   const userPermissions = user?.permissions || ['read'];
@@ -131,7 +133,7 @@ export const ProTabContent = ({
           <div className="space-y-6">
             <div className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
               <h3 className="text-lg font-bold text-white mb-4">Financial Management</h3>
-              {isReadOnly && (
+              {isReadOnly && !isDemoMode && (
                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mb-4">
                   <p className="text-yellow-400 text-sm">Read-only access for your role</p>
                 </div>
@@ -149,7 +151,7 @@ export const ProTabContent = ({
           <div className="space-y-6">
             <div className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
               <h3 className="text-lg font-bold text-white mb-4">Medical & Wellness</h3>
-              {isReadOnly && (
+              {isReadOnly && !isDemoMode && (
                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mb-4">
                   <p className="text-yellow-400 text-sm">Read-only access for your role</p>
                 </div>
@@ -167,7 +169,7 @@ export const ProTabContent = ({
           <div className="space-y-6">
             <div className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
               <h3 className="text-lg font-bold text-white mb-4">Compliance Management</h3>
-              {isReadOnly && (
+              {isReadOnly && !isDemoMode && (
                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mb-4">
                   <p className="text-yellow-400 text-sm">Read-only access for your role</p>
                 </div>
@@ -185,7 +187,7 @@ export const ProTabContent = ({
           <div className="space-y-6">
             <div className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
               <h3 className="text-lg font-bold text-white mb-4">Sponsor Management</h3>
-              {isReadOnly && (
+              {isReadOnly && !isDemoMode && (
                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mb-4">
                   <p className="text-yellow-400 text-sm">Read-only access for your role</p>
                 </div>
