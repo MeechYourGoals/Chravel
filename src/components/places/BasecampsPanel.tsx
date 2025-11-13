@@ -183,38 +183,20 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mobile-safe-scroll">
         {/* Trip Base Camp Card - Compact 75% Height */}
-        <div className="rounded-2xl bg-gray-900/80 border border-white/10 shadow-lg overflow-hidden flex flex-col min-h-[220px] max-h-[280px]">
-        <div className="p-4 flex flex-col flex-1">
+        <div className="rounded-2xl bg-gray-900/80 border border-white/10 shadow-lg overflow-hidden flex flex-col min-h-[100px] max-h-[120px]">
+        <div className="p-3 flex flex-col flex-1 justify-center">
             {tripBasecamp ? (
               <>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <MapPin size={16} className="text-sky-400" />
-                    <h3 className="text-white font-semibold text-base">Trip Base Camp</h3>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleTripBasecampDelete}
-                      className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                    <button
-                      onClick={() => setShowTripSelector(true)}
-                      className="p-1.5 rounded-lg text-sky-400 hover:bg-sky-500/10 transition-colors"
-                      title="Edit"
-                    >
-                      <Edit size={14} />
-                    </button>
-                  </div>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <MapPin size={16} className="text-sky-400" />
+                  <h3 className="text-white font-semibold text-base">Trip Base Camp</h3>
                 </div>
 
                 {/* Clickable basecamp info section - Compact with hover animation */}
                 <button
                   onClick={handleCenterOnTrip}
                   disabled={!tripBasecamp.coordinates}
-                  className={`bg-gray-800/50 rounded-xl p-3 border mb-3 flex-1 text-left transition-all duration-300 ease-out cursor-pointer group disabled:cursor-not-allowed disabled:opacity-50 hover:scale-[1.02] hover:shadow-lg ${
+                  className={`bg-gray-800/50 rounded-xl p-2 border mb-2 text-left transition-all duration-300 ease-out cursor-pointer group disabled:cursor-not-allowed disabled:opacity-50 hover:scale-[1.02] hover:shadow-lg ${
                     activeContext === 'trip'
                       ? 'border-sky-500/40 ring-2 ring-sky-500/30 shadow-sky-500/10'
                       : 'border-gray-700 hover:bg-gray-800/70 hover:border-sky-500/20'
@@ -222,37 +204,15 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   title="Click to center map on this basecamp"
                 >
                   <div className="flex items-start gap-2">
-                    <MapPin size={14} className="text-sky-400 mt-1 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                    <MapPin size={12} className="text-sky-400 mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform" />
                     <div className="flex-1 min-w-0">
                       {tripBasecamp.name && (
-                        <p className="text-white font-medium text-sm mb-0.5">{tripBasecamp.name}</p>
+                        <p className="text-white font-medium text-xs mb-0.5">{tripBasecamp.name}</p>
                       )}
-                      <p className="text-gray-400 text-sm break-words">{tripBasecamp.address}</p>
+                      <p className="text-gray-400 text-xs break-words">{tripBasecamp.address}</p>
                     </div>
                   </div>
                 </button>
-
-                <div className="flex gap-2 mt-auto">
-                  <button
-                    onClick={() => onContextChange('trip')}
-                    className={`flex-1 py-2 px-4 rounded-xl text-xs font-medium transition-all ${
-                      activeContext === 'trip'
-                        ? 'bg-sky-500/20 text-sky-300 ring-1 ring-sky-400/30'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                    }`}
-                  >
-                    Use as Search Context
-                  </button>
-                  {tripBasecamp.coordinates && (
-                    <button
-                      onClick={handleCenterOnTrip}
-                      className="p-2 rounded-xl bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
-                      title="Center map"
-                    >
-                      <Navigation size={14} />
-                    </button>
-                  )}
-                </div>
               </>
             ) : (
               <>
@@ -276,8 +236,8 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         </div>
 
       {/* Personal Base Camp Card - Compact 75% Height */}
-      <div className="rounded-2xl bg-gray-900/80 border border-white/10 shadow-lg overflow-hidden flex flex-col min-h-[220px] max-h-[280px]">
-        <div className="p-4 flex flex-col flex-1">
+      <div className="rounded-2xl bg-gray-900/80 border border-white/10 shadow-lg overflow-hidden flex flex-col min-h-[100px] max-h-[120px]">
+        <div className="p-3 flex flex-col flex-1 justify-center">
             {loading ? (
               <div className="animate-pulse">
                 <div className="h-6 bg-gray-800 rounded mb-3"></div>
@@ -285,39 +245,19 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
               </div>
             ) : personalBasecamp ? (
               <>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <User size={16} className="text-emerald-400" />
-                      <h3 className="text-white font-semibold text-base">Personal Base Camp</h3>
-                    </div>
-                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
-                      <Lock size={10} />
-                      Private
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handlePersonalBasecampDelete}
-                      className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                    <button
-                      onClick={() => setShowPersonalSelector(true)}
-                      className="p-1.5 rounded-lg text-emerald-400 hover:bg-emerald-500/10 transition-colors"
-                      title="Edit"
-                    >
-                      <Edit size={14} />
-                    </button>
-                  </div>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <User size={16} className="text-emerald-400" />
+                  <h3 className="text-white font-semibold text-base">Personal Base Camp</h3>
+                  <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
+                    <Lock size={8} />
+                    Private
+                  </span>
                 </div>
                 {/* Clickable basecamp info section - Compact with hover animation */}
                 <button
                   onClick={handleCenterOnPersonal}
                   disabled={!personalBasecamp?.latitude || !personalBasecamp?.longitude}
-                  className={`bg-gray-800/50 rounded-xl p-3 border mb-3 flex-1 text-left transition-all duration-300 ease-out cursor-pointer group disabled:cursor-not-allowed disabled:opacity-50 hover:scale-[1.02] hover:shadow-lg ${
+                  className={`bg-gray-800/50 rounded-xl p-2 border mb-2 text-left transition-all duration-300 ease-out cursor-pointer group disabled:cursor-not-allowed disabled:opacity-50 hover:scale-[1.02] hover:shadow-lg ${
                     activeContext === 'personal'
                       ? 'border-emerald-500/40 ring-2 ring-emerald-500/30 shadow-emerald-500/10'
                       : 'border-gray-700 hover:bg-gray-800/70 hover:border-emerald-500/20'
@@ -325,60 +265,34 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   title="Click to center map on this basecamp"
                 >
                   <div className="flex items-start gap-2">
-                    <MapPin size={14} className="text-emerald-400 mt-1 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                    <MapPin size={12} className="text-emerald-400 mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform" />
                     <div className="flex-1 min-w-0">
                       {personalBasecamp.name && (
-                        <p className="text-white font-medium text-sm mb-0.5">{personalBasecamp.name}</p>
+                        <p className="text-white font-medium text-xs mb-0.5">{personalBasecamp.name}</p>
                       )}
-                      <p className="text-gray-400 text-sm break-words">{personalBasecamp.address}</p>
+                      <p className="text-gray-400 text-xs break-words">{personalBasecamp.address}</p>
                     </div>
                   </div>
                 </button>
-
-                <div className="flex gap-2 mt-auto">
-                  <button
-                    onClick={() => onContextChange('personal')}
-                    className={`flex-1 py-2 px-4 rounded-xl text-xs font-medium transition-all ${
-                      activeContext === 'personal'
-                        ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/30'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                    }`}
-                  >
-                    Use as Search Context
-                  </button>
-                  {personalBasecamp.latitude && personalBasecamp.longitude && (
-                    <button
-                      onClick={handleCenterOnPersonal}
-                      className="p-2 rounded-xl bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
-                      title="Center map"
-                    >
-                      <Navigation size={14} />
-                    </button>
-                  )}
-                </div>
               </>
             ) : (
               <>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <User size={16} className="text-emerald-400" />
-                      <h3 className="text-white font-semibold text-base">Personal Base Camp</h3>
-                    </div>
-                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
-                      <Lock size={10} />
-                      Private
-                    </span>
-                  </div>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <User size={16} className="text-emerald-400" />
+                  <h3 className="text-white font-semibold text-base">Personal Base Camp</h3>
+                  <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
+                    <Lock size={8} />
+                    Private
+                  </span>
                 </div>
-                <p className="text-gray-400 text-sm mb-3">
+                <p className="text-gray-400 text-xs text-center mb-2">
                   Add the location of your accommodations. Only you can see this.
                 </p>
                 <button
                   onClick={() => setShowPersonalSelector(true)}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-xl transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-1.5 px-3 rounded-xl transition-colors flex items-center justify-center gap-2 text-xs"
                 >
-                  <Plus size={14} />
+                  <Plus size={12} />
                   Set Your Location
                 </button>
               </>
