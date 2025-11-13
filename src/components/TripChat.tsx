@@ -449,8 +449,8 @@ export const TripChat = ({
       )}
 
       {/* Chat Container - Messages with Integrated Filter Tabs */}
-      <div className="flex-1 flex flex-col min-h-0 pb-4">
-        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0 pb-4" data-chat-container>
+        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col max-h-[70vh]">
           {/* Filter Tabs - ALWAYS VISIBLE */}
           <MessageTypeBar
             activeFilter={messageFilter}

@@ -256,6 +256,21 @@ const TripDetail = () => {
     return <MobileTripDetail />;
   }
 
+  // 🆕 Auto-scroll to chat on page load (chat-first viewport)
+  React.useEffect(() => {
+    const scrollToChat = () => {
+      // Wait for content to render, then scroll to tabs (where chat is)
+      setTimeout(() => {
+        const chatElement = document.querySelector('[data-chat-container]');
+        if (chatElement) {
+          chatElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+    };
+
+    scrollToChat();
+  }, []);
+
   // Desktop experience remains completely unchanged
   return (
     <div className="min-h-screen bg-black">

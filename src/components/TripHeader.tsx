@@ -117,10 +117,10 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
         </div>
       ) : null}
 
-      {/* Main Trip Info Section - With or Without Background Overlay */}
+      {/* Main Trip Info Section - Compact 75% height */}
       <div 
         className={cn(
-          "relative rounded-3xl p-6 mb-4 overflow-hidden border border-white/20",
+          "relative rounded-3xl p-4 mb-3 overflow-hidden border border-white/20",
           hasCoverPhoto && isProOrEvent 
             ? "shadow-2xl" 
             : "bg-white/10 backdrop-blur-md"
@@ -186,10 +186,10 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
             />
           </div>
 
-          {/* Right: Collaborators Panel */}
+          {/* Right: Collaborators Panel - Reduced to 75% height */}
           <div 
             className={cn(
-              "rounded-2xl p-4 pb-2 lg:mb-6 min-w-[280px] lg:w-[40%] border border-white/10",
+              "rounded-2xl p-3 pb-2 lg:mb-4 min-w-[280px] lg:w-[40%] border border-white/10 max-h-[240px]",
               hasCoverPhoto && isProOrEvent 
                 ? "bg-black/50 backdrop-blur-md" 
                 : "bg-white/5 backdrop-blur-sm"

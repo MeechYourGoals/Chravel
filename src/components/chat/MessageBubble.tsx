@@ -68,10 +68,10 @@ export const MessageBubble = ({
         <img
           src={senderAvatar || getMockAvatar(senderName)}
           alt={senderName}
-          className="w-10 h-10 rounded-full object-cover border-2 border-border/50 flex-shrink-0"
+          className="w-8 h-8 rounded-full object-cover border-2 border-border/50 flex-shrink-0"
         />
       )}
-      {!isOwnMessage && !showSenderInfo && <div className="w-10 flex-shrink-0" />}
+      {!isOwnMessage && !showSenderInfo && <div className="w-8 flex-shrink-0" />}
 
       <div
         className={cn(
@@ -80,13 +80,13 @@ export const MessageBubble = ({
         )}
       >
         {showSenderInfo && (
-          <span className="text-xs text-white/70 mb-1">
+          <span className="text-[10px] text-white/70 mb-0.5">
             {isOwnMessage ? 'You' : senderName} — {formatTime(timestamp)}
           </span>
         )}
         <div
           className={cn(
-            'px-3 py-2 rounded-2xl break-words',
+            'px-2.5 py-1.5 rounded-2xl break-words text-sm',
             isOwnMessage
               ? 'bg-primary text-primary-foreground'
               : 'bg-muted/80 text-white',

@@ -118,6 +118,20 @@ const EventDetail = () => {
     return <MobileEventDetail />;
   }
 
+  // 🆕 Auto-scroll to chat on page load (chat-first viewport)
+  React.useEffect(() => {
+    const scrollToChat = () => {
+      setTimeout(() => {
+        const chatElement = document.querySelector('[data-chat-container]');
+        if (chatElement) {
+          chatElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+    };
+
+    scrollToChat();
+  }, []);
+
   const tripContext: TripContext = {
     tripId: eventId,
     title: eventData.title,
