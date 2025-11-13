@@ -4,6 +4,7 @@ import { demoModeService } from './demoModeService';
 import { calendarStorageService } from './calendarStorageService';
 import { calendarOfflineQueue } from './calendarOfflineQueue';
 import { offlineSyncService } from './offlineSyncService';
+import { retryWithBackoff } from '@/utils/retry';
 
 export interface TripEvent {
   id: string;
@@ -80,38 +81,51 @@ export const calendarService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Use atomic function to create event with conflict detection
-      const { data: eventId, error } = await supabase
-        .rpc('create_event_with_conflict_check', {
-          p_trip_id: eventData.trip_id,
-          p_title: eventData.title,
-          p_description: eventData.description || '',
-          p_location: eventData.location || '',
-          p_start_time: eventData.start_time,
-          p_end_time: eventData.end_time || null,
-          p_created_by: user.id,
-          p_recurrence_rule: eventData.recurrence_rule || null,
-          p_is_busy: eventData.is_busy ?? true,
-          p_availability_status: eventData.availability_status || 'busy'
-        });
+      // Use atomic function to create event with conflict detection - with retry
+      const createdEvent = await retryWithBackoff(
+        async () => {
+          const { data: eventId, error } = await supabase
+            .rpc('create_event_with_conflict_check', {
+              p_trip_id: eventData.trip_id,
+              p_title: eventData.title,
+              p_description: eventData.description || '',
+              p_location: eventData.location || '',
+              p_start_time: eventData.start_time,
+              p_end_time: eventData.end_time || null,
+              p_created_by: user.id,
+              p_recurrence_rule: eventData.recurrence_rule || null,
+              p_is_busy: eventData.is_busy ?? true,
+              p_availability_status: eventData.availability_status || 'busy'
+            });
 
-      if (error) throw error;
-      
-      // Fetch the created event to return complete data with creator profile
-      const { data: createdEvent, error: fetchError } = await supabase
-        .from('trip_events')
-        .select(`
-          *,
-          creator:created_by (
-            id,
-            display_name,
-            avatar_url
-          )
-        `)
-        .eq('id', eventId)
-        .single();
+          if (error) throw error;
 
-      if (fetchError) throw fetchError;
+          // Fetch the created event to return complete data with creator profile
+          const { data: event, error: fetchError } = await supabase
+            .from('trip_events')
+            .select(`
+              *,
+              creator:created_by (
+                id,
+                display_name,
+                avatar_url
+              )
+            `)
+            .eq('id', eventId)
+            .single();
+
+          if (fetchError) throw fetchError;
+          return event;
+        },
+        {
+          maxRetries: 3,
+          onRetry: (attempt, error) => {
+            if (import.meta.env.DEV) {
+              console.warn(`Retry attempt ${attempt}/3 for creating calendar event:`, error.message);
+            }
+          }
+        }
+      );
       
       // Cache the created event
       await offlineSyncService.cacheEntity(
