@@ -42,9 +42,9 @@ export const UnifiedMapControls: React.FC<UnifiedMapControlsProps> = ({
   isMapLoading
 }) => {
   return (
-    <div className="absolute top-2 right-2 z-20 flex flex-col gap-2 w-48 md:w-44 sm:portrait:w-32 lg:landscape:w-40">
-      {/* Search Bar Section */}
-      <div className="bg-gray-900/90 backdrop-blur-lg rounded-lg p-2 shadow-lg border border-white/10">
+    <div className="absolute top-2 right-2 z-20 w-64 md:w-56 sm:portrait:w-48">
+      {/* Search Bar Section - Base Camp buttons removed (moved to main layout) */}
+      <div className="bg-gray-900/90 backdrop-blur-lg rounded-lg p-3 shadow-lg border border-white/10">
         <form onSubmit={onSearchSubmit} className="relative">
           <Search size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
           <input
@@ -111,45 +111,6 @@ export const UnifiedMapControls: React.FC<UnifiedMapControlsProps> = ({
             Biased to <span className="font-semibold">{activeContext === 'trip' ? 'Trip' : 'Personal'}</span>
           </div>
         )}
-      </div>
-
-      {/* Base Camp Context Section */}
-      <div className="bg-gray-900/90 backdrop-blur-lg rounded-lg p-1.5 shadow-lg border border-white/10">
-        <div className="flex flex-col gap-1">
-          <p className="text-[10px] md:text-[9px] sm:text-[8px] text-gray-400 font-medium px-2 mb-0.5">Search Context</p>
-          
-          {/* Trip Base Camp Button */}
-          <button
-            onClick={() => tripBasecampSet && onContextChange('trip')}
-            disabled={!tripBasecampSet}
-            className={`px-3 py-2 md:px-2 md:py-1.5 sm:px-2 sm:py-1 rounded-md text-xs md:text-[10px] sm:text-[9px] font-medium transition-all flex items-center justify-center gap-1.5 ${
-              !tripBasecampSet
-                ? 'bg-gray-800/50 text-gray-500 cursor-not-allowed opacity-50'
-                : activeContext === 'trip'
-                ? 'bg-sky-500 text-white shadow-lg ring-1 ring-sky-400'
-                : 'bg-sky-900/30 text-sky-300 hover:bg-sky-800/40'
-            }`}
-          >
-            <span className="truncate">Trip Base Camp</span>
-            {!tripBasecampSet && <span className="text-[9px] md:text-[8px] sm:text-[7px]">(Not Set)</span>}
-          </button>
-          
-          {/* Personal Base Camp Button */}
-          <button
-            onClick={() => personalBasecampSet && onContextChange('personal')}
-            disabled={!personalBasecampSet}
-            className={`px-3 py-2 md:px-2 md:py-1.5 sm:px-2 sm:py-1 rounded-md text-xs md:text-[10px] sm:text-[9px] font-medium transition-all flex items-center justify-center gap-1.5 ${
-              !personalBasecampSet
-                ? 'bg-gray-800/50 text-gray-500 cursor-not-allowed opacity-50'
-                : activeContext === 'personal'
-                ? 'bg-emerald-500 text-white shadow-lg ring-1 ring-emerald-400'
-                : 'bg-emerald-900/30 text-emerald-300 hover:bg-emerald-800/40'
-            }`}
-          >
-            <span className="truncate">Personal Base Camp</span>
-            {!personalBasecampSet && <span className="text-[9px] md:text-[8px] sm:text-[7px]">(Not Set)</span>}
-          </button>
-        </div>
       </div>
     </div>
   );

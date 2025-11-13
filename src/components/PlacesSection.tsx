@@ -407,17 +407,23 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   const handleContextChange = (context: 'trip' | 'personal') => {
-
+    console.log('[PlacesSection] Context change:', context);
+    
     // Always update the search context for proper toggle highlighting
     setSearchContext(context);
 
-    // Update search origin
+    // Update search origin and center map
     if (context === 'trip' && contextBasecamp?.coordinates) {
+      console.log('[PlacesSection] Centering on trip basecamp:', contextBasecamp.coordinates);
       setSearchOrigin(contextBasecamp.coordinates);
       mapRef.current?.centerOn(contextBasecamp.coordinates, 15);
     } else if (context === 'personal' && personalBasecamp?.latitude && personalBasecamp?.longitude) {
-      setSearchOrigin({ lat: personalBasecamp.latitude, lng: personalBasecamp.longitude });
-      mapRef.current?.centerOn({ lat: personalBasecamp.latitude, lng: personalBasecamp.longitude }, 15);
+      const coords = { lat: personalBasecamp.latitude, lng: personalBasecamp.longitude };
+      console.log('[PlacesSection] Centering on personal basecamp:', coords);
+      setSearchOrigin(coords);
+      mapRef.current?.centerOn(coords, 15);
+    } else {
+      console.warn('[PlacesSection] Cannot center - basecamp not set for context:', context);
     }
 
     // If personal basecamp is not set, also open the selector
@@ -426,11 +432,28 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     }
   };
 
-  // Search handlers
-  const handleSearchChange = (query: string) => {
+  // Search handlers with autocomplete
+  const handleSearchChange = async (query: string) => {
     setSearchQuery(query);
-    setSuggestions([]);
-    setShowSuggestions(false);
+    setSearchError(null);
+    
+    if (!query.trim()) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    
+    // Fetch autocomplete suggestions
+    try {
+      const predictions = await mapRef.current?.getAutocomplete(query, searchOrigin);
+      setSuggestions(predictions || []);
+      setShowSuggestions((predictions || []).length > 0);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[PlacesSection] Autocomplete error:', error);
+      }
+      setSuggestions([]);
+    }
   };
 
   const handleSearchSubmit = async (e: React.FormEvent) => {
@@ -505,7 +528,64 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
         <h2 className="text-3xl font-bold text-white">Places</h2>
       </div>
 
-      {/* Single Map with Overlays - Pinned at top */}
+      {/* Segmented Control Navigation - MOVED TO TOP */}
+      <div className="mb-6 flex justify-center px-4">
+        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-1 flex gap-1 w-full max-w-md mx-auto">
+          {(['overview', 'basecamps', 'links'] as TabView[]).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all capitalize ${
+                activeTab === tab
+                  ? 'bg-white/10 text-white shadow-lg'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {tab === 'basecamps' ? 'Base Camps' : tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Base Camp Context Buttons - MOVED TO SECOND */}
+      <div className="mb-6 flex justify-center px-4">
+        <div className="bg-gray-900/90 backdrop-blur-lg rounded-lg p-3 shadow-lg border border-white/10 max-w-md w-full">
+          <p className="text-xs text-gray-400 font-medium mb-3 text-center">Search Context</p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => isBasecampSet && handleContextChange('trip')}
+              disabled={!isBasecampSet}
+              className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                !isBasecampSet
+                  ? 'bg-gray-800/50 text-gray-500 cursor-not-allowed opacity-50'
+                  : searchContext === 'trip'
+                  ? 'bg-sky-500 text-white shadow-lg ring-2 ring-sky-400'
+                  : 'bg-sky-900/30 text-sky-300 hover:bg-sky-800/40'
+              }`}
+            >
+              Trip Base Camp
+              {!isBasecampSet && <span className="block text-xs mt-1">(Not Set)</span>}
+            </button>
+            
+            <button
+              onClick={() => personalBasecamp && handleContextChange('personal')}
+              disabled={!personalBasecamp}
+              className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                !personalBasecamp
+                  ? 'bg-gray-800/50 text-gray-500 cursor-not-allowed opacity-50'
+                  : searchContext === 'personal'
+                  ? 'bg-emerald-500 text-white shadow-lg ring-2 ring-emerald-400'
+                  : 'bg-emerald-900/30 text-emerald-300 hover:bg-emerald-800/40'
+              }`}
+            >
+              Personal Base Camp
+              {!personalBasecamp && <span className="block text-xs mt-1">(Not Set)</span>}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Map - MOVED TO THIRD */}
       <div className="mb-6">
         <div className="relative h-[52.5vh] md:h-[450px] rounded-2xl overflow-hidden shadow-2xl">
           <MapCanvas
@@ -517,7 +597,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
             onMapReady={handleMapReady}
           />
 
-          {/* Unified Map Controls - floating on map */}
+          {/* Unified Map Controls - floating on map (search bar only) */}
           <UnifiedMapControls
             searchQuery={searchQuery}
             onSearchChange={handleSearchChange}
@@ -544,25 +624,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
             tripBasecamp={contextBasecamp}
             personalBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : null}
           />
-        </div>
-      </div>
-
-      {/* Segmented Control Navigation */}
-      <div className="mb-6 flex justify-center px-4">
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-1 flex gap-1 w-full max-w-md mx-auto">
-          {(['overview', 'basecamps', 'links'] as TabView[]).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all capitalize ${
-                activeTab === tab
-                  ? 'bg-white/10 text-white shadow-lg'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              {tab === 'basecamps' ? 'Base Camps' : tab}
-            </button>
-          ))}
         </div>
       </div>
 

@@ -43,6 +43,7 @@ export interface MapCanvasRef {
   clearSearch: () => void;
   showRoute: (origin: { lat: number; lng: number }, destination: { lat: number; lng: number }) => Promise<void>;
   clearRoute: () => void;
+  getAutocomplete: (query: string, origin?: SearchOrigin) => Promise<any[]>;
 }
 
 export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
@@ -201,7 +202,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
       centerOn: (latLng: { lat: number; lng: number }, zoom = 15) => {
-        if (mapRef.current && window.google) {
+        if (mapRef.current && window.google && latLng) {
+          console.log('[MapCanvas] Centering on:', latLng, 'zoom:', zoom);
           mapRef.current.panTo(latLng);
           mapRef.current.setZoom(zoom);
 
@@ -225,6 +227,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           setTimeout(() => {
             tempMarker.setMap(null);
           }, 2500);
+        } else {
+          console.warn('[MapCanvas] Cannot center - map not ready or invalid coords');
         }
       },
       fitBounds: (bounds: { north: number; south: number; east: number; west: number }) => {
@@ -251,6 +255,19 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       },
       clearRoute: () => {
         clearRoute();
+      },
+      getAutocomplete: async (query: string, origin?: SearchOrigin) => {
+        if (!sessionToken) {
+          console.warn('[MapCanvas] No session token for autocomplete');
+          return [];
+        }
+        try {
+          const predictions = await autocomplete(query, sessionToken, origin || searchOrigin);
+          return predictions;
+        } catch (error) {
+          console.error('[MapCanvas] Autocomplete error:', error);
+          return [];
+        }
       }
     }));
 
