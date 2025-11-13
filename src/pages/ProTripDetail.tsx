@@ -155,6 +155,20 @@ const ProTripDetail = () => {
     return <MobileProTripDetail />;
   }
 
+  // 🆕 Auto-scroll to chat on page load (chat-first viewport)
+  React.useEffect(() => {
+    const scrollToChat = () => {
+      setTimeout(() => {
+        const chatElement = document.querySelector('[data-chat-container]');
+        if (chatElement) {
+          chatElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+    };
+
+    scrollToChat();
+  }, []);
+
   const handleExport = async (sections: ExportSection[]) => {
     try {
       // Pre-open a window on iOS Safari to avoid popup blocking for blob URLs
