@@ -11,6 +11,7 @@ import { extractUniqueRoles, getRoleColorClass } from '../../../utils/roleUtils'
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { MessageCircle } from 'lucide-react';
+import { useDemoMode } from '../../../hooks/useDemoMode';
 
 interface RolesViewProps {
   roster: ProParticipant[];
@@ -27,6 +28,7 @@ export const RolesView = ({
   category, 
   onUpdateMemberRole 
 }: RolesViewProps) => {
+  const { isDemoMode } = useDemoMode();
   const [selectedRole, setSelectedRole] = useState<string>('all');
   const [editingMember, setEditingMember] = useState<ProParticipant | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(true);
@@ -96,7 +98,7 @@ export const RolesView = ({
       )}
 
       {/* Read-only notice */}
-      {isReadOnly && (
+      {isReadOnly && !isDemoMode && (
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
           <p className="text-yellow-400 text-sm">Read-only access for your role</p>
         </div>

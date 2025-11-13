@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 export interface AdminPermissions {
   can_manage_roles: boolean;
@@ -13,6 +14,7 @@ export interface AdminPermissions {
  */
 export const useProTripAdmin = (tripId: string) => {
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const [isAdmin, setIsAdmin] = useState(false);
   const [permissions, setPermissions] = useState<AdminPermissions | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,6 +27,18 @@ export const useProTripAdmin = (tripId: string) => {
 
     try {
       setIsLoading(true);
+
+      // 🆕 FORCE ADMIN IN DEMO MODE
+      if (isDemoMode) {
+        setIsAdmin(true);
+        setPermissions({
+          can_manage_roles: true,
+          can_manage_channels: true,
+          can_designate_admins: true,
+        });
+        setIsLoading(false);
+        return;
+      }
 
       // Check if user is trip admin
       const { data: adminData, error } = await supabase
@@ -49,7 +63,7 @@ export const useProTripAdmin = (tripId: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, tripId]);
+  }, [user?.id, tripId, isDemoMode]);
 
   useEffect(() => {
     checkAdminStatus();
