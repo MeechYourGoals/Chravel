@@ -21,6 +21,46 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   }
 };
 
+export interface NotificationPreferences {
+  id?: string;
+  user_id?: string;
+  push_enabled: boolean;
+  email_enabled: boolean;
+  sms_enabled: boolean;
+  chat_messages: boolean;
+  mentions_only: boolean;
+  broadcasts: boolean;
+  tasks: boolean;
+  payments: boolean;
+  calendar_reminders: boolean;
+  trip_invites: boolean;
+  join_requests: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_start: string;
+  quiet_end: string;
+  timezone: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  push_enabled: true,
+  email_enabled: true,
+  sms_enabled: false,
+  chat_messages: false,
+  mentions_only: true,
+  broadcasts: true,
+  tasks: true,
+  payments: true,
+  calendar_reminders: true,
+  trip_invites: true,
+  join_requests: true,
+  quiet_hours_enabled: false,
+  quiet_start: '22:00',
+  quiet_end: '08:00',
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+};
+
 export const userPreferencesService = {
   async get(userId: string): Promise<AppPreferences> {
     try {
@@ -40,7 +80,7 @@ export const userPreferencesService = {
     try {
       const current = await this.get(userId);
       const merged = { ...current, ...updates };
-      
+
       const { error } = await (supabase as any)
         .from('user_preferences')
         .upsert({ user_id: userId, preferences: merged }, { onConflict: 'user_id' });
@@ -57,5 +97,63 @@ export const userPreferencesService = {
 
   async setAIPreferences(userId: string, aiPrefs: TripPreferences): Promise<boolean> {
     return this.set(userId, { ai_concierge_preferences: aiPrefs });
+  },
+
+  async getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
+    try {
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.error('Error fetching notification preferences:', error);
+        }
+        return DEFAULT_NOTIFICATION_PREFERENCES;
+      }
+
+      if (!data) {
+        return DEFAULT_NOTIFICATION_PREFERENCES;
+      }
+
+      return data as NotificationPreferences;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to get notification preferences:', error);
+      }
+      return DEFAULT_NOTIFICATION_PREFERENCES;
+    }
+  },
+
+  async updateNotificationPreferences(
+    userId: string,
+    preferences: Partial<NotificationPreferences>
+  ): Promise<NotificationPreferences | null> {
+    try {
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .upsert(
+          { user_id: userId, ...preferences },
+          { onConflict: 'user_id' }
+        )
+        .select()
+        .single();
+
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.error('Error updating notification preferences:', error);
+        }
+        throw error;
+      }
+
+      return data as NotificationPreferences;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to update notification preferences:', error);
+      }
+      throw error;
+    }
   }
 };
