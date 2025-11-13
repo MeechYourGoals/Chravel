@@ -8,9 +8,10 @@ export interface JoinRequest {
   trip_id: string;
   user_id: string;
   status: 'pending' | 'approved' | 'rejected';
-  created_at: string;
+  requested_at: string;
   resolved_at?: string;
   resolved_by?: string;
+  invite_code?: string;
   user_profile?: {
     display_name: string;
     avatar_url?: string;
@@ -41,7 +42,7 @@ export const useJoinRequests = ({ tripId, enabled = true }: UseJoinRequestsProps
         .from('trip_join_requests')
         .select(`
           *,
-          user_profile:profiles!trip_join_requests_user_id_fkey(
+          profiles!user_id(
             display_name,
             avatar_url,
             email
@@ -49,11 +50,17 @@ export const useJoinRequests = ({ tripId, enabled = true }: UseJoinRequestsProps
         `)
         .eq('trip_id', tripId)
         .eq('status', 'pending')
-        .order('created_at', { ascending: false });
+        .order('requested_at', { ascending: false });
 
       if (error) throw error;
 
-      setRequests(data || []);
+      // Map profiles to user_profile for consistency
+      const mappedData = (data || []).map(req => ({
+        ...req,
+        user_profile: req.profiles
+      }));
+
+      setRequests(mappedData as JoinRequest[]);
     } catch (error) {
       console.error('Error fetching join requests:', error);
       toast.error('Failed to load join requests');
