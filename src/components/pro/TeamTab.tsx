@@ -81,7 +81,7 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
     <div className="space-y-6">
       {/* Admin Controls */}
       {canManageRoles && !isReadOnly && (
-        <div className="flex items-center justify-between p-4 bg-accent/30 border border-border rounded-lg">
+        <div className="flex items-center justify-between py-2.5 px-4 bg-accent/30 border border-border rounded-lg">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
             <div>
@@ -91,23 +91,13 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setCreateRoleOpen(true)}
-              disabled={adminLoading || isLoadingRoles}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Role
-            </Button>
-            <Button
-              onClick={() => setAssignRoleOpen(true)}
-              variant="outline"
-              disabled={adminLoading || isLoadingRoles || roles.length === 0}
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              Assign Roles
-            </Button>
-          </div>
+          <Button
+            onClick={() => setCreateRoleOpen(true)}
+            disabled={adminLoading || isLoadingRoles}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Role
+          </Button>
         </div>
       )}
 

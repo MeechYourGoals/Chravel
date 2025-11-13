@@ -118,7 +118,7 @@ export const RolesView = ({
         <div className="flex flex-col md:flex-row items-center justify-center gap-3 mb-4">
           {/* Secondary Action Buttons */}
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {/* Bulk Edit Button */}
+            {/* Assign Roles Button */}
             {!isReadOnly && onUpdateMemberRole && (
               <Button
                 onClick={() => setShowBulkModal(true)}
@@ -128,7 +128,7 @@ export const RolesView = ({
                 title="Assign roles to multiple members"
               >
                 <UsersRound size={16} className="mr-2" />
-                Bulk Edit
+                Assign Roles
               </Button>
             )}
             
