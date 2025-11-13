@@ -18,6 +18,8 @@ import { toast } from 'sonner';
 import { supabase } from '../integrations/supabase/client';
 import { MobileProTripDetail } from './MobileProTripDetail';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ProAdminDashboard } from '../components/pro/admin/ProAdminDashboard';
+import { useProTripAdmin } from '../hooks/useProTripAdmin';
 
 // 🚀 OPTIMIZATION: Lazy load heavy components for faster initial render
 const TripHeader = lazy(() =>
@@ -45,6 +47,9 @@ const ProTripDetail = () => {
   const [showTripSettings, setShowTripSettings] = useState(false);
   const [showTripsPlusModal, setShowTripsPlusModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  
+  // Check admin status for Pro trips
+  const { isAdmin } = useProTripAdmin(proTripId || '');
 
   // Auto-enable demo mode for Pro pages on first visit
   React.useEffect(() => {
@@ -353,6 +358,17 @@ const ProTripDetail = () => {
               selectedCategory={tripData.proTripCategory as ProTripCategory}
             />
           </Suspense>
+
+          {/* Pro Admin Dashboard */}
+          {proTripId && isAdmin && (
+            <div className="mt-8">
+              <ProAdminDashboard
+                tripId={proTripId}
+                tripCreatorId={trip.created_by}
+                isAdmin={isAdmin}
+              />
+            </div>
+          )}
         </div>
 
         <TripDetailModals
