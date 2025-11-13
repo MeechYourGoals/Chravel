@@ -52,7 +52,7 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
             roleName: role.role_name,
             description: role.description || '',
             permissionLevel: role.permission_level as 'view' | 'edit' | 'admin',
-            featurePermissions: role.feature_permissions,
+            featurePermissions: role.feature_permissions as any,
             createdBy: role.created_by,
             createdAt: role.created_at,
             updatedAt: role.updated_at,
@@ -108,7 +108,7 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
     setIsProcessing(true);
     
     try {
-      const { data, error } = await supabase.rpc('create_trip_role', {
+      const { data, error } = await supabase.rpc('create_trip_role' as any, {
         _trip_id: tripId,
         _role_name: roleName,
         _permission_level: permissionLevel,
@@ -139,7 +139,7 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
     setIsProcessing(true);
     
     try {
-      const { data, error } = await supabase.rpc('delete_trip_role', {
+      const { data, error } = await supabase.rpc('delete_trip_role' as any, {
         _role_id: roleId
       });
 

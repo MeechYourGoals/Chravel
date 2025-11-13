@@ -550,34 +550,123 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
         </div>
       </div>
 
-      {/* ROW 2: Banner + Full Base Camp Cards (DELETED OLD COMPACT BUTTONS) */}
+      {/* Tab Content - ABOVE map */}
       <div className="w-full px-4 mb-6">
-        {/* Banner */}
-        <div className="mb-4 rounded-xl px-4 py-3 text-sm bg-white/5 text-gray-300 border border-white/10">
-          <div className="flex items-center gap-2">
-            <Home size={16} className="flex-shrink-0" />
-            <span>
-              All searches use <strong>Base Camp</strong> as your starting point
-            </span>
+        {activeTab === 'overview' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-6 shadow-lg">
+              <h4 className="text-gray-400 text-sm mb-1">Active Context</h4>
+              <p className="text-white text-xl font-semibold capitalize">{searchContext} Base Camp</p>
+            </div>
+            <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-6 shadow-lg">
+              <h4 className="text-gray-400 text-sm mb-1">Saved Links</h4>
+              <p className="text-white text-xl font-semibold">{places.length}</p>
+            </div>
+            <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-6 shadow-lg">
+              <h4 className="text-gray-400 text-sm mb-1">Basecamps Set</h4>
+              <p className="text-white text-xl font-semibold">
+                {(isBasecampSet ? 1 : 0) + (personalBasecamp ? 1 : 0)} / 2
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Two Full Base Camp Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <TripBaseCampCard
-            tripId={tripId}
+        {activeTab === 'basecamps' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              onClick={() => handleContextChange('trip')}
+              className={`
+                relative overflow-hidden rounded-2xl border backdrop-blur-sm
+                transition-all duration-300 p-6 text-left
+                ${searchContext === 'trip'
+                  ? 'bg-blue-500/20 border-blue-500/50 shadow-lg shadow-blue-500/20'
+                  : 'bg-white/5 border-white/10 hover:bg-white/10'
+                }
+              `}
+              style={{ height: '75%', minHeight: '120px' }}
+            >
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-white">Trip Base Camp</h3>
+                {contextBasecamp ? (
+                  <>
+                    <p className="text-sm text-gray-300">{contextBasecamp.name}</p>
+                    <p className="text-xs text-gray-400">{contextBasecamp.address}</p>
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-400">Not set</p>
+                )}
+              </div>
+              {searchContext === 'trip' && (
+                <div className="absolute top-3 right-3">
+                  <div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse" />
+                </div>
+              )}
+            </button>
+
+            <button
+              onClick={() => handleContextChange('personal')}
+              className={`
+                relative overflow-hidden rounded-2xl border backdrop-blur-sm
+                transition-all duration-300 p-6 text-left
+                ${searchContext === 'personal'
+                  ? 'bg-purple-500/20 border-purple-500/50 shadow-lg shadow-purple-500/20'
+                  : 'bg-white/5 border-white/10 hover:bg-white/10'
+                }
+              `}
+              style={{ height: '75%', minHeight: '120px' }}
+            >
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-white">Personal Base Camp</h3>
+                {personalBasecamp ? (
+                  <>
+                    <p className="text-sm text-gray-300">{personalBasecamp.name}</p>
+                    <p className="text-xs text-gray-400">{personalBasecamp.address}</p>
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-400">Not set</p>
+                )}
+              </div>
+              {searchContext === 'personal' && (
+                <div className="absolute top-3 right-3">
+                  <div className="w-3 h-3 rounded-full bg-purple-500 animate-pulse" />
+                </div>
+              )}
+            </button>
+          </div>
+        )}
+
+        {activeTab === 'links' && (
+          <LinksPanel
+            places={places}
             basecamp={contextBasecamp}
-            onBasecampSet={handleBasecampSet}
-            isDemo={isDemoMode}
+            personalBasecamp={personalBasecamp}
+            onPlaceAdded={(place) => {
+              setPlaces(prev => [...prev, place]);
+            }}
+            onPlaceRemoved={(placeId) => {
+              setPlaces(prev => prev.filter(p => p.id !== placeId));
+              removeLinkByPlaceId(tripId, placeId);
+            }}
+            onAddToLinks={async (place) => {
+              await createLinkFromPlace(place, 'You', tripId, effectiveUserId);
+              return true;
+            }}
+            linkedPlaceIds={linkedPlaceIds}
+            onEventAdded={(eventData) => {
+              // Event added to calendar
+            }}
+            onCenterMap={(coords) => {
+              if (mapRef.current) {
+                mapRef.current.centerOn(coords, 15);
+              }
+            }}
+            distanceUnit={distanceSettings.unit}
+            preferredMode={distanceSettings.preferredMode}
           />
-          <PersonalBaseCampCard
-            tripId={tripId}
-            tripBasecampCity={contextBasecamp?.address.split(',')[0].trim()}
-          />
-        </div>
+        )}
       </div>
 
-      {/* ROW 3: Map */}
+      {/* Map - ALWAYS AT BOTTOM */}
       <div className="mb-6">
         <div className="relative h-[52.5vh] md:h-[450px] rounded-2xl overflow-hidden shadow-2xl">
           <MapCanvas
