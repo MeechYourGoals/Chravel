@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Sparkles, Clock, Calendar, FileText, Lightbulb } from 'lucide-react';
+import { Send, Sparkles, Clock, Calendar, FileText, Lightbulb, Loader2 } from 'lucide-react';
 import { supabase } from '../../integrations/supabase/client';
 import { unifiedMessagingService, MessageTemplate } from '../../services/unifiedMessagingService';
 import { MessageTemplateLibrary } from '../MessageTemplateLibrary';
@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
+import { toast } from 'sonner';
 
 interface AiMessageModalProps {
   isOpen: boolean;
@@ -19,18 +20,18 @@ interface AiMessageModalProps {
   tripContext?: any;
 }
 
-export const AiMessageModal = ({ 
-  isOpen, 
-  onClose, 
-  tripId, 
-  tourId, 
-  tripContext 
+export const AiMessageModal = ({
+  isOpen,
+  onClose,
+  tripId,
+  tourId,
+  tripContext
 }: AiMessageModalProps) => {
-  // TODO: Implement message sending via unified messaging service
   const [currentView, setCurrentView] = useState<'composer' | 'templates' | 'scheduling'>('composer');
   const [prompt, setPrompt] = useState('');
   const [tone, setTone] = useState<'friendly' | 'professional' | 'urgent' | 'direct' | 'cheerful'>('professional');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [generatedMessage, setGeneratedMessage] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<MessageTemplate | null>(null);
@@ -145,8 +146,35 @@ export const AiMessageModal = ({
   };
 
   const handleInsertToChat = async () => {
-    if (generatedMessage) {
+    if (!generatedMessage || !tripId) {
+      toast.error('Unable to send message. Missing trip information.');
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      await unifiedMessagingService.sendMessage({
+        tripId,
+        content: generatedMessage,
+        metadata: {
+          aiGenerated: true,
+          tone: tone,
+          template: selectedTemplate?.id,
+          timestamp: new Date().toISOString(),
+          scheduled: scheduleDate ? true : false,
+          scheduledFor: scheduleDate || undefined
+        }
+      });
+
+      toast.success(scheduleDate ? 'Message scheduled successfully!' : 'Message sent to trip chat!');
       handleClose();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to send AI message:', error);
+      }
+      toast.error('Failed to send message. Please try again.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -371,9 +399,15 @@ export const AiMessageModal = ({
               <div className="flex gap-3">
                 <Button
                   onClick={handleInsertToChat}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                  disabled={!generatedMessage || isSending}
+                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {scheduleDate ? (
+                  {isSending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : scheduleDate ? (
                     <>
                       <Calendar size={16} className="mr-2" />
                       Schedule Message
