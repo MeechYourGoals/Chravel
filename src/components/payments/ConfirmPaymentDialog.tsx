@@ -20,13 +20,14 @@ interface ConfirmPaymentDialogProps {
   tripId: string;
 }
 
-export const ConfirmPaymentDialog = ({ 
-  open, 
-  onOpenChange, 
+export const ConfirmPaymentDialog = ({
+  open,
+  onOpenChange,
   balance,
-  tripId 
+  tripId
 }: ConfirmPaymentDialogProps) => {
   const [isConfirming, setIsConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -37,7 +38,8 @@ export const ConfirmPaymentDialog = ({
 
   const handleConfirm = async () => {
     setIsConfirming(true);
-    
+    setError(null);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -63,14 +65,18 @@ export const ConfirmPaymentDialog = ({
       });
 
       onOpenChange(false);
-      
+
       // Refresh the page to show updated balances
       window.location.reload();
     } catch (error) {
-      console.error('Error confirming payment:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error confirming payment:', error);
+      }
+      const errorMessage = error instanceof Error ? error.message : 'Failed to confirm payment';
+      setError(errorMessage);
       toast({
         title: "Confirmation Failed",
-        description: error instanceof Error ? error.message : "Failed to confirm payment",
+        description: errorMessage + '. Please try again.',
         variant: "destructive"
       });
     } finally {
@@ -120,6 +126,21 @@ export const ConfirmPaymentDialog = ({
           <div className="mt-4 text-sm text-muted-foreground">
             By confirming, you're acknowledging that you've received this payment and the transaction will be marked as complete.
           </div>
+
+          {error && (
+            <div className="mt-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+              <p className="text-sm text-destructive font-medium">Error: {error}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleConfirm}
+                disabled={isConfirming}
+                className="mt-2 w-full"
+              >
+                Retry Confirmation
+              </Button>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="flex gap-2">

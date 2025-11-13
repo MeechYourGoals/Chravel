@@ -14,31 +14,11 @@ import { Label } from '../ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Bell, BellOff, Moon, Mail, MessageSquare, DollarSign, Calendar, Users, Megaphone } from 'lucide-react';
-
-interface NotificationPrefs {
-  // Channels
-  push_enabled: boolean;
-  email_enabled: boolean;
-  sms_enabled: boolean;
-  
-  // Categories
-  chat_messages: boolean;
-  mentions_only: boolean;
-  broadcasts: boolean;
-  tasks: boolean;
-  payments: boolean;
-  calendar_reminders: boolean;
-  trip_invites: boolean;
-  join_requests: boolean;
-  
-  // Quiet hours
-  quiet_hours_enabled: boolean;
-  quiet_start: string;
-  quiet_end: string;
-  timezone: string;
-}
+import { userPreferencesService, NotificationPreferences as NotificationPrefs } from '@/services/userPreferencesService';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 export const NotificationPreferences = () => {
+  const { user } = useAuth();
   const [prefs, setPrefs] = useState<NotificationPrefs>({
     push_enabled: true,
     email_enabled: true,
@@ -56,31 +36,77 @@ export const NotificationPreferences = () => {
     quiet_end: '08:00',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
   });
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
+
   useEffect(() => {
-    loadPreferences();
-  }, []);
-  
+    if (user?.id) {
+      loadPreferences();
+    }
+  }, [user?.id]);
+
   const loadPreferences = async () => {
-    // TODO: Implement when notification_preferences table is created
-    setLoading(false);
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const preferences = await userPreferencesService.getNotificationPreferences(user.id);
+      setPrefs(preferences);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to load notification preferences:', error);
+      }
+      toast.error('Failed to load notification preferences');
+    } finally {
+      setLoading(false);
+    }
   };
-  
+
   const updatePreference = async (key: keyof NotificationPrefs, value: any) => {
-    // TODO: Implement when notification_preferences table is created
+    if (!user?.id) {
+      toast.error('You must be logged in to update preferences');
+      return;
+    }
+
+    // Optimistically update local state
     setPrefs(prev => ({ ...prev, [key]: value }));
+
+    try {
+      await userPreferencesService.updateNotificationPreferences(user.id, {
+        [key]: value
+      });
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to update notification preference:', error);
+      }
+      // Rollback on error - reload preferences
+      await loadPreferences();
+      toast.error('Failed to update preference');
+    }
   };
-  
+
   const saveAllPreferences = async () => {
+    if (!user?.id) {
+      toast.error('You must be logged in to save preferences');
+      return;
+    }
+
     setSaving(true);
-    // TODO: Implement when notification_preferences table is created
-    setTimeout(() => {
+    try {
+      await userPreferencesService.updateNotificationPreferences(user.id, prefs);
       toast.success('Notification preferences saved!');
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to save notification preferences:', error);
+      }
+      toast.error('Failed to save preferences. Please try again.');
+    } finally {
       setSaving(false);
-    }, 500);
+    }
   };
   
   if (loading) {

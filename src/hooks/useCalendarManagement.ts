@@ -3,10 +3,11 @@ import { CalendarEvent, AddToCalendarData } from '@/types/calendar';
 import { calendarService } from '@/services/calendarService';
 import { useToast } from './use-toast';
 
-export type ViewMode = 'calendar' | 'itinerary';
+export type ViewMode = 'calendar' | 'itinerary' | 'grid';
 
 export const useCalendarManagement = (tripId: string) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
@@ -190,12 +191,18 @@ export const useCalendarManagement = (tripId: string) => {
   };
 
   const toggleViewMode = () => {
-    setViewMode(prev => prev === 'calendar' ? 'itinerary' : 'calendar');
+    setViewMode(prev => {
+      if (prev === 'calendar') return 'grid';
+      if (prev === 'grid') return 'itinerary';
+      return 'calendar';
+    });
   };
 
   return {
     selectedDate,
     setSelectedDate,
+    currentMonth,
+    setCurrentMonth,
     events,
     setEvents,
     showAddEvent,

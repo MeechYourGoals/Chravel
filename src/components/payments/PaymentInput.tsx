@@ -112,7 +112,9 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
           setAutoSuggestions([]);
         }
       } catch (error) {
-        console.error('Error analyzing payment description:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error analyzing payment description:', error);
+        }
       } finally {
         setIsAnalyzing(false);
       }
@@ -146,7 +148,9 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
           }
         }
       } catch (error) {
-        console.error('Error loading automatic suggestions:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error loading automatic suggestions:', error);
+        }
       }
     };
 
