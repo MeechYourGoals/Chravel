@@ -523,19 +523,17 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
 
   return (
     <div className="mb-12 mobile-safe-scroll">
-      {/* Header */}
-      <div className="mb-6">
+      {/* Header with Tabs */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4">
         <h2 className="text-3xl font-bold text-white">Places</h2>
-      </div>
-
-      {/* Segmented Control Navigation - MOVED TO TOP */}
-      <div className="mb-6 flex justify-center px-4">
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-1 flex gap-1 w-full max-w-md mx-auto">
+        
+        {/* Segmented Control Navigation */}
+        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-1 flex gap-1 w-full sm:w-auto sm:max-w-md">
           {(['overview', 'basecamps', 'links'] as TabView[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all capitalize ${
+              className={`flex-1 py-2.5 px-4 rounded-lg text-xs sm:text-sm font-medium transition-all capitalize ${
                 activeTab === tab
                   ? 'bg-white/10 text-white shadow-lg'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -547,41 +545,38 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
         </div>
       </div>
 
-      {/* Base Camp Context Buttons - MOVED TO SECOND */}
+      {/* Base Camp Context Buttons */}
       <div className="mb-6 flex justify-center px-4">
-        <div className="bg-gray-900/90 backdrop-blur-lg rounded-lg p-3 shadow-lg border border-white/10 max-w-md w-full">
-          <p className="text-xs text-gray-400 font-medium mb-3 text-center">Search Context</p>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => isBasecampSet && handleContextChange('trip')}
-              disabled={!isBasecampSet}
-              className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                !isBasecampSet
-                  ? 'bg-gray-800/50 text-gray-500 cursor-not-allowed opacity-50'
-                  : searchContext === 'trip'
-                  ? 'bg-sky-500 text-white shadow-lg ring-2 ring-sky-400'
-                  : 'bg-sky-900/30 text-sky-300 hover:bg-sky-800/40'
-              }`}
-            >
-              Trip Base Camp
-              {!isBasecampSet && <span className="block text-xs mt-1">(Not Set)</span>}
-            </button>
-            
-            <button
-              onClick={() => personalBasecamp && handleContextChange('personal')}
-              disabled={!personalBasecamp}
-              className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                !personalBasecamp
-                  ? 'bg-gray-800/50 text-gray-500 cursor-not-allowed opacity-50'
-                  : searchContext === 'personal'
-                  ? 'bg-emerald-500 text-white shadow-lg ring-2 ring-emerald-400'
-                  : 'bg-emerald-900/30 text-emerald-300 hover:bg-emerald-800/40'
-              }`}
-            >
-              Personal Base Camp
-              {!personalBasecamp && <span className="block text-xs mt-1">(Not Set)</span>}
-            </button>
-          </div>
+        <div className="grid grid-cols-2 gap-3 w-full max-w-2xl">
+          <button
+            onClick={() => isBasecampSet && handleContextChange('trip')}
+            disabled={!isBasecampSet}
+            className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+              !isBasecampSet
+                ? 'bg-gray-800/50 text-gray-500 cursor-not-allowed opacity-50'
+                : searchContext === 'trip'
+                ? 'bg-sky-500 text-white shadow-lg ring-2 ring-sky-400'
+                : 'bg-sky-900/30 text-sky-300 hover:bg-sky-800/40'
+            }`}
+          >
+            Trip Base Camp
+            {!isBasecampSet && <span className="block text-xs mt-1">(Not Set)</span>}
+          </button>
+          
+          <button
+            onClick={() => personalBasecamp && handleContextChange('personal')}
+            disabled={!personalBasecamp}
+            className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+              !personalBasecamp
+                ? 'bg-gray-800/50 text-gray-500 cursor-not-allowed opacity-50'
+                : searchContext === 'personal'
+                ? 'bg-emerald-500 text-white shadow-lg ring-2 ring-emerald-400'
+                : 'bg-emerald-900/30 text-emerald-300 hover:bg-emerald-800/40'
+            }`}
+          >
+            Personal Base Camp
+            {!personalBasecamp && <span className="block text-xs mt-1">(Not Set)</span>}
+          </button>
         </div>
       </div>
 
