@@ -23,7 +23,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { PaymentData } from '@/types/payments';
 import { hapticService } from '../services/hapticService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { WifiOff } from 'lucide-react';
+import { Search, WifiOff } from 'lucide-react';
 import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from './pro/channels/ChannelChatView';
 import { TypingIndicator } from './chat/TypingIndicator';
@@ -79,6 +79,7 @@ export const TripChat = ({
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
   const typingServiceRef = useRef<TypingIndicatorService | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
   
   const { isOffline } = useOfflineStatus();
   const params = useParams<{ tripId?: string; proTripId?: string; eventId?: string }>();
@@ -432,6 +433,19 @@ export const TripChat = ({
 
   const isLoading = shouldUseDemoData ? demoLoading : liveLoading;
 
+  // Global keyboard shortcut for search (Ctrl+F or Cmd+F)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f' && messageFilter !== 'channels') {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [messageFilter]);
+
   if (isLoading) {
     return <div>Loading messages...</div>;
   }
@@ -451,7 +465,44 @@ export const TripChat = ({
       {/* Chat Container - Messages with Integrated Filter Tabs */}
       <div className="flex-1 flex flex-col min-h-0 pb-4" data-chat-container>
         <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col max-h-[70vh]">
-          {/* Filter Tabs - ALWAYS VISIBLE */}
+          {/* Search Bar and Filter Tabs Row */}
+          <div className="flex items-center gap-2 p-2 border-b border-white/10 bg-black/30">
+            <div className="flex-1">
+              {showSearch ? (
+                <MessageSearch
+                  tripId={resolvedTripId}
+                  localMessages={messagesToShow}
+                  isDemoMode={shouldUseDemoData || isConsumerTripWithNoMessages}
+                  onMessageSelect={(messageId) => {
+                    // Scroll to message
+                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                    if (messageElement) {
+                      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      // Highlight briefly
+                      messageElement.classList.add('ring-2', 'ring-blue-500', 'rounded-lg');
+                      setTimeout(() => {
+                        messageElement.classList.remove('ring-2', 'ring-blue-500', 'rounded-lg');
+                      }, 2000);
+                    }
+                    setShowSearch(false);
+                  }}
+                />
+              ) : (
+                <button
+                  onClick={() => setShowSearch(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors w-full"
+                >
+                  <Search size={14} />
+                  <span>Search messages...</span>
+                  <kbd className="ml-auto px-1.5 py-0.5 text-xs bg-gray-700 rounded border border-gray-600">
+                    ⌘F
+                  </kbd>
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {/* Filter Tabs */}
           <MessageTypeBar
             activeFilter={messageFilter}
             onFilterChange={setMessageFilter}
@@ -484,11 +535,13 @@ export const TripChat = ({
                 <VirtualizedMessageContainer
                   messages={filteredMessages}
                   renderMessage={(message) => (
-                    <MessageItem
-                      message={message}
-                      reactions={reactions[message.id]}
-                      onReaction={handleReaction}
-                    />
+                    <div data-message-id={message.id}>
+                      <MessageItem
+                        message={message}
+                        reactions={reactions[message.id]}
+                        onReaction={handleReaction}
+                      />
+                    </div>
                   )}
                   onLoadMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? () => {} : loadMoreMessages}
                   hasMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? false : hasMore}
