@@ -26,16 +26,14 @@ export const ProTabNavigation = ({ tabs, activeTab, onTabChange, category }: Pro
   const isCompactMode = tabCount > 8;
 
   return (
-    <div className="flex whitespace-nowrap gap-2 mb-2 justify-start overflow-x-auto scrollbar-thin scrollbar-thumb-white/20">
+    <div className="flex whitespace-nowrap mb-2 overflow-x-auto scrollbar-thin scrollbar-thumb-white/20">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isReadOnly = isReadOnlyTab(tab.id, userRole, userPermissions, isDemoMode);
         const displayLabel =
           tab.id === 'team' && category === 'Content' ? 'Cast & Crew' : tab.label;
         
-        const buttonSizeClass = isCompactMode 
-          ? 'flex-shrink flex-grow-0 min-w-[90px]'
-          : 'flex-1';
+        const buttonSizeClass = 'flex-1';
         
         const paddingClass = isCompactMode ? 'px-3' : 'px-3.5';
         
