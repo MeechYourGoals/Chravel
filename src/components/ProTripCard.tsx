@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Crown, Copy, Eye, Users, Clock, MoreHorizontal, Archive } from 'lucide-react';
+import { Calendar, MapPin, Crown, FileText, Eye, Users, Clock, MoreHorizontal, Archive } from 'lucide-react';
 import { Button } from './ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { TravelerTooltip } from './ui/traveler-tooltip';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
+import { TripExportModal } from './trip/TripExportModal';
 import { ProTripData } from '../types/pro';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { archiveTrip } from '../services/archiveService';
@@ -14,6 +15,9 @@ import { useToast } from '../hooks/use-toast';
 import { calculatePeopleCount, calculateDaysCount, calculateProTripPlacesCount } from '../utils/tripStatsUtils';
 import { processTeamMembers, processRoles } from '../utils/teamDisplayUtils';
 import { getInitials } from '../utils/avatarUtils';
+import { ExportSection } from '../types/tripExport';
+import { generateClientPDF } from '../utils/exportPdfClient';
+import { getExportData } from '../services/tripExportDataService';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,14 +33,42 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
   const navigate = useNavigate();
   const { accentColors } = useTripVariant();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const { toast } = useToast();
 
   const handleViewTrip = () => {
     navigate(`/tour/pro/${trip.id}`);
   };
 
-  const handleDuplicateTrip = () => {
-    // This would open a modal or redirect to create a new trip with this template
+  const handleExportTrip = () => {
+    setShowExportModal(true);
+  };
+
+  const handleExport = async (sections: ExportSection[]) => {
+    try {
+      const exportData = await getExportData(trip.id, sections);
+      await generateClientPDF({
+        tripId: trip.id,
+        tripTitle: trip.title,
+        destination: trip.location,
+        dateRange: trip.dateRange,
+        description: trip.description,
+        ...exportData,
+      }, sections);
+      
+      toast({
+        title: "Export successful",
+        description: "Your trip summary has been downloaded as a PDF.",
+      });
+      setShowExportModal(false);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export failed",
+        description: "There was an error generating your PDF. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleArchiveTrip = () => {
@@ -229,17 +261,17 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
         
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button 
-              onClick={handleDuplicateTrip}
+            <Button
+              onClick={handleExportTrip}
               className="bg-white/10 backdrop-blur-sm border border-white/20 hover:border-glass-green/40 text-white hover:text-glass-green transition-all duration-300"
               variant="ghost"
               size="icon"
             >
-              <Copy size={16} />
+              <FileText size={16} />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Duplicate as Template</p>
+            <p>Export Details</p>
           </TooltipContent>
         </Tooltip>
       </div>
@@ -258,6 +290,14 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
         onConfirm={handleArchiveTrip}
         tripTitle={trip.title}
         isArchiving={true}
+      />
+
+      <TripExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        tripName={trip.title}
+        tripId={trip.id}
       />
     </div>
   );
