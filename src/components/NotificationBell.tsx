@@ -3,11 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { Bell, MessageCircle, Calendar, Radio, X, FilePlus, Image, BarChart2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { mockNotifications } from '@/mockData/notifications';
+import { formatDistanceToNow } from 'date-fns';
 
 interface Notification {
   id: string;
-  type: 'message' | 'broadcast' | 'calendar' | 'poll' | 'files' | 'photos';
+  type: 'message' | 'broadcast' | 'calendar' | 'poll' | 'files' | 'photos' | 'chat' | 'mention' | 'task' | 'payment' | 'invite' | 'join_request' | 'system';
   title: string;
   description: string;
   tripId: string;
@@ -15,21 +18,61 @@ interface Notification {
   timestamp: string;
   isRead: boolean;
   isHighPriority?: boolean;
+  data?: any;
 }
 
 export const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const { isDemoMode } = useDemoMode();
+  const { user } = useAuth();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  // Update notifications when demo mode changes
+  // Fetch real notifications from database
   useEffect(() => {
-    if (isDemoMode) {
+    if (!isDemoMode && user) {
+      fetchNotifications();
+      
+      // Subscribe to real-time notifications
+      const channel = supabase
+        .channel('notification_updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            const newNotification = payload.new as any;
+            setNotifications(prev => [
+              {
+                id: newNotification.id,
+                type: newNotification.type || 'system',
+                title: newNotification.title,
+                description: newNotification.message,
+                tripId: newNotification.metadata?.trip_id || '',
+                tripName: newNotification.metadata?.trip_name || '',
+                timestamp: formatDistanceToNow(new Date(newNotification.created_at), { addSuffix: true }),
+                isRead: newNotification.is_read || false,
+                isHighPriority: newNotification.type === 'broadcast',
+                data: newNotification.metadata
+              },
+              ...prev
+            ]);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } else if (isDemoMode) {
       setNotifications(mockNotifications.map(n => ({
         id: n.id,
-        type: n.type,
+        type: n.type as any,
         title: n.title,
         description: n.message,
         tripId: n.tripId,
@@ -38,22 +81,67 @@ export const NotificationBell = () => {
         isRead: n.read,
         isHighPriority: n.type === 'broadcast'
       })));
-    } else {
-      setNotifications([]);
     }
-  }, [isDemoMode]);
+  }, [isDemoMode, user]);
+
+  const fetchNotifications = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.error('Error fetching notifications:', error);
+      return;
+    }
+
+    if (data) {
+      setNotifications(
+        data.map(n => ({
+          id: n.id,
+          type: (n.type || 'system') as any,
+          title: n.title,
+          description: n.message,
+          tripId: (n.metadata as any)?.trip_id || '',
+          tripName: (n.metadata as any)?.trip_name || '',
+          timestamp: formatDistanceToNow(new Date(n.created_at || new Date()), { addSuffix: true }),
+          isRead: n.is_read || false,
+          isHighPriority: n.type === 'broadcast',
+          data: n.metadata
+        }))
+      );
+    }
+  };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read locally
     setNotifications(prev => 
       prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
     );
 
-    if (notification.type === 'message') {
+    // Mark as read in database (if not demo mode)
+    if (!isDemoMode && user) {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notification.id);
+    }
+
+    // Navigate based on notification type
+    if (notification.type === 'message' || notification.type === 'chat' || notification.type === 'mention') {
       navigate(`/trip/${notification.tripId}?tab=chat`);
     } else if (notification.type === 'calendar') {
       navigate(`/trip/${notification.tripId}?tab=calendar`);
+    } else if (notification.type === 'task') {
+      navigate(`/trip/${notification.tripId}?tab=tasks`);
+    } else if (notification.type === 'payment') {
+      navigate(`/trip/${notification.tripId}?tab=payments`);
     } else {
       navigate(`/trip/${notification.tripId}`);
     }
@@ -82,8 +170,20 @@ export const NotificationBell = () => {
     }
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
+    // Mark locally
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+
+    // Mark in database (if not demo mode)
+    if (!isDemoMode && user) {
+      const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
+      if (unreadIds.length > 0) {
+        await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .in('id', unreadIds);
+      }
+    }
   };
 
   return (
