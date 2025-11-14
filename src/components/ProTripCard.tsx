@@ -18,6 +18,7 @@ import { getInitials } from '../utils/avatarUtils';
 import { ExportSection } from '../types/tripExport';
 import { generateClientPDF } from '../utils/exportPdfClient';
 import { getExportData } from '../services/tripExportDataService';
+import { openOrDownloadBlob } from '../utils/download';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,15 +47,35 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
 
   const handleExport = async (sections: ExportSection[]) => {
     try {
+      toast({
+        title: "Generating PDF...",
+        description: "Please wait while we create your export.",
+      });
+
       const exportData = await getExportData(trip.id, sections);
-      await generateClientPDF({
-        tripId: trip.id,
-        tripTitle: trip.title,
-        destination: trip.location,
-        dateRange: trip.dateRange,
-        description: trip.description,
-        ...exportData,
-      }, sections);
+      
+      // Capture the blob returned from generateClientPDF
+      const blob = await generateClientPDF(
+        {
+          tripId: trip.id,
+          tripTitle: trip.title,
+          destination: trip.location,
+          dateRange: trip.dateRange,
+          description: trip.description,
+          ...exportData,
+        },
+        sections,
+        {
+          customization: {
+            compress: true,
+            maxItemsPerSection: 100,
+          }
+        }
+      );
+      
+      // Generate filename and trigger download
+      const filename = `ProTrip_${trip.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
+      await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
       
       toast({
         title: "Export successful",
@@ -65,7 +86,7 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
       console.error('Export error:', error);
       toast({
         title: "Export failed",
-        description: "There was an error generating your PDF. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error generating your PDF. Please try again.",
         variant: "destructive",
       });
     }
