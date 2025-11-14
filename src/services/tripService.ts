@@ -3,6 +3,37 @@ import { demoModeService } from './demoModeService';
 import { tripsData } from '@/data/tripsData';
 import { adaptTripsDataToTripSchema } from '@/utils/schemaAdapters';
 
+/**
+ * Normalizes date input to ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)
+ * Accepts: YYYY-MM-DD, MM/DD/YYYY, or ISO 8601 strings
+ * Returns ISO format at noon UTC to avoid timezone off-by-one errors
+ */
+function normalizeDateInput(dateStr?: string): string | undefined {
+  if (!dateStr) return undefined;
+
+  // If already ISO format and valid, return as is
+  if (dateStr.includes('T') && dateStr.includes('Z')) {
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) return dateStr;
+  }
+
+  // Match YYYY-MM-DD
+  const isoDateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoDateMatch) {
+    const [, year, month, day] = isoDateMatch;
+    return new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)).toISOString();
+  }
+
+  // Match MM/DD/YYYY
+  const usDateMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (usDateMatch) {
+    const [, month, day, year] = usDateMatch;
+    return new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)).toISOString();
+  }
+
+  return undefined;
+}
+
 export interface Trip {
   id: string;
   name: string;
@@ -53,14 +84,18 @@ export const tripService = {
         throw new Error('Invalid user state - missing ID');
       }
 
+      // Normalize dates to ISO format for backend
+      const normalizedStartDate = normalizeDateInput(tripData.start_date);
+      const normalizedEndDate = normalizeDateInput(tripData.end_date);
+
       // Use edge function for server-side validation and Pro tier enforcement
       const { data, error } = await supabase.functions.invoke('create-trip', {
         body: {
           name: tripData.name,
           description: tripData.description,
           destination: tripData.destination,
-          start_date: tripData.start_date,
-          end_date: tripData.end_date,
+          start_date: normalizedStartDate,
+          end_date: normalizedEndDate,
           trip_type: tripData.trip_type || 'consumer',
           cover_image_url: tripData.cover_image_url
         }
@@ -70,7 +105,7 @@ export const tripService = {
         if (import.meta.env.DEV) {
           console.error('[tripService] Edge function error:', error);
         }
-        throw error;
+        throw new Error(error.message || 'Failed to create trip');
       }
 
       if (!data?.success) {
@@ -85,7 +120,8 @@ export const tripService = {
       if (import.meta.env.DEV) {
         console.error('[tripService] Error creating trip:', error);
       }
-      return null;
+      // Re-throw to preserve error message for UI
+      throw error;
     }
   },
 
