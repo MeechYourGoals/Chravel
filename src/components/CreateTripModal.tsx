@@ -157,49 +157,47 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
       
       const newTrip = await createTrip(tripData);
       
-      if (newTrip) {
-        // Link to organization if selected
-        if (selectedOrganization && (tripType === 'pro' || tripType === 'event')) {
-          try {
-            const { error: linkError } = await supabase.functions.invoke('link-trip-to-organization', {
-              body: {
-                tripId: newTrip.id,
-                organizationId: selectedOrganization
-              }
-            });
-            
-            if (linkError) {
-              console.error('Error linking trip to organization:', linkError);
-              toast.error('Trip created but failed to link to organization');
+      // Link to organization if selected
+      if (selectedOrganization && (tripType === 'pro' || tripType === 'event')) {
+        try {
+          const { error: linkError } = await supabase.functions.invoke('link-trip-to-organization', {
+            body: {
+              tripId: newTrip.id,
+              organizationId: selectedOrganization
             }
-          } catch (linkErr) {
-            console.error('Error linking trip:', linkErr);
+          });
+          
+          if (linkError) {
+            console.error('Error linking trip to organization:', linkError);
+            toast.error('Trip created but failed to link to organization');
           }
+        } catch (linkErr) {
+          console.error('Error linking trip:', linkErr);
         }
-        
-        toast.success('Trip created successfully!');
-        onClose();
-        // Reset form
-        setFormData({
-          title: '',
-          location: '',
-          startDate: '',
-          endDate: '',
-          description: ''
-        });
-        setValidationErrors({});
-        setTripType('consumer');
-        setPrivacyMode(getDefaultPrivacyMode('consumer'));
-        setSelectedOrganization('');
-      } else {
-        toast.error('Failed to create trip. Please try again.');
       }
+      
+      toast.success('Trip created successfully!');
+      onClose();
+      // Reset form
+      setFormData({
+        title: '',
+        location: '',
+        startDate: '',
+        endDate: '',
+        description: ''
+      });
+      setValidationErrors({});
+      setTripType('consumer');
+      setPrivacyMode(getDefaultPrivacyMode('consumer'));
+      setSelectedOrganization('');
     } catch (error) {
       console.error('Error creating trip:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create trip. Please try again.';
+      
       if (error instanceof Error && error.message === 'AUTHENTICATION_REQUIRED') {
         toast.error('Please sign in to create a trip');
       } else {
-        toast.error('Failed to create trip. Please try again.');
+        toast.error(errorMessage);
       }
     } finally {
       setIsLoading(false);
@@ -339,7 +337,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
               <MapPin size={16} />
-              Location
+              Locations
             </label>
             <input
               type="text"
@@ -348,8 +346,10 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               onChange={handleInputChange}
               className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none transition-colors"
               placeholder="e.g., Paris, France"
-              required
             />
+            <p className="text-xs text-slate-400 mt-1">
+              Separate multiple locations with commas (e.g., Paris, Barcelona, Milan)
+            </p>
           </div>
 
           {/* Date Range */}
