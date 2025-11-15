@@ -932,6 +932,7 @@ export type Database = {
           message: string
           metadata: Json | null
           title: string
+          trip_id: string | null
           type: string | null
           user_id: string
         }
@@ -942,6 +943,7 @@ export type Database = {
           message: string
           metadata?: Json | null
           title: string
+          trip_id?: string | null
           type?: string | null
           user_id: string
         }
@@ -952,6 +954,7 @@ export type Database = {
           message?: string
           metadata?: Json | null
           title?: string
+          trip_id?: string | null
           type?: string | null
           user_id?: string
         }
@@ -2910,6 +2913,21 @@ export type Database = {
       remove_user_from_role: {
         Args: { _role_id: string; _trip_id: string; _user_id: string }
         Returns: Json
+      }
+      send_notification: {
+        Args: {
+          p_message: string
+          p_metadata?: Json
+          p_title: string
+          p_trip_id: string
+          p_type: string
+          p_user_ids: string[]
+        }
+        Returns: undefined
+      }
+      should_send_notification: {
+        Args: { p_notification_type: string; p_user_id: string }
+        Returns: boolean
       }
       toggle_task_status: {
         Args: {
