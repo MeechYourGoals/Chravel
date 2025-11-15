@@ -19,11 +19,11 @@ export const ShareOptionsSection = ({
   return (
     <>
       {/* Quick Share Options */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-2 gap-3 mb-3">
         <button
           onClick={onShare}
           disabled={loading || !inviteLink}
-          className="flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white py-4 rounded-xl transition-colors disabled:opacity-50"
+          className="flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white py-2 rounded-xl transition-colors disabled:opacity-50"
         >
           <Share size={20} />
           <span>Share</span>
@@ -32,7 +32,7 @@ export const ShareOptionsSection = ({
         <button
           onClick={onEmailInvite}
           disabled={loading || !inviteLink}
-          className="flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white py-4 rounded-xl transition-colors disabled:opacity-50"
+          className="flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white py-2 rounded-xl transition-colors disabled:opacity-50"
         >
           <Mail size={20} />
           <span>Email</span>
@@ -43,7 +43,7 @@ export const ShareOptionsSection = ({
       <button
         onClick={onSMSInvite}
         disabled={loading || !inviteLink}
-        className="w-full flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white py-4 rounded-xl transition-colors mb-6 disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white py-2 rounded-xl transition-colors mb-3 disabled:opacity-50"
       >
         <MessageCircle size={20} />
         <span>Text Message</span>
