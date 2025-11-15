@@ -44,6 +44,34 @@
     transition: height 200ms ease-in-out, opacity 200ms ease-in-out;
   }
 
+  /* Full-page landing scroll utilities */
+  .snap-y {
+    scroll-snap-type: y mandatory;
+  }
+
+  .snap-start {
+    scroll-snap-align: start;
+  }
+
+  .snap-always {
+    scroll-snap-stop: always;
+  }
+
+  /* Disable snap-scroll on mobile */
+  @media (max-width: 768px) {
+    .snap-y {
+      scroll-snap-type: none;
+    }
+    .snap-start {
+      scroll-snap-align: none;
+    }
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
   :root {
     /* Modern Dark Theme - Pure Black with Enhanced Contrast */
     --background: 0 0% 3%; /* Near-black with slight warmth */
