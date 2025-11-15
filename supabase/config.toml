@@ -59,3 +59,9 @@ verify_jwt = true
 
 [functions.enhanced-ai-parser]
 verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.organization-billing-portal]
+verify_jwt = true

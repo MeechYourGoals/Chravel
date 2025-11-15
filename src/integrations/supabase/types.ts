@@ -572,6 +572,68 @@ export type Database = {
           },
         ]
       }
+      event_rsvps: {
+        Row: {
+          checked_in: boolean | null
+          checked_in_at: string | null
+          created_at: string
+          dietary_restrictions: string | null
+          event_id: string
+          guest_count: number | null
+          id: string
+          rsvped_at: string
+          status: string
+          ticket_qr_code: string | null
+          updated_at: string
+          user_email: string
+          user_id: string
+          user_name: string
+          waitlist_position: number | null
+        }
+        Insert: {
+          checked_in?: boolean | null
+          checked_in_at?: string | null
+          created_at?: string
+          dietary_restrictions?: string | null
+          event_id: string
+          guest_count?: number | null
+          id?: string
+          rsvped_at?: string
+          status: string
+          ticket_qr_code?: string | null
+          updated_at?: string
+          user_email: string
+          user_id: string
+          user_name: string
+          waitlist_position?: number | null
+        }
+        Update: {
+          checked_in?: boolean | null
+          checked_in_at?: string | null
+          created_at?: string
+          dietary_restrictions?: string | null
+          event_id?: string
+          guest_count?: number | null
+          id?: string
+          rsvped_at?: string
+          status?: string
+          ticket_qr_code?: string | null
+          updated_at?: string
+          user_email?: string
+          user_id?: string
+          user_name?: string
+          waitlist_position?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_schedules: {
         Row: {
           created_at: string | null
@@ -1202,6 +1264,11 @@ export type Database = {
           role: string | null
           show_email: boolean | null
           show_phone: boolean | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_end: string | null
+          subscription_product_id: string | null
+          subscription_status: string | null
           timezone: string | null
           updated_at: string
           user_id: string
@@ -1221,6 +1288,11 @@ export type Database = {
           role?: string | null
           show_email?: boolean | null
           show_phone?: boolean | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_end?: string | null
+          subscription_product_id?: string | null
+          subscription_status?: string | null
           timezone?: string | null
           updated_at?: string
           user_id: string
@@ -1240,6 +1312,11 @@ export type Database = {
           role?: string | null
           show_email?: boolean | null
           show_phone?: boolean | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_end?: string | null
+          subscription_product_id?: string | null
+          subscription_status?: string | null
           timezone?: string | null
           updated_at?: string
           user_id?: string
@@ -2399,6 +2476,7 @@ export type Database = {
           basecamp_latitude: number | null
           basecamp_longitude: number | null
           basecamp_name: string | null
+          capacity: number | null
           categories: Json | null
           cover_image_url: string | null
           created_at: string
@@ -2410,6 +2488,7 @@ export type Database = {
           is_archived: boolean | null
           name: string
           privacy_mode: string | null
+          registration_status: string | null
           start_date: string | null
           trip_type: string | null
           updated_at: string
@@ -2420,6 +2499,7 @@ export type Database = {
           basecamp_latitude?: number | null
           basecamp_longitude?: number | null
           basecamp_name?: string | null
+          capacity?: number | null
           categories?: Json | null
           cover_image_url?: string | null
           created_at?: string
@@ -2431,6 +2511,7 @@ export type Database = {
           is_archived?: boolean | null
           name: string
           privacy_mode?: string | null
+          registration_status?: string | null
           start_date?: string | null
           trip_type?: string | null
           updated_at?: string
@@ -2441,6 +2522,7 @@ export type Database = {
           basecamp_latitude?: number | null
           basecamp_longitude?: number | null
           basecamp_name?: string | null
+          capacity?: number | null
           categories?: Json | null
           cover_image_url?: string | null
           created_at?: string
@@ -2452,6 +2534,7 @@ export type Database = {
           is_archived?: boolean | null
           name?: string
           privacy_mode?: string | null
+          registration_status?: string | null
           start_date?: string | null
           trip_type?: string | null
           updated_at?: string
