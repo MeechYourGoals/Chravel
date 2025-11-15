@@ -4,44 +4,45 @@ import { describe, it, expect } from 'vitest';
 function normalizeDateInput(dateStr?: string): string | undefined {
   if (!dateStr) return undefined;
 
-  // If already ISO format and valid, return as is
-  if (dateStr.includes('T') && dateStr.includes('Z')) {
+  // If already YYYY-MM-DD format, return as-is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+
+  // If ISO 8601 datetime, extract date part only
+  if (dateStr.includes('T')) {
     const date = new Date(dateStr);
-    if (!isNaN(date.getTime())) return dateStr;
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
   }
 
-  // Match YYYY-MM-DD
-  const isoDateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (isoDateMatch) {
-    const [, year, month, day] = isoDateMatch;
-    return new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)).toISOString();
-  }
-
-  // Match MM/DD/YYYY
+  // Match MM/DD/YYYY and convert to YYYY-MM-DD
   const usDateMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usDateMatch) {
     const [, month, day, year] = usDateMatch;
-    return new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)).toISOString();
+    const paddedMonth = month.padStart(2, '0');
+    const paddedDay = day.padStart(2, '0');
+    return `${year}-${paddedMonth}-${paddedDay}`;
   }
 
   return undefined;
 }
 
 describe('tripService - normalizeDateInput', () => {
-  it('should convert YYYY-MM-DD to ISO format', () => {
+  it('should preserve YYYY-MM-DD format', () => {
     const result = normalizeDateInput('2025-11-21');
-    expect(result).toBe('2025-11-21T12:00:00.000Z');
+    expect(result).toBe('2025-11-21');
   });
 
-  it('should convert MM/DD/YYYY to ISO format', () => {
+  it('should convert MM/DD/YYYY to YYYY-MM-DD', () => {
     const result = normalizeDateInput('11/21/2025');
-    expect(result).toBe('2025-11-21T12:00:00.000Z');
+    expect(result).toBe('2025-11-21');
   });
 
-  it('should preserve valid ISO format strings', () => {
-    const isoDate = '2025-11-21T15:30:00.000Z';
-    const result = normalizeDateInput(isoDate);
-    expect(result).toBe(isoDate);
+  it('should extract date from ISO datetime strings', () => {
+    const result = normalizeDateInput('2025-11-21T15:30:00.000Z');
+    expect(result).toBe('2025-11-21');
   });
 
   it('should return undefined for undefined input', () => {
@@ -61,11 +62,16 @@ describe('tripService - normalizeDateInput', () => {
 
   it('should handle single-digit months and days in MM/DD/YYYY', () => {
     const result = normalizeDateInput('1/5/2025');
-    expect(result).toBe('2025-01-05T12:00:00.000Z');
+    expect(result).toBe('2025-01-05');
   });
 
-  it('should set time to noon UTC to avoid timezone issues', () => {
-    const result = normalizeDateInput('2025-12-25');
-    expect(result).toContain('T12:00:00.000Z');
+  it('should pad single-digit months and days correctly', () => {
+    const result = normalizeDateInput('3/9/2025');
+    expect(result).toBe('2025-03-09');
+  });
+
+  it('should handle ISO datetime with timezone offset', () => {
+    const result = normalizeDateInput('2025-12-25T18:00:00+05:00');
+    expect(result).toBe('2025-12-25');
   });
 });

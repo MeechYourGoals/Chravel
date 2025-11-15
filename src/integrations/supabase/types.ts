@@ -2427,7 +2427,7 @@ export type Database = {
           description?: string | null
           destination?: string | null
           end_date?: string | null
-          id: string
+          id?: string
           is_archived?: boolean | null
           name: string
           privacy_mode?: string | null
