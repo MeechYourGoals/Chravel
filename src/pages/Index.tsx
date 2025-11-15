@@ -26,12 +26,14 @@ import { DemoModal } from '../components/conversion/DemoModal';
 import { useAuth } from '../hooks/useAuth';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { useTrips } from '../hooks/useTrips';
 import { proTripMockData } from '../data/proTripMockData';
 import { eventsMockData } from '../data/eventsMockData';
 import { tripsData } from '../data/tripsData';
 import { calculateTripStats, calculateProTripStats, calculateEventStats, filterItemsByStatus } from '../utils/tripStatsCalculator';
 import { useLocation } from 'react-router-dom';
 import { useMobilePortrait } from '../hooks/useMobilePortrait';
+import { convertSupabaseTripsToMock } from '../utils/tripConverter';
 const Index = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -51,11 +53,15 @@ const Index = () => {
   const location = useLocation();
   const { isDemoMode } = useDemoMode();
   const isMobilePortrait = useMobilePortrait();
+  
+  // Fetch real user trips
+  const { trips: userTripsRaw, loading: tripsLoading } = useTrips();
+  
   // Marketing content should always show to unauthenticated users
   const showMarketingContent = !user;
 
-  // Use centralized trip data - only show if demo mode is enabled
-  const trips = isDemoMode ? tripsData : [];
+  // Use centralized trip data - demo data or real user data converted to mock format
+  const trips = isDemoMode ? tripsData : convertSupabaseTripsToMock(userTripsRaw);
 
   if (import.meta.env.DEV) {
     console.log('Index - proTripMockData IDs:', Object.keys(proTripMockData));

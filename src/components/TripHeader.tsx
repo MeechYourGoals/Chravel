@@ -36,7 +36,7 @@ interface TripHeaderProps {
   };
   onManageUsers?: () => void;
   onDescriptionUpdate?: (description: string) => void;
-  onTripUpdate?: (updates: Partial<Trip>) => void;
+  onTripUpdate?: (updates: Partial<TripHeaderProps['trip']>) => void;
   onShowExport?: () => void;
   // Pro-specific props
   category?: ProTripCategory;
@@ -57,19 +57,9 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
   const canExport = true;
 
   // Handle trip updates from modal
-  const handleTripUpdate = (updates: Partial<Trip>) => {
+  const handleTripUpdate = (updates: Partial<TripHeaderProps['trip']>) => {
     if (onTripUpdate) {
-      // Format dateRange if dates are updated
-      if (updates.start_date && updates.end_date) {
-        const dateRange = formatDateRange(updates.start_date, updates.end_date);
-        onTripUpdate({
-          ...updates,
-          name: updates.name || trip.title,
-          destination: updates.destination || trip.location
-        });
-      } else {
-        onTripUpdate(updates);
-      }
+      onTripUpdate(updates);
     }
   };
 
