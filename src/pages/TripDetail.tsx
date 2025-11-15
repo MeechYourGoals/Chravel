@@ -92,6 +92,21 @@ const TripDetail = () => {
     }
   }, [trip, tripDescription]);
 
+  // Auto-scroll to chat on page load for desktop (called before any conditional returns)
+  React.useEffect(() => {
+    if (!isMobile && !loading && trip) {
+      const scrollToChat = () => {
+        setTimeout(() => {
+          const chatElement = document.querySelector('[data-chat-container]');
+          if (chatElement) {
+            chatElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 300);
+      };
+      scrollToChat();
+    }
+  }, [isMobile, loading, trip]);
+
   // Handle trip updates from edit modal - adapter to convert Supabase format to mock format
   const handleTripUpdate = (updates: Partial<MockTrip>) => {
     setTripData(prev => ({ ...prev, ...updates }));
@@ -292,21 +307,6 @@ const TripDetail = () => {
   if (isMobile) {
     return <MobileTripDetail />;
   }
-
-  // 🆕 Auto-scroll to chat on page load (chat-first viewport)
-  React.useEffect(() => {
-    const scrollToChat = () => {
-      // Wait for content to render, then scroll to tabs (where chat is)
-      setTimeout(() => {
-        const chatElement = document.querySelector('[data-chat-container]');
-        if (chatElement) {
-          chatElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 300);
-    };
-
-    scrollToChat();
-  }, []);
 
   // Desktop experience remains completely unchanged
   return (
