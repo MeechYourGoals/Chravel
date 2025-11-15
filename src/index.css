@@ -1,5 +1,4 @@
 
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -747,3 +746,17 @@
   scrollbar-width: none;
 }
 
+.full-page-landing-container {
+  scroll-snap-type: y mandatory;
+}
+
+.full-page-section {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+@media (max-width: 768px) {
+  .full-page-landing-container {
+    scroll-snap-type: none; /* Disable snap on mobile */
+  }
+}
