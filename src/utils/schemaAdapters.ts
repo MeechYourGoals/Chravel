@@ -9,7 +9,7 @@ import { Trip as TripServiceTrip } from '@/services/tripService';
 
 // Import type from tripsData for type safety
 interface TripsDataTrip {
-  id: number;
+  id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
   title: string;
   location: string;
   dateRange: string;

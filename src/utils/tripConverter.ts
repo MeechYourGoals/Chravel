@@ -19,7 +19,7 @@ export function convertSupabaseTripToMock(supabaseTrip: SupabaseTrip): MockTrip 
   }
 
   return {
-    id: parseInt(supabaseTrip.id.substring(0, 8), 16), // Convert UUID to number for compatibility
+    id: supabaseTrip.id as any, // Keep UUID string for service calls
     title: supabaseTrip.name || 'Untitled Trip',
     location: supabaseTrip.destination || 'No destination',
     dateRange,
