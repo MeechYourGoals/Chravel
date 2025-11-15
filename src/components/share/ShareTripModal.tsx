@@ -85,7 +85,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-background/95 backdrop-blur-md border border-border rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-scale-in relative">
+      <div className="bg-background/95 backdrop-blur-md border border-border rounded-3xl p-4 max-w-lg w-full max-h-[500px] overflow-y-auto animate-scale-in relative">
         {/* Close Button - Fixed Position */}
         <Button 
           onClick={onClose} 
@@ -98,18 +98,18 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
         </Button>
 
         {/* Header */}
-        <div className="mb-6 pr-12">
-          <h2 className="text-2xl font-bold text-foreground">Share Trip</h2>
-          <p className="text-muted-foreground">Invite others to join "{trip.title}"</p>
+        <div className="mb-3 pr-10">
+          <h2 className="text-xl font-bold text-foreground">Share Trip</h2>
+          <p className="text-muted-foreground text-sm">Invite others to join "{trip.title}"</p>
         </div>
 
         {/* Trip Preview Card */}
-        <div className="bg-gradient-to-br from-yellow-600/20 via-yellow-500/10 to-transparent rounded-2xl p-4 mb-6 border border-yellow-500/20">
+        <div className="bg-gradient-to-br from-yellow-600/20 via-yellow-500/10 to-transparent rounded-2xl p-3 mb-3 border border-yellow-500/20">
           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop')] bg-cover bg-center opacity-10 rounded-2xl"></div>
           <div className="relative z-10">
-            <h3 className="text-lg font-bold text-white mb-2">{trip.title}</h3>
-            <p className="text-white/80 text-sm mb-2">{trip.location}</p>
-            <p className="text-white/80 text-sm mb-3">{trip.dateRange}</p>
+            <h3 className="text-base font-bold text-white mb-1">{trip.title}</h3>
+            <p className="text-white/80 text-sm mb-1">{trip.location}</p>
+            <p className="text-white/80 text-sm mb-2">{trip.dateRange}</p>
             <div className="flex -space-x-2">
               {trip.participants.slice(0, 4).map((participant, index) => (
                 <img
@@ -130,16 +130,16 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
         </div>
 
         {/* Invite Link */}
-        <div className="mb-6">
-          <label className="block text-foreground text-sm font-medium mb-2">Invite Link</label>
+        <div className="mb-3">
+          <label className="block text-foreground text-sm font-medium mb-1">Invite Link</label>
           <div className="flex gap-2">
-            <div className="flex-1 bg-muted border border-border rounded-xl px-4 py-3 text-foreground text-sm font-mono truncate">
+            <div className="flex-1 bg-muted border border-border rounded-xl px-3 py-2 text-foreground text-sm font-mono truncate">
               {loading ? 'Generating invite link...' : inviteLink || 'Loading...'}
             </div>
             <Button
               onClick={handleCopyLinkClick}
               disabled={loading || !inviteLink}
-              className="px-4 py-3"
+              className="px-3 py-2"
             >
               {copied ? <Check size={16} /> : <Copy size={16} />}
               <span className="hidden sm:inline ml-2">{copied ? 'Copied!' : 'Copy'}</span>
@@ -148,18 +148,18 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
         </div>
 
         {/* Share via Apps Button */}
-        <div className="mb-6">
+        <div className="mb-3">
           <Button
             onClick={handleNativeShare}
             disabled={loading || !inviteLink}
-            className="w-full flex items-center justify-center gap-3 h-12 text-base font-medium"
+            className="w-full flex items-center justify-center gap-3 h-10 text-base font-medium"
           >
             <Share2 size={20} />
             <span>Share via Apps</span>
           </Button>
         </div>
 
-        <p className="text-xs text-muted-foreground text-center mt-4">
+        <p className="text-xs text-muted-foreground text-center mt-2">
           Anyone with this link can request to join your trip
         </p>
       </div>
