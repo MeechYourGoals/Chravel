@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.organization-billing-portal]
 verify_jwt = true
+
+[functions.fetch-invoices]
+verify_jwt = true

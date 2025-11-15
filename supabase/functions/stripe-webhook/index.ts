@@ -133,7 +133,55 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supa
       .ignore();
   }
 
-  logStep("Subscription updated successfully", { userId, status: subscription.status });
+  // Send realtime notification to user
+  await supabase
+    .from('notifications')
+    .insert({
+      user_id: userId,
+      type: 'subscription',
+      title: getSubscriptionNotificationTitle(subscription.status),
+      message: getSubscriptionNotificationMessage(subscription.status, subscriptionEnd),
+      metadata: {
+        subscription_id: subscription.id,
+        product_id: productId,
+        status: subscription.status,
+        action: 'subscription_updated'
+      }
+    });
+
+  logStep("Subscription updated successfully with notification", { userId, status: subscription.status });
+}
+
+function getSubscriptionNotificationTitle(status: string): string {
+  switch (status) {
+    case 'active':
+      return '✅ Subscription Activated';
+    case 'past_due':
+      return '⚠️ Payment Issue';
+    case 'canceled':
+      return 'Subscription Canceled';
+    case 'trialing':
+      return '🎉 Trial Started';
+    default:
+      return 'Subscription Updated';
+  }
+}
+
+function getSubscriptionNotificationMessage(status: string, subscriptionEnd: string): string {
+  const endDate = new Date(subscriptionEnd).toLocaleDateString();
+  
+  switch (status) {
+    case 'active':
+      return `Your Chravel Pro subscription is now active until ${endDate}.`;
+    case 'past_due':
+      return 'We had trouble processing your payment. Please update your payment method.';
+    case 'canceled':
+      return `Your subscription has been canceled and will end on ${endDate}.`;
+    case 'trialing':
+      return `Your free trial is active until ${endDate}. Enjoy full access!`;
+    default:
+      return 'Your subscription status has been updated.';
+  }
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supabase: any) {
