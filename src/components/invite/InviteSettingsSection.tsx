@@ -14,7 +14,7 @@ export const InviteSettingsSection = ({
   onExpireIn7DaysChange 
 }: InviteSettingsSectionProps) => {
   return (
-    <div className="mb-6 space-y-3">
+    <div className="mb-3 space-y-2">
       <div className="flex items-center justify-between">
         <label className="text-gray-300 text-sm">Require approval to join</label>
         <input

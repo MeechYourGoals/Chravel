@@ -19,8 +19,8 @@ export const InviteModalHeader = ({ tripName, onClose }: InviteModalHeaderProps)
       </button>
 
       {/* Header Content */}
-      <div className="mb-6 pr-12">
-        <h2 className="text-2xl font-bold text-white">Invite to Trip</h2>
+      <div className="mb-3 pr-10">
+        <h2 className="text-xl font-bold text-white">Invite to Trip</h2>
         <p className="text-gray-400 text-sm">{tripName}</p>
       </div>
     </>
