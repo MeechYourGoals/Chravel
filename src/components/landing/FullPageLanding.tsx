@@ -15,8 +15,8 @@ import chaosImage from '@/assets/chaos-vs-organization.jpg';
 import aiImage from '@/assets/ai-concierge-map.jpg';
 import scenariosImage from '@/assets/travel-scenarios.jpg';
 import happyTravelersImage from '@/assets/happy-travelers.jpg';
-import appInterfaceImage from '@/assets/app-interface-bg.jpg';
 import unifiedWorkspaceImage from '@/assets/unified-workspace-bg.jpg';
+import pricingWorkspaceImage from '@/assets/pricing-travel-workspace.jpg';
 
 interface FullPageLandingProps {
   onSignUp: () => void;
@@ -89,8 +89,8 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
         {/* Section 7: Pricing */}
         <FullPageLandingSection
           id="section-pricing"
-          imageFallback={appInterfaceImage}
-          videoOpacity={0.3}
+          imageFallback={pricingWorkspaceImage}
+          videoOpacity={0.5}
           minHeight="110vh"
         >
           <PricingLandingSection onSignUp={onSignUp} />
