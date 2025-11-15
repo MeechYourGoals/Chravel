@@ -12,6 +12,7 @@ import { DesktopHeader } from '../components/home/DesktopHeader';
 import { TripGrid } from '../components/home/TripGrid';
 import { RecommendationFilters } from '../components/home/RecommendationFilters';
 import { UnauthenticatedLanding } from '../components/UnauthenticatedLanding';
+import { FullPageLanding } from '../components/landing/FullPageLanding';
 import { DemoModeToggle } from '../components/DemoModeToggle';
 
 // New conversion components
@@ -185,31 +186,10 @@ const Index = () => {
         </div>
 
         {!isDemoMode ? (
-          // Marketing landing content
-          <div className="container mx-auto px-4 pt-2 pb-6 max-w-[1600px] relative z-10">
-            <UnauthenticatedLanding 
-              onSignIn={() => setIsAuthModalOpen(true)}
-              onSignUp={() => setIsAuthModalOpen(true)}
-            />
-
-            <div className="mt-6 space-y-8">
-              <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                <SocialProofSection />
-              </div>
-
-              <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                <FeatureShowcase />
-              </div>
-
-              <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                <ReplacesGrid />
-              </div>
-
-              <div id="pricing-section" className="animate-fade-in" style={{ animationDelay: '0.5s' }}>
-                <PricingSection onSignUp={() => setIsAuthModalOpen(true)} />
-              </div>
-            </div>
-          </div>
+          // Marketing landing content - Full-page scrolling experience
+          <FullPageLanding 
+            onSignUp={() => setIsAuthModalOpen(true)}
+          />
         ) : (
           // Demo mode content - full app interface
           <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
