@@ -28,6 +28,7 @@ export const useCalendarManagement = (tripId: string) => {
   useEffect(() => {
     if (!tripId) {
       setEvents([]);
+      setIsLoading(false);
       return;
     }
 
@@ -50,7 +51,15 @@ export const useCalendarManagement = (tripId: string) => {
       }
     };
 
+    // Set a timeout to prevent infinite loading (safety net)
+    const timeoutId = setTimeout(() => {
+      console.warn('Calendar loading timeout - forcing load complete');
+      setIsLoading(false);
+    }, 10000); // 10 second timeout
+
     loadEvents();
+    
+    return () => clearTimeout(timeoutId);
   }, [tripId, toast]);
 
   const getEventsForDate = (date: Date): CalendarEvent[] => {

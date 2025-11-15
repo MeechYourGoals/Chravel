@@ -50,11 +50,11 @@ export const CalendarHeader = ({ viewMode, onToggleView, onAddEvent, onExport }:
           </Button>
         )}
 
-        <Button variant="outline" onClick={onToggleView}>
+        <Button variant="outline" onClick={onToggleView} size="sm">
           {getViewButtonContent()}
         </Button>
 
-        <Button onClick={onAddEvent}>
+        <Button onClick={onAddEvent} size="sm">
           <Plus className="mr-2 h-4 w-4" />
           Add Event
         </Button>
