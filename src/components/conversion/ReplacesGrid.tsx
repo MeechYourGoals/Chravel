@@ -28,7 +28,7 @@ export const ReplacesGrid = () => {
         <p className="text-sm sm:text-base md:text-lg lg:text-xl text-foreground max-w-3xl mx-auto leading-relaxed break-words">
           Bring your most-used travel apps into one shared planning space. It keeps every plan, person, and payment in sync. Less changing apps. Less chaos. More Chravel.
         </p>
-        <p className="text-white/80 font-medium text-sm sm:text-base md:text-lg mt-4 md:mt-6 text-center max-w-3xl mx-auto">
+        <p className="text-white font-medium text-sm sm:text-base md:text-lg mt-4 md:mt-6 text-center max-w-3xl mx-auto">
           Travel 365 for When You're Out of Office 365: Chravel simplifies the workflows typically juggled across 15+ apps.
         </p>
         <p className="text-white/90 font-semibold text-base sm:text-lg md:text-xl mt-6 md:mt-8 text-center max-w-4xl mx-auto">
