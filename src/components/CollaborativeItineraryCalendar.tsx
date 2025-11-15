@@ -88,12 +88,12 @@ export const CollaborativeItineraryCalendar = ({ tripMembers, assignments, tripI
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Calendar */}
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 flex justify-center items-start">
           <Calendar
             mode="single"
             selected={selectedDate}
             onSelect={setSelectedDate}
-            className="w-full"
+            className="max-w-sm"
             modifiers={{
               hasEvents: datesWithEvents
             }}
