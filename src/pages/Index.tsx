@@ -19,8 +19,18 @@ import { PersistentCTABar } from '../components/conversion/PersistentCTABar';
 import { ReplacesGrid } from '../components/conversion/ReplacesGrid';
 import { SocialProofSection } from '../components/conversion/SocialProofSection';
 import { FeatureShowcase } from '../components/conversion/FeatureShowcase';
-import { PricingSection } from '../components/conversion/PricingSection';
+import { PricingSection as ExistingPricingSection } from '../components/conversion/PricingSection';
 import { DemoModal } from '../components/conversion/DemoModal';
+
+// New full-page landing components
+import StickyLandingNav from '../components/landing/StickyLandingNav';
+import HeroSection from '../components/landing/sections/HeroSection';
+import ProblemSolutionSection from '../components/landing/sections/ProblemSolutionSection';
+import AiFeaturesSection from '../components/landing/sections/AiFeaturesSection';
+import UseCasesSection from '../components/landing/sections/UseCasesSection';
+import SocialProofVideoSection from '../components/landing/sections/SocialProofVideoSection';
+import ReplacesSection from '../components/landing/sections/ReplacesSection';
+import PricingSection from '../components/landing/sections/PricingSection';
 
 import { useAuth } from '../hooks/useAuth';
 import { useIsMobile } from '../hooks/use-mobile';
@@ -185,30 +195,16 @@ const Index = () => {
         </div>
 
         {!isDemoMode ? (
-          // Marketing landing content
-          <div className="container mx-auto px-4 pt-2 pb-6 max-w-[1600px] relative z-10">
-            <UnauthenticatedLanding 
-              onSignIn={() => setIsAuthModalOpen(true)}
-              onSignUp={() => setIsAuthModalOpen(true)}
-            />
-
-            <div className="mt-6 space-y-8">
-              <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                <SocialProofSection />
-              </div>
-
-              <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                <FeatureShowcase />
-              </div>
-
-              <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                <ReplacesGrid />
-              </div>
-
-              <div id="pricing-section" className="animate-fade-in" style={{ animationDelay: '0.5s' }}>
-                <PricingSection onSignUp={() => setIsAuthModalOpen(true)} />
-              </div>
-            </div>
+          // New full-page scroll landing page
+          <div className="full-page-landing-container h-screen overflow-y-scroll scroll-smooth">
+            <StickyLandingNav />
+            <HeroSection onSignUp={() => setIsAuthModalOpen(true)} />
+            <ProblemSolutionSection />
+            <AiFeaturesSection />
+            <UseCasesSection />
+            <SocialProofVideoSection />
+            <ReplacesSection />
+            <PricingSection onSignUp={() => setIsAuthModalOpen(true)} />
           </div>
         ) : (
           // Demo mode content - full app interface
