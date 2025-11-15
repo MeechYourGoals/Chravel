@@ -16,6 +16,7 @@ import aiImage from '@/assets/ai-concierge-map.jpg';
 import scenariosImage from '@/assets/travel-scenarios.jpg';
 import happyTravelersImage from '@/assets/happy-travelers.jpg';
 import appInterfaceImage from '@/assets/app-interface-bg.jpg';
+import unifiedWorkspaceImage from '@/assets/unified-workspace-bg.jpg';
 
 interface FullPageLandingProps {
   onSignUp: () => void;
@@ -76,10 +77,11 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           <SocialProofVideoSection />
         </FullPageLandingSection>
 
-        {/* Section 6: Replaces (No video, focus on content) */}
+        {/* Section 6: Replaces */}
         <FullPageLandingSection
           id="section-replaces"
-          className="bg-background"
+          imageFallback={unifiedWorkspaceImage}
+          videoOpacity={0.6}
         >
           <ReplacesSection />
         </FullPageLandingSection>
