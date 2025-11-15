@@ -10,12 +10,12 @@ import { ReplacesSection } from './sections/ReplacesSection';
 import { PricingLandingSection } from './sections/PricingLandingSection';
 
 // Import generated images
-import heroImage from '@/assets/hero-group-planning.jpg';
-import chaosImage from '@/assets/chaos-vs-organization.jpg';
-import aiImage from '@/assets/ai-concierge-map.jpg';
-import scenariosImage from '@/assets/travel-scenarios.jpg';
-import happyTravelersImage from '@/assets/happy-travelers.jpg';
-import appInterfaceImage from '@/assets/app-interface-bg.jpg';
+import heroImage from '@/assets/hero-group-planning-v2.jpg';
+import chaosImage from '@/assets/chaos-vs-organization-v2.jpg';
+import aiImage from '@/assets/ai-concierge-map-v2.jpg';
+import scenariosImage from '@/assets/travel-scenarios-v2.jpg';
+import happyTravelersImage from '@/assets/happy-travelers-v2.jpg';
+import appInterfaceImage from '@/assets/app-interface-bg-v2.jpg';
 
 interface FullPageLandingProps {
   onSignUp: () => void;
