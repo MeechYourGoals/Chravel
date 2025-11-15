@@ -79,21 +79,21 @@ export const CollaborativeItineraryCalendar = ({ tripMembers, assignments, tripI
   const datesWithEvents = calendarEvents.map(event => event.date);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       <CategoryFilters
         categories={categories}
         selectedFilter={filterCategory}
         onFilterChange={setFilterCategory}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch w-full">
         {/* Calendar */}
-        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 flex justify-center items-start">
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 flex items-start justify-start h-full min-h-[440px]">
           <Calendar
             mode="single"
             selected={selectedDate}
             onSelect={setSelectedDate}
-            className="max-w-sm"
+            className="w-[320px]"
             modifiers={{
               hasEvents: datesWithEvents
             }}
@@ -108,7 +108,7 @@ export const CollaborativeItineraryCalendar = ({ tripMembers, assignments, tripI
         </div>
 
         {/* Events and Add Event - Single Card */}
-        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 flex flex-col h-full">
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 flex flex-col h-full min-h-[440px]">
           <QuickAddButtons
             categories={categories}
             onSelectCategory={(categoryId) => {
