@@ -4,31 +4,33 @@ import { tripsData } from '@/data/tripsData';
 import { adaptTripsDataToTripSchema } from '@/utils/schemaAdapters';
 
 /**
- * Normalizes date input to ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)
- * Accepts: YYYY-MM-DD, MM/DD/YYYY, or ISO 8601 strings
- * Returns ISO format at noon UTC to avoid timezone off-by-one errors
+ * Normalizes date input to YYYY-MM-DD format for database date columns
+ * Accepts: YYYY-MM-DD, MM/DD/YYYY, or ISO 8601 datetime strings
+ * Returns date-only format (YYYY-MM-DD) expected by Postgres date columns
  */
 function normalizeDateInput(dateStr?: string): string | undefined {
   if (!dateStr) return undefined;
 
-  // If already ISO format and valid, return as is
-  if (dateStr.includes('T') && dateStr.includes('Z')) {
+  // If already YYYY-MM-DD format, return as-is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+
+  // If ISO 8601 datetime, extract date part only
+  if (dateStr.includes('T')) {
     const date = new Date(dateStr);
-    if (!isNaN(date.getTime())) return dateStr;
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
   }
 
-  // Match YYYY-MM-DD
-  const isoDateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (isoDateMatch) {
-    const [, year, month, day] = isoDateMatch;
-    return new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)).toISOString();
-  }
-
-  // Match MM/DD/YYYY
+  // Match MM/DD/YYYY and convert to YYYY-MM-DD
   const usDateMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usDateMatch) {
     const [, month, day, year] = usDateMatch;
-    return new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)).toISOString();
+    const paddedMonth = month.padStart(2, '0');
+    const paddedDay = day.padStart(2, '0');
+    return `${year}-${paddedMonth}-${paddedDay}`;
   }
 
   return undefined;
