@@ -2,8 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { TripCard } from '../TripCard';
 import { ProTripCard } from '../ProTripCard';
 import { EventCard } from '../EventCard';
-import { MobileTripCard } from '../MobileTripCard';
-import { MobileProTripCard } from '../MobileProTripCard';
 import { MobileEventCard } from '../MobileEventCard';
 import { RecommendationCard } from '../RecommendationCard';
 import { LocationSearchBar } from './LocationSearchBar';
@@ -185,19 +183,11 @@ export const TripGrid = ({
       <div className={`grid gap-6 w-full ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
         {viewMode === 'myTrips' ? (
           activeTrips.map((trip) => (
-            isMobile ? (
-              <MobileTripCard key={trip.id} trip={trip} />
-            ) : (
-              <TripCard key={trip.id} trip={trip} />
-            )
+            <TripCard key={trip.id} trip={trip} />
           ))
         ) : viewMode === 'tripsPro' ? (
           Object.values(activeProTrips).map((trip) => (
-            isMobile ? (
-              <MobileProTripCard key={trip.id} trip={trip} />
-            ) : (
-              <ProTripCard key={trip.id} trip={trip} />
-            )
+            <ProTripCard key={trip.id} trip={trip} />
           ))
         ) : viewMode === 'events' ? (
           Object.values(activeEvents).map((event) => (

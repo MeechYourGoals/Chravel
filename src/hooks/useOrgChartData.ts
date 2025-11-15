@@ -65,7 +65,6 @@ export const useOrgChartData = (roster: ProParticipant[]) => {
 
   const updateHierarchy = (nodeId: string, newParentId: string | null) => {
     // This would trigger a Supabase update
-    console.log('Update hierarchy:', { nodeId, newParentId });
     // Implementation would update the pro_participants table
   };
 

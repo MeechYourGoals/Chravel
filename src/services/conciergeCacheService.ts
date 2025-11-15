@@ -88,7 +88,6 @@ class ConciergeCacheService {
       }
       
       if (bestMatch) {
-        console.log(`[ConciergeCache] Using cached response (similarity: ${bestSimilarity.toFixed(2)})`);
         return bestMatch.response;
       }
       

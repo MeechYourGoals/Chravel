@@ -18,7 +18,6 @@ export async function registerBackgroundSync(entityType: 'chat_message' | 'task'
     const syncTag = `chravel-sync-${entityType}`;
 
     await (registration as any).sync.register(syncTag);
-    console.log(`[Sync] Registered background sync for: ${entityType}`);
   } catch (error) {
     console.error('[Sync] Failed to register background sync:', error);
   }
@@ -41,7 +40,6 @@ export async function triggerSync(entityType: 'chat_message' | 'task' | 'calenda
         type: 'TRIGGER_SYNC',
         entityType,
       });
-      console.log(`[Sync] Triggered sync for: ${entityType}`);
     }
   } catch (error) {
     console.error('[Sync] Failed to trigger sync:', error);

@@ -18,7 +18,6 @@ class ErrorTrackingService {
     // In production, initialize Sentry here
     // Sentry.init({ dsn: config?.dsn, environment: config?.environment });
     this.isInitialized = true;
-    console.log('[ErrorTracking] Initialized', config?.environment || 'development');
   }
 
   captureException(error: Error, context?: ErrorContext) {
@@ -40,19 +39,16 @@ class ErrorTrackingService {
     // In production, send to Sentry
     // Sentry.captureMessage(message, { level, contexts: { custom: context } });
     
-    console.log(`[ErrorTracking] ${level.toUpperCase()}: ${message}`, context);
   }
 
   setUser(userId: string, userData?: Record<string, any>) {
     // In production, set Sentry user context
     // Sentry.setUser({ id: userId, ...userData });
-    console.log('[ErrorTracking] User set:', userId);
   }
 
   clearUser() {
     // In production, clear Sentry user context
     // Sentry.setUser(null);
-    console.log('[ErrorTracking] User cleared');
   }
 }
 

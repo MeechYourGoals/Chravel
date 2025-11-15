@@ -5,8 +5,6 @@ import { UnifiedMapControls } from './places/UnifiedMapControls';
 import { GreenNotice } from './places/GreenNotice';
 import { BasecampsPanel } from './places/BasecampsPanel';
 import { LinksPanel } from './places/LinksPanel';
-import { TripBaseCampCard } from './places/TripBaseCampCard';
-import { PersonalBaseCampCard } from './places/PersonalBaseCampCard';
 import { BasecampLocation, PlaceWithDistance, DistanceCalculationSettings, PlaceCategory } from '../types/basecamp';
 import { DistanceCalculator } from '../utils/distanceCalculator';
 import { useTripVariant } from '../contexts/TripVariantContext';
@@ -323,7 +321,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   }, [contextBasecamp, isBasecampSet, distanceSettings.preferredMode, distanceSettings.unit]);
 
   const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
-    console.log('[PlacesSection] Setting trip basecamp:', newBasecamp);
     
     // 🆕 Validate coordinates before proceeding
     if (!newBasecamp.coordinates?.lat || !newBasecamp.coordinates?.lng) {
@@ -340,7 +337,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
       return;
     }
     
-    console.log('[PlacesSection] ✅ Valid coordinates:', newBasecamp.coordinates);
     
     // Track local update for conflict resolution
     lastLocalUpdateRef.current = {
@@ -351,9 +347,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     setContextBasecamp(newBasecamp);
     
     // Center map immediately on new basecamp
-    console.log('[PlacesSection] Centering map on trip basecamp:', newBasecamp.coordinates);
     handleCenterMap(newBasecamp.coordinates, 'trip');
-    console.log('[PlacesSection] ✅ Trip basecamp set successfully');
     
     // Recalculate distances for existing places
     if (places.length > 0) {
@@ -433,7 +427,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   const handleCenterMap = (coords: { lat: number; lng: number }, type?: 'trip' | 'personal' | 'search') => {
-    console.log('[Map] handleCenterMap called:', { coords, type });
     
     if (!coords?.lat || !coords?.lng) {
       console.warn('[Map] Invalid coordinates provided to handleCenterMap:', coords);
@@ -447,7 +440,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     }
     
     mapRef.current?.centerOn(coords, 15);
-    console.log(`[Map] ✅ Centered on ${type}:`, coords);
     
     if (type) {
       // Track most recent location update for "most recent wins" logic
@@ -465,19 +457,16 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   const handleContextChange = (context: 'trip' | 'personal') => {
-    console.log('[PlacesSection] Context change:', context);
     
     // Always update the search context for proper toggle highlighting
     setSearchContext(context);
 
     // Update search origin and center map
     if (context === 'trip' && contextBasecamp?.coordinates) {
-      console.log('[PlacesSection] Centering on trip basecamp:', contextBasecamp.coordinates);
       setSearchOrigin(contextBasecamp.coordinates);
       mapRef.current?.centerOn(contextBasecamp.coordinates, 15);
     } else if (context === 'personal' && personalBasecamp?.latitude && personalBasecamp?.longitude) {
       const coords = { lat: personalBasecamp.latitude, lng: personalBasecamp.longitude };
-      console.log('[PlacesSection] Centering on personal basecamp:', coords);
       setSearchOrigin(coords);
       mapRef.current?.centerOn(coords, 15);
     } else {
@@ -536,7 +525,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
       // 🆕 Track this search as the most recent location update
       // Note: We can't easily get coordinates from a text search without using Places API
       // The map's internal search already centered, so we just log the action
-      console.log('[PlacesSection] Text search completed for:', searchQuery);
     } catch (error) {
       clearTimeout(timeoutId);
       if (import.meta.env.DEV) {
@@ -569,7 +557,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
               lat: place.geometry.location.lat(),
               lng: place.geometry.location.lng()
             };
-            console.log('[PlacesSection] Search completed, centering on:', coords);
             handleCenterMap(coords, 'search');
           }
         }

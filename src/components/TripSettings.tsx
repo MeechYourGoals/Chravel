@@ -70,11 +70,9 @@ export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId 
 
   const handleUserRemoved = (userId: string) => {
     setUsers(users.filter(user => user.id !== userId));
-    console.log(`User ${userId} removed from trip ${tripId}`);
   };
 
   const handleLeaveTrip = () => {
-    console.log(`Current user left trip ${tripId}`);
     onClose();
     // Navigate back to trips list or show confirmation
   };
@@ -92,7 +90,6 @@ export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId 
 
   const handleSaveCategory = () => {
     const finalCategory = showCustomInput ? customCategory : tripCategory;
-    console.log(`Trip category updated to: ${finalCategory}`);
     // This would save to your backend
   };
 

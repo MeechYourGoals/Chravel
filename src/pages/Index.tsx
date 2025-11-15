@@ -64,8 +64,6 @@ const Index = () => {
   const trips = isDemoMode ? tripsData : convertSupabaseTripsToMock(userTripsRaw);
 
   if (import.meta.env.DEV) {
-    console.log('Index - proTripMockData IDs:', Object.keys(proTripMockData));
-    console.log('Index - eventsMockData IDs:', Object.keys(eventsMockData));
   }
 
   // Calculate stats for each view mode - gate by demo mode
@@ -228,7 +226,6 @@ const Index = () => {
                       setIsSettingsOpen(true);
                     }}
                     onAuth={() => setIsAuthModalOpen(true)}
-                    onSearch={(query) => console.log('Search:', query)}
                     onCreateTrip={handleCreateTrip}
                     showRecsTab={showMarketingContent}
                   />

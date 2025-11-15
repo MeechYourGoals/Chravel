@@ -636,7 +636,6 @@ class DemoModeService {
     tripPayments.push(payment);
     this.sessionPayments.set(tripId, tripPayments);
 
-    console.log('✅ Demo payment created (session-only):', payment);
     return paymentId;
   }
 
@@ -691,7 +690,6 @@ class DemoModeService {
     };
 
     this.sessionPersonalBasecamps.set(key, basecamp);
-    console.log('✅ Demo personal basecamp set (session-only):', basecamp);
     return basecamp;
   }
 

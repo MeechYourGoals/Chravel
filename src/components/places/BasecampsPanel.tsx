@@ -97,7 +97,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
 
   const handlePersonalBasecampSet = async (location: BasecampLocation) => {
     try {
-      console.log('[BasecampsPanel] Setting personal basecamp:', location);
       
       // 🆕 Validate coordinates before proceeding
       if (!location.coordinates?.lat || !location.coordinates?.lng) {
@@ -114,7 +113,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         return;
       }
       
-      console.log('[BasecampsPanel] ✅ Valid coordinates:', location.coordinates);
       
       if (isDemoMode) {
         const sessionBasecamp = demoModeService.setSessionPersonalBasecamp({
@@ -128,7 +126,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         setPersonalBasecamp(sessionBasecamp);
         
         // 🆕 Center map FIRST, then switch context
-        console.log('[BasecampsPanel] Centering map on personal basecamp (demo):', location.coordinates);
         onCenterMap(location.coordinates, 'personal');
         onContextChange('personal');
       } else if (user) {
@@ -142,12 +139,10 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         setPersonalBasecamp(dbBasecamp);
         
         // 🆕 Center map FIRST, then switch context
-        console.log('[BasecampsPanel] Centering map on personal basecamp (auth):', location.coordinates);
         onCenterMap(location.coordinates, 'personal');
         onContextChange('personal');
       }
       setShowPersonalSelector(false);
-      console.log('[BasecampsPanel] ✅ Personal basecamp set successfully');
     } catch (error) {
       console.error('[BasecampsPanel] ❌ Failed to set personal basecamp:', error);
       toast.error('Failed to set personal base camp');

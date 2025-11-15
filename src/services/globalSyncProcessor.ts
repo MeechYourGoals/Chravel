@@ -137,10 +137,8 @@ export function setupGlobalSyncProcessor() {
   if (typeof window === 'undefined') return;
 
   const handleOnline = async () => {
-    console.log('[Sync] Connection restored, processing sync queue...');
     try {
       const result = await processGlobalSyncQueue();
-      console.log('[Sync] Sync complete:', result);
       
       if (result.skipped > 0) {
         console.warn(`[Sync] ${result.skipped} operations skipped (no handlers)`);

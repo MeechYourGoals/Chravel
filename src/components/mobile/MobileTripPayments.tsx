@@ -178,7 +178,6 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   const handlePaymentTap = async (paymentId: string) => {
     await hapticService.light();
     // TODO: Open payment detail modal
-    console.log('Payment tapped:', paymentId);
   };
 
   const getStatusIcon = (status: Payment['status']) => {

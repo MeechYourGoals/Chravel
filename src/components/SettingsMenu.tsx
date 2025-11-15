@@ -40,7 +40,6 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
   };
 
   const currentUser = user || mockUser;
-  const currentSignOut = user ? signOut : () => console.log('Demo mode - sign out clicked');
 
   if (!isOpen) return null;
 

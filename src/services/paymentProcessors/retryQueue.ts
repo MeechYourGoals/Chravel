@@ -143,7 +143,6 @@ export class PaymentRetryQueue {
    * Callback for successful payment retry
    */
   private onPaymentSuccess(payment: QueuedPayment, response: PaymentResponse): void {
-    console.log(`Payment retry succeeded: ${payment.id}`, response);
     // In production, emit event or call callback
   }
 
@@ -151,7 +150,6 @@ export class PaymentRetryQueue {
    * Callback for payment retry attempt
    */
   private onPaymentRetry(payment: QueuedPayment, error: PaymentError): void {
-    console.log(`Payment retry scheduled: ${payment.id}`, {
       attempt: payment.attempts,
       nextRetry: payment.scheduledAt,
       error

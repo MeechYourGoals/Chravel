@@ -93,7 +93,6 @@ export const platformStorage: PlatformStorage = isNativePlatform
   ? new MobileStorage() 
   : new WebStorage();
 
-console.log(`[Storage] Initialized ${isNativePlatform ? 'MobileStorage (Capacitor Preferences)' : 'WebStorage (localStorage)'} for platform: ${Capacitor.getPlatform()}`);
 
 // Helper functions for typed storage
 export async function getStorageItem<T>(key: string, defaultValue?: T): Promise<T | null> {

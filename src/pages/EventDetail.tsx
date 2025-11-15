@@ -42,8 +42,6 @@ const EventDetail = () => {
   const [showTripsPlusModal, setShowTripsPlusModal] = useState(false);
   const [tripDescription, setTripDescription] = useState<string>('');
 
-  console.log('EventDetail - eventId from params:', eventId);
-  console.log('EventDetail - available mock data keys:', Object.keys(eventsMockData));
 
   if (!eventId) {
     return (

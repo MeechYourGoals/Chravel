@@ -84,7 +84,6 @@ export class MobileOptimizationService {
 
     try {
       // Haptic feedback will be implemented when Capacitor plugins are available
-      console.log('Haptic feedback triggered:', style);
     } catch (error) {
       console.warn('Haptic feedback failed:', error);
     }
@@ -117,7 +116,6 @@ export class MobileOptimizationService {
     // Monitor memory usage
     if ('memory' in performance) {
       const memory = (performance as any).memory;
-      console.log('Mobile Memory Usage:', {
         used: Math.round(memory.usedJSHeapSize / 1024 / 1024) + 'MB',
         total: Math.round(memory.totalJSHeapSize / 1024 / 1024) + 'MB',
         limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024) + 'MB'
@@ -132,7 +130,6 @@ export class MobileOptimizationService {
     
     const countFrames = () => {
       if (Date.now() > stopTime) {
-        console.log('Performance tracking stopped');
         return;
       }
 
@@ -141,7 +138,6 @@ export class MobileOptimizationService {
       
       if (currentTime - lastTime >= 1000) {
         const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
-        console.log('Mobile FPS:', fps);
         
         frameCount = 0;
         lastTime = currentTime;

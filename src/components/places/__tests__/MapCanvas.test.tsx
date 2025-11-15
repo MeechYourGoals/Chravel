@@ -1,12 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MapCanvas } from '../MapCanvas';
-import { loadMaps } from '@/services/googlePlaces';
+import { loadMaps } from '@/services/googlePlacesNew';
 
 // Mock Google Maps API
-vi.mock('@/services/googlePlaces', () => ({
+vi.mock('@/services/googlePlacesNew', () => ({
   loadMaps: vi.fn(),
-  createServices: vi.fn(),
   autocomplete: vi.fn(),
   resolveQuery: vi.fn(),
   centerMapOnPlace: vi.fn(),

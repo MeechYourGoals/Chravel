@@ -202,10 +202,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                     <MediaGridItem
                       item={item}
                       onPress={() => {
-                        console.log('Open fullscreen viewer for:', item.id);
                       }}
                       onLongPress={() => {
-                        console.log('Show options menu for:', item.id);
                       }}
                     />
                   </div>

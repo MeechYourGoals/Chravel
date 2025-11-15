@@ -24,7 +24,6 @@ export const ProfileSection = ({ userOrganization }: ProfileSectionProps) => {
   const handleAvatarUploadComplete = (avatarUrl: string) => {
     // Avatar is already updated via updateProfile in AvatarUpload component
     // This callback can be used for additional actions like showing a success toast
-    console.log('Avatar uploaded successfully:', avatarUrl);
   };
 
   const handleAvatarUploadError = (error: string) => {

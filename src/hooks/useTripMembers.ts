@@ -112,7 +112,6 @@ export const useTripMembers = (tripId?: string) => {
             .subscribe();
         }
       } catch (error) {
-        console.log('Database subscription not available, using local data only');
       }
     };
 

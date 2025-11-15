@@ -73,9 +73,9 @@ export const TripCard = ({ trip }: TripCardProps) => {
   const momentum = isConsumer ? gamificationService.getTripMomentum(trip.id.toString()) : 'cold';
 
   return (
-    <div className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-yellow-500/30 rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-black/20">
-      {/* Trip Image/Header */}
-      <div className="relative h-48 bg-gradient-to-br from-yellow-600/20 via-yellow-500/10 to-transparent p-6">
+    <div className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-yellow-500/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20">
+      {/* Trip Image/Header - Responsive */}
+      <div className="relative h-32 md:h-48 bg-gradient-to-br from-yellow-600/20 via-yellow-500/10 to-transparent p-4 md:p-6">
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-80"
           style={{
@@ -87,12 +87,12 @@ export const TripCard = ({ trip }: TripCardProps) => {
           <div className="flex-1 min-h-0 overflow-hidden">
             <div className="flex items-start gap-3 mb-2">
               <div className="flex-1">
-              <h3 className="text-xl font-bold text-white group-hover:text-yellow-300 transition-colors line-clamp-2">
+              <h3 className="text-lg md:text-xl font-bold text-white group-hover:text-yellow-300 transition-colors line-clamp-2">
                 {trip.title}
               </h3>
-                {/* Trip Status Badges */}
+                {/* Trip Status Badges - Hidden on mobile to save space */}
                 {isConsumer && (
-                  <div className="flex gap-2 mt-1 flex-wrap max-h-8 overflow-hidden">
+                  <div className="hidden md:flex gap-2 mt-1 flex-wrap max-h-8 overflow-hidden">
                     {momentum === 'hot' && (
                       <Badge variant="secondary" className="bg-red-500/20 text-red-300 border-red-500/30">
                         <Flame size={12} className="mr-1" />
@@ -114,23 +114,26 @@ export const TripCard = ({ trip }: TripCardProps) => {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 text-white/80 mb-3">
-              <MapPin size={18} className="text-yellow-400" />
+            <div className="flex items-center gap-2 text-white/80 mb-1 md:mb-3 text-sm md:text-base">
+              <MapPin size={14} className="md:hidden text-yellow-400" />
+              <MapPin size={18} className="hidden md:block text-yellow-400" />
               <span className="font-medium truncate">{trip.location}</span>
             </div>
-            <div className="flex items-center gap-2 text-white/80">
-              <Calendar size={18} className="text-yellow-400" />
+            <div className="flex items-center gap-2 text-white/80 text-sm md:text-base">
+              <Calendar size={14} className="md:hidden text-yellow-400" />
+              <Calendar size={18} className="hidden md:block text-yellow-400" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
+          {/* Archive menu - only on desktop */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="text-white/60 hover:text-white transition-colors opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-xl">
+              <button className="hidden md:block text-white/60 hover:text-white transition-colors opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-xl">
                 <MoreHorizontal size={20} />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-background border-border">
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => setShowArchiveDialog(true)}
                 className="text-muted-foreground hover:text-foreground"
               >
@@ -139,33 +142,38 @@ export const TripCard = ({ trip }: TripCardProps) => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          {/* Mobile more options button */}
+          <button className="md:hidden text-white/60 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg">
+            <MoreHorizontal size={18} />
+          </button>
         </div>
       </div>
 
-      {/* Trip Content */}
-      <div className="p-6">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+      {/* Trip Content - Responsive padding */}
+      <div className="p-4 md:p-6">
+        {/* Quick Stats - Responsive sizing */}
+        <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
           <div className="text-center">
-            <div className="text-2xl font-bold text-white">{trip.id === 3 ? '200' : participantsWithAvatars.length}</div>
-            <div className="text-sm text-gray-400">People</div>
+            <div className="text-xl md:text-2xl font-bold text-white">{trip.id === 3 ? '200' : participantsWithAvatars.length}</div>
+            <div className="text-xs md:text-sm text-gray-400">People</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-white">5</div>
-            <div className="text-sm text-gray-400">Days</div>
+            <div className="text-xl md:text-2xl font-bold text-white">5</div>
+            <div className="text-xs md:text-sm text-gray-400">Days</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-white">{trip.placesCount || 0}</div>
-            <div className="text-sm text-gray-400">Places</div>
+            <div className="text-xl md:text-2xl font-bold text-white">{trip.placesCount || 0}</div>
+            <div className="text-xs md:text-sm text-gray-400">Places</div>
           </div>
         </div>
 
-        {/* Participants */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
+        {/* Participants - Responsive sizing */}
+        <div className="mb-4 md:mb-6">
+          <div className="flex items-center justify-between mb-2 md:mb-3">
             <span className="text-sm text-gray-400 font-medium">Travelers</span>
-            <div className="flex gap-2">
-              <button 
+            {/* Invite/User buttons - hidden on mobile to save space */}
+            <div className="hidden md:flex gap-2">
+              <button
                 onClick={() => setShowInviteModal(true)}
                 className="text-yellow-400 hover:text-yellow-300 transition-colors p-1 hover:bg-yellow-400/10 rounded-lg"
                 title="Invite people to trip"
@@ -176,14 +184,16 @@ export const TripCard = ({ trip }: TripCardProps) => {
                 <User size={16} />
               </button>
             </div>
+            {/* Mobile count */}
+            <span className="md:hidden text-xs text-gray-500">{participantsWithAvatars.length} people</span>
           </div>
-          
+
           <div className="flex items-center">
             <div className="flex -space-x-2">
               {participantsWithAvatars.slice(0, 5).map((participant, index) => (
                 <TravelerTooltip key={participant.id} name={participant.name}>
                   <div
-                    className="relative w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center text-sm font-semibold text-black border-2 border-gray-900 hover:scale-110 transition-transform duration-200 hover:border-yellow-400 cursor-pointer"
+                    className="relative w-8 md:w-10 h-8 md:h-10 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center text-xs md:text-sm font-semibold text-black border-2 border-gray-900 hover:scale-110 transition-transform duration-200 hover:border-yellow-400 cursor-pointer"
                     style={{ zIndex: participantsWithAvatars.length - index }}
                   >
                     {participant.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
@@ -192,32 +202,32 @@ export const TripCard = ({ trip }: TripCardProps) => {
               ))}
             </div>
             {participantsWithAvatars.length > 5 && (
-              <div className="w-10 h-10 rounded-full bg-gray-700 border-2 border-gray-900 flex items-center justify-center text-sm font-medium text-white -ml-2">
+              <div className="w-8 md:w-10 h-8 md:h-10 rounded-full bg-gray-700 border-2 border-gray-900 flex items-center justify-center text-xs md:text-sm font-medium text-white ml-1 md:-ml-2">
                 +{participantsWithAvatars.length - 5}
               </div>
             )}
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Responsive sizing */}
         <div className="space-y-3">
-          <button 
+          <button
             onClick={handleViewTrip}
-            className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold py-4 rounded-2xl transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25"
+            className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold py-4 rounded-xl md:rounded-2xl transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25"
           >
             View Trip Details
           </button>
-          
-          <div className="grid grid-cols-2 gap-3">
-            <button 
+
+          <div className="grid grid-cols-2 gap-2 md:gap-3">
+            <button
               onClick={handleEditItinerary}
-              className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-3 rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600"
+              className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-3 px-4 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-sm md:text-base"
             >
               Edit Itinerary
             </button>
-            <button 
+            <button
               onClick={() => setShowShareModal(true)}
-              className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-3 rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600"
+              className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-3 px-4 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-sm md:text-base"
             >
               Share Trip
             </button>

@@ -90,7 +90,6 @@ class PerformanceService {
     
     // Log in development
     if (process.env.NODE_ENV === 'development') {
-      console.log(`📊 ${name}: ${Math.round(value)}ms`);
     }
   }
 

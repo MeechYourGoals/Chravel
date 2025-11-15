@@ -78,7 +78,6 @@ export const ReceiptUploadModal = ({
           publicUrl = data.publicUrl;
         }
       } catch (err) {
-        console.log('Supabase upload failed, using demo URL', err);
       }
 
       const { data, error } = await supabase.functions.invoke('receipt-parser', {

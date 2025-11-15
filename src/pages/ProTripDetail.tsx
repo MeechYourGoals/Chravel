@@ -232,7 +232,6 @@ const ProTripDetail = () => {
         );
       } else {
         // Call edge function for real Supabase trips using direct fetch
-        console.log('[PRO-EXPORT] Calling export-trip edge function', { proTripId, sections });
         
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData?.session?.access_token || '';
@@ -256,7 +255,6 @@ const ProTripDetail = () => {
           }
         );
 
-        console.log('[PRO-EXPORT] Edge function response', { 
           status: response.status,
           contentType: response.headers.get('content-type'),
         });
@@ -310,7 +308,6 @@ const ProTripDetail = () => {
         } else {
           // Convert response to Blob
           blob = await response.blob();
-          console.log('[PRO-EXPORT] PDF blob created', { size: blob.size });
         }
       }
 
