@@ -20,8 +20,8 @@ const TripDetailContent = lazy(() =>
 );
 import { TripExportModal } from '../components/trip/TripExportModal';
 import { useAuth } from '../hooks/useAuth';
-import { getTripById, generateTripMockData } from '../data/tripsData';
-import { Trip } from '../services/tripService';
+import { getTripById, generateTripMockData, Trip as MockTrip } from '../data/tripsData';
+import { tripService } from '../services/tripService';
 import { Message } from '../types/messages';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/use-mobile';
@@ -32,12 +32,15 @@ import { generateClientPDF } from '../utils/exportPdfClient';
 import { openOrDownloadBlob } from '../utils/download';
 import { toast } from 'sonner';
 import { demoModeService } from '../services/demoModeService';
+import { useDemoMode } from '../hooks/useDemoMode';
+import { convertSupabaseTripToMock } from '../utils/tripConverter';
 
 const TripDetail = () => {
   const isMobile = useIsMobile();
   const { tripId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const [activeTab, setActiveTab] = useState('chat');
   const [showInbox, setShowInbox] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -52,10 +55,35 @@ const TripDetail = () => {
     location?: string;
     dateRange?: string;
   }>({});
+  const [trip, setTrip] = useState<MockTrip | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Get trip data dynamically based on tripId
-  const tripIdNum = tripId ? parseInt(tripId, 10) : null;
-  const trip = tripIdNum ? getTripById(tripIdNum) : null;
+  // Get trip data - from Supabase if authenticated, from mock if demo mode
+  React.useEffect(() => {
+    const loadTrip = async () => {
+      if (!tripId) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      if (isDemoMode) {
+        const tripIdNum = parseInt(tripId, 10);
+        const mockTrip = getTripById(tripIdNum);
+        setTrip(mockTrip);
+      } else {
+        const realTrip = await tripService.getTripById(tripId);
+        if (realTrip) {
+          setTrip(convertSupabaseTripToMock(realTrip));
+        } else {
+          setTrip(null);
+        }
+      }
+      setLoading(false);
+    };
+
+    loadTrip();
+  }, [tripId, isDemoMode]);
   
   // Initialize description state when trip is loaded
   React.useEffect(() => {
@@ -64,14 +92,23 @@ const TripDetail = () => {
     }
   }, [trip, tripDescription]);
 
-  // Handle trip updates from edit modal
-  const handleTripUpdate = (updates: Partial<Trip>) => {
+  // Handle trip updates from edit modal - adapter to convert Supabase format to mock format
+  const handleTripUpdate = (updates: Partial<MockTrip>) => {
     setTripData(prev => ({ ...prev, ...updates }));
     
     // Update specific states for backward compatibility
-    if (updates.name) setTripData(prev => ({ ...prev, title: updates.name }));
+    if (updates.title) setTripData(prev => ({ ...prev, title: updates.title }));
     if (updates.description) setTripDescription(updates.description);
   };
+  
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
   
   // Create trip object with all updates
   const tripWithUpdatedData = trip ? {

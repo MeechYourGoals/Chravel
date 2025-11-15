@@ -21,7 +21,7 @@ interface EditTripModalProps {
     coverPhoto?: string;
     trip_type?: 'consumer' | 'pro' | 'event';
   };
-  onUpdate?: (updates: Partial<Trip>) => void;
+  onUpdate?: (updates: Partial<EditTripModalProps['trip']>) => void;
 }
 
 export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModalProps) => {
@@ -81,17 +81,24 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
     setLoading(true);
 
     try {
-      const updates: Partial<Trip> = {
+      const supabaseUpdates: Partial<Trip> = {
         name: formData.name,
         destination: formData.destination,
         start_date: formData.start_date,
         end_date: formData.end_date
       };
 
+      // Convert to mock format for UI callback
+      const mockUpdates: Partial<EditTripModalProps['trip']> = {
+        title: formData.name,
+        location: formData.destination,
+        dateRange: formatDateRange(formData.start_date, formData.end_date)
+      };
+
       // Demo mode: store in localStorage
       if (!user) {
-        localStorage.setItem(`trip_${trip.id}_updates`, JSON.stringify(updates));
-        if (onUpdate) onUpdate(updates);
+        localStorage.setItem(`trip_${trip.id}_updates`, JSON.stringify(supabaseUpdates));
+        if (onUpdate) onUpdate(mockUpdates);
         toast({
           title: "Changes saved",
           description: "Trip details updated successfully (demo mode)"
@@ -101,10 +108,10 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
       }
 
       // Authenticated: save to database
-      const success = await tripService.updateTrip(trip.id.toString(), updates);
+      const success = await tripService.updateTrip(trip.id.toString(), supabaseUpdates);
       
       if (success) {
-        if (onUpdate) onUpdate(updates);
+        if (onUpdate) onUpdate(mockUpdates);
         toast({
           title: "Changes saved",
           description: "Trip details updated successfully"
