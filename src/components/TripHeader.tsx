@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 
 interface TripHeaderProps {
   trip: {
-    id: number;
+    id: number | string;
     title: string;
     location: string;
     dateRange: string;

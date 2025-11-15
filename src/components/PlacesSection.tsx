@@ -121,7 +121,8 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
         if (!trip) return [];
         
         // Bottom 6 consumer trips (IDs 7-12) intentionally empty to show empty state
-        if (trip.id > 6) return [];
+        // Only applies to numeric demo trip IDs
+        if (typeof trip.id === 'number' && trip.id > 6) return [];
         
         const { links } = generateTripMockData(trip);
         const city = trip.location.split(',')[0].trim();

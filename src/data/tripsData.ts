@@ -22,7 +22,7 @@ export interface TripParticipant {
 // TODO: When connecting to Supabase, fetch placesCount with:
 // SELECT COUNT(*) as placesCount FROM trip_links WHERE trip_id = trips.id
 export interface Trip {
-  id: number;
+  id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
   title: string;
   location: string;
   dateRange: string;
@@ -248,8 +248,8 @@ export const getTripById = (id: number): Trip | null => {
   return tripsData.find(trip => trip.id === id) || null;
 };
 
-// 🚀 OPTIMIZATION: Cache for generated mock data
-const mockDataCache = new Map<number, ReturnType<typeof generateTripMockData>>();
+// 🚀 OPTIMIZATION: Cache for generated mock data (supports both numeric and UUID string keys)
+const mockDataCache = new Map<string, ReturnType<typeof generateTripMockData>>();
 
 // City-specific link templates for realistic trip planning resources
 const getCitySpecificLinks = (location: string) => {
@@ -345,9 +345,12 @@ const getCitySpecificLinks = (location: string) => {
 };
 
 export const generateTripMockData = (trip: Trip) => {
+  // Convert id to string for consistent cache key
+  const cacheKey = String(trip.id);
+  
   // Check cache first for performance
-  if (mockDataCache.has(trip.id)) {
-    return mockDataCache.get(trip.id)!;
+  if (mockDataCache.has(cacheKey)) {
+    return mockDataCache.get(cacheKey)!;
   }
 
   const participantNames = trip.participants.map(p => p.name);
@@ -392,6 +395,6 @@ export const generateTripMockData = (trip: Trip) => {
   };
 
   // Cache for future calls
-  mockDataCache.set(trip.id, mockData);
+  mockDataCache.set(cacheKey, mockData);
   return mockData;
 };
