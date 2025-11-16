@@ -202,7 +202,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
             {(settingsType === 'consumer' || settingsType === 'advertiser') && (
               <div className="flex-shrink-0 p-6 bg-white/5 border-t border-white/20">
                 <button
-                  onClick={currentSignOut}
+                  onClick={signOut}
                   className="w-full flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-medium py-3 rounded-xl transition-colors"
                 >
                   <LogOut size={16} />

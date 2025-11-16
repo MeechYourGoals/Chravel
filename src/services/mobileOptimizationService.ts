@@ -113,14 +113,6 @@ export class MobileOptimizationService {
   static trackMobilePerformance() {
     if (!this.isMobile || import.meta.env.PROD) return;
 
-    // Monitor memory usage
-    if ('memory' in performance) {
-      const memory = (performance as any).memory;
-        used: Math.round(memory.usedJSHeapSize / 1024 / 1024) + 'MB',
-        total: Math.round(memory.totalJSHeapSize / 1024 / 1024) + 'MB',
-        limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024) + 'MB'
-      });
-    }
 
     // Monitor frame rate
     let frameCount = 0;

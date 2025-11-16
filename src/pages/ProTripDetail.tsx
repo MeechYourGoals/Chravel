@@ -255,10 +255,6 @@ const ProTripDetail = () => {
           }
         );
 
-          status: response.status,
-          contentType: response.headers.get('content-type'),
-        });
-
         if (!response.ok) {
           // Try to parse error JSON
           const errorText = await response.text();
