@@ -6,14 +6,25 @@ import { TripContext, TripFile, TripPhoto, TripLink, TripPoll, ChatMessage, Trip
 import { supabase } from '@/integrations/supabase/client';
 
 export class EnhancedTripContextService {
-  static async getEnhancedTripContext(tripId: string, isProTrip = false): Promise<TripContext> {
+  static async getEnhancedTripContext(
+    tripId: string, 
+    isProTrip = false, 
+    isDemoMode = false
+  ): Promise<TripContext> {
     try {
       let baseContext: TripContext;
       
-      if (isProTrip) {
-        baseContext = await this.getProTripContext(tripId);
-      } else {
-        baseContext = await this.getConsumerTripContext(tripId);
+      // 🔐 AUTHENTICATED MODE: Fetch from database
+      if (!isDemoMode) {
+        baseContext = await this.getAuthenticatedTripContext(tripId);
+      } 
+      // 🔐 DEMO MODE: Use mock data
+      else {
+        if (isProTrip) {
+          baseContext = await this.getProTripContext(tripId);
+        } else {
+          baseContext = await this.getConsumerTripContext(tripId);
+        }
       }
 
       // Enhance with comprehensive data
@@ -24,6 +35,39 @@ export class EnhancedTripContextService {
       if (import.meta.env.DEV) console.error('Error fetching enhanced trip context:', error);
       throw new Error('Failed to fetch enhanced trip context');
     }
+  }
+
+  private static async getAuthenticatedTripContext(tripId: string): Promise<TripContext> {
+    // 🔐 AUTHENTICATED MODE: Query real trip from Supabase
+    const { data: trip, error } = await supabase
+      .from('trips')
+      .select('*')
+      .eq('id', tripId)
+      .single();
+
+    if (error || !trip) {
+      throw new Error('Trip not found in database');
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+
+    return {
+      tripId: trip.id,
+      title: trip.name,
+      location: trip.destination || '',
+      dateRange: `${trip.start_date} - ${trip.end_date}`,
+      participants: [], // TODO: Fetch from trip_members table
+      itinerary: [], // TODO: Fetch from trip_events table
+      accommodation: trip.basecamp_name || trip.destination || '',
+      currentDate: today,
+      upcomingEvents: [],
+      recentUpdates: [],
+      confirmationNumbers: {},
+      basecamp: trip.basecamp_name ? {
+        name: trip.basecamp_name,
+        address: trip.basecamp_address || ''
+      } : null
+    };
   }
 
   private static async getConsumerTripContext(tripId: string): Promise<TripContext> {
