@@ -594,11 +594,11 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   return (
     <div className="mb-12 mobile-safe-scroll">
       {/* ROW 1: Header with LEFT-aligned title and CENTERED tabs */}
-      <div className="mb-6 flex flex-row items-center w-full px-4">
+      <div className="mb-6 flex flex-row items-center justify-between w-full px-4 relative">
         <h2 className="flex-none text-3xl font-bold text-white">Places</h2>
         
         {/* Centered Tab Navigation */}
-        <div className="flex-1 flex justify-center">
+        <div className="absolute left-1/2 -translate-x-1/2">
           <div className="bg-white/5 backdrop-blur-sm rounded-xl p-1 flex gap-1">
             {(['basecamps', 'links'] as TabView[]).map(tab => (
               <button
@@ -615,6 +615,9 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
             ))}
           </div>
         </div>
+        
+        {/* Empty spacer for balance */}
+        <div className="flex-none w-[100px]"></div>
       </div>
 
       {/* Tab Content - ABOVE map */}
