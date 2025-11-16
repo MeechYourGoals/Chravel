@@ -223,18 +223,18 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
               </>
             ) : (
               <>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center justify-center gap-2 mb-2">
                   <MapPin size={16} className="text-sky-400" />
                   <h3 className="text-white font-semibold text-base">Trip Base Camp</h3>
                 </div>
-                <p className="text-gray-400 text-sm mb-3">
+                <p className="text-gray-400 text-xs text-center mb-2">
                   No basecamp set. Set one so the group can align meetups & recs.
                 </p>
                 <button
                   onClick={() => setShowTripSelector(true)}
-                  className="w-full bg-sky-600 hover:bg-sky-700 text-white py-2 px-4 rounded-xl transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                  className="w-full bg-sky-600 hover:bg-sky-700 text-white py-1.5 px-3 rounded-xl transition-colors flex items-center justify-center gap-2 text-xs"
                 >
-                  <Plus size={14} />
+                  <Plus size={12} />
                   Set Trip Base Camp
                 </button>
               </>
