@@ -28,7 +28,8 @@ import { useIsMobile } from '../hooks/use-mobile';
 import { MobileTripDetail } from './MobileTripDetail';
 import { ExportSection } from '../types/tripExport';
 import { supabase } from '../integrations/supabase/client';
-import { generateClientPDF } from '../utils/exportPdfClient';
+// Lazy load PDF utils to reduce initial bundle size (~100KB)
+// import { generateClientPDF } from '../utils/exportPdfClient';
 import { openOrDownloadBlob } from '../utils/download';
 import { toast } from 'sonner';
 import { demoModeService } from '../services/demoModeService';
@@ -137,8 +138,11 @@ const TripDetail = () => {
     );
   }
 
-  // Generate dynamic mock data based on the trip
-  const mockData = generateTripMockData(trip);
+  // Generate dynamic mock data based on the trip - MEMOIZED for performance
+  const mockData = React.useMemo(() =>
+    generateTripMockData(trip),
+    [trip?.id]
+  );
   const basecamp = mockData.basecamp;
 
   // Messages are now handled by unified messaging service
@@ -149,8 +153,8 @@ const TripDetail = () => {
   const mockLinks = mockData.links;
   const mockItinerary = mockData.itinerary;
 
-  // Build comprehensive trip context
-  const tripContext = {
+  // Build comprehensive trip context - MEMOIZED to prevent unnecessary re-renders
+  const tripContext = React.useMemo(() => ({
     id: tripId || '1',
     title: trip.title,
     location: trip.location,
@@ -163,7 +167,7 @@ const TripDetail = () => {
     collaborators: trip.participants,
     itinerary: mockItinerary,
     isPro: false
-  };
+  }), [tripId, trip.title, trip.location, trip.dateRange, basecamp, mockItinerary, mockBroadcasts, mockLinks, tripMessages, trip.participants]);
 
   // Handle export functionality - always use client-side generation
   const handleExport = async (sections: ExportSection[]) => {
@@ -199,6 +203,8 @@ const TripDetail = () => {
         const mockPolls = await demoModeService.getMockPolls(tripId || '1');
         const mockMembers = await demoModeService.getMockMembers(tripId || '1');
 
+        // Lazy load PDF generation (only when export is clicked)
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
         blob = await generateClientPDF(
           {
             tripId: tripId || '1',
@@ -237,6 +243,8 @@ const TripDetail = () => {
         const { getExportData } = await import('../services/tripExportDataService');
         const realData = await getExportData(tripId || '', sections);
 
+        // Lazy load PDF generation (only when export is clicked)
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
         blob = await generateClientPDF(
           {
             tripId: tripId || '',
