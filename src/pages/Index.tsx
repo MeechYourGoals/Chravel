@@ -63,13 +63,44 @@ const Index = () => {
   // Use centralized trip data - demo data or real user data converted to mock format
   const trips = isDemoMode ? tripsData : convertSupabaseTripsToMock(userTripsRaw);
 
+  // TODO: Fetch real Pro trips and Events from Supabase when authenticated
+  // For now, filter user's Pro trips from the trips array
+  const userProTrips = React.useMemo(() => {
+    if (isDemoMode) return proTripMockData;
+
+    // Filter Pro trips from user's trips and convert to mock format
+    const proTripsArray = userTripsRaw.filter(t => t.trip_type === 'pro');
+    const proTripsObj: Record<string, any> = {};
+    proTripsArray.forEach(trip => {
+      proTripsObj[trip.id] = {
+        id: trip.id,
+        title: trip.name,
+        location: trip.destination || 'TBD',
+        dateRange: `${trip.start_date || 'TBD'} - ${trip.end_date || 'TBD'}`,
+        description: trip.description || '',
+        proTripCategory: 'sports-team', // TODO: get from trip metadata
+        participants: [],
+        status: trip.is_archived ? 'completed' : 'active',
+        // Pro-specific fields will be populated from separate tables later
+        budget: [],
+        schedule: [],
+        roster: [],
+        tags: []
+      };
+    });
+    return proTripsObj;
+  }, [isDemoMode, userTripsRaw]);
+
+  // TODO: Fetch real Events from Supabase when authenticated
+  const userEvents = isDemoMode ? eventsMockData : {};
+
   if (import.meta.env.DEV) {
   }
 
-  // Calculate stats for each view mode - gate by demo mode
+  // Calculate stats for each view mode
   const tripStats = calculateTripStats(trips);
-  const proTripStats = isDemoMode ? calculateProTripStats(proTripMockData) : calculateProTripStats({});
-  const eventStats = isDemoMode ? calculateEventStats(eventsMockData) : calculateEventStats({});
+  const proTripStats = calculateProTripStats(userProTrips);
+  const eventStats = calculateEventStats(userEvents);
 
   const getCurrentStats = () => {
     switch (viewMode) {
@@ -85,8 +116,8 @@ const Index = () => {
     if (!activeFilter || activeFilter === 'total') {
       return {
         trips,
-        proTrips: isDemoMode ? proTripMockData : {},
-        events: isDemoMode ? eventsMockData : {}
+        proTrips: userProTrips,
+        events: userEvents
       };
     }
 
@@ -94,37 +125,37 @@ const Index = () => {
       case 'myTrips':
         return {
           trips: filterItemsByStatus(trips, activeFilter),
-          proTrips: isDemoMode ? proTripMockData : {},
-          events: isDemoMode ? eventsMockData : {}
+          proTrips: userProTrips,
+          events: userEvents
         };
       case 'tripsPro':
         return {
           trips,
-          proTrips: isDemoMode ? Object.fromEntries(
-            Object.entries(proTripMockData).filter(([_, trip]) => 
+          proTrips: Object.fromEntries(
+            Object.entries(userProTrips).filter(([_, trip]) =>
               filterItemsByStatus([trip], activeFilter).length > 0
             )
-          ) : {},
-          events: isDemoMode ? eventsMockData : {}
+          ),
+          events: userEvents
         };
       case 'events':
         return {
           trips,
-          proTrips: isDemoMode ? proTripMockData : {},
-          events: isDemoMode ? Object.fromEntries(
-            Object.entries(eventsMockData).filter(([_, event]) => 
+          proTrips: userProTrips,
+          events: Object.fromEntries(
+            Object.entries(userEvents).filter(([_, event]) =>
               filterItemsByStatus([event], activeFilter).length > 0
             )
-          ) : {}
+          )
         };
       default:
-        return { 
-          trips, 
-          proTrips: isDemoMode ? proTripMockData : {}, 
-          events: isDemoMode ? eventsMockData : {} 
+        return {
+          trips,
+          proTrips: userProTrips,
+          events: userEvents
         };
     }
-  }, [activeFilter, viewMode, trips, isDemoMode]);
+  }, [activeFilter, viewMode, trips, userProTrips, userEvents]);
 
   // Handle view mode changes without artificial delays
   const handleViewModeChange = (newMode: string) => {

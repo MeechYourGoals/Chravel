@@ -49,22 +49,19 @@ const ProTripDetail = () => {
   const [showTripsPlusModal, setShowTripsPlusModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   
+  // State for loading authenticated Pro trip data
+  const [loading, setLoading] = useState(true);
+  const [trip, setTrip] = useState<any>(null);
+
   // Check admin status for Pro trips
   const { isAdmin } = useProTripAdmin(proTripId || '');
 
-  // Auto-enable demo mode for Pro pages on first visit
-  React.useEffect(() => {
-    if (!isDemoMode) {
-      enableDemoMode();
-    }
-  }, [isDemoMode, enableDemoMode]);
-
-  // 🆕 Initialize mock roles and channels for Pro trips
+  // 🆕 Initialize mock roles and channels for Pro trips IN DEMO MODE ONLY
   React.useEffect(() => {
     if (isDemoMode && proTripId && proTripId in proTripMockData) {
       const tripData = proTripMockData[proTripId];
       const existingRoles = MockRolesService.getRolesForTrip(proTripId);
-      
+
       if (!existingRoles) {
         const roles = MockRolesService.seedRolesForTrip(
           proTripId,
@@ -76,13 +73,82 @@ const ProTripDetail = () => {
     }
   }, [isDemoMode, proTripId, user?.id]);
 
-  // Show loading spinner while demo mode initializes
-  if (!isDemoMode) {
+  // Load Pro trip data - from Supabase if authenticated, from mock if demo mode
+  React.useEffect(() => {
+    const loadProTrip = async () => {
+      if (!proTripId) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+
+      if (isDemoMode) {
+        // Demo mode: use mock data
+        if (proTripId in proTripMockData) {
+          setTrip(proTripMockData[proTripId]);
+        }
+        setLoading(false);
+      } else {
+        // Authenticated mode: load from Supabase
+        try {
+          const { data, error } = await supabase
+            .from('trips')
+            .select('*')
+            .eq('id', proTripId)
+            .eq('trip_type', 'pro')
+            .single();
+
+          if (error) throw error;
+
+          if (data) {
+            // Transform Supabase trip to match Pro trip format
+            setTrip({
+              id: data.id,
+              title: data.name,
+              location: data.destination || 'TBD',
+              dateRange: `${data.start_date || 'TBD'} - ${data.end_date || 'TBD'}`,
+              description: data.description || '',
+              proTripCategory: 'sports-team', // TODO: get from data
+              participants: [], // TODO: fetch from trip_members
+              broadcasts: [],
+              links: [],
+              basecamp_name: data.basecamp_name,
+              basecamp_address: data.basecamp_address,
+              // Pro-specific fields will be loaded from separate tables
+              budget: [],
+              schedule: [],
+              roster: [],
+              roomAssignments: [],
+              perDiem: [],
+              settlement: [],
+              medical: [],
+              compliance: [],
+              media: [],
+              sponsors: [],
+              tags: []
+            });
+          } else {
+            setTrip(null);
+          }
+        } catch (error) {
+          console.error('Error loading Pro trip:', error);
+          setTrip(null);
+        }
+        setLoading(false);
+      }
+    };
+
+    loadProTrip();
+  }, [proTripId, isDemoMode]);
+
+  // Show loading spinner while fetching data
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading demo content...</p>
+          <p className="text-muted-foreground">Loading Pro trip...</p>
         </div>
       </div>
     );
@@ -94,29 +160,30 @@ const ProTripDetail = () => {
     );
   }
 
-  if (!(proTripId in proTripMockData)) {
+  // Handle missing trip
+  if (!trip) {
     return (
-      <ProTripNotFound 
-        message="The requested trip could not be found."
+      <ProTripNotFound
+        message="The requested Pro trip could not be found."
         details={`Trip ID: ${proTripId}`}
-        availableIds={Object.keys(proTripMockData)}
+        availableIds={isDemoMode ? Object.keys(proTripMockData) : []}
       />
     );
   }
 
-  const tripData = proTripMockData[proTripId];
+  const tripData = trip;
 
   // Transform trip data to match consumer trip structure
   const participants = tripData.participants || [];
 
-  const trip = {
+  const tripForContext = {
     id: tripData.id,
     name: tripData.title,
     description: tripData.description || '',
     destination: tripData.location,
-    start_date: tripData.dateRange.split(' - ')[0],
-    end_date: tripData.dateRange.split(' - ')[1],
-    created_by: 'demo-user',
+    start_date: tripData.dateRange?.split(' - ')[0] || '',
+    end_date: tripData.dateRange?.split(' - ')[1] || '',
+    created_by: isDemoMode ? 'demo-user' : (user?.id || ''),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_archived: false,
@@ -132,21 +199,21 @@ const ProTripDetail = () => {
   const links = tripData.links || [];
 
   const tripContext = {
-    ...trip,
+    ...tripForContext,
     basecamp,
     broadcasts,
     links,
     proTripCategory: tripData.proTripCategory,
-    budget: tripData.budget,
-    schedule: tripData.schedule,
-    roster: tripData.roster,
-    roomAssignments: tripData.roomAssignments,
-    perDiem: tripData.perDiem,
-    settlement: tripData.settlement,
-    medical: tripData.medical,
-    compliance: tripData.compliance,
-    media: tripData.media,
-    sponsors: tripData.sponsors
+    budget: tripData.budget || [],
+    schedule: tripData.schedule || [],
+    roster: tripData.roster || [],
+    roomAssignments: tripData.roomAssignments || [],
+    perDiem: tripData.perDiem || [],
+    settlement: tripData.settlement || [],
+    medical: tripData.medical || [],
+    compliance: tripData.compliance || [],
+    media: tripData.media || [],
+    sponsors: tripData.sponsors || []
   };
 
   // Handle export functionality - use same handler as consumer trips
@@ -389,7 +456,7 @@ const ProTripDetail = () => {
             <div className="mt-8">
               <ProAdminDashboard
                 tripId={proTripId}
-                tripCreatorId={trip.created_by}
+                tripCreatorId={tripForContext.created_by}
                 isAdmin={isAdmin}
               />
             </div>
