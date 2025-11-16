@@ -75,6 +75,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       mapError,
       useFallbackEmbed,
       forceIframeFallback,
+      userGeolocation,
       setIsMapLoading,
       setMapError,
       setUseFallbackEmbed,
