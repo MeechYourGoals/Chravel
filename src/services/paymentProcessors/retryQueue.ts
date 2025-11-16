@@ -150,10 +150,6 @@ export class PaymentRetryQueue {
    * Callback for payment retry attempt
    */
   private onPaymentRetry(payment: QueuedPayment, error: PaymentError): void {
-      attempt: payment.attempts,
-      nextRetry: payment.scheduledAt,
-      error
-    });
     // In production, emit event or call callback
   }
 
