@@ -1,6 +1,6 @@
 /// <reference types="@types/google.maps" />
 
-import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { Search, X, Loader2 } from 'lucide-react';
 import { BasecampLocation } from '@/types/basecamp';
 import { PlaceInfoOverlay, PlaceInfo } from './PlaceInfoOverlay';
@@ -15,6 +15,9 @@ import {
 } from '@/services/googlePlacesNew';
 import { GoogleMapsEmbed } from '@/components/GoogleMapsEmbed';
 import { useDebouncedCallback } from '@/hooks/useDebounce';
+import { useMapState } from '@/hooks/map/useMapState';
+import { useMapSearch } from '@/hooks/map/useMapSearch';
+import { useMapRouting } from '@/hooks/map/useMapRouting';
 
 export interface MapMarker {
   id: string;
@@ -58,79 +61,68 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     },
     ref
   ) => {
-    // Map state
-    const mapRef = useRef<google.maps.Map | null>(null);
-    const mapContainerRef = useRef<HTMLDivElement>(null);
-    const [isMapLoading, setIsMapLoading] = useState(true);
-    const [mapError, setMapError] = useState<string | null>(null);
-    const [useFallbackEmbed, setUseFallbackEmbed] = useState(false);
-    const [forceIframeFallback, setForceIframeFallback] = useState(false);
-    const [userGeolocation, setUserGeolocation] = useState<{ lat: number; lng: number } | null>(null);
-    
-    // Emergency timeout to force iframe fallback if JS API takes too long
-    const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    // Custom hooks for state management
+    const mapState = useMapState();
+    const mapSearch = useMapSearch();
+    const mapRouting = useMapRouting();
 
-    // Search state
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
-    const [searchError, setSearchError] = useState<string | null>(null);
-    const [selectedPlace, setSelectedPlace] = useState<PlaceInfo | null>(null);
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const [suggestions, setSuggestions] = useState<any[]>([]);
+    // Destructure for easier access
+    const {
+      mapRef,
+      mapContainerRef,
+      loadingTimeoutRef,
+      isMapLoading,
+      mapError,
+      useFallbackEmbed,
+      forceIframeFallback,
+      setIsMapLoading,
+      setMapError,
+      setUseFallbackEmbed,
+      setForceIframeFallback,
+      setUserGeolocation,
+    } = mapState;
 
-    // Session token for autocomplete (New API uses string tokens)
-    const [sessionToken, setSessionToken] = useState<string>('');
-    const [searchOrigin, setSearchOrigin] = useState<SearchOrigin>(null);
-    
-    // Phase A: Request deduplication ref for autocomplete
-    const activeAutocompleteRequestRef = useRef<number>(0);
-    
+    const {
+      searchQuery,
+      isSearching,
+      searchError,
+      selectedPlace,
+      showSuggestions,
+      suggestions,
+      sessionToken,
+      searchOrigin,
+      activeAutocompleteRequestRef,
+      searchMarkerRef,
+      overlayObserverRef,
+      setSearchQuery,
+      setIsSearching,
+      setSearchError,
+      setSelectedPlace,
+      setShowSuggestions,
+      setSuggestions,
+      setSessionToken,
+      setSearchOrigin,
+      clearSearch: clearSearchFromHook,
+    } = mapSearch;
+
+    const {
+      routePolyline,
+      showRoute,
+      routeInfo,
+      markersRef,
+      setRoutePolyline,
+      setShowRoute,
+      setRouteInfo,
+      getCachedDistance,
+      setCachedDistance,
+      clearRoute: clearRouteFromHook,
+    } = mapRouting;
+
     // Configurable debounce delay (default: 300ms, can be adjusted via env or config)
-    const AUTocomplete_DEBOUNCE_MS = parseInt(
+    const AUTOCOMPLETE_DEBOUNCE_MS = parseInt(
       import.meta.env.VITE_AUTOCOMPLETE_DEBOUNCE_MS || '300',
       10
     );
-
-    // Markers state
-    const markersRef = useRef<google.maps.Marker[]>([]);
-    const searchMarkerRef = useRef<google.maps.Marker | null>(null);
-    const overlayObserverRef = useRef<MutationObserver | null>(null);
-
-    // Route state
-    const [routePolyline, setRoutePolyline] = useState<google.maps.Polyline | null>(null);
-    const [showRoute, setShowRoute] = useState(false);
-    const [routeInfo, setRouteInfo] = useState<{
-      distance: string;
-      duration: string;
-    } | null>(null);
-
-    // Distance cache - stores distance calculations for 1 hour
-    const distanceCacheRef = useRef<Map<string, {
-      distance: string;
-      duration: string;
-      timestamp: number;
-    }>>(new Map());
-
-    // Cache helper functions
-    const getCachedDistance = (origin: string, destination: string) => {
-      const key = `${origin}→${destination}`;
-      const cached = distanceCacheRef.current.get(key);
-      
-      // Cache valid for 1 hour (3600000ms)
-      if (cached && Date.now() - cached.timestamp < 3600000) {
-        return cached;
-      }
-      
-      return null;
-    };
-
-    const setCachedDistance = (origin: string, destination: string, data: { distance: string; duration: string }) => {
-      const key = `${origin}→${destination}`;
-      distanceCacheRef.current.set(key, {
-        ...data,
-        timestamp: Date.now(),
-      });
-    };
 
     // Route rendering function
     const renderRoute = async (
@@ -190,14 +182,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       }
     };
 
-    const clearRoute = () => {
-      if (routePolyline) {
-        routePolyline.setMap(null);
-        setRoutePolyline(null);
-        setShowRoute(false);
-        setRouteInfo(null);
-      }
-    };
+    // Use clearRoute from mapRouting hook
+    const clearRoute = clearRouteFromHook;
 
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
@@ -623,7 +609,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           }
         }
       },
-      AUTocomplete_DEBOUNCE_MS
+      AUTOCOMPLETE_DEBOUNCE_MS
     );
 
     // Autocomplete handler (New API) with debounce and deduplication
@@ -728,19 +714,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     };
 
     const handleClearSearch = () => {
-      setSearchQuery('');
-      setSearchError(null);
-      setSelectedPlace(null);
-      setSuggestions([]);
-      setShowSuggestions(false);
-
-      // Remove search marker
-      if (searchMarkerRef.current) {
-        searchMarkerRef.current.setMap(null);
-        searchMarkerRef.current = null;
-      }
-
-      // Clear route
+      clearSearchFromHook();
       clearRoute();
     };
 
