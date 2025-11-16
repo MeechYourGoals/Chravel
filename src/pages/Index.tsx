@@ -184,13 +184,6 @@ const Index = () => {
   if (!user) {
     return (
       <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
-        {/* Demo Mode Toggle - Always visible for investors/prospects */}
-        <div className="w-full flex justify-center px-4 pt-3">
-          <div className="max-w-[200px] w-full">
-            <DemoModeToggle />
-          </div>
-        </div>
-
         {!isDemoMode ? (
           // Marketing landing content - Full-page scrolling experience
           <FullPageLanding 

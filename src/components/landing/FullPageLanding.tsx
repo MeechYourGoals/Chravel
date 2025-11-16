@@ -8,6 +8,7 @@ import { UseCasesSection } from './sections/UseCasesSection';
 import { SocialProofVideoSection } from './sections/SocialProofVideoSection';
 import { ReplacesSection } from './sections/ReplacesSection';
 import { PricingLandingSection } from './sections/PricingLandingSection';
+import { DemoModeToggle } from '../DemoModeToggle';
 
 // Import generated images
 import heroImage from '@/assets/hero-group-planning.jpg';
@@ -25,6 +26,13 @@ interface FullPageLandingProps {
 export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) => {
   return (
     <>
+      {/* Floating Demo Mode Toggle */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[160px]">
+        <div className="bg-background/30 backdrop-blur-lg border border-border/20 rounded-xl p-1.5 shadow-lg">
+          <DemoModeToggle />
+        </div>
+      </div>
+
       {/* Sticky Navigation */}
       <StickyLandingNav onSignUp={onSignUp} />
 
