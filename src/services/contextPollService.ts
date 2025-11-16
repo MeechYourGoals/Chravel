@@ -19,13 +19,11 @@ export class ContextPollService {
         // Trigger update callback
         onUpdate();
         
-        console.log(`Context cache invalidated for trip ${tripId}`);
       } catch (error) {
         console.error('Error during context polling:', error);
       }
     }, intervalMs);
     
-    console.log(`Started context polling for trip ${tripId} (${intervalMs}ms interval)`);
   }
 
   /**
@@ -36,7 +34,6 @@ export class ContextPollService {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
       this.isPolling = false;
-      console.log('Stopped context polling');
     }
   }
 
@@ -66,7 +63,6 @@ export class ContextPollService {
   forceRefresh(tripId: string, onUpdate: () => void): void {
     ContextCacheService.invalidate(tripId);
     onUpdate();
-    console.log(`Forced context refresh for trip ${tripId}`);
   }
 }
 

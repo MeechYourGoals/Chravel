@@ -19,7 +19,6 @@ class AnalyticsService {
     // In production, initialize Segment here
     // analytics.load(config?.writeKey);
     this.isInitialized = true;
-    console.log('[Analytics] Initialized');
   }
 
   identify(userId: string, traits?: Record<string, any>) {
@@ -28,7 +27,6 @@ class AnalyticsService {
     // In production, send to Segment
     // analytics.identify(userId, traits);
     
-    console.log('[Analytics] User identified:', userId, traits);
   }
 
   track(eventName: string, properties?: Record<string, any>) {
@@ -49,7 +47,6 @@ class AnalyticsService {
     // In production, send to Segment
     // analytics.track(eventName, event.properties);
     
-    console.log('[Analytics] Event:', event);
   }
 
   page(name: string, properties?: Record<string, any>) {
@@ -60,7 +57,6 @@ class AnalyticsService {
     // In production, send to Segment
     // analytics.page(name, properties);
     
-    console.log('[Analytics] Page view:', name, properties);
   }
 
   reset() {
@@ -69,7 +65,6 @@ class AnalyticsService {
     // In production, reset Segment
     // analytics.reset();
     
-    console.log('[Analytics] User session reset');
   }
 }
 

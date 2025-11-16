@@ -179,7 +179,6 @@ export const useTripTasks = (tripId: string, options?: {
   // Task assignment functions
   const assignTask = useCallback(async (taskId: string, userId: string): Promise<boolean> => {
     try {
-      console.log('Assigning task', taskId, 'to user', userId);
       return true;
     } catch (error) {
       console.error('Failed to assign task:', error);
@@ -191,7 +190,6 @@ export const useTripTasks = (tripId: string, options?: {
   const bulkAssign = useCallback(async (assignmentOptions: AssignmentOptions): Promise<boolean> => {
     try {
       const { taskId, userIds } = assignmentOptions;
-      console.log('Bulk assigning task', taskId, 'to users', userIds);
       toast({ title: `Assigned to ${userIds.length} members` });
       return true;
     } catch (error) {
@@ -745,7 +743,6 @@ export const useTripTasks = (tripId: string, options?: {
       // if (roleUsers.length > 0) {
       //   await bulkAssign({ taskId, userIds: roleUsers });
       // }
-      console.log('Auto-assign by role not yet implemented:', taskId, role);
     },
     
     // Mutations

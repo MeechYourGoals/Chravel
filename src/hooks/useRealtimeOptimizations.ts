@@ -77,7 +77,6 @@ export const useRealtimeOptimizations = (
         if (status === 'SUBSCRIBED') {
           isConnectedRef.current = true;
           reconnectAttemptsRef.current = 0;
-          console.log(`✅ Subscribed to ${tableName} changes`);
         } else if (status === 'CHANNEL_ERROR') {
           isConnectedRef.current = false;
           console.error(`❌ Error subscribing to ${tableName} changes`);
@@ -189,13 +188,10 @@ export const usePresenceTracking = (tripId: string, userId: string) => {
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
-        console.log('Presence sync:', state);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        console.log('User joined:', key, newPresences);
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        console.log('User left:', key, leftPresences);
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {

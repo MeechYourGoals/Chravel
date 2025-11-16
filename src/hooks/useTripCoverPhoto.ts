@@ -8,13 +8,11 @@ export const useTripCoverPhoto = (trip: Trip) => {
   const updateCoverPhoto = (photoUrl: string) => {
     setCoverPhoto(photoUrl);
     // In a real app, this would also update the backend
-    console.log('Cover photo updated for trip:', trip.id, photoUrl);
   };
 
   const removeCoverPhoto = () => {
     setCoverPhoto(undefined);
     // In a real app, this would also remove from backend
-    console.log('Cover photo removed for trip:', trip.id);
   };
 
   return {

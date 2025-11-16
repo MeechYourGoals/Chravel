@@ -95,7 +95,6 @@ export class TripPhotoGenerator {
         strength: 0.8
       });
 
-      console.log(`Generated photo for trip ${tripPrompt.tripId}: ${result.imageURL}`);
       return result.imageURL;
     } catch (error) {
       console.error(`Failed to generate photo for trip ${tripPrompt.tripId}:`, error);

@@ -51,7 +51,6 @@ class ErrorTrackingService {
   init(config?: { userId?: string; environment?: string }) {
     if (this.initialized) return;
 
-    console.log('[ErrorTracking] Initializing error tracking service', config);
     
     if (config?.userId) {
       this.userId = config.userId;
@@ -72,7 +71,6 @@ class ErrorTrackingService {
    */
   setUser(userId: string, userData?: Record<string, any>) {
     this.userId = userId;
-    console.log('[ErrorTracking] User context set:', userId, userData);
     
     // TODO: Set Sentry user context
     // Sentry.setUser({ id: userId, ...userData });
@@ -83,7 +81,6 @@ class ErrorTrackingService {
    */
   clearUser() {
     this.userId = null;
-    console.log('[ErrorTracking] User context cleared');
     
     // TODO: Clear Sentry user context
     // Sentry.setUser(null);
@@ -118,7 +115,6 @@ class ErrorTrackingService {
    * Capture a message (non-error log)
    */
   captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info', context?: ErrorContext) {
-    console.log(`[ErrorTracking] Message captured [${level}]:`, message, context);
 
     // TODO: Send to Sentry
     // Sentry.captureMessage(message, {
@@ -146,7 +142,6 @@ class ErrorTrackingService {
       this.breadcrumbs = this.breadcrumbs.slice(-this.maxBreadcrumbs);
     }
 
-    console.log(`[ErrorTracking] Breadcrumb added [${breadcrumb.category}]:`, breadcrumb.message, breadcrumb.data);
 
     // TODO: Send to Sentry
     // Sentry.addBreadcrumb({

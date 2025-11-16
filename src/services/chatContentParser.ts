@@ -475,12 +475,10 @@ export async function applySuggestion(
       
       case 'create_todo':
         // TODO: Implement todo creation service
-        console.log('[chatContentParser] Todo creation not yet implemented');
         return null;
       
       case 'extract_receipt':
         // TODO: Implement receipt extraction/storage
-        console.log('[chatContentParser] Receipt extraction not yet implemented');
         return null;
       
       default:

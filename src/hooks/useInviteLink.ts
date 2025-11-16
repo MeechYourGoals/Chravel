@@ -55,7 +55,6 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
         return false;
       }
 
-      console.log('Invite created successfully in database');
       return true;
     } catch (error) {
       console.error('Error creating invite:', error);

@@ -32,7 +32,6 @@ export interface RetryOptions {
  *   {
  *     maxRetries: 3,
  *     onRetry: (attempt, error) => {
- *       console.log(`Retry attempt ${attempt} due to:`, error.message);
  *     }
  *   }
  * );

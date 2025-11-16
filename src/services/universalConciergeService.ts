@@ -178,7 +178,6 @@ export class UniversalConciergeService {
       
       // Try edge function first (works in both demo and authenticated mode)
       try {
-        console.log('🤖 Calling AI Concierge edge function...', { isDemoMode, tripId: tripContext.tripId });
         
         const { data, error } = await supabase.functions.invoke('lovable-concierge', {
           body: {
@@ -200,7 +199,6 @@ export class UniversalConciergeService {
           throw new Error('No response from edge function');
         }
 
-        console.log('✅ Edge function success:', { hasResponse: !!data.response, citationCount: data.citations?.length || 0 });
 
         return {
           content: data.response || "I'm having trouble processing your request right now.",

@@ -259,7 +259,6 @@ export class TravelBookingService {
   async saveBooking(type: 'flight' | 'hotel' | 'restaurant' | 'transportation', booking: any, tripId: string) {
     try {
       // This would save to Supabase
-      console.log('Saving booking:', { type, booking, tripId });
       return { success: true, bookingId: `booking-${Date.now()}` };
     } catch (error) {
       console.error('Failed to save booking:', error);

@@ -74,7 +74,6 @@ export const usePlacesLinkSync = () => {
         throw error;
       }
 
-      console.log('✅ Link created in database:', data);
       return data;
     } catch (error) {
       console.error('Failed to save link to database:', error);
@@ -109,7 +108,6 @@ export const usePlacesLinkSync = () => {
           .delete()
           .eq('id', linkToDelete.id);
         
-        console.log('✅ Link removed from database');
       }
     } catch (error) {
       console.error('Failed to remove link:', error);
@@ -149,7 +147,6 @@ export const usePlacesLinkSync = () => {
           })
           .eq('id', linkToUpdate.id);
         
-        console.log('✅ Link updated in database');
       }
     } catch (error) {
       console.error('Failed to update link:', error);

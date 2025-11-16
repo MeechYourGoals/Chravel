@@ -77,11 +77,9 @@ export const useTrips = () => {
       throw new Error('AUTHENTICATION_REQUIRED');
     }
     
-    console.log('[useTrips] Creating trip with data:', tripData, 'User ID:', user.id);
     const newTrip = await tripService.createTrip(tripData);
     
     if (newTrip) {
-      console.log('[useTrips] Trip created successfully:', newTrip);
       setTrips(prevTrips => [newTrip, ...prevTrips]);
     } else {
       console.error('[useTrips] Trip creation returned null');

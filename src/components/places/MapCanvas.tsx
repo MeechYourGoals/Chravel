@@ -203,7 +203,6 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     useImperativeHandle(ref, () => ({
       centerOn: (latLng: { lat: number; lng: number }, zoom = 15) => {
         if (mapRef.current && window.google && latLng) {
-          console.log('[MapCanvas] Centering on:', latLng, 'zoom:', zoom);
           mapRef.current.panTo(latLng);
           mapRef.current.setZoom(zoom);
 

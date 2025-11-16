@@ -229,7 +229,6 @@ export class MockEmbeddingService {
     // Simulate slight API latency for realism
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    console.log(`[MockEmbedding] Searching for: "${query}" in trip ${tripId}`);
     
     // Generate query embedding
     const queryEmbedding = this.generateQueryEmbedding(query);
@@ -249,7 +248,6 @@ export class MockEmbeddingService {
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, matchCount);
     
-    console.log(`[MockEmbedding] Found ${filteredResults.length} results above threshold ${matchThreshold}`);
     
     // Return in same format as Supabase RPC
     return filteredResults.map(r => ({

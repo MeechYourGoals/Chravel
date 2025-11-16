@@ -58,7 +58,6 @@ class RoleBroadcastService {
       if (error) throw error;
 
       // TODO: Trigger push notifications to role members
-      console.log('Role broadcast sent:', { roles, priority, messageId: (data as any).id });
 
       return true;
     } catch (error) {
