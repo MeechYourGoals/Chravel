@@ -13,12 +13,15 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 // Mock Google Maps
-vi.mock('@/services/googlePlaces', () => ({
+vi.mock('@/services/googlePlacesNew', () => ({
   loadMaps: vi.fn().mockResolvedValue(true),
-  createServices: vi.fn(),
   autocomplete: vi.fn(),
   resolveQuery: vi.fn(),
   centerMapOnPlace: vi.fn(),
+  searchNearby: vi.fn(),
+  searchByText: vi.fn(),
+  fetchPlaceDetails: vi.fn(),
+  generateSessionToken: vi.fn(() => 'mock-session-token'),
 }));
 
 // Create a test query client with default options

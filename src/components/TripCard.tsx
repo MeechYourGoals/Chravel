@@ -125,11 +125,12 @@ export const TripCard = ({ trip }: TripCardProps) => {
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
-          {/* Archive menu - only on desktop */}
+          {/* Archive menu - works on both mobile and desktop */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="hidden md:block text-white/60 hover:text-white transition-colors opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-xl">
-                <MoreHorizontal size={20} />
+              <button className="text-white/60 hover:text-white transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 p-2 hover:bg-white/10 rounded-lg md:rounded-xl">
+                <MoreHorizontal size={18} className="md:hidden" />
+                <MoreHorizontal size={20} className="hidden md:block" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-background border-border">
@@ -142,10 +143,6 @@ export const TripCard = ({ trip }: TripCardProps) => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {/* Mobile more options button */}
-          <button className="md:hidden text-white/60 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg">
-            <MoreHorizontal size={18} />
-          </button>
         </div>
       </div>
 
