@@ -20,6 +20,7 @@ const EventDetailContent = lazy(() =>
 import { TripVariantProvider } from '../contexts/TripVariantContext';
 import { useAuth } from '../hooks/useAuth';
 import { useIsMobile } from '../hooks/use-mobile';
+import { useDemoMode } from '../hooks/useDemoMode';
 import { eventsMockData } from '../data/eventsMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { TripContext } from '../types/tripContext';
@@ -33,6 +34,7 @@ const EventDetail = () => {
   const { eventId } = useParams<{ eventId?: string }>();
   const { generateInitialEmbeddings } = useEmbeddingGeneration(eventId);
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const [activeTab, setActiveTab] = useState('chat');
   const [showInbox, setShowInbox] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -49,13 +51,35 @@ const EventDetail = () => {
     );
   }
 
-  if (!(eventId in eventsMockData)) {
+  // 🔐 DEMO MODE: Show mock events
+  if (isDemoMode && !(eventId in eventsMockData)) {
     return (
       <ProTripNotFound 
-        message="The requested event could not be found."
+        message="The requested demo event could not be found."
         details={`Event ID: ${eventId}`}
         availableIds={Object.keys(eventsMockData)}
       />
+    );
+  }
+
+  // 🔐 AUTHENTICATED MODE: Events coming soon
+  // TODO: Query Supabase trips table where trip_type = 'event'
+  if (!isDemoMode) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="text-center max-w-md p-8">
+          <h1 className="text-3xl font-bold text-white mb-4">Events Coming Soon</h1>
+          <p className="text-gray-400 mb-6">
+            Events are currently only available in demo mode. Turn on Demo Mode to preview event features.
+          </p>
+          <button
+            onClick={() => window.location.href = '/'}
+            className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors"
+          >
+            Back to My Trips
+          </button>
+        </div>
+      </div>
     );
   }
 

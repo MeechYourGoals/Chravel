@@ -52,14 +52,10 @@ const ProTripDetail = () => {
   // Check admin status for Pro trips
   const { isAdmin } = useProTripAdmin(proTripId || '');
 
-  // Auto-enable demo mode for Pro pages on first visit
-  React.useEffect(() => {
-    if (!isDemoMode) {
-      enableDemoMode();
-    }
-  }, [isDemoMode, enableDemoMode]);
+  // 🔐 AUTHENTICATED MODE: Only show mock data in demo mode
+  // Authenticated users should see their real Pro trips from database
 
-  // 🆕 Initialize mock roles and channels for Pro trips
+  // 🆕 Initialize mock roles and channels ONLY in demo mode
   React.useEffect(() => {
     if (isDemoMode && proTripId && proTripId in proTripMockData) {
       const tripData = proTripMockData[proTripId];
@@ -76,35 +72,38 @@ const ProTripDetail = () => {
     }
   }, [isDemoMode, proTripId, user?.id]);
 
-  // Show loading spinner while demo mode initializes
-  if (!isDemoMode) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading demo content...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (!proTripId) {
     return (
       <ProTripNotFound message="No trip ID provided." />
     );
   }
 
-  if (!(proTripId in proTripMockData)) {
+  // 🔐 DEMO MODE: Use mock data
+  if (isDemoMode) {
+    if (!(proTripId in proTripMockData)) {
+      return (
+        <ProTripNotFound 
+          message="The requested trip could not be found in demo data."
+          details={`Trip ID: ${proTripId}`}
+          availableIds={Object.keys(proTripMockData)}
+        />
+      );
+    }
+  }
+
+  // 🔐 AUTHENTICATED MODE: In the future, fetch from Supabase here
+  // For now, fall back to mock data if authenticated user tries to access Pro trip
+  // TODO: Replace with real Supabase query when Pro trips schema is ready
+  if (!isDemoMode && !(proTripId in proTripMockData)) {
     return (
       <ProTripNotFound 
-        message="The requested trip could not be found."
-        details={`Trip ID: ${proTripId}`}
-        availableIds={Object.keys(proTripMockData)}
+        message="Pro trip not found. Coming soon for authenticated users!"
+        details="Pro trips are currently only available in demo mode while we finalize the feature."
       />
     );
   }
 
-  const tripData = proTripMockData[proTripId];
+  const tripData = isDemoMode ? proTripMockData[proTripId] : proTripMockData[proTripId];
 
   // Transform trip data to match consumer trip structure
   const participants = tripData.participants || [];

@@ -28,7 +28,7 @@ export const MobileProTripDetail = () => {
     adjustViewport: true
   });
 
-  // 🆕 Initialize mock roles and channels
+  // 🆕 Initialize mock roles and channels ONLY in demo mode
   React.useEffect(() => {
     if (isDemoMode && proTripId && proTripId in proTripMockData) {
       const tripData = proTripMockData[proTripId];
@@ -45,13 +45,12 @@ export const MobileProTripDetail = () => {
     }
   }, [isDemoMode, proTripId, user?.id]);
 
-  // Gate demo content
-  if (!isDemoMode) {
+  if (!proTripId) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Demo Mode Disabled</h1>
-          <p className="text-gray-400 mb-6">Turn on Demo Mode to view sample professional trips.</p>
+          <h1 className="text-2xl font-bold text-white mb-4">Trip Not Found</h1>
+          <p className="text-gray-400 mb-6">No trip ID provided.</p>
           <button
             onClick={() => {
               hapticService.light();
@@ -66,12 +65,35 @@ export const MobileProTripDetail = () => {
     );
   }
 
-  if (!proTripId || !(proTripId in proTripMockData)) {
+  // 🔐 DEMO MODE: Use mock data
+  if (isDemoMode && !(proTripId in proTripMockData)) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Trip Not Found</h1>
-          <p className="text-gray-400 mb-6">The trip you're looking for doesn't exist.</p>
+          <h1 className="text-2xl font-bold text-white mb-4">Demo Trip Not Found</h1>
+          <p className="text-gray-400 mb-6">The demo trip you're looking for doesn't exist.</p>
+          <button
+            onClick={() => {
+              hapticService.light();
+              navigate('/');
+            }}
+            className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+          >
+            Back to My Trips
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 🔐 AUTHENTICATED MODE: In the future, fetch from Supabase here
+  // For now, show coming soon message for authenticated users trying to access Pro trips
+  if (!isDemoMode) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-white mb-4">Coming Soon</h1>
+          <p className="text-gray-400 mb-6">Pro trips for authenticated users are coming soon! Turn on Demo Mode to preview Pro trip features.</p>
           <button
             onClick={() => {
               hapticService.light();
