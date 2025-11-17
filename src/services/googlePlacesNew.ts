@@ -219,27 +219,52 @@ export async function loadMaps(): Promise<typeof google.maps> {
     const apiKey = getGoogleMapsApiKey();
 
     if (!apiKey || apiKey === 'placeholder') {
-      const errorMsg = 'Google Maps API key is not configured. Please add VITE_GOOGLE_MAPS_API_KEY to your .env file.';
+      const errorMsg = 'Google Maps API key is not configured. Check environment settings.';
+      console.error('[GooglePlacesNew] ❌ API key missing or placeholder', {
+        hasKey: Boolean(apiKey),
+        isPlaceholder: apiKey === 'placeholder',
+        envCheck: import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? 'present' : 'missing'
+      });
       toast.error('Maps API key not configured');
       throw new Error(errorMsg);
     }
 
+    console.info('[GooglePlacesNew] ℹ️ Loading Google Maps API...', {
+      apiKeyLength: apiKey.length,
+      version: 'weekly',
+      libraries: ['places', 'geocoding', 'marker']
+    });
+
     const loader = new Loader({
       apiKey,
       version: 'weekly',
-      libraries: ['places', 'geocoding', 'marker'], // New Places API
+      libraries: ['places', 'geocoding', 'marker'],
     });
 
     loaderPromise = loader.load()
       .then((google) => {
         mapsApi = google.maps;
+        console.info('[GooglePlacesNew] ✅ Google Maps API loaded successfully');
         return mapsApi;
       })
       .catch((error) => {
-        if (import.meta.env.DEV) {
-          console.error('[GooglePlacesNew] Failed to load Google Maps API:', error);
+        console.error('[GooglePlacesNew] ❌ Failed to load Google Maps API', {
+          error: error.message,
+          code: error.code,
+          stack: import.meta.env.DEV ? error.stack : undefined
+        });
+        
+        // More specific error messages
+        let userMessage = 'Failed to load Google Maps';
+        if (error.message?.includes('ApiNotActivatedMapError')) {
+          userMessage = 'Maps API not enabled - check Google Cloud Console';
+        } else if (error.message?.includes('RefererNotAllowedMapError')) {
+          userMessage = 'Domain not authorized for this API key';
+        } else if (error.message?.includes('InvalidKeyMapError')) {
+          userMessage = 'Invalid API key';
         }
-        toast.error('Failed to load Google Maps');
+        
+        toast.error(userMessage);
         loaderPromise = null;
         throw new Error(`Google Maps API failed to load: ${error.message}`);
       });
