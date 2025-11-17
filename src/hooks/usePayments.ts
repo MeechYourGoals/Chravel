@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { paymentService } from '../services/paymentService';
 import { PaymentMethod, PaymentMessage } from '../types/payments';
 import { useAuth } from './useAuth';
+import { useDemoMode } from './useDemoMode';
+import { supabase } from '@/integrations/supabase/client';
 
 export const usePayments = (tripId?: string) => {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [tripPayments, setTripPayments] = useState<PaymentMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
 
   const userId = user?.id;
 
@@ -48,6 +51,54 @@ export const usePayments = (tripId?: string) => {
 
     loadTripPayments();
   }, [tripId]);
+
+  // Real-time subscription for authenticated mode
+  useEffect(() => {
+    if (!tripId || isDemoMode) return;
+
+    const channel = supabase
+      .channel(`trip_payments:${tripId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'trip_payment_messages',
+          filter: `trip_id=eq.${tripId}`,
+        },
+        async (payload) => {
+          // Refresh payments on any change
+          try {
+            const payments = await paymentService.getTripPaymentMessages(tripId);
+            setTripPayments(payments);
+          } catch (error) {
+            console.error('Error refreshing payments after real-time update:', error);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payment_splits',
+        },
+        async (payload) => {
+          // Refresh payments when splits are updated
+          try {
+            const payments = await paymentService.getTripPaymentMessages(tripId);
+            setTripPayments(payments);
+          } catch (error) {
+            console.error('Error refreshing payments after split update:', error);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tripId, isDemoMode]);
 
   const addPaymentMethod = async (method: Omit<PaymentMethod, 'id'>) => {
     if (!userId) return false;
