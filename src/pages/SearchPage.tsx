@@ -10,34 +10,12 @@ import { MobileModal } from '../components/mobile/MobileModal';
 import { useUniversalSearch } from '../hooks/useUniversalSearch';
 import { Loader2 } from 'lucide-react';
 
-interface SearchResult {
-  id: string;
-  type: 'regular' | 'pro' | 'event';
-  title: string;
-  location: string;
-  dateRange: string;
-  status: 'active' | 'archived' | 'upcoming';
-  participants: number;
-  matchScore: number;
-  deepLink: string;
-}
-
 const SearchPage = () => {
   const [query, setQuery] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedFilters, setSelectedFilters] = useState({
-    status: 'all',
-    type: 'all',
-    dateRange: 'all'
-  });
-  
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const { results, isLoading } = useUniversalSearch(query, selectedFilters);
-
-  const handleResultClick = (result: SearchResult) => {
-    navigate(result.deepLink);
-  };
+  const { results, isLoading } = useUniversalSearch(query, {
+    contentTypes: ['trips', 'messages', 'calendar', 'tasks', 'polls', 'media']
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {

@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group';
 import { Settings, User, LogIn, Plus, Crown, Bell, Search, UserCircle } from 'lucide-react';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { useAuth } from '../../hooks/useAuth';
-import { SearchBar } from '../SearchBar';
-import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from '../ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,14 +31,13 @@ export const TripViewToggle = ({
   onUpgrade, 
   onSettings, 
   onAuth,
-  onSearch,
   onCreateTrip,
   style, 
   showRecsTab = false 
 }: TripViewToggleProps) => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [notifications] = useState([
     { id: '1', type: 'calendar', title: 'Event starts soon', description: 'Tokyo Adventure starts in 2 hours', tripId: 'trip1', timestamp: new Date(), isRead: false },
     { id: '2', type: 'payment', title: 'Payment received', description: 'John paid $50 for hotel', tripId: 'trip2', timestamp: new Date(), isRead: false },
@@ -226,33 +224,18 @@ export const TripViewToggle = ({
             </button>
           )}
 
-          {/* Search Pill */}
-          {onSearch && (
-            <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-              <DialogTrigger asChild>
-                <button 
-                  className="justify-self-center px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base text-white hover:text-foreground hover:bg-secondary/50 transition-all duration-300 flex items-center gap-2 whitespace-nowrap tracking-wide"
-                  aria-label="Search"
-                >
-                  <Search size={16} className="flex-shrink-0" />
-                  <span className="hidden lg:inline">Search</span>
-                </button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px] bg-card/95 backdrop-blur-xl border-2 border-border/50">
-                <DialogHeader>
-                  <DialogTitle>Search Trips</DialogTitle>
-                </DialogHeader>
-                <SearchBar 
-                  placeholder="Search trips, people, files..." 
-                  onSearch={(query) => {
-                    onSearch(query);
-                    if (query) setIsSearchOpen(false);
-                  }}
-                  className="w-full"
-                />
-              </DialogContent>
-            </Dialog>
-          )}
+          {/* Search Button - Navigate to /search */}
+          <button
+            onClick={() => navigate('/search')}
+            className="px-4 py-2.5 rounded-xl border-2 border-border bg-card/80 backdrop-blur-xl shadow-lg 
+              hover:bg-card hover:border-primary/50 hover:shadow-primary/20 
+              transition-all duration-300 group flex items-center gap-2"
+          >
+            <Search className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+            <span className="font-semibold text-foreground group-hover:text-primary transition-colors hidden lg:inline">
+              Search
+            </span>
+          </button>
         </div>
       </div>
     </div>
