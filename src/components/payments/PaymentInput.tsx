@@ -12,6 +12,7 @@ import { PaymentMethodId } from '@/types/paymentMethods';
 import { getAutomaticParticipantSuggestions, detectPaymentParticipantsFromMessage } from '@/services/chatAnalysisService';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '../ui/badge';
+import { CurrencySelector } from './CurrencySelector';
 
 interface PaymentInputProps {
   onSubmit: (paymentData: {
@@ -201,17 +202,10 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
 
             <div className="flex flex-col space-y-1">
               <Label htmlFor="currency" className="text-sm font-medium text-gray-300">Currency</Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="w-full h-12 rounded-xl bg-gray-900/40 border border-white/10 text-white px-4 focus:ring-2 focus:ring-emerald-400/40 transition-all">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-white/10">
-                  <SelectItem value="USD">USD ($)</SelectItem>
-                  <SelectItem value="EUR">EUR (€)</SelectItem>
-                  <SelectItem value="GBP">GBP (£)</SelectItem>
-                  <SelectItem value="CAD">CAD ($)</SelectItem>
-                </SelectContent>
-              </Select>
+              <CurrencySelector
+                value={currency}
+                onChange={setCurrency}
+              />
             </div>
 
             <div className="flex flex-col space-y-1">

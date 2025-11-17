@@ -57,7 +57,7 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
     signal?: AbortSignal
   ): Promise<UploadedFile> => {
     const mediaType = determineMediaType(file);
-    
+
     // Update progress: uploading
     updateProgress(fileId, 20, 'uploading');
 
@@ -66,7 +66,7 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
       await new Promise(resolve => setTimeout(resolve, 1000));
       const mockUrl = URL.createObjectURL(file);
       updateProgress(fileId, 100, 'complete', undefined, mockUrl);
-      
+
       return {
         id: fileId,
         url: mockUrl,
@@ -78,56 +78,28 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
     }
 
     try {
-      // Upload to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${tripId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
+      // Use mediaService for authenticated uploads (DRY principle)
       updateProgress(fileId, 50, 'uploading');
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('advertiser-assets')
-        .upload(fileName, file);
 
-      if (uploadError) throw uploadError;
+      const { mediaService } = await import('@/services/mediaService');
+      const mediaItem = await mediaService.uploadMedia({
+        tripId,
+        file,
+        media_type: mediaType
+      });
+
       if (signal?.aborted) throw new Error('Upload cancelled');
 
       updateProgress(fileId, 90, 'processing');
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('advertiser-assets')
-        .getPublicUrl(fileName);
-
-      // Save to database
-      const { data, error: dbError } = await supabase
-        .from('trip_media_index')
-        .insert({
-          trip_id: tripId,
-          media_type: mediaType,
-          media_url: publicUrl,
-          filename: file.name,
-          mime_type: file.type,
-          file_size: file.size,
-          metadata: {
-            upload_path: uploadData.path,
-            original_name: file.name,
-            uploaded_at: new Date().toISOString()
-          }
-        })
-        .select()
-        .single();
-
-      if (dbError) throw dbError;
-
-      updateProgress(fileId, 100, 'complete', undefined, publicUrl);
+      updateProgress(fileId, 100, 'complete', undefined, mediaItem.media_url);
 
       return {
-        id: data.id,
-        url: publicUrl,
-        filename: file.name,
-        type: mediaType,
-        size: file.size,
-        mimeType: file.type
+        id: mediaItem.id,
+        url: mediaItem.media_url,
+        filename: mediaItem.filename,
+        type: mediaItem.media_type,
+        size: mediaItem.file_size || file.size,
+        mimeType: mediaItem.mime_type || file.type
       };
     } catch (error: any) {
       updateProgress(fileId, 0, 'error', error.message);
