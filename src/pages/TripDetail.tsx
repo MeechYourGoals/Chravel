@@ -1,10 +1,11 @@
 
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, Suspense, lazy, memo } from 'react';
 import { useParams } from 'react-router-dom';
 import { MessageInbox } from '../components/MessageInbox';
 import { TripDetailHeader } from '../components/trip/TripDetailHeader';
 import { TripDetailModals } from '../components/trip/TripDetailModals';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { usePerformanceMonitor } from '../hooks/usePerformanceMonitor';
 
 // 🚀 OPTIMIZATION: Lazy load heavy components for faster initial render
 const TripHeader = lazy(() => 
@@ -37,6 +38,7 @@ import { useDemoMode } from '../hooks/useDemoMode';
 import { convertSupabaseTripToMock } from '../utils/tripConverter';
 
 const TripDetail = () => {
+  usePerformanceMonitor('TripDetail');
   const isMobile = useIsMobile();
   const { tripId } = useParams();
   const navigate = useNavigate();

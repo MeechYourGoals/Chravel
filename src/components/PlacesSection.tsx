@@ -458,24 +458,42 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   const handleContextChange = (context: 'trip' | 'personal') => {
-    
-    // Always update the search context for proper toggle highlighting
+    console.log('[PlacesSection] Context toggled to:', context);
     setSearchContext(context);
 
-    // Update search origin and center map
     if (context === 'trip' && contextBasecamp?.coordinates) {
+      console.log('[PlacesSection] Centering on trip basecamp:', contextBasecamp.coordinates);
+      // Update last location for priority tracking
+      setLastUpdatedLocation({
+        type: 'trip',
+        timestamp: Date.now(),
+        coords: contextBasecamp.coordinates
+      });
+      // Update search origin
       setSearchOrigin(contextBasecamp.coordinates);
-      mapRef.current?.centerOn(contextBasecamp.coordinates, 15);
+      // CRITICAL: Immediately center map with high zoom
+      if (mapRef.current) {
+        mapRef.current.centerOn(contextBasecamp.coordinates, 15);
+        console.log('[PlacesSection] Map centered on trip basecamp');
+      }
     } else if (context === 'personal' && personalBasecamp?.latitude && personalBasecamp?.longitude) {
       const coords = { lat: personalBasecamp.latitude, lng: personalBasecamp.longitude };
+      console.log('[PlacesSection] Centering on personal basecamp:', coords);
+      // Update last location for priority tracking
+      setLastUpdatedLocation({
+        type: 'personal',
+        timestamp: Date.now(),
+        coords
+      });
+      // Update search origin
       setSearchOrigin(coords);
-      mapRef.current?.centerOn(coords, 15);
-    } else {
-      console.warn('[PlacesSection] Cannot center - basecamp not set for context:', context);
-    }
-
-    // If personal basecamp is not set, also open the selector
-    if (context === 'personal' && !personalBasecamp) {
+      // CRITICAL: Immediately center map with high zoom
+      if (mapRef.current) {
+        mapRef.current.centerOn(coords, 15);
+        console.log('[PlacesSection] Map centered on personal basecamp');
+      }
+    } else if (context === 'personal' && !personalBasecamp) {
+      console.warn('[PlacesSection] Personal basecamp not set, showing selector');
       setShowPersonalBasecampSelector(true);
     }
   };
@@ -538,36 +556,73 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   const handleSuggestionClick = async (prediction: google.maps.places.AutocompletePrediction) => {
+    console.log('[PlacesSection] Suggestion clicked:', prediction.description);
     setSearchQuery(prediction.description);
     setShowSuggestions(false);
-
     setIsSearching(true);
+    setSearchError(null);
+
     try {
-      // Search will center the map internally
-      await mapRef.current?.search(prediction.description);
-      setSearchError(null);
+      if (!mapRef.current) {
+        console.error('Map reference is not available');
+        setIsSearching(false);
+        return;
+      }
+
+      const map = mapRef.current.getMap();
+      if (!map) {
+        console.error('Map instance not available');
+        setIsSearching(false);
+        return;
+      }
+
+      const placesService = new google.maps.places.PlacesService(map);
       
-      // 🆕 Extract coordinates from the prediction result and track as 'search' type
-      // The map has already centered, but we need to track this as the most recent update
-      const placesService = new google.maps.places.PlacesService(mapRef.current?.getMap()!);
       placesService.getDetails(
         { placeId: prediction.place_id },
         (place, status) => {
           if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
-            const coords = {
-              lat: place.geometry.location.lat(),
-              lng: place.geometry.location.lng()
+            const lat = place.geometry.location.lat();
+            const lng = place.geometry.location.lng();
+            console.log('[PlacesSection] Place details fetched, centering map:', { lat, lng });
+
+            // Update last location with search priority
+            setLastUpdatedLocation({
+              type: 'search',
+              timestamp: Date.now(),
+              coords: { lat, lng }
+            });
+
+            // Update search origin
+            setSearchOrigin({ lat, lng });
+
+            // CRITICAL: Center map immediately on selected place with high zoom
+            if (mapRef.current) {
+              mapRef.current.centerOn({ lat, lng }, 15);
+              console.log('[PlacesSection] Map centered on search result');
+            }
+
+            // Add to places list as a search result
+            const newPlace: PlaceWithDistance = {
+              id: place.place_id || `place-${Date.now()}`,
+              name: place.name || prediction.description,
+              url: '',
+              address: place.formatted_address || '',
+              coordinates: { lat, lng },
+              category: 'Other'
             };
-            handleCenterMap(coords, 'search');
+
+            setPlaces([newPlace]);
+          } else {
+            console.error('Failed to get place details:', status);
+            setSearchError('Failed to get location details');
           }
+          setIsSearching(false);
         }
       );
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[PlacesSection] Search error:', error);
-      }
-      setSearchError('Search failed.');
-    } finally {
+      console.error('Error fetching place details:', error);
+      setSearchError(error instanceof Error ? error.message : 'Failed to fetch place details');
       setIsSearching(false);
     }
   };
