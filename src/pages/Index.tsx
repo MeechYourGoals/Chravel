@@ -14,6 +14,7 @@ import { RecommendationFilters } from '../components/home/RecommendationFilters'
 import { UnauthenticatedLanding } from '../components/UnauthenticatedLanding';
 import { FullPageLanding } from '../components/landing/FullPageLanding';
 import { DemoModeToggle } from '../components/DemoModeToggle';
+import { SearchOverlay } from '../components/home/SearchOverlay';
 
 // New conversion components
 import { PersistentCTABar } from '../components/conversion/PersistentCTABar';
@@ -34,6 +35,7 @@ import { calculateTripStats, calculateProTripStats, calculateEventStats, filterI
 import { useLocation } from 'react-router-dom';
 import { useMobilePortrait } from '../hooks/useMobilePortrait';
 import { convertSupabaseTripsToMock } from '../utils/tripConverter';
+
 const Index = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -48,6 +50,8 @@ const Index = () => {
   const [recsFilter, setRecsFilter] = useState('all');
   const [settingsInitialConsumerSection, setSettingsInitialConsumerSection] = useState<string | undefined>(undefined);
   const [settingsInitialType, setSettingsInitialType] = useState<'consumer' | 'enterprise' | 'events' | 'advertiser'>('consumer');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const location = useLocation();
@@ -61,15 +65,66 @@ const Index = () => {
   const showMarketingContent = !user;
 
   // Use centralized trip data - demo data or real user data converted to mock format
-  const trips = isDemoMode ? tripsData : convertSupabaseTripsToMock(userTripsRaw);
+  const allTrips = isDemoMode ? tripsData : convertSupabaseTripsToMock(userTripsRaw);
+
+  // Search filtering with async handling
+  const searchFilteredTrips = useMemo(() => {
+    if (!searchQuery.trim()) return allTrips;
+    
+    // Sync keyword search for immediate filtering
+    const lowerQuery = searchQuery.toLowerCase();
+    return allTrips.filter(trip => 
+      trip.title.toLowerCase().includes(lowerQuery) ||
+      trip.location?.toLowerCase().includes(lowerQuery) ||
+      trip.description?.toLowerCase().includes(lowerQuery)
+    );
+  }, [allTrips, searchQuery]);
+
+  const searchFilteredProTrips = useMemo(() => {
+    if (!searchQuery.trim() || !isDemoMode) return isDemoMode ? proTripMockData : {};
+    
+    const lowerQuery = searchQuery.toLowerCase();
+    const filtered = Object.fromEntries(
+      Object.entries(proTripMockData).filter(([_, trip]) => 
+        trip.title.toLowerCase().includes(lowerQuery) ||
+        trip.location?.toLowerCase().includes(lowerQuery) ||
+        trip.description?.toLowerCase().includes(lowerQuery)
+      )
+    );
+    return filtered;
+  }, [searchQuery, isDemoMode]);
+
+  const searchFilteredEvents = useMemo(() => {
+    if (!searchQuery.trim() || !isDemoMode) return isDemoMode ? eventsMockData : {};
+    
+    const lowerQuery = searchQuery.toLowerCase();
+    const filtered = Object.fromEntries(
+      Object.entries(eventsMockData).filter(([_, event]) => 
+        event.title.toLowerCase().includes(lowerQuery) ||
+        event.location?.toLowerCase().includes(lowerQuery) ||
+        event.description?.toLowerCase().includes(lowerQuery)
+      )
+    );
+    return filtered;
+  }, [searchQuery, isDemoMode]);
+
+  const trips = searchFilteredTrips;
+  
+  // Count total results across all view modes
+  const searchResultCount = useMemo(() => {
+    if (!searchQuery.trim()) return 0;
+    return searchFilteredTrips.length + 
+           Object.keys(searchFilteredProTrips).length + 
+           Object.keys(searchFilteredEvents).length;
+  }, [searchQuery, searchFilteredTrips, searchFilteredProTrips, searchFilteredEvents]);
 
   if (import.meta.env.DEV) {
   }
 
   // Calculate stats for each view mode - gate by demo mode
   const tripStats = calculateTripStats(trips);
-  const proTripStats = isDemoMode ? calculateProTripStats(proTripMockData) : calculateProTripStats({});
-  const eventStats = isDemoMode ? calculateEventStats(eventsMockData) : calculateEventStats({});
+  const proTripStats = isDemoMode ? calculateProTripStats(searchFilteredProTrips) : calculateProTripStats({});
+  const eventStats = isDemoMode ? calculateEventStats(searchFilteredEvents) : calculateEventStats({});
 
   const getCurrentStats = () => {
     switch (viewMode) {
@@ -219,6 +274,7 @@ const Index = () => {
                       setIsSettingsOpen(true);
                     }}
                     onAuth={() => setIsAuthModalOpen(true)}
+                    onSearchClick={() => setIsSearchOpen(true)}
                     onCreateTrip={handleCreateTrip}
                     showRecsTab={showMarketingContent}
                   />
@@ -295,6 +351,17 @@ const Index = () => {
           isOpen={isDemoModalOpen}
           onClose={() => setIsDemoModalOpen(false)}
           demoType={viewMode === 'events' ? 'events' : 'pro'}
+        />
+
+        <SearchOverlay
+          isOpen={isSearchOpen}
+          onClose={() => {
+            setIsSearchOpen(false);
+            setSearchQuery('');
+          }}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          resultCount={searchResultCount}
         />
       </div>
     );

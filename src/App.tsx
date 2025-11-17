@@ -45,7 +45,6 @@ const ProTripDetail = lazy(() => retryImport(() => import("./pages/ProTripDetail
 const EventDetail = lazy(() => retryImport(() => import("./pages/EventDetail")));
 const NotFound = lazy(() => retryImport(() => import("./pages/NotFound")));
 const JoinTrip = lazy(() => retryImport(() => import("./pages/JoinTrip")));
-const SearchPage = lazy(() => retryImport(() => import("./pages/SearchPage")));
 const ProfilePage = lazy(() => retryImport(() => import("./pages/ProfilePage")));
 const SettingsPage = lazy(() => retryImport(() => import("./pages/SettingsPage")));
 const ArchivePage = lazy(() => retryImport(() => import("./pages/ArchivePage")));
@@ -202,11 +201,6 @@ const App = () => {
                     <Route path="/event/:eventId" element={
                       <LazyRoute>
                         <EventDetail />
-                      </LazyRoute>
-                    } />
-                    <Route path="/search" element={
-                      <LazyRoute>
-                        <SearchPage />
                       </LazyRoute>
                     } />
                     <Route path="/recs" element={

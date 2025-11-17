@@ -19,7 +19,7 @@ interface TripViewToggleProps {
   onUpgrade?: () => void;
   onSettings?: (settingsType?: 'consumer' | 'enterprise' | 'events' | 'advertiser', activeSection?: string) => void;
   onAuth?: () => void;
-  onSearch?: (query: string) => void;
+  onSearchClick?: () => void;
   onCreateTrip?: () => void;
   style?: React.CSSProperties;
   showRecsTab?: boolean;
@@ -31,6 +31,7 @@ export const TripViewToggle = ({
   onUpgrade, 
   onSettings, 
   onAuth,
+  onSearchClick,
   onCreateTrip,
   style, 
   showRecsTab = false 
@@ -224,9 +225,9 @@ export const TripViewToggle = ({
             </button>
           )}
 
-          {/* Search Button - Navigate to /search */}
+          {/* Search Button */}
           <button
-            onClick={() => navigate('/search')}
+            onClick={onSearchClick}
             className="px-4 py-2.5 rounded-xl border-2 border-border bg-card/80 backdrop-blur-xl shadow-lg 
               hover:bg-card hover:border-primary/50 hover:shadow-primary/20 
               transition-all duration-300 group flex items-center gap-2"
