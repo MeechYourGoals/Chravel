@@ -8,10 +8,11 @@ import { Badge } from '../ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-
+import { TripLinksDisplay } from './TripLinksDisplay';
 import { PersonalBasecamp } from '@/services/basecampService';
 
 export interface LinksPanelProps {
+  tripId: string;
   places: PlaceWithDistance[];
   basecamp?: BasecampLocation | null;
   personalBasecamp?: PersonalBasecamp | null;
@@ -26,6 +27,7 @@ export interface LinksPanelProps {
 }
 
 export const LinksPanel: React.FC<LinksPanelProps> = ({
+  tripId,
   places,
   basecamp,
   personalBasecamp,
@@ -83,7 +85,20 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-6">
+        {/* Trip Links from Database */}
+        <TripLinksDisplay tripId={tripId} />
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-white/10"></div>
+          </div>
+          <div className="relative flex justify-center">
+            <span className="px-4 text-xs text-gray-400 bg-gray-950">Places from Search</span>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-4 shadow-lg">
           <div className="flex items-center justify-between">
