@@ -1,12 +1,14 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Plus, Megaphone, Link, Image, Camera, Video, FileText } from 'lucide-react';
+import { Send, Plus, Megaphone, Link, Image, Camera, Video, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { PaymentInput } from '../payments/PaymentInput';
 import { useShareAsset } from '@/hooks/useShareAsset';
+import { useMediaUpload } from '@/hooks/useMediaUpload';
 import { ParsedContentSuggestions } from './ParsedContentSuggestions';
 import { toast } from 'sonner';
+import { Progress } from '@/components/ui/progress';
 
 interface ChatInputProps {
   inputMessage: string;
@@ -45,11 +47,26 @@ export const ChatInput = ({
     shareFile, 
     shareLink, 
     shareMultipleFiles, 
-    isUploading, 
+    isUploading: isShareUploading, 
     uploadProgress,
     parsedContent,
     clearParsedContent
   } = useShareAsset(tripId);
+
+  const { 
+    uploadFiles, 
+    uploadQueue, 
+    isUploading: isMediaUploading,
+    clearQueue 
+  } = useMediaUpload({ 
+    tripId,
+    onComplete: (files) => {
+      console.log('Upload complete:', files);
+    },
+    onError: (error, fileName) => {
+      toast.error(`Failed to upload ${fileName}: ${error.message}`);
+    }
+  });
 
   // Track typing status
   useEffect(() => {
@@ -93,7 +110,12 @@ export const ChatInput = ({
     fileInputRef.current.onchange = async (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files && files.length > 0) {
+        // Use new upload hook with progress tracking
+        await uploadFiles(files);
+        
+        // Also share to chat (legacy flow)
         await shareMultipleFiles(files, type);
+        
         if (onFileUpload) {
           onFileUpload(files, type);
         }
@@ -106,11 +128,15 @@ export const ChatInput = ({
     e.preventDefault();
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
+      // Use new upload hook with progress tracking
+      await uploadFiles(files);
+      
       const file = files[0];
       const isImage = file.type.startsWith('image/');
       const isVideo = file.type.startsWith('video/');
       const type = isImage ? 'image' : isVideo ? 'video' : 'document';
       
+      // Also share to chat (legacy flow)
       await shareMultipleFiles(files, type);
       if (onFileUpload) {
         onFileUpload(files, type);
@@ -256,7 +282,7 @@ export const ChatInput = ({
           {/* Send Button */}
           <button
             onClick={handleSend}
-            disabled={(!inputMessage.trim() && !isUploading) || isTyping}
+            disabled={(!inputMessage.trim() && !isMediaUploading && !isShareUploading) || isTyping}
             className={`size-10 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${
               isBroadcastMode
                 ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:opacity-90'
@@ -292,7 +318,7 @@ export const ChatInput = ({
         </div>
       )}
 
-      {/* Upload Progress Indicators */}
+      {/* Upload Progress Indicators - Legacy Share Hook */}
       {Object.values(uploadProgress).length > 0 && (
         <div className="space-y-2 px-3">
           {Object.values(uploadProgress).map((progress) => (
@@ -317,6 +343,36 @@ export const ChatInput = ({
               )}
               {progress.status === 'error' && (
                 <span className="text-red-500 text-xs">✗</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Upload Progress Indicators - New Media Hook */}
+      {uploadQueue.length > 0 && (
+        <div className="space-y-2 px-4 py-3 bg-background/50 backdrop-blur-sm rounded-lg border border-white/10">
+          {uploadQueue.map((item) => (
+            <div key={item.fileId} className="flex items-center gap-3">
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-foreground/80 truncate max-w-[200px]">
+                    {item.fileName}
+                  </span>
+                  <span className="text-foreground/60">
+                    {item.progress}%
+                  </span>
+                </div>
+                <Progress value={item.progress} className="h-1.5" />
+              </div>
+              {item.status === 'complete' && (
+                <span className="text-green-500 text-sm">✓</span>
+              )}
+              {item.status === 'error' && (
+                <span className="text-red-500 text-sm">✗</span>
+              )}
+              {item.status === 'uploading' && (
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
               )}
             </div>
           ))}
