@@ -2506,6 +2506,7 @@ export type Database = {
           basecamp_latitude: number | null
           basecamp_longitude: number | null
           basecamp_name: string | null
+          basecamp_version: number | null
           capacity: number | null
           categories: Json | null
           cover_image_url: string | null
@@ -2529,6 +2530,7 @@ export type Database = {
           basecamp_latitude?: number | null
           basecamp_longitude?: number | null
           basecamp_name?: string | null
+          basecamp_version?: number | null
           capacity?: number | null
           categories?: Json | null
           cover_image_url?: string | null
@@ -2552,6 +2554,7 @@ export type Database = {
           basecamp_latitude?: number | null
           basecamp_longitude?: number | null
           basecamp_name?: string | null
+          basecamp_version?: number | null
           capacity?: number | null
           categories?: Json | null
           cover_image_url?: string | null
@@ -2964,6 +2967,18 @@ export type Database = {
           p_user_id: string
         }
         Returns: boolean
+      }
+      update_trip_basecamp_with_version: {
+        Args: {
+          p_address: string
+          p_current_version: number
+          p_latitude: number
+          p_longitude: number
+          p_name: string
+          p_trip_id: string
+          p_user_id: string
+        }
+        Returns: Json
       }
       vote_on_poll: {
         Args: {

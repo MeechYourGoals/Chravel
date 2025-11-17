@@ -265,6 +265,68 @@ export const useTripTasks = (tripId: string, options?: {
   const TASKS_PER_PAGE = 100; // Load first 100 tasks initially
   const [showAllTasks, setShowAllTasks] = useState(false);
 
+  // Real-time subscription for tasks (authenticated mode only)
+  useEffect(() => {
+    if (!tripId || isDemoMode) return;
+
+    console.log('[useTripTasks] Setting up real-time subscription for', tripId);
+
+    const channel = supabase
+      .channel(`trip_tasks:${tripId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'trip_tasks',
+          filter: `trip_id=eq.${tripId}`,
+        },
+        (payload) => {
+          console.log('[useTripTasks] New task created:', payload.new);
+          queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+          
+          toast({
+            title: 'New Task Added',
+            description: `${(payload.new as any).title} was added.`,
+            duration: 3000
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'trip_tasks',
+          filter: `trip_id=eq.${tripId}`,
+        },
+        (payload) => {
+          console.log('[useTripTasks] Task deleted:', payload.old);
+          queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'task_status',
+        },
+        (payload) => {
+          console.log('[useTripTasks] Task status updated:', payload.new);
+          queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('[useTripTasks] Subscription status:', status);
+      });
+
+    return () => {
+      console.log('[useTripTasks] Cleaning up subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [tripId, isDemoMode, queryClient, toast]);
+
   const tasksQuery = useQuery({
     queryKey: ['tripTasks', tripId, isDemoMode],
     queryFn: async (): Promise<TripTask[]> => {
@@ -301,12 +363,12 @@ export const useTripTasks = (tripId: string, options?: {
 
       const { data: tasks, error } = await query;
 
-        if (error) throw error;
+      if (error) throw error;
 
-        // If no real tasks exist, return seed tasks for consumer trips
-        if (!tasks || tasks.length === 0) {
-          return generateSeedTasks(tripId);
-        }
+      // If no real tasks exist, return seed tasks for consumer trips
+      if (!tasks || tasks.length === 0) {
+        return generateSeedTasks(tripId);
+      }
 
         // Transform database tasks to match TripTask interface
         return tasks.map((task: any) => ({

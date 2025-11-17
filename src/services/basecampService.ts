@@ -113,13 +113,12 @@ class BasecampService {
   async setTripBasecamp(
     tripId: string,
     basecamp: { name?: string; address: string; latitude?: number; longitude?: number },
-    options?: { validateAddress?: boolean; skipHistory?: boolean }
-  ): Promise<{ success: boolean; error?: string; coordinates?: { lat: number; lng: number } }> {
+    options?: { validateAddress?: boolean; skipHistory?: boolean; currentVersion?: number }
+  ): Promise<{ success: boolean; error?: string; conflict?: boolean; coordinates?: { lat: number; lng: number } }> {
     try {
-      // Get current basecamp for history logging
-      const currentBasecamp = await this.getTripBasecamp(tripId);
-      const isUpdate = !!currentBasecamp;
-
+      // Get current version if not provided
+      const currentVersion = options?.currentVersion ?? await this.getBasecampVersion(tripId);
+      
       let finalLatitude = basecamp.latitude;
       let finalLongitude = basecamp.longitude;
 
@@ -134,44 +133,34 @@ class BasecampService {
 
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id;
+      
+      if (!userId) {
+        return { success: false, error: 'User not authenticated' };
+      }
 
-      const { error } = await supabase
-        .from('trips')
-        .update({
-          basecamp_name: basecamp.name,
-          basecamp_address: basecamp.address,
-          basecamp_latitude: finalLatitude,
-          basecamp_longitude: finalLongitude
-        })
-        .eq('id', tripId);
+      // Use versioned update RPC
+      const { data, error } = await supabase.rpc('update_trip_basecamp_with_version', {
+        p_trip_id: tripId,
+        p_current_version: currentVersion,
+        p_name: basecamp.name || null,
+        p_address: basecamp.address,
+        p_latitude: finalLatitude || null,
+        p_longitude: finalLongitude || null,
+        p_user_id: userId
+      }) as { data: any; error: any };
 
       if (error) {
-        if (import.meta.env.DEV) console.error('Failed to set trip basecamp:', error);
+        console.error('Failed to update basecamp:', error);
         return { success: false, error: error.message };
       }
 
-      // Log to history (if not skipped and user is authenticated)
-      if (!options?.skipHistory && userId) {
-        try {
-          // @ts-ignore - Edge function not in generated types yet
-          await supabase.rpc('log_basecamp_change', {
-            p_trip_id: tripId,
-            p_user_id: userId,
-            p_basecamp_type: 'trip',
-            p_action: isUpdate ? 'updated' : 'created',
-            p_previous_name: currentBasecamp?.name || null,
-            p_previous_address: currentBasecamp?.address || null,
-            p_previous_latitude: currentBasecamp?.coordinates?.lat || null,
-            p_previous_longitude: currentBasecamp?.coordinates?.lng || null,
-            p_new_name: basecamp.name || null,
-            p_new_address: basecamp.address,
-            p_new_latitude: finalLatitude || null,
-            p_new_longitude: finalLongitude || null
-          });
-        } catch (historyError) {
-          // Don't fail the operation if history logging fails
-          if (import.meta.env.DEV) console.error('[BasecampService] Failed to log history:', historyError);
-        }
+      // Check for conflict
+      if (data && typeof data === 'object' && data.conflict === true) {
+        return {
+          success: false,
+          conflict: true,
+          error: 'Basecamp was modified by another user. Please refresh and try again.'
+        };
       }
 
       return {
@@ -179,9 +168,22 @@ class BasecampService {
         coordinates: finalLatitude && finalLongitude ? { lat: finalLatitude, lng: finalLongitude } : undefined
       };
     } catch (error) {
-      if (import.meta.env.DEV) console.error('Error setting trip basecamp:', error);
+      console.error('Error setting trip basecamp:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
+  }
+
+  /**
+   * Get the current basecamp version for a trip
+   */
+  async getBasecampVersion(tripId: string): Promise<number> {
+    const { data, error } = await supabase
+      .from('trips')
+      .select('basecamp_version')
+      .eq('id', tripId)
+      .single();
+    
+    return data?.basecamp_version ?? 1;
   }
 
   /**
