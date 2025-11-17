@@ -3,9 +3,11 @@ import { AdminManager } from './AdminManager';
 import { RoleManager } from './RoleManager';
 import { RoleAssignmentPanel } from './RoleAssignmentPanel';
 import { JoinRequestsPanel } from './JoinRequestsPanel';
+import { BulkRoleAssignmentDialog } from './BulkRoleAssignmentDialog';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Users, UserCheck, Clock } from 'lucide-react';
+import { Shield, Users, UserCheck, Clock, UserPlus } from 'lucide-react';
 
 interface ProAdminDashboardProps {
   tripId: string;
@@ -18,6 +20,8 @@ export const ProAdminDashboard: React.FC<ProAdminDashboardProps> = ({
   tripCreatorId,
   isAdmin
 }) => {
+  const [showBulkAssignment, setShowBulkAssignment] = useState(false);
+
   if (!isAdmin) {
     return null;
   }
@@ -25,14 +29,23 @@ export const ProAdminDashboard: React.FC<ProAdminDashboardProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
       <Card className="p-6 bg-background/40 backdrop-blur-sm border-white/10">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Shield className="w-6 h-6 text-blue-500" />
-            Admin Dashboard
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage admins, roles, permissions, and join requests for this Pro trip
-          </p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Shield className="w-6 h-6 text-blue-500" />
+              Admin Dashboard
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage admins, roles, permissions, and join requests for this Pro trip
+            </p>
+          </div>
+          <Button
+            onClick={() => setShowBulkAssignment(true)}
+            className="rounded-full bg-primary hover:bg-primary/90"
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Bulk Assign Roles
+          </Button>
         </div>
 
         <Tabs defaultValue="admins" className="w-full">
@@ -86,6 +99,13 @@ export const ProAdminDashboard: React.FC<ProAdminDashboardProps> = ({
           </div>
         </Tabs>
       </Card>
+
+      {/* Bulk Role Assignment Dialog */}
+      <BulkRoleAssignmentDialog
+        open={showBulkAssignment}
+        onOpenChange={setShowBulkAssignment}
+        tripId={tripId}
+      />
     </div>
   );
 };

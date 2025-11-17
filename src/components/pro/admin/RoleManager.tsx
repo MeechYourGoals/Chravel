@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { useTripRoles } from '@/hooks/useTripRoles';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Users, Plus, Trash2, Link as LinkIcon } from 'lucide-react';
+import { Users, Plus, Trash2, Link as LinkIcon, Settings } from 'lucide-react';
+import { PermissionEditorDialog } from './PermissionEditorDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -30,6 +33,8 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newRoleName, setNewRoleName] = useState('');
   const [permissionLevel, setPermissionLevel] = useState<'view' | 'edit' | 'admin'>('edit');
+  const [editingRole, setEditingRole] = useState<any>(null);
+  const [showPermissionEditor, setShowPermissionEditor] = useState(false);
 
   const handleCreateRole = async () => {
     if (!newRoleName.trim()) return;
@@ -41,6 +46,29 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
       setPermissionLevel('edit');
     } catch (error) {
       // Error handled in hook
+    }
+  };
+
+  const handleSavePermissions = async (roleId: string, permissionLevel: string, featurePermissions: any) => {
+    try {
+      const { error } = await supabase
+        .from('trip_roles')
+        .update({
+          permission_level: permissionLevel as 'view' | 'edit' | 'admin',
+          feature_permissions: featurePermissions,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', roleId);
+
+      if (error) throw error;
+
+      toast.success('Permissions updated successfully');
+      
+      // Refresh roles
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating permissions:', error);
+      throw error;
     }
   };
 
@@ -126,21 +154,43 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
                     </div>
                   </div>
 
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => deleteRole(role.id)}
-                    disabled={isProcessing}
-                    className="rounded-full border-white/20 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-500"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEditingRole(role);
+                        setShowPermissionEditor(true);
+                      }}
+                      className="rounded-full border-white/10 hover:bg-white/10"
+                    >
+                      <Settings className="w-4 h-4 mr-1" />
+                      Permissions
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => deleteRole(role.id)}
+                      disabled={isProcessing}
+                      className="rounded-full border-white/20 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-500"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               );
             })}
           </div>
         )}
       </Card>
+
+      {/* Permission Editor Dialog */}
+      <PermissionEditorDialog
+        open={showPermissionEditor}
+        onOpenChange={setShowPermissionEditor}
+        role={editingRole}
+        onSave={handleSavePermissions}
+      />
 
       {/* Create Role Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
