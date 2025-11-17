@@ -1,9 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useJoinRequests } from '@/hooks/useJoinRequests';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { UserCheck, UserX, Clock } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { UserCheck, UserX, Clock, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface JoinRequestsPanelProps {
@@ -14,6 +24,34 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
   const { requests, isLoading, isProcessing, approveRequest, rejectRequest } = useJoinRequests({
     tripId
   });
+
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'approve' | 'reject';
+    requestId: string;
+    userName: string;
+  } | null>(null);
+
+  const handleApproveClick = (requestId: string, userName: string) => {
+    setPendingAction({ type: 'approve', requestId, userName });
+  };
+
+  const handleRejectClick = (requestId: string, userName: string) => {
+    setPendingAction({ type: 'reject', requestId, userName });
+  };
+
+  const handleConfirm = async () => {
+    if (!pendingAction) return;
+
+    try {
+      if (pendingAction.type === 'approve') {
+        await approveRequest(pendingAction.requestId);
+      } else {
+        await rejectRequest(pendingAction.requestId);
+      }
+    } finally {
+      setPendingAction(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -79,7 +117,12 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
               <Button
                 size="sm"
                 variant="default"
-                onClick={() => approveRequest(request.id)}
+                onClick={() =>
+                  handleApproveClick(
+                    request.id,
+                    request.profile?.display_name || request.profile?.email || 'this user'
+                  )
+                }
                 disabled={isProcessing}
                 className="bg-green-500 hover:bg-green-600 text-white"
               >
@@ -89,7 +132,12 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
               <Button
                 size="sm"
                 variant="destructive"
-                onClick={() => rejectRequest(request.id)}
+                onClick={() =>
+                  handleRejectClick(
+                    request.id,
+                    request.profile?.display_name || request.profile?.email || 'this user'
+                  )
+                }
                 disabled={isProcessing}
               >
                 <UserX className="w-4 h-4 mr-1" />
@@ -99,6 +147,64 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
           </div>
         ))}
       </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={!!pendingAction} onOpenChange={() => setPendingAction(null)}>
+        <AlertDialogContent className="bg-background/95 backdrop-blur-xl border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              {pendingAction?.type === 'approve' ? (
+                <>
+                  <UserCheck className="w-5 h-5 text-green-500" />
+                  Approve Join Request?
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="w-5 h-5 text-destructive" />
+                  Reject Join Request?
+                </>
+              )}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              {pendingAction?.type === 'approve' ? (
+                <>
+                  You're about to approve <strong>{pendingAction.userName}</strong> to join this trip.
+                  They will be added as a member and can access all trip content based on their assigned
+                  role.
+                </>
+              ) : (
+                <>
+                  You're about to reject <strong>{pendingAction?.userName}</strong>'s request to join this
+                  trip. They will be notified that their request was not approved.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirm}
+              disabled={isProcessing}
+              className={
+                pendingAction?.type === 'approve'
+                  ? 'bg-green-500 hover:bg-green-600 text-white'
+                  : 'bg-destructive hover:bg-destructive/90'
+              }
+            >
+              {isProcessing ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                  Processing...
+                </div>
+              ) : pendingAction?.type === 'approve' ? (
+                'Approve Request'
+              ) : (
+                'Reject Request'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
