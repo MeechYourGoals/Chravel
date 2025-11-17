@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { getMockAvatar } from '@/utils/mockAvatars';
 import { MessageReactionBar } from './MessageReactionBar';
+import { MessageActions } from './MessageActions';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { GroundingCitationCard } from './GroundingCitationCard';
 import { ChatMessageWithGrounding, GroundingCitation } from '@/types/grounding';
@@ -21,6 +22,10 @@ export interface MessageBubbleProps {
   reactions?: Record<string, { count: number; userReacted: boolean }>;
   onReaction: (messageId: string, reactionType: string) => void;
   showSenderInfo?: boolean;
+  messageType?: 'channel' | 'trip';
+  isDeleted?: boolean;
+  onEdit?: (messageId: string, newContent: string) => void;
+  onDelete?: (messageId: string) => void;
   // 🆕 Grounding support
   grounding?: {
     sources?: GroundingCitation[];
@@ -28,7 +33,7 @@ export interface MessageBubbleProps {
   };
 }
 
-export const MessageBubble = ({
+export const MessageBubble = memo(({
   id,
   text,
   senderName,
@@ -39,6 +44,10 @@ export const MessageBubble = ({
   isOwnMessage = false,
   reactions,
   onReaction,
+  messageType = 'trip',
+  isDeleted = false,
+  onEdit,
+  onDelete,
   grounding,
   showSenderInfo = true,
 }: MessageBubbleProps) => {
@@ -63,7 +72,7 @@ export const MessageBubble = ({
   });
 
   return (
-    <div className={cn('flex gap-2', isOwnMessage ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex gap-2 group', isOwnMessage ? 'justify-end' : 'justify-start')}>
       {!isOwnMessage && showSenderInfo && (
         <img
           src={senderAvatar || getMockAvatar(senderName)}
@@ -79,11 +88,22 @@ export const MessageBubble = ({
           isOwnMessage ? 'items-end text-right' : 'items-start text-left',
         )}
       >
-        {showSenderInfo && (
-          <span className="text-[10px] text-white/70 mb-0.5">
-            {isOwnMessage ? 'You' : senderName} — {formatTime(timestamp)}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {showSenderInfo && (
+            <span className="text-[10px] text-white/70 mb-0.5">
+              {isOwnMessage ? 'You' : senderName} — {formatTime(timestamp)}
+            </span>
+          )}
+          <MessageActions
+            messageId={id}
+            messageContent={text}
+            messageType={messageType}
+            isOwnMessage={isOwnMessage}
+            isDeleted={isDeleted}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        </div>
         <div
           className={cn(
             'px-2.5 py-1.5 rounded-2xl break-words text-sm',
@@ -143,4 +163,4 @@ export const MessageBubble = ({
       </div>
     </div>
   );
-};
+});
