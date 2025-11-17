@@ -145,6 +145,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       proRole = 'admin';
     }
     
+    // Load notification preferences from database
+    const { userPreferencesService } = await import('@/services/userPreferencesService');
+    const notifPrefs = await userPreferencesService.getNotificationPreferences(supabaseUser.id);
+    
     return {
       id: supabaseUser.id,
       email: supabaseUser.email,
@@ -160,11 +164,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       organizationId: orgMember?.organization_id || undefined,
       permissions,
       notificationSettings: {
-        messages: true,
-        broadcasts: true,
-        tripUpdates: true,
-        email: true,
-        push: false
+        messages: notifPrefs.chat_messages,
+        broadcasts: notifPrefs.broadcasts,
+        tripUpdates: notifPrefs.calendar_reminders,
+        email: notifPrefs.email_enabled,
+        push: notifPrefs.push_enabled
       }
     };
   }, []);
@@ -455,8 +459,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) return;
 
     try {
-      // For now, we'll just update the local state
-      // In a real app, you'd also update the user_preferences table
+      // Map User notificationSettings to NotificationPreferences format
+      const prefsUpdate = {
+        chat_messages: updates.messages,
+        broadcasts: updates.broadcasts,
+        calendar_reminders: updates.tripUpdates,
+        email_enabled: updates.email,
+        push_enabled: updates.push
+      };
+
+      // Save to database using userPreferencesService
+      const { userPreferencesService } = await import('@/services/userPreferencesService');
+      await userPreferencesService.updateNotificationPreferences(user.id, prefsUpdate);
+
+      // Update local user state
       const updatedUser = {
         ...user,
         notificationSettings: {
