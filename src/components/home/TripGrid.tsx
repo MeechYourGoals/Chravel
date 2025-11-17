@@ -39,7 +39,7 @@ interface TripGridProps {
   activeFilter?: string;
 }
 
-export const TripGrid = ({ 
+export const TripGrid = React.memo(({ 
   viewMode, 
   trips, 
   proTrips, 
@@ -214,4 +214,4 @@ export const TripGrid = ({
       </div>
     </div>
   );
-};
+});

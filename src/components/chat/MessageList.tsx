@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, memo } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { MessageItem } from './MessageItem';
 import { ChatMessage } from '@/hooks/useChatComposer';
@@ -11,13 +11,28 @@ interface MessageListProps {
   emptyStateDescription?: string;
 }
 
-export const MessageList = ({
+export const MessageList = memo(({
   messages,
   reactions,
   onReaction,
   emptyStateTitle = 'Start the conversation',
   emptyStateDescription = 'Messages here are visible to everyone in the trip',
 }: MessageListProps) => {
+  // Memoize message grouping for performance
+  const messageGroups = useMemo(() => {
+    return messages.map((message, index) => {
+      const previousMessage = messages[index - 1];
+      const isSameSender =
+        previousMessage &&
+        previousMessage.sender.id === message.sender.id;
+      return {
+        message,
+        showSenderInfo: !isSameSender,
+        marginClass: isSameSender ? 'mt-1' : 'mt-4'
+      };
+    });
+  }, [messages]);
+
   if (messages.length === 0) {
     return (
       <div className="text-center py-8">
@@ -32,23 +47,16 @@ export const MessageList = ({
 
   return (
     <div>
-      {messages.map((message, index) => {
-        const previousMessage = messages[index - 1];
-        const isSameSender =
-          previousMessage &&
-          previousMessage.sender.id === message.sender.id;
-        const showSenderInfo = !isSameSender;
-        return (
-          <div key={message.id} className={isSameSender ? 'mt-1' : 'mt-4'}>
-            <MessageItem
-              message={message}
-              reactions={reactions[message.id]}
-              onReaction={onReaction}
-              showSenderInfo={showSenderInfo}
-            />
-          </div>
-        );
-      })}
+      {messageGroups.map(({ message, showSenderInfo, marginClass }) => (
+        <div key={message.id} className={marginClass}>
+          <MessageItem
+            message={message}
+            reactions={reactions[message.id]}
+            onReaction={onReaction}
+            showSenderInfo={showSenderInfo}
+          />
+        </div>
+      ))}
     </div>
   );
-};
+});
