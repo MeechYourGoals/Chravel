@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
+import { useEffect } from 'react';
 
 interface TripMedia {
   id: string;
@@ -23,6 +24,57 @@ interface UploadMediaRequest {
 export const useTripMedia = (tripId: string) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Real-time subscription for media (authenticated mode only)
+  useEffect(() => {
+    if (!tripId) return;
+
+    console.log('[useTripMedia] Setting up real-time subscription for', tripId);
+
+    const channel = supabase
+      .channel(`trip_media:${tripId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'trip_media_index',
+          filter: `trip_id=eq.${tripId}`,
+        },
+        (payload) => {
+          console.log('[useTripMedia] New media uploaded:', payload.new);
+          queryClient.invalidateQueries({ queryKey: ['tripMedia', tripId] });
+          
+          const mediaItem = payload.new as TripMedia;
+          toast({
+            title: 'New Media Uploaded',
+            description: `${mediaItem.filename || 'A file'} was added by another user.`,
+            duration: 3000
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'trip_media_index',
+          filter: `trip_id=eq.${tripId}`,
+        },
+        (payload) => {
+          console.log('[useTripMedia] Media deleted:', payload.old);
+          queryClient.invalidateQueries({ queryKey: ['tripMedia', tripId] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('[useTripMedia] Subscription status:', status);
+      });
+
+    return () => {
+      console.log('[useTripMedia] Cleaning up subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [tripId, queryClient, toast]);
 
   // Fetch media from database
   const { data: media = [], isLoading } = useQuery({
