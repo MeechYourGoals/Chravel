@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '../../ui/button';
 import { Users, Calendar, MapPin, Sparkles } from 'lucide-react';
+import { DemoModeToggle } from '../../DemoModeToggle';
 
 interface HeroSectionProps {
   onSignUp: () => void;
@@ -8,7 +9,11 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
   return (
-    <div className="container mx-auto px-4 py-12 md:py-0 flex flex-col items-center justify-center min-h-[90vh] text-center space-y-6">
+    <div className="relative container mx-auto px-4 py-12 md:py-0 flex flex-col items-center justify-center min-h-[90vh] text-center space-y-6">
+      {/* Demo Mode Toggle - Top Right */}
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 z-20">
+        <DemoModeToggle />
+      </div>
       {/* Headline */}
       <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight animate-fade-in">
         Plan Together.<br />Travel Better.
