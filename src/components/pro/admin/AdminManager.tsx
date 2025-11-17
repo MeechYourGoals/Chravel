@@ -35,8 +35,15 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
   const [members, setMembers] = useState<any[]>([]);
   const [selectedMember, setSelectedMember] = useState<string>('');
   const [loadingMembers, setLoadingMembers] = useState(false);
-  const [confirmPromote, setConfirmPromote] = useState<string | null>(null);
-  const [confirmDemote, setConfirmDemote] = useState<string | null>(null);
+  const [confirmPromote, setConfirmPromote] = useState<{
+    userId: string;
+    userName: string;
+  } | null>(null);
+  const [confirmDemote, setConfirmDemote] = useState<{
+    userId: string;
+    userName: string;
+    isCreator: boolean;
+  } | null>(null);
 
   React.useEffect(() => {
     const fetchMembers = async () => {
@@ -71,15 +78,21 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
 
   const handlePromote = async () => {
     if (!confirmPromote) return;
-    await promoteToAdmin(confirmPromote);
-    setConfirmPromote(null);
-    setSelectedMember('');
+    try {
+      await promoteToAdmin(confirmPromote.userId);
+      setSelectedMember('');
+    } finally {
+      setConfirmPromote(null);
+    }
   };
 
   const handleDemote = async () => {
-    if (!confirmDemote) return;
-    await demoteFromAdmin(confirmDemote);
-    setConfirmDemote(null);
+    if (!confirmDemote || confirmDemote.isCreator) return;
+    try {
+      await demoteFromAdmin(confirmDemote.userId);
+    } finally {
+      setConfirmDemote(null);
+    }
   };
 
   if (isLoading) {
@@ -144,7 +157,13 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setConfirmDemote(admin.user_id)}
+                  onClick={() =>
+                    setConfirmDemote({
+                      userId: admin.user_id,
+                      userName: admin.profile?.display_name || admin.profile?.email || 'Unknown User',
+                      isCreator: false
+                    })
+                  }
                   disabled={isProcessing}
                   className="rounded-full border-white/20 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-500 h-9 px-4"
                 >
@@ -183,7 +202,15 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
           </Select>
 
           <Button
-            onClick={() => setConfirmPromote(selectedMember)}
+            onClick={() => {
+              const member = members.find(m => m.user_id === selectedMember);
+              if (member) {
+                setConfirmPromote({
+                  userId: selectedMember,
+                  userName: member.profiles?.display_name || member.profiles?.email || 'Unknown User'
+                });
+              }
+            }}
             disabled={!selectedMember || isProcessing}
             className="rounded-full bg-blue-600 hover:bg-blue-700 text-white"
           >
@@ -195,32 +222,48 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
 
       {/* Promotion Confirmation Dialog */}
       <AlertDialog open={!!confirmPromote} onOpenChange={(open) => !open && setConfirmPromote(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-background/95 backdrop-blur-xl border-white/10">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-blue-500" />
               Promote to Admin?
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>This member will gain admin privileges including:</p>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>Ability to manage roles and channels</li>
-                <li>Permission to assign roles to members</li>
-                <li>Access to admin dashboard</li>
-              </ul>
-              <p className="text-yellow-500 flex items-center gap-1 mt-3">
-                <AlertTriangle className="w-4 h-4" />
-                Only the trip creator can revoke admin permissions.
+            <AlertDialogDescription className="space-y-3">
+              <p className="text-foreground">
+                You're about to promote <strong className="text-blue-500">{confirmPromote?.userName}</strong> to admin.
               </p>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">They will gain these privileges:</p>
+                <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                  <li>Manage roles and role assignments</li>
+                  <li>Create and configure channels</li>
+                  <li>Access admin dashboard</li>
+                  <li>View all trip management settings</li>
+                </ul>
+              </div>
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-yellow-500">
+                  <strong>Note:</strong> Admin permissions can only be revoked by the trip creator or other admins with designation rights.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handlePromote}
+              disabled={isProcessing}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              Confirm Promotion
+              {isProcessing ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                  Promoting...
+                </div>
+              ) : (
+                'Confirm Promotion'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -228,32 +271,62 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
 
       {/* Demotion Confirmation Dialog */}
       <AlertDialog open={!!confirmDemote} onOpenChange={(open) => !open && setConfirmDemote(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-background/95 backdrop-blur-xl border-white/10">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-red-500" />
-              Demote from Admin?
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Remove Admin Privileges?
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>This admin will lose the following privileges:</p>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>Ability to manage roles and channels</li>
-                <li>Permission to assign roles to members</li>
-                <li>Access to admin dashboard</li>
-              </ul>
-              <p className="text-muted-foreground mt-3">
-                They will remain a trip member but without admin rights.
-              </p>
+            <AlertDialogDescription className="space-y-3">
+              {confirmDemote?.isCreator ? (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-red-500">
+                    <strong>Cannot remove trip creator:</strong> The trip creator cannot be demoted from admin. This protection ensures the trip always has a primary administrator.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-foreground">
+                    You're about to remove admin privileges from <strong className="text-destructive">{confirmDemote?.userName}</strong>.
+                  </p>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">They will lose access to:</p>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                      <li>Role and channel management</li>
+                      <li>Role assignment capabilities</li>
+                      <li>Admin dashboard access</li>
+                      <li>Trip management settings</li>
+                    </ul>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                    <Shield className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-blue-500">
+                      They will remain a trip member with their current role permissions.
+                    </p>
+                  </div>
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDemote}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Confirm Demotion
-            </AlertDialogAction>
+            <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
+            {!confirmDemote?.isCreator && (
+              <AlertDialogAction
+                onClick={handleDemote}
+                disabled={isProcessing}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {isProcessing ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    Removing...
+                  </div>
+                ) : (
+                  'Remove Admin'
+                )}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
