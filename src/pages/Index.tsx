@@ -190,12 +190,6 @@ const Index = () => {
         ) : (
           // Demo mode content - full app interface
           <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
-            {/* Floating Demo Mode Toggle - visible in demo to exit back to marketing */}
-            <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[160px]">
-              <div className="bg-background/30 backdrop-blur-lg border border-border/20 rounded-xl p-1.5 shadow-lg">
-                <DemoModeToggle />
-              </div>
-            </div>
             <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
               {/* Desktop Header */}
               {!isMobile && (
@@ -309,12 +303,6 @@ const Index = () => {
   return (
     <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
 
-      {/* Floating Demo Mode Toggle - available on all app pages */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] w-[160px]">
-        <div className="bg-background/30 backdrop-blur-lg border border-border/20 rounded-xl p-1.5 shadow-lg">
-          <DemoModeToggle />
-        </div>
-      </div>
 
       {/* Enhanced animated background elements (disabled on mobile portrait) */}
       {!isMobilePortrait && (
