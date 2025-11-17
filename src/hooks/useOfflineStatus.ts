@@ -1,20 +1,33 @@
 import { useState, useEffect } from 'react';
+import { offlineService } from '@/services/offlineService';
 
-export function useOfflineStatus() {
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+export const useOfflineStatus = () => {
+  const [isOnline, setIsOnline] = useState(offlineService.getIsOnline());
+  const [queueSize, setQueueSize] = useState(offlineService.getQueueSize());
 
   useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
+    // Subscribe to online/offline changes
+    const unsubscribe = offlineService.subscribe((online) => {
+      setIsOnline(online);
+      setQueueSize(offlineService.getQueueSize());
+    });
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    // Update queue size periodically
+    const interval = setInterval(() => {
+      setQueueSize(offlineService.getQueueSize());
+    }, 5000);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      unsubscribe();
+      clearInterval(interval);
     };
   }, []);
 
-  return { isOffline, isOnline: !isOffline };
-}
+  return {
+    isOnline,
+    isOffline: !isOnline,
+    queueSize,
+    processQueue: () => offlineService.processQueue(),
+    clearQueue: () => offlineService.clearQueue(),
+  };
+};

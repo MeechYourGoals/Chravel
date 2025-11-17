@@ -16,6 +16,7 @@ import { errorTracking } from "./services/errorTracking";
 import { supabase } from "./integrations/supabase/client";
 import { AppInitializer } from "./components/app/AppInitializer";
 import BuildBadge from "./components/BuildBadge";
+import { OfflineIndicator } from "./components/OfflineIndicator";
 import { Navigate, useParams } from "react-router-dom";
 import { isLovablePreview } from "./utils/env";
 import { toast } from "@/hooks/use-toast";
@@ -165,6 +166,7 @@ const App = () => {
                 <Toaster />
                 <Sonner />
                 <BuildBadge />
+                <OfflineIndicator />
                 <Router>
                 <MobileAppLayout>
                   <Routes>
