@@ -414,7 +414,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
             Start planning better trips today
           </h2>
           <p className="text-sm sm:text-base md:text-lg text-foreground max-w-3xl mx-auto leading-relaxed break-words">
-            Your crew is waiting. <span className="text-accent font-semibold">Save 23 hours per trip</span> with the world's first AI-native travel collaboration platform.
+            Ensuring the next trip makes it out of the group chat. <span className="text-accent font-semibold">Save 23 hours per trip</span> with the world's first AI-native travel collaboration platform.
           </p>
         </div>
 
