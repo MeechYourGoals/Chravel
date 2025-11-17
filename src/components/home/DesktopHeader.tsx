@@ -49,15 +49,20 @@ export const DesktopHeader = ({ viewMode, onCreateTrip, onUpgrade, onSettings }:
 
   return (
     <>
-      {/* Brand positioned at top-left */}
+      {/* Brand positioned at top-left with Demo Mode Toggle */}
       <div className="mb-6 max-w-[1200px] mx-auto">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-foreground tracking-tight transition-all duration-300 hover:brightness-110 hover:scale-105" aria-label="Chravel Home">
-            Chravel
-          </h1>
-          <span className="text-sm text-muted-foreground hidden md:inline">
-            The Group Chat for Group Travel
-          </span>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight transition-all duration-300 hover:brightness-110 hover:scale-105" aria-label="Chravel Home">
+              Chravel
+            </h1>
+            <span className="text-sm text-muted-foreground hidden md:inline">
+              The Group Chat for Group Travel
+            </span>
+          </div>
+          <div className="w-[160px]">
+            <DemoModeToggle />
+          </div>
         </div>
       </div>
 
