@@ -35,8 +35,10 @@ import { calculateTripStats, calculateProTripStats, calculateEventStats, filterI
 import { useLocation } from 'react-router-dom';
 import { useMobilePortrait } from '../hooks/useMobilePortrait';
 import { convertSupabaseTripsToMock } from '../utils/tripConverter';
+import { usePerformanceMonitor } from '../hooks/usePerformanceMonitor';
 
 const Index = () => {
+  usePerformanceMonitor('Index');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
