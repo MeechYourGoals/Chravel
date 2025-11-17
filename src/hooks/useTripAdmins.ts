@@ -103,9 +103,9 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
     fetchAdmins();
   }, [fetchAdmins]);
 
-  // Subscribe to realtime updates
+  // Subscribe to realtime updates (skip in demo mode)
   useEffect(() => {
-    if (!enabled || !tripId) return;
+    if (!enabled || !tripId || isDemoMode) return;
 
     const channel = supabase
       .channel(`trip_admins:${tripId}`)
@@ -126,7 +126,7 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tripId, enabled, fetchAdmins]);
+  }, [tripId, enabled, isDemoMode, fetchAdmins]);
 
   const promoteToAdmin = useCallback(async (targetUserId: string) => {
     setIsProcessing(true);

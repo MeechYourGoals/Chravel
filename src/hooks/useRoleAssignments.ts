@@ -103,9 +103,9 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
     fetchAssignments();
   }, [fetchAssignments]);
 
-  // Subscribe to realtime updates
+  // Subscribe to realtime updates (skip in demo mode)
   useEffect(() => {
-    if (!enabled || !tripId) return;
+    if (!enabled || !tripId || isDemoMode) return;
 
     const channel = supabase
       .channel(`user_trip_roles:${tripId}`)
@@ -126,7 +126,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tripId, enabled, fetchAssignments]);
+  }, [tripId, enabled, isDemoMode, fetchAssignments]);
 
   const assignRole = useCallback(async (userId: string, roleId: string) => {
     setIsProcessing(true);

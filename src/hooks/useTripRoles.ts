@@ -92,9 +92,9 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
     fetchRoles();
   }, [fetchRoles]);
 
-  // Subscribe to realtime updates
+  // Subscribe to realtime updates (skip in demo mode)
   useEffect(() => {
-    if (!enabled || !tripId) return;
+    if (!enabled || !tripId || isDemoMode) return;
 
     const channel = supabase
       .channel(`trip_roles:${tripId}`)
@@ -115,7 +115,7 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tripId, enabled, fetchRoles]);
+  }, [tripId, enabled, isDemoMode, fetchRoles]);
 
   const createRole = useCallback(async (
     roleName: string,
@@ -220,7 +220,7 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
     } finally {
       setIsProcessing(false);
     }
-  }, [fetchRoles]);
+  }, [isDemoMode, tripId, fetchRoles]);
 
   return {
     roles,
