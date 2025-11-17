@@ -1,16 +1,54 @@
 import { useState, useEffect } from 'react';
 import { calendarService, TripEvent, CreateEventData } from '@/services/calendarService';
 import { CalendarEvent } from '@/types/calendar';
+import { supabase } from '@/integrations/supabase/client';
+import { useDemoMode } from './useDemoMode';
 
 export const useCalendarEvents = (tripId?: string) => {
   const [events, setEvents] = useState<TripEvent[]>([]);
   const [loading, setLoading] = useState(false);
+  const { isDemoMode } = useDemoMode();
 
   useEffect(() => {
     if (tripId) {
       loadEvents();
     }
   }, [tripId]);
+
+  // Real-time subscription for authenticated mode
+  useEffect(() => {
+    if (!tripId || isDemoMode) return;
+
+    const channel = supabase
+      .channel(`trip_events:${tripId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'trip_events',
+          filter: `trip_id=eq.${tripId}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setEvents(prev => [...prev, payload.new as TripEvent]);
+          } else if (payload.eventType === 'UPDATE') {
+            setEvents(prev => 
+              prev.map(event => 
+                event.id === payload.new.id ? payload.new as TripEvent : event
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setEvents(prev => prev.filter(event => event.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tripId, isDemoMode]);
 
   const loadEvents = async () => {
     if (!tripId) return;
