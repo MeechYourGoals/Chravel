@@ -12,6 +12,9 @@ import { Badge } from '../ui/badge';
 import { extractUrlsFromTripChat, NormalizedUrl } from '@/services/chatUrlExtractor';
 import { truncateUrl } from '@/services/urlUtils';
 import { toast } from '@/hooks/use-toast';
+import { createTripLink } from '@/services/tripLinksService';
+import { useAuth } from '@/hooks/useAuth';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface MediaUrlsPanelProps {
   tripId: string;
@@ -19,9 +22,12 @@ interface MediaUrlsPanelProps {
 }
 
 export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelProps) => {
+  const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const [urls, setUrls] = useState<NormalizedUrl[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [promotingLinkId, setPromotingLinkId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUrls();
@@ -50,9 +56,55 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
     });
   };
 
-  const handlePromote = (urlData: NormalizedUrl) => {
-    if (onPromoteToTripLink) {
-      onPromoteToTripLink(urlData);
+  const handlePromote = async (urlData: NormalizedUrl) => {
+    if (!tripId) {
+      toast({
+        title: 'Error',
+        description: 'Trip ID is required',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Generate demo user ID if needed
+    const getDemoUserId = () => {
+      let demoId = sessionStorage.getItem('demo-user-id');
+      if (!demoId) {
+        demoId = `demo-user-${Date.now()}`;
+        sessionStorage.setItem('demo-user-id', demoId);
+      }
+      return demoId;
+    };
+
+    const effectiveUserId = user?.id || getDemoUserId();
+    const urlId = urlData.messageId; // Use messageId as unique identifier
+
+    setPromotingLinkId(urlId);
+
+    try {
+      // Use the new tripLinksService
+      const result = await createTripLink(
+        {
+          tripId,
+          url: urlData.url,
+          title: urlData.title || truncateUrl(urlData.url, 50),
+          description: urlData.description || `Shared in chat on ${formatDate(urlData.lastSeenAt)}`,
+          category: 'other',
+          addedBy: effectiveUserId,
+        },
+        isDemoMode
+      );
+
+      if (result) {
+        // Also call the callback if provided
+        if (onPromoteToTripLink) {
+          onPromoteToTripLink(urlData);
+        }
+      }
+    } catch (error) {
+      console.error('[MediaUrlsPanel] Failed to promote URL:', error);
+    } finally {
+      setPromotingLinkId(null);
     }
   };
 
@@ -190,10 +242,11 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
                     <Button
                       size="sm"
                       onClick={() => handlePromote(urlData)}
+                      disabled={promotingLinkId === urlData.messageId}
                       className="text-xs h-8 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
                     >
                       <Plus className="w-3 h-3 mr-1" />
-                      Promote to Trip Link
+                      {promotingLinkId === urlData.messageId ? 'Adding...' : 'Promote to Trip Link'}
                     </Button>
                   )}
                 </div>

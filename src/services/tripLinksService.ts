@@ -1,0 +1,419 @@
+/**
+ * Trip Links Service
+ * 
+ * Provides comprehensive CRUD operations for trip links
+ * Handles both authenticated mode (Supabase) and demo mode (localStorage)
+ * 
+ * Features:
+ * - Create, read, update, delete trip links
+ * - Vote on links
+ * - Category management
+ * - Demo mode persistence via localStorage
+ */
+
+import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
+
+type TripLink = Database['public']['Tables']['trip_links']['Row'];
+type TripLinkInsert = Database['public']['Tables']['trip_links']['Insert'];
+type TripLinkUpdate = Database['public']['Tables']['trip_links']['Update'];
+
+export interface CreateTripLinkParams {
+  tripId: string;
+  url: string;
+  title: string;
+  description?: string;
+  category?: string;
+  addedBy: string;
+}
+
+export interface UpdateTripLinkParams {
+  linkId: string;
+  title?: string;
+  description?: string;
+  category?: string;
+}
+
+/**
+ * Demo mode storage key generator
+ */
+function getDemoLinksKey(tripId: string): string {
+  return `demo_trip_links_${tripId}`;
+}
+
+/**
+ * Get demo links from localStorage
+ */
+function getDemoLinks(tripId: string): TripLink[] {
+  try {
+    const stored = localStorage.getItem(getDemoLinksKey(tripId));
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('[TripLinksService] Failed to parse demo links:', error);
+    return [];
+  }
+}
+
+/**
+ * Save demo links to localStorage
+ */
+function saveDemoLinks(tripId: string, links: TripLink[]): void {
+  try {
+    localStorage.setItem(getDemoLinksKey(tripId), JSON.stringify(links));
+  } catch (error) {
+    console.error('[TripLinksService] Failed to save demo links:', error);
+  }
+}
+
+/**
+ * Create a new trip link
+ */
+export async function createTripLink(
+  params: CreateTripLinkParams,
+  isDemoMode: boolean
+): Promise<TripLink | null> {
+  console.info('[TripLinksService] Creating trip link', {
+    tripId: params.tripId,
+    isDemoMode,
+    hasUrl: Boolean(params.url),
+  });
+
+  if (isDemoMode) {
+    // Demo mode: Store in localStorage
+    const demoLink: TripLink = {
+      id: `demo-link-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      trip_id: params.tripId,
+      url: params.url,
+      title: params.title,
+      description: params.description || null,
+      category: params.category || null,
+      votes: 0,
+      added_by: params.addedBy,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const demoLinks = getDemoLinks(params.tripId);
+    demoLinks.push(demoLink);
+    saveDemoLinks(params.tripId, demoLinks);
+
+    console.info('[TripLinksService] ✅ Demo link created', { linkId: demoLink.id });
+    toast.success('Link added to trip');
+    return demoLink;
+  }
+
+  // Authenticated mode: Store in Supabase
+  try {
+    const linkData: TripLinkInsert = {
+      trip_id: params.tripId,
+      url: params.url,
+      title: params.title,
+      description: params.description,
+      category: params.category,
+      added_by: params.addedBy,
+    };
+
+    const { data, error } = await supabase
+      .from('trip_links')
+      .insert(linkData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[TripLinksService] ❌ Create error', error);
+      toast.error('Failed to add link');
+      return null;
+    }
+
+    console.info('[TripLinksService] ✅ Link created', { linkId: data.id });
+    toast.success('Link added to trip');
+    return data;
+  } catch (error) {
+    console.error('[TripLinksService] ❌ Unexpected error', error);
+    toast.error('Failed to add link');
+    return null;
+  }
+}
+
+/**
+ * Get all trip links for a trip
+ */
+export async function getTripLinks(
+  tripId: string,
+  isDemoMode: boolean
+): Promise<TripLink[]> {
+  console.debug('[TripLinksService] Fetching trip links', { tripId, isDemoMode });
+
+  if (isDemoMode) {
+    // Demo mode: Load from localStorage
+    const demoLinks = getDemoLinks(tripId);
+    console.info('[TripLinksService] ✅ Loaded demo links', { count: demoLinks.length });
+    return demoLinks;
+  }
+
+  // Authenticated mode: Query Supabase
+  try {
+    const { data, error } = await supabase
+      .from('trip_links')
+      .select('*')
+      .eq('trip_id', tripId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[TripLinksService] ❌ Fetch error', error);
+      toast.error('Failed to load links');
+      return [];
+    }
+
+    console.info('[TripLinksService] ✅ Links fetched', { count: data?.length || 0 });
+    return data || [];
+  } catch (error) {
+    console.error('[TripLinksService] ❌ Unexpected error', error);
+    toast.error('Failed to load links');
+    return [];
+  }
+}
+
+/**
+ * Get a single trip link by ID
+ */
+export async function getTripLinkById(
+  linkId: string,
+  tripId: string,
+  isDemoMode: boolean
+): Promise<TripLink | null> {
+  if (isDemoMode) {
+    const demoLinks = getDemoLinks(tripId);
+    return demoLinks.find(link => link.id === linkId) || null;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('trip_links')
+      .select('*')
+      .eq('id', linkId)
+      .single();
+
+    if (error) {
+      console.error('[TripLinksService] ❌ Fetch single error', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('[TripLinksService] ❌ Unexpected error', error);
+    return null;
+  }
+}
+
+/**
+ * Update a trip link
+ */
+export async function updateTripLink(
+  params: UpdateTripLinkParams,
+  tripId: string,
+  isDemoMode: boolean
+): Promise<boolean> {
+  console.info('[TripLinksService] Updating trip link', {
+    linkId: params.linkId,
+    isDemoMode,
+  });
+
+  if (isDemoMode) {
+    // Demo mode: Update in localStorage
+    const demoLinks = getDemoLinks(tripId);
+    const linkIndex = demoLinks.findIndex(link => link.id === params.linkId);
+
+    if (linkIndex === -1) {
+      console.warn('[TripLinksService] ⚠️ Demo link not found', { linkId: params.linkId });
+      toast.error('Link not found');
+      return false;
+    }
+
+    // Update fields
+    if (params.title !== undefined) demoLinks[linkIndex].title = params.title;
+    if (params.description !== undefined) demoLinks[linkIndex].description = params.description;
+    if (params.category !== undefined) demoLinks[linkIndex].category = params.category;
+    demoLinks[linkIndex].updated_at = new Date().toISOString();
+
+    saveDemoLinks(tripId, demoLinks);
+    console.info('[TripLinksService] ✅ Demo link updated');
+    toast.success('Link updated');
+    return true;
+  }
+
+  // Authenticated mode: Update in Supabase
+  try {
+    const updateData: TripLinkUpdate = {};
+    if (params.title !== undefined) updateData.title = params.title;
+    if (params.description !== undefined) updateData.description = params.description;
+    if (params.category !== undefined) updateData.category = params.category;
+    updateData.updated_at = new Date().toISOString();
+
+    const { error } = await supabase
+      .from('trip_links')
+      .update(updateData)
+      .eq('id', params.linkId);
+
+    if (error) {
+      console.error('[TripLinksService] ❌ Update error', error);
+      toast.error('Failed to update link');
+      return false;
+    }
+
+    console.info('[TripLinksService] ✅ Link updated');
+    toast.success('Link updated');
+    return true;
+  } catch (error) {
+    console.error('[TripLinksService] ❌ Unexpected error', error);
+    toast.error('Failed to update link');
+    return false;
+  }
+}
+
+/**
+ * Delete a trip link
+ */
+export async function deleteTripLink(
+  linkId: string,
+  tripId: string,
+  isDemoMode: boolean
+): Promise<boolean> {
+  console.info('[TripLinksService] Deleting trip link', { linkId, isDemoMode });
+
+  if (isDemoMode) {
+    // Demo mode: Remove from localStorage
+    const demoLinks = getDemoLinks(tripId);
+    const filteredLinks = demoLinks.filter(link => link.id !== linkId);
+
+    if (filteredLinks.length === demoLinks.length) {
+      console.warn('[TripLinksService] ⚠️ Demo link not found', { linkId });
+      toast.error('Link not found');
+      return false;
+    }
+
+    saveDemoLinks(tripId, filteredLinks);
+    console.info('[TripLinksService] ✅ Demo link deleted');
+    toast.success('Link removed');
+    return true;
+  }
+
+  // Authenticated mode: Delete from Supabase
+  try {
+    const { error } = await supabase
+      .from('trip_links')
+      .delete()
+      .eq('id', linkId);
+
+    if (error) {
+      console.error('[TripLinksService] ❌ Delete error', error);
+      toast.error('Failed to remove link');
+      return false;
+    }
+
+    console.info('[TripLinksService] ✅ Link deleted');
+    toast.success('Link removed');
+    return true;
+  } catch (error) {
+    console.error('[TripLinksService] ❌ Unexpected error', error);
+    toast.error('Failed to remove link');
+    return false;
+  }
+}
+
+/**
+ * Vote on a trip link (upvote)
+ */
+export async function voteTripLink(
+  linkId: string,
+  tripId: string,
+  isDemoMode: boolean
+): Promise<boolean> {
+  console.info('[TripLinksService] Voting on trip link', { linkId, isDemoMode });
+
+  if (isDemoMode) {
+    // Demo mode: Increment vote count in localStorage
+    const demoLinks = getDemoLinks(tripId);
+    const linkIndex = demoLinks.findIndex(link => link.id === linkId);
+
+    if (linkIndex === -1) {
+      console.warn('[TripLinksService] ⚠️ Demo link not found', { linkId });
+      return false;
+    }
+
+    demoLinks[linkIndex].votes = (demoLinks[linkIndex].votes || 0) + 1;
+    demoLinks[linkIndex].updated_at = new Date().toISOString();
+
+    saveDemoLinks(tripId, demoLinks);
+    console.info('[TripLinksService] ✅ Demo vote recorded');
+    toast.success('Vote recorded');
+    return true;
+  }
+
+  // Authenticated mode: Increment vote in Supabase
+  try {
+    const { data: currentLink } = await supabase
+      .from('trip_links')
+      .select('votes')
+      .eq('id', linkId)
+      .single();
+
+    if (!currentLink) {
+      console.error('[TripLinksService] ❌ Link not found');
+      toast.error('Link not found');
+      return false;
+    }
+
+    const { error } = await supabase
+      .from('trip_links')
+      .update({ votes: (currentLink.votes || 0) + 1 })
+      .eq('id', linkId);
+
+    if (error) {
+      console.error('[TripLinksService] ❌ Vote error', error);
+      toast.error('Failed to vote');
+      return false;
+    }
+
+    console.info('[TripLinksService] ✅ Vote recorded');
+    toast.success('Vote recorded');
+    return true;
+  } catch (error) {
+    console.error('[TripLinksService] ❌ Unexpected error', error);
+    toast.error('Failed to vote');
+    return false;
+  }
+}
+
+/**
+ * Get links by category
+ */
+export async function getTripLinksByCategory(
+  tripId: string,
+  category: string,
+  isDemoMode: boolean
+): Promise<TripLink[]> {
+  const allLinks = await getTripLinks(tripId, isDemoMode);
+  return allLinks.filter(link => link.category === category);
+}
+
+/**
+ * Search trip links
+ */
+export async function searchTripLinks(
+  tripId: string,
+  searchQuery: string,
+  isDemoMode: boolean
+): Promise<TripLink[]> {
+  const allLinks = await getTripLinks(tripId, isDemoMode);
+  const query = searchQuery.toLowerCase().trim();
+
+  if (!query) return allLinks;
+
+  return allLinks.filter(link => 
+    link.title.toLowerCase().includes(query) ||
+    link.description?.toLowerCase().includes(query) ||
+    link.url.toLowerCase().includes(query)
+  );
+}

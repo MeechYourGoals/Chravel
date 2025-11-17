@@ -638,6 +638,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
 
             {activeTab === 'links' && (
               <LinksPanel
+                tripId={tripId}
                 places={places}
                 basecamp={contextBasecamp}
                 personalBasecamp={personalBasecamp}
