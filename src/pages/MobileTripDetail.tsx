@@ -7,13 +7,17 @@ import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer'
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
-
-import { getTripById, generateTripMockData } from '../data/tripsData';
+import { useTrips } from '../hooks/useTrips';
+import { useDemoMode } from '../hooks/useDemoMode';
+import { convertSupabaseTripsToMock } from '../utils/tripConverter';
+import { tripsData, generateTripMockData } from '../data/tripsData';
 
 export const MobileTripDetail = () => {
   const { tripId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
+  const { trips: userTrips, loading: tripsLoading } = useTrips();
   const [activeTab, setActiveTab] = useState('chat');
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
@@ -25,9 +29,9 @@ export const MobileTripDetail = () => {
     adjustViewport: true
   });
 
-  // Get trip data
-  const tripIdNum = tripId ? parseInt(tripId, 10) : null;
-  const trip = tripIdNum ? getTripById(tripIdNum) : null;
+  // Get trip data - use demo data in demo mode, Supabase trips when authenticated
+  const allTrips = isDemoMode ? tripsData : convertSupabaseTripsToMock(userTrips);
+  const trip = allTrips.find(t => String(t.id) === tripId);
   
   React.useEffect(() => {
     if (trip && !tripDescription) {
@@ -63,6 +67,18 @@ export const MobileTripDetail = () => {
     description: tripDescription || trip.description
   } : null;
   
+  // Show loading state while fetching trips
+  if (tripsLoading && !isDemoMode) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading trip...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!tripWithUpdatedDescription) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">

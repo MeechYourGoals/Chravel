@@ -10,6 +10,8 @@ import { hapticService } from '../services/hapticService';
 import { proTripMockData } from '../data/proTripMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { useTrips } from '../hooks/useTrips';
+import { convertSupabaseTripsToMock } from '../utils/tripConverter';
 import { MockRolesService } from '../services/mockRolesService';
 
 export const MobileProTripDetail = () => {
@@ -17,6 +19,7 @@ export const MobileProTripDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
+  const { trips: userTrips, loading: tripsLoading } = useTrips();
   const [activeTab, setActiveTab] = useState('chat');
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
@@ -64,6 +67,18 @@ export const MobileProTripDetail = () => {
       </div>
     );
   }
+  
+  // Show loading state while fetching trips
+  if (tripsLoading && !isDemoMode) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading trip...</p>
+        </div>
+      </div>
+    );
+  }
 
   // 🔐 DEMO MODE: Use mock data
   if (isDemoMode && !(proTripId in proTripMockData)) {
@@ -86,29 +101,46 @@ export const MobileProTripDetail = () => {
     );
   }
 
-  // 🔐 AUTHENTICATED MODE: In the future, fetch from Supabase here
-  // For now, show coming soon message for authenticated users trying to access Pro trips
-  if (!isDemoMode) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Coming Soon</h1>
-          <p className="text-gray-400 mb-6">Pro trips for authenticated users are coming soon! Turn on Demo Mode to preview Pro trip features.</p>
-          <button
-            onClick={() => {
-              hapticService.light();
-              navigate('/');
-            }}
-            className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
-          >
-            Back to My Trips
-          </button>
+  // 🔐 AUTHENTICATED MODE: Fetch from Supabase
+  let tripData: any;
+  if (isDemoMode) {
+    tripData = proTripMockData[proTripId];
+  } else {
+    // Find Pro trip from Supabase data
+    const allTrips = convertSupabaseTripsToMock(userTrips);
+    const proTrip = allTrips.find(t => String(t.id) === proTripId && t.trip_type === 'pro');
+    
+    if (!proTrip) {
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-white mb-4">Pro Trip Not Found</h1>
+            <p className="text-gray-400 mb-6">This Pro trip doesn't exist or you don't have access.</p>
+            <button
+              onClick={() => {
+                hapticService.light();
+                navigate('/');
+              }}
+              className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+            >
+              Back to My Trips
+            </button>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+    
+    // Convert to tripData format expected by components
+    tripData = {
+      id: proTrip.id,
+      title: proTrip.title,
+      location: proTrip.location,
+      dateRange: proTrip.dateRange,
+      description: proTrip.description,
+      proTripCategory: 'sports', // Default category
+      participants: proTrip.participants || []
+    };
   }
-
-  const tripData = proTripMockData[proTripId];
   
   React.useEffect(() => {
     if (tripData && !tripDescription) {
