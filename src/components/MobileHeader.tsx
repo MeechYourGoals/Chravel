@@ -31,11 +31,16 @@ export const MobileHeader = ({
 
   return (
     <>
-      <div className="flex items-center justify-between mb-2 gap-2">
-        <DemoModeToggle />
-      </div>
-      
-      <div className="flex items-center justify-between mb-6 bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-4">
+      <div className="mb-6 space-y-2">
+        {/* Demo Mode Toggle - Top of mobile header */}
+        <div className="flex justify-end">
+          <div className="w-[140px]">
+            <DemoModeToggle />
+          </div>
+        </div>
+        
+        {/* Main header card */}
+        <div className="flex items-center justify-between bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-4">
         <div>
           <h1 className="text-xl font-semibold text-foreground tracking-tight" aria-label="Chravel Home">
             Chravel
@@ -100,6 +105,7 @@ export const MobileHeader = ({
           >
             <Menu size={20} />
           </button>
+        </div>
         </div>
       </div>
 
