@@ -117,18 +117,46 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-    // Skip authentication check in demo mode
+    // 🔒 SECURITY FIX: Server-side demo mode determination
+    // Never trust client for auth decisions - prevent API quota abuse
+    const DEMO_MODE_ENABLED = Deno.env.get('ENABLE_DEMO_MODE') === 'true'
+    const hasAuthHeader = !!req.headers.get('Authorization')
+    const serverDemoMode = DEMO_MODE_ENABLED && !hasAuthHeader
+    
     let user = null
-    if (!isDemoMode) {
-      const { data: { user: authUser } } = await supabase.auth.getUser()
-      if (!authUser) {
-        throw new Error('User not authenticated')
+    if (!serverDemoMode) {
+      const authHeader = req.headers.get('Authorization')
+      if (!authHeader) {
+        return createErrorResponse('Authentication required', 401)
       }
-      user = authUser
+
+      const { data: { user: authenticatedUser }, error: authError } = await supabase.auth.getUser(
+        authHeader.replace('Bearer ', '')
+      )
+
+      if (authError || !authenticatedUser) {
+        return createErrorResponse('Invalid authentication', 401)
+      }
+
+      user = authenticatedUser
+    } else {
+      // 🔒 Demo mode: Apply aggressive rate limiting by IP
+      const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+      
+      // Use database-backed rate limiting for demo mode
+      const { data: rateLimitData, error: rateLimitError } = await supabase.rpc('increment_rate_limit', {
+        rate_key: `demo_concierge:${clientIp}`,
+        max_requests: 5, // Only 5 requests per hour in demo mode
+        window_seconds: 3600
+      })
+      
+      if (!rateLimitError && rateLimitData && rateLimitData.length > 0 && !rateLimitData[0]?.allowed) {
+        return createErrorResponse('Rate limit exceeded. Demo mode allows 5 requests per hour.', 429)
+      }
     }
 
     // Skip usage limits check in demo mode
-    if (!isDemoMode && user) {
+    if (!serverDemoMode && user) {
       const { data: userProfile } = await supabase
         .from('profiles')
         .select('app_role')
