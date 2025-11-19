@@ -7,6 +7,9 @@ import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer'
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
+import { useDemoMode } from '../hooks/useDemoMode';
+import { useTrips } from '../hooks/useTrips';
+import { convertSupabaseTripsToMock } from '../utils/tripConverter';
 import { eventsMockData } from '../data/eventsMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 
@@ -14,6 +17,8 @@ export const MobileEventDetail = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
+  const { trips: userTrips, loading: tripsLoading } = useTrips();
   const [activeTab, setActiveTab] = useState('chat');
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
@@ -25,12 +30,13 @@ export const MobileEventDetail = () => {
     adjustViewport: true
   });
 
-  if (!eventId || !(eventId in eventsMockData)) {
+  // Not found - handle early
+  if (!eventId) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Event Not Found</h1>
-          <p className="text-gray-400 mb-6">The event you're looking for doesn't exist.</p>
+          <h1 className="text-2xl font-bold text-white mb-4">Not Found</h1>
+          <p className="text-gray-400 mb-6">No event ID provided.</p>
           <button
             onClick={() => {
               hapticService.light();
@@ -44,8 +50,77 @@ export const MobileEventDetail = () => {
       </div>
     );
   }
-
-  const eventData = eventsMockData[eventId];
+  
+  // Show loading state while fetching trips
+  if (tripsLoading && !isDemoMode) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading event...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Get event data - use demo data in demo mode, Supabase trips when authenticated
+  let eventData: any;
+  if (isDemoMode) {
+    eventData = eventsMockData[eventId];
+    if (!eventData) {
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-white mb-4">Event Not Found</h1>
+            <p className="text-gray-400 mb-6">This demo event doesn't exist.</p>
+            <button
+              onClick={() => {
+                hapticService.light();
+                navigate('/');
+              }}
+              className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+            >
+              Back to My Trips
+            </button>
+          </div>
+        </div>
+      );
+    }
+  } else {
+    // Authenticated mode: find Event from Supabase data
+    const allTrips = convertSupabaseTripsToMock(userTrips);
+    const event = allTrips.find(t => String(t.id) === eventId && t.trip_type === 'event');
+    
+    if (!event) {
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-white mb-4">Event Not Found</h1>
+            <p className="text-gray-400 mb-6">This event doesn't exist or you don't have access.</p>
+            <button
+              onClick={() => {
+                hapticService.light();
+                navigate('/');
+              }}
+              className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+            >
+              Back to My Trips
+            </button>
+          </div>
+        </div>
+      );
+    }
+    
+    // Convert to eventData format expected by components
+    eventData = {
+      id: event.id,
+      title: event.title,
+      location: event.location,
+      dateRange: event.dateRange,
+      description: event.description,
+      participants: event.participants || []
+    };
+  }
   
   React.useEffect(() => {
     if (eventData && !tripDescription) {

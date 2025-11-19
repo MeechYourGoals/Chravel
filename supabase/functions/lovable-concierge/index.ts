@@ -68,12 +68,32 @@ serve(async (req) => {
   }
 
   try {
+    // Early health check path - responds immediately without AI processing
+    if (req.method === 'GET') {
+      return createSecureResponse({
+        status: 'healthy',
+        service: 'lovable-concierge',
+        timestamp: new Date().toISOString(),
+        message: 'AI Concierge service is online'
+      })
+    }
+
     if (!LOVABLE_API_KEY) {
       throw new Error('Lovable API key not configured')
     }
 
     // Validate input
     const requestBody = await req.json()
+    
+    // Handle ping/health check via POST with simple response
+    if (requestBody.message === 'ping' || requestBody.message === 'health_check') {
+      return createSecureResponse({
+        status: 'healthy',
+        service: 'lovable-concierge',
+        timestamp: new Date().toISOString(),
+        message: 'AI Concierge service is online'
+      })
+    }
     const validation = validateInput(LovableConciergeSchema, requestBody)
     
     if (!validation.success) {

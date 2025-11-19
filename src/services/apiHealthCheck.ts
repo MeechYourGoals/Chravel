@@ -44,12 +44,10 @@ class ApiHealthCheckService {
     const serviceName = 'concierge';
 
     try {
-      // Simple ping test with minimal payload
+      // Use dedicated ping endpoint that doesn't consume AI quota
       const { data, error } = await supabase.functions.invoke('lovable-concierge', {
         body: {
-          message: 'health_check',
-          isDemoMode: true,
-          config: { maxTokens: 10 }
+          message: 'ping'  // Simple ping, no AI processing
         }
       });
 
@@ -57,31 +55,31 @@ class ApiHealthCheckService {
         throw error;
       }
 
-      if (data?.error === 'rate_limit' || data?.error === 'payment_required') {
-        // Service is reachable but rate limited
+      // Check for successful ping response
+      if (data?.status === 'healthy') {
         const status: HealthStatus = {
           service: serviceName,
-          status: 'degraded',
-          message: 'AI Concierge is rate limited but reachable',
-          lastCheck: new Date(),
-          details: { error: data.error }
+          status: 'healthy',
+          message: 'AI Concierge is online',
+          lastCheck: new Date()
         };
+        
         this.healthStatus.set(serviceName, status);
         this.retryAttempts.set(serviceName, 0);
         return status;
       }
 
-      // Successful response
+      // If we got a response but no healthy status, mark as degraded
       const status: HealthStatus = {
         service: serviceName,
-        status: 'healthy',
-        message: 'AI Concierge is online and ready',
-        lastCheck: new Date()
+        status: 'degraded',
+        message: 'AI Concierge responded but status unclear',
+        lastCheck: new Date(),
+        details: data
       };
       
       this.healthStatus.set(serviceName, status);
       this.retryAttempts.set(serviceName, 0);
-
       return status;
       
     } catch (error) {
