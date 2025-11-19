@@ -1353,6 +1353,27 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          count: number | null
+          created_at: string | null
+          expires_at: string
+          key: string
+        }
+        Insert: {
+          count?: number | null
+          created_at?: string | null
+          expires_at: string
+          key: string
+        }
+        Update: {
+          count?: number | null
+          created_at?: string | null
+          expires_at?: string
+          key?: string
+        }
+        Relationships: []
+      }
       receipts: {
         Row: {
           amount: number
@@ -2767,6 +2788,7 @@ export type Database = {
         Args: { _channel_id: string; _user_id: string }
         Returns: boolean
       }
+      cleanup_rate_limits: { Args: never; Returns: undefined }
       create_event_with_conflict_check: {
         Args: {
           p_created_by: string
@@ -2833,6 +2855,10 @@ export type Database = {
       ensure_trip_membership: {
         Args: { p_trip_id: string; p_user_id: string }
         Returns: boolean
+      }
+      get_broadcast_read_count: {
+        Args: { p_broadcast_id: string }
+        Returns: number
       }
       get_events_in_user_tz: {
         Args: { p_trip_id: string; p_user_id: string }
@@ -2907,6 +2933,18 @@ export type Database = {
         Args: { p_campaign_id: string; p_stat_type: string }
         Returns: undefined
       }
+      increment_rate_limit: {
+        Args: {
+          max_requests: number
+          rate_key: string
+          window_seconds?: number
+        }
+        Returns: {
+          allowed: boolean
+          count: number
+          remaining: number
+        }[]
+      }
       is_org_admin: {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
@@ -2918,6 +2956,27 @@ export type Database = {
       is_trip_admin: {
         Args: { _trip_id: string; _user_id: string }
         Returns: boolean
+      }
+      log_basecamp_change: {
+        Args: {
+          p_action: string
+          p_new_address?: string
+          p_new_lat?: number
+          p_new_lng?: number
+          p_new_name?: string
+          p_old_address?: string
+          p_old_lat?: number
+          p_old_lng?: number
+          p_old_name?: string
+          p_scope: string
+          p_trip_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      mark_broadcast_viewed: {
+        Args: { p_broadcast_id: string; p_user_id: string }
+        Returns: undefined
       }
       match_trip_embeddings: {
         Args: {

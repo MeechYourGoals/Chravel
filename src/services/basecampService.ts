@@ -280,16 +280,16 @@ class BasecampService {
           await supabase.rpc('log_basecamp_change', {
             p_trip_id: payload.trip_id,
             p_user_id: user.id,
-            p_basecamp_type: 'personal',
+            p_scope: 'personal',
             p_action: isUpdate ? 'updated' : 'created',
-            p_previous_name: currentBasecamp?.name || null,
-            p_previous_address: currentBasecamp?.address || null,
-            p_previous_latitude: currentBasecamp?.latitude || null,
-            p_previous_longitude: currentBasecamp?.longitude || null,
+            p_old_name: currentBasecamp?.name || null,
+            p_old_address: currentBasecamp?.address || null,
+            p_old_lat: currentBasecamp?.latitude || null,
+            p_old_lng: currentBasecamp?.longitude || null,
             p_new_name: payload.name || null,
             p_new_address: payload.address,
-            p_new_latitude: finalLatitude || null,
-            p_new_longitude: finalLongitude || null
+            p_new_lat: finalLatitude || null,
+            p_new_lng: finalLongitude || null
           });
         } catch (historyError) {
           // Don't fail the operation if history logging fails
@@ -344,16 +344,16 @@ class BasecampService {
           await supabase.rpc('log_basecamp_change', {
             p_trip_id: basecamp.trip_id,
             p_user_id: user.id,
-            p_basecamp_type: 'personal',
+            p_scope: 'personal',
             p_action: 'deleted',
-            p_previous_name: basecamp.name || null,
-            p_previous_address: basecamp.address || null,
-            p_previous_latitude: basecamp.latitude || null,
-            p_previous_longitude: basecamp.longitude || null,
+            p_old_name: basecamp.name || null,
+            p_old_address: basecamp.address || null,
+            p_old_lat: basecamp.latitude || null,
+            p_old_lng: basecamp.longitude || null,
             p_new_name: null,
             p_new_address: null,
-            p_new_latitude: null,
-            p_new_longitude: null
+            p_new_lat: null,
+            p_new_lng: null
           });
         } catch (historyError) {
           // Don't fail the operation if history logging fails
