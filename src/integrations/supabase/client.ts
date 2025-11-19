@@ -25,26 +25,23 @@ function createSafeStorage(): Storage {
   }
 }
 
+const DEFAULT_SUPABASE_URL = 'https://jmjiyekmxwsxkfnqwyaa.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI';
+
 const env = (import.meta as any)?.env ?? {};
-const SUPABASE_URL = env.VITE_SUPABASE_URL || (isLovablePreview() ? 'https://jmjiyekmxwsxkfnqwyaa.supabase.co' : '');
-const SUPABASE_PUBLISHABLE_KEY = env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || (isLovablePreview()
-  ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI'
-  : '');
+const SUPABASE_URL = (env.VITE_SUPABASE_URL as string | undefined) || DEFAULT_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY =
+  (env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
+  (env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
+  DEFAULT_SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  const msg = 'Missing Supabase environment variables (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).';
-  if (isLovablePreview()) {
-    console.warn('[Supabase] ' + msg + ' Using built-in preview credentials.');
-  } else {
-    console.error('[Supabase] ' + msg);
-    console.error('[Supabase] Current values:', {
-      SUPABASE_URL: SUPABASE_URL || '(empty)',
-      SUPABASE_PUBLISHABLE_KEY: SUPABASE_PUBLISHABLE_KEY ? '(set)' : '(empty)',
-      isProduction: import.meta.env.PROD,
-      mode: import.meta.env.MODE
-    });
-    throw new Error(msg + ' This usually means the environment variables were not available during the Vite build process. Check your deployment platform settings.');
-  }
+  const msg = 'Missing Supabase configuration. Check DEFAULT_SUPABASE_URL/DEFAULT_SUPABASE_ANON_KEY.';
+  console.error('[Supabase] ' + msg, {
+    SUPABASE_URL: SUPABASE_URL || '(empty)',
+    SUPABASE_PUBLISHABLE_KEY: SUPABASE_PUBLISHABLE_KEY ? '(set)' : '(empty)',
+  });
+  throw new Error(msg);
 }
 
 // Import the supabase client like this:
