@@ -41,7 +41,7 @@ self.addEventListener('sync', (event) => {
 /**
  * Process sync queue for a specific entity type
  */
-async function processSyncQueue(syncTag: string) {
+async function processSyncQueue(syncTag) {
   try {
     // Extract entity type from tag (format: chravel-sync-{entityType})
     const entityType = syncTag.replace(`${SYNC_TAG_PREFIX}-`, '');
