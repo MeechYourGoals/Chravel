@@ -70,6 +70,26 @@ const Index = () => {
   // Use centralized trip data - demo data or real user data converted to mock format
   const allTrips = isDemoMode ? tripsData : convertSupabaseTripsToMock(userTripsRaw);
 
+  // 🔍 DEBUG: Log critical data flow points
+  React.useEffect(() => {
+    console.group('[Index.tsx] Data Flow Debug');
+    console.log('1. Auth & Demo State:', {
+      user: !!user,
+      isDemoMode,
+      tripsLoading
+    });
+    console.log('2. Source Data:', {
+      'tripsData.length': tripsData.length,
+      'userTripsRaw.length': userTripsRaw.length
+    });
+    console.log('3. allTrips:', {
+      'allTrips.length': allTrips.length,
+      'source': isDemoMode ? 'tripsData (DEMO)' : 'userTripsRaw (REAL)',
+      'first trip': allTrips[0]?.title || 'N/A'
+    });
+    console.groupEnd();
+  }, [isDemoMode, user, tripsLoading, allTrips.length, userTripsRaw.length]);
+
   // Search filtering with async handling
   const searchFilteredTrips = useMemo(() => {
     if (!searchQuery.trim()) return allTrips;
@@ -188,6 +208,28 @@ const Index = () => {
         };
     }
   }, [activeFilter, viewMode, trips, isDemoMode]);
+
+  // 🔍 DEBUG: Log filtered data that goes to TripGrid
+  React.useEffect(() => {
+    console.group('[Index.tsx] Filtered Data Debug');
+    console.log('4. Filter State:', {
+      viewMode,
+      activeFilter,
+      searchQuery,
+      'trips.length': trips.length
+    });
+    console.log('5. filteredData:', {
+      'filteredData.trips.length': filteredData.trips.length,
+      'filteredData.proTrips count': Object.keys(filteredData.proTrips).length,
+      'filteredData.events count': Object.keys(filteredData.events).length
+    });
+    console.log('6. Render State:', {
+      isLoading,
+      showMarketingContent,
+      'will show TripGrid': !isLoading
+    });
+    console.groupEnd();
+  }, [viewMode, activeFilter, searchQuery, trips.length, filteredData.trips.length, isLoading, showMarketingContent]);
 
   // Handle view mode changes without artificial delays
   const handleViewModeChange = (newMode: string) => {

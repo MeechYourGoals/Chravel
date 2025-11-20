@@ -35,24 +35,29 @@ export const useDemoModeStore = create<DemoModeState>((set, get) => ({
 
   enable: async () => {
     try {
+      console.log('[DemoModeStore] Enabling demo mode...');
       await secureStorageService.setDemoMode(true);
       set({ isDemoMode: true });
+      console.log('[DemoModeStore] ✅ Demo mode enabled');
     } catch (error) {
-      console.error('Failed to enable demo mode:', error);
+      console.error('[DemoModeStore] ❌ Failed to enable demo mode:', error);
     }
   },
 
   disable: async () => {
     try {
+      console.log('[DemoModeStore] Disabling demo mode...');
       await secureStorageService.setDemoMode(false);
       set({ isDemoMode: false });
+      console.log('[DemoModeStore] ✅ Demo mode disabled');
     } catch (error) {
-      console.error('Failed to disable demo mode:', error);
+      console.error('[DemoModeStore] ❌ Failed to disable demo mode:', error);
     }
   },
 
   toggle: async () => {
     const { isDemoMode } = get();
+    console.log('[DemoModeStore] Toggle called, current state:', isDemoMode);
     if (isDemoMode) {
       await get().disable();
     } else {
