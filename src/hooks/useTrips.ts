@@ -16,6 +16,15 @@ export const useTrips = () => {
 
   // Phase 6: Load cached trips immediately
   useEffect(() => {
+    // 🎯 CRITICAL: Demo mode NEVER runs useEffect - complete isolation from Supabase
+    // Demo mode uses mock data from tripsData, not real user trips
+    if (isDemoMode) {
+      setTrips([]);
+      setLoading(false);
+      setInitializing(false);
+      return;
+    }
+
     const loadCachedTrips = () => {
       try {
         // PHASE 0A: Use separate cache keys for demo vs real mode to prevent collisions

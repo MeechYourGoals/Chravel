@@ -9,6 +9,7 @@ import { DEFAULT_FEATURES } from '../hooks/useFeatureToggle';
 import { useTrips } from '../hooks/useTrips';
 import { useOrganization } from '../hooks/useOrganization';
 import { useAuth } from '../hooks/useAuth';
+import { useDemoMode } from '../hooks/useDemoMode';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PrivacyModeSelector } from './PrivacyModeSelector';
@@ -21,6 +22,7 @@ interface CreateTripModalProps {
 
 export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const [tripType, setTripType] = useState<'consumer' | 'pro' | 'event'>('consumer');
   const [privacyMode, setPrivacyMode] = useState<PrivacyMode>(() => getDefaultPrivacyMode('consumer'));
   const [selectedOrganization, setSelectedOrganization] = useState<string>('');
@@ -38,9 +40,13 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     endDate?: string;
     location?: string;
   }>({});
-  
+
   const { createTrip, trips } = useTrips();
-  const { organizations, fetchUserOrganizations } = useOrganization();
+  // 🎯 CRITICAL: Organizations are enterprise-only feature, NEVER query in demo mode
+  // Demo mode has no authenticated user, so organization queries would fail
+  const { organizations, fetchUserOrganizations } = !isDemoMode
+    ? useOrganization()
+    : { organizations: [], fetchUserOrganizations: () => Promise.resolve() };
   const [enableAllFeatures, setEnableAllFeatures] = useState(true);
   const [selectedFeatures, setSelectedFeatures] = useState<Record<string, boolean>>(
     DEFAULT_FEATURES.reduce((acc, feature) => ({ ...acc, [feature]: true }), {})
@@ -48,7 +54,10 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
 
   useEffect(() => {
     if (isOpen) {
-      fetchUserOrganizations();
+      // Only fetch organizations in authenticated mode (not demo mode)
+      if (!isDemoMode) {
+        fetchUserOrganizations();
+      }
     } else {
       // Reset form and validation errors when modal closes
       setFormData({
@@ -63,7 +72,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
       setPrivacyMode(getDefaultPrivacyMode('consumer'));
       setSelectedOrganization('');
     }
-  }, [isOpen]);
+  }, [isOpen, isDemoMode, fetchUserOrganizations]);
 
   // Update privacy mode when trip type changes
   const handleTripTypeChange = (newTripType: 'consumer' | 'pro' | 'event') => {
@@ -156,9 +165,9 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
       };
       
       const newTrip = await createTrip(tripData);
-      
-      // Link to organization if selected
-      if (selectedOrganization && (tripType === 'pro' || tripType === 'event')) {
+
+      // Link to organization if selected (only in authenticated mode, not demo mode)
+      if (!isDemoMode && selectedOrganization && (tripType === 'pro' || tripType === 'event')) {
         try {
           const { error: linkError } = await supabase.functions.invoke('link-trip-to-organization', {
             body: {
@@ -166,7 +175,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               organizationId: selectedOrganization
             }
           });
-          
+
           if (linkError) {
             console.error('Error linking trip to organization:', linkError);
             toast.error('Trip created but failed to link to organization');
@@ -415,8 +424,8 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           </div>
 
 
-          {/* Organization Selector - Only for Pro/Event trips */}
-          {(tripType === 'pro' || tripType === 'event') && organizations.length > 0 && (
+          {/* Organization Selector - Only for Pro/Event trips AND not in demo mode */}
+          {!isDemoMode && (tripType === 'pro' || tripType === 'event') && organizations.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Link to Organization (Optional)

@@ -19,7 +19,12 @@ export const MobileProTripDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
-  const { trips: userTrips, loading: tripsLoading } = useTrips();
+
+  // 🎯 CRITICAL: Demo mode NEVER calls useTrips - complete isolation from Supabase
+  const { trips: userTrips, loading: tripsLoading } = !isDemoMode
+    ? useTrips()
+    : { trips: [], loading: false, initializing: false, createTrip: async () => null, updateTrip: async () => false, archiveTrip: async () => false, refreshTrips: async () => {} };
+
   const [activeTab, setActiveTab] = useState('chat');
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);

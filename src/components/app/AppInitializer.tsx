@@ -16,19 +16,33 @@ export const AppInitializer = ({ children }: { children: React.ReactNode }) => {
   const { isInitialized, conciergeStatus, mapsStatus } = useApiHealth(shouldRunHealthChecks);
 
 
-  // CSP violation monitoring
+  // CSP violation monitoring with error safety
   useEffect(() => {
-    const handleCSPViolation = (e: SecurityPolicyViolationEvent) => {
-      console.warn('[CSP] Blocked:', {
-        directive: e.violatedDirective,
-        blockedURI: e.blockedURI,
-        effectiveDirective: e.effectiveDirective,
-        disposition: e.disposition
-      });
-    };
+    try {
+      const handleCSPViolation = (e: SecurityPolicyViolationEvent) => {
+        try {
+          console.warn('[CSP] Blocked:', {
+            directive: e.violatedDirective,
+            blockedURI: e.blockedURI,
+            effectiveDirective: e.effectiveDirective,
+            disposition: e.disposition
+          });
+        } catch (error) {
+          console.error('[CSP] Error handling violation:', error);
+        }
+      };
 
-    window.addEventListener('securitypolicyviolation', handleCSPViolation);
-    return () => window.removeEventListener('securitypolicyviolation', handleCSPViolation);
+      window.addEventListener('securitypolicyviolation', handleCSPViolation);
+      return () => {
+        try {
+          window.removeEventListener('securitypolicyviolation', handleCSPViolation);
+        } catch (error) {
+          console.error('[CSP] Error removing listener:', error);
+        }
+      };
+    } catch (error) {
+      console.error('[AppInitializer] Error setting up CSP monitoring:', error);
+    }
   }, []);
 
   return <>{children}</>;

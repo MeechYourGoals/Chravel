@@ -57,28 +57,32 @@ export const useApiHealth = (enabled: boolean = true) => {
 
     // Poll for status updates every 30 seconds
     const pollInterval = setInterval(() => {
-      const concierge = apiHealthCheck.getHealth('concierge');
-      const maps = apiHealthCheck.getHealth('google_maps');
-      
-      // Notify if status changed to healthy
-      if (concierge?.status === 'healthy' && conciergeStatus?.status === 'offline') {
-        toast({
-          title: 'AI Concierge Restored',
-          description: 'Connection re-established successfully!',
-          variant: 'default'
-        });
-      }
+      try {
+        const concierge = apiHealthCheck.getHealth('concierge');
+        const maps = apiHealthCheck.getHealth('google_maps');
 
-      if (maps?.status === 'healthy' && mapsStatus?.status === 'offline') {
-        toast({
-          title: 'Google Maps Restored',
-          description: 'Maps are now loading correctly!',
-          variant: 'default'
-        });
-      }
+        // Notify if status changed to healthy
+        if (concierge?.status === 'healthy' && conciergeStatus?.status === 'offline') {
+          toast({
+            title: 'AI Concierge Restored',
+            description: 'Connection re-established successfully!',
+            variant: 'default'
+          });
+        }
 
-      setConciergeStatus(concierge);
-      setMapsStatus(maps);
+        if (maps?.status === 'healthy' && mapsStatus?.status === 'offline') {
+          toast({
+            title: 'Google Maps Restored',
+            description: 'Maps are now loading correctly!',
+            variant: 'default'
+          });
+        }
+
+        setConciergeStatus(concierge);
+        setMapsStatus(maps);
+      } catch (error) {
+        console.error('Error polling health status:', error);
+      }
     }, 30000);
 
     return () => {
@@ -88,9 +92,13 @@ export const useApiHealth = (enabled: boolean = true) => {
   }, [enabled]);
 
   const forceRecheck = async () => {
-    await apiHealthCheck.recheckAll();
-    setConciergeStatus(apiHealthCheck.getHealth('concierge'));
-    setMapsStatus(apiHealthCheck.getHealth('google_maps'));
+    try {
+      await apiHealthCheck.recheckAll();
+      setConciergeStatus(apiHealthCheck.getHealth('concierge'));
+      setMapsStatus(apiHealthCheck.getHealth('google_maps'));
+    } catch (error) {
+      console.error('Error forcing health recheck:', error);
+    }
   };
 
   return {

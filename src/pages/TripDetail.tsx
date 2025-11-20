@@ -172,9 +172,10 @@ const TripDetail = () => {
   }
 
   // Generate dynamic mock data based on the trip - MEMOIZED for performance
+  // 🛡️ SAFETY: Use tripWithUpdatedData (guaranteed non-null after check above)
   const mockData = React.useMemo(() =>
-    generateTripMockData(trip),
-    [trip?.id]
+    generateTripMockData(tripWithUpdatedData),
+    [tripWithUpdatedData?.id]
   );
   const basecamp = mockData.basecamp;
 
@@ -187,20 +188,21 @@ const TripDetail = () => {
   const mockItinerary = mockData.itinerary;
 
   // Build comprehensive trip context - MEMOIZED to prevent unnecessary re-renders
+  // 🛡️ SAFETY: Use tripWithUpdatedData (guaranteed non-null after check above)
   const tripContext = React.useMemo(() => ({
     id: tripId || '1',
-    title: trip.title,
-    location: trip.location,
-    dateRange: trip.dateRange,
+    title: tripWithUpdatedData.title,
+    location: tripWithUpdatedData.location,
+    dateRange: tripWithUpdatedData.dateRange,
     basecamp,
     calendar: mockItinerary,
     broadcasts: mockBroadcasts,
     links: mockLinks,
     messages: tripMessages,
-    collaborators: trip.participants,
+    collaborators: tripWithUpdatedData.participants,
     itinerary: mockItinerary,
     isPro: false
-  }), [tripId, trip.title, trip.location, trip.dateRange, basecamp, mockItinerary, mockBroadcasts, mockLinks, tripMessages, trip.participants]);
+  }), [tripId, tripWithUpdatedData.title, tripWithUpdatedData.location, tripWithUpdatedData.dateRange, basecamp, mockItinerary, mockBroadcasts, mockLinks, tripMessages, tripWithUpdatedData.participants]);
 
   // Handle export functionality - always use client-side generation
   const handleExport = async (sections: ExportSection[]) => {
