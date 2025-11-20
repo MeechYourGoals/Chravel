@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useDemoMode } from './useDemoMode';
 
 export interface Organization {
   id: string;
@@ -27,21 +28,39 @@ export interface OrganizationMember {
 
 export const useOrganization = () => {
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [currentOrg, setCurrentOrg] = useState<Organization | null>(null);
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // 🎯 CRITICAL: Demo mode NEVER queries Supabase for organizations
+    // Organizations are enterprise-only feature not available in demo mode
+    if (isDemoMode) {
+      setOrganizations([]);
+      setCurrentOrg(null);
+      setLoading(false);
+      return;
+    }
+
     if (user) {
       fetchUserOrganizations();
     }
-  }, [user]);
+  }, [user, isDemoMode]);
 
   const fetchUserOrganizations = async () => {
     try {
       setLoading(true);
-      
+
+      // 🎯 CRITICAL: Demo mode NEVER queries Supabase
+      if (isDemoMode) {
+        setOrganizations([]);
+        setCurrentOrg(null);
+        setLoading(false);
+        return;
+      }
+
       // CRITICAL: Validate user ID exists before querying
       if (!user || !user.id) {
         console.warn('[useOrganization] No user ID available, skipping org fetch');

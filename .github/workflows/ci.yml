@@ -38,9 +38,13 @@ jobs:
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         if: always()
+        continue-on-error: true
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
           fail_ci_if_error: false
+          disable_search: false
+          verbose: true
 
       - name: Build application
         run: npm run build
