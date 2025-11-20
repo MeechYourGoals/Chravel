@@ -67,8 +67,22 @@ const Index = () => {
   // Marketing content should always show to unauthenticated users
   const showMarketingContent = !user;
 
+  // 🎯 FIX #7: Validate tripsData import at module level
+  React.useEffect(() => {
+    if (!tripsData || !Array.isArray(tripsData)) {
+      console.error('[Index.tsx] CRITICAL: tripsData is not properly imported!', { tripsData });
+    } else if (tripsData.length === 0) {
+      console.error('[Index.tsx] CRITICAL: tripsData is empty!');
+    } else {
+      console.log('[Index.tsx] ✅ tripsData imported correctly:', { count: tripsData.length });
+    }
+  }, []); // Run once on mount
+
   // Use centralized trip data - demo data or real user data converted to mock format
-  const allTrips = isDemoMode ? tripsData : convertSupabaseTripsToMock(userTripsRaw);
+  // 🎯 FIX: Add defensive fallback for tripsData
+  const allTrips = isDemoMode
+    ? (Array.isArray(tripsData) ? tripsData : [])
+    : convertSupabaseTripsToMock(userTripsRaw);
 
   // 🔍 DEBUG: Log critical data flow points
   React.useEffect(() => {
@@ -79,7 +93,8 @@ const Index = () => {
       tripsLoading
     });
     console.log('2. Source Data:', {
-      'tripsData.length': tripsData.length,
+      'tripsData exists': !!tripsData,
+      'tripsData.length': tripsData?.length ?? 'undefined',
       'userTripsRaw.length': userTripsRaw.length
     });
     console.log('3. allTrips:', {
@@ -272,6 +287,18 @@ const Index = () => {
       setViewMode('myTrips');
     }
   }, [user, isDemoMode, viewMode]);
+
+  // 🎯 FIX #4, #5, #6: Reset filters and search when demo mode changes
+  useEffect(() => {
+    console.log('[Index.tsx] Demo mode changed:', { isDemoMode, resetting: true });
+    // Reset all filters and search to prevent trips from being hidden
+    setActiveFilter('');
+    setSearchQuery('');
+    // Ensure we're on myTrips view in demo mode for maximum visibility
+    if (isDemoMode && viewMode !== 'myTrips' && viewMode !== 'tripsPro' && viewMode !== 'events') {
+      setViewMode('myTrips');
+    }
+  }, [isDemoMode]);
 
   // Open settings to saved recs if requested via query params
   useEffect(() => {

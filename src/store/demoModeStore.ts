@@ -17,18 +17,28 @@ export const useDemoModeStore = create<DemoModeState>((set, get) => ({
   init: async () => {
     set({ isLoading: true });
     try {
-      // Try to read from localStorage synchronously first for instant initialization
+      // 🎯 FIX: Validate localStorage cache before trusting it
       const cachedValue = localStorage.getItem('TRIPS_DEMO_MODE');
       if (cachedValue !== null) {
-        set({ isDemoMode: cachedValue === 'true', isLoading: false });
-        return;
+        // Validate the cached value is actually a boolean string
+        if (cachedValue === 'true' || cachedValue === 'false') {
+          const isDemoEnabled = cachedValue === 'true';
+          set({ isDemoMode: isDemoEnabled, isLoading: false });
+          console.log('[DemoModeStore] Initialized from cache:', { isDemoMode: isDemoEnabled });
+          return;
+        } else {
+          // Clear corrupted cache
+          console.warn('[DemoModeStore] Corrupted cache value detected, clearing:', cachedValue);
+          localStorage.removeItem('TRIPS_DEMO_MODE');
+        }
       }
-      
-      // Fallback to async service if not in cache
+
+      // Fallback to async service if not in cache or cache was corrupted
       const enabled = await secureStorageService.isDemoModeEnabled();
       set({ isDemoMode: enabled, isLoading: false });
+      console.log('[DemoModeStore] Initialized from service:', { isDemoMode: enabled });
     } catch (error) {
-      console.error('Failed to initialize demo mode:', error);
+      console.error('[DemoModeStore] Failed to initialize demo mode:', error);
       set({ isDemoMode: false, isLoading: false });
     }
   },

@@ -85,14 +85,13 @@ const App = () => {
   // Initialize demo mode BEFORE rendering any components
   useEffect(() => {
     const initDemoMode = async () => {
-      const timeout = new Promise((resolve) => setTimeout(() => resolve(false), 3000));
       try {
-        await Promise.race([
-          useDemoModeStore.getState().init(),
-          timeout
-        ]);
+        // 🎯 FIX: Removed timeout to ensure complete initialization
+        await useDemoModeStore.getState().init();
+        console.log('[App] Demo mode initialized successfully');
       } catch (error) {
-        console.error('Demo mode init failed:', error);
+        console.error('[App] Demo mode init failed:', error);
+        // Continue anyway to prevent app from hanging
       } finally {
         setDemoModeInitialized(true);
       }
