@@ -111,6 +111,6 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in link-trip-to-organization:', error);
-    return createErrorResponse(error);
+    return createErrorResponse(error instanceof Error ? error : new Error('Unknown error'));
   }
 });

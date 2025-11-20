@@ -118,7 +118,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Concierge chat error:', error)
     return new Response(
-      JSON.stringify({ error: error.message, success: false }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error', success: false }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,

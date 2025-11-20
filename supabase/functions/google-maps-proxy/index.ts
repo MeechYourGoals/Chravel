@@ -33,7 +33,7 @@ serve(async (req) => {
     }
 
     // Rate limiting (per user instead of IP for better security)
-    const rateLimit = checkRateLimit(user.id, 100, 60000);
+    const rateLimit = await checkRateLimit(user.id, 100, 60000);
     
     if (!rateLimit.allowed) {
       return new Response(
@@ -59,7 +59,10 @@ serve(async (req) => {
     } catch (parseError) {
       console.error('JSON parsing error:', parseError);
       return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body', details: parseError.message }),
+        JSON.stringify({ 
+          error: 'Invalid JSON in request body', 
+          details: parseError instanceof Error ? parseError.message : 'Parse failed' 
+        }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -326,7 +329,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Google Maps proxy error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

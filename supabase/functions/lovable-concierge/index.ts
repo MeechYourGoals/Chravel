@@ -321,13 +321,17 @@ serve(async (req) => {
                   ? (result.similarity * 100).toFixed(0) 
                   : 'keyword match'
                 
-                const sourceIcon = {
+                const sourceIconMap: Record<string, string> = {
                   'chat': '💬',
                   'task': '✅',
                   'poll': '📊',
                   'payment': '💰',
                   'broadcast': '📢',
                   'calendar': '📅',
+                  'link': '🔗',
+                  'file': '📄'
+                }
+                const sourceIcon = sourceIconMap[result.source_type as string] || '📄'
                   'link': '🔗',
                   'file': '📎'
                 }[result.source_type] || '📝'
@@ -356,13 +360,17 @@ serve(async (req) => {
       
       results.forEach((result: any, idx: number) => {
         const relevancePercent = (result.similarity * 100).toFixed(0)
-        const sourceIcon = {
+        const sourceIconMap: Record<string, string> = {
           'chat': '💬',
           'task': '✅',
           'poll': '📊',
           'payment': '💰',
           'broadcast': '📢',
           'calendar': '📅',
+          'link': '🔗',
+          'file': '📄'
+        }
+        const sourceIcon = sourceIconMap[result.source_type as string] || '📄'
           'link': '🔗',
           'file': '📎'
         }[result.source_type] || '📝'
@@ -648,11 +656,15 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    // Extract variables before logging (handle scope correctly)
+    const requestMessage = typeof message !== 'undefined' ? message : '';
+    const requestTripId = typeof tripId !== 'undefined' ? tripId : 'unknown';
+    
     // 🆕 Log with redacted PII
-    const redactedMessage = message ? redactPII(message).redactedText : ''
+    const redactedMessage = requestMessage ? redactPII(requestMessage).redactedText : ''
     logError('LOVABLE_CONCIERGE', error, { 
-      tripId: tripId || 'unknown',
-      messageLength: message?.length || 0,
+      tripId: requestTripId,
+      messageLength: requestMessage?.length || 0,
       redactedMessage: redactedMessage.substring(0, 200) // Log redacted version
     })
     
@@ -731,7 +743,7 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
     basePrompt += `\nParticipants: ${collaborators?.length || 0} people`
     
     if (collaborators?.length) {
-      basePrompt += ` (${collaborators.map(p => p.name || p).join(', ')})`
+      basePrompt += ` (${collaborators.map((p: any) => p.name || p).join(', ')})`
     }
 
     if (places?.basecamp) {
@@ -756,14 +768,14 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
     if (messages?.length) {
       basePrompt += `\n\n=== RECENT MESSAGES ===`
       const recentMessages = messages.slice(-5)
-      recentMessages.forEach(msg => {
+      recentMessages.forEach((msg: any) => {
         basePrompt += `\n${msg.authorName}: ${msg.content.substring(0, 100)}${msg.content.length > 100 ? '...' : ''}`
       })
     }
 
     if (calendar?.length) {
       basePrompt += `\n\n=== UPCOMING EVENTS ===`
-      calendar.slice(0, 5).forEach(event => {
+      calendar.slice(0, 5).forEach((event: any) => {
         basePrompt += `\n- ${event.title} on ${event.startTime}`
         if (event.location) basePrompt += ` at ${event.location}`
       })
@@ -771,15 +783,22 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
 
     if (tasks?.length) {
       basePrompt += `\n\n=== ACTIVE TASKS ===`
-      const activeTasks = tasks.filter(t => !t.isComplete)
-      activeTasks.slice(0, 5).forEach(task => {
+      const activeTasks = tasks.filter((t: any) => !t.isComplete)
+      activeTasks.slice(0, 5).forEach((task: any) => {
         basePrompt += `\n- ${task.content}${task.assignee ? ` (assigned to ${task.assignee})` : ''}`
       })
     }
 
     if (payments?.length) {
       basePrompt += `\n\n=== RECENT PAYMENTS ===`
-      payments.slice(0, 3).forEach(payment => {
+      payments.slice(0, 3).forEach((payment: any) => {
+        basePrompt += `\n- ${payment.description}: $${payment.amount} (${payment.paidBy})`
+      })
+    }
+
+    if (polls?.length) {
+      basePrompt += `\n\n=== ACTIVE POLLS ===`
+      polls.filter((p: any) => p.status === 'active').forEach((poll: any) => {
         basePrompt += `\n- ${payment.description}: $${payment.amount} (${payment.paidBy})`
       })
     }

@@ -142,7 +142,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('AI Parser error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { 
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -484,9 +484,9 @@ function buildUserMessage(messageText: string, fileUrl?: string, fileType?: stri
   if (fileUrl) {
     if (fileType?.startsWith('image/')) {
       content.push({
-        type: 'image_url',
+        type: 'image_url' as const,
         image_url: { url: fileUrl }
-      });
+      } as any); // Type assertion for Gemini API compatibility
     } else {
       content[0].text += `\nFile URL: ${fileUrl} (Type: ${fileType})`;
     }
