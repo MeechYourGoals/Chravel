@@ -36,6 +36,19 @@ export const MobileTripDetail = () => {
   // Get trip data - use demo data in demo mode, Supabase trips when authenticated
   const allTrips = isDemoMode ? tripsData : convertSupabaseTripsToMock(userTrips);
   const trip = allTrips.find(t => String(t.id) === tripId);
+
+  // Log for debugging
+  React.useEffect(() => {
+    if (!demoModeLoading) {
+      console.log('[MobileTripDetail] Loading trip:', {
+        tripId,
+        isDemoMode,
+        tripFound: !!trip,
+        tripTitle: trip?.title,
+        availableTrips: allTrips.length
+      });
+    }
+  }, [tripId, isDemoMode, trip, allTrips.length, demoModeLoading]);
   
   React.useEffect(() => {
     if (trip && !tripDescription) {
