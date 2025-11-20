@@ -43,7 +43,7 @@ const TripDetail = () => {
   const { tripId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isDemoMode } = useDemoMode();
+  const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
   const [activeTab, setActiveTab] = useState('chat');
   const [showInbox, setShowInbox] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -61,7 +61,7 @@ const TripDetail = () => {
   const [trip, setTrip] = useState<MockTrip | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Get trip data - from Supabase if authenticated, from mock if demo mode
+  // 🔄 CRITICAL: Wait for demo mode to initialize before loading trip data
   React.useEffect(() => {
     const loadTrip = async () => {
       if (!tripId) {
@@ -69,16 +69,25 @@ const TripDetail = () => {
         return;
       }
 
+      // Don't attempt to load data if demo mode is still initializing
+      if (demoModeLoading) {
+        return;
+      }
+
       setLoading(true);
       if (isDemoMode) {
         const tripIdNum = parseInt(tripId, 10);
         const mockTrip = getTripById(tripIdNum);
+        if (!mockTrip) {
+          console.error(`TripDetail: Trip not found in mock data: ${tripId}`);
+        }
         setTrip(mockTrip);
       } else {
         const realTrip = await tripService.getTripById(tripId);
         if (realTrip) {
           setTrip(convertSupabaseTripToMock(realTrip));
         } else {
+          console.error(`TripDetail: Trip not found in Supabase: ${tripId}`);
           setTrip(null);
         }
       }
@@ -86,7 +95,7 @@ const TripDetail = () => {
     };
 
     loadTrip();
-  }, [tripId, isDemoMode]);
+  }, [tripId, isDemoMode, demoModeLoading]);
   
   // Initialize description state when trip is loaded
   React.useEffect(() => {
@@ -120,7 +129,8 @@ const TripDetail = () => {
   };
   
   // Loading state
-  if (loading) {
+  // Show loading while demo mode initializes or trip data loads
+  if (demoModeLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <LoadingSpinner />

@@ -17,7 +17,7 @@ export const MobileEventDetail = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isDemoMode } = useDemoMode();
+  const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
   const { trips: userTrips, loading: tripsLoading } = useTrips();
   const [activeTab, setActiveTab] = useState('chat');
   const [tripDescription, setTripDescription] = useState<string>('');
@@ -30,8 +30,21 @@ export const MobileEventDetail = () => {
     adjustViewport: true
   });
 
+  // 🔄 CRITICAL: Wait for demo mode to initialize before attempting data load
+  if (demoModeLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Not found - handle early
   if (!eventId) {
+    console.error('MobileEventDetail: No eventId provided');
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">
@@ -68,11 +81,14 @@ export const MobileEventDetail = () => {
   if (isDemoMode) {
     eventData = eventsMockData[eventId];
     if (!eventData) {
+      console.error(`MobileEventDetail: Event not found in mock data: ${eventId}`);
+      console.log('Available event IDs:', Object.keys(eventsMockData));
       return (
         <div className="min-h-screen bg-black flex items-center justify-center p-4">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-white mb-4">Event Not Found</h1>
-            <p className="text-gray-400 mb-6">This demo event doesn't exist.</p>
+            <p className="text-gray-400 mb-2">This demo event doesn't exist.</p>
+            <p className="text-xs text-gray-500 mb-6">Event ID: {eventId}</p>
             <button
               onClick={() => {
                 hapticService.light();

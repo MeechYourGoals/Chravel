@@ -34,7 +34,7 @@ const EventDetail = () => {
   const { eventId } = useParams<{ eventId?: string }>();
   const { generateInitialEmbeddings } = useEmbeddingGeneration(eventId);
   const { user } = useAuth();
-  const { isDemoMode } = useDemoMode();
+  const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
   const [activeTab, setActiveTab] = useState('chat');
   const [showInbox, setShowInbox] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -45,7 +45,20 @@ const EventDetail = () => {
   const [tripDescription, setTripDescription] = useState<string>('');
 
 
+  // 🔄 CRITICAL: Wait for demo mode to initialize before rendering
+  if (demoModeLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!eventId) {
+    console.error('EventDetail: No eventId provided');
     return (
       <ProTripNotFound message="No event ID provided." />
     );
@@ -53,6 +66,8 @@ const EventDetail = () => {
 
   // 🔐 DEMO MODE: Show mock events
   if (isDemoMode && !(eventId in eventsMockData)) {
+    console.error(`EventDetail: Event not found in mock data: ${eventId}`);
+    console.log('Available event IDs:', Object.keys(eventsMockData));
     return (
       <ProTripNotFound 
         message="The requested demo event could not be found."

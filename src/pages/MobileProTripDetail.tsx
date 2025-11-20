@@ -18,7 +18,7 @@ export const MobileProTripDetail = () => {
   const { proTripId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isDemoMode } = useDemoMode();
+  const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
   const { trips: userTrips, loading: tripsLoading } = useTrips();
   const [activeTab, setActiveTab] = useState('chat');
   const [tripDescription, setTripDescription] = useState<string>('');
@@ -48,7 +48,20 @@ export const MobileProTripDetail = () => {
     }
   }, [isDemoMode, proTripId, user?.id]);
 
+  // 🔄 CRITICAL: Wait for demo mode to initialize before attempting data load
+  if (demoModeLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!proTripId) {
+    console.error('MobileProTripDetail: No proTripId provided');
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">
@@ -82,11 +95,14 @@ export const MobileProTripDetail = () => {
 
   // 🔐 DEMO MODE: Use mock data
   if (isDemoMode && !(proTripId in proTripMockData)) {
+    console.error(`MobileProTripDetail: Pro trip not found in mock data: ${proTripId}`);
+    console.log('Available Pro trip IDs:', Object.keys(proTripMockData));
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white mb-4">Demo Trip Not Found</h1>
-          <p className="text-gray-400 mb-6">The demo trip you're looking for doesn't exist.</p>
+          <p className="text-gray-400 mb-2">The demo trip you're looking for doesn't exist.</p>
+          <p className="text-xs text-gray-500 mb-6">Trip ID: {proTripId}</p>
           <button
             onClick={() => {
               hapticService.light();
