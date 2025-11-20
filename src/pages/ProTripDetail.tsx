@@ -39,7 +39,7 @@ const ProTripDetail = () => {
   const isMobile = useIsMobile();
   const { proTripId } = useParams<{ proTripId?: string }>();
   const { user } = useAuth();
-  const { isDemoMode, enableDemoMode } = useDemoMode();
+  const { isDemoMode, isLoading: demoModeLoading, enableDemoMode } = useDemoMode();
   const [activeTab, setActiveTab] = useState('chat');
   const [showInbox, setShowInbox] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -72,7 +72,20 @@ const ProTripDetail = () => {
     }
   }, [isDemoMode, proTripId, user?.id]);
 
+  // 🔄 CRITICAL: Wait for demo mode to initialize before rendering
+  if (demoModeLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!proTripId) {
+    console.error('ProTripDetail: No proTripId provided');
     return (
       <ProTripNotFound message="No trip ID provided." />
     );
@@ -81,6 +94,8 @@ const ProTripDetail = () => {
   // 🔐 DEMO MODE: Use mock data
   if (isDemoMode) {
     if (!(proTripId in proTripMockData)) {
+      console.error(`ProTripDetail: Pro trip not found in mock data: ${proTripId}`);
+      console.log('Available Pro trip IDs:', Object.keys(proTripMockData));
       return (
         <ProTripNotFound 
           message="The requested trip could not be found in demo data."

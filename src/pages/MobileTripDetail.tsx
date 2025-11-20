@@ -16,7 +16,7 @@ export const MobileTripDetail = () => {
   const { tripId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isDemoMode } = useDemoMode();
+  const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
   const { trips: userTrips, loading: tripsLoading } = useTrips();
   const [activeTab, setActiveTab] = useState('chat');
   const [tripDescription, setTripDescription] = useState<string>('');
@@ -66,6 +66,18 @@ export const MobileTripDetail = () => {
     ...trip,
     description: tripDescription || trip.description
   } : null;
+  
+  // 🔄 CRITICAL: Wait for demo mode to initialize before attempting data load
+  if (demoModeLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
   
   // Show loading state while fetching trips
   if (tripsLoading && !isDemoMode) {
