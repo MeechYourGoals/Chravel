@@ -332,9 +332,6 @@ serve(async (req) => {
                   'file': '📄'
                 }
                 const sourceIcon = sourceIconMap[result.source_type as string] || '📄'
-                  'link': '🔗',
-                  'file': '📎'
-                }[result.source_type] || '📝'
                 
                 const searchBadge = result.search_type === 'vector' ? '🔍' : '🔤'
                 
