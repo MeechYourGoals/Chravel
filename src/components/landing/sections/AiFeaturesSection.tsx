@@ -30,24 +30,24 @@ export const AiFeaturesSection = () => {
       </div>
 
       {/* AI Features */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 max-w-6xl w-full">
         {aiFeatures.map((feature, index) => (
           <div
             key={index}
-            className="bg-card/50 backdrop-blur-sm border border-border rounded-3xl p-8 hover:border-accent/50 transition-all duration-300 group"
+            className="bg-card/50 backdrop-blur-sm border border-border rounded-3xl p-4 sm:p-6 md:p-8 hover:border-accent/50 transition-all duration-300 group max-w-md mx-auto md:max-w-none"
           >
             <div className="flex items-start gap-4 mb-4">
-              <div className="bg-accent/10 p-4 rounded-2xl group-hover:bg-accent/20 transition-colors">
+              <div className="bg-accent/10 p-3 sm:p-4 rounded-2xl group-hover:bg-accent/20 transition-colors flex-shrink-0">
                 {feature.icon}
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-bold text-2xl">{feature.title}</h3>
-                  <span className="text-xs px-2 py-1 bg-accent/20 text-accent rounded-full">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
+                  <h3 className="font-bold text-lg sm:text-xl md:text-2xl leading-tight">{feature.title}</h3>
+                  <span className="text-xs px-2 py-1 bg-accent/20 text-accent rounded-full whitespace-nowrap">
                     {feature.badge}
                   </span>
                 </div>
-                <p className="text-lg text-foreground leading-relaxed">
+                <p className="text-sm sm:text-base md:text-lg text-foreground leading-relaxed break-words line-clamp-4 sm:line-clamp-none">
                   {feature.description}
                 </p>
               </div>

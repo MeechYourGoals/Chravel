@@ -33,17 +33,17 @@ export const ProblemSolutionSection = () => {
       </div>
 
       {/* Features Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-5xl w-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6 lg:gap-8 max-w-5xl w-full">
         {features.map((feature, index) => (
           <div 
             key={index}
-            className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 text-center hover:border-primary/50 transition-all duration-300 hover:scale-105"
+            className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-5 md:p-6 text-center hover:border-primary/50 transition-all duration-300 hover:scale-105 max-w-md mx-auto md:max-w-none"
           >
             <div className="bg-primary/10 w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4">
               {feature.icon}
             </div>
-            <h3 className="font-semibold text-2xl mb-3">{feature.title}</h3>
-            <p className="text-lg text-foreground">{feature.description}</p>
+            <h3 className="font-semibold text-lg sm:text-xl md:text-2xl mb-3 leading-tight sm:leading-snug">{feature.title}</h3>
+            <p className="text-sm sm:text-base md:text-lg text-foreground leading-relaxed break-words">{feature.description}</p>
           </div>
         ))}
       </div>
