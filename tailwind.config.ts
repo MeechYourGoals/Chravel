@@ -43,6 +43,14 @@ export default {
 					'system-ui', 
 					'sans-serif'
 				],
+				// Cinematic hero font stack
+				'mono': [
+					'JetBrains Mono',
+					'SF Mono',
+					'Monaco',
+					'Courier New',
+					'monospace'
+				],
 			},
 		fontSize: {
 			// Modern, bold typography scale inspired by ClarityLab
@@ -58,6 +66,9 @@ export default {
 			'body-large': ['18px', { lineHeight: '1.7', fontWeight: '400' }], // Subheadings
 			'body-sm': ['14px', { lineHeight: '20px', fontWeight: '400' }],
 			'caption': ['14px', { lineHeight: '1.5', fontWeight: '500' }], // Labels
+			// Cinematic hero typography
+			'hero-mobile': ['36px', { lineHeight: '1.1', fontWeight: '900', letterSpacing: '-0.02em' }],
+			'hero-desktop': ['64px', { lineHeight: '1.05', fontWeight: '900', letterSpacing: '-0.03em' }],
 		},
 			colors: {
 				// Enterprise color system
@@ -74,6 +85,12 @@ export default {
 					'light-border': 'hsl(223, 15%, 90%)', // #E3E7ED
 					'text-primary': 'hsl(223, 35%, 20%)', // #252F4A
 					green: '#62D621',
+				},
+				// Cinematic hero colors
+				'cinematic-blue': 'hsl(217, 79%, 60%)', // #2563eb
+				'cinematic-purple': 'hsl(258, 74%, 63%)', // #8b5cf6
+				// Existing color system
+				glass2: {
 					// Payment system colors
 					'payment-primary': 'hsl(var(--payment-primary))',
 					'payment-primary-foreground': 'hsl(var(--payment-primary-foreground))',
@@ -218,6 +235,11 @@ export default {
 				'scale-in': {
 					'0%': { transform: 'scale(0.95)', opacity: '0' },
 					'100%': { transform: 'scale(1)', opacity: '1' }
+				},
+				// Cinematic parallax animations
+				'parallax': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-10px)' }
 				}
 			},
 			animation: {
@@ -228,7 +250,11 @@ export default {
 				'slide-out-bottom': 'slide-out-bottom 0.3s ease-out',
 				'slide-in-up': 'slide-in-up 0.3s ease-out',
 				'fade-in': 'fade-in 0.3s ease-out',
-				'scale-in': 'scale-in 0.2s ease-out'
+				'scale-in': 'scale-in 0.2s ease-out',
+				// Cinematic parallax animations
+				'parallax-slow': 'parallax 20s ease-in-out infinite',
+				'parallax-medium': 'parallax 15s ease-in-out infinite',
+				'parallax-fast': 'parallax 10s ease-in-out infinite'
 			},
 			backdropBlur: {
 				xs: '2px',
