@@ -137,48 +137,53 @@ const Index = () => {
     }
   };
 
-  // Memoize expensive filtering operations
+  // 🛡️ Memoize expensive filtering operations with defensive guards
   const filteredData = useMemo(() => {
+    // Always ensure safe values - never undefined
+    const safeTrips = Array.isArray(trips) ? trips : [];
+    const safeProTrips = isDemoMode ? (proTripMockData || {}) : {};
+    const safeEvents = isDemoMode ? (eventsMockData || {}) : {};
+
     if (!activeFilter || activeFilter === 'total') {
       return {
-        trips,
-        proTrips: isDemoMode ? proTripMockData : {},
-        events: isDemoMode ? eventsMockData : {}
+        trips: safeTrips,
+        proTrips: safeProTrips,
+        events: safeEvents
       };
     }
 
     switch (viewMode) {
       case 'myTrips':
         return {
-          trips: filterItemsByStatus(trips, activeFilter),
-          proTrips: isDemoMode ? proTripMockData : {},
-          events: isDemoMode ? eventsMockData : {}
+          trips: filterItemsByStatus(safeTrips, activeFilter),
+          proTrips: safeProTrips,
+          events: safeEvents
         };
       case 'tripsPro':
         return {
-          trips,
+          trips: safeTrips,
           proTrips: isDemoMode ? Object.fromEntries(
-            Object.entries(proTripMockData).filter(([_, trip]) => 
+            Object.entries(safeProTrips).filter(([_, trip]) => 
               filterItemsByStatus([trip], activeFilter).length > 0
             )
           ) : {},
-          events: isDemoMode ? eventsMockData : {}
+          events: safeEvents
         };
       case 'events':
         return {
-          trips,
-          proTrips: isDemoMode ? proTripMockData : {},
+          trips: safeTrips,
+          proTrips: safeProTrips,
           events: isDemoMode ? Object.fromEntries(
-            Object.entries(eventsMockData).filter(([_, event]) => 
+            Object.entries(safeEvents).filter(([_, event]) => 
               filterItemsByStatus([event], activeFilter).length > 0
             )
           ) : {}
         };
       default:
         return { 
-          trips, 
-          proTrips: isDemoMode ? proTripMockData : {}, 
-          events: isDemoMode ? eventsMockData : {} 
+          trips: safeTrips, 
+          proTrips: safeProTrips, 
+          events: safeEvents 
         };
     }
   }, [activeFilter, viewMode, trips, isDemoMode]);

@@ -4,14 +4,21 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * Hook to monitor API health status and provide user notifications
+ * @param enabled - Whether to actually run health checks (false in demo mode)
  */
-export const useApiHealth = () => {
+export const useApiHealth = (enabled: boolean = true) => {
   const [conciergeStatus, setConciergeStatus] = useState<HealthStatus | null>(null);
   const [mapsStatus, setMapsStatus] = useState<HealthStatus | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
+    // Skip health checks if disabled (demo mode or unauthenticated)
+    if (!enabled) {
+      setIsInitialized(true);
+      return;
+    }
+
     const initializeHealthChecks = async () => {
       try {
         await apiHealthCheck.initialize();
@@ -78,7 +85,7 @@ export const useApiHealth = () => {
       clearInterval(pollInterval);
       apiHealthCheck.stopPeriodicChecks();
     };
-  }, []);
+  }, [enabled]);
 
   const forceRecheck = async () => {
     await apiHealthCheck.recheckAll();
