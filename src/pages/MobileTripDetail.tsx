@@ -18,10 +18,9 @@ export const MobileTripDetail = () => {
   const { user } = useAuth();
   const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
 
-  // 🎯 CRITICAL: Demo mode NEVER calls useTrips - complete isolation from Supabase
-  const { trips: userTrips, loading: tripsLoading } = !isDemoMode
-    ? useTrips()
-    : { trips: [], loading: false, initializing: false, createTrip: async () => null, updateTrip: async () => false, archiveTrip: async () => false, refreshTrips: async () => {} };
+  // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
+  // The hook handles demo mode internally, returning empty arrays when in demo mode
+  const { trips: userTrips, loading: tripsLoading } = useTrips();
 
   const [activeTab, setActiveTab] = useState('chat');
   const [tripDescription, setTripDescription] = useState<string>('');

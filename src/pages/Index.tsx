@@ -60,20 +60,10 @@ const Index = () => {
   const { isDemoMode } = useDemoMode();
   const isMobilePortrait = useMobilePortrait();
 
-  // 🎯 CRITICAL: Demo mode NEVER calls useTrips - complete isolation from Supabase
-  // Only fetch real user trips when NOT in demo mode and user is authenticated
-  const { trips: userTripsRaw, loading: tripsLoading } = !isDemoMode
-    ? useTrips()
-    : {
-        trips: [],
-        loading: false,
-        initializing: false,
-        createTrip: async () => null,
-        updateTrip: async () => false,
-        archiveTrip: async () => false,
-        refreshTrips: async () => {},
-      };
-  
+  // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
+  // The hook handles demo mode internally, returning empty arrays when in demo mode
+  const { trips: userTripsRaw, loading: tripsLoading } = useTrips();
+
   // Marketing content should always show to unauthenticated users
   const showMarketingContent = !user;
 

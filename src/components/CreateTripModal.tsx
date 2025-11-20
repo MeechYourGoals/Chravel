@@ -42,11 +42,11 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   }>({});
 
   const { createTrip, trips } = useTrips();
-  // 🎯 CRITICAL: Organizations are enterprise-only feature, NEVER query in demo mode
-  // Demo mode has no authenticated user, so organization queries would fail
-  const { organizations, fetchUserOrganizations } = !isDemoMode
-    ? useOrganization()
-    : { organizations: [], fetchUserOrganizations: () => Promise.resolve() };
+
+  // ✅ FIXED: Always call useOrganization hook (Rules of Hooks requirement)
+  // The hook handles demo mode internally, returning empty arrays when in demo mode
+  const { organizations, fetchUserOrganizations } = useOrganization();
+
   const [enableAllFeatures, setEnableAllFeatures] = useState(true);
   const [selectedFeatures, setSelectedFeatures] = useState<Record<string, boolean>>(
     DEFAULT_FEATURES.reduce((acc, feature) => ({ ...acc, [feature]: true }), {})
@@ -54,10 +54,8 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
 
   useEffect(() => {
     if (isOpen) {
-      // Only fetch organizations in authenticated mode (not demo mode)
-      if (!isDemoMode) {
-        fetchUserOrganizations();
-      }
+      // Fetch organizations (hook handles demo mode internally)
+      fetchUserOrganizations();
     } else {
       // Reset form and validation errors when modal closes
       setFormData({
@@ -72,7 +70,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
       setPrivacyMode(getDefaultPrivacyMode('consumer'));
       setSelectedOrganization('');
     }
-  }, [isOpen, isDemoMode, fetchUserOrganizations]);
+  }, [isOpen, fetchUserOrganizations]);
 
   // Update privacy mode when trip type changes
   const handleTripTypeChange = (newTripType: 'consumer' | 'pro' | 'event') => {
