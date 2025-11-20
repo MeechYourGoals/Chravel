@@ -49,35 +49,35 @@ export const UseCasesSection = () => {
       </div>
 
       {/* Scenarios Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6 max-w-6xl w-full">
         {scenarios.map((scenario, index) => (
           <div
             key={index}
-            className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 hover:border-primary/50 transition-all duration-300"
+            className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-5 md:p-6 hover:border-primary/50 transition-all duration-300 max-w-md mx-auto md:max-w-none"
           >
             {/* Header */}
             <div className="flex items-center gap-3 mb-4">
-              <span className="text-4xl">{scenario.emoji}</span>
-              <div>
-                <h3 className="font-bold text-xl">{scenario.title}</h3>
-                <p className="text-sm text-muted-foreground">{scenario.subtitle}</p>
+              <span className="text-3xl sm:text-4xl flex-shrink-0">{scenario.emoji}</span>
+              <div className="min-w-0">
+                <h3 className="font-bold text-base sm:text-lg md:text-xl leading-tight break-words">{scenario.title}</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground break-words">{scenario.subtitle}</p>
               </div>
             </div>
 
             {/* Before/After */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div>
                 <div className="text-xs font-semibold text-red-400 mb-1">BEFORE CHRAVEL</div>
-                <p className="text-sm text-foreground leading-relaxed">{scenario.before}</p>
+                <p className="text-xs sm:text-sm text-foreground leading-relaxed break-words">{scenario.before}</p>
               </div>
               
               <div>
                 <div className="text-xs font-semibold text-green-400 mb-1">WITH CHRAVEL</div>
-                <p className="text-sm text-foreground leading-relaxed">{scenario.after}</p>
+                <p className="text-xs sm:text-sm text-foreground leading-relaxed break-words">{scenario.after}</p>
               </div>
 
               {/* Savings Badge */}
-              <div className="inline-block px-3 py-1 bg-accent/20 text-accent rounded-full text-sm font-semibold">
+              <div className="inline-block px-2 sm:px-3 py-1 bg-accent/20 text-accent rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap">
                 {scenario.savings}
               </div>
             </div>
