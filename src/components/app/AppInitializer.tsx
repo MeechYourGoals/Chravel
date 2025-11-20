@@ -1,12 +1,19 @@
 import { useEffect } from 'react';
 import { useApiHealth } from '@/hooks/useApiHealth';
+import { useDemoMode } from '@/hooks/useDemoMode';
+import { useAuth } from '@/hooks/useAuth';
 
 /**
  * AppInitializer - Runs API health checks on app startup
- * Place this component at the root of your app
+ * Skips health checks in demo mode to prevent "offline" noise
  */
 export const AppInitializer = ({ children }: { children: React.ReactNode }) => {
-  const { isInitialized, conciergeStatus, mapsStatus } = useApiHealth();
+  const { isDemoMode } = useDemoMode();
+  const { user } = useAuth();
+  
+  // Only run health checks for authenticated users NOT in demo mode
+  const shouldRunHealthChecks = user && !isDemoMode;
+  const { isInitialized, conciergeStatus, mapsStatus } = useApiHealth(shouldRunHealthChecks);
 
 
   // CSP violation monitoring

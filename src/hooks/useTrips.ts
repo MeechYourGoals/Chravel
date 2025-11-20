@@ -39,6 +39,14 @@ export const useTrips = () => {
   }, [user, isDemoMode]);
 
   const loadTrips = async () => {
+    // 🎯 CRITICAL: Demo mode NEVER queries Supabase - it's completely independent
+    if (isDemoMode) {
+      setTrips([]);
+      setLoading(false);
+      setInitializing(false);
+      return;
+    }
+
     if (!user) {
       setTrips([]);
       setLoading(false);
@@ -47,8 +55,8 @@ export const useTrips = () => {
     }
 
     try {
-      // Phase 3: Pass cached isDemoMode to avoid repeated checks
-      const userTrips = await tripService.getUserTrips(isDemoMode);
+      // Only query Supabase when NOT in demo mode and user is authenticated
+      const userTrips = await tripService.getUserTrips(false);
       setTrips(userTrips);
       
       // Phase 6: Cache trips to localStorage
