@@ -10,14 +10,14 @@ import { ReplacesSection } from './sections/ReplacesSection';
 import { PricingLandingSection } from './sections/PricingLandingSection';
 import { DemoModeToggle } from '../DemoModeToggle';
 
-// Import generated images
-import heroImage from '@/assets/hero-group-planning.jpg';
-import chaosImage from '@/assets/chaos-vs-organization.jpg';
-import aiImage from '@/assets/ai-concierge-map.jpg';
-import scenariosImage from '@/assets/travel-scenarios.jpg';
-import happyTravelersImage from '@/assets/happy-travelers.jpg';
-import unifiedWorkspaceImage from '@/assets/unified-workspace-bg.jpg';
-import pricingWorkspaceImage from '@/assets/pricing-travel-workspace.jpg';
+// Import cinematic hero images
+import heroImage from '@/assets/hero-images/collaboration-hero-1920.jpg';
+import chaosImage from '@/assets/hero-images/nightlife-urban-1920.jpg';
+import aiImage from '@/assets/hero-images/adventure-nature-1920.jpg';
+import scenariosImage from '@/assets/hero-images/sports-events-1920.jpg';
+import happyTravelersImage from '@/assets/hero-images/concerts-festivals-1920.jpg';
+import unifiedWorkspaceImage from '@/assets/hero-images/business-travel-1920.jpg';
+import pricingWorkspaceImage from '@/assets/hero-images/platform-showcase-1920.jpg';
 
 interface FullPageLandingProps {
   onSignUp: () => void;
