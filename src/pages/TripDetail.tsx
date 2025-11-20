@@ -137,6 +137,12 @@ const TripDetail = () => {
       </div>
     );
   }
+
+  // 🚀 CRITICAL: Mobile redirect MUST happen before any desktop-specific useMemo hooks
+  // This prevents errors when trip is null and useMemo tries to access trip properties
+  if (isMobile) {
+    return <MobileTripDetail />;
+  }
   
   // Create trip object with all updates
   const tripWithUpdatedData = trip ? {
@@ -323,12 +329,7 @@ const TripDetail = () => {
     }
   };
 
-  // Mobile-first conditional render - Zero impact on desktop
-  if (isMobile) {
-    return <MobileTripDetail />;
-  }
-
-  // Desktop experience remains completely unchanged
+  // Desktop experience (mobile already handled at top of component)
   return (
     <div className="min-h-screen bg-black">
       <div className="container mx-auto px-6 py-8 max-w-7xl">
