@@ -59,9 +59,20 @@ const Index = () => {
   const location = useLocation();
   const { isDemoMode } = useDemoMode();
   const isMobilePortrait = useMobilePortrait();
-  
-  // Fetch real user trips
-  const { trips: userTripsRaw, loading: tripsLoading } = useTrips();
+
+  // 🎯 CRITICAL: Demo mode NEVER calls useTrips - complete isolation from Supabase
+  // Only fetch real user trips when NOT in demo mode and user is authenticated
+  const { trips: userTripsRaw, loading: tripsLoading } = !isDemoMode
+    ? useTrips()
+    : {
+        trips: [],
+        loading: false,
+        initializing: false,
+        createTrip: async () => null,
+        updateTrip: async () => false,
+        archiveTrip: async () => false,
+        refreshTrips: async () => {},
+      };
   
   // Marketing content should always show to unauthenticated users
   const showMarketingContent = !user;
