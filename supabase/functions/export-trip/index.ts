@@ -134,7 +134,7 @@ serve(async (req) => {
 
     // Fetch and transform trip data
     logStep("Fetching trip data");
-    let exportData;
+    let exportData: any; // TODO: Define proper TripExportData interface
     try {
       exportData = await getTripData(
         supabaseClient,
@@ -144,7 +144,7 @@ serve(async (req) => {
         privacyRedaction
       );
       logStep("Trip data fetched successfully", { 
-        sectionsWithData: Object.keys(exportData).filter(k => Array.isArray(exportData[k as keyof typeof exportData]))
+        sectionsWithData: Object.keys(exportData).filter((k: string) => Array.isArray((exportData as any)[k]))
       });
     } catch (error) {
       if (error instanceof Error && error.message === 'Trip not found') {
@@ -198,7 +198,8 @@ serve(async (req) => {
     const filename = `Trip_${slug(exportData.tripTitle)}_${layout}_${formatTimestamp()}.pdf`;
     logStep("Returning PDF", { filename, size: pdfBuffer.length });
 
-    return new Response(pdfBuffer, {
+    // Convert Uint8Array to proper Response body
+    return new Response(new Blob([pdfBuffer], { type: 'application/pdf' }), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/pdf',

@@ -75,7 +75,11 @@ export async function getTripData(
 
   if (sections.includes('payments')) {
     const payments = await fetchPayments(supabase, tripId);
-    data.payments = payments.items;
+    // Type assertion for payment status mapping
+    data.payments = payments.items.map((p: any) => ({
+      ...p,
+      status: p.status || 'Pending' // Ensure valid status
+    })) as any;
     data.totals = payments.totals;
   }
 

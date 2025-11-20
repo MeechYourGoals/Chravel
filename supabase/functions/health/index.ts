@@ -45,7 +45,7 @@ serve(async (req) => {
       JSON.stringify({ 
         status: 'error',
         timestamp: new Date().toISOString(),
-        error: error.message 
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

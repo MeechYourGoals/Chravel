@@ -21,6 +21,9 @@ serve(async (req) => {
   let fileId: string | undefined;
 
   try {
+    // Use service role client for all operations
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
     // Validate request body with Zod schema
     const rawBody = await req.json();
     const validation = validateInput(DocumentProcessorSchema, rawBody);
@@ -50,23 +53,22 @@ serve(async (req) => {
       userId = user?.id || null;
     }
 
-    // 🔒 SECURITY: Verify user is a member of the trip
-    const { data: membershipCheck, error: membershipError } = await supabase
-      .from('trip_members')
-      .select('user_id, status')
-      .eq('trip_id', tripId)
-      .eq('user_id', user.id)
-      .single();
+    // 🔒 SECURITY: Verify user is a member of the trip (only if authenticated)
+    if (userId) {
+      const { data: membershipCheck, error: membershipError } = await supabase
+        .from('trip_members')
+        .select('user_id, status')
+        .eq('trip_id', tripId)
+        .eq('user_id', userId)
+        .single();
 
-    if (membershipError || !membershipCheck || membershipCheck.status !== 'active') {
-      return new Response(
-        JSON.stringify({ error: 'Forbidden - you must be an active member of this trip' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (membershipError || !membershipCheck || membershipCheck.status !== 'active') {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden - you must be an active member of this trip' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
-
-    // Use service role to bypass RLS for file operations
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Fetch file metadata
     const { data: fileData, error: fileError } = await supabase
@@ -94,7 +96,7 @@ serve(async (req) => {
       );
     }
 
-    // Verify user is a member of the trip (if authenticated)
+    // Additional membership verification via helper function
     if (userId) {
       const membershipCheck = await verifyTripMembership(supabase, userId, tripId);
       if (!membershipCheck.isMember) {
@@ -268,17 +270,20 @@ serve(async (req) => {
     // Try to update file status to failed (only if we have fileId)
     if (fileId) {
       try {
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-        await supabase
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const { error: updateError } = await supabaseClient
           .from('trip_files')
           .update({
             processing_status: 'failed',
             error_message: error instanceof Error ? error.message : 'Unknown error'
           })
-          .eq('id', fileId)
-          .catch(console.error);
-      } catch {
-        // Ignore errors in error handling
+          .eq('id', fileId);
+        
+        if (updateError) {
+          console.error('Failed to update file status:', updateError);
+        }
+      } catch (updateErr) {
+        console.error('Error in error handling:', updateErr);
       }
     }
 

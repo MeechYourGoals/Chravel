@@ -92,7 +92,7 @@ serve(async (req) => {
     logStep("Fetched invoices", { count: invoices.data.length });
 
     // Format invoices for frontend
-    const formattedInvoices: Invoice[] = invoices.data.map(invoice => ({
+    const formattedInvoices: Invoice[] = invoices.data.map((invoice: any) => ({
       id: invoice.id,
       number: invoice.number || invoice.id,
       amount: invoice.amount_due / 100, // Convert from cents

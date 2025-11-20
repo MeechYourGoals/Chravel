@@ -121,8 +121,11 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
+    // Extract tripId from outer scope if available
+    const requestTripId = typeof tripId !== 'undefined' ? tripId : 'unknown';
+    
     // Log full error server-side
-    logError('EMBEDDING_GENERATION', error, { tripId: tripId || 'unknown' })
+    logError('EMBEDDING_GENERATION', error, { tripId: requestTripId })
     
     // Return sanitized error to client
     return new Response(
@@ -273,7 +276,7 @@ async function generateEmbeddings(sourceData: SourceData[]): Promise<any[]> {
     throw new Error('LOVABLE_API_KEY is not configured')
   }
 
-  const embeddings = []
+  const embeddings: any[] = []
   
   // Batch requests to Lovable AI (max 100 per batch)
   for (let i = 0; i < sourceData.length; i += 100) {

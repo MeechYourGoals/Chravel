@@ -109,6 +109,6 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in invite-organization-member:', error);
-    return createErrorResponse(error);
+    return createErrorResponse(error instanceof Error ? error : new Error('Unknown error'));
   }
 });

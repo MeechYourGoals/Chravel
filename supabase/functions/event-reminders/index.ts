@@ -44,7 +44,9 @@ serve(async (req) => {
 
     const notifications = [];
     for (const event of upcomingEvents || []) {
-      const tripMembers = event.trips?.trip_members || [];
+      // Type assertion for nested join result
+      const trips = event.trips as any;
+      const tripMembers = trips?.trip_members || [];
       
       for (const member of tripMembers) {
         // In production, this would send push notifications
@@ -74,7 +76,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error sending event reminders:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
