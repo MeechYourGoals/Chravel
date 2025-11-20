@@ -368,9 +368,6 @@ serve(async (req) => {
           'file': '📄'
         }
         const sourceIcon = sourceIconMap[result.source_type as string] || '📄'
-          'link': '🔗',
-          'file': '📎'
-        }[result.source_type] || '📝'
         
         context += `\n[${idx + 1}] ${sourceIcon} [${result.source_type}] ${result.content_text.substring(0, 300)} (${relevancePercent}% relevant)`
       })
