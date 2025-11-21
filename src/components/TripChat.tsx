@@ -73,8 +73,6 @@ export const TripChat = ({
   userRole = 'member',
   participants = []
 }: TripChatProps) => {
-  const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
-  const [demoLoading, setDemoLoading] = useState(true);
   const [reactions, setReactions] = useState<{ [messageId: string]: { [reaction: string]: { count: number; userReacted: boolean } } }>({});
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
@@ -89,6 +87,47 @@ export const TripChat = ({
   
   const demoMode = useDemoMode();
   const { user } = useAuth();
+  
+  // ⚡ OPTIMIZED: Determine demo mode early for immediate message loading
+  const shouldUseDemoData = demoMode.isDemoMode || !resolvedTripId;
+
+  // ⚡ OPTIMIZED: Initialize demo messages immediately if in demo mode
+  const initialDemoMessages = useMemo(() => {
+    if (!shouldUseDemoData) return [];
+    
+    const isProTrip = isPro || params.proTripId;
+    const isEventTrip = isEvent || params.eventId;
+    
+    let demoMessagesData;
+    if (isProTrip) {
+      demoMessagesData = demoModeService.getProMockMessages('pro', user?.id || 'demo-user');
+    } else if (isEventTrip) {
+      demoMessagesData = demoModeService.getProMockMessages('event', user?.id || 'demo-user');
+    } else {
+      demoMessagesData = demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
+    }
+
+    return demoMessagesData.map(msg => ({
+      id: msg.id,
+      text: msg.message_content || '',
+      sender: {
+        id: msg.sender_id || msg.sender_name || msg.id,
+        name: msg.sender_name || 'Unknown',
+        avatar: getMockAvatar(msg.sender_name || 'Unknown')
+      },
+      createdAt: new Date(Date.now() - (msg.timestamp_offset_days || 0) * 86400000).toISOString(),
+      isBroadcast: msg.tags?.includes('broadcast') || msg.tags?.includes('logistics') || msg.tags?.includes('urgent') || false,
+      trip_type: msg.trip_type,
+      sender_name: msg.sender_name,
+      message_content: msg.message_content,
+      delay_seconds: msg.delay_seconds,
+      timestamp_offset_days: msg.timestamp_offset_days,
+      tags: msg.tags
+    }));
+  }, [shouldUseDemoData, isPro, isEvent, params.proTripId, params.eventId, user?.id]);
+
+  const [demoMessages, setDemoMessages] = useState<MockMessage[]>(initialDemoMessages);
+  const [demoLoading, setDemoLoading] = useState(false); // ⚡ OPTIMIZED: Start as false since we load immediately
 
   // Live chat hooks - always initialize normally
   const { tripMembers } = useTripMembers(resolvedTripId);
@@ -168,8 +207,6 @@ export const TripChat = ({
     threshold: 50
   });
 
-  const shouldUseDemoData = demoMode.isDemoMode || !resolvedTripId;
-
   // Track unread counts with real-time updates
   const { unreadCount, broadcastCount } = useUnreadCounts({
     tripId: resolvedTripId,
@@ -178,20 +215,24 @@ export const TripChat = ({
     enabled: !shouldUseDemoData && !!user?.id
   });
 
-  // Initialize typing indicators
+  // ⚡ OPTIMIZED: Defer typing indicators initialization (non-critical for initial render)
   useEffect(() => {
     if (shouldUseDemoData || !user?.id || !resolvedTripId) return;
 
-    const userName = user?.displayName || user?.email?.split('@')[0] || 'You';
-    typingServiceRef.current = new TypingIndicatorService(resolvedTripId, user.id, userName);
+    // Defer initialization to next tick to avoid blocking initial render
+    const timeoutId = setTimeout(() => {
+      const userName = user?.displayName || user?.email?.split('@')[0] || 'You';
+      typingServiceRef.current = new TypingIndicatorService(resolvedTripId, user.id, userName);
 
-    typingServiceRef.current.initialize(setTypingUsers).catch(error => {
-      if (import.meta.env.DEV) {
-        console.error(error);
-      }
-    });
+      typingServiceRef.current.initialize(setTypingUsers).catch(error => {
+        if (import.meta.env.DEV) {
+          console.error(error);
+        }
+      });
+    }, 100);
 
     return () => {
+      clearTimeout(timeoutId);
       typingServiceRef.current?.cleanup().catch(error => {
         if (import.meta.env.DEV) {
           console.error(error);
@@ -323,27 +364,17 @@ export const TripChat = ({
     setReactions(updatedReactions);
   };
 
+  // ⚡ OPTIMIZED: Update demo messages when dependencies change (fallback for consumer trips)
   useEffect(() => {
-    const loadDemoData = async () => {
-      if (shouldUseDemoData) {
-        setDemoLoading(true);
-        
-        // Detect if this is a Pro or Event trip
-        const isProTrip = isPro || params.proTripId;
-        const isEventTrip = isEvent || params.eventId;
-        
-        let demoMessagesData;
-        
-        if (isProTrip) {
-          // Load Pro-specific demo messages
-          demoMessagesData = await demoModeService.getProMockMessages('pro', user?.id || 'demo-user');
-        } else if (isEventTrip) {
-          // Load Event-specific demo messages
-          demoMessagesData = await demoModeService.getProMockMessages('event', user?.id || 'demo-user');
-        } else {
-          // Load consumer trip demo messages (existing logic)
-          demoMessagesData = await demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
-        }
+    if (!shouldUseDemoData) {
+      // Clear demo messages when not in demo mode
+      setDemoMessages([]);
+      
+      // BUT if we're on a consumer trip (1-12) and have no live messages, load demo
+      const tripIdNum = parseInt(resolvedTripId);
+      if (tripIdNum >= 1 && tripIdNum <= 12 && liveFormattedMessages.length === 0) {
+        // Now synchronous - no loading state needed
+        const demoMessagesData = demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
 
         const formattedMessages = demoMessagesData.map(msg => ({
           id: msg.id,
@@ -365,46 +396,12 @@ export const TripChat = ({
         }));
 
         setDemoMessages(formattedMessages);
-        setDemoLoading(false);
-      } else {
-        // Clear demo messages when not in demo mode
-        setDemoMessages([]);
-        
-        // BUT if we're on a consumer trip (1-12) and have no live messages, load demo
-        const tripIdNum = parseInt(resolvedTripId);
-        if (tripIdNum >= 1 && tripIdNum <= 12 && liveFormattedMessages.length === 0) {
-          setDemoLoading(true);
-          const demoMessagesData = await demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
-
-          const formattedMessages = demoMessagesData.map(msg => ({
-            id: msg.id,
-            text: msg.message_content || '',
-            sender: {
-              id: msg.sender_id || msg.sender_name || msg.id,
-              name: msg.sender_name || 'Unknown',
-              avatar: getMockAvatar(msg.sender_name || 'Unknown')
-            },
-            createdAt: new Date(Date.now() - (msg.timestamp_offset_days || 0) * 86400000).toISOString(),
-            isBroadcast: msg.tags?.includes('broadcast') || msg.tags?.includes('logistics') || msg.tags?.includes('urgent') || false,
-
-            trip_type: msg.trip_type,
-            sender_name: msg.sender_name,
-            message_content: msg.message_content,
-            delay_seconds: msg.delay_seconds,
-            timestamp_offset_days: msg.timestamp_offset_days,
-            tags: msg.tags
-          }));
-
-          setDemoMessages(formattedMessages);
-          setDemoLoading(false);
-        } else {
-          setDemoLoading(false);
-        }
       }
-    };
-
-    loadDemoData();
-  }, [shouldUseDemoData, isEvent, isPro, resolvedTripId, liveFormattedMessages.length, user?.id]);
+    } else {
+      // Update if initial messages changed
+      setDemoMessages(initialDemoMessages);
+    }
+  }, [shouldUseDemoData, resolvedTripId, liveFormattedMessages.length, user?.id, initialDemoMessages]);
 
   // Auto-select first channel when switching to 'channels' filter
   useEffect(() => {
@@ -446,8 +443,22 @@ export const TripChat = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [messageFilter]);
 
-  if (isLoading) {
-    return <div>Loading messages...</div>;
+  // ⚡ OPTIMIZED: Show skeleton instead of blocking render
+  // Demo messages now load synchronously, so this is mainly for live messages
+  if (isLoading && !shouldUseDemoData && liveFormattedMessages.length === 0) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex-1 flex flex-col min-h-0 pb-4" data-chat-container>
+          <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden flex-1 flex flex-col max-h-[70vh]">
+            <div className="p-4 space-y-4">
+              {[1, 2, 3].map((i) => (
+                <MessageSkeleton key={i} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

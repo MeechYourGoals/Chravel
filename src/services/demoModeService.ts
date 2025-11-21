@@ -122,8 +122,9 @@ class DemoModeService {
     await secureStorageService.setDemoMode(false, userId);
   }
 
-  async getMockMessages(tripType: string, excludePayments: boolean = false, currentUserId?: string): Promise<MockMessage[]> {
+  getMockMessages(tripType: string, excludePayments: boolean = false, currentUserId?: string): MockMessage[] {
     // Enhanced mock messages with diverse, realistic names and proper message types
+    // ⚡ OPTIMIZED: Made synchronous for instant demo mode loading
     const baseMessages: MockMessage[] = [
       // Regular conversation messages
       {
@@ -282,7 +283,8 @@ class DemoModeService {
     );
   }
 
-  async getProMockMessages(tripType: 'pro' | 'event', currentUserId: string): Promise<MockMessage[]> {
+  getProMockMessages(tripType: 'pro' | 'event', currentUserId: string): MockMessage[] {
+    // ⚡ OPTIMIZED: Made synchronous for instant demo mode loading
     const proMessages: MockMessage[] = [
       {
         id: 'pro-msg-1',
@@ -394,7 +396,8 @@ class DemoModeService {
     }
   }
 
-  async getMockBroadcasts(tripType: string): Promise<MockBroadcast[]> {
+  getMockBroadcasts(tripType: string): MockBroadcast[] {
+    // ⚡ OPTIMIZED: Made synchronous for instant demo mode loading
     const baseBroadcasts: MockBroadcast[] = [
       {
         id: 'broadcast_1',
@@ -426,7 +429,8 @@ class DemoModeService {
   }
 
 
-  async getMockTrips(): Promise<MockTrip[]> {
+  getMockTrips(): MockTrip[] {
+    // ⚡ OPTIMIZED: Made synchronous for instant demo mode loading
     return [
       {
         id: 'demo-trip-1',
@@ -473,7 +477,8 @@ class DemoModeService {
     ];
   }
 
-  async getMockPayments(tripId: string, isEvent: boolean = false): Promise<MockPayment[]> {
+  getMockPayments(tripId: string, isEvent: boolean = false): MockPayment[] {
+    // ⚡ OPTIMIZED: Made synchronous for instant demo mode loading
     // Events don't have payments
     if (isEvent) {
       return [];
@@ -522,7 +527,8 @@ class DemoModeService {
     ];
   }
 
-  async getMockPolls(tripId: string): Promise<MockPoll[]> {
+  getMockPolls(tripId: string): MockPoll[] {
+    // ⚡ OPTIMIZED: Made synchronous for instant demo mode loading
     return [
       {
         id: 'demo-poll-1',
@@ -556,7 +562,8 @@ class DemoModeService {
     ];
   }
 
-  async getMockMembers(tripId: string): Promise<MockMember[]> {
+  getMockMembers(tripId: string): MockMember[] {
+    // ⚡ OPTIMIZED: Made synchronous for instant demo mode loading
     return [
       {
         id: 'demo-member-1',

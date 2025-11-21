@@ -48,10 +48,10 @@ export const PaymentHistory = ({ tripId }: PaymentHistoryProps) => {
         // Use paymentService to get payments
         let paymentMessages = await paymentService.getTripPaymentMessages(tripId);
 
-        // If empty and consumer trip (1-12), fallback to demo data
+        // If empty and consumer trip (1-12), fallback to demo data (now synchronous)
         const tripIdNum = parseInt(tripId);
         if (paymentMessages.length === 0 && tripIdNum >= 1 && tripIdNum <= 12) {
-          const mockPayments = await demoModeService.getMockPayments(tripId, false);
+          const mockPayments = demoModeService.getMockPayments(tripId, false);
           paymentMessages = mockPayments.map((p: MockPayment) => ({
             id: p.id,
             tripId: p.trip_id,
@@ -128,10 +128,10 @@ export const PaymentHistory = ({ tripId }: PaymentHistoryProps) => {
       } catch (error) {
         console.error('Error loading payment history:', error);
         
-        // Final fallback for consumer trips
+        // Final fallback for consumer trips (now synchronous)
         const tripIdNum = parseInt(tripId);
         if (tripIdNum >= 1 && tripIdNum <= 12) {
-          const mockPayments = await demoModeService.getMockPayments(tripId, false);
+          const mockPayments = demoModeService.getMockPayments(tripId, false);
           const fallbackPayments = mockPayments.map((p: MockPayment) => ({
             id: p.id,
             description: p.description,
