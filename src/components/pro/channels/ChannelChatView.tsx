@@ -181,7 +181,7 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
       </div>
 
       {/* Reuse ChatInput with permission check */}
-      <div className="bg-black/30 p-3 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-3">
+      <div className="bg-black/30 p-3 pb-[env(safe-area-inset-bottom)] md:pb-3">
         {canPerformAction('channels', 'can_post') ? (
           <ChatInput
             inputMessage={inputMessage}

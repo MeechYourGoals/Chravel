@@ -196,8 +196,8 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
       </div>
 
       {/* Persistent Chat Input - Fixed at Bottom */}
-      <div className="chat-input-persistent pb-[calc(env(safe-area-inset-bottom)+60px)] md:pb-[env(safe-area-inset-bottom)]">
-        <div className="chat-composer px-4 py-3">
+      <div className="chat-input-persistent pb-[env(safe-area-inset-bottom)]">
+        <div className="chat-composer px-4 py-2">
           <ChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}
