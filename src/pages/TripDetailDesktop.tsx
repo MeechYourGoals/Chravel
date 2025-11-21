@@ -147,15 +147,6 @@ export const TripDetailDesktop = () => {
     }
   }, [loading, trip]);
 
-  // ⚡ OPTIMIZATION: Show loading spinner instantly before expensive operations
-  if (demoModeLoading || loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-
   // Handle trip updates from edit modal
   const handleTripUpdate = (updates: Partial<MockTrip>) => {
     setTripData(prev => ({ ...prev, ...updates }));
@@ -210,6 +201,15 @@ export const TripDetailDesktop = () => {
     itinerary: mockItinerary,
     isPro: false
   }), [tripId, tripWithUpdatedData, basecamp, mockItinerary, mockBroadcasts, mockLinks, tripMessages]);
+
+  // ⚡ OPTIMIZATION: Show loading spinner after data setup if still loading
+  if (demoModeLoading || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   // Handle missing trip - render after all computations complete
   if (!tripWithUpdatedData) {
