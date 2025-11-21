@@ -130,6 +130,13 @@ interface ExportData {
     email?: string;
     role?: string;
   }>;
+  broadcasts?: Array<{
+    message: string;
+    priority: string;
+    timestamp: string;
+    sender: string;
+    read_count: number;
+  }>;
 }
 
 /**
@@ -585,6 +592,82 @@ export async function generateClientPDF(
         doc.setFont('NotoSans', 'normal');
         doc.setTextColor(120);
         doc.text('No tasks available', margin, yPos);
+        yPos += 30;
+      }
+    }
+    
+    // Broadcasts section (Pro/Events only)
+    if (section === 'broadcasts') {
+      yPos = checkPageBreak(doc, yPos, 60);
+      
+      const broadcasts = data.broadcasts || [];
+      if (broadcasts.length > 0) {
+        const broadcastChunks = broadcasts.length > maxItems 
+          ? chunkArray(broadcasts, maxItems)
+          : [broadcasts];
+
+        for (let chunkIndex = 0; chunkIndex < broadcastChunks.length; chunkIndex++) {
+          const chunk = broadcastChunks[chunkIndex];
+          
+          yPos = checkPageBreak(doc, yPos, 60);
+          
+          if (chunkIndex === 0) {
+            doc.setFontSize(14);
+            doc.setFont('NotoSans', 'bold');
+            doc.setTextColor(0);
+            doc.text('Broadcasts', margin, yPos);
+            yPos += 20;
+          }
+
+          chunk.forEach((broadcast: any, index: number) => {
+            yPos = checkPageBreak(doc, yPos, 80);
+
+            // Priority indicator
+            const priorityColor = broadcast.priority === 'urgent' ? [220, 38, 38] : [100, 100, 100];
+            doc.setTextColor(priorityColor[0], priorityColor[1], priorityColor[2]);
+            doc.setFontSize(9);
+            doc.setFont('NotoSans', 'bold');
+            doc.text(broadcast.priority.toUpperCase(), margin, yPos);
+            
+            // Timestamp
+            doc.setTextColor(100);
+            doc.setFont('NotoSans', 'normal');
+            const timestamp = new Date(broadcast.timestamp).toLocaleString();
+            doc.text(`  •  ${timestamp}`, margin + 50, yPos);
+            yPos += 15;
+
+            // Message
+            doc.setFontSize(10);
+            doc.setFont('NotoSans', 'normal');
+            doc.setTextColor(0);
+            const messageLines = doc.splitTextToSize(broadcast.message, contentWidth - 20);
+            doc.text(messageLines, margin + 10, yPos);
+            yPos += messageLines.length * 14 + 5;
+
+            // Sender and read count
+            doc.setFontSize(9);
+            doc.setFont('NotoSans', 'italic');
+            doc.setTextColor(120);
+            doc.text(`Sent by: ${broadcast.sender}  •  ${broadcast.read_count} read`, margin + 10, yPos);
+            yPos += 20;
+          });
+
+          if (chunkIndex < broadcastChunks.length - 1) {
+            yPos = checkPageBreak(doc, yPos, 30);
+            doc.setFontSize(9);
+            doc.setFont('NotoSans', 'italic');
+            doc.setTextColor(120);
+            doc.text(`(Continued - showing ${(chunkIndex + 1) * maxItems} of ${broadcasts.length} broadcasts)`, margin, yPos);
+            yPos += 20;
+            doc.addPage();
+            yPos = margin;
+          }
+        }
+      } else {
+        doc.setFontSize(10);
+        doc.setFont('NotoSans', 'normal');
+        doc.setTextColor(120);
+        doc.text('No broadcasts available', margin, yPos);
         yPos += 30;
       }
     }

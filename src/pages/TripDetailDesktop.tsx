@@ -268,18 +268,29 @@ export const TripDetailDesktop = () => {
             destination: tripWithUpdatedData.location,
             dateRange: tripWithUpdatedData.dateRange,
             description: tripWithUpdatedData.description,
-            calendar: mockItinerary,
-            payments: mockPayments.length > 0 ? {
+            calendar: sections.includes('calendar') ? mockItinerary : undefined,
+            payments: sections.includes('payments') && mockPayments.length > 0 ? {
               items: mockPayments,
               total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
               currency: mockPayments[0]?.currency || 'USD'
             } : undefined,
-            polls: mockPolls,
-            roster: mockMembers.map(m => ({
+            polls: sections.includes('polls') ? mockPolls : undefined,
+            tasks: sections.includes('tasks') ? mockLinks.filter((link: any) => link.source === 'task').map((task: any) => ({
+              title: task.title || 'Unnamed Task',
+              description: task.description,
+              completed: false
+            })) : undefined,
+            places: sections.includes('places') ? mockLinks.filter((link: any) => link.source === 'places' || link.source === 'manual').map((link: any) => ({
+              name: link.title || 'Untitled',
+              url: link.url || '',
+              description: link.description,
+              votes: 0
+            })) : undefined,
+            roster: sections.includes('roster') ? mockMembers.map(m => ({
               name: m.display_name,
               email: undefined,
               role: m.role
-            })),
+            })) : undefined,
           },
           sections,
           {

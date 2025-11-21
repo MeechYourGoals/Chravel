@@ -320,6 +320,29 @@ export interface ProTripData {
   basecamp_address?: string;
   // Broadcasts for the trip
   broadcasts?: Broadcast[];
+  // Tasks for the trip
+  tasks?: Array<{
+    id: string;
+    title: string;
+    description?: string;
+    completed: boolean;
+    due_at?: string;
+    assigned_to?: string;
+    created_at: string;
+  }>;
+  // Polls for the trip
+  polls?: Array<{
+    id: string;
+    question: string;
+    options: Array<{
+      id: string;
+      text: string;
+      votes: number;
+    }>;
+    total_votes: number;
+    status: string;
+    created_at: string;
+  }>;
   // Feature toggles for Pro/Event trips
   enabled_features?: string[];
   archived?: boolean;
