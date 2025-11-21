@@ -156,14 +156,26 @@ export const TripDetailDesktop = () => {
     if (updates.description) setTripDescription(updates.description);
   };
   
-  // Create trip object with all updates
-  const tripWithUpdatedData = trip ? {
-    ...trip,
-    title: tripData.title || trip.title,
-    location: tripData.location || trip.location,
-    dateRange: tripData.dateRange || trip.dateRange,
-    description: tripDescription || trip.description
-  } : null;
+  // ⚡ PHASE 5: Loading check BEFORE expensive operations - show spinner instantly
+  if (demoModeLoading || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  // ⚡ PHASE 2: Memoize tripWithUpdatedData to prevent unnecessary regenerations
+  const tripWithUpdatedData = React.useMemo(() => {
+    if (!trip) return null;
+    return {
+      ...trip,
+      title: tripData.title || trip.title,
+      location: tripData.location || trip.location,
+      dateRange: tripData.dateRange || trip.dateRange,
+      description: tripDescription || trip.description
+    };
+  }, [trip, tripData.title, tripData.location, tripData.dateRange, tripDescription]);
   
   // Generate dynamic mock data based on the trip - MEMOIZED for performance
   const mockData = React.useMemo(() => {
@@ -183,8 +195,8 @@ export const TripDetailDesktop = () => {
   const mockLinks = mockData?.links ?? [];
   const mockItinerary = mockData?.itinerary ?? [];
 
-  // Build comprehensive trip context
-  const tripContext = {
+  // ⚡ PHASE 3: Memoize trip context to prevent child re-renders
+  const tripContext = React.useMemo(() => ({
     id: tripId || '1',
     title: tripWithUpdatedData?.title ?? '',
     location: tripWithUpdatedData?.location ?? '',
@@ -197,16 +209,7 @@ export const TripDetailDesktop = () => {
     collaborators: tripWithUpdatedData?.participants ?? [],
     itinerary: mockItinerary,
     isPro: false
-  };
-
-  // Loading state - show while demo mode initializes or trip data loads
-  if (demoModeLoading || loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
-  }
+  }), [tripId, tripWithUpdatedData, basecamp, mockItinerary, mockBroadcasts, mockLinks, tripMessages]);
 
   // Handle missing trip - render after all hooks are called
   if (!tripWithUpdatedData) {

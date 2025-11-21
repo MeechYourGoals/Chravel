@@ -100,8 +100,8 @@ const EventDetail = () => {
 
   const eventData = eventsMockData[eventId];
 
-  // Enhanced trip data with event-specific features
-  const trip = {
+  // ⚡ PHASE 2: Memoize trip object to prevent unnecessary regenerations
+  const trip = React.useMemo(() => ({
     id: parseInt(eventId.replace(/\D/g, '') || '1'),
     title: eventData.title,
     location: eventData.location,
@@ -112,7 +112,7 @@ const EventDetail = () => {
       name: p.name,
       avatar: p.avatar
     }))
-  };
+  }), [eventId, eventData, tripDescription]);
 
   // Initialize description state when event data is loaded
   React.useEffect(() => {
@@ -128,26 +128,26 @@ const EventDetail = () => {
     }
   }, [eventId, user, generateInitialEmbeddings]);
 
-  // Mock basecamp data for Events
-  const basecamp = {
+  // ⚡ PHASE 2: Memoize basecamp and mock data
+  const basecamp = React.useMemo(() => ({
     name: "Event Headquarters",
     address: `${eventData.location}, Main Venue`
-  };
+  }), [eventData.location]);
 
   // Messages are now handled by unified messaging service
   const tripMessages: Message[] = [];
 
   // Mock data for Event context - same structure as standard trips
-  const mockBroadcasts = [
+  const mockBroadcasts = React.useMemo(() => [
     { id: 1, senderName: "Event Coordinator", content: `${eventData.category} schedule confirmed for all attendees`, timestamp: "2025-01-15T15:30:00Z" },
     { id: 2, senderName: "Operations", content: `Welcome to ${eventData.title} - check your itinerary for updates`, timestamp: "2025-01-15T10:00:00Z" }
-  ];
+  ], [eventData.category, eventData.title]);
 
-  const mockLinks = [
+  const mockLinks = React.useMemo(() => [
     { id: '1', title: "Official Event Website", url: "https://event-official.com/info", category: "Information", votes: 0, addedBy: "System", addedAt: new Date().toISOString() },
     { id: '2', title: "Venue Information", url: "https://venues.com/events", category: "Venue", votes: 0, addedBy: "System", addedAt: new Date().toISOString() },
     { id: '3', title: "Networking Hub", url: "https://networking.events.com", category: "Networking", votes: 0, addedBy: "System", addedAt: new Date().toISOString() }
-  ];
+  ], []);
 
   // Enhanced trip context with event-specific features
   // Early return for mobile after all hooks are initialized
@@ -169,7 +169,8 @@ const EventDetail = () => {
     scrollToChat();
   }, []);
 
-  const tripContext: TripContext = {
+  // ⚡ PHASE 3: Memoize trip context to prevent child re-renders
+  const tripContext: TripContext = React.useMemo(() => ({
     tripId: eventId,
     title: eventData.title,
     location: eventData.location,
@@ -208,7 +209,7 @@ const EventDetail = () => {
     isPro: false,
     broadcasts: mockBroadcasts as any, // Mock data for demo - type assertion for simplified broadcast structure
     links: mockLinks
-  };
+  }), [eventId, eventData, trip, basecamp, mockBroadcasts, mockLinks]);
 
   return (
     <TripVariantProvider variant="events">

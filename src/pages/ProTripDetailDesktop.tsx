@@ -11,7 +11,8 @@ import { proTripMockData } from '../data/proTripMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { ProTripCategory } from '../types/proCategories';
 import { ExportSection } from '../types/tripExport';
-import { generateClientPDF } from '../utils/exportPdfClient';
+// ⚡ PHASE 6: Lazy load PDF utilities - removed from initial bundle
+// import { generateClientPDF } from '../utils/exportPdfClient';
 import { openOrDownloadBlob } from '../utils/download';
 import { toast } from 'sonner';
 import { supabase } from '../integrations/supabase/client';
@@ -118,10 +119,8 @@ export const ProTripDetailDesktop = () => {
 
   const tripData = isDemoMode ? proTripMockData[proTripId] : proTripMockData[proTripId];
 
-  // Transform trip data to match consumer trip structure
-  const participants = tripData.participants || [];
-
-  const trip = {
+  // ⚡ PHASE 2: Memoize trip object to prevent unnecessary regenerations
+  const trip = React.useMemo(() => ({
     id: tripData.id,
     name: tripData.title,
     description: tripData.description || '',
@@ -133,17 +132,19 @@ export const ProTripDetailDesktop = () => {
     updated_at: new Date().toISOString(),
     is_archived: false,
     trip_type: 'pro' as const
-  };
+  }), [tripData]);
 
-  const basecamp = {
+  // ⚡ PHASE 2: Memoize basecamp and other derived data
+  const basecamp = React.useMemo(() => ({
     name: tripData.basecamp_name || '',
     address: tripData.basecamp_address || ''
-  };
+  }), [tripData.basecamp_name, tripData.basecamp_address]);
 
   const broadcasts = tripData.broadcasts || [];
   const links = tripData.links || [];
 
-  const tripContext = {
+  // ⚡ PHASE 3: Memoize trip context to prevent child re-renders
+  const tripContext = React.useMemo(() => ({
     ...trip,
     basecamp,
     broadcasts,
@@ -159,7 +160,7 @@ export const ProTripDetailDesktop = () => {
     compliance: tripData.compliance,
     media: tripData.media,
     sponsors: tripData.sponsors
-  };
+  }), [trip, basecamp, broadcasts, links, tripData]);
 
   // 🆕 Auto-scroll to chat on page load (chat-first viewport)
   React.useEffect(() => {
@@ -202,6 +203,8 @@ export const ProTripDetailDesktop = () => {
       toast.info('Generating PDF...');
       
       if (isDemoMode) {
+        // ⚡ PHASE 6: Lazy load PDF utility (only when export is clicked)
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
         blob = await generateClientPDF(
           {
             tripId: proTripId || '',
