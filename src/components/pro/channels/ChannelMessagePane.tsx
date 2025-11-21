@@ -137,7 +137,7 @@ export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
         )}
 
         {/* Input Area */}
-        <div className="chat-composer bg-black/30 p-3 pb-[calc(80px+env(safe-area-inset-bottom))] md:pb-3">
+        <div className="chat-composer bg-black/30 p-3 pb-[env(safe-area-inset-bottom)] md:pb-3">
           <div className="flex gap-2">
             <Input
               placeholder={`Message #${channel.name}`}

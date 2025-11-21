@@ -291,7 +291,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
       </div>
 
       {/* Add Payment FAB */}
-      <div className="sticky bottom-0 p-4 bg-gradient-to-t from-black via-black to-transparent border-t border-white/10 safe-bottom">
+      <div className="sticky bottom-0 px-4 py-2 pb-[env(safe-area-inset-bottom)] bg-gradient-to-t from-black via-black to-transparent border-t border-white/10">
         <button
           onClick={handleAddPayment}
           className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-medium py-4 rounded-xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
