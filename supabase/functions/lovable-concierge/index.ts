@@ -251,8 +251,6 @@ serve(async (req) => {
             mockResults.forEach((result: any, idx: number) => {
               const relevancePercent = (result.similarity * 100).toFixed(0)
               const sourceIcon = sourceIconMap[result.source_type as keyof typeof sourceIconMap] || '📄'
-                'file': '📎'
-              }[result.source_type] || '📝'
               
               ragContext += `\n[${idx + 1}] ${sourceIcon} [${result.source_type}] ${result.content_text} (${relevancePercent}% relevant)`
             })
