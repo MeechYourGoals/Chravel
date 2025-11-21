@@ -153,7 +153,7 @@ export const SeatManagementSection = ({ organization, tripCategory = 'Business T
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-2xl font-bold text-white">Roster & Roles</h3>
         <div className="flex items-center gap-2">
@@ -170,8 +170,8 @@ export const SeatManagementSection = ({ organization, tripCategory = 'Business T
         </div>
       </div>
       
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
           <h4 className="text-lg font-semibold text-white">Team Members</h4>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -202,18 +202,18 @@ export const SeatManagementSection = ({ organization, tripCategory = 'Business T
         />
 
         {/* Seat Usage Overview */}
-        <div className="grid md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white/5 rounded-lg p-4">
+        <div className="grid md:grid-cols-3 gap-4 mb-4">
+          <div className="bg-white/5 rounded-lg p-3">
             <div className="text-2xl font-bold text-white">{members.length}</div>
             <div className="text-sm text-gray-400">Total Members</div>
           </div>
-          <div className="bg-white/5 rounded-lg p-4">
+          <div className="bg-white/5 rounded-lg p-3">
             <div className="text-2xl font-bold text-green-400">
               {organization.seatLimit - members.length}
             </div>
             <div className="text-sm text-gray-400">Available Seats</div>
           </div>
-          <div className="bg-white/5 rounded-lg p-4">
+          <div className="bg-white/5 rounded-lg p-3">
             <div className="text-2xl font-bold text-blue-400">{organization.seatLimit}</div>
             <div className="text-sm text-gray-400">Seat Limit</div>
           </div>

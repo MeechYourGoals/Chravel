@@ -108,7 +108,7 @@ export const IntegrationsSection = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-2xl font-bold text-foreground">Integrations</h3>
         <Button variant="outline" size="sm">
@@ -118,7 +118,7 @@ export const IntegrationsSection = () => {
       </div>
 
       {/* Corporate Travel Management Systems */}
-      <div className="space-y-6">
+      <div className="space-y-3">
         <h4 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <Building2 size={20} />
           Corporate Travel Management
@@ -128,7 +128,7 @@ export const IntegrationsSection = () => {
           {integrations.map((integration) => (
             <Card 
               key={integration.id} 
-              className="w-full h-[120px] bg-background/60 backdrop-blur-sm border border-border/50 p-4 hover:bg-background/80 transition-all duration-300"
+              className="w-full h-[90px] bg-background/60 backdrop-blur-sm border border-border/50 p-3 hover:bg-background/80 transition-all duration-300"
             >
               <div className="flex items-center justify-between h-full">
                 {/* Logo */}
@@ -196,7 +196,7 @@ export const IntegrationsSection = () => {
           {futureIntegrations.map((integration) => (
             <Card 
               key={integration.id} 
-              className="w-full h-[120px] bg-background/30 backdrop-blur-sm border border-border/30 p-4 opacity-60"
+              className="w-full h-[90px] bg-background/30 backdrop-blur-sm border border-border/30 p-3 opacity-60"
             >
               <div className="flex items-center justify-between h-full">
                 <div className="flex items-center text-4xl opacity-60">

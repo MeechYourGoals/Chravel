@@ -76,7 +76,7 @@ export const SimpleAttendeeSection = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div>
         <h3 className="text-2xl font-bold text-white flex items-center gap-2">
           <Users size={24} className="text-glass-orange" />
@@ -108,12 +108,12 @@ export const SimpleAttendeeSection = () => {
       </div>
 
       {/* Invite Link Section */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-4">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
           <Link size={20} className="text-glass-orange" />
-          <h4 className="text-lg font-semibold text-white">Share Event Invite</h4>
+          <h4 className="text-base font-semibold text-white">Share Event Invite</h4>
         </div>
-        <p className="text-gray-300 text-sm mb-4">
+        <p className="text-gray-300 text-sm mb-3">
           Share this link with your guests so they can RSVP to your event
         </p>
         
@@ -137,9 +137,9 @@ export const SimpleAttendeeSection = () => {
       </div>
 
       {/* RSVP Status Filters */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-lg font-semibold text-white">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-base font-semibold text-white">
             RSVP Responses ({attendees.length} total)
           </h4>
           <div className="flex gap-2">
@@ -162,7 +162,7 @@ export const SimpleAttendeeSection = () => {
         </div>
 
         {/* Grouped RSVP List */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {(['going', 'maybe', 'not-going', 'not-answered'] as RSVPStatus[]).map((status) => {
             const statusAttendees = groupedAttendees[status];
             const config = getStatusConfig(status);

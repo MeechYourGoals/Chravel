@@ -8,7 +8,7 @@ export const SimpleChatSection = () => {
   const [chatEnabled, setChatEnabled] = useState(true);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div>
         <h3 className="text-2xl font-bold text-white flex items-center gap-2">
           <MessageSquare size={24} className="text-glass-orange" />
@@ -18,10 +18,10 @@ export const SimpleChatSection = () => {
       </div>
 
       {/* Chat Toggle */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h4 className="text-lg font-semibold text-white mb-4">Chat Settings</h4>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-3">Chat Settings</h4>
         
-        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+        <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
           <div>
             <Label className="text-white text-base">Enable Event Chat</Label>
             <p className="text-gray-400 text-sm mt-1">
@@ -37,10 +37,10 @@ export const SimpleChatSection = () => {
       </div>
 
       {/* Chat Features */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h4 className="text-lg font-semibold text-white mb-4">What's Included</h4>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-3">What's Included</h4>
         
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
             <Users size={20} className="text-glass-orange mt-0.5" />
             <div>
@@ -64,8 +64,8 @@ export const SimpleChatSection = () => {
       </div>
 
       {/* Status Display */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h4 className="text-lg font-semibold text-white mb-4">Current Status</h4>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-3">Current Status</h4>
         
         <div className={`p-4 rounded-lg border ${
           chatEnabled 
