@@ -33,7 +33,7 @@ serve(async (req) => {
     }
 
     // Rate limiting (per user instead of IP for better security)
-    const rateLimit = await checkRateLimit(user.id, 100, 60000);
+    const rateLimit = await checkRateLimit(supabase, user.id, 100, 60);
     
     if (!rateLimit.allowed) {
       return new Response(

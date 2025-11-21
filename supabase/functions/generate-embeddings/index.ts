@@ -30,9 +30,13 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  let tripId = 'unknown';
+  
   try {
     console.log('Starting embedding generation')
-    const { tripId, sourceType = 'all', forceRefresh = false, isDemoMode = false }: EmbeddingRequest & { isDemoMode?: boolean } = await req.json()
+    const requestData: EmbeddingRequest & { isDemoMode?: boolean } = await req.json()
+    tripId = requestData.tripId
+    const { sourceType = 'all', forceRefresh = false, isDemoMode = false } = requestData
     
     if (!tripId) {
       throw new Error('tripId is required')
@@ -121,11 +125,8 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    // Extract tripId from outer scope if available
-    const requestTripId = typeof tripId !== 'undefined' ? tripId : 'unknown';
-    
     // Log full error server-side
-    logError('EMBEDDING_GENERATION', error, { tripId: requestTripId })
+    logError('EMBEDDING_GENERATION', error, { tripId })
     
     // Return sanitized error to client
     return new Response(

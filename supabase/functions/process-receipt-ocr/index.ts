@@ -158,11 +158,11 @@ serve(async (req) => {
         .from('receipts')
         .update({
           processing_status: 'failed',
-          ocr_error: error.message
+          ocr_error: error instanceof Error ? error.message : String(error)
         })
         .eq('id', payload.receiptId);
 
-      return createErrorResponse(`OCR processing failed: ${error.message}`, 500);
+      return createErrorResponse(`OCR processing failed: ${error instanceof Error ? error.message : String(error)}`, 500);
     }
 
     // Redact PII from OCR text
@@ -226,7 +226,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('OCR processing error:', error);
-    return createErrorResponse(error.message, 500);
+    return createErrorResponse(error instanceof Error ? error.message : String(error), 500);
   }
 });
 

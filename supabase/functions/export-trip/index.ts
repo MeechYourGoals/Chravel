@@ -198,8 +198,8 @@ serve(async (req) => {
     const filename = `Trip_${slug(exportData.tripTitle)}_${layout}_${formatTimestamp()}.pdf`;
     logStep("Returning PDF", { filename, size: pdfBuffer.length });
 
-    // Convert Uint8Array to proper Response body
-    return new Response(new Blob([pdfBuffer], { type: 'application/pdf' }), {
+    // Return PDF directly as Response body
+    return new Response(pdfBuffer, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/pdf',
