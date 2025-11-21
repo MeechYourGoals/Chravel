@@ -254,10 +254,10 @@ export const TripDetailDesktop = () => {
       let blob: Blob;
 
       if (isMockTrip) {
-        // Use mock data for demo trips
-        const mockPayments = await demoModeService.getMockPayments(tripId || '1');
-        const mockPolls = await demoModeService.getMockPolls(tripId || '1');
-        const mockMembers = await demoModeService.getMockMembers(tripId || '1');
+        // Use mock data for demo trips (now synchronous)
+        const mockPayments = demoModeService.getMockPayments(tripId || '1');
+        const mockPolls = demoModeService.getMockPolls(tripId || '1');
+        const mockMembers = demoModeService.getMockMembers(tripId || '1');
 
         // Lazy load PDF generation (only when export is clicked)
         const { generateClientPDF } = await import('../utils/exportPdfClient');
