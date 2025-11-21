@@ -156,15 +156,6 @@ export const TripDetailDesktop = () => {
     if (updates.description) setTripDescription(updates.description);
   };
   
-  // ⚡ LOADING CHECK FIRST - show spinner immediately before any expensive work
-  if (demoModeLoading || loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-
   // Create trip object with all updates
   const tripWithUpdatedData = trip ? {
     ...trip,
@@ -173,8 +164,51 @@ export const TripDetailDesktop = () => {
     dateRange: tripData.dateRange || trip.dateRange,
     description: tripDescription || trip.description
   } : null;
+  
+  // Generate dynamic mock data based on the trip - MEMOIZED for performance
+  const mockData = React.useMemo(() => {
+    if (!tripWithUpdatedData) {
+      return null;
+    }
+    return generateTripMockData(tripWithUpdatedData);
+  }, [tripWithUpdatedData]);
 
-  // Handle missing trip - check after loading but before expensive computations
+  const basecamp = mockData?.basecamp;
+
+  // Messages are now handled by unified messaging service
+  const tripMessages: Message[] = [];
+
+  // Use generated mock data with safe fallbacks
+  const mockBroadcasts = mockData?.broadcasts ?? [];
+  const mockLinks = mockData?.links ?? [];
+  const mockItinerary = mockData?.itinerary ?? [];
+
+  // Build comprehensive trip context
+  const tripContext = {
+    id: tripId || '1',
+    title: tripWithUpdatedData?.title ?? '',
+    location: tripWithUpdatedData?.location ?? '',
+    dateRange: tripWithUpdatedData?.dateRange ?? '',
+    basecamp,
+    calendar: mockItinerary,
+    broadcasts: mockBroadcasts,
+    links: mockLinks,
+    messages: tripMessages,
+    collaborators: tripWithUpdatedData?.participants ?? [],
+    itinerary: mockItinerary,
+    isPro: false
+  };
+
+  // Loading state - show while demo mode initializes or trip data loads
+  if (demoModeLoading || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  // Handle missing trip - render after all hooks are called
   if (!tripWithUpdatedData) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -191,38 +225,6 @@ export const TripDetailDesktop = () => {
       </div>
     );
   }
-
-  // 🚀 NOW do expensive computations - only after loading/not-found checks pass
-  // Generate dynamic mock data based on the trip - MEMOIZED for performance
-  const mockData = React.useMemo(() => {
-    return generateTripMockData(tripWithUpdatedData);
-  }, [tripWithUpdatedData?.id]);
-
-  const basecamp = mockData?.basecamp;
-
-  // Messages are now handled by unified messaging service
-  const tripMessages: Message[] = [];
-
-  // Use generated mock data with safe fallbacks
-  const mockBroadcasts = mockData?.broadcasts ?? [];
-  const mockLinks = mockData?.links ?? [];
-  const mockItinerary = mockData?.itinerary ?? [];
-
-  // Build comprehensive trip context - MEMOIZED to prevent unnecessary re-renders
-  const tripContext = React.useMemo(() => ({
-    id: tripId || '1',
-    title: tripWithUpdatedData?.title ?? '',
-    location: tripWithUpdatedData?.location ?? '',
-    dateRange: tripWithUpdatedData?.dateRange ?? '',
-    basecamp,
-    calendar: mockItinerary,
-    broadcasts: mockBroadcasts,
-    links: mockLinks,
-    messages: tripMessages,
-    collaborators: tripWithUpdatedData?.participants ?? [],
-    itinerary: mockItinerary,
-    isPro: false
-  }), [tripId, tripWithUpdatedData?.title, tripWithUpdatedData?.location, tripWithUpdatedData?.dateRange, basecamp, mockItinerary, mockBroadcasts, mockLinks, tripMessages, tripWithUpdatedData?.participants]);
 
   // Handle export functionality
   const handleExport = async (sections: ExportSection[]) => {
