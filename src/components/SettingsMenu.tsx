@@ -107,7 +107,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50">
         <div className="h-screen flex flex-col bg-white/10 backdrop-blur-md border-r border-white/20 w-full">
           {/* Header */}
-          <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-white/20">
+          <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-white/20">
             <h2 className="text-xl font-semibold text-white">Settings</h2>
             <button onClick={onClose} className="text-gray-400 hover:text-white">
               <X size={24} />
@@ -115,12 +115,12 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
           </div>
 
           {/* Settings Type Toggle */}
-          <div className="flex-shrink-0 p-6 border-b border-white/20">
+          <div className="flex-shrink-0 p-4 border-b border-white/20">
             <ScrollArea className="w-full">
-              <div className="bg-white/10 rounded-xl p-1.5 inline-flex md:grid md:grid-cols-4 gap-1">
+              <div className="bg-white/10 rounded-xl p-1 inline-flex md:grid md:grid-cols-4 gap-1">
                 <button
                   onClick={() => setSettingsType('consumer')}
-                  className={`py-2.5 px-4 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
+                  className={`py-2 px-3 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
                     settingsType === 'consumer'
                       ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
                       : 'text-gray-400 hover:text-white border-transparent hover:border-white/10'
@@ -130,7 +130,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
                 </button>
                 <button
                   onClick={() => setSettingsType('enterprise')}
-                  className={`py-2.5 px-4 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
+                  className={`py-2 px-3 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
                     settingsType === 'enterprise'
                       ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
                       : 'text-gray-400 hover:text-white border-transparent hover:border-white/10'
@@ -140,7 +140,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
                 </button>
                 <button
                   onClick={() => setSettingsType('events')}
-                  className={`py-2.5 px-4 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
+                  className={`py-2 px-3 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
                     settingsType === 'events'
                       ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
                       : 'text-gray-400 hover:text-white border-transparent hover:border-white/10'
@@ -150,7 +150,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
                 </button>
                 <button
                   onClick={() => setSettingsType('advertiser')}
-                  className={`py-2.5 px-4 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
+                  className={`py-2 px-3 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
                     settingsType === 'advertiser'
                       ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
                       : 'text-gray-400 hover:text-white border-transparent hover:border-white/10'
@@ -200,10 +200,10 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
 
             {/* Sign Out Button - Only show for consumer and advertiser settings */}
             {(settingsType === 'consumer' || settingsType === 'advertiser') && (
-              <div className="flex-shrink-0 p-6 bg-white/5 border-t border-white/20">
+              <div className="flex-shrink-0 p-4 bg-white/5 border-t border-white/20">
                 <button
                   onClick={signOut}
-                  className="w-full flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-medium py-3 rounded-xl transition-colors"
+                  className="w-full flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-medium py-2.5 rounded-xl transition-colors"
                 >
                   <LogOut size={16} />
                   Sign Out
