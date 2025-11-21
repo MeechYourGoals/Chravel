@@ -32,15 +32,15 @@ export const ProfileSection = ({ userOrganization }: ProfileSectionProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="text-center">
         <AvatarUpload
           currentAvatarUrl={user.avatar}
           displayName={user.displayName}
-          size="lg"
+          size="md"
           onUploadComplete={handleAvatarUploadComplete}
           onUploadError={handleAvatarUploadError}
-          className="mb-4"
+          className="mb-3"
         />
         <h3 className="text-xl font-semibold text-white mb-2">{user.displayName}</h3>
         <p className="text-gray-400 text-sm">{user.email || user.phone}</p>
@@ -54,27 +54,27 @@ export const ProfileSection = ({ userOrganization }: ProfileSectionProps) => {
         )}
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div>
-          <label className="block text-gray-300 text-sm mb-2">Display Name</label>
+          <label className="block text-gray-300 text-sm mb-1.5">Display Name</label>
           <input
             type="text"
             value={user.displayName}
             onChange={handleDisplayNameChange}
-            className={`w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-${accentColors.primary}`}
+            className={`w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-${accentColors.primary}`}
           />
         </div>
 
         <div>
-          <label className="block text-gray-300 text-sm mb-2">Contact Method</label>
-          <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
+          <label className="block text-gray-300 text-sm mb-1.5">Contact Method</label>
+          <div className="flex items-center gap-3 p-2.5 bg-white/5 rounded-xl">
             {user.email ? <Mail size={16} className="text-gray-400" /> : <Phone size={16} className="text-gray-400" />}
             <span className="text-white">{user.email || user.phone}</span>
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
             <div>
               <div className="text-white font-medium">Show Email in Trips</div>
               <div className="text-sm text-gray-400">Allow trip members to see your email address</div>
@@ -91,7 +91,7 @@ export const ProfileSection = ({ userOrganization }: ProfileSectionProps) => {
             </button>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
+          <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
             <div>
               <div className="text-white font-medium">Show Phone in Trips</div>
               <div className="text-sm text-gray-400">Allow trip members to see your phone number</div>

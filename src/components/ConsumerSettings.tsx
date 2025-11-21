@@ -65,10 +65,10 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose }: Con
     return (
       <div className="flex flex-col h-full w-full min-w-0">
         {/* Mobile Section Selector */}
-        <div className="flex-shrink-0 p-4 border-b border-white/20">
+        <div className="flex-shrink-0 p-3 border-b border-white/20">
           <button
             onClick={() => setShowMobileMenu(!showMobileMenu)}
-            className="w-full flex items-center justify-between p-3 bg-white/10 rounded-xl text-white"
+            className="w-full flex items-center justify-between p-2 bg-white/10 rounded-xl text-white"
           >
             <div className="flex items-center gap-3">
               {currentSection && <currentSection.icon size={20} />}
@@ -91,7 +91,7 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose }: Con
                       setActiveSection(section.id);
                       setShowMobileMenu(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
                       activeSection === section.id
                         ? 'bg-glass-orange/20 text-glass-orange'
                         : 'text-gray-300 hover:text-white hover:bg-white/10'
@@ -108,7 +108,7 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose }: Con
 
         {/* Mobile Content */}
         <div className="flex-1 min-w-0 overflow-y-auto">
-          <div className="p-4">
+          <div className="p-3">
             {renderSection()}
           </div>
         </div>
@@ -119,9 +119,9 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose }: Con
   return (
     <div className="flex h-full w-full min-w-0">
       {/* Desktop Sidebar */}
-      <div className="w-80 flex-shrink-0 bg-white/5 backdrop-blur-md border-r border-white/10 p-6 overflow-y-auto">
-        <h2 className="text-xl font-bold text-white mb-6">Consumer Settings</h2>
-        <div className="space-y-2">
+      <div className="w-64 flex-shrink-0 bg-white/5 backdrop-blur-md border-r border-white/10 p-4 overflow-y-auto">
+        <h2 className="text-xl font-bold text-white mb-3">Consumer Settings</h2>
+        <div className="space-y-1.5">
           {sections.map((section) => {
             const Icon = section.icon;
             return (
@@ -130,7 +130,7 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose }: Con
                 onClick={() => {
                   setActiveSection(section.id);
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
                   activeSection === section.id
                     ? 'bg-glass-orange/20 text-glass-orange border border-glass-orange/30'
                     : 'text-gray-300 hover:text-white hover:bg-white/10'
@@ -147,7 +147,7 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose }: Con
 
       {/* Desktop Main Content */}
       <div className="flex-1 min-w-0 overflow-y-auto">
-        <div className="p-8 pb-24">
+        <div className="p-4 pb-16">
           {renderSection()}
         </div>
       </div>
