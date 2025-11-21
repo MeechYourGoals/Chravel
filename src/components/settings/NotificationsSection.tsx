@@ -17,12 +17,14 @@ export const NotificationsSection = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-white">Notification Preferences</h3>
+    <div className="space-y-3">
+      <h3 className="text-2xl font-bold text-white">Notification Preferences</h3>
       
-      <div className="space-y-4">
-        {Object.entries(user.notificationSettings).map(([key, value]) => (
-          <div key={key} className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-3">App Notifications</h4>
+        <div className="space-y-3">
+          {Object.entries(user.notificationSettings).map(([key, value]) => (
+            <div key={key} className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
             <div className="flex items-center gap-3">
               <Bell size={16} className="text-gray-400" />
               <span className="text-white capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
@@ -36,9 +38,10 @@ export const NotificationsSection = () => {
               <div className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
                 value ? 'translate-x-6' : 'translate-x-0.5'
               }`} />
-            </button>
-          </div>
-        ))}
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

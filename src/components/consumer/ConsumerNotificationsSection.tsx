@@ -55,21 +55,21 @@ export const ConsumerNotificationsSection = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <h3 className="text-2xl font-bold text-white flex items-center gap-2">
         <Bell size={24} className="text-glass-orange" />
         Notification Preferences
       </h3>
 
       {/* Basic Notification Settings */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h4 className="text-lg font-semibold text-white mb-4">App Notifications</h4>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-3">App Notifications</h4>
         
-        <div className="space-y-4">
+        <div className="space-y-3">
           {Object.entries(notificationSettings).filter(([key]) => 
             ['messages', 'broadcasts', 'tripUpdates'].includes(key)
           ).map(([key, value]) => (
-            <div key={key} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+            <div key={key} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
               <div className="flex items-center gap-3">
                 <Bell size={16} className="text-gray-400" />
                 <div>
@@ -99,11 +99,11 @@ export const ConsumerNotificationsSection = () => {
       </div>
 
       {/* Delivery Methods */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h4 className="text-lg font-semibold text-white mb-4">Delivery Methods</h4>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-3">Delivery Methods</h4>
         
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
             <div className="flex items-center gap-3">
               <Bell size={16} className="text-glass-orange" />
               <div>
@@ -132,7 +132,7 @@ export const ConsumerNotificationsSection = () => {
             </div>
           </div>
           
-          <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
             <div className="flex items-center gap-3">
               <Mail size={16} className="text-blue-400" />
               <div>
@@ -161,7 +161,7 @@ export const ConsumerNotificationsSection = () => {
             </div>
           </div>
           
-          <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
             <div className="flex items-center gap-3">
               <Smartphone size={16} className="text-green-400" />
               <div>
@@ -193,12 +193,12 @@ export const ConsumerNotificationsSection = () => {
       </div>
 
       {/* Notification Settings */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h4 className="text-lg font-semibold text-white mb-4">Notification Settings</h4>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-3">Notification Settings</h4>
         
-        <div className="space-y-4">
-          <div className="p-4 bg-white/5 rounded-lg">
-            <div className="flex items-center justify-between mb-3">
+        <div className="space-y-3">
+          <div className="p-3 bg-white/5 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
               <div className="text-white font-medium">Quiet Hours</div>
               <button
                 onClick={() => handleNotificationToggle('quietHours')}
@@ -231,8 +231,8 @@ export const ConsumerNotificationsSection = () => {
             </div>
           </div>
           
-          <div className="p-4 bg-white/5 rounded-lg">
-            <div className="flex items-center justify-between mb-3">
+          <div className="p-3 bg-white/5 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
               <div className="text-white font-medium">Notification Sound</div>
               <button
                 onClick={() => handleTestNotification('sound')}
@@ -251,7 +251,7 @@ export const ConsumerNotificationsSection = () => {
             </select>
           </div>
           
-          <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
             <div>
               <div className="text-white font-medium">Vibration</div>
               <div className="text-sm text-gray-400">Enable vibration for mobile notifications</div>
@@ -268,7 +268,7 @@ export const ConsumerNotificationsSection = () => {
             </button>
           </div>
           
-          <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
             <div>
               <div className="text-white font-medium">Badge Count</div>
               <div className="text-sm text-gray-400">Show unread count on app icon</div>

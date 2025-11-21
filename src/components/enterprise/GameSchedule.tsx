@@ -45,7 +45,7 @@ export const GameSchedule = ({ organizationId }: { organizationId?: string }) =>
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-2xl font-bold text-white flex items-center gap-2">
           <Trophy size={24} className="text-glass-orange" />
@@ -65,16 +65,16 @@ export const GameSchedule = ({ organizationId }: { organizationId?: string }) =>
         className="mb-6"
       />
 
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         {isLoading ? (
           <div className="text-center text-gray-400 py-8">Loading games...</div>
         ) : games.length === 0 ? (
           <div className="text-center text-gray-400 py-8">No games scheduled yet. Add a game or use Smart Import.</div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {games.map((game: any) => (
-              <div key={game.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
-                <div className="flex items-center justify-between mb-3">
+              <div key={game.id} className="bg-white/5 rounded-lg p-3 border border-white/10">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
                     <div className={`w-3 h-3 rounded-full ${
                       game.status === 'confirmed' ? 'bg-green-400' :
@@ -103,7 +103,7 @@ export const GameSchedule = ({ organizationId }: { organizationId?: string }) =>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                   <div className="flex items-center gap-2 text-gray-400">
                     <Calendar size={14} />
                     {game.game_date} at {game.game_time}

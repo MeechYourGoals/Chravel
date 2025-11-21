@@ -27,7 +27,7 @@ export const SimpleEventSetupSection = ({ eventData = {}, onEventDataChange }: S
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div>
         <h3 className="text-2xl font-bold text-white flex items-center gap-2">
           <Calendar size={24} className="text-glass-orange" />
@@ -37,10 +37,10 @@ export const SimpleEventSetupSection = ({ eventData = {}, onEventDataChange }: S
       </div>
 
       {/* Basic Event Information */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h4 className="text-lg font-semibold text-white mb-4">Basic Information</h4>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-3">Basic Information</h4>
         
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div>
             <Label htmlFor="eventName" className="text-white">Event Name</Label>
             <Input
@@ -64,7 +64,7 @@ export const SimpleEventSetupSection = ({ eventData = {}, onEventDataChange }: S
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label htmlFor="startDate" className="text-white">Start Date & Time</Label>
               <Input
@@ -106,9 +106,9 @@ export const SimpleEventSetupSection = ({ eventData = {}, onEventDataChange }: S
       </div>
 
       {/* Logo Upload */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h4 className="text-lg font-semibold text-white mb-4">Event Logo (Optional)</h4>
-        <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-3">Event Logo (Optional)</h4>
+        <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center">
           <Upload size={48} className="mx-auto text-gray-400 mb-4" />
           <p className="text-gray-400 mb-2">Upload your event logo</p>
           <Button variant="outline" className="border-glass-orange text-glass-orange hover:bg-glass-orange/10">

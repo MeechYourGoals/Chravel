@@ -98,16 +98,16 @@ export const ConsumerBillingSection = () => {
   } as const;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <h3 className="text-2xl font-bold text-white">Billing & Subscription</h3>
       
       {/* Current Plan */}
-      <div className={`rounded-xl p-6 ${
+      <div className={`rounded-xl p-4 ${
         isSubscribed
           ? 'bg-gradient-to-r from-glass-orange/10 to-glass-yellow/10 border border-glass-orange/20'
           : 'bg-gradient-to-r from-blue-500/10 to-blue-600/10 border border-blue-500/20'
       }`}>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div>
               <h4 className="text-xl font-bold text-white flex items-center gap-2 capitalize">
@@ -129,9 +129,9 @@ export const ConsumerBillingSection = () => {
           </div>
         </div>
         
-        <div className="mb-6">
-          <h5 className="font-semibold text-white mb-3">Current Plan Features</h5>
-          <ul className="space-y-2 text-sm text-gray-300">
+        <div className="mb-4">
+          <h5 className="font-semibold text-white mb-2">Current Plan Features</h5>
+          <ul className="space-y-1.5 text-sm text-gray-300">
             {plans[tier as keyof typeof plans].features.map((feature, index) => (
               <li key={index} className="flex items-start gap-2">
                 <div className={`w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0 ${
@@ -172,15 +172,15 @@ export const ConsumerBillingSection = () => {
       </div>
 
       {/* Available Plans */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h4 className="text-lg font-semibold text-white mb-4">Available Plans</h4>
-        <div className="space-y-4">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-3">Available Plans</h4>
+        <div className="space-y-3">
           {Object.entries(plans).map(([key, plan]) => {
             const PlanIcon = plan.icon;
             return (
               <Collapsible key={key} open={expandedPlan === key} onOpenChange={() => setExpandedPlan(expandedPlan === key ? null : key)}>
                 <CollapsibleTrigger className="w-full">
-                  <div className={`border rounded-lg p-4 transition-colors hover:bg-white/5 ${
+                  <div className={`border rounded-lg p-3 transition-colors hover:bg-white/5 ${
                     key === tier
                       ? 'border-glass-orange/50 bg-glass-orange/10'
                       : 'border-white/10 bg-white/5'
@@ -207,9 +207,9 @@ export const ConsumerBillingSection = () => {
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2">
-                  <div className="bg-white/5 rounded-lg p-4 ml-4">
-                    <h6 className="font-medium text-white mb-3">Features Included:</h6>
-                    <ul className="space-y-2 text-sm text-gray-300">
+                  <div className="bg-white/5 rounded-lg p-3 ml-4">
+                    <h6 className="font-medium text-white mb-2">Features Included:</h6>
+                    <ul className="space-y-1.5 text-sm text-gray-300">
                       {plan.features.map((feature, index) => (
                         <li key={index} className="flex items-start gap-2">
                           <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>

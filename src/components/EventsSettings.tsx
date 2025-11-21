@@ -34,7 +34,6 @@ export const EventsSettings = ({
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'subscription', label: 'Subscription', icon: CreditCard },
-    { id: 'advertiser', label: 'Advertiser Hub', icon: Megaphone },
     { id: 'setup', label: 'Event Setup', icon: Calendar },
     { id: 'attendees', label: 'Attendees', icon: Users },
     { id: 'agenda', label: 'Agenda', icon: FileText },
@@ -56,9 +55,6 @@ export const EventsSettings = ({
           onShowEnterpriseSettings={onShowEnterpriseSettings}
         />
       );
-      case 'advertiser': 
-        if (onShowAdvertiserHub) onShowAdvertiserHub();
-        return null;
       case 'setup': return <SimpleEventSetupSection eventData={eventData} onEventDataChange={handleEventDataChange} />;
       case 'attendees': return <SimpleAttendeeSection />;
       case 'agenda': return <SimpleAgendaSection />;
@@ -127,16 +123,16 @@ export const EventsSettings = ({
   return (
     <div className="flex h-full w-full min-w-0">
       {/* Desktop Sidebar */}
-      <div className="w-80 flex-shrink-0 bg-white/5 backdrop-blur-md border-r border-white/10 p-6 overflow-y-auto">
-        <h2 className="text-xl font-bold text-white mb-6">Event Settings</h2>
-        <div className="space-y-2">
+      <div className="w-64 flex-shrink-0 bg-white/5 backdrop-blur-md border-r border-white/10 p-4 overflow-y-auto">
+        <h2 className="text-xl font-bold text-white mb-3">Event Settings</h2>
+        <div className="space-y-1.5">
           {sections.map((section) => {
             const Icon = section.icon;
             return (
               <button
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
                   activeSection === section.id
                     ? 'bg-glass-orange/20 text-glass-orange border border-glass-orange/30'
                     : 'text-gray-300 hover:text-white hover:bg-white/10'
@@ -152,7 +148,7 @@ export const EventsSettings = ({
 
       {/* Desktop Main Content */}
       <div className="flex-1 min-w-0 overflow-y-auto">
-        <div className="p-8 pb-24">
+        <div className="p-4 pb-16">
           {renderSection()}
         </div>
       </div>

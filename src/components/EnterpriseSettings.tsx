@@ -208,11 +208,11 @@ export const EnterpriseSettings = ({ organizationId, currentUserId, defaultSecti
   return (
     <div className="flex h-full w-full min-w-0">
       {/* Desktop Sidebar */}
-      <div className="w-80 flex-shrink-0 bg-white/5 backdrop-blur-md border-r border-white/10 p-6 overflow-y-auto">
-        <h2 className="text-xl font-bold text-white mb-6">Enterprise Settings</h2>
+      <div className="w-64 flex-shrink-0 bg-white/5 backdrop-blur-md border-r border-white/10 p-4 overflow-y-auto">
+        <h2 className="text-xl font-bold text-white mb-3">Enterprise Settings</h2>
         
         {/* Trip Category Selector */}
-        <div className="mb-6">
+        <div className="mb-4">
           <label className="block text-sm text-gray-300 mb-2">Trip Category</label>
           <select
             value={tripCategory}
@@ -237,7 +237,7 @@ export const EnterpriseSettings = ({ organizationId, currentUserId, defaultSecti
               <button
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
                   activeSection === section.id
                     ? 'bg-glass-orange/20 text-glass-orange border border-glass-orange/30'
                     : 'text-gray-300 hover:text-white hover:bg-white/10'
@@ -254,7 +254,7 @@ export const EnterpriseSettings = ({ organizationId, currentUserId, defaultSecti
 
       {/* Desktop Main Content */}
       <div className="flex-1 min-w-0 overflow-y-auto">
-        <div className="p-8 pb-24">
+        <div className="p-4 pb-16">
           {renderSection()}
         </div>
       </div>

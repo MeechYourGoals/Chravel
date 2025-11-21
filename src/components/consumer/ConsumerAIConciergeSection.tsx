@@ -84,7 +84,7 @@ export const ConsumerAIConciergeSection = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -104,12 +104,12 @@ export const ConsumerAIConciergeSection = () => {
       </div>
 
       {/* How It Works */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
           <Settings size={20} />
           How AI Concierge Works
         </h3>
-        <ul className="space-y-2 text-gray-300 text-sm">
+        <ul className="space-y-1.5 text-gray-300 text-sm">
           <li>✨ Set your preferences below (dietary, vibe, budget, accessibility)</li>
           <li>🤖 AI remembers them across ALL your trips</li>
           <li>🎯 Get personalized suggestions filtered to YOUR needs</li>
@@ -126,9 +126,9 @@ export const ConsumerAIConciergeSection = () => {
 
       {/* Active Filters Summary */}
       {preferences && (
-        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-          <h3 className="text-white font-semibold mb-4">Active AI Filters</h3>
-          <p className="text-gray-400 text-sm mb-4">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+          <h3 className="text-white font-semibold mb-3">Active AI Filters</h3>
+          <p className="text-gray-400 text-sm mb-3">
             When you ask AI for recommendations, these filters are automatically applied:
           </p>
           <div className="flex flex-wrap gap-2">
