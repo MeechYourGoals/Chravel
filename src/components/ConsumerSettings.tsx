@@ -28,10 +28,10 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose }: Con
 
   const sections = [
     { id: 'profile', label: 'Profile', icon: User },
-    { id: 'billing', label: 'Billing & Subscription', icon: CreditCard },
+    { id: 'billing', label: 'Billing', icon: CreditCard },
     { id: 'ai-concierge', label: 'AI Concierge', icon: Sparkles },
     { id: 'travel-wallet', label: 'Travel Wallet', icon: Wallet },
-    { id: 'saved-recs', label: 'Saved Recommendations', icon: Bookmark },
+    { id: 'saved-recs', label: 'Recommendations', icon: Bookmark },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'privacy', label: 'Privacy & Security', icon: Shield },
     { id: 'settings', label: 'General Settings', icon: Settings },
