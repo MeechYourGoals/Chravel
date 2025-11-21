@@ -5,6 +5,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { ExportSection } from '@/types/tripExport';
+import { proTripMockData } from '@/data/proTripMockData';
+import { useDemoModeStore } from '@/store/demoModeStore';
 
 export interface ExportTripData {
   trip: {
@@ -67,6 +69,102 @@ export async function getExportData(
     trip: { title: 'Trip' }
   };
 
+  // Check if this is a demo mode Pro trip
+  const isDemoMode = useDemoModeStore.getState().isDemoMode;
+  const mockProTrip = proTripMockData[tripId];
+  
+  if (isDemoMode && mockProTrip) {
+    // Demo mode: transform ProTripData to ExportTripData
+    result.trip = {
+      title: mockProTrip.title,
+      destination: mockProTrip.location,
+      dateRange: mockProTrip.dateRange,
+      description: mockProTrip.description
+    };
+
+    // Map Calendar from schedule
+    if (sections.includes('calendar') && mockProTrip.schedule) {
+      result.calendar = mockProTrip.schedule.map(s => ({
+        title: s.title || 'Event',
+        start_time: s.startTime || new Date().toISOString(),
+        end_time: s.endTime,
+        location: s.location,
+        description: s.notes
+      }));
+    }
+
+    // Map Payments from settlement
+    if (sections.includes('payments') && mockProTrip.settlement && mockProTrip.settlement.length > 0) {
+      result.payments = {
+        items: mockProTrip.settlement.map(p => ({
+          description: p.venue || 'Payment',
+          amount: p.finalPayout || 0,
+          currency: 'USD',
+          split_count: 1,
+          is_settled: p.status === 'paid',
+          created_at: p.date
+        })),
+        total: mockProTrip.settlement.reduce((sum, p) => sum + (p.finalPayout || 0), 0),
+        currency: 'USD'
+      };
+    }
+
+    // Map Tasks
+    if (sections.includes('tasks') && mockProTrip.tasks) {
+      result.tasks = mockProTrip.tasks.map(t => ({
+        title: t.title,
+        description: t.description,
+        completed: t.completed,
+        due_date: t.due_at,
+        assigned_to: t.assigned_to
+      }));
+    }
+
+    // Map Polls
+    if (sections.includes('polls') && mockProTrip.polls) {
+      result.polls = mockProTrip.polls.map(p => ({
+        question: p.question,
+        options: p.options,
+        total_votes: p.total_votes,
+        status: p.status
+      }));
+    }
+
+    // Map Places from links
+    if (sections.includes('places') && mockProTrip.links) {
+      result.places = mockProTrip.links.map(link => ({
+        name: link.title,
+        url: link.url,
+        description: link.description,
+        votes: 0
+      }));
+    }
+
+    // Map Broadcasts (Pro only)
+    if (sections.includes('broadcasts') && mockProTrip.broadcasts) {
+      (result as any).broadcasts = mockProTrip.broadcasts.map(b => ({
+        message: b.message,
+        priority: b.priority,
+        timestamp: b.timestamp,
+        sender: 'Team Member',
+        read_count: b.readBy?.length || 0
+      }));
+    }
+
+    // Map Roster
+    if (sections.includes('roster') && mockProTrip.roster) {
+      result.roster = mockProTrip.roster.map(r => ({
+        name: r.name,
+        email: r.email,
+        role: r.role,
+        avatar_url: r.avatar
+      }));
+    }
+
+    return result;
+  }
+
+  // Authenticated mode: fetch from Supabase
   try {
     // Fetch trip basic info
     const { data: trip } = await supabase

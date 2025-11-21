@@ -11,7 +11,80 @@ export const eliLillyCsuiteRetreat: ProTripData = {
   tags: ['Business Travel', 'Executive', 'Strategy'],
   basecamp_name: 'Terranea Resort',
   basecamp_address: '100 Terranea Way, Rancho Palos Verdes, CA 90275',
-  broadcasts: [],
+  tasks: [
+    {
+      id: 'task-eli-1',
+      title: 'Finalize 2026 strategic initiatives deck',
+      description: 'Complete presentation materials for strategic planning session',
+      completed: true,
+      due_at: '2026-01-14',
+      assigned_to: 'strategy-team',
+      created_at: new Date(Date.now() - 604800000).toISOString()
+    },
+    {
+      id: 'task-eli-2',
+      title: 'Distribute pre-read materials to executives',
+      description: 'Send quarterly reports and market analysis to all attendees',
+      completed: false,
+      due_at: '2026-01-15',
+      assigned_to: 'executive-assistant',
+      created_at: new Date().toISOString()
+    }
+  ],
+  polls: [
+    {
+      id: 'poll-eli-1',
+      question: 'Preferred breakout session focus for Day 2?',
+      options: [
+        { id: 'opt1', text: 'AI in Drug Discovery', votes: 18 },
+        { id: 'opt2', text: 'Market Expansion Strategy', votes: 12 },
+        { id: 'opt3', text: 'Operational Excellence', votes: 8 }
+      ],
+      total_votes: 38,
+      status: 'closed',
+      created_at: new Date(Date.now() - 86400000).toISOString()
+    }
+  ],
+  links: [
+    {
+      id: 'link-eli-1',
+      url: 'https://www.terranea.com/meetings',
+      title: 'Terranea Resort - Executive Meeting Facilities',
+      description: 'Resort amenities and meeting room configurations',
+      domain: 'terranea.com',
+      created_at: new Date().toISOString(),
+      source: 'places'
+    },
+    {
+      id: 'link-eli-2',
+      url: 'https://www.lilly.com/strategic-plan-2026',
+      title: 'Eli Lilly Strategic Plan 2026',
+      description: 'Internal strategic planning documents',
+      domain: 'lilly.com',
+      created_at: new Date(Date.now() - 172800000).toISOString(),
+      source: 'manual'
+    }
+  ],
+  broadcasts: [
+    {
+      id: 'bc-eli-1',
+      senderId: '9',
+      message: 'Welcome everyone! Looking forward to a productive strategic planning session.',
+      targetTrips: ['eli-lilly-c-suite-retreat-2026'],
+      priority: 'normal',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      readBy: ['10', '11', '12']
+    },
+    {
+      id: 'bc-eli-2',
+      senderId: '11',
+      message: 'REMINDER: All executives please review pre-read materials before tomorrow morning session.',
+      targetTrips: ['eli-lilly-c-suite-retreat-2026'],
+      priority: 'urgent',
+      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      readBy: ['9', '10']
+    }
+  ],
   participants: [
     { id: 9, name: 'David Ricks', avatar: getMockAvatar('David Ricks'), role: 'Executives' },
     { id: 10, name: 'Anat Ashkenazi', avatar: getMockAvatar('Anat Ashkenazi'), role: 'Executives' },

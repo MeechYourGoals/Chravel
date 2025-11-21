@@ -11,7 +11,80 @@ export const lakersRoadTrip: ProTripData = {
   tags: ['Sports', 'Basketball', 'Road Trip'],
   basecamp_name: 'Staples Center',
   basecamp_address: '1111 S Figueroa St, Los Angeles, CA 90015',
-  broadcasts: [],
+  tasks: [
+    {
+      id: 'task-lakers-1',
+      title: 'Pack all uniforms and game gear',
+      description: 'Ensure home and away jerseys packed for all players',
+      completed: true,
+      due_at: '2025-01-19',
+      assigned_to: 'equipment-manager',
+      created_at: new Date(Date.now() - 604800000).toISOString()
+    },
+    {
+      id: 'task-lakers-2',
+      title: 'Confirm hotel room assignments',
+      description: 'Verify rooming list with all players and staff',
+      completed: false,
+      due_at: '2025-01-20',
+      assigned_to: 'team-manager',
+      created_at: new Date().toISOString()
+    }
+  ],
+  polls: [
+    {
+      id: 'poll-lakers-1',
+      question: 'Preferred post-game meal location?',
+      options: [
+        { id: 'opt1', text: 'Steakhouse', votes: 12 },
+        { id: 'opt2', text: 'Sushi Bar', votes: 7 },
+        { id: 'opt3', text: 'Hotel Room Service', votes: 3 }
+      ],
+      total_votes: 22,
+      status: 'closed',
+      created_at: new Date(Date.now() - 86400000).toISOString()
+    }
+  ],
+  links: [
+    {
+      id: 'link-lakers-1',
+      url: 'https://www.footprintcenter.com',
+      title: 'Footprint Center - Phoenix Suns Arena',
+      description: 'Venue information and logistics',
+      domain: 'footprintcenter.com',
+      created_at: new Date().toISOString(),
+      source: 'places'
+    },
+    {
+      id: 'link-lakers-2',
+      url: 'https://www.marriott.com/phoenix',
+      title: 'Phoenix Marriott Hotel Reservation',
+      description: 'Team accommodation booking',
+      domain: 'marriott.com',
+      created_at: new Date(Date.now() - 172800000).toISOString(),
+      source: 'manual'
+    }
+  ],
+  broadcasts: [
+    {
+      id: 'bc-lakers-1',
+      senderId: '16',
+      message: 'Team bus departs hotel at 5:30 PM sharp. Do not be late!',
+      targetTrips: ['lakers-road-trip'],
+      priority: 'urgent',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      readBy: ['1', '2', '3']
+    },
+    {
+      id: 'bc-lakers-2',
+      senderId: '21',
+      message: 'Reminder: All players must check in with medical staff before departure.',
+      targetTrips: ['lakers-road-trip'],
+      priority: 'normal',
+      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      readBy: ['1', '2']
+    }
+  ],
   participants: [
     { id: 1, name: 'LeBron James', avatar: getMockAvatar('LeBron James'), role: 'Players' },
     { id: 2, name: 'Anthony Davis', avatar: getMockAvatar('Anthony Davis'), role: 'Players' },

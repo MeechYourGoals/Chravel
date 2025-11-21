@@ -10,7 +10,80 @@ export const goldmanSachsRecruiting: ProTripData = {
   tags: ['Recruiting', 'Finance', 'Campus', 'Investment Banking'],
   basecamp_name: 'Georgia Tech Student Center',
   basecamp_address: '350 Ferst Drive NW, Atlanta, GA 30332',
-  broadcasts: [],
+  tasks: [
+    {
+      id: 'task-gs-1',
+      title: 'Set up recruiting booth materials',
+      description: 'Arrange banners, brochures, and swag at Student Center booth',
+      completed: true,
+      due_at: '2025-09-18',
+      assigned_to: 'hr-coordinator',
+      created_at: new Date(Date.now() - 604800000).toISOString()
+    },
+    {
+      id: 'task-gs-2',
+      title: 'Finalize student interview schedule',
+      description: 'Confirm 15-minute interview slots with all pre-selected candidates',
+      completed: false,
+      due_at: '2025-09-19',
+      assigned_to: 'campus-lead',
+      created_at: new Date().toISOString()
+    }
+  ],
+  polls: [
+    {
+      id: 'poll-gs-1',
+      question: 'Preferred networking event format?',
+      options: [
+        { id: 'opt1', text: 'Casual Mixer', votes: 65 },
+        { id: 'opt2', text: 'Panel Q&A', votes: 42 },
+        { id: 'opt3', text: 'Speed Networking', votes: 28 }
+      ],
+      total_votes: 135,
+      status: 'closed',
+      created_at: new Date(Date.now() - 86400000).toISOString()
+    }
+  ],
+  links: [
+    {
+      id: 'link-gs-1',
+      url: 'https://www.gatech.edu/campus-map',
+      title: 'Georgia Tech Campus Map',
+      description: 'Campus navigation and building locations',
+      domain: 'gatech.edu',
+      created_at: new Date().toISOString(),
+      source: 'places'
+    },
+    {
+      id: 'link-gs-2',
+      url: 'https://www.goldmansachs.com/careers',
+      title: 'Goldman Sachs Careers Portal',
+      description: 'Application portal and program information',
+      domain: 'goldmansachs.com',
+      created_at: new Date(Date.now() - 172800000).toISOString(),
+      source: 'manual'
+    }
+  ],
+  broadcasts: [
+    {
+      id: 'bc-gs-1',
+      senderId: '2',
+      message: 'Keynote starting in 15 minutes! All team members please take your seats.',
+      targetTrips: ['gs-campus-gt-2025'],
+      priority: 'urgent',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      readBy: ['1', '3', '4']
+    },
+    {
+      id: 'bc-gs-2',
+      senderId: '1',
+      message: 'Great turnout today! Thank you Georgia Tech for the warm welcome.',
+      targetTrips: ['gs-campus-gt-2025'],
+      priority: 'normal',
+      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      readBy: ['2', '3']
+    }
+  ],
   participants: [
     { id: 1, name: 'David Solomon', avatar: '/images/avatars/blank-05.png', role: 'CEO Speaker' },
     { id: 2, name: 'Rachel Ma', avatar: '/images/avatars/blank-06.png', role: 'Campus Lead' },

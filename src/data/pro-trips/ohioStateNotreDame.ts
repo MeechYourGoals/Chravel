@@ -11,7 +11,80 @@ export const ohioStateNotreDame: ProTripData = {
   tags: ['Sports', 'NCAA Division I', 'Football'],
   basecamp_name: 'Notre Dame Stadium',
   basecamp_address: 'Notre Dame, IN 46556',
-  broadcasts: [],
+  tasks: [
+    {
+      id: 'task-osu-1',
+      title: 'Equipment truck departure confirmation',
+      description: 'Verify all equipment loaded and truck departed on schedule',
+      completed: true,
+      due_at: '2025-09-12',
+      assigned_to: 'operations',
+      created_at: new Date(Date.now() - 604800000).toISOString()
+    },
+    {
+      id: 'task-osu-2',
+      title: 'Player eligibility verification',
+      description: 'NCAA compliance check for all traveling players',
+      completed: false,
+      due_at: '2025-09-13',
+      assigned_to: 'compliance',
+      created_at: new Date().toISOString()
+    }
+  ],
+  polls: [
+    {
+      id: 'poll-osu-1',
+      question: 'Preferred team meal time on game day?',
+      options: [
+        { id: 'opt1', text: '10:00 AM (Early)', votes: 45 },
+        { id: 'opt2', text: '11:00 AM (Standard)', votes: 82 },
+        { id: 'opt3', text: '12:00 PM (Late)', votes: 23 }
+      ],
+      total_votes: 150,
+      status: 'closed',
+      created_at: new Date(Date.now() - 86400000).toISOString()
+    }
+  ],
+  links: [
+    {
+      id: 'link-osu-1',
+      url: 'https://www.nd.edu/stadium',
+      title: 'Notre Dame Stadium Information',
+      description: 'Venue details and parking instructions',
+      domain: 'nd.edu',
+      created_at: new Date().toISOString(),
+      source: 'places'
+    },
+    {
+      id: 'link-osu-2',
+      url: 'https://morrisinn.nd.edu',
+      title: 'Morris Inn - Team Hotel',
+      description: 'Official team accommodation',
+      domain: 'morrisinn.nd.edu',
+      created_at: new Date(Date.now() - 172800000).toISOString(),
+      source: 'manual'
+    }
+  ],
+  broadcasts: [
+    {
+      id: 'bc-osu-1',
+      senderId: '1',
+      message: 'Weather forecast shows rain. Bring rain gear and waterproof equipment covers.',
+      targetTrips: ['osu-notredame-2025'],
+      priority: 'normal',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      readBy: ['2', '3', '4']
+    },
+    {
+      id: 'bc-osu-2',
+      senderId: '3',
+      message: 'URGENT: Stadium access restricted to credentialed personnel only. Ensure all IDs visible.',
+      targetTrips: ['osu-notredame-2025'],
+      priority: 'urgent',
+      timestamp: new Date(Date.now() - 1800000).toISOString(),
+      readBy: ['1', '2']
+    }
+  ],
   participants: Array.from({ length: 150 }, (_, i) => {
     const id = 301 + i;
     const avatars = [

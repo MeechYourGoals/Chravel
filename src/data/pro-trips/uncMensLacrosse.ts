@@ -11,7 +11,80 @@ export const uncMensLacrosse: ProTripData = {
   tags: ['Sports', 'Lacrosse', 'NCAA Division I', 'UNC'],
   basecamp_name: 'Dorrance Field',
   basecamp_address: '104 Stadium Drive, Chapel Hill, NC 27514',
-  broadcasts: [],
+  tasks: [
+    {
+      id: 'task-unc-1',
+      title: 'Equipment van loaded with practice gear',
+      description: 'All practice sticks, balls, and gear loaded for Duke trip',
+      completed: true,
+      due_at: '2025-03-19',
+      assigned_to: 'equipment-manager',
+      created_at: new Date(Date.now() - 604800000).toISOString()
+    },
+    {
+      id: 'task-unc-2',
+      title: 'Confirm bus departure time with drivers',
+      description: 'Final confirmation of 8:30 AM departure from Dorrance Field',
+      completed: false,
+      due_at: '2025-03-20',
+      assigned_to: 'logistics-manager',
+      created_at: new Date().toISOString()
+    }
+  ],
+  polls: [
+    {
+      id: 'poll-unc-1',
+      question: 'Pre-game meal preference?',
+      options: [
+        { id: 'opt1', text: 'Pasta & Chicken', votes: 22 },
+        { id: 'opt2', text: 'Rice Bowls', votes: 18 },
+        { id: 'opt3', text: 'Sandwiches & Fruit', votes: 5 }
+      ],
+      total_votes: 45,
+      status: 'closed',
+      created_at: new Date(Date.now() - 86400000).toISOString()
+    }
+  ],
+  links: [
+    {
+      id: 'link-unc-1',
+      url: 'https://goduke.com/facilities/koskinen-stadium',
+      title: 'Koskinen Stadium - Duke Lacrosse',
+      description: 'Venue information and directions for away game',
+      domain: 'goduke.com',
+      created_at: new Date().toISOString(),
+      source: 'places'
+    },
+    {
+      id: 'link-unc-2',
+      url: 'https://www.graduatehotels.com/chapel-hill',
+      title: 'Graduate Chapel Hill - Team Hotel',
+      description: 'Team accommodation near Duke campus',
+      domain: 'graduatehotels.com',
+      created_at: new Date(Date.now() - 172800000).toISOString(),
+      source: 'manual'
+    }
+  ],
+  broadcasts: [
+    {
+      id: 'bc-unc-1',
+      senderId: '201',
+      message: 'Team meeting tonight at 7 PM in hotel conference room. Attendance mandatory.',
+      targetTrips: ['unc-lax-2025'],
+      priority: 'urgent',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      readBy: ['202', '203', '204']
+    },
+    {
+      id: 'bc-unc-2',
+      senderId: '202',
+      message: 'Great practice today! Remember to hydrate and get good rest tonight.',
+      targetTrips: ['unc-lax-2025'],
+      priority: 'normal',
+      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      readBy: ['201', '203']
+    }
+  ],
   participants: Array.from({ length: 45 }, (_, i) => {
     const id = 201 + i;
     

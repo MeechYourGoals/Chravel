@@ -10,7 +10,80 @@ export const kaiDruskiStream: ProTripData = {
   tags: ['Content', 'Live Stream', 'Gaming'],
   basecamp_name: 'State Farm Arena',
   basecamp_address: '1 State Farm Drive, Atlanta, GA 30303',
-  broadcasts: [],
+  tasks: [
+    {
+      id: 'task-stream-1',
+      title: 'Test all camera angles and lighting',
+      description: 'Run full tech check on all 8 camera setups before go-live',
+      completed: true,
+      due_at: '2025-08-07',
+      assigned_to: 'production-director',
+      created_at: new Date(Date.now() - 604800000).toISOString()
+    },
+    {
+      id: 'task-stream-2',
+      title: 'Coordinate guest appearance schedule',
+      description: 'Finalize arrival times for all surprise guest appearances',
+      completed: false,
+      due_at: '2025-08-07',
+      assigned_to: 'talent-coordinator',
+      created_at: new Date().toISOString()
+    }
+  ],
+  polls: [
+    {
+      id: 'poll-stream-1',
+      question: 'Which challenge should we do first?',
+      options: [
+        { id: 'opt1', text: 'Gaming Marathon', votes: 245 },
+        { id: 'opt2', text: 'Food Challenge', votes: 189 },
+        { id: 'opt3', text: 'Prank Wars', votes: 412 }
+      ],
+      total_votes: 846,
+      status: 'closed',
+      created_at: new Date(Date.now() - 86400000).toISOString()
+    }
+  ],
+  links: [
+    {
+      id: 'link-stream-1',
+      url: 'https://www.twitch.tv/kaicenat',
+      title: 'Kai Cenat Twitch Channel',
+      description: 'Primary streaming platform for 24-hour event',
+      domain: 'twitch.tv',
+      created_at: new Date().toISOString(),
+      source: 'places'
+    },
+    {
+      id: 'link-stream-2',
+      url: 'https://www.watlanta.com',
+      title: 'W Atlanta Downtown Hotel',
+      description: 'Creator accommodation and green room setup',
+      domain: 'watlanta.com',
+      created_at: new Date(Date.now() - 172800000).toISOString(),
+      source: 'manual'
+    }
+  ],
+  broadcasts: [
+    {
+      id: 'bc-stream-1',
+      senderId: '1',
+      message: 'GOING LIVE IN 30 MINUTES! Everyone get to your positions!',
+      targetTrips: ['kai-druski-jake-adin-24hr-atl'],
+      priority: 'urgent',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      readBy: ['2', '3', '4']
+    },
+    {
+      id: 'bc-stream-2',
+      senderId: '3',
+      message: 'Stream hit 500K concurrent viewers! Let\'s keep the energy high!',
+      targetTrips: ['kai-druski-jake-adin-24hr-atl'],
+      priority: 'normal',
+      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      readBy: ['1', '2']
+    }
+  ],
   participants: [
     { id: 1, name: 'Kai Cenat', avatar: '/images/avatars/blank-09.png', role: 'Content Creators' },
     { id: 2, name: 'Druski', avatar: '/images/avatars/blank-10.png', role: 'Content Creators' },
