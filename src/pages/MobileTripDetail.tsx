@@ -33,6 +33,30 @@ export const MobileTripDetail = () => {
     adjustViewport: true
   });
 
+  // ⚡ OPTIMIZATION: Show loading spinner instantly before data lookup
+  if (demoModeLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show loading state while fetching trips
+  if (tripsLoading && !isDemoMode) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading trip...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Get trip data - use demo data in demo mode, Supabase trips when authenticated
   const allTrips = isDemoMode ? tripsData : convertSupabaseTripsToMock(userTrips);
   const trip = allTrips.find(t => String(t.id) === tripId);
@@ -79,34 +103,16 @@ export const MobileTripDetail = () => {
     };
   }, []);
   
-  const tripWithUpdatedDescription = trip ? {
-    ...trip,
-    description: tripDescription || trip.description
-  } : null;
+  // ⚡ OPTIMIZATION: Memoize trip data to prevent unnecessary re-creation
+  const tripWithUpdatedDescription = React.useMemo(() => {
+    if (!trip) return null;
+    return {
+      ...trip,
+      description: tripDescription || trip.description
+    };
+  }, [trip, tripDescription]);
   
-  // 🔄 CRITICAL: Wait for demo mode to initialize before attempting data load
-  if (demoModeLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Initializing...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Show loading state while fetching trips
-  if (tripsLoading && !isDemoMode) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading trip...</p>
-        </div>
-      </div>
-    );
-  }
+  // Handle missing trip - check after data loaded
 
   if (!tripWithUpdatedDescription) {
     return (
@@ -128,8 +134,13 @@ export const MobileTripDetail = () => {
     );
   }
 
-  const mockData = generateTripMockData(trip);
-  const basecamp = mockData.basecamp;
+  // ⚡ OPTIMIZATION: Memoize expensive mock data generation
+  const mockData = React.useMemo(() => {
+    if (!trip) return null;
+    return generateTripMockData(trip);
+  }, [trip]);
+  
+  const basecamp = mockData?.basecamp;
 
   const handleBack = () => {
     hapticService.light();

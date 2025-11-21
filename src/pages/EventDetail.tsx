@@ -45,7 +45,7 @@ const EventDetail = () => {
   const [tripDescription, setTripDescription] = useState<string>('');
 
 
-  // 🔄 CRITICAL: Wait for demo mode to initialize before rendering
+  // ⚡ OPTIMIZATION: Show loading spinner instantly before expensive operations
   if (demoModeLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">

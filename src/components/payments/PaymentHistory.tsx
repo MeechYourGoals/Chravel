@@ -51,7 +51,8 @@ export const PaymentHistory = ({ tripId }: PaymentHistoryProps) => {
         // If empty and consumer trip (1-12), fallback to demo data
         const tripIdNum = parseInt(tripId);
         if (paymentMessages.length === 0 && tripIdNum >= 1 && tripIdNum <= 12) {
-          const mockPayments = await demoModeService.getMockPayments(tripId, false);
+          // ⚡ OPTIMIZATION: Synchronous demo data loading
+          const mockPayments = demoModeService.getMockPayments(tripId, false);
           paymentMessages = mockPayments.map((p: MockPayment) => ({
             id: p.id,
             tripId: p.trip_id,
@@ -131,7 +132,8 @@ export const PaymentHistory = ({ tripId }: PaymentHistoryProps) => {
         // Final fallback for consumer trips
         const tripIdNum = parseInt(tripId);
         if (tripIdNum >= 1 && tripIdNum <= 12) {
-          const mockPayments = await demoModeService.getMockPayments(tripId, false);
+          // ⚡ OPTIMIZATION: Synchronous demo data loading
+          const mockPayments = demoModeService.getMockPayments(tripId, false);
           const fallbackPayments = mockPayments.map((p: MockPayment) => ({
             id: p.id,
             description: p.description,

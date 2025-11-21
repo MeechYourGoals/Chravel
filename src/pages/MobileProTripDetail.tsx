@@ -52,7 +52,7 @@ export const MobileProTripDetail = () => {
     }
   }, [isDemoMode, proTripId, user?.id]);
 
-  // 🔄 CRITICAL: Wait for demo mode to initialize before attempting data load
+  // ⚡ OPTIMIZATION: Show loading spinner before expensive computations
   if (demoModeLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">

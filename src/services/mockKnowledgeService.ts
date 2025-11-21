@@ -7,7 +7,8 @@ export class MockKnowledgeService {
     const results: SearchResult[] = [];
 
     // Get mock messages from demo service
-    const mockMessages = await demoModeService.getMockMessages('demo');
+    // ⚡ OPTIMIZATION: Synchronous demo data loading
+    const mockMessages = demoModeService.getMockMessages('demo');
     
     // Search through mock messages
     for (const message of mockMessages) {
@@ -101,11 +102,12 @@ export class MockKnowledgeService {
     const lowercaseQuery = query.toLowerCase();
     
     // Fetch actual mock data for context
-    const mockMessages = await demoModeService.getMockMessages('consumer-trip', false);
-    const mockBroadcasts = await demoModeService.getMockBroadcasts('consumer-trip');
-    const mockPolls = await demoModeService.getMockPolls(tripId);
-    const mockPayments = await demoModeService.getMockPayments(tripId);
-    const mockMembers = await demoModeService.getMockMembers(tripId);
+    // ⚡ OPTIMIZATION: Synchronous demo data loading
+    const mockMessages = demoModeService.getMockMessages('consumer-trip', false);
+    const mockBroadcasts = demoModeService.getMockBroadcasts('consumer-trip');
+    const mockPolls = demoModeService.getMockPolls(tripId);
+    const mockPayments = demoModeService.getMockPayments(tripId);
+    const mockMembers = demoModeService.getMockMembers(tripId);
     
     // Broadcast summary
     if (lowercaseQuery.includes('broadcast') || lowercaseQuery.includes('announcement')) {
