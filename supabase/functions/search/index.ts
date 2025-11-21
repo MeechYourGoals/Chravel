@@ -144,7 +144,7 @@ async function performSemanticSearch(supabase: any, query: string, scope: string
 }
 
 async function performKeywordSearch(supabase: any, query: string, scope: string, tripId?: string, limit: number = 10, tripType?: string): Promise<SearchResult[]> {
-  const results = []
+  const results: SearchResult[] = []
   
   try {
     // Search trips table directly by name and destination
@@ -184,7 +184,7 @@ async function performKeywordSearch(supabase: any, query: string, scope: string,
     }
 
     if (trips) {
-      trips.forEach(trip => {
+      trips.forEach((trip: any) => {
         const score = trip.name.toLowerCase().includes(query.toLowerCase()) ? 0.95 : 0.85;
         const matchReason = trip.name.toLowerCase().includes(query.toLowerCase()) ? 'title' : 'location';
         

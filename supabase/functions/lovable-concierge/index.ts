@@ -67,6 +67,9 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  let message = '';
+  let tripId = 'unknown';
+  
   try {
     // Early health check path - responds immediately without AI processing
     if (req.method === 'GET') {
@@ -101,14 +104,10 @@ serve(async (req) => {
       return createErrorResponse(validation.error, 400)
     }
 
-    const { 
-      message, 
-      tripContext, 
-      tripId,
-      chatHistory = [], 
-      isDemoMode = false,
-      config = {}
-    } = validation.data
+    const validatedData = validation.data
+    message = validatedData.message
+    tripId = validatedData.tripId || 'unknown'
+    const { tripContext, chatHistory = [], config = {}, isDemoMode = false } = validatedData
 
     // 🆕 SAFETY: Content filtering and PII redaction
     const profanityCheck = filterProfanity(message)
@@ -238,16 +237,20 @@ serve(async (req) => {
             ragContext = '\n\n=== RELEVANT TRIP CONTEXT (HYBRID RAG) ===\n'
             ragContext += 'The following information was retrieved using semantic + keyword search:\n'
             
+            const sourceIconMap: Record<string, string> = {
+              'chat': '💬',
+              'task': '✅',
+              'poll': '📊',
+              'payment': '💰',
+              'broadcast': '📢',
+              'calendar': '📅',
+              'link': '🔗',
+              'file': '📎'
+            }
+            
             mockResults.forEach((result: any, idx: number) => {
               const relevancePercent = (result.similarity * 100).toFixed(0)
-              const sourceIcon = {
-                'chat': '💬',
-                'task': '✅',
-                'poll': '📊',
-                'payment': '💰',
-                'broadcast': '📢',
-                'calendar': '📅',
-                'link': '🔗',
+              const sourceIcon = sourceIconMap[result.source_type as keyof typeof sourceIconMap] || '📄'
                 'file': '📎'
               }[result.source_type] || '📝'
               
@@ -650,15 +653,11 @@ serve(async (req) => {
       },
     )
   } catch (error) {
-    // Extract variables before logging (handle scope correctly)
-    const requestMessage = typeof message !== 'undefined' ? message : '';
-    const requestTripId = typeof tripId !== 'undefined' ? tripId : 'unknown';
-    
     // 🆕 Log with redacted PII
-    const redactedMessage = requestMessage ? redactPII(requestMessage).redactedText : ''
+    const redactedMessage = message ? redactPII(message).redactedText : ''
     logError('LOVABLE_CONCIERGE', error, { 
-      tripId: requestTripId,
-      messageLength: requestMessage?.length || 0,
+      tripId,
+      messageLength: message?.length || 0,
       redactedMessage: redactedMessage.substring(0, 200) // Log redacted version
     })
     
@@ -793,15 +792,8 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
     if (polls?.length) {
       basePrompt += `\n\n=== ACTIVE POLLS ===`
       polls.filter((p: any) => p.status === 'active').forEach((poll: any) => {
-        basePrompt += `\n- ${payment.description}: $${payment.amount} (${payment.paidBy})`
-      })
-    }
-
-    if (polls?.length) {
-      basePrompt += `\n\n=== ACTIVE POLLS ===`
-      polls.filter(p => p.status === 'active').forEach(poll => {
         basePrompt += `\n- ${poll.question}`
-        poll.options.forEach(option => {
+        poll.options.forEach((option: any) => {
           basePrompt += `\n  - ${option.text}: ${option.votes} votes`
         })
       })
@@ -833,7 +825,7 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
 
     if (tripContext.links?.length) {
       basePrompt += `\n\n=== SHARED LINKS & IDEAS ===`
-      tripContext.links.forEach(link => {
+      tripContext.links.forEach((link: any) => {
         basePrompt += `\n- ${link.title} (${link.category}, ${link.votes} votes): ${link.description}`
       })
     }
@@ -841,14 +833,14 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
     if (tripContext.chatHistory?.length) {
       basePrompt += `\n\n=== RECENT GROUP SENTIMENT ===`
       const recentMessages = tripContext.chatHistory.slice(-3)
-      const positiveCount = recentMessages.filter(m => m.sentiment === 'positive').length
+      const positiveCount = recentMessages.filter((m: any) => m.sentiment === 'positive').length
       const mood = positiveCount >= 2 ? 'Positive' : positiveCount >= 1 ? 'Mixed' : 'Neutral'
       basePrompt += `\nGroup Mood: ${mood}`
     }
 
     if (tripContext.upcomingEvents?.length) {
       basePrompt += `\n\n=== UPCOMING SCHEDULE ===`
-      tripContext.upcomingEvents.forEach(event => {
+      tripContext.upcomingEvents.forEach((event: any) => {
         basePrompt += `\n- ${event.title} on ${event.date}`
         if (event.time) basePrompt += ` at ${event.time}`
         if (event.location) basePrompt += ` (${event.location})`
@@ -859,12 +851,12 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
     // 🆕 PAYMENT INTELLIGENCE
     if (tripContext.receipts?.length) {
       basePrompt += `\n\n=== 💳 PAYMENT INTELLIGENCE ===`
-      const totalSpent = tripContext.receipts.reduce((sum, receipt) => sum + (receipt.amount || 0), 0)
+      const totalSpent = tripContext.receipts.reduce((sum: any, receipt: any) => sum + (receipt.amount || 0), 0)
       basePrompt += `\nTotal Trip Spending: $${totalSpent.toFixed(2)}`
       
       // Show recent payments
       const recentPayments = tripContext.receipts.slice(-5)
-      recentPayments.forEach(payment => {
+      recentPayments.forEach((payment: any) => {
         basePrompt += `\n- ${payment.description}: $${payment.amount} (${payment.participants?.join(', ') || 'Group'})`
       })
     }
@@ -872,10 +864,10 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
     // 🆕 POLL AWARENESS
     if (tripContext.polls?.length) {
       basePrompt += `\n\n=== 📊 GROUP POLLS & DECISIONS ===`
-      tripContext.polls.forEach(poll => {
+      tripContext.polls.forEach((poll: any) => {
         basePrompt += `\n**${poll.question}**`
         if (poll.options?.length) {
-          poll.options.forEach(option => {
+          poll.options.forEach((option: any) => {
             basePrompt += `\n- ${option.text}: ${option.votes || 0} votes`
           })
         }
@@ -888,14 +880,14 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
     // 🆕 TASK MANAGEMENT
     if (tripContext.tasks?.length) {
       basePrompt += `\n\n=== ✅ TASK STATUS ===`
-      const completedTasks = tripContext.tasks.filter(task => task.status === 'completed')
-      const pendingTasks = tripContext.tasks.filter(task => task.status !== 'completed')
+      const completedTasks = tripContext.tasks.filter((task: any) => task.status === 'completed')
+      const pendingTasks = tripContext.tasks.filter((task: any) => task.status !== 'completed')
       
       basePrompt += `\nCompleted: ${completedTasks.length} | Pending: ${pendingTasks.length}`
       
       if (pendingTasks.length > 0) {
         basePrompt += `\n**Pending Tasks:**`
-        pendingTasks.forEach(task => {
+        pendingTasks.forEach((task: any) => {
           basePrompt += `\n- ${task.title} (Assigned to: ${task.assignedTo || 'Unassigned'})`
         })
       }
@@ -906,7 +898,7 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
       basePrompt += `\n\n=== 💬 RECENT CHAT ACTIVITY ===`
       const recentMessages = tripContext.chatHistory.slice(-10)
       basePrompt += `\nLast ${recentMessages.length} messages:`
-      recentMessages.forEach(msg => {
+      recentMessages.forEach((msg: any) => {
         basePrompt += `\n- ${msg.sender}: ${msg.content.substring(0, 100)}${msg.content.length > 100 ? '...' : ''}`
       })
     }

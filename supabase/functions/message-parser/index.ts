@@ -64,7 +64,7 @@ serve(async (req) => {
           });
       } else {
         // Fetch Open Graph data for regular links
-        let ogData = {};
+        let ogData: { title: string; description: string; image: string } = { title: '', description: '', image: '' };
         try {
           const response = await fetch(url, {
             headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LinkPreview/1.0)' }
@@ -112,7 +112,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error parsing message:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

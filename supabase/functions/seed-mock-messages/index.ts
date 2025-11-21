@@ -46,7 +46,7 @@ serve(async (req) => {
       .in('trip_type', ['sports-pro', 'entertainment-tour', 'corporate-retreat', 'youth-sports']);
 
     // Insert Pro trip mock messages
-    const mockMessages = [];
+    const mockMessages: any[] = [];
     
     Object.entries(PRO_TEMPLATES).forEach(([tripType, messages]) => {
       messages.forEach((message, index) => {

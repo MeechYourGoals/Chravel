@@ -76,7 +76,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('OpenAI chat proxy error:', error)
     return new Response(
-      JSON.stringify({ error: error.message, success: false }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error), success: false }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
