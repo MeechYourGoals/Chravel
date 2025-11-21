@@ -33,7 +33,7 @@ export const MobileHeader = ({
     <>
       <div className="mb-6 space-y-2">
         {/* Demo Mode Toggle - Top of mobile header */}
-        <div className="flex justify-end px-2">
+        <div className="flex justify-center px-2">
           <div className="min-w-[120px] max-w-[140px]">
             <DemoModeToggle />
           </div>
