@@ -10,7 +10,80 @@ export const teslaCybertruckRoadshow: ProTripData = {
   tags: ['Automotive', 'Product Launch', 'Enterprise'],
   basecamp_name: 'Tesla Gigafactory Texas',
   basecamp_address: '1 Tesla Road, Austin, TX 78725',
-  broadcasts: [],
+  tasks: [
+    {
+      id: 'task-tesla-1',
+      title: 'Cybertruck vehicle prep for display',
+      description: 'Full detail and inspection of all roadshow display vehicles',
+      completed: true,
+      due_at: '2025-03-31',
+      assigned_to: 'vehicle-prep-team',
+      created_at: new Date(Date.now() - 604800000).toISOString()
+    },
+    {
+      id: 'task-tesla-2',
+      title: 'Confirm all venue power requirements',
+      description: 'Verify electrical capacity at each roadshow venue for charging demos',
+      completed: false,
+      due_at: '2025-04-01',
+      assigned_to: 'logistics-coordinator',
+      created_at: new Date().toISOString()
+    }
+  ],
+  polls: [
+    {
+      id: 'poll-tesla-1',
+      question: 'Which demo should we showcase first at each stop?',
+      options: [
+        { id: 'opt1', text: 'Towing Capacity Demo', votes: 8 },
+        { id: 'opt2', text: 'Off-Road Course', votes: 12 },
+        { id: 'opt3', text: 'Acceleration Test', votes: 15 }
+      ],
+      total_votes: 35,
+      status: 'closed',
+      created_at: new Date(Date.now() - 86400000).toISOString()
+    }
+  ],
+  links: [
+    {
+      id: 'link-tesla-1',
+      url: 'https://www.tesla.com/cybertruck',
+      title: 'Tesla Cybertruck Official Page',
+      description: 'Product specifications and features',
+      domain: 'tesla.com',
+      created_at: new Date().toISOString(),
+      source: 'places'
+    },
+    {
+      id: 'link-tesla-2',
+      url: 'https://www.austinproper.com',
+      title: 'Austin Proper Hotel - Executive Accommodation',
+      description: 'Luxury hotel for executive team',
+      domain: 'austinproper.com',
+      created_at: new Date(Date.now() - 172800000).toISOString(),
+      source: 'manual'
+    }
+  ],
+  broadcasts: [
+    {
+      id: 'bc-tesla-1',
+      senderId: '1',
+      message: 'Production start confirmed! First Cybertrucks rolling off the line today!',
+      targetTrips: ['tesla-cybertruck-roadshow-2025'],
+      priority: 'urgent',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      readBy: ['2', '3', '4']
+    },
+    {
+      id: 'bc-tesla-2',
+      senderId: '3',
+      message: 'Logistics update: All 15 roadshow vehicles shipped and en route to destinations.',
+      targetTrips: ['tesla-cybertruck-roadshow-2025'],
+      priority: 'normal',
+      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      readBy: ['1', '2']
+    }
+  ],
   participants: [
     { id: 1, name: 'Elon Musk', avatar: '/images/avatars/blank-17.png', role: 'Executive Team' },
     { id: 2, name: 'Franz von Holzhausen', avatar: '/images/avatars/blank-18.png', role: 'Design Team' },

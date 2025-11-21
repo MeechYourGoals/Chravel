@@ -11,7 +11,80 @@ export const yCombinatorCohort: ProTripData = {
   tags: ['Startup', 'Accelerator', 'Andreessen Horowitz'],
   basecamp_name: 'Andreessen Horowitz HQ',
   basecamp_address: '2865 Sand Hill Rd, Menlo Park, CA 94025',
-  broadcasts: [],
+  tasks: [
+    {
+      id: 'task-yc-1',
+      title: 'Submit Demo Day pitch deck for review',
+      description: 'Final pitch deck due for partner review by Friday EOD',
+      completed: true,
+      due_at: '2026-03-22',
+      assigned_to: 'founders',
+      created_at: new Date(Date.now() - 604800000).toISOString()
+    },
+    {
+      id: 'task-yc-2',
+      title: 'Schedule 1-on-1 with assigned partner',
+      description: 'Book weekly office hours slot with investment partner',
+      completed: false,
+      due_at: '2026-02-01',
+      assigned_to: 'all-founders',
+      created_at: new Date().toISOString()
+    }
+  ],
+  polls: [
+    {
+      id: 'poll-yc-1',
+      question: 'Best time for weekly cohort dinner?',
+      options: [
+        { id: 'opt1', text: 'Tuesday 6 PM', votes: 12 },
+        { id: 'opt2', text: 'Wednesday 7 PM', votes: 18 },
+        { id: 'opt3', text: 'Thursday 6 PM', votes: 5 }
+      ],
+      total_votes: 35,
+      status: 'closed',
+      created_at: new Date(Date.now() - 86400000).toISOString()
+    }
+  ],
+  links: [
+    {
+      id: 'link-yc-1',
+      url: 'https://a16z.com/portfolio-resources',
+      title: 'a16z Portfolio Resources',
+      description: 'Access to exclusive partner resources and tools',
+      domain: 'a16z.com',
+      created_at: new Date().toISOString(),
+      source: 'places'
+    },
+    {
+      id: 'link-yc-2',
+      url: 'https://www.figma.com/community/file/demo-day-template',
+      title: 'Demo Day Presentation Template',
+      description: 'Recommended slide deck template for final pitch',
+      domain: 'figma.com',
+      created_at: new Date(Date.now() - 172800000).toISOString(),
+      source: 'manual'
+    }
+  ],
+  broadcasts: [
+    {
+      id: 'bc-yc-1',
+      senderId: '24',
+      message: 'Office hours this week canceled. Rescheduling to next Monday same time.',
+      targetTrips: ['a16z-speedrun-2026'],
+      priority: 'normal',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      readBy: ['25', '26', '27']
+    },
+    {
+      id: 'bc-yc-2',
+      senderId: '25',
+      message: 'URGENT: Demo Day rehearsal moved to 10 AM tomorrow. Please arrive 15 minutes early.',
+      targetTrips: ['a16z-speedrun-2026'],
+      priority: 'urgent',
+      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      readBy: ['24', '26']
+    }
+  ],
   participants: Array.from({ length: 35 }, (_, i) => {
     const id = 24 + i;
     

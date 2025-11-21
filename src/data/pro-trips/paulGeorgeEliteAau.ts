@@ -11,7 +11,80 @@ export const paulGeorgeEliteAau: ProTripData = {
   tags: ['Sports – Team Trip', 'Basketball', 'AAU', 'Nationals'],
   basecamp_name: 'Orange County Convention Center',
   basecamp_address: '9800 International Drive, Orlando, FL 32819',
-  broadcasts: [],
+  tasks: [
+    {
+      id: 'task-pg-1',
+      title: 'Confirm all player AAU membership cards',
+      description: 'Verify current AAU memberships and eligibility for all roster players',
+      completed: true,
+      due_at: '2025-07-07',
+      assigned_to: 'team-manager',
+      created_at: new Date(Date.now() - 604800000).toISOString()
+    },
+    {
+      id: 'task-pg-2',
+      title: 'Submit tournament roster to officials',
+      description: 'Final roster submission with jersey numbers to tournament desk',
+      completed: false,
+      due_at: '2025-07-09',
+      assigned_to: 'director',
+      created_at: new Date().toISOString()
+    }
+  ],
+  polls: [
+    {
+      id: 'poll-pg-1',
+      question: 'Team dinner location after first game?',
+      options: [
+        { id: 'opt1', text: 'Chipotle', votes: 28 },
+        { id: 'opt2', text: 'Chick-fil-A', votes: 52 },
+        { id: 'opt3', text: 'Pizza Hut', votes: 15 }
+      ],
+      total_votes: 95,
+      status: 'closed',
+      created_at: new Date(Date.now() - 86400000).toISOString()
+    }
+  ],
+  links: [
+    {
+      id: 'link-pg-1',
+      url: 'https://www.espnwwos.com/tournaments',
+      title: 'ESPN Wide World of Sports - Tournament Brackets',
+      description: 'Official tournament schedule and bracket information',
+      domain: 'espnwwos.com',
+      created_at: new Date().toISOString(),
+      source: 'places'
+    },
+    {
+      id: 'link-pg-2',
+      url: 'https://disneyworld.disney.go.com/resorts/grand-floridian',
+      title: 'Disney Grand Floridian - Team Hotel',
+      description: 'Team accommodation and amenities',
+      domain: 'disney.go.com',
+      created_at: new Date(Date.now() - 172800000).toISOString(),
+      source: 'manual'
+    }
+  ],
+  broadcasts: [
+    {
+      id: 'bc-pg-1',
+      senderId: '101',
+      message: 'Breakfast at 7 AM sharp tomorrow. Bus leaves hotel at 8:15 AM for tournament check-in.',
+      targetTrips: ['paul-george-elite-aau-nationals-2025'],
+      priority: 'urgent',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      readBy: ['102', '103', '104']
+    },
+    {
+      id: 'bc-pg-2',
+      senderId: '102',
+      message: 'Great job today team! Pool play continues tomorrow at 2 PM on Court 5.',
+      targetTrips: ['paul-george-elite-aau-nationals-2025'],
+      priority: 'normal',
+      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      readBy: ['101', '103']
+    }
+  ],
   participants: Array.from({ length: 120 }, (_, i) => {
     const id = 101 + i;
     

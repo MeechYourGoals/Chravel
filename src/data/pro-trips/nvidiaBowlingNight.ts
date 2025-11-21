@@ -10,7 +10,80 @@ export const nvidiaBowlingNight: ProTripData = {
   tags: ['Corporate Event', 'Tech', 'Entertainment', 'Employee Engagement'],
   basecamp_name: 'NVIDIA Headquarters',
   basecamp_address: '2788 San Tomas Expressway, Santa Clara, CA 95051',
-  broadcasts: [],
+  tasks: [
+    {
+      id: 'task-nvidia-1',
+      title: 'Reserve bowling lanes and equipment',
+      description: 'Book 10 lanes at AMF Moonlite for 100+ attendees',
+      completed: true,
+      due_at: '2025-12-01',
+      assigned_to: 'event-planner',
+      created_at: new Date(Date.now() - 604800000).toISOString()
+    },
+    {
+      id: 'task-nvidia-2',
+      title: 'Order team building prizes and awards',
+      description: 'Purchase trophies and NVIDIA swag for tournament winners',
+      completed: false,
+      due_at: '2025-12-07',
+      assigned_to: 'people-ops',
+      created_at: new Date().toISOString()
+    }
+  ],
+  polls: [
+    {
+      id: 'poll-nvidia-1',
+      question: 'Dinner menu preference?',
+      options: [
+        { id: 'opt1', text: 'Pizza & Wings', votes: 48 },
+        { id: 'opt2', text: 'Burgers & Fries', votes: 32 },
+        { id: 'opt3', text: 'Mexican Buffet', votes: 20 }
+      ],
+      total_votes: 100,
+      status: 'closed',
+      created_at: new Date(Date.now() - 86400000).toISOString()
+    }
+  ],
+  links: [
+    {
+      id: 'link-nvidia-1',
+      url: 'https://www.amf.com/moonlite-lanes',
+      title: 'AMF Moonlite Lanes',
+      description: 'Bowling venue with food and full bar',
+      domain: 'amf.com',
+      created_at: new Date().toISOString(),
+      source: 'places'
+    },
+    {
+      id: 'link-nvidia-2',
+      url: 'https://www.nvidia.com/en-us/about-nvidia/culture',
+      title: 'NVIDIA Company Culture',
+      description: 'Team building and employee engagement programs',
+      domain: 'nvidia.com',
+      created_at: new Date(Date.now() - 172800000).toISOString(),
+      source: 'manual'
+    }
+  ],
+  broadcasts: [
+    {
+      id: 'bc-nvidia-1',
+      senderId: '1',
+      message: 'Looking forward to seeing everyone tonight! Let\'s have some fun! 🎳',
+      targetTrips: ['nvidia-bowling-2025'],
+      priority: 'normal',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      readBy: ['2', '3', '4']
+    },
+    {
+      id: 'bc-nvidia-2',
+      senderId: '4',
+      message: 'REMINDER: Event starts at 6 PM. Carpool from HQ leaves at 5:45 PM.',
+      targetTrips: ['nvidia-bowling-2025'],
+      priority: 'urgent',
+      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      readBy: ['1', '2']
+    }
+  ],
   participants: [
     { id: 1, name: 'Jensen Huang', avatar: '/images/avatars/blank-09.png', role: 'Host' },
     { id: 2, name: 'Colette Kress', avatar: '/images/avatars/blank-10.png', role: 'CFO' },
