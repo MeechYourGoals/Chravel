@@ -84,19 +84,24 @@ export const TripDetailDesktop = () => {
       
       if (isDemoMode) {
         // 🎭 DEMO MODE: Use mock data only - NO Supabase queries
+        console.log(`[TripDetailDesktop] Demo mode active, loading trip ${tripId}`);
         const tripIdNum = parseInt(tripId, 10);
-        
+
         if (Number.isNaN(tripIdNum)) {
-          console.error(`TripDetailDesktop: Invalid trip ID (not a number): ${tripId}`);
+          console.error(`[TripDetailDesktop] Invalid trip ID (not a number): ${tripId}`);
+          toast.error('Invalid trip ID format for demo mode');
           setTrip(null);
           setLoading(false);
           return;
         }
-        
+
         const mockTrip = getTripById(tripIdNum);
         if (!mockTrip) {
-          console.error(`TripDetailDesktop: Trip not found in mock data: ${tripId}`);
-          console.log('Available mock trip IDs:', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+          console.error(`[TripDetailDesktop] Trip ${tripId} not found in demo data`);
+          console.log('[TripDetailDesktop] Available demo trip IDs:', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+          toast.error(`Demo trip ${tripId} not found. Available trips: 1-12`);
+        } else {
+          console.log(`[TripDetailDesktop] Successfully loaded demo trip:`, mockTrip.title);
         }
         setTrip(mockTrip || null);
       } else {

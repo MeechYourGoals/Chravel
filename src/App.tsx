@@ -85,17 +85,36 @@ const App = () => {
   // Initialize demo mode BEFORE rendering any components
   useEffect(() => {
     const initDemoMode = async () => {
-      const timeout = new Promise((resolve) => setTimeout(() => resolve(false), 3000));
-      try {
-        await Promise.race([
-          useDemoModeStore.getState().init(),
-          timeout
-        ]);
-      } catch (error) {
-        console.error('Demo mode init failed:', error);
-      } finally {
-        setDemoModeInitialized(true);
+      let retries = 3;
+
+      while (retries > 0) {
+        try {
+          console.log('[App] Initializing demo mode... (attempts remaining: ' + retries + ')');
+          await useDemoModeStore.getState().init();
+          console.log('[App] Demo mode initialized successfully');
+          break;
+        } catch (error) {
+          retries--;
+          console.error('[App] Demo mode init failed:', error);
+
+          if (retries === 0) {
+            console.error('[App] Demo mode init failed after all retries. Continuing anyway...');
+            break;
+          }
+
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, 500 * (4 - retries)));
+        }
       }
+
+      // Log final state for debugging
+      const finalState = useDemoModeStore.getState();
+      console.log('[App] Demo mode final state:', {
+        isDemoMode: finalState.isDemoMode,
+        isLoading: finalState.isLoading
+      });
+
+      setDemoModeInitialized(true);
     };
     initDemoMode();
   }, []);
