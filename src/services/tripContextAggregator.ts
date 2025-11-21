@@ -144,11 +144,12 @@ export class TripContextAggregator {
 
   private static async buildMockContext(tripId: string): Promise<ComprehensiveTripContext> {
     // Fetch actual mock data from demoModeService
-    const mockMessages = await demoModeService.getMockMessages('consumer-trip', false);
-    const mockBroadcasts = await demoModeService.getMockBroadcasts('consumer-trip');
-    const mockPolls = await demoModeService.getMockPolls(tripId);
-    const mockPayments = await demoModeService.getMockPayments(tripId);
-    const mockMembers = await demoModeService.getMockMembers(tripId);
+    // ⚡ OPTIMIZATION: Synchronous demo data loading
+    const mockMessages = demoModeService.getMockMessages('consumer-trip', false);
+    const mockBroadcasts = demoModeService.getMockBroadcasts('consumer-trip');
+    const mockPolls = demoModeService.getMockPolls(tripId);
+    const mockPayments = demoModeService.getMockPayments(tripId);
+    const mockMembers = demoModeService.getMockMembers(tripId);
     
     // Transform messages to include broadcasts with proper typing
     const allMessages = [

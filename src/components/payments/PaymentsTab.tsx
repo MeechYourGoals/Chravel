@@ -105,8 +105,9 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     const loadBalances = async () => {
       // Demo mode: use mock data
       if (demoActive) {
-        const mockPayments = await demoModeService.getMockPayments(tripId, false);
-        const mockMembers = await demoModeService.getMockMembers(tripId);
+        // ⚡ OPTIMIZATION: Synchronous demo data loading
+        const mockPayments = demoModeService.getMockPayments(tripId, false);
+        const mockMembers = demoModeService.getMockMembers(tripId);
         
         // Compute simple demo balance summary
         const totalAmount = mockPayments.reduce((sum, p) => sum + p.amount, 0);
@@ -196,12 +197,13 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         });
         
         // Refresh balances with session payments included
-        const mockPayments = await demoModeService.getMockPayments(tripId, false);
+        // ⚡ OPTIMIZATION: Synchronous demo data loading
+        const mockPayments = demoModeService.getMockPayments(tripId, false);
         const sessionPayments = demoModeService.getSessionPayments(tripId);
         const allPayments = [...mockPayments, ...sessionPayments];
         
         // Recompute balance summary
-        const mockMembers = await demoModeService.getMockMembers(tripId);
+        const mockMembers = demoModeService.getMockMembers(tripId);
         const totalAmount = allPayments.reduce((sum, p) => sum + p.amount, 0);
         const avgPerPerson = totalAmount / Math.max(mockMembers.length, 1);
         

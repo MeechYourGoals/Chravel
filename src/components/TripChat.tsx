@@ -335,14 +335,14 @@ export const TripChat = ({
         let demoMessagesData;
         
         if (isProTrip) {
-          // Load Pro-specific demo messages
-          demoMessagesData = await demoModeService.getProMockMessages('pro', user?.id || 'demo-user');
+          // ⚡ OPTIMIZATION: Synchronous demo data loading
+          demoMessagesData = demoModeService.getProMockMessages('pro', user?.id || 'demo-user');
         } else if (isEventTrip) {
           // Load Event-specific demo messages
-          demoMessagesData = await demoModeService.getProMockMessages('event', user?.id || 'demo-user');
+          demoMessagesData = demoModeService.getProMockMessages('event', user?.id || 'demo-user');
         } else {
           // Load consumer trip demo messages (existing logic)
-          demoMessagesData = await demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
+          demoMessagesData = demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
         }
 
         const formattedMessages = demoMessagesData.map(msg => ({
@@ -374,7 +374,8 @@ export const TripChat = ({
         const tripIdNum = parseInt(resolvedTripId);
         if (tripIdNum >= 1 && tripIdNum <= 12 && liveFormattedMessages.length === 0) {
           setDemoLoading(true);
-          const demoMessagesData = await demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
+          // ⚡ OPTIMIZATION: Synchronous demo data loading
+          const demoMessagesData = demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
 
           const formattedMessages = demoMessagesData.map(msg => ({
             id: msg.id,

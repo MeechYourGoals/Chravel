@@ -49,8 +49,8 @@ async function searchTrips(
   const queryLower = query.toLowerCase();
 
   if (isDemoMode) {
-    // Search mock trips
-    const mockTrips = await demoModeService.getMockTrips();
+    // ⚡ OPTIMIZATION: Synchronous demo data loading
+    const mockTrips = demoModeService.getMockTrips();
     return mockTrips
       .filter(trip => {
         const matchesQuery = 

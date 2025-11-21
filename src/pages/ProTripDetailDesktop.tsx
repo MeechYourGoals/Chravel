@@ -11,7 +11,7 @@ import { proTripMockData } from '../data/proTripMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { ProTripCategory } from '../types/proCategories';
 import { ExportSection } from '../types/tripExport';
-import { generateClientPDF } from '../utils/exportPdfClient';
+// ⚡ OPTIMIZATION: PDF generation lazy loaded in handleExport for faster initial render
 import { openOrDownloadBlob } from '../utils/download';
 import { toast } from 'sonner';
 import { supabase } from '../integrations/supabase/client';
@@ -72,7 +72,7 @@ export const ProTripDetailDesktop = () => {
     }
   }, [isDemoMode, proTripId, user?.id]);
 
-  // 🔄 CRITICAL: Wait for demo mode to initialize before rendering
+  // ⚡ OPTIMIZATION: Show loading spinner instantly before expensive operations
   if (demoModeLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
@@ -143,7 +143,8 @@ export const ProTripDetailDesktop = () => {
   const broadcasts = tripData.broadcasts || [];
   const links = tripData.links || [];
 
-  const tripContext = {
+  // ⚡ OPTIMIZATION: Memoize trip context to prevent child re-renders
+  const tripContext = React.useMemo(() => ({
     ...trip,
     basecamp,
     broadcasts,
@@ -159,7 +160,7 @@ export const ProTripDetailDesktop = () => {
     compliance: tripData.compliance,
     media: tripData.media,
     sponsors: tripData.sponsors
-  };
+  }), [trip, basecamp, broadcasts, links, tripData]);
 
   // 🆕 Auto-scroll to chat on page load (chat-first viewport)
   React.useEffect(() => {
@@ -197,11 +198,12 @@ export const ProTripDetailDesktop = () => {
         // Non-fatal; continue without pre-open
       }
 
-      let blob: Blob;
-
       toast.info('Generating PDF...');
+      let blob: Blob;
       
       if (isDemoMode) {
+        // Lazy load PDF generation (only when export is clicked)
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
         // Build export data with conditional section inclusion
         const exportData: any = {
           tripId: proTripId || '',
@@ -327,7 +329,9 @@ export const ProTripDetailDesktop = () => {
           console.error('[PRO-EXPORT] Edge function failed:', errorMsg);
           toast.error('Live export failed, generating offline PDF.');
           
-          blob = await generateClientPDF(
+          // Lazy load PDF generation for fallback
+          const { generateClientPDF: fallbackPDF } = await import('../utils/exportPdfClient');
+          blob = await fallbackPDF(
             {
               tripId: proTripId || '',
               tripTitle: tripData.title,

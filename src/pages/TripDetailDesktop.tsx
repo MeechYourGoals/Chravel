@@ -147,6 +147,15 @@ export const TripDetailDesktop = () => {
     }
   }, [loading, trip]);
 
+  // ⚡ OPTIMIZATION: Show loading spinner instantly before expensive operations
+  if (demoModeLoading || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
   // Handle trip updates from edit modal
   const handleTripUpdate = (updates: Partial<MockTrip>) => {
     setTripData(prev => ({ ...prev, ...updates }));
@@ -156,14 +165,17 @@ export const TripDetailDesktop = () => {
     if (updates.description) setTripDescription(updates.description);
   };
   
-  // Create trip object with all updates
-  const tripWithUpdatedData = trip ? {
-    ...trip,
-    title: tripData.title || trip.title,
-    location: tripData.location || trip.location,
-    dateRange: tripData.dateRange || trip.dateRange,
-    description: tripDescription || trip.description
-  } : null;
+  // ⚡ OPTIMIZATION: Memoize trip data to prevent regeneration on every render
+  const tripWithUpdatedData = React.useMemo(() => {
+    if (!trip) return null;
+    return {
+      ...trip,
+      title: tripData.title || trip.title,
+      location: tripData.location || trip.location,
+      dateRange: tripData.dateRange || trip.dateRange,
+      description: tripDescription || trip.description
+    };
+  }, [trip, tripData.title, tripData.location, tripData.dateRange, tripDescription]);
   
   // Generate dynamic mock data based on the trip - MEMOIZED for performance
   const mockData = React.useMemo(() => {
@@ -183,8 +195,8 @@ export const TripDetailDesktop = () => {
   const mockLinks = mockData?.links ?? [];
   const mockItinerary = mockData?.itinerary ?? [];
 
-  // Build comprehensive trip context
-  const tripContext = {
+  // ⚡ OPTIMIZATION: Memoize trip context to prevent child re-renders
+  const tripContext = React.useMemo(() => ({
     id: tripId || '1',
     title: tripWithUpdatedData?.title ?? '',
     location: tripWithUpdatedData?.location ?? '',
@@ -197,18 +209,9 @@ export const TripDetailDesktop = () => {
     collaborators: tripWithUpdatedData?.participants ?? [],
     itinerary: mockItinerary,
     isPro: false
-  };
+  }), [tripId, tripWithUpdatedData, basecamp, mockItinerary, mockBroadcasts, mockLinks, tripMessages]);
 
-  // Loading state - show while demo mode initializes or trip data loads
-  if (demoModeLoading || loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-
-  // Handle missing trip - render after all hooks are called
+  // Handle missing trip - render after all computations complete
   if (!tripWithUpdatedData) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -254,10 +257,10 @@ export const TripDetailDesktop = () => {
       let blob: Blob;
 
       if (isMockTrip) {
-        // Use mock data for demo trips
-        const mockPayments = await demoModeService.getMockPayments(tripId || '1');
-        const mockPolls = await demoModeService.getMockPolls(tripId || '1');
-        const mockMembers = await demoModeService.getMockMembers(tripId || '1');
+        // ⚡ OPTIMIZATION: Use synchronous mock data methods (no await needed)
+        const mockPayments = demoModeService.getMockPayments(tripId || '1');
+        const mockPolls = demoModeService.getMockPolls(tripId || '1');
+        const mockMembers = demoModeService.getMockMembers(tripId || '1');
 
         // Lazy load PDF generation (only when export is clicked)
         const { generateClientPDF } = await import('../utils/exportPdfClient');
