@@ -11,7 +11,119 @@ export const beyonceCowboyCarterTour: ProTripData = {
   tags: ['Music Tour', 'Concert', 'International'],
   basecamp_name: 'Wembley Stadium',
   basecamp_address: 'Wembley, London HA9 0WS, United Kingdom',
-  broadcasts: [],
+  broadcasts: [
+    {
+      id: 'bc-1',
+      senderId: '8',
+      message: 'All crew: Load-in starts at 8 AM sharp tomorrow. Please arrive 15 minutes early for safety briefing.',
+      targetTrips: ['beyonce-cowboy-carter-tour'],
+      priority: 'normal',
+      timestamp: new Date(Date.now() - 86400000).toISOString(),
+      readBy: ['4', '5', '6', '7']
+    },
+    {
+      id: 'bc-2',
+      senderId: '9',
+      message: 'Weather update: Rain expected during load-out. Waterproof covers for equipment are mandatory.',
+      targetTrips: ['beyonce-cowboy-carter-tour'],
+      priority: 'normal',
+      timestamp: new Date(Date.now() - 43200000).toISOString(),
+      readBy: ['4', '5', '8']
+    },
+    {
+      id: 'bc-3',
+      senderId: '16',
+      message: 'URGENT: Security protocol update - all crew must wear visible ID badges at all times backstage.',
+      targetTrips: ['beyonce-cowboy-carter-tour'],
+      priority: 'urgent',
+      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      readBy: ['4']
+    }
+  ],
+  tasks: [
+    {
+      id: 'task-1',
+      title: 'Complete venue safety inspection checklist',
+      description: 'Walk through entire venue with safety officer and document any hazards',
+      completed: false,
+      due_at: '2025-02-28',
+      assigned_to: 'Crew',
+      created_at: new Date(Date.now() - 172800000).toISOString()
+    },
+    {
+      id: 'task-2',
+      title: 'Confirm hotel check-in for all crew members',
+      description: 'Verify room assignments and special requests',
+      completed: true,
+      due_at: '2025-02-27',
+      assigned_to: 'Tour Manager',
+      created_at: new Date(Date.now() - 259200000).toISOString()
+    },
+    {
+      id: 'task-3',
+      title: 'Sound check equipment setup',
+      description: 'Test all microphones, monitors, and main PA system',
+      completed: false,
+      due_at: '2025-03-01',
+      assigned_to: 'Crew',
+      created_at: new Date(Date.now() - 86400000).toISOString()
+    }
+  ],
+  polls: [
+    {
+      id: 'poll-1',
+      question: 'What time works best for crew dinner after the show?',
+      options: [
+        { id: 'opt1', text: '11:00 PM (right after load-out)', votes: 15 },
+        { id: 'opt2', text: 'Midnight (gives time to shower)', votes: 28 },
+        { id: 'opt3', text: '1:00 AM (late night vibes)', votes: 8 }
+      ],
+      total_votes: 51,
+      status: 'active',
+      created_at: new Date(Date.now() - 129600000).toISOString()
+    },
+    {
+      id: 'poll-2',
+      question: 'Preferred transportation for venue-to-hotel after show?',
+      options: [
+        { id: 'opt1', text: 'Tour bus (leaves together)', votes: 22 },
+        { id: 'opt2', text: 'Private shuttles (smaller groups)', votes: 19 },
+        { id: 'opt3', text: 'Individual rideshare (flexible timing)', votes: 10 }
+      ],
+      total_votes: 51,
+      status: 'closed',
+      created_at: new Date(Date.now() - 302400000).toISOString()
+    }
+  ],
+  links: [
+    {
+      id: 'link-1',
+      url: 'https://www.wembleystadium.com/events/beyonce',
+      title: 'Wembley Stadium - Event Page',
+      description: 'Official venue information and logistics',
+      domain: 'wembleystadium.com',
+      created_at: new Date(Date.now() - 604800000).toISOString(),
+      source: 'places'
+    },
+    {
+      id: 'link-2',
+      url: 'https://www.thelanghanlondon.com',
+      title: 'The Langham London - Hotel Booking',
+      description: 'Crew accommodation details and amenities',
+      domain: 'thelanghanlondon.com',
+      created_at: new Date(Date.now() - 864000000).toISOString(),
+      source: 'manual'
+    },
+    {
+      id: 'link-3',
+      url: 'https://maps.google.com/?q=Wembley+Stadium',
+      title: 'Wembley Stadium Location',
+      description: 'Directions and parking information',
+      domain: 'maps.google.com',
+      created_at: new Date(Date.now() - 432000000).toISOString(),
+      source: 'places'
+    }
+  ],
   participants: [
     // MVP: Consolidated to 5 roles (Artists, Tour Manager, Crew, Performers, Security)
     { id: 4, name: 'Beyoncé', avatar: '/images/avatars/blank-05.png', role: 'Artists' },

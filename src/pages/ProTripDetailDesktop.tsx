@@ -202,38 +202,95 @@ export const ProTripDetailDesktop = () => {
       toast.info('Generating PDF...');
       
       if (isDemoMode) {
-        blob = await generateClientPDF(
-          {
-            tripId: proTripId || '',
-            tripTitle: tripData.title,
-            destination: tripData.location,
-            dateRange: tripData.dateRange,
-            description: tripData.description || '',
-            calendar: tripData.schedule?.map(s => ({
-              title: s.title || 'Event',
-              start_time: s.startTime || new Date().toISOString(),
-              location: s.location,
-              description: s.notes
-            })) || [],
-            payments: tripData.settlement && tripData.settlement.length > 0 ? {
+        // Build export data with conditional section inclusion
+        const exportData: any = {
+          tripId: proTripId || '',
+          tripTitle: tripData.title,
+          destination: tripData.location,
+          dateRange: tripData.dateRange,
+          description: tripData.description || '',
+        };
+
+        // Map Calendar if selected
+        if (sections.includes('calendar')) {
+          exportData.calendar = tripData.schedule?.map(s => ({
+            title: s.title || 'Event',
+            start_time: s.startTime || new Date().toISOString(),
+            location: s.location,
+            description: s.notes
+          })) || [];
+        }
+
+        // Map Payments if selected
+        if (sections.includes('payments')) {
+          if (tripData.settlement && tripData.settlement.length > 0) {
+            exportData.payments = {
               items: tripData.settlement.map(p => ({
                 description: p.venue || 'Payment',
                 amount: p.finalPayout || 0,
                 currency: 'USD',
                 split_count: 1,
-                is_settled: p.status === 'paid'
+                is_settled: p.status === 'paid',
+                created_at: p.date
               })),
               total: tripData.settlement.reduce((sum, p) => sum + (p.finalPayout || 0), 0),
               currency: 'USD'
-            } : undefined,
-            roster: tripData.roster?.map(r => ({
-              name: r.name,
-              email: r.email,
-              role: r.role
-            })) || [],
-          },
-          sections
-        );
+            };
+          }
+        }
+
+        // Map Tasks if selected
+        if (sections.includes('tasks')) {
+          exportData.tasks = tripData.tasks?.map(t => ({
+            title: t.title,
+            description: t.description,
+            completed: t.completed,
+            due_date: t.due_at,
+            assigned_to: t.assigned_to
+          })) || [];
+        }
+
+        // Map Polls if selected
+        if (sections.includes('polls')) {
+          exportData.polls = tripData.polls?.map(p => ({
+            question: p.question,
+            options: p.options,
+            total_votes: p.total_votes,
+            status: p.status
+          })) || [];
+        }
+
+        // Map Places/Links if selected
+        if (sections.includes('places')) {
+          exportData.places = tripData.links?.map(link => ({
+            name: link.title,
+            url: link.url,
+            description: link.description,
+            votes: 0
+          })) || [];
+        }
+
+        // Map Broadcasts if selected (Pro/Events only)
+        if (sections.includes('broadcasts')) {
+          exportData.broadcasts = tripData.broadcasts?.map(b => ({
+            message: b.message,
+            priority: b.priority,
+            timestamp: b.timestamp,
+            sender: 'Tour Manager',
+            read_count: b.readBy?.length || 0
+          })) || [];
+        }
+
+        // Map Roster if selected
+        if (sections.includes('roster')) {
+          exportData.roster = tripData.roster?.map(r => ({
+            name: r.name,
+            email: r.email,
+            role: r.role
+          })) || [];
+        }
+
+        blob = await generateClientPDF(exportData, sections);
       } else {
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData?.session?.access_token || '';
