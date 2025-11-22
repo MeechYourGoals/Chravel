@@ -365,9 +365,10 @@ export const useTripTasks = (tripId: string, options?: {
 
       if (error) throw error;
 
-      // If no real tasks exist, return seed tasks for consumer trips
+      // If no real tasks exist, return empty array for authenticated users
+      // (Only generate seed tasks in demo mode, which is handled above)
       if (!tasks || tasks.length === 0) {
-        return generateSeedTasks(tripId);
+        return [];
       }
 
         // Transform database tasks to match TripTask interface
@@ -390,9 +391,15 @@ export const useTripTasks = (tripId: string, options?: {
         }));
       } catch (error) {
         console.error('Error fetching tasks:', error);
-        // Fallback to demo tasks
-        const demoTasks = await taskStorageService.getTasks(tripId);
-        return demoTasks.length > 0 ? demoTasks : generateSeedTasks(tripId);
+        
+        // In demo mode: fallback to demo tasks
+        if (isDemoMode) {
+          const demoTasks = await taskStorageService.getTasks(tripId);
+          return demoTasks.length > 0 ? demoTasks : generateSeedTasks(tripId);
+        }
+        
+        // In authenticated mode: return empty array on error
+        return [];
       }
     },
     enabled: !!tripId
