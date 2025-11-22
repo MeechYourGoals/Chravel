@@ -154,8 +154,9 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
       const tripData = {
         name: formData.title,
         description: formData.description || undefined,
-        start_date: formData.startDate || undefined,
-        end_date: formData.endDate || undefined,
+        // Convert YYYY-MM-DD to ISO 8601 datetime format for edge function validation
+        start_date: formData.startDate ? `${formData.startDate}T00:00:00Z` : undefined,
+        end_date: formData.endDate ? `${formData.endDate}T23:59:59Z` : undefined,
         destination: formData.location || undefined,
         trip_type: tripType,
         privacy_mode: privacyMode,
