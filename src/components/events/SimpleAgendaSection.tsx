@@ -24,7 +24,7 @@ export const SimpleAgendaSection = () => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div>
         <h3 className="text-2xl font-bold text-white flex items-center gap-2">
           <FileText size={24} className="text-glass-orange" />
@@ -34,10 +34,10 @@ export const SimpleAgendaSection = () => {
       </div>
 
       {/* Agenda Information */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-        <h4 className="text-base font-semibold text-white mb-3">Agenda Information</h4>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+        <h4 className="text-base font-semibold text-white mb-2">Agenda Information</h4>
         
-        <div className="space-y-3">
+        <div className="space-y-2">
           <div>
             <Label htmlFor="agendaTitle" className="text-white">Agenda Title</Label>
             <Input
@@ -57,18 +57,18 @@ export const SimpleAgendaSection = () => {
               onChange={(e) => setAgendaInfo({...agendaInfo, description: e.target.value})}
               className="bg-gray-800/50 border-gray-600 text-white mt-2"
               placeholder="Brief description of the agenda"
-              rows={2}
+              rows={1}
             />
           </div>
         </div>
       </div>
 
       {/* PDF Upload */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-        <h4 className="text-base font-semibold text-white mb-3">Upload Agenda PDF</h4>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+        <h4 className="text-base font-semibold text-white mb-2">Upload Agenda PDF</h4>
         
         {!agendaInfo.uploadedFile ? (
-          <div className="border-2 border-dashed border-glass-orange/30 rounded-lg p-6 text-center">
+          <div className="border-2 border-dashed border-glass-orange/30 rounded-lg p-4 text-center">
             <Upload size={48} className="mx-auto text-glass-orange mb-4" />
             <p className="text-white mb-2">Upload your event agenda</p>
             <p className="text-gray-400 text-sm mb-4">PDF files only, max 10MB</p>
@@ -114,11 +114,11 @@ export const SimpleAgendaSection = () => {
       </div>
 
       {/* Attendee Access */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-        <h4 className="text-base font-semibold text-white mb-3">Attendee Access</h4>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+        <h4 className="text-base font-semibold text-white mb-2">Attendee Access</h4>
         
-        <div className="space-y-3">
-          <div className="bg-blue-500/20 rounded-lg p-4 border border-blue-500/30">
+        <div className="space-y-2">
+          <div className="bg-blue-500/20 rounded-lg p-3 border border-blue-500/30">
             <div className="flex items-start gap-3">
               <Download size={20} className="text-blue-400 mt-0.5" />
               <div>
@@ -132,7 +132,7 @@ export const SimpleAgendaSection = () => {
           </div>
           
           {agendaInfo.uploadedFile && (
-            <div className="bg-green-500/20 rounded-lg p-4 border border-green-500/30">
+            <div className="bg-green-500/20 rounded-lg p-3 border border-green-500/30">
               <div className="flex items-start gap-3">
                 <FileText size={20} className="text-green-400 mt-0.5" />
                 <div>

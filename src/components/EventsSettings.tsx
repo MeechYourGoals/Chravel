@@ -1,13 +1,12 @@
 
 import React, { useState } from 'react';
-import { Calendar, Users, FileText, MessageSquare, ChevronDown, User, Bell, CreditCard, Megaphone } from 'lucide-react';
+import { Calendar, Users, FileText, MessageSquare, ChevronDown, User, Bell } from 'lucide-react';
 import { SimpleEventSetupSection } from './events/SimpleEventSetupSection';
 import { SimpleAttendeeSection } from './events/SimpleAttendeeSection';
 import { SimpleAgendaSection } from './events/SimpleAgendaSection';
 import { SimpleChatSection } from './events/SimpleChatSection';
-import { ProfileSection } from './settings/ProfileSection';
-import { NotificationsSection } from './settings/NotificationsSection';
-import { SubscriptionSection } from './settings/SubscriptionSection';
+import { EventProfileSection } from './events/EventProfileSection';
+import { EventNotificationsSection } from './events/EventNotificationsSection';
 import { useIsMobile } from '../hooks/use-mobile';
 
 interface EventsSettingsProps {
@@ -33,7 +32,6 @@ export const EventsSettings = ({
   const sections = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'subscription', label: 'Subscription', icon: CreditCard },
     { id: 'setup', label: 'Event Setup', icon: Calendar },
     { id: 'attendees', label: 'Attendees', icon: Users },
     { id: 'agenda', label: 'Agenda', icon: FileText },
@@ -46,20 +44,13 @@ export const EventsSettings = ({
 
   const renderSection = () => {
     switch (activeSection) {
-      case 'profile': return <ProfileSection userOrganization={userOrganization} />;
-      case 'notifications': return <NotificationsSection />;
-      case 'subscription': return (
-        <SubscriptionSection 
-          userOrganization={userOrganization}
-          onShowProModal={onShowProModal}
-          onShowEnterpriseSettings={onShowEnterpriseSettings}
-        />
-      );
+      case 'profile': return <EventProfileSection />;
+      case 'notifications': return <EventNotificationsSection />;
       case 'setup': return <SimpleEventSetupSection eventData={eventData} onEventDataChange={handleEventDataChange} />;
       case 'attendees': return <SimpleAttendeeSection />;
       case 'agenda': return <SimpleAgendaSection />;
       case 'chat': return <SimpleChatSection />;
-      default: return <ProfileSection userOrganization={userOrganization} />;
+      default: return <EventProfileSection />;
     }
   };
 
