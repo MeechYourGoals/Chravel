@@ -45,19 +45,20 @@ serve(async (req) => {
 
     const { name, description, destination, start_date, end_date, trip_type, cover_image_url } = validation.data;
 
-    // Check Pro tier access for pro/event trips
-    if (trip_type === 'pro' || trip_type === 'event') {
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'pro')
-        .single();
-
-      if (!roleData) {
-        throw new Error('Pro subscription required to create professional trips');
-      }
-    }
+    // TEMPORARILY DISABLED FOR MVP: Allow all users to create Pro/Event trips
+    // Will re-enable with feature gating (role-based channels, PDF export, AI Concierge) post-MVP
+    // if (trip_type === 'pro' || trip_type === 'event') {
+    //   const { data: roleData } = await supabase
+    //     .from('user_roles')
+    //     .select('role')
+    //     .eq('user_id', user.id)
+    //     .eq('role', 'pro')
+    //     .single();
+    //
+    //   if (!roleData) {
+    //     throw new Error('Pro subscription required to create professional trips');
+    //   }
+    // }
 
     // Create trip
     const { data: trip, error: tripError } = await supabase
