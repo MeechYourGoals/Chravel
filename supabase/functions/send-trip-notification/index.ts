@@ -94,13 +94,15 @@ serve(async (req) => {
 
       // Check if user has this type of notification enabled
       const typeEnabled = checkNotificationTypeEnabled(payload.type, prefs);
-      if (!typeEnabled || !prefs.push_enabled) {
+      const pushEnabled = Array.isArray(prefs) ? prefs[0]?.push_enabled : (prefs as any)?.push_enabled;
+      if (!typeEnabled || !pushEnabled) {
         console.log(`Skipping user ${member.user_id}: notification type disabled`);
         continue;
       }
 
       // Check quiet hours
-      if (isQuietHours(prefs, member.profiles.timezone)) {
+      const timezone = Array.isArray(member.profiles) ? member.profiles[0]?.timezone : (member.profiles as any)?.timezone;
+      if (isQuietHours(prefs, timezone)) {
         console.log(`Skipping user ${member.user_id}: quiet hours`);
         continue;
       }
@@ -154,7 +156,8 @@ serve(async (req) => {
           results.push({ userId: member.user_id, platform: tokenInfo.platform, success: result.success });
         } catch (error) {
           console.error(`Failed to send to user ${member.user_id}:`, error);
-          results.push({ userId: member.user_id, platform: tokenInfo.platform, success: false, error: error.message });
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          results.push({ userId: member.user_id, platform: tokenInfo.platform, success: false, error: errorMessage });
         }
       }
 
@@ -183,7 +186,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Trip notification error:', error);
-    return createErrorResponse(error.message, 500);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return createErrorResponse(errorMessage, 500);
   }
 });
 

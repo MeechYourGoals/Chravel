@@ -107,8 +107,9 @@ serve(async (req) => {
         results.sent++;
       } catch (error) {
         console.error(`Error processing broadcast ${broadcast.id}:`, error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         results.failed++;
-        results.errors.push(`Broadcast ${broadcast.id}: ${error.message}`);
+        results.errors.push(`Broadcast ${broadcast.id}: ${errorMessage}`);
       }
     }
 
@@ -120,6 +121,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in send-scheduled-broadcasts function:', error);
-    return createErrorResponse(error.message || 'Internal server error', 500);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+    return createErrorResponse(errorMessage, 500);
   }
 });

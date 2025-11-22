@@ -168,19 +168,17 @@ export const TripChat = ({
     threshold: 50
   });
 
-  const shouldUseDemoData = demoMode.isDemoMode || !resolvedTripId;
-
   // Track unread counts with real-time updates
   const { unreadCount, broadcastCount } = useUnreadCounts({
     tripId: resolvedTripId,
     messages: liveMessages as any,
     userId: user?.id || null,
-    enabled: !shouldUseDemoData && !!user?.id
+    enabled: !demoMode.isDemoMode && !!user?.id
   });
 
   // Initialize typing indicators
   useEffect(() => {
-    if (shouldUseDemoData || !user?.id || !resolvedTripId) return;
+    if (demoMode.isDemoMode || !user?.id || !resolvedTripId) return;
 
     const userName = user?.displayName || user?.email?.split('@')[0] || 'You';
     typingServiceRef.current = new TypingIndicatorService(resolvedTripId, user.id, userName);
@@ -198,11 +196,11 @@ export const TripChat = ({
         }
       });
     };
-  }, [shouldUseDemoData, user?.id, resolvedTripId]);
+  }, [demoMode.isDemoMode, user?.id, resolvedTripId]);
 
   // Mark messages as read when they come into view
   useEffect(() => {
-    if (shouldUseDemoData || !user?.id || !resolvedTripId) return;
+    if (demoMode.isDemoMode || !user?.id || !resolvedTripId) return;
 
     const subscription = subscribeToReadReceipts(resolvedTripId, () => {
       // Read receipt updates handled via realtime
@@ -231,10 +229,10 @@ export const TripChat = ({
         }
       });
     };
-  }, [liveMessages, user?.id, resolvedTripId, shouldUseDemoData]);
+  }, [liveMessages, user?.id, resolvedTripId, demoMode.isDemoMode]);
 
   const liveFormattedMessages = useMemo(() => {
-    if (shouldUseDemoData) return [];
+    if (demoMode.isDemoMode) return [];
     return liveMessages.map(message => ({
       id: message.id,
       text: message.content,
@@ -248,7 +246,7 @@ export const TripChat = ({
       isPayment: false,
       tags: [] as string[]
     }));
-  }, [liveMessages, shouldUseDemoData]);
+  }, [liveMessages, demoMode.isDemoMode]);
 
   const handleSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: any) => {
     // Transform paymentData if needed to match useChatComposer expectations
@@ -274,7 +272,7 @@ export const TripChat = ({
       return;
     }
 
-    if (shouldUseDemoData) {
+    if (demoMode.isDemoMode) {
       setDemoMessages(prev => [...prev, message as MockMessage]);
       return;
     }
@@ -325,87 +323,53 @@ export const TripChat = ({
 
   useEffect(() => {
     const loadDemoData = async () => {
-      if (shouldUseDemoData) {
-        setDemoLoading(true);
-        
-        // Detect if this is a Pro or Event trip
-        const isProTrip = isPro || params.proTripId;
-        const isEventTrip = isEvent || params.eventId;
-        
-        let demoMessagesData;
-        
-        if (isProTrip) {
-          // ⚡ OPTIMIZATION: Synchronous demo data loading
-          demoMessagesData = demoModeService.getProMockMessages('pro', user?.id || 'demo-user');
-        } else if (isEventTrip) {
-          // Load Event-specific demo messages
-          demoMessagesData = demoModeService.getProMockMessages('event', user?.id || 'demo-user');
-        } else {
-          // Load consumer trip demo messages (existing logic)
-          demoMessagesData = demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
-        }
-
-        const formattedMessages = demoMessagesData.map(msg => ({
-          id: msg.id,
-          text: msg.message_content || '',
-          sender: {
-            id: msg.sender_id || msg.sender_name || msg.id,
-            name: msg.sender_name || 'Unknown',
-            avatar: getMockAvatar(msg.sender_name || 'Unknown')
-          },
-          createdAt: new Date(Date.now() - (msg.timestamp_offset_days || 0) * 86400000).toISOString(),
-          isBroadcast: msg.tags?.includes('broadcast') || msg.tags?.includes('logistics') || msg.tags?.includes('urgent') || false,
-
-          trip_type: msg.trip_type,
-          sender_name: msg.sender_name,
-          message_content: msg.message_content,
-          delay_seconds: msg.delay_seconds,
-          timestamp_offset_days: msg.timestamp_offset_days,
-          tags: msg.tags
-        }));
-
-        setDemoMessages(formattedMessages);
-        setDemoLoading(false);
-      } else {
-        // Clear demo messages when not in demo mode
+      // CRITICAL FIX: Only load demo messages when actually in demo mode
+      if (!demoMode.isDemoMode) {
         setDemoMessages([]);
-        
-        // BUT if we're on a consumer trip (1-12) and have no live messages, load demo
-        const tripIdNum = parseInt(resolvedTripId);
-        if (tripIdNum >= 1 && tripIdNum <= 12 && liveFormattedMessages.length === 0) {
-          setDemoLoading(true);
-          // ⚡ OPTIMIZATION: Synchronous demo data loading
-          const demoMessagesData = demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
-
-          const formattedMessages = demoMessagesData.map(msg => ({
-            id: msg.id,
-            text: msg.message_content || '',
-            sender: {
-              id: msg.sender_id || msg.sender_name || msg.id,
-              name: msg.sender_name || 'Unknown',
-              avatar: getMockAvatar(msg.sender_name || 'Unknown')
-            },
-            createdAt: new Date(Date.now() - (msg.timestamp_offset_days || 0) * 86400000).toISOString(),
-            isBroadcast: msg.tags?.includes('broadcast') || msg.tags?.includes('logistics') || msg.tags?.includes('urgent') || false,
-
-            trip_type: msg.trip_type,
-            sender_name: msg.sender_name,
-            message_content: msg.message_content,
-            delay_seconds: msg.delay_seconds,
-            timestamp_offset_days: msg.timestamp_offset_days,
-            tags: msg.tags
-          }));
-
-          setDemoMessages(formattedMessages);
-          setDemoLoading(false);
-        } else {
-          setDemoLoading(false);
-        }
+        setDemoLoading(false);
+        return;
       }
+
+      setDemoLoading(true);
+      
+      // Detect if this is a Pro or Event trip
+      const isProTrip = isPro || params.proTripId;
+      const isEventTrip = isEvent || params.eventId;
+      
+      let demoMessagesData;
+      
+      if (isProTrip) {
+        demoMessagesData = demoModeService.getProMockMessages('pro', user?.id || 'demo-user');
+      } else if (isEventTrip) {
+        demoMessagesData = demoModeService.getProMockMessages('event', user?.id || 'demo-user');
+      } else {
+        demoMessagesData = demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
+      }
+
+      const formattedMessages = demoMessagesData.map(msg => ({
+        id: msg.id,
+        text: msg.message_content || '',
+        sender: {
+          id: msg.sender_id || msg.sender_name || msg.id,
+          name: msg.sender_name || 'Unknown',
+          avatar: getMockAvatar(msg.sender_name || 'Unknown')
+        },
+        createdAt: new Date(Date.now() - (msg.timestamp_offset_days || 0) * 86400000).toISOString(),
+        isBroadcast: msg.tags?.includes('broadcast') || msg.tags?.includes('logistics') || msg.tags?.includes('urgent') || false,
+        trip_type: msg.trip_type,
+        sender_name: msg.sender_name,
+        message_content: msg.message_content,
+        delay_seconds: msg.delay_seconds,
+        timestamp_offset_days: msg.timestamp_offset_days,
+        tags: msg.tags
+      }));
+
+      setDemoMessages(formattedMessages);
+      setDemoLoading(false);
     };
 
     loadDemoData();
-  }, [shouldUseDemoData, isEvent, isPro, resolvedTripId, liveFormattedMessages.length, user?.id]);
+  }, [demoMode.isDemoMode, isEvent, isPro, resolvedTripId, user?.id]);
 
   // Auto-select first channel when switching to 'channels' filter
   useEffect(() => {
@@ -418,21 +382,12 @@ export const TripChat = ({
     }
   }, [messageFilter, availableChannels, activeChannel, setActiveChannel]);
 
-  // Determine which messages to show:
-  // 1. Demo mode OR no tripId: show demo messages
-  // 2. Consumer trip (1-12) with no live messages: show demo messages as fallback
-  // 3. Otherwise: show live messages
-  const tripIdNum = parseInt(resolvedTripId);
-  const isConsumerTripWithNoMessages =
-    tripIdNum >= 1 && tripIdNum <= 12 && liveFormattedMessages.length === 0 && !shouldUseDemoData;
-
-  const messagesToShow = (shouldUseDemoData || isConsumerTripWithNoMessages)
-    ? demoMessages
-    : liveFormattedMessages;
+  // Determine which messages to show - authenticated trips show ONLY live messages
+  const messagesToShow = demoMode.isDemoMode ? demoMessages : liveFormattedMessages;
 
   const filteredMessages = filterMessages(messagesToShow);
 
-  const isLoading = shouldUseDemoData ? demoLoading : liveLoading;
+  const isLoading = demoMode.isDemoMode ? demoLoading : liveLoading;
 
   // Global keyboard shortcut for search (Ctrl+F or Cmd+F)
   useEffect(() => {
@@ -473,7 +428,7 @@ export const TripChat = ({
                 <MessageSearch
                   tripId={resolvedTripId}
                   localMessages={messagesToShow}
-                  isDemoMode={shouldUseDemoData || isConsumerTripWithNoMessages}
+                  isDemoMode={demoMode.isDemoMode}
                   onMessageSelect={(messageId) => {
                     // Scroll to message
                     const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
@@ -544,8 +499,8 @@ export const TripChat = ({
                       />
                     </div>
                   )}
-                  onLoadMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? () => {} : loadMoreMessages}
-                  hasMore={(shouldUseDemoData || isConsumerTripWithNoMessages) ? false : hasMore}
+                  onLoadMore={demoMode.isDemoMode ? () => {} : loadMoreMessages}
+                  hasMore={demoMode.isDemoMode ? false : hasMore}
                   isLoading={isLoadingMore}
                   initialVisibleCount={10}
                   className="chat-scroll-container native-scroll px-3"
@@ -556,7 +511,7 @@ export const TripChat = ({
               )}
               
               {/* Typing Indicator */}
-              {!shouldUseDemoData && typingUsers.length > 0 && (
+              {!demoMode.isDemoMode && typingUsers.length > 0 && (
                 <TypingIndicator typingUsers={typingUsers} />
               )}
               
@@ -594,7 +549,7 @@ export const TripChat = ({
               isPro={isPro}
               tripId={resolvedTripId}
               onTypingChange={(isTyping) => {
-                if (!shouldUseDemoData && typingServiceRef.current) {
+                if (!demoMode.isDemoMode && typingServiceRef.current) {
                   if (isTyping) {
                     typingServiceRef.current.startTyping().catch(error => {
                       if (import.meta.env.DEV) {
