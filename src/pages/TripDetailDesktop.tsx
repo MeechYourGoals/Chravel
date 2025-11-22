@@ -23,6 +23,7 @@ const TripDetailContent = lazy(() =>
 import { TripExportModal } from '../components/trip/TripExportModal';
 import { useAuth } from '../hooks/useAuth';
 import { getTripById, generateTripMockData, Trip as MockTrip } from '../data/tripsData';
+import { useTripMembers } from '../hooks/useTripMembers';
 import { tripService } from '../services/tripService';
 import { Message } from '../types/messages';
 import { ExportSection } from '../types/tripExport';
@@ -49,6 +50,9 @@ export const TripDetailDesktop = () => {
   const { user } = useAuth();
   const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
   const queryClient = useQueryClient();
+  
+  // 🔄 PHASE 3 FIX: Fetch real trip members from database for authenticated trips
+  const { tripMembers, loading: membersLoading } = useTripMembers(tripId);
   
   // State hooks - all called unconditionally
   const [activeTab, setActiveTab] = useState('chat');
@@ -203,6 +207,7 @@ export const TripDetailDesktop = () => {
   const mockItinerary = mockData?.itinerary ?? [];
 
   // ⚡ OPTIMIZATION: Memoize trip context to prevent child re-renders
+  // 🔄 PHASE 3: Merge real trip_members into participants for authenticated trips
   const tripContext = React.useMemo(() => ({
     id: tripId || '1',
     title: tripWithUpdatedData?.title ?? '',
@@ -213,13 +218,15 @@ export const TripDetailDesktop = () => {
     broadcasts: mockBroadcasts,
     links: mockLinks,
     messages: tripMessages,
-    collaborators: tripWithUpdatedData?.participants ?? [],
+    collaborators: isDemoMode 
+      ? (tripWithUpdatedData?.participants ?? [])
+      : tripMembers.map(m => ({ id: m.id, name: m.name, avatar: m.avatar })),
     itinerary: mockItinerary,
     isPro: false
-  }), [tripId, tripWithUpdatedData, basecamp, mockItinerary, mockBroadcasts, mockLinks, tripMessages]);
+  }), [tripId, tripWithUpdatedData, basecamp, mockItinerary, mockBroadcasts, mockLinks, tripMessages, isDemoMode, tripMembers]);
 
   // ⚡ OPTIMIZATION: Show loading spinner after data setup if still loading
-  if (demoModeLoading || loading) {
+  if (demoModeLoading || loading || membersLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <LoadingSpinner />
