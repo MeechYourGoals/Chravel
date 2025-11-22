@@ -105,15 +105,13 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
           <h2 className="text-xl font-semibold text-white">Tasks</h2>
           <p className="text-gray-400 text-sm">Keep track of everything that needs to get done</p>
         </div>
-        {canPerformAction('tasks', 'can_create') && (
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            className={`bg-gradient-to-r ${accentColors.gradient} hover:opacity-90`}
-          >
-            <Plus size={16} className="mr-2" />
-            Add Task
-          </Button>
-        )}
+        <Button
+          onClick={() => setShowCreateModal(true)}
+          className={`bg-gradient-to-r ${accentColors.gradient} hover:opacity-90`}
+        >
+          <Plus size={16} className="mr-2" />
+          Add Task
+        </Button>
       </div>
 
       {/* Filters */}
