@@ -185,22 +185,22 @@ const Index = () => {
       case 'tripsPro':
         return {
           trips: safeTrips,
-          proTrips: isDemoMode ? Object.fromEntries(
+          proTrips: Object.fromEntries(
             Object.entries(safeProTrips).filter(([_, trip]) => 
               filterItemsByStatus([trip], activeFilter).length > 0
             )
-          ) : {},
+          ),
           events: safeEvents
         };
       case 'events':
         return {
           trips: safeTrips,
           proTrips: safeProTrips,
-          events: isDemoMode ? Object.fromEntries(
+          events: Object.fromEntries(
             Object.entries(safeEvents).filter(([_, event]) => 
               filterItemsByStatus([event], activeFilter).length > 0
             )
-          ) : {}
+          )
         };
       default:
         return { 
