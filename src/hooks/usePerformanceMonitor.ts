@@ -22,7 +22,9 @@ export function usePerformanceMonitor(componentName: string, enabled = import.me
   const totalRenderTimeRef = useRef(0);
   const maxRenderTimeRef = useRef(0);
 
+  // Early return for production - prevent hook logic from running
   useEffect(() => {
+    if (!enabled) return;
     renderStartRef.current = performance.now();
   });
 
