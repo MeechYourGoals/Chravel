@@ -124,12 +124,13 @@ serve(async (req) => {
         );
 
       } catch (error) {
-        lastError = error;
+        lastError = error as Error;
         console.error(`Email send attempt ${attempt + 1} failed:`, error);
 
         // Check if it's a permanent failure (don't retry)
-        if (isPermanentFailure(error)) {
-          await handleBounce(recipients[0], 'hard', error.message);
+        if (isPermanentFailure(error as Error)) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          await handleBounce(recipients[0], 'hard', errorMessage);
           break;
         }
 
@@ -147,18 +148,19 @@ serve(async (req) => {
       payload.subject,
       htmlContent,
       'failed',
-      lastError?.message,
+      lastError?.message || null,
       maxRetries + 1
     );
 
     return createErrorResponse(
-      `Failed to send email after ${maxRetries + 1} attempts: ${lastError?.message}`,
+      `Failed to send email after ${maxRetries + 1} attempts: ${lastError?.message || 'Unknown error'}`,
       500
     );
 
   } catch (error) {
     console.error('Email send error:', error);
-    return createErrorResponse(error.message, 500);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return createErrorResponse(errorMessage, 500);
   }
 });
 

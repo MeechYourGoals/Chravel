@@ -199,7 +199,7 @@ serve(async (req) => {
     logStep("Returning PDF", { filename, size: pdfBuffer.length });
 
     // Return PDF directly as Response body
-    return new Response(pdfBuffer, {
+    return new Response(pdfBuffer as unknown as BodyInit, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/pdf',
