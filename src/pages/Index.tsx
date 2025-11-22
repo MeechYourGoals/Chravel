@@ -83,33 +83,59 @@ const Index = () => {
     );
   }, [allTrips, searchQuery]);
 
+  // ✅ FIXED: Standardize data source for Pro Trips (Demo vs Real)
+  const allProTrips = useMemo(() => {
+    if (isDemoMode) return proTripMockData;
+    if (!userTripsRaw) return {};
+    
+    const proTripsFromDB = userTripsRaw.filter(t => t.trip_type === 'pro');
+    if (proTripsFromDB.length === 0) return {};
+
+    return proTripsFromDB.reduce((acc, trip) => {
+      acc[trip.id] = convertSupabaseTripToProTrip(trip);
+      return acc;
+    }, {} as Record<string, any>);
+  }, [isDemoMode, userTripsRaw]);
+
+  // ✅ FIXED: Standardize data source for Events (Demo vs Real)
+  const allEvents = useMemo(() => {
+    if (isDemoMode) return eventsMockData;
+    if (!userTripsRaw) return {};
+
+    const eventsFromDB = userTripsRaw.filter(t => t.trip_type === 'event');
+    if (eventsFromDB.length === 0) return {};
+
+    return eventsFromDB.reduce((acc, trip) => {
+      acc[trip.id] = convertSupabaseTripToEvent(trip);
+      return acc;
+    }, {} as Record<string, any>);
+  }, [isDemoMode, userTripsRaw]);
+
   const searchFilteredProTrips = useMemo(() => {
-    if (!searchQuery.trim() || !isDemoMode) return isDemoMode ? proTripMockData : {};
+    if (!searchQuery.trim()) return allProTrips;
     
     const lowerQuery = searchQuery.toLowerCase();
-    const filtered = Object.fromEntries(
-      Object.entries(proTripMockData).filter(([_, trip]) => 
+    return Object.fromEntries(
+      Object.entries(allProTrips).filter(([_, trip]) => 
         trip.title.toLowerCase().includes(lowerQuery) ||
         trip.location?.toLowerCase().includes(lowerQuery) ||
         trip.description?.toLowerCase().includes(lowerQuery)
       )
     );
-    return filtered;
-  }, [searchQuery, isDemoMode]);
+  }, [searchQuery, allProTrips]);
 
   const searchFilteredEvents = useMemo(() => {
-    if (!searchQuery.trim() || !isDemoMode) return isDemoMode ? eventsMockData : {};
+    if (!searchQuery.trim()) return allEvents;
     
     const lowerQuery = searchQuery.toLowerCase();
-    const filtered = Object.fromEntries(
-      Object.entries(eventsMockData).filter(([_, event]) => 
+    return Object.fromEntries(
+      Object.entries(allEvents).filter(([_, event]) => 
         event.title.toLowerCase().includes(lowerQuery) ||
         event.location?.toLowerCase().includes(lowerQuery) ||
         event.description?.toLowerCase().includes(lowerQuery)
       )
     );
-    return filtered;
-  }, [searchQuery, isDemoMode]);
+  }, [searchQuery, allEvents]);
 
   const trips = searchFilteredTrips;
   
@@ -124,10 +150,10 @@ const Index = () => {
   if (import.meta.env.DEV) {
   }
 
-  // Calculate stats for each view mode - gate by demo mode
+  // Calculate stats for each view mode - now supports both Demo and Authenticated users
   const tripStats = calculateTripStats(trips);
-  const proTripStats = isDemoMode ? calculateProTripStats(searchFilteredProTrips) : calculateProTripStats({});
-  const eventStats = isDemoMode ? calculateEventStats(searchFilteredEvents) : calculateEventStats({});
+  const proTripStats = calculateProTripStats(searchFilteredProTrips);
+  const eventStats = calculateEventStats(searchFilteredEvents);
 
   const getCurrentStats = () => {
     switch (viewMode) {
@@ -143,29 +169,9 @@ const Index = () => {
     // Always ensure safe values - never undefined
     let safeTrips = Array.isArray(trips) ? trips : [];
     
-    // Initialize with demo data or empty objects
-    let safeProTrips = isDemoMode ? (proTripMockData || {}) : {};
-    let safeEvents = isDemoMode ? (eventsMockData || {}) : {};
-
-    // For authenticated users, populate proTrips and events from userTripsRaw
-    if (!isDemoMode && userTripsRaw) {
-      const proTripsFromDB = userTripsRaw.filter(t => t.trip_type === 'pro');
-      const eventsFromDB = userTripsRaw.filter(t => t.trip_type === 'event');
-      
-      if (proTripsFromDB.length > 0) {
-        safeProTrips = proTripsFromDB.reduce((acc, trip) => {
-          acc[trip.id] = convertSupabaseTripToProTrip(trip);
-          return acc;
-        }, {} as Record<string, any>);
-      }
-      
-      if (eventsFromDB.length > 0) {
-        safeEvents = eventsFromDB.reduce((acc, trip) => {
-          acc[trip.id] = convertSupabaseTripToEvent(trip);
-          return acc;
-        }, {} as Record<string, any>);
-      }
-    }
+    // Use already computed and search-filtered data
+    let safeProTrips = searchFilteredProTrips;
+    let safeEvents = searchFilteredEvents;
 
     if (!activeFilter || activeFilter === 'total') {
       return {
@@ -209,7 +215,7 @@ const Index = () => {
           events: safeEvents 
         };
     }
-  }, [activeFilter, viewMode, trips, isDemoMode]);
+  }, [activeFilter, viewMode, trips, searchFilteredProTrips, searchFilteredEvents]);
 
   // Handle view mode changes without artificial delays
   const handleViewModeChange = (newMode: string) => {
