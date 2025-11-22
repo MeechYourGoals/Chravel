@@ -34,7 +34,7 @@ import { tripsData } from '../data/tripsData';
 import { calculateTripStats, calculateProTripStats, calculateEventStats, filterItemsByStatus } from '../utils/tripStatsCalculator';
 import { useLocation } from 'react-router-dom';
 import { useMobilePortrait } from '../hooks/useMobilePortrait';
-import { convertSupabaseTripsToMock } from '../utils/tripConverter';
+import { convertSupabaseTripsToMock, convertSupabaseTripToProTrip, convertSupabaseTripToEvent } from '../utils/tripConverter';
 import { usePerformanceMonitor } from '../hooks/usePerformanceMonitor';
 
 const Index = () => {
@@ -141,9 +141,31 @@ const Index = () => {
   // 🛡️ Memoize expensive filtering operations with defensive guards
   const filteredData = useMemo(() => {
     // Always ensure safe values - never undefined
-    const safeTrips = Array.isArray(trips) ? trips : [];
-    const safeProTrips = isDemoMode ? (proTripMockData || {}) : {};
-    const safeEvents = isDemoMode ? (eventsMockData || {}) : {};
+    let safeTrips = Array.isArray(trips) ? trips : [];
+    
+    // Initialize with demo data or empty objects
+    let safeProTrips = isDemoMode ? (proTripMockData || {}) : {};
+    let safeEvents = isDemoMode ? (eventsMockData || {}) : {};
+
+    // For authenticated users, populate proTrips and events from userTripsRaw
+    if (!isDemoMode && userTripsRaw) {
+      const proTripsFromDB = userTripsRaw.filter(t => t.trip_type === 'pro');
+      const eventsFromDB = userTripsRaw.filter(t => t.trip_type === 'event');
+      
+      if (proTripsFromDB.length > 0) {
+        safeProTrips = proTripsFromDB.reduce((acc, trip) => {
+          acc[trip.id] = convertSupabaseTripToProTrip(trip);
+          return acc;
+        }, {} as Record<string, any>);
+      }
+      
+      if (eventsFromDB.length > 0) {
+        safeEvents = eventsFromDB.reduce((acc, trip) => {
+          acc[trip.id] = convertSupabaseTripToEvent(trip);
+          return acc;
+        }, {} as Record<string, any>);
+      }
+    }
 
     if (!activeFilter || activeFilter === 'total') {
       return {

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, Users, Building, PartyPopper, ChevronDown, Settings } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Building, PartyPopper, ChevronDown, Settings, Upload, Image as ImageIcon } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Switch } from './ui/switch';
@@ -33,6 +33,8 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     endDate: '',
     description: ''
   });
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{
     title?: string;
@@ -130,6 +132,15 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     return Object.keys(errors).length === 0;
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setCoverImage(file);
+      const previewUrl = URL.createObjectURL(file);
+      setCoverImagePreview(previewUrl);
+    }
+  };
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -165,22 +176,52 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
       
       const newTrip = await createTrip(tripData);
 
-      // Link to organization if selected (only in authenticated mode, not demo mode)
-      if (!isDemoMode && selectedOrganization && (tripType === 'pro' || tripType === 'event')) {
-        try {
-          const { error: linkError } = await supabase.functions.invoke('link-trip-to-organization', {
-            body: {
-              tripId: newTrip.id,
-              organizationId: selectedOrganization
-            }
-          });
+      if (newTrip) {
+        // Upload cover image if selected
+        if (coverImage && !isDemoMode) {
+          try {
+            const fileExt = coverImage.name.split('.').pop();
+            const filePath = `${newTrip.id}/cover.${fileExt}`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('trip-covers')
+              .upload(filePath, coverImage);
 
-          if (linkError) {
-            console.error('Error linking trip to organization:', linkError);
-            toast.error('Trip created but failed to link to organization');
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+              .from('trip-covers')
+              .getPublicUrl(filePath);
+
+            // Update trip with cover image URL
+            await supabase
+              .from('trips')
+              .update({ cover_image_url: publicUrl })
+              .eq('id', newTrip.id);
+              
+          } catch (uploadError) {
+            console.error('Error uploading cover image:', uploadError);
+            toast.error('Trip created, but failed to upload cover image');
           }
-        } catch (linkErr) {
-          console.error('Error linking trip:', linkErr);
+        }
+
+        // Link to organization if selected (only in authenticated mode, not demo mode)
+        if (!isDemoMode && selectedOrganization && (tripType === 'pro' || tripType === 'event')) {
+          try {
+            const { error: linkError } = await supabase.functions.invoke('link-trip-to-organization', {
+              body: {
+                tripId: newTrip.id,
+                organizationId: selectedOrganization
+              }
+            });
+
+            if (linkError) {
+              console.error('Error linking trip to organization:', linkError);
+              toast.error('Trip created but failed to link to organization');
+            }
+          } catch (linkErr) {
+            console.error('Error linking trip:', linkErr);
+          }
         }
       }
       
@@ -194,6 +235,8 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         endDate: '',
         description: ''
       });
+      setCoverImage(null);
+      setCoverImagePreview(null);
       setValidationErrors({});
       setTripType('consumer');
       setPrivacyMode(getDefaultPrivacyMode('consumer'));
@@ -420,6 +463,48 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none transition-colors resize-none"
               placeholder="Tell us about your trip..."
             />
+          </div>
+
+          {/* Cover Photo */}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Cover Photo
+            </label>
+            <div className="flex items-start gap-4">
+              <div className="flex-1">
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-600 border-dashed rounded-xl cursor-pointer bg-slate-700/30 hover:bg-slate-700/50 transition-colors">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Upload className="w-8 h-8 mb-2 text-slate-400" />
+                    <p className="text-xs text-slate-400">Click to upload cover photo</p>
+                  </div>
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                  />
+                </label>
+              </div>
+              {coverImagePreview && (
+                <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-slate-600">
+                  <img 
+                    src={coverImagePreview} 
+                    alt="Preview" 
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCoverImage(null);
+                      setCoverImagePreview(null);
+                    }}
+                    className="absolute top-1 right-1 bg-black/50 rounded-full p-1 hover:bg-black/70 transition-colors"
+                  >
+                    <X size={14} className="text-white" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
 
