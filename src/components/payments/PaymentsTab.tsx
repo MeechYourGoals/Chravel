@@ -27,6 +27,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   const [balanceSummary, setBalanceSummary] = useState<BalanceSummaryType | null>(null);
   const [loading, setLoading] = useState(true);
   const [tripMembers, setTripMembers] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
+  const [membersLoading, setMembersLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Consumer trips (1-12) are ALWAYS in demo mode for testing/investors
@@ -38,6 +39,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     if (demoLoading) return; // Wait for demo mode to initialize
     
     const loadMembers = async () => {
+      setMembersLoading(true);
       const tripIdNum = parseInt(tripId);
       
       // Consumer trips (1-12): use tripsData
@@ -50,6 +52,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
             avatar: p.avatar
           }));
           setTripMembers(formattedMembers);
+          setMembersLoading(false);
           return;
         }
       }
@@ -62,9 +65,17 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
           .select('user_id')
           .eq('trip_id', tripId);
 
-        if (memberError || !memberIds || memberIds.length === 0) {
-          console.warn('No trip members found or error:', memberError);
+        if (memberError) {
+          console.warn('Error fetching trip members:', memberError);
           setTripMembers([]);
+          setMembersLoading(false);
+          return;
+        }
+
+        if (!memberIds || memberIds.length === 0) {
+          // No members yet - this is OK for new trips
+          setTripMembers([]);
+          setMembersLoading(false);
           return;
         }
 
@@ -79,6 +90,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         if (profileError) {
           console.warn('Error fetching profiles:', profileError);
           setTripMembers([]);
+          setMembersLoading(false);
           return;
         }
 
@@ -89,9 +101,11 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         }));
 
         setTripMembers(formattedMembers);
+        setMembersLoading(false);
       } catch (error) {
         console.error('Error loading trip members:', error);
         setTripMembers([]);
+        setMembersLoading(false);
       }
     };
 
@@ -288,6 +302,11 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
           <Button variant="default" onClick={() => setShowAuthModal(true)}>
             Sign In
           </Button>
+        </div>
+      ) : membersLoading ? (
+        <div className="flex items-center justify-center py-6 opacity-80">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-sm text-muted-foreground">Loading trip members...</span>
         </div>
       ) : (
         <PaymentInput

@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 import { demoModeService } from '../services/demoModeService';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { convertSupabaseTripToMock } from '../utils/tripConverter';
+import { useQueryClient } from '@tanstack/react-query';
 
 /**
  * TripDetailDesktop Component
@@ -47,6 +48,7 @@ export const TripDetailDesktop = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
+  const queryClient = useQueryClient();
   
   // State hooks - all called unconditionally
   const [activeTab, setActiveTab] = useState('chat');
@@ -146,6 +148,20 @@ export const TripDetailDesktop = () => {
       scrollToChat();
     }
   }, [loading, trip]);
+
+  // 🔄 PHASE 5 FIX: Cleanup TanStack Query cache on unmount to fix navigation bug
+  React.useEffect(() => {
+    return () => {
+      // Clear trip-specific cache entries when component unmounts
+      if (tripId) {
+        queryClient.removeQueries({ queryKey: ['trip', tripId] });
+        queryClient.removeQueries({ queryKey: ['trip-messages', tripId] });
+        queryClient.removeQueries({ queryKey: ['trip-tasks', tripId] });
+        queryClient.removeQueries({ queryKey: ['trip-polls', tripId] });
+        queryClient.removeQueries({ queryKey: ['trip-members', tripId] });
+      }
+    };
+  }, [tripId, queryClient]);
 
   // Handle trip updates from edit modal
   const handleTripUpdate = (updates: Partial<MockTrip>) => {

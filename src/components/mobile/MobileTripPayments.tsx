@@ -32,6 +32,7 @@ interface MobileTripPaymentsProps {
 export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tripMembers, setTripMembers] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
+  const [membersLoading, setMembersLoading] = useState(true);
   const { isDemoMode, isLoading: demoLoading } = useDemoMode();
   // Mock data - replace with real data from backend
   const [payments, setPayments] = useState<Payment[]>([
@@ -75,6 +76,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     if (demoLoading) return;
     
     const loadMembers = async () => {
+      setMembersLoading(true);
       const tripIdNum = parseInt(tripId);
       
       // Consumer trips (1-12): use tripsData
@@ -87,6 +89,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
             avatar: p.avatar
           }));
           setTripMembers(formattedMembers);
+          setMembersLoading(false);
           return;
         }
       }
@@ -98,9 +101,17 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
           .select('user_id')
           .eq('trip_id', tripId);
 
-        if (memberError || !memberIds || memberIds.length === 0) {
-          console.warn('No trip members found or error:', memberError);
+        if (memberError) {
+          console.warn('Error fetching trip members:', memberError);
           setTripMembers([]);
+          setMembersLoading(false);
+          return;
+        }
+
+        if (!memberIds || memberIds.length === 0) {
+          // No members yet - this is OK for new trips
+          setTripMembers([]);
+          setMembersLoading(false);
           return;
         }
 
@@ -114,6 +125,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         if (profileError) {
           console.warn('Error fetching profiles:', profileError);
           setTripMembers([]);
+          setMembersLoading(false);
           return;
         }
 
@@ -124,9 +136,11 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         }));
 
         setTripMembers(formattedMembers);
+        setMembersLoading(false);
       } catch (error) {
         console.error('Error loading trip members:', error);
         setTripMembers([]);
+        setMembersLoading(false);
       }
     };
 
