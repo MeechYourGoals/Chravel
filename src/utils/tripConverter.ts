@@ -1,6 +1,8 @@
 import { Trip as MockTrip } from '@/data/tripsData';
 import { Trip as SupabaseTrip } from '@/services/tripService';
 import { format } from 'date-fns';
+import { ProTripData } from '@/types/pro';
+import { EventData } from '@/types/events';
 
 /**
  * Converts a Supabase trip to the mock trip format expected by UI components
@@ -36,4 +38,82 @@ export function convertSupabaseTripToMock(supabaseTrip: SupabaseTrip): MockTrip 
  */
 export function convertSupabaseTripsToMock(supabaseTrips: SupabaseTrip[]): MockTrip[] {
   return supabaseTrips.map(convertSupabaseTripToMock);
+}
+
+/**
+ * Converts a Supabase trip to ProTripData format
+ */
+export function convertSupabaseTripToProTrip(supabaseTrip: SupabaseTrip): ProTripData {
+  const mockTrip = convertSupabaseTripToMock(supabaseTrip);
+  
+  return {
+    id: supabaseTrip.id,
+    title: mockTrip.title,
+    description: mockTrip.description || '',
+    location: mockTrip.location,
+    dateRange: mockTrip.dateRange,
+    proTripCategory: 'Other',
+    tags: [],
+    participants: [],
+    budget: {
+      total: 0,
+      spent: 0,
+      categories: []
+    },
+    itinerary: [],
+    roster: [],
+    roomAssignments: [],
+    schedule: [],
+    perDiem: {
+      dailyRate: 0,
+      currency: 'USD',
+      startDate: supabaseTrip.start_date || '',
+      endDate: supabaseTrip.end_date || '',
+      participants: []
+    },
+    settlement: [],
+    medical: [],
+    compliance: [],
+    media: [],
+    sponsors: [],
+    archived: supabaseTrip.is_archived,
+    privacy_mode: 'standard', // Default
+    ai_access_enabled: true
+  };
+}
+
+/**
+ * Converts a Supabase trip to EventData format
+ */
+export function convertSupabaseTripToEvent(supabaseTrip: SupabaseTrip): EventData {
+  const mockTrip = convertSupabaseTripToMock(supabaseTrip);
+  
+  return {
+    id: supabaseTrip.id,
+    title: mockTrip.title,
+    location: mockTrip.location,
+    dateRange: mockTrip.dateRange,
+    category: 'Conference', // Default
+    description: mockTrip.description || '',
+    tags: [],
+    capacity: 100,
+    registrationStatus: 'open',
+    attendanceExpected: 0,
+    groupChatEnabled: true,
+    archived: supabaseTrip.is_archived,
+    tracks: [],
+    speakers: [],
+    sessions: [],
+    sponsors: [],
+    exhibitors: [],
+    userRole: 'organizer',
+    checkedInCount: 0,
+    participants: [],
+    budget: {
+      total: 0,
+      spent: 0,
+      categories: []
+    },
+    itinerary: []
+  };
 }
