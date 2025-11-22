@@ -86,9 +86,14 @@ export const tripService = {
         throw new Error('Invalid user state - missing ID');
       }
 
-      // Normalize dates to ISO format for backend
-      const normalizedStartDate = normalizeDateInput(tripData.start_date);
-      const normalizedEndDate = normalizeDateInput(tripData.end_date);
+      // Dates already in ISO 8601 format from CreateTripModal - no normalization needed
+      console.log('[tripService] Creating trip:', {
+        name: tripData.name,
+        start_date: tripData.start_date,
+        end_date: tripData.end_date,
+        trip_type: tripData.trip_type,
+        user_id: user.id
+      });
 
       // Use edge function for server-side validation and Pro tier enforcement
       const { data, error } = await supabase.functions.invoke('create-trip', {
@@ -96,27 +101,26 @@ export const tripService = {
           name: tripData.name,
           description: tripData.description,
           destination: tripData.destination,
-          start_date: normalizedStartDate,
-          end_date: normalizedEndDate,
+          start_date: tripData.start_date,
+          end_date: tripData.end_date,
           trip_type: tripData.trip_type || 'consumer',
           cover_image_url: tripData.cover_image_url
         }
       });
 
+      console.log('[tripService] Edge function response:', { success: data?.success, error });
+
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('[tripService] Edge function error:', error);
-        }
+        console.error('[tripService] Edge function error:', error);
         throw new Error(error.message || 'Failed to create trip');
       }
 
       if (!data?.success) {
-        if (import.meta.env.DEV) {
-          console.error('[tripService] Edge function returned failure:', data);
-        }
+        console.error('[tripService] Edge function returned failure:', data);
         throw new Error(data?.error || 'Failed to create trip');
       }
 
+      console.log('[tripService] Trip created successfully:', data.trip.id);
       return data.trip;
     } catch (error) {
       if (import.meta.env.DEV) {
