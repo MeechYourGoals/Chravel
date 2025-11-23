@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import imageCompression from 'browser-image-compression';
 
 // Generate UUID using crypto API
 const uuid = () => crypto.randomUUID();
@@ -14,13 +15,35 @@ export async function uploadToStorage(
   tripId: string,
   subdir: 'images' | 'videos' | 'files'
 ) {
+  let fileToUpload: File | Blob = file;
+
+  // Compress images before upload
+  if (subdir === 'images' && file.type.startsWith('image/') && file.type !== 'image/gif') {
+    try {
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        fileType: file.type,
+      };
+      fileToUpload = await imageCompression(file, options);
+      console.log('Image compressed:', {
+        original: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+        compressed: (fileToUpload.size / 1024 / 1024).toFixed(2) + 'MB',
+      });
+    } catch (error) {
+      console.warn('Failed to compress image, uploading original:', error);
+      fileToUpload = file;
+    }
+  }
+
   const id = uuid();
   const ext = file.name.split('.').pop() ?? 'bin';
   const key = `${tripId}/${subdir}/${id}.${ext}`;
 
   const { data, error } = await supabase.storage
     .from('trip-media')
-    .upload(key, file, {
+    .upload(key, fileToUpload, {
       contentType: file.type || file.mime || 'application/octet-stream',
       upsert: false,
     });
