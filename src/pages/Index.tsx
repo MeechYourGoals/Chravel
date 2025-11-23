@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { MobileHeader } from '../components/MobileHeader';
+import { MobileActionBar } from '../components/MobileActionBar';
 import { AuthPromptBanner } from '../components/mobile/AuthPromptBanner';
 import { CreateTripModal } from '../components/CreateTripModal';
 import { UpgradeModal } from '../components/UpgradeModal';
@@ -416,14 +416,11 @@ const Index = () => {
         </div>
       )}
       <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
-        {/* Mobile Header */}
-        <MobileHeader
-          onCreateTrip={handleCreateTrip}
-          onUpgradeToProo={() => setIsUpgradeModalOpen(true)}
+        {/* Mobile Action Bar */}
+        <MobileActionBar
           onSettings={() => setIsSettingsOpen(true)}
-          onProDashboard={() => {}} // Empty function since Pro Dashboard was removed
-          onAuth={() => setIsAuthModalOpen(true)}
-          viewMode={viewMode}
+          onCreateTrip={handleCreateTrip}
+          onSearch={() => setIsSearchOpen(true)}
         />
 
         {/* Desktop Header - Full width container */}
