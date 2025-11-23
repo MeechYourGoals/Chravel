@@ -345,6 +345,7 @@ export interface ProTripData {
   }>;
   // Feature toggles for Pro/Event trips
   enabled_features?: string[];
+  trip_type?: string;
   archived?: boolean;
   // Privacy settings
   privacy_mode?: 'standard' | 'high';

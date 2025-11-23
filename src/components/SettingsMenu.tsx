@@ -54,17 +54,20 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
   // If enterprise section is active and user has pro access, show full enterprise settings
   if (activeSection === 'enterprise' && userOrganization?.hasProAccess) {
     return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50">
-        <div className="h-full bg-white/10 backdrop-blur-md border-r border-white/20 w-full">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50" onClick={onClose}>
+        <div
+          className="h-full bg-white/10 backdrop-blur-md border-l border-white/20 w-full max-w-md md:max-w-lg ml-auto animate-slide-in-right"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="flex items-center justify-between p-6 border-b border-white/20">
             <h2 className="text-xl font-semibold text-white">Enterprise Settings</h2>
             <button onClick={onClose} className="text-gray-400 hover:text-white">
               <X size={24} />
             </button>
           </div>
-          <EnterpriseSettings 
-            organizationId={userOrganization.id} 
-            currentUserId={currentUser.id} 
+          <EnterpriseSettings
+            organizationId={userOrganization.id}
+            currentUserId={currentUser.id}
           />
         </div>
       </div>
@@ -104,8 +107,11 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50">
-        <div className="h-screen flex flex-col bg-white/10 backdrop-blur-md border-r border-white/20 w-full">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50" onClick={onClose}>
+        <div
+          className="h-screen flex flex-col bg-white/10 backdrop-blur-md border-l border-white/20 w-full max-w-md md:max-w-lg ml-auto animate-slide-in-right"
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Header */}
           <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-white/20">
             <h2 className="text-xl font-semibold text-white">Settings</h2>

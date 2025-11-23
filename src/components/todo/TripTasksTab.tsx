@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { TaskList } from './TaskList';
 import { TaskFilters } from './TaskFilters';
 import { TaskCreateModal } from './TaskCreateModal';
+import { TasksEmptyState } from './TasksEmptyState';
 import { useTripTasks } from '../../hooks/useTripTasks';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '@/hooks/useDemoMode';
@@ -93,6 +94,23 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Show empty state if no tasks at all (neither open nor completed)
+  const hasNoTasks = openTasks.length === 0 && completedTasks.length === 0;
+
+  if (hasNoTasks && !isDemoMode) {
+    return (
+      <div className="space-y-6">
+        <TasksEmptyState onCreateTask={() => setShowCreateModal(true)} />
+        {showCreateModal && (
+          <TaskCreateModal
+            tripId={tripId}
+            onClose={() => setShowCreateModal(false)}
+          />
+        )}
       </div>
     );
   }
