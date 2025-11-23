@@ -1,5 +1,6 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { MessageCircle, Users, Calendar, Camera, Radio, Link, BarChart3, FileText, ClipboardList, Lock, MapPin, Sparkles, DollarSign } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 // 🚀 Lazy load tab components for faster initial render
 const TripChat = lazy(() => import('./TripChat').then(m => ({ default: m.TripChat })));
@@ -84,10 +85,16 @@ export const TripTabs = ({
     { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: features.showTasks }
   ];
 
-  const handleTabChange = (tab: string, enabled: boolean) => {
-    if (enabled) {
-      setActiveTab(tab);
+  const handleTabChange = async (tab: string, enabled: boolean) => {
+    if (!enabled) {
+      // Show toast for disabled features
+      const { toast } = await import('sonner');
+      toast.info('This feature is disabled for this trip', {
+        description: 'Contact trip admin to enable this feature'
+      });
+      return;
     }
+    setActiveTab(tab);
   };
 
   // Tab skeleton for lazy loading fallback
@@ -185,30 +192,40 @@ export const TripTabs = ({
           const enabled = tab.enabled;
           
           return (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id, enabled)}
-              disabled={!enabled}
-              className={`
-                flex items-center justify-center gap-1.5 
-                px-3.5 py-2.5 min-h-[42px]
-                rounded-xl font-medium text-sm
-                transition-all duration-200
-                flex-1
-                ${
-                  isActive && enabled
-                    ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-md`
-                    : enabled
-                    ? 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white hover:shadow-sm'
-                    : 'bg-white/5 text-gray-500 cursor-not-allowed opacity-50'
-                }
-                ${enabled ? 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent' : ''}
-              `}
-            >
-              <Icon size={16} className="flex-shrink-0" />
-              <span className="whitespace-nowrap">{tab.label}</span>
-              {!enabled && <Lock size={12} className="ml-1 flex-shrink-0" />}
-            </button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id, enabled)}
+                    className={`
+                      flex items-center justify-center gap-1.5 
+                      px-3.5 py-2.5 min-h-[42px]
+                      rounded-xl font-medium text-sm
+                      transition-all duration-200
+                      flex-1
+                      ${
+                        isActive && enabled
+                          ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-md`
+                          : enabled
+                          ? 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white hover:shadow-sm'
+                          : 'bg-white/5 text-gray-500 cursor-not-allowed opacity-40 grayscale'
+                      }
+                      ${enabled ? 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent' : 'pointer-events-none'}
+                    `}
+                  >
+                    <Icon size={16} className="flex-shrink-0" />
+                    <span className="whitespace-nowrap">{tab.label}</span>
+                    {!enabled && <Lock size={12} className="ml-1 flex-shrink-0" />}
+                  </button>
+                </TooltipTrigger>
+                {!enabled && (
+                  <TooltipContent>
+                    <p className="text-xs">This feature is disabled for this trip</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           );
         })}
           </div>
