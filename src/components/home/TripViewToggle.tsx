@@ -23,6 +23,7 @@ interface TripViewToggleProps {
   onCreateTrip?: () => void;
   style?: React.CSSProperties;
   showRecsTab?: boolean;
+  recsTabDisabled?: boolean;
 }
 
 export const TripViewToggle = ({ 
@@ -34,7 +35,8 @@ export const TripViewToggle = ({
   onSearchClick,
   onCreateTrip,
   style, 
-  showRecsTab = false 
+  showRecsTab = false,
+  recsTabDisabled = false
 }: TripViewToggleProps) => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -87,7 +89,15 @@ export const TripViewToggle = ({
                 <ToggleGroupItem
                   value="travelRecs"
                   aria-label="Chravel Recs"
-                  className="justify-self-center data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base tracking-wide whitespace-nowrap"
+                  disabled={recsTabDisabled}
+                  title={recsTabDisabled ? "Enable Demo Mode to access Travel Recommendations" : undefined}
+                  className={`justify-self-center data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-3 rounded-xl font-bold text-base tracking-wide whitespace-nowrap ${recsTabDisabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : ''}`}
+                  onClick={(e) => {
+                    if (recsTabDisabled) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
                 >
                   {isMobile ? 'Recs' : 'Chravel Recs'}
                 </ToggleGroupItem>
