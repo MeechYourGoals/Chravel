@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Settings, AlertTriangle, UserPlus, UsersRound } from 'lucide-react';
+import { Users, Settings, AlertTriangle, UserPlus, UsersRound, Shield, Clock } from 'lucide-react';
 import { ProParticipant } from '../../../types/pro';
 import { ProTripCategory, getCategoryConfig } from '../../../types/proCategories';
 import { EditMemberRoleModal } from '../EditMemberRoleModal';
@@ -11,6 +11,8 @@ import { extractUniqueRoles, getRoleColorClass } from '../../../utils/roleUtils'
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { useDemoMode } from '../../../hooks/useDemoMode';
+import { AdminManagerDialog } from '../admin/AdminManagerDialog';
+import { JoinRequestsDialog } from '../admin/JoinRequestsDialog';
 
 interface RolesViewProps {
   roster: ProParticipant[];
@@ -22,6 +24,9 @@ interface RolesViewProps {
   onCreateRole?: () => void;
   isLoadingRoles?: boolean;
   adminLoading?: boolean;
+  tripId?: string;
+  tripCreatorId?: string;
+  trip?: any;
 }
 
 export const RolesView = ({ 
@@ -33,7 +38,10 @@ export const RolesView = ({
   canManageRoles = false,
   onCreateRole,
   isLoadingRoles = false,
-  adminLoading = false
+  adminLoading = false,
+  tripId,
+  tripCreatorId,
+  trip
 }: RolesViewProps) => {
   const { isDemoMode } = useDemoMode();
   const [selectedRole, setSelectedRole] = useState<string>('all');
@@ -43,6 +51,8 @@ export const RolesView = ({
   const [roleContactSheet, setRoleContactSheet] = useState<{ role: string; members: ProParticipant[] } | null>(null);
   const [newRoleName, setNewRoleName] = useState('');
   const [showRoleCreation, setShowRoleCreation] = useState(false);
+  const [showAdminsDialog, setShowAdminsDialog] = useState(false);
+  const [showRequestsDialog, setShowRequestsDialog] = useState(false);
 
   const { terminology: { teamLabel }, roles: categoryRoles } = getCategoryConfig(category);
 
@@ -112,9 +122,9 @@ export const RolesView = ({
       )}
 
       {/* Header with Stats and Admin Indicator */}
-      <div className="bg-gradient-to-br from-white/5 via-white/3 to-transparent backdrop-blur-sm border border-gray-700/50 rounded-xl p-4 shadow-xl">
+      <div className="bg-gradient-to-br from-white/5 via-white/3 to-transparent backdrop-blur-sm border border-gray-700/50 rounded-xl p-3 shadow-xl">
         {/* Row 1: Team Label + Stats + Admin Badge */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Users className="text-red-400" size={20} />
             <h2 className="text-lg font-bold text-white">{teamLabel}</h2>
@@ -125,15 +135,15 @@ export const RolesView = ({
           )}
         </div>
 
-        {/* Row 2: Centered Admin Action Buttons */}
+        {/* Row 2: Consolidated Admin Action Buttons (4 buttons) */}
         {canManageRoles && !isReadOnly && (
-          <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="flex items-center justify-center gap-2 mb-3">
             <Button
               onClick={onCreateRole}
               disabled={adminLoading || isLoadingRoles}
               variant="outline"
               size="sm"
-              className="rounded-full"
+              className="rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20"
             >
               <UserPlus className="w-4 h-4 mr-2" />
               Create Role
@@ -143,11 +153,31 @@ export const RolesView = ({
               variant="outline"
               size="sm"
               disabled={roster.length === 0}
-              className="rounded-full"
+              className="rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20"
               title="Assign roles to multiple members"
             >
               <UsersRound size={16} className="mr-2" />
               Assign Roles
+            </Button>
+            <Button
+              onClick={() => setShowAdminsDialog(true)}
+              variant="outline"
+              size="sm"
+              className="rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20"
+              title="Manage trip administrators"
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              Admins
+            </Button>
+            <Button
+              onClick={() => setShowRequestsDialog(true)}
+              variant="outline"
+              size="sm"
+              className="rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20"
+              title="View join requests"
+            >
+              <Clock className="w-4 h-4 mr-2" />
+              Requests
             </Button>
           </div>
         )}
@@ -331,6 +361,23 @@ export const RolesView = ({
           members={roleContactSheet.members}
           category={category}
         />
+      )}
+
+      {/* Admin Management Dialog */}
+      {tripId && tripCreatorId && (
+        <>
+          <AdminManagerDialog
+            open={showAdminsDialog}
+            onOpenChange={setShowAdminsDialog}
+            tripId={tripId}
+            tripCreatorId={tripCreatorId}
+          />
+          <JoinRequestsDialog
+            open={showRequestsDialog}
+            onOpenChange={setShowRequestsDialog}
+            tripId={tripId}
+          />
+        </>
       )}
     </div>
   );

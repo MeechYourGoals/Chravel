@@ -28,16 +28,20 @@ interface ProTabContentProps {
   category: ProTripCategory;
   onUpdateRoomAssignments: (assignments: any[]) => void;
   onUpdateMemberRole?: (memberId: string, newRole: string) => Promise<void>;
+  trip?: any;
+  tripCreatorId?: string;
 }
 
-export const ProTabContent = ({
-  activeTab,
-  tripId,
-  basecamp,
-  tripData,
-  category,
-  onUpdateRoomAssignments,
-  onUpdateMemberRole
+export const ProTabContent = ({ 
+  activeTab, 
+  tripId, 
+  basecamp, 
+  tripData, 
+  category, 
+  onUpdateRoomAssignments, 
+  onUpdateMemberRole,
+  trip,
+  tripCreatorId
 }: ProTabContentProps) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
@@ -125,6 +129,8 @@ export const ProTabContent = ({
               category={category}
               tripId={tripId}
               onUpdateMemberRole={onUpdateMemberRole}
+              trip={trip}
+              tripCreatorId={tripCreatorId}
             />
           </FeatureErrorBoundary>
         );

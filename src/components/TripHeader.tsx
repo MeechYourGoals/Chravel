@@ -206,14 +206,13 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
               </div>
             </div>
             
-            {/* Category Selector for Pro trips */}
-            {isPro && category && onCategoryChange && (
-              <div className="mb-4">
-                <label className="block text-gray-400 text-sm mb-2">Trip Category</label>
-                <CategorySelector
-                  selectedCategory={category}
-                  onCategoryChange={onCategoryChange}
-                />
+            {/* Read-only Category Display for Pro trips */}
+            {isPro && category && (
+              <div className="mb-3">
+                <label className="block text-gray-400 text-xs mb-1">Trip Category</label>
+                <div className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                  {category}
+                </div>
               </div>
             )}
 

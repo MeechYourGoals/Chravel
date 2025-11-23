@@ -18,9 +18,11 @@ interface TeamTabProps {
   category: ProTripCategory;
   tripId?: string;
   onUpdateMemberRole?: (memberId: string, newRole: string) => Promise<void>;
+  trip?: any;
+  tripCreatorId?: string;
 }
 
-export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId, onUpdateMemberRole }: TeamTabProps) => {
+export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId, onUpdateMemberRole, trip, tripCreatorId }: TeamTabProps) => {
   const { isAdmin, hasPermission, isLoading: adminLoading } = useProTripAdmin(tripId || '');
   const { isDemoMode } = useDemoMode();
   const [roles, setRoles] = useState<TripRole[]>([]);
@@ -90,6 +92,9 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
         onCreateRole={() => setCreateRoleOpen(true)}
         isLoadingRoles={isLoadingRoles}
         adminLoading={adminLoading}
+        tripId={tripId}
+        tripCreatorId={tripCreatorId}
+        trip={trip}
       />
 
       {/* Dialogs */}

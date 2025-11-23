@@ -19,6 +19,8 @@ interface ProTripDetailContentProps {
   tripData: ProTripData;
   selectedCategory: ProTripCategory;
   onUpdateTripData?: (updates: Partial<ProTripData>) => void;
+  trip?: any;
+  tripCreatorId?: string;
 }
 
 export const ProTripDetailContent = ({
@@ -29,7 +31,9 @@ export const ProTripDetailContent = ({
   basecamp,
   tripData,
   selectedCategory,
-  onUpdateTripData
+  onUpdateTripData,
+  trip,
+  tripCreatorId
 }: ProTripDetailContentProps) => {
   const [showRoomModal, setShowRoomModal] = useState(false);
   const { user } = useAuth();
@@ -84,6 +88,8 @@ export const ProTripDetailContent = ({
         category={selectedCategory}
         onUpdateRoomAssignments={handleUpdateRoomAssignments}
         onUpdateMemberRole={handleUpdateMemberRole}
+        trip={trip}
+        tripCreatorId={tripCreatorId}
       />
 
       {/* Room Assignments Modal */}
