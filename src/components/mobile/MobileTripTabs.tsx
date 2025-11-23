@@ -1,5 +1,7 @@
 import React, { useRef, useEffect } from 'react';
-import { MessageCircle, Calendar, ClipboardList, BarChart3, Camera, MapPin, Sparkles, CreditCard } from 'lucide-react';
+import { MessageCircle, Calendar, ClipboardList, BarChart3, Camera, MapPin, Sparkles, CreditCard, Lock } from 'lucide-react';
+import { toast } from 'sonner';
+import { useFeatureToggle } from '../../hooks/useFeatureToggle';
 import { TripChat } from '../TripChat';
 import { MobileGroupCalendar } from './MobileGroupCalendar';
 import { MobileTripTasks } from './MobileTripTasks';
@@ -20,6 +22,10 @@ interface MobileTripTabsProps {
   basecamp: { name: string; address: string };
   variant?: 'consumer' | 'pro' | 'event';
   participants?: Array<{ id: string; name: string; role?: string }>; // 🆕 For Pro/Event trips with role channels
+  tripData?: {
+    enabled_features?: string[];
+    trip_type?: 'consumer' | 'pro' | 'event';
+  };
 }
 
 export const MobileTripTabs = ({
@@ -28,24 +34,26 @@ export const MobileTripTabs = ({
   tripId,
   basecamp,
   variant = 'consumer',
-  participants = []
+  participants = [],
+  tripData
 }: MobileTripTabsProps) => {
   const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
   const contentRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const features = useFeatureToggle(tripData || {});
 
   // Tab configuration based on variant
   const getTabsForVariant = () => {
     const baseTabs = [
-      { id: 'chat', label: 'Chat', icon: MessageCircle },
-      { id: 'calendar', label: 'Calendar', icon: Calendar },
-      { id: 'concierge', label: 'Concierge', icon: Sparkles },
-      { id: 'media', label: 'Media', icon: Camera },
-      { id: 'payments', label: 'Payments', icon: CreditCard },
-      { id: 'places', label: 'Places', icon: MapPin },
-      { id: 'polls', label: 'Polls', icon: BarChart3 },
-      { id: 'tasks', label: 'Tasks', icon: ClipboardList }
+      { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: features.showChat },
+      { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: features.showCalendar },
+      { id: 'concierge', label: 'Concierge', icon: Sparkles, enabled: features.showConcierge },
+      { id: 'media', label: 'Media', icon: Camera, enabled: features.showMedia },
+      { id: 'payments', label: 'Payments', icon: CreditCard, enabled: features.showPayments },
+      { id: 'places', label: 'Places', icon: MapPin, enabled: features.showPlaces },
+      { id: 'polls', label: 'Polls', icon: BarChart3, enabled: features.showPolls },
+      { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: features.showTasks }
     ];
 
     // All variants currently use the same tabs
@@ -87,7 +95,13 @@ export const MobileTripTabs = ({
     };
   }, [activeTab]);
 
-  const handleTabPress = async (tabId: string) => {
+  const handleTabPress = async (tabId: string, enabled: boolean) => {
+    if (!enabled) {
+      toast.info('This feature is disabled for this trip', {
+        description: 'Contact trip admin to enable this feature'
+      });
+      return;
+    }
     await hapticService.light();
     onTabChange(tabId);
   };
@@ -143,29 +157,33 @@ export const MobileTripTabs = ({
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
+            const enabled = tab.enabled;
             
             return (
               <button
                 key={tab.id}
                 data-tab={tab.id}
-                onClick={() => handleTabPress(tab.id)}
+                onClick={() => handleTabPress(tab.id, enabled)}
                 className={`
                   flex items-center justify-center gap-2 
                   px-4 py-2 min-w-max h-[44px]
                   rounded-lg font-medium text-sm
                   transition-all duration-200
                   flex-shrink-0
-                  active:scale-95
                   scroll-snap-align-start
+                  ${enabled ? 'active:scale-95' : ''}
                   ${
-                    isActive
+                    isActive && enabled
                       ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-lg`
-                      : 'bg-white/10 text-gray-300'
+                      : enabled
+                      ? 'bg-white/10 text-gray-300'
+                      : 'bg-white/5 text-gray-500 opacity-40 grayscale cursor-not-allowed'
                   }
                 `}
               >
                 <Icon size={16} className="flex-shrink-0" />
                 <span className="whitespace-nowrap text-sm">{tab.label}</span>
+                {!enabled && <Lock size={12} className="ml-1 flex-shrink-0" />}
               </button>
             );
           })}

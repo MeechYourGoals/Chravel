@@ -331,13 +331,18 @@ export const useTripTasks = (tripId: string, options?: {
     queryKey: ['tripTasks', tripId, isDemoMode],
     queryFn: async (): Promise<TripTask[]> => {
       // Demo mode: use localStorage
-      if (isDemoMode || !user) {
+      if (isDemoMode) {
         const demoTasks = await taskStorageService.getTasks(tripId);
         // If no demo tasks exist, create seed tasks
         if (demoTasks.length === 0) {
           return generateSeedTasks(tripId);
         }
         return demoTasks;
+      }
+
+      // ✅ Authenticated mode with no user should return empty array
+      if (!user) {
+        return [];
       }
 
       // Authenticated mode: use Supabase
@@ -365,8 +370,8 @@ export const useTripTasks = (tripId: string, options?: {
 
       if (error) throw error;
 
-      // If no real tasks exist, return empty array for authenticated users
-      // (Only generate seed tasks in demo mode, which is handled above)
+      // ✅ If no real tasks exist, return empty array for authenticated users
+      // (Only generate seed tasks in demo mode)
       if (!tasks || tasks.length === 0) {
         return [];
       }
@@ -392,13 +397,7 @@ export const useTripTasks = (tripId: string, options?: {
       } catch (error) {
         console.error('Error fetching tasks:', error);
         
-        // In demo mode: fallback to demo tasks
-        if (isDemoMode) {
-          const demoTasks = await taskStorageService.getTasks(tripId);
-          return demoTasks.length > 0 ? demoTasks : generateSeedTasks(tripId);
-        }
-        
-        // In authenticated mode: return empty array on error
+        // ✅ In authenticated mode: return empty array on error (no seed tasks)
         return [];
       }
     },
