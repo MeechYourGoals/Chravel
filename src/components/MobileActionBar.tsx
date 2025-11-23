@@ -20,42 +20,32 @@ export const MobileActionBar = ({
   if (!isMobile) return null;
 
   return (
-    <div className="mb-6 space-y-3">
-      {/* Demo Mode Toggle */}
-      <div className="flex justify-center">
-        <div className="min-w-[120px] max-w-[140px]">
-          <DemoModeToggle />
-        </div>
-      </div>
+    <div className="flex items-center justify-center gap-3 px-2 mb-6">
+      <button
+        onClick={onSettings}
+        className="bg-gray-900/80 backdrop-blur-md border border-gray-700 hover:bg-gray-800/80 text-white p-3 rounded-xl transition-all duration-300 shadow-lg"
+        aria-label="Settings"
+      >
+        <Settings size={20} />
+      </button>
 
-      {/* Action Bar */}
-      <div className="flex items-center justify-center gap-3 px-2">
-        <button
-          onClick={onSettings}
-          className="bg-gray-900/80 backdrop-blur-md border border-gray-700 hover:bg-gray-800/80 text-white p-3 rounded-xl transition-all duration-300 shadow-lg"
-          aria-label="Settings"
-        >
-          <Settings size={20} />
-        </button>
+      <NotificationBell />
 
-        <NotificationBell />
+      <button
+        onClick={onCreateTrip}
+        className="bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-700 hover:to-yellow-600 text-black p-3 rounded-xl transition-all duration-300 shadow-lg"
+        aria-label="Create New Trip"
+      >
+        <Plus size={20} />
+      </button>
 
-        <button
-          onClick={onCreateTrip}
-          className="bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-700 hover:to-yellow-600 text-black p-3 rounded-xl transition-all duration-300 shadow-lg"
-          aria-label="Create New Trip"
-        >
-          <Plus size={20} />
-        </button>
-
-        <button
-          onClick={onSearch}
-          className="bg-gray-900/80 backdrop-blur-md border border-gray-700 hover:bg-gray-800/80 text-white p-3 rounded-xl transition-all duration-300 shadow-lg"
-          aria-label="Search"
-        >
-          <Search size={20} />
-        </button>
-      </div>
+      <button
+        onClick={onSearch}
+        className="bg-gray-900/80 backdrop-blur-md border border-gray-700 hover:bg-gray-800/80 text-white p-3 rounded-xl transition-all duration-300 shadow-lg"
+        aria-label="Search"
+      >
+        <Search size={20} />
+      </button>
     </div>
   );
 };
