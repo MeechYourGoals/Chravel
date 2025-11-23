@@ -250,13 +250,8 @@ const Index = () => {
   };
 
   
-
-  // Auto-switch away from travelRecs if user logs in or demo mode is disabled
-  useEffect(() => {
-    if ((user || !isDemoMode) && viewMode === 'travelRecs') {
-      setViewMode('myTrips');
-    }
-  }, [user, isDemoMode, viewMode]);
+  
+  // Removed auto-switch - Chravel Recs now always visible with conditional interactivity
 
   // Open settings to saved recs if requested via query params
   useEffect(() => {
@@ -320,7 +315,8 @@ const Index = () => {
                     onAuth={() => setIsAuthModalOpen(true)}
                     onSearchClick={() => setIsSearchOpen(true)}
                     onCreateTrip={handleCreateTrip}
-                    showRecsTab={showMarketingContent}
+                    showRecsTab={true}
+                    recsTabDisabled={!isDemoMode}
                   />
                 </div>
 
@@ -466,7 +462,10 @@ const Index = () => {
               if (activeSection) setSettingsInitialConsumerSection(activeSection);
               setIsSettingsOpen(true);
             }}
-            showRecsTab={showMarketingContent}
+            onSearchClick={() => setIsSearchOpen(true)}
+            onCreateTrip={handleCreateTrip}
+            showRecsTab={true}
+            recsTabDisabled={!isDemoMode}
           />
         </div>
 
