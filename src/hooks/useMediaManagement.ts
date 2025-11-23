@@ -43,7 +43,7 @@ export const useMediaManagement = (tripId: string) => {
       let items: MediaItem[] = [];
       const tripTier = detectTripTier(tripId);
 
-      if (isDemoMode || TripSpecificMockDataService.isEnabled()) {
+      if (isDemoMode) {
         // Trip-specific mock data
         if (tripTier === 'consumer' && TripSpecificMockDataService.getTripMediaItems(parseInt(tripId)).length > 0) {
           items = TripSpecificMockDataService.getTripMediaItems(parseInt(tripId));
@@ -120,7 +120,7 @@ export const useMediaManagement = (tripId: string) => {
       let items: LinkItem[] = [];
       const tripTier = detectTripTier(tripId);
 
-      if (isDemoMode || TripSpecificMockDataService.isEnabled()) {
+      if (isDemoMode) {
         if (tripTier === 'consumer' && TripSpecificMockDataService.getTripLinkItems(parseInt(tripId)).length > 0) {
           items = TripSpecificMockDataService.getTripLinkItems(parseInt(tripId));
         } else if (tripTier === 'pro' && proTripMockData[tripId]) {
