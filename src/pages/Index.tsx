@@ -306,15 +306,6 @@ const Index = () => {
                   <TripViewToggle 
                     viewMode={viewMode} 
                     onViewModeChange={handleViewModeChange}
-                    onUpgrade={() => setIsUpgradeModalOpen(true)}
-                    onSettings={(settingsType, activeSection) => {
-                      if (settingsType) setSettingsInitialType(settingsType);
-                      if (activeSection) setSettingsInitialConsumerSection(activeSection);
-                      setIsSettingsOpen(true);
-                    }}
-                    onAuth={() => setIsAuthModalOpen(true)}
-                    onSearchClick={() => setIsSearchOpen(true)}
-                    onCreateTrip={handleCreateTrip}
                     showRecsTab={true}
                     recsTabDisabled={!isDemoMode}
                   />
@@ -456,14 +447,6 @@ const Index = () => {
           <TripViewToggle 
             viewMode={viewMode} 
             onViewModeChange={handleViewModeChange}
-            onUpgrade={() => setIsUpgradeModalOpen(true)}
-            onSettings={(settingsType, activeSection) => {
-              if (settingsType) setSettingsInitialType(settingsType);
-              if (activeSection) setSettingsInitialConsumerSection(activeSection);
-              setIsSettingsOpen(true);
-            }}
-            onSearchClick={() => setIsSearchOpen(true)}
-            onCreateTrip={handleCreateTrip}
             showRecsTab={true}
             recsTabDisabled={!isDemoMode}
           />
