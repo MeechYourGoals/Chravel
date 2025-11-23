@@ -115,10 +115,10 @@ export const ProTripDetailDesktop = () => {
     tripData = proTripMockData[proTripId];
   } else {
     // 🔐 AUTHENTICATED MODE: Fetch from Supabase
-    const allTrips = convertSupabaseTripsToMock(userTrips);
-    const proTrip = allTrips.find(t => String(t.id) === proTripId && t.trip_type === 'pro');
+    // ✅ FILTER: Find Pro trip directly from userTrips array by ID and trip_type
+    const supabaseTrip = userTrips.find(t => t.id === proTripId && t.trip_type === 'pro');
 
-    if (!proTrip) {
+    if (!supabaseTrip) {
       return (
         <ProTripNotFound
           message="Pro trip not found"
@@ -127,8 +127,8 @@ export const ProTripDetailDesktop = () => {
       );
     }
 
-    // Find the original Supabase trip to get enabled_features and trip_type
-    const supabaseTrip = userTrips.find(t => t.id === proTripId);
+    // Convert to mock format for UI compatibility
+    const proTrip = convertSupabaseTripsToMock([supabaseTrip])[0];
 
     // Convert to tripData format expected by components
     tripData = {
@@ -473,7 +473,11 @@ export const ProTripDetailDesktop = () => {
               onShowTripsPlusModal={() => setShowTripsPlusModal(false)}
               tripId={proTripId}
               basecamp={basecamp}
-              tripData={tripData}
+              tripData={{
+                ...tripData,
+                enabled_features: supabaseTrip?.enabled_features || tripData.enabled_features,
+                trip_type: 'pro'
+              }}
               selectedCategory={tripData.proTripCategory as ProTripCategory}
             />
           </Suspense>

@@ -56,7 +56,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50" onClick={onClose}>
         <div
-          className="h-full bg-white/10 backdrop-blur-md border-l border-white/20 w-full max-w-md md:max-w-lg ml-auto animate-slide-in-right"
+          className="h-full bg-white/10 backdrop-blur-md border-l border-white/20 w-[85vw] max-w-md md:max-w-lg ml-auto animate-slide-in-right"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between p-6 border-b border-white/20">
@@ -109,7 +109,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
     <>
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50" onClick={onClose}>
         <div
-          className="h-screen flex flex-col bg-white/10 backdrop-blur-md border-l border-white/20 w-full max-w-md md:max-w-lg ml-auto animate-slide-in-right"
+          className="h-screen flex flex-col bg-white/10 backdrop-blur-md border-l border-white/20 w-[85vw] max-w-md md:max-w-lg ml-auto animate-slide-in-right"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}

@@ -51,6 +51,7 @@ export interface Trip {
   trip_type: string;
   basecamp_name?: string;
   basecamp_address?: string;
+  enabled_features?: string[];  // ✅ Phase 2: Feature toggles for Pro/Event trips
 }
 
 export interface CreateTripData {

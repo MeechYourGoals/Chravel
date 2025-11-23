@@ -70,7 +70,10 @@ const Index = () => {
   const showMarketingContent = !user;
 
   // Use centralized trip data - demo data or real user data converted to mock format
-  const allTrips = isDemoMode ? tripsData : convertSupabaseTripsToMock(userTripsRaw);
+  // ✅ FILTER: Only consumer trips in allTrips (Pro/Event filtered separately below)
+  const allTrips = isDemoMode 
+    ? tripsData 
+    : convertSupabaseTripsToMock(userTripsRaw.filter(t => t.trip_type === 'consumer' || !t.trip_type));
 
   // Search filtering with async handling
   const searchFilteredTrips = useMemo(() => {
@@ -267,8 +270,10 @@ const Index = () => {
 
   // Check if user needs profile setup on first login
   useEffect(() => {
-    if (user && !user.displayName) {
+    if (user && (!user.displayName || user.displayName.trim() === '')) {
       setShowProfileSetup(true);
+    } else {
+      setShowProfileSetup(false);
     }
   }, [user]);
 
