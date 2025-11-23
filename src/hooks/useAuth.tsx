@@ -10,6 +10,7 @@ interface UserProfile {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
+  bio: string | null;
   show_email: boolean;
   show_phone: boolean;
 }
@@ -22,6 +23,7 @@ interface User {
   firstName?: string;
   lastName?: string;
   avatar?: string;
+  bio?: string;
   isPro: boolean;
   showEmail: boolean;
   showPhone: boolean;
@@ -157,6 +159,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       firstName: userProfile?.first_name || '',
       lastName: userProfile?.last_name || '',
       avatar: userProfile?.avatar_url || '',
+      bio: userProfile?.bio || '',
       isPro,
       showEmail: userProfile?.show_email || false,
       showPhone: userProfile?.show_phone || false,
@@ -444,6 +447,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (updates.first_name) updatedUser.firstName = updates.first_name;
       if (updates.last_name) updatedUser.lastName = updates.last_name;
       if (updates.avatar_url) updatedUser.avatar = updates.avatar_url;
+      if (updates.bio !== undefined) updatedUser.bio = updates.bio || undefined;
       if (updates.show_email !== undefined) updatedUser.showEmail = updates.show_email;
       if (updates.show_phone !== undefined) updatedUser.showPhone = updates.show_phone;
 

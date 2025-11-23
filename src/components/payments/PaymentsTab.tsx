@@ -32,7 +32,8 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
 
   // Consumer trips (1-12) are ALWAYS in demo mode for testing/investors
   const tripIdNum = parseInt(tripId);
-  const demoActive = isDemoMode || (tripIdNum >= 1 && tripIdNum <= 12);
+  const isConsumerDemoTrip = !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
+  const demoActive = isDemoMode || isConsumerDemoTrip;
 
   // Load trip members - use tripsData for consumer trips (1-12), DB for others
   useEffect(() => {
@@ -40,10 +41,9 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     
     const loadMembers = async () => {
       setMembersLoading(true);
-      const tripIdNum = parseInt(tripId);
       
       // Consumer trips (1-12): use tripsData
-      if (tripIdNum >= 1 && tripIdNum <= 12) {
+      if (demoActive && isConsumerDemoTrip) {
         const trip = getTripById(tripIdNum);
         if (trip?.participants) {
           const formattedMembers = trip.participants.map(p => ({
