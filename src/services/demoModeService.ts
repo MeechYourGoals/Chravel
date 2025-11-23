@@ -719,6 +719,24 @@ class DemoModeService {
       this.sessionPersonalBasecamps.clear();
     }
   }
+
+  /**
+   * Cover Photo Management
+   */
+  setCoverPhoto(tripId: string, photoUrl: string): void {
+    const key = `demo_cover_photo_${tripId}`;
+    sessionStorage.setItem(key, photoUrl);
+  }
+
+  getCoverPhoto(tripId: string): string | null {
+    const key = `demo_cover_photo_${tripId}`;
+    return sessionStorage.getItem(key);
+  }
+
+  removeCoverPhoto(tripId: string): void {
+    const key = `demo_cover_photo_${tripId}`;
+    sessionStorage.removeItem(key);
+  }
 }
 
 export const demoModeService = new DemoModeService();

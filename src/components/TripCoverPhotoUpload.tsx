@@ -8,7 +8,7 @@ import { supabase } from '../integrations/supabase/client';
 interface TripCoverPhotoUploadProps {
   tripId: string;
   currentPhoto?: string;
-  onPhotoUploaded: (photoUrl: string) => void;
+  onPhotoUploaded: (photoUrl: string) => Promise<boolean>;
   className?: string;
 }
 
@@ -35,10 +35,12 @@ export const TripCoverPhotoUpload = ({
       const demoUrl = URL.createObjectURL(file);
       
       // Simulate upload delay
-      setTimeout(() => {
-        onPhotoUploaded(demoUrl);
-        setUploadSuccess(true);
-        setTimeout(() => setUploadSuccess(false), 2000);
+      setTimeout(async () => {
+        const success = await onPhotoUploaded(demoUrl);
+        if (success) {
+          setUploadSuccess(true);
+          setTimeout(() => setUploadSuccess(false), 2000);
+        }
         setIsUploading(false);
         setUploadProgress(0);
       }, 1500);
@@ -60,10 +62,10 @@ export const TripCoverPhotoUpload = ({
           
           if (data?.success) {
             // Replace demo URL with real URL
-            onPhotoUploaded(data.publicUrl);
+            await onPhotoUploaded(data.publicUrl);
           }
         } catch (error) {
-          // Demo mode fallback already handled above
+          console.error('Real upload failed, using demo URL:', error);
         }
       }
     } catch (error) {
@@ -71,7 +73,7 @@ export const TripCoverPhotoUpload = ({
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [user, tripId, onPhotoUploaded, supabase]);
+  }, [user, tripId, onPhotoUploaded]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
