@@ -2135,6 +2135,7 @@ export type Database = {
       }
       trip_media_index: {
         Row: {
+          caption: string | null
           created_at: string | null
           file_size: number | null
           filename: string | null
@@ -2144,9 +2145,11 @@ export type Database = {
           message_id: string | null
           metadata: Json | null
           mime_type: string | null
+          tags: string[] | null
           trip_id: string
         }
         Insert: {
+          caption?: string | null
           created_at?: string | null
           file_size?: number | null
           filename?: string | null
@@ -2156,9 +2159,11 @@ export type Database = {
           message_id?: string | null
           metadata?: Json | null
           mime_type?: string | null
+          tags?: string[] | null
           trip_id: string
         }
         Update: {
+          caption?: string | null
           created_at?: string | null
           file_size?: number | null
           filename?: string | null
@@ -2168,6 +2173,7 @@ export type Database = {
           message_id?: string | null
           metadata?: Json | null
           mime_type?: string | null
+          tags?: string[] | null
           trip_id?: string
         }
         Relationships: [

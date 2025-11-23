@@ -737,6 +737,20 @@ class DemoModeService {
     const key = `demo_cover_photo_${tripId}`;
     sessionStorage.removeItem(key);
   }
+
+  /**
+   * Media Metadata Management (captions and tags)
+   */
+  getMediaMeta(tripId: string, mediaId: string): { caption: string; tags: string[] } | null {
+    const key = `demo_media_meta_${tripId}_${mediaId}`;
+    const stored = sessionStorage.getItem(key);
+    return stored ? JSON.parse(stored) : null;
+  }
+
+  setMediaMeta(tripId: string, mediaId: string, caption: string, tags: string[]): void {
+    const key = `demo_media_meta_${tripId}_${mediaId}`;
+    sessionStorage.setItem(key, JSON.stringify({ caption, tags }));
+  }
 }
 
 export const demoModeService = new DemoModeService();

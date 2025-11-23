@@ -16,6 +16,7 @@ export interface MediaMetadata {
   tags?: string[];
   aiGenerated?: boolean;
   source?: 'chat' | 'upload' | 'import';
+  caption?: string;
 }
 
 export interface MediaItem {
