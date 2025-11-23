@@ -36,13 +36,13 @@ export const GreenNotice: React.FC<GreenNoticeProps> = ({
       <div className="flex items-center gap-2">
         <Icon size={16} className="flex-shrink-0" />
         <span>
-          All searches use{' '}
+          Context:{' '}
           {activeContext === 'personal' ? (
-            <strong>your Personal Base Camp</strong>
+            <strong>Personal Basecamp</strong>
           ) : (
-            <strong>{getContextName()}</strong>
+            <strong>Trip Basecamp</strong>
           )}{' '}
-          as your starting point
+          (reference only - search to center map)
         </span>
       </div>
     </div>

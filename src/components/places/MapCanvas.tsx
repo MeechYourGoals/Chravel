@@ -425,11 +425,11 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       }
     }, [tripBasecamp, personalBasecamp]);
 
-    // Update search origin and center when context changes
+    // Update search origin when context changes (for biasing searches)
     useEffect(() => {
       if (!mapRef.current) return;
 
-      // Determine which basecamp to use
+      // Determine which basecamp to use for search biasing
       let targetBasecamp: BasecampLocation | null = null;
       
       if (activeContext === 'trip') {
@@ -438,15 +438,12 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         targetBasecamp = personalBasecamp || null;
       }
 
-      // Update search origin for biasing
+      // Update search origin for biasing only (no auto-centering)
       setSearchOrigin(targetBasecamp?.coordinates || null);
 
-      // Center map on active basecamp, or geolocation, or default
-      if (targetBasecamp?.coordinates) {
-        mapRef.current.setCenter(targetBasecamp.coordinates);
-        mapRef.current.setZoom(12);
-      } else if (userGeolocation && !tripBasecamp && !personalBasecamp) {
-        // Only fall back to geolocation if NO basecamps are set
+      // Note: Removed auto-centering logic - basecamps are reference addresses only
+      // Map will center only when user geolocation is available AND no basecamps set
+      if (!tripBasecamp && !personalBasecamp && userGeolocation && mapRef.current) {
         mapRef.current.setCenter(userGeolocation);
         mapRef.current.setZoom(13);
       }

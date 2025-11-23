@@ -355,7 +355,7 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
                 onChange={(e) => handleAddressChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                placeholder="Search any place - address, landmark, venue, or city..."
+                placeholder="Save reference address (won't auto-center map)"
                 required
                 className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-12 pr-4 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
                 autoComplete="off"
