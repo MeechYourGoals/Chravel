@@ -39,10 +39,12 @@ export const ConsumerProfileSection = () => {
 
     setIsSaving(true);
     try {
-      await updateProfile({
+      const { error } = await updateProfile({
         display_name: displayName,
         bio: bio
       });
+
+      if (error) throw error;
 
       toast({
         title: "Profile updated",
@@ -103,9 +105,11 @@ export const ConsumerProfileSection = () => {
         .getPublicUrl(filePath);
 
       // Update profile with new avatar URL immediately
-      await updateProfile({
+      const { error: profileError } = await updateProfile({
         avatar_url: publicUrl
       });
+
+      if (profileError) throw profileError;
 
       toast({
         title: "Photo uploaded",

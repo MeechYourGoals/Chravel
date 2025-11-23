@@ -276,7 +276,9 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
       }
 
       // Update profile in database
-      await updateProfile({ avatar_url: urlData.publicUrl });
+      const { error: profileError } = await updateProfile({ avatar_url: urlData.publicUrl });
+
+      if (profileError) throw profileError;
 
       // Call success callback
       onUploadComplete?.(urlData.publicUrl);
@@ -306,8 +308,10 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
       const defaultAvatarUrl = generateDefaultAvatar(displayName);
       
       // Update profile with default avatar
-      await updateProfile({ avatar_url: defaultAvatarUrl });
+      const { error: profileError } = await updateProfile({ avatar_url: defaultAvatarUrl });
       
+      if (profileError) throw profileError;
+
       onUploadComplete?.(defaultAvatarUrl);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to set default avatar';
