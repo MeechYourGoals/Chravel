@@ -3,6 +3,14 @@ import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Trip } from '@/services/tripService';
 
+// Timeout utility to prevent indefinite hanging on database queries
+const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs))
+  ]);
+};
+
 interface UserProfile {
   id: string;
   user_id: string;
@@ -110,15 +118,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return null;
     }
     
-    const userProfile = profile || await fetchUserProfile(supabaseUser.id);
+    // Fetch profile with 3s timeout to prevent hanging
+    const userProfile = profile || await withTimeout(
+      fetchUserProfile(supabaseUser.id),
+      3000,
+      null
+    );
     
-    // Query user_roles table for actual roles (security fix - never trust client-side role assignment)
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', supabaseUser.id);
+    // Query user_roles table with 2s timeout
+    const userRolesResult = await withTimeout(
+      (async () => {
+        const { data, error } = await supabase.from('user_roles').select('role').eq('user_id', supabaseUser.id);
+        return { data, error };
+      })(),
+      2000,
+      { data: [], error: null }
+    );
     
-    const roles = userRoles?.map(r => r.role) || [];
+    const roles = userRolesResult.data?.map((r: any) => r.role) || [];
     const isPro = roles.includes('pro');
     const isSystemAdmin = roles.includes('enterprise_admin');
     
@@ -131,25 +148,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       permissions.push('admin', 'finance', 'compliance');
     }
     
-    // Get organization membership for proRole
-    const { data: orgMember } = await supabase
-      .from('organization_members')
-      .select('organization_id, role')
-      .eq('user_id', supabaseUser.id)
-      .eq('status', 'active')
-      .order('joined_at', { ascending: true })
-      .limit(1)
-      .single();
+    // Query org membership with 2s timeout
+    const orgMemberResult = await withTimeout(
+      (async () => {
+        const { data, error } = await supabase
+          .from('organization_members')
+          .select('organization_id, role')
+          .eq('user_id', supabaseUser.id)
+          .eq('status', 'active')
+          .single();
+        return { data, error };
+      })(),
+      2000,
+      { data: null, error: null }
+    );
     
     // Map org member role to proRole type (owner/admin maps to admin, otherwise undefined)
     let proRole: User['proRole'] = undefined;
-    if (orgMember?.role === 'owner' || orgMember?.role === 'admin') {
+    if (orgMemberResult.data?.role === 'owner' || orgMemberResult.data?.role === 'admin') {
       proRole = 'admin';
     }
     
-    // Load notification preferences from database
-    const { userPreferencesService } = await import('@/services/userPreferencesService');
-    const notifPrefs = await userPreferencesService.getNotificationPreferences(supabaseUser.id);
+    // Load notification prefs with 2s timeout and fallback defaults
+    let notifPrefs = {
+      chat_messages: true,
+      broadcasts: true,
+      calendar_reminders: true,
+      email_enabled: true,
+      push_enabled: false
+    };
+    
+    try {
+      const { userPreferencesService } = await import('@/services/userPreferencesService');
+      notifPrefs = await withTimeout(
+        userPreferencesService.getNotificationPreferences(supabaseUser.id),
+        2000,
+        notifPrefs
+      );
+    } catch (err) {
+      console.warn('[transformUser] Failed to load notification prefs, using defaults:', err);
+    }
     
     return {
       id: supabaseUser.id,
@@ -164,7 +202,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       showEmail: userProfile?.show_email || false,
       showPhone: userProfile?.show_phone || false,
       proRole,
-      organizationId: orgMember?.organization_id || undefined,
+      organizationId: orgMemberResult.data?.organization_id || undefined,
       permissions,
       notificationSettings: {
         messages: notifPrefs.chat_messages,
@@ -178,6 +216,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Initialize auth state
   useEffect(() => {
+    // Safety timeout: force loading to false after 10 seconds to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      if (isLoading) {
+        console.error('[Auth] Loading timeout exceeded (10s), forcing completion');
+        setIsLoading(false);
+      }
+    }, 10000);
+
     const getSessionAndUser = async () => {
       const { data: { session }, error } = await supabase.auth.getSession();
 
@@ -230,6 +276,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     return () => {
+      clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, [transformUser]);
