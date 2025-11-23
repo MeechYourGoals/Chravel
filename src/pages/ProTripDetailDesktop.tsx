@@ -7,6 +7,8 @@ import { TripExportModal } from '../components/trip/TripExportModal';
 import { TripVariantProvider } from '../contexts/TripVariantContext';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { useTrips } from '../hooks/useTrips';
+import { convertSupabaseTripsToMock } from '../utils/tripConverter';
 import { proTripMockData } from '../data/proTripMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { ProTripCategory } from '../types/proCategories';
@@ -43,6 +45,9 @@ export const ProTripDetailDesktop = () => {
   const { proTripId } = useParams<{ proTripId?: string }>();
   const { user } = useAuth();
   const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
+  
+  // ✅ FIXED: Always call useTrips hook for authenticated mode data
+  const { trips: userTrips, loading: tripsLoading } = useTrips();
   const [activeTab, setActiveTab] = useState('chat');
   const [showInbox, setShowInbox] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -73,7 +78,7 @@ export const ProTripDetailDesktop = () => {
   }, [isDemoMode, proTripId, user?.id]);
 
   // ⚡ OPTIMIZATION: Show loading spinner instantly before expensive operations
-  if (demoModeLoading) {
+  if (demoModeLoading || (tripsLoading && !isDemoMode)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
         <div className="text-center">
@@ -91,8 +96,11 @@ export const ProTripDetailDesktop = () => {
     );
   }
 
-  // 🔐 DEMO MODE: Use mock data
+  // ✅ Fetch trip data based on mode
+  let tripData: any;
+  
   if (isDemoMode) {
+    // 🔐 DEMO MODE: Use mock data
     if (!(proTripId in proTripMockData)) {
       console.error(`ProTripDetail: Pro trip not found in mock data: ${proTripId}`);
       console.log('Available Pro trip IDs:', Object.keys(proTripMockData));
@@ -104,19 +112,40 @@ export const ProTripDetailDesktop = () => {
         />
       );
     }
+    tripData = proTripMockData[proTripId];
+  } else {
+    // 🔐 AUTHENTICATED MODE: Fetch from Supabase
+    const allTrips = convertSupabaseTripsToMock(userTrips);
+    const proTrip = allTrips.find(t => String(t.id) === proTripId && t.trip_type === 'pro');
+    
+    if (!proTrip) {
+      return (
+        <ProTripNotFound 
+          message="Pro trip not found"
+          details="This Pro trip doesn't exist or you don't have access."
+        />
+      );
+    }
+    
+    // Convert to tripData format expected by components
+    tripData = {
+      id: proTrip.id,
+      title: proTrip.title,
+      location: proTrip.location,
+      dateRange: proTrip.dateRange,
+      description: proTrip.description,
+      proTripCategory: 'sports', // Default category for authenticated trips
+      participants: proTrip.participants || [],
+      basecamp_name: userTrips.find(t => t.id === proTripId)?.basecamp_name || '',
+      basecamp_address: userTrips.find(t => t.id === proTripId)?.basecamp_address || '',
+      broadcasts: [],
+      links: [],
+      schedule: [],
+      roster: [],
+      tasks: [],
+      polls: []
+    };
   }
-
-  // 🔐 AUTHENTICATED MODE: In the future, fetch from Supabase here
-  if (!isDemoMode && !(proTripId in proTripMockData)) {
-    return (
-      <ProTripNotFound 
-        message="Pro trip not found. Coming soon for authenticated users!"
-        details="Pro trips are currently only available in demo mode while we finalize the feature."
-      />
-    );
-  }
-
-  const tripData = isDemoMode ? proTripMockData[proTripId] : proTripMockData[proTripId];
 
   // Transform trip data to match consumer trip structure
   const participants = tripData.participants || [];

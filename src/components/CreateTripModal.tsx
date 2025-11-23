@@ -171,7 +171,13 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         destination: formData.location || undefined,
         trip_type: tripType,
         privacy_mode: privacyMode,
-        ai_access_enabled: privacyMode === 'standard'
+        ai_access_enabled: privacyMode === 'standard',
+        // ✅ Phase 2: Pass feature toggles for Pro/Event trips
+        ...(tripType !== 'consumer' && {
+          enabled_features: Object.entries(selectedFeatures)
+            .filter(([_, enabled]) => enabled)
+            .map(([feature, _]) => feature)
+        })
       };
       
       const newTrip = await createTrip(tripData);

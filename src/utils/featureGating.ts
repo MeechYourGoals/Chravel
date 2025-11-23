@@ -32,8 +32,7 @@ const featureMatrix: Record<FeatureName, FeatureAvailability> = {
   },
   'pro-trips': {
     demoMode: true,
-    authenticated: false,
-    comingSoonMessage: 'Pro trips are coming soon for authenticated users! Turn on Demo Mode to preview Pro trip features.'
+    authenticated: true,  // ✅ ENABLED for authenticated users
   },
   'ai-concierge': {
     demoMode: true,
