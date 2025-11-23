@@ -466,7 +466,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   };
 
   return (
-    <div className="flex flex-col p-4 overflow-hidden flex-1 min-h-0">
+    <div className="flex flex-col px-0 py-4 overflow-hidden flex-1 min-h-0">
       <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
         {/* Header */}
         <div className="border-b border-white/10 bg-black/30 p-3 flex-shrink-0">

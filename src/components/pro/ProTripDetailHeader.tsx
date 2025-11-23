@@ -28,7 +28,7 @@ export const ProTripDetailHeader = ({
   const { accentColors } = useTripVariant();
 
   return (
-    <div className="flex items-center justify-between mb-8">
+    <div className="flex items-center justify-between mb-4">
       <button
         onClick={() => navigate('/')}
         className="flex items-center gap-3 text-gray-300 hover:text-white transition-colors group"

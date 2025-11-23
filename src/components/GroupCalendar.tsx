@@ -198,7 +198,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
   }
 
   return (
-    <div className="p-6">
+    <div className="px-0 py-6">
       <CalendarHeader
         viewMode={viewMode}
         onToggleView={toggleViewMode}

@@ -392,7 +392,7 @@ export const TripDetailDesktop = () => {
   // Desktop experience
   return (
     <div className="min-h-screen bg-black">
-      <div className="container mx-auto px-6 py-8 max-w-7xl">
+      <div className="container mx-auto px-6 py-4 pb-8 max-w-7xl">
         {/* Top Navigation */}
         <TripDetailHeader
           tripContext={tripContext}

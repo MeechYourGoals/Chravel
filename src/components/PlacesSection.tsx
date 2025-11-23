@@ -649,7 +649,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   return (
     <div className="mb-12 mobile-safe-scroll">
       {/* ROW 1: Header with LEFT-aligned title and CENTERED tabs */}
-      <div className="mb-6 flex flex-row items-center justify-between w-full px-4 relative">
+      <div className="mb-6 flex flex-row items-center justify-between w-full px-0 relative">
         <h2 className="flex-none text-3xl font-bold text-white">Places</h2>
         
         {/* Centered Tab Navigation */}
@@ -676,7 +676,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
       </div>
 
       {/* Tab Content - ABOVE map */}
-      <div className="w-full px-4 mb-6">
+      <div className="w-full px-0 mb-6">
 
             {activeTab === 'basecamps' && (
               <BasecampsPanel

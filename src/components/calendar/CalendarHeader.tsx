@@ -39,10 +39,14 @@ export const CalendarHeader = ({ viewMode, onToggleView, onAddEvent, onExport }:
   };
 
   return (
-    <div className="flex items-center justify-between mb-6">
-      <h2 className="text-2xl font-bold text-foreground">Group Calendar</h2>
+    <>
+      {/* Centered Heading */}
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold text-foreground">Group Calendar</h2>
+      </div>
 
-      <div className="flex gap-2">
+      {/* Right-Aligned Controls */}
+      <div className="flex items-center justify-end mb-6 gap-2">
         {onExport && (
           <Button variant="outline" onClick={onExport} size="sm">
             <Download className="mr-2 h-4 w-4" />
@@ -59,6 +63,6 @@ export const CalendarHeader = ({ viewMode, onToggleView, onAddEvent, onExport }:
           Add Event
         </Button>
       </div>
-    </div>
+    </>
   );
 };
