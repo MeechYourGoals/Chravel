@@ -43,7 +43,7 @@ serve(async (req) => {
       );
     }
 
-    const { name, description, destination, start_date, end_date, trip_type, cover_image_url } = validation.data;
+    const { name, description, destination, start_date, end_date, trip_type, cover_image_url, enabled_features } = validation.data;
 
     // TEMPORARILY DISABLED FOR MVP: Allow all users to create Pro/Event trips
     // Will re-enable with feature gating (role-based channels, PDF export, AI Concierge) post-MVP
@@ -71,7 +71,10 @@ serve(async (req) => {
         end_date,
         trip_type: trip_type || 'consumer',
         cover_image_url,
-        created_by: user.id
+        created_by: user.id,
+        // ✅ Phase 2: Store enabled features for Pro/Event trips
+        // Consumer trips ignore this column and always have all features
+        enabled_features: enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks']
       })
       .select()
       .single();

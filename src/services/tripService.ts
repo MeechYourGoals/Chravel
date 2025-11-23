@@ -64,6 +64,7 @@ export interface CreateTripData {
   trip_type?: string;
   basecamp_name?: string;
   basecamp_address?: string;
+  enabled_features?: string[];  // ✅ Phase 2: Feature toggles for Pro/Event trips
 }
 
 export const tripService = {
@@ -104,7 +105,8 @@ export const tripService = {
           start_date: tripData.start_date,
           end_date: tripData.end_date,
           trip_type: tripData.trip_type || 'consumer',
-          cover_image_url: tripData.cover_image_url
+          cover_image_url: tripData.cover_image_url,
+          enabled_features: tripData.enabled_features  // ✅ Phase 2: Pass feature toggles
         }
       });
 

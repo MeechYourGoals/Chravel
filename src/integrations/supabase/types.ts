@@ -2535,6 +2535,7 @@ export type Database = {
           created_by: string
           description: string | null
           destination: string | null
+          enabled_features: string[] | null
           end_date: string | null
           id: string
           is_archived: boolean | null
@@ -2559,6 +2560,7 @@ export type Database = {
           created_by: string
           description?: string | null
           destination?: string | null
+          enabled_features?: string[] | null
           end_date?: string | null
           id?: string
           is_archived?: boolean | null
@@ -2583,6 +2585,7 @@ export type Database = {
           created_by?: string
           description?: string | null
           destination?: string | null
+          enabled_features?: string[] | null
           end_date?: string | null
           id?: string
           is_archived?: boolean | null
