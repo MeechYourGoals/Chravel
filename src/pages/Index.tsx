@@ -15,6 +15,7 @@ import { UnauthenticatedLanding } from '../components/UnauthenticatedLanding';
 import { FullPageLanding } from '../components/landing/FullPageLanding';
 import { DemoModeToggle } from '../components/DemoModeToggle';
 import { SearchOverlay } from '../components/home/SearchOverlay';
+import { ProfileSetupModal } from '../components/ProfileSetupModal';
 
 // New conversion components
 import { PersistentCTABar } from '../components/conversion/PersistentCTABar';
@@ -54,6 +55,7 @@ const Index = () => {
   const [settingsInitialType, setSettingsInitialType] = useState<'consumer' | 'enterprise' | 'events' | 'advertiser'>('consumer');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const location = useLocation();
@@ -263,6 +265,13 @@ const Index = () => {
     }
   }, [location.search]);
 
+  // Check if user needs profile setup on first login
+  useEffect(() => {
+    if (user && !user.displayName) {
+      setShowProfileSetup(true);
+    }
+  }, [user]);
+
   // Show marketing landing when logged out, allow demo mode toggle to show app features
   if (!user) {
     return (
@@ -392,6 +401,11 @@ const Index = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           resultCount={searchResultCount}
+        />
+
+        <ProfileSetupModal 
+          isOpen={showProfileSetup} 
+          onComplete={() => setShowProfileSetup(false)} 
         />
       </div>
     );
@@ -526,6 +540,11 @@ const Index = () => {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
+      />
+
+      <ProfileSetupModal 
+        isOpen={showProfileSetup} 
+        onComplete={() => setShowProfileSetup(false)} 
       />
     </div>
   );
