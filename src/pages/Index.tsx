@@ -416,12 +416,24 @@ const Index = () => {
         </div>
       )}
       <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
-        {/* Mobile Action Bar */}
-        <MobileActionBar
-          onSettings={() => setIsSettingsOpen(true)}
-          onCreateTrip={handleCreateTrip}
-          onSearch={() => setIsSearchOpen(true)}
-        />
+        {/* Mobile: Demo Toggle + Action Bar */}
+        {isMobile && (
+          <div className="space-y-3 mb-6">
+            {/* Demo Mode Toggle - Centered */}
+            <div className="flex justify-center">
+              <div className="min-w-[120px] max-w-[140px]">
+                <DemoModeToggle />
+              </div>
+            </div>
+
+            {/* Simple Action Bar */}
+            <MobileActionBar
+              onSettings={() => setIsSettingsOpen(true)}
+              onCreateTrip={handleCreateTrip}
+              onSearch={() => setIsSearchOpen(true)}
+            />
+          </div>
+        )}
 
         {/* Desktop Header - Full width container */}
         {!isMobile && (
