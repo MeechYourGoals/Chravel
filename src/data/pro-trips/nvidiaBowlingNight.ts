@@ -1,4 +1,5 @@
 import { ProTripData } from '../../types/pro';
+import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const nvidiaBowlingNight: ProTripData = {
   id: 'nvidia-bowling-2025',
@@ -6,7 +7,7 @@ export const nvidiaBowlingNight: ProTripData = {
   description: 'Team building bowling event for NVIDIA employees with dinner and prizes.',
   location: 'Santa Clara, CA',
   dateRange: 'Dec 8, 2025',
-  proTripCategory: 'Other',
+  proTripCategory: 'Business Travel',
   tags: ['Corporate Event', 'Tech', 'Entertainment', 'Employee Engagement'],
   basecamp_name: 'NVIDIA Headquarters',
   basecamp_address: '2788 San Tomas Expressway, Santa Clara, CA 95051',
@@ -85,16 +86,16 @@ export const nvidiaBowlingNight: ProTripData = {
     }
   ],
   participants: [
-    { id: 1, name: 'Jensen Huang', avatar: '/images/avatars/blank-09.png', role: 'Host' },
-    { id: 2, name: 'Colette Kress', avatar: '/images/avatars/blank-10.png', role: 'CFO' },
-    { id: 3, name: 'Mark Stevens', avatar: '/images/avatars/blank-11.png', role: 'People Ops' },
-    { id: 4, name: 'Lena Ko', avatar: '/images/avatars/blank-12.png', role: 'Event Planner' }
+    { id: 1, name: 'Jensen Huang', avatar: getMockAvatar('Jensen Huang'), role: 'Host' },
+    { id: 2, name: 'Colette Kress', avatar: getMockAvatar('Colette Kress'), role: 'CFO' },
+    { id: 3, name: 'Mark Stevens', avatar: getMockAvatar('Mark Stevens'), role: 'People Ops' },
+    { id: 4, name: 'Lena Ko', avatar: getMockAvatar('Lena Ko'), role: 'Event Planner' }
   ],
   roster: [
-    { id: '1', name: 'Jensen Huang', role: 'Host', email: 'jensen@nvidia.com', avatar: '/images/avatars/blank-09.png', credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '2', name: 'Colette Kress', role: 'CFO', email: 'colette@nvidia.com', avatar: '/images/avatars/blank-10.png', credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '3', name: 'Mark Stevens', role: 'People Ops', email: 'mark@nvidia.com', avatar: '/images/avatars/blank-11.png', credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '4', name: 'Lena Ko', role: 'Event Planner', email: 'lena@nvidia.com', avatar: '/images/avatars/blank-12.png', credentialLevel: 'Guest', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' }
+    { id: '1', name: 'Jensen Huang', role: 'Host', email: 'jensen@nvidia.com', avatar: getMockAvatar('Jensen Huang'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '2', name: 'Colette Kress', role: 'CFO', email: 'colette@nvidia.com', avatar: getMockAvatar('Colette Kress'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '3', name: 'Mark Stevens', role: 'People Ops', email: 'mark@nvidia.com', avatar: getMockAvatar('Mark Stevens'), credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '4', name: 'Lena Ko', role: 'Event Planner', email: 'lena@nvidia.com', avatar: getMockAvatar('Lena Ko'), credentialLevel: 'Guest', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' }
   ],
   itinerary: [
     {

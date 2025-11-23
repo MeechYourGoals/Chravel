@@ -1,4 +1,5 @@
 import { ProTripData } from '../../types/pro';
+import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const kaiDruskiStream: ProTripData = {
   id: 'kai-druski-jake-adin-24hr-atl',
@@ -85,10 +86,10 @@ export const kaiDruskiStream: ProTripData = {
     }
   ],
   participants: [
-    { id: 1, name: 'Kai Cenat', avatar: '/images/avatars/blank-09.png', role: 'Content Creators' },
-    { id: 2, name: 'Druski', avatar: '/images/avatars/blank-10.png', role: 'Content Creators' },
-    { id: 3, name: 'Jake Paul', avatar: '/images/avatars/blank-11.png', role: 'Content Creators' },
-    { id: 4, name: 'Adin Ross', avatar: '/images/avatars/blank-12.png', role: 'Content Creators' }
+    { id: 1, name: 'Kai Cenat', avatar: getMockAvatar('Kai Cenat'), role: 'Content Creators' },
+    { id: 2, name: 'Druski', avatar: getMockAvatar('Druski'), role: 'Content Creators' },
+    { id: 3, name: 'Jake Paul', avatar: getMockAvatar('Jake Paul'), role: 'Content Creators' },
+    { id: 4, name: 'Adin Ross', avatar: getMockAvatar('Adin Ross'), role: 'Content Creators' }
   ],
   budget: {
     total: 150000,
@@ -116,7 +117,7 @@ export const kaiDruskiStream: ProTripData = {
       id: '1',
       name: 'Kai Cenat',
       email: 'kai@streamteam.com',
-      avatar: '/images/avatars/blank-09.png',
+      avatar: getMockAvatar('Kai Cenat'),
       role: 'Content Creators',
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'stream-control'],
@@ -127,7 +128,7 @@ export const kaiDruskiStream: ProTripData = {
       id: '2',
       name: 'Druski',
       email: 'druski@streamteam.com',
-      avatar: '/images/avatars/blank-10.png',
+      avatar: getMockAvatar('Druski'),
       role: 'Content Creators',
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'stream-control'],
@@ -138,7 +139,7 @@ export const kaiDruskiStream: ProTripData = {
       id: '3',
       name: 'Jake Paul',
       email: 'jake@streamteam.com',
-      avatar: '/images/avatars/blank-11.png',
+      avatar: getMockAvatar('Jake Paul'),
       role: 'Content Creators',
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'stream-control'],
@@ -149,7 +150,7 @@ export const kaiDruskiStream: ProTripData = {
       id: '4',
       name: 'Adin Ross',
       email: 'adin@streamteam.com',
-      avatar: '/images/avatars/blank-12.png',
+      avatar: getMockAvatar('Adin Ross'),
       role: 'Content Creators',
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'stream-control'],

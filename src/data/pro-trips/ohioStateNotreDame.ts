@@ -87,12 +87,6 @@ export const ohioStateNotreDame: ProTripData = {
   ],
   participants: Array.from({ length: 150 }, (_, i) => {
     const id = 301 + i;
-    const avatars = [
-      '/images/avatars/blank-01.png',
-      '/images/avatars/blank-02.png',
-      '/images/avatars/blank-03.png',
-      '/images/avatars/blank-04.png',
-    ];
     
     if (i < 15) {
       const coaches = ['Ryan Day', 'Offensive Coordinator', 'Defensive Coordinator', 'Special Teams Coach', 'QB Coach', 'RB Coach', 'WR Coach', 'OL Coach', 'DL Coach', 'LB Coach', 'DB Coach', 'Strength Coach', 'Assistant Coach 1', 'Assistant Coach 2', 'Graduate Assistant'];
@@ -144,7 +138,7 @@ export const ohioStateNotreDame: ProTripData = {
       id: '1',
       name: 'Ryan Day',
       email: 'rday@osu.edu',
-      avatar: '/images/avatars/blank-01.png',
+      avatar: getMockAvatar('Ryan Day'),
       role: 'Coaches',
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'team-management'],
@@ -155,7 +149,7 @@ export const ohioStateNotreDame: ProTripData = {
       id: '2',
       name: 'Marvin Harrison Jr.',
       email: 'mharrison@osu.edu',
-      avatar: '/images/avatars/blank-02.png',
+      avatar: getMockAvatar('Marvin Harrison Jr.'),
       role: 'Players',
       credentialLevel: 'AllAccess',
       permissions: ['locker-room', 'team-areas'],
@@ -166,7 +160,7 @@ export const ohioStateNotreDame: ProTripData = {
       id: '3',
       name: 'Kyle McCord',
       email: 'kmccord@osu.edu',
-      avatar: '/images/avatars/blank-03.png',
+      avatar: getMockAvatar('Kyle McCord'),
       role: 'Players',
       credentialLevel: 'AllAccess',
       permissions: ['locker-room', 'team-areas'],
@@ -177,7 +171,7 @@ export const ohioStateNotreDame: ProTripData = {
       id: '4',
       name: 'Kate Hoke',
       email: 'khoke@osu.edu',
-      avatar: '/images/avatars/blank-04.png',
+      avatar: getMockAvatar('Kate Hoke'),
       role: 'Medical Staff',
       credentialLevel: 'Backstage',
       permissions: ['medical-facilities', 'team-coordination'],
