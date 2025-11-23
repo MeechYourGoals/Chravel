@@ -1,4 +1,5 @@
 import { ProTripData } from '../../types/pro';
+import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const teslaCybertruckRoadshow: ProTripData = {
   id: 'tesla-cybertruck-roadshow-2025',
@@ -85,10 +86,10 @@ export const teslaCybertruckRoadshow: ProTripData = {
     }
   ],
   participants: [
-    { id: 1, name: 'Elon Musk', avatar: '/images/avatars/blank-17.png', role: 'Executive Team' },
-    { id: 2, name: 'Franz von Holzhausen', avatar: '/images/avatars/blank-18.png', role: 'Design Team' },
-    { id: 3, name: 'Riley Brooks', avatar: '/images/avatars/blank-19.png', role: 'Logistics Team' },
-    { id: 4, name: 'Kaitlyn Ruiz', avatar: '/images/avatars/blank-20.png', role: 'Technical Crew' }
+    { id: 1, name: 'Elon Musk', avatar: getMockAvatar('Elon Musk'), role: 'Executive Team' },
+    { id: 2, name: 'Franz von Holzhausen', avatar: getMockAvatar('Franz von Holzhausen'), role: 'Design Team' },
+    { id: 3, name: 'Riley Brooks', avatar: getMockAvatar('Riley Brooks'), role: 'Logistics Team' },
+    { id: 4, name: 'Kaitlyn Ruiz', avatar: getMockAvatar('Kaitlyn Ruiz'), role: 'Technical Crew' }
   ],
   budget: {
     total: 2000000,
@@ -116,7 +117,7 @@ export const teslaCybertruckRoadshow: ProTripData = {
       id: '1',
       name: 'Elon Musk',
       email: 'elon@tesla.com',
-      avatar: '/images/avatars/blank-17.png',
+      avatar: getMockAvatar('Elon Musk'),
       role: 'Executive Team',
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'executive-privileges'],
@@ -127,7 +128,7 @@ export const teslaCybertruckRoadshow: ProTripData = {
       id: '2',
       name: 'Franz von Holzhausen',
       email: 'franz@tesla.com',
-      avatar: '/images/avatars/blank-18.png',
+      avatar: getMockAvatar('Franz von Holzhausen'),
       role: 'Design Team',
       credentialLevel: 'AllAccess',
       permissions: ['design-areas', 'vehicle-access'],
@@ -138,7 +139,7 @@ export const teslaCybertruckRoadshow: ProTripData = {
       id: '3',
       name: 'Riley Brooks',
       email: 'riley@tesla.com',
-      avatar: '/images/avatars/blank-19.png',
+      avatar: getMockAvatar('Riley Brooks'),
       role: 'Logistics Team',
       credentialLevel: 'Backstage',
       permissions: ['logistics-coordination', 'vehicle-transport'],
@@ -149,7 +150,7 @@ export const teslaCybertruckRoadshow: ProTripData = {
       id: '4',
       name: 'Kaitlyn Ruiz',
       email: 'kaitlyn@tesla.com',
-      avatar: '/images/avatars/blank-20.png',
+      avatar: getMockAvatar('Kaitlyn Ruiz'),
       role: 'Technical Crew',
       credentialLevel: 'Backstage',
       permissions: ['technical-areas', 'av-equipment'],

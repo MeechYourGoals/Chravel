@@ -80,7 +80,7 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
   const canManageRoles = (isAdmin && hasPermission('can_manage_roles')) || isDemoMode;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Roles View */}
       <RolesView
         roster={roster}

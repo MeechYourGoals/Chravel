@@ -126,7 +126,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
   ],
   participants: [
     // MVP: Consolidated to 5 roles (Artists, Tour Manager, Crew, Performers, Security)
-    { id: 4, name: 'Beyoncé', avatar: '/images/avatars/blank-05.png', role: 'Artists' },
+    { id: 4, name: 'Beyoncé', avatar: getMockAvatar('Beyoncé'), role: 'Artists' },
     { id: 5, name: 'Les Twins', avatar: getMockAvatar('Les Twins'), role: 'Performers' },
     { id: 6, name: 'Simmie Cobbs Jr.', avatar: getMockAvatar('Simmie Cobbs Jr.'), role: 'Performers' },
     { id: 7, name: 'Musical Director', avatar: getMockAvatar('Musical Director'), role: 'Performers' },

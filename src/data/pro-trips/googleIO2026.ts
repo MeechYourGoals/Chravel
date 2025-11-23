@@ -1,4 +1,5 @@
 import { ProTripData } from '../../types/pro';
+import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const googleIO2026: ProTripData = {
   id: 'google-io-2026',
@@ -7,13 +8,13 @@ export const googleIO2026: ProTripData = {
   location: 'Mountain View, CA',
   dateRange: 'May 12 - May 15, 2026',
   category: 'Enterprise',
-  proTripCategory: 'Other',
+  proTripCategory: 'Business Travel',
   tags: ['Tech Conference', 'Enterprise', 'Developer'],
   participants: [
-    { id: 1, name: 'Sundar Pichai', avatar: '/images/avatars/blank-13.png', role: 'Keynote Speakers' },
-    { id: 2, name: 'Aparna Pappu', avatar: '/images/avatars/blank-14.png', role: 'Demo Team' },
-    { id: 3, name: 'Jordan Tigani', avatar: '/images/avatars/blank-15.png', role: 'Product Managers' },
-    { id: 4, name: 'Maya Chen', avatar: '/images/avatars/blank-16.png', role: 'Developer Advocates' }
+    { id: 1, name: 'Sundar Pichai', avatar: getMockAvatar('Sundar Pichai'), role: 'Keynote Speakers' },
+    { id: 2, name: 'Aparna Pappu', avatar: getMockAvatar('Aparna Pappu'), role: 'Demo Team' },
+    { id: 3, name: 'Jordan Tigani', avatar: getMockAvatar('Jordan Tigani'), role: 'Product Managers' },
+    { id: 4, name: 'Maya Chen', avatar: getMockAvatar('Maya Chen'), role: 'Developer Advocates' }
   ],
   budget: {
     total: 500000,
@@ -41,7 +42,7 @@ export const googleIO2026: ProTripData = {
       id: '1',
       name: 'Sundar Pichai',
       email: 'sundar@google.com',
-      avatar: '/images/avatars/blank-13.png',
+      avatar: getMockAvatar('Sundar Pichai'),
       role: 'Keynote Speakers',
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'executive-access'],
@@ -52,7 +53,7 @@ export const googleIO2026: ProTripData = {
       id: '2',
       name: 'Aparna Pappu',
       email: 'aparna@google.com',
-      avatar: '/images/avatars/blank-14.png',
+      avatar: getMockAvatar('Aparna Pappu'),
       role: 'Demo Team',
       credentialLevel: 'AllAccess',
       permissions: ['demo-areas', 'backstage-access'],
@@ -63,7 +64,7 @@ export const googleIO2026: ProTripData = {
       id: '3',
       name: 'Jordan Tigani',
       email: 'jtigani@google.com',
-      avatar: '/images/avatars/blank-15.png',
+      avatar: getMockAvatar('Jordan Tigani'),
       role: 'Product Managers',
       credentialLevel: 'Backstage',
       permissions: ['product-demos', 'press-access'],
@@ -74,7 +75,7 @@ export const googleIO2026: ProTripData = {
       id: '4',
       name: 'Maya Chen',
       email: 'mchen@google.com',
-      avatar: '/images/avatars/blank-16.png',
+      avatar: getMockAvatar('Maya Chen'),
       role: 'Developer Advocates',
       credentialLevel: 'Backstage',
       permissions: ['developer-areas', 'community-access'],

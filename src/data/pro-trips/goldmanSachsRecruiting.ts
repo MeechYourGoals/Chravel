@@ -1,4 +1,5 @@
 import { ProTripData } from '../../types/pro';
+import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const goldmanSachsRecruiting: ProTripData = {
   id: 'gs-campus-gt-2025',
@@ -85,16 +86,16 @@ export const goldmanSachsRecruiting: ProTripData = {
     }
   ],
   participants: [
-    { id: 1, name: 'David Solomon', avatar: '/images/avatars/blank-05.png', role: 'CEO Speaker' },
-    { id: 2, name: 'Rachel Ma', avatar: '/images/avatars/blank-06.png', role: 'Campus Lead' },
-    { id: 3, name: 'Luis Vargas', avatar: '/images/avatars/blank-07.png', role: 'Analyst Panelist' },
-    { id: 4, name: 'Priya Dhillon', avatar: '/images/avatars/blank-08.png', role: 'HR Coordinator' }
+    { id: 1, name: 'David Solomon', avatar: getMockAvatar('David Solomon'), role: 'CEO Speaker' },
+    { id: 2, name: 'Rachel Ma', avatar: getMockAvatar('Rachel Ma'), role: 'Campus Lead' },
+    { id: 3, name: 'Luis Vargas', avatar: getMockAvatar('Luis Vargas'), role: 'Analyst Panelist' },
+    { id: 4, name: 'Priya Dhillon', avatar: getMockAvatar('Priya Dhillon'), role: 'HR Coordinator' }
   ],
   roster: [
-    { id: '1', name: 'David Solomon', role: 'CEO Speaker', email: 'david.solomon@gs.com', avatar: '/images/avatars/blank-05.png', credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '2', name: 'Rachel Ma', role: 'Campus Lead', email: 'rachel.ma@gs.com', avatar: '/images/avatars/blank-06.png', credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '3', name: 'Luis Vargas', role: 'Analyst Panelist', email: 'luis.vargas@gs.com', avatar: '/images/avatars/blank-07.png', credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '4', name: 'Priya Dhillon', role: 'HR Coordinator', email: 'priya.dhillon@gs.com', avatar: '/images/avatars/blank-08.png', credentialLevel: 'Guest', permissions: ['viewer'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' }
+    { id: '1', name: 'David Solomon', role: 'CEO Speaker', email: 'david.solomon@gs.com', avatar: getMockAvatar('David Solomon'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '2', name: 'Rachel Ma', role: 'Campus Lead', email: 'rachel.ma@gs.com', avatar: getMockAvatar('Rachel Ma'), credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '3', name: 'Luis Vargas', role: 'Analyst Panelist', email: 'luis.vargas@gs.com', avatar: getMockAvatar('Luis Vargas'), credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '4', name: 'Priya Dhillon', role: 'HR Coordinator', email: 'priya.dhillon@gs.com', avatar: getMockAvatar('Priya Dhillon'), credentialLevel: 'Guest', permissions: ['viewer'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' }
   ],
   itinerary: [
     {

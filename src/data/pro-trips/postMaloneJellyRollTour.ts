@@ -1,4 +1,5 @@
 import { ProTripData } from '../../types/pro';
+import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const postMaloneJellyRollTour: ProTripData = {
   id: 'postmalone-jellyroll-tour-2026',
@@ -85,16 +86,16 @@ export const postMaloneJellyRollTour: ProTripData = {
     }
   ],
   participants: [
-    { id: 1, name: 'Post Malone', avatar: '/images/avatars/blank-01.png', role: 'Headliner' },
-    { id: 2, name: 'Jelly Roll', avatar: '/images/avatars/blank-02.png', role: 'Co-Headliner' },
-    { id: 3, name: 'Dre London', avatar: '/images/avatars/blank-03.png', role: 'Tour Manager' },
-    { id: 4, name: 'Marissa Jones', avatar: '/images/avatars/blank-04.png', role: 'Production Director' }
+    { id: 1, name: 'Post Malone', avatar: getMockAvatar('Post Malone'), role: 'Headliner' },
+    { id: 2, name: 'Jelly Roll', avatar: getMockAvatar('Jelly Roll'), role: 'Co-Headliner' },
+    { id: 3, name: 'Dre London', avatar: getMockAvatar('Dre London'), role: 'Tour Manager' },
+    { id: 4, name: 'Marissa Jones', avatar: getMockAvatar('Marissa Jones'), role: 'Production Director' }
   ],
   roster: [
-    { id: '1', name: 'Post Malone', role: 'Headliner', email: 'postmalone@tour.com', avatar: '/images/avatars/blank-01.png', credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '2', name: 'Jelly Roll', role: 'Co-Headliner', email: 'jellyroll@tour.com', avatar: '/images/avatars/blank-02.png', credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '3', name: 'Dre London', role: 'Tour Manager', email: 'dre@tour.com', avatar: '/images/avatars/blank-03.png', credentialLevel: 'Backstage', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '4', name: 'Marissa Jones', role: 'Production Director', email: 'marissa@tour.com', avatar: '/images/avatars/blank-04.png', credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' }
+    { id: '1', name: 'Post Malone', role: 'Headliner', email: 'postmalone@tour.com', avatar: getMockAvatar('Post Malone'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '2', name: 'Jelly Roll', role: 'Co-Headliner', email: 'jellyroll@tour.com', avatar: getMockAvatar('Jelly Roll'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '3', name: 'Dre London', role: 'Tour Manager', email: 'dre@tour.com', avatar: getMockAvatar('Dre London'), credentialLevel: 'Backstage', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '4', name: 'Marissa Jones', role: 'Production Director', email: 'marissa@tour.com', avatar: getMockAvatar('Marissa Jones'), credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' }
   ],
   itinerary: [
     {
