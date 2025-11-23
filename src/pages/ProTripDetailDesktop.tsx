@@ -431,20 +431,21 @@ export const ProTripDetailDesktop = () => {
   return (
     <TripVariantProvider variant="pro">
       <div className="min-h-screen bg-black text-white">
-        <ProTripDetailHeader
-          tripContext={tripContext}
-          showInbox={showInbox}
-          onToggleInbox={() => setShowInbox(!showInbox)}
-          onShowInvite={() => setShowInvite(true)}
-          onShowTripSettings={() => setShowTripSettings(true)}
-          onShowAuth={() => setShowAuth(true)}
-        />
+        <div className="container mx-auto px-6 py-4 pb-8 max-w-7xl">
+          <ProTripDetailHeader
+            tripContext={tripContext}
+            showInbox={showInbox}
+            onToggleInbox={() => setShowInbox(!showInbox)}
+            onShowInvite={() => setShowInvite(true)}
+            onShowTripSettings={() => setShowTripSettings(true)}
+            onShowAuth={() => setShowAuth(true)}
+          />
 
-        {showInbox && (
-          <MessageInbox />
-        )}
+          {showInbox && (
+            <MessageInbox />
+          )}
 
-        <div className="container mx-auto px-6 py-8 max-w-7xl">
+
           <Suspense fallback={
             <div className="mb-8 animate-pulse">
               <div className="h-8 bg-white/5 rounded w-2/3 mb-4"></div>
