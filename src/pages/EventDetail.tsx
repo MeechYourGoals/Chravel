@@ -77,9 +77,15 @@ const EventDetail = () => {
     );
   }
 
-  // 🔐 AUTHENTICATED MODE: Events coming soon
-  // TODO: Query Supabase trips table where trip_type = 'event'
-  if (!isDemoMode) {
+  // Get event data from demo mode or authenticated database
+  let eventData: any;
+
+  if (isDemoMode) {
+    // 🔐 DEMO MODE: Use mock events
+    eventData = eventsMockData[eventId];
+  } else {
+    // 🔐 AUTHENTICATED MODE: Events coming soon - but prepare the structure
+    // TODO: Full authenticated event support
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
         <div className="text-center max-w-md p-8">
@@ -97,8 +103,6 @@ const EventDetail = () => {
       </div>
     );
   }
-
-  const eventData = eventsMockData[eventId];
 
   // Enhanced trip data with event-specific features
   const trip = {

@@ -4,8 +4,10 @@ import { Button } from './ui/button';
 import { Poll as PollType } from './poll/types';
 import { Poll } from './poll/Poll';
 import { CreatePollForm } from './poll/CreatePollForm';
+import { PollsEmptyState } from './polls/PollsEmptyState';
 import { useTripPolls } from '@/hooks/useTripPolls';
 import { useAuth } from '@/hooks/useAuth';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface PollComponentProps {
   tripId: string;
@@ -14,6 +16,7 @@ interface PollComponentProps {
 export const PollComponent = ({ tripId }: PollComponentProps) => {
   const [showCreatePoll, setShowCreatePoll] = useState(false);
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const {
     polls,
     isLoading,
@@ -61,6 +64,22 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
       console.error('Failed to create poll:', error);
     }
   };
+
+  // Show empty state if no polls and not in demo mode
+  if (!isLoading && formattedPolls.length === 0 && !showCreatePoll && !isDemoMode) {
+    return (
+      <div className="space-y-3 mobile-safe-scroll">
+        <PollsEmptyState onCreatePoll={() => setShowCreatePoll(true)} />
+        {showCreatePoll && (
+          <CreatePollForm
+            onCreatePoll={handleCreatePoll}
+            onCancel={() => setShowCreatePoll(false)}
+            isSubmitting={isCreatingPoll}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3 mobile-safe-scroll">

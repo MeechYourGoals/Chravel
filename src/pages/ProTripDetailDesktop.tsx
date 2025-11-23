@@ -117,16 +117,19 @@ export const ProTripDetailDesktop = () => {
     // 🔐 AUTHENTICATED MODE: Fetch from Supabase
     const allTrips = convertSupabaseTripsToMock(userTrips);
     const proTrip = allTrips.find(t => String(t.id) === proTripId && t.trip_type === 'pro');
-    
+
     if (!proTrip) {
       return (
-        <ProTripNotFound 
+        <ProTripNotFound
           message="Pro trip not found"
           details="This Pro trip doesn't exist or you don't have access."
         />
       );
     }
-    
+
+    // Find the original Supabase trip to get enabled_features and trip_type
+    const supabaseTrip = userTrips.find(t => t.id === proTripId);
+
     // Convert to tripData format expected by components
     tripData = {
       id: proTrip.id,
@@ -136,8 +139,10 @@ export const ProTripDetailDesktop = () => {
       description: proTrip.description,
       proTripCategory: 'sports', // Default category for authenticated trips
       participants: proTrip.participants || [],
-      basecamp_name: userTrips.find(t => t.id === proTripId)?.basecamp_name || '',
-      basecamp_address: userTrips.find(t => t.id === proTripId)?.basecamp_address || '',
+      basecamp_name: supabaseTrip?.basecamp_name || '',
+      basecamp_address: supabaseTrip?.basecamp_address || '',
+      enabled_features: supabaseTrip?.enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks'],
+      trip_type: supabaseTrip?.trip_type || 'pro',
       broadcasts: [],
       links: [],
       schedule: [],

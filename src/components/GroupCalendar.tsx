@@ -7,9 +7,11 @@ import { CalendarHeader } from './calendar/CalendarHeader';
 import { CalendarGrid } from './calendar/CalendarGrid';
 import { AddEventModal } from './calendar/AddEventModal';
 import { EventList } from './calendar/EventList';
+import { CalendarEmptyState } from './calendar/CalendarEmptyState';
 import { exportTripEventsToICal } from '@/services/calendarSync';
 import { useToast } from '@/hooks/use-toast';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface GroupCalendarProps {
   tripId: string;
@@ -40,6 +42,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
   } = useCalendarManagement(tripId);
   const { toast } = useToast();
   const { canPerformAction } = useRolePermissions(tripId);
+  const { isDemoMode } = useDemoMode();
 
   const handleEdit = (event: any) => {
     if (!canPerformAction('calendar', 'can_edit_events')) {
@@ -106,6 +109,29 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-6 text-center text-muted-foreground">
           Trip calendar is unavailable without a valid trip.
         </div>
+      </div>
+    );
+  }
+
+  // Show empty state if no events and not in demo mode
+  if (!isLoading && events.length === 0 && !showAddEvent && !isDemoMode) {
+    return (
+      <div className="p-6">
+        <CalendarEmptyState onCreateEvent={() => setShowAddEvent(true)} />
+        <AddEventModal
+          open={showAddEvent}
+          onClose={() => {
+            setShowAddEvent(false);
+            setEditingEvent(null);
+            resetForm();
+          }}
+          newEvent={newEvent}
+          onUpdateField={updateEventField}
+          onSubmit={handleAddEvent}
+          isSubmitting={isSaving}
+          isEditing={!!editingEvent}
+          selectedDate={selectedDate}
+        />
       </div>
     );
   }
