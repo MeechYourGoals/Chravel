@@ -21,6 +21,8 @@ import { TripVariantProvider } from '../contexts/TripVariantContext';
 import { useAuth } from '../hooks/useAuth';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { useTrips } from '../hooks/useTrips';
+import { convertSupabaseTripToEvent, convertSupabaseTripsToMock } from '../utils/tripConverter';
 import { eventsMockData } from '../data/eventsMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { TripContext } from '../types/tripContext';
@@ -35,6 +37,7 @@ const EventDetail = () => {
   const { generateInitialEmbeddings } = useEmbeddingGeneration(eventId);
   const { user } = useAuth();
   const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
+  const { trips: userTrips, loading: tripsLoading } = useTrips();
   const [activeTab, setActiveTab] = useState('chat');
   const [showInbox, setShowInbox] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -46,7 +49,7 @@ const EventDetail = () => {
 
 
   // ⚡ OPTIMIZATION: Show loading spinner instantly before expensive operations
-  if (demoModeLoading) {
+  if (demoModeLoading || (tripsLoading && !isDemoMode)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
         <div className="text-center">
@@ -65,40 +68,47 @@ const EventDetail = () => {
   }
 
   // 🔐 DEMO MODE: Show mock events
-  if (isDemoMode && !(eventId in eventsMockData)) {
-    console.error(`EventDetail: Event not found in mock data: ${eventId}`);
-    console.log('Available event IDs:', Object.keys(eventsMockData));
-    return (
-      <ProTripNotFound 
-        message="The requested demo event could not be found."
-        details={`Event ID: ${eventId}`}
-        availableIds={Object.keys(eventsMockData)}
-      />
-    );
-  }
+  let eventData: any;
 
-  // 🔐 AUTHENTICATED MODE: Events coming soon
-  // TODO: Query Supabase trips table where trip_type = 'event'
-  if (!isDemoMode) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <div className="text-center max-w-md p-8">
-          <h1 className="text-3xl font-bold text-white mb-4">Events Coming Soon</h1>
-          <p className="text-gray-400 mb-6">
-            Events are currently only available in demo mode. Turn on Demo Mode to preview event features.
-          </p>
-          <button
-            onClick={() => window.location.href = '/'}
-            className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors"
-          >
-            Back to My Trips
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (isDemoMode) {
+    // 🔐 DEMO MODE: Use mock events
+    if (!(eventId in eventsMockData)) {
+      console.error(`EventDetail: Event not found in mock data: ${eventId}`);
+      console.log('Available event IDs:', Object.keys(eventsMockData));
+      return (
+        <ProTripNotFound
+          message="The requested demo event could not be found."
+          details={`Event ID: ${eventId}`}
+          availableIds={Object.keys(eventsMockData)}
+        />
+      );
+    }
+    eventData = eventsMockData[eventId];
+  } else {
+    // 🔐 AUTHENTICATED MODE: Fetch from Supabase
+    const userTrip = userTrips.find(t => String(t.id) === eventId && t.trip_type === 'event');
 
-  const eventData = eventsMockData[eventId];
+    if (!userTrip) {
+      return (
+        <ProTripNotFound
+          message="Event not found"
+          details="This event doesn't exist or you don't have access."
+        />
+      );
+    }
+
+    const mockTrip = convertSupabaseTripToEvent(userTrip);
+
+    // Merge mock data structure with enabled_features from database
+    eventData = {
+      ...mockTrip,
+      chatEnabled: userTrip.enabled_features?.includes('chat') !== false,
+      pollsEnabled: userTrip.enabled_features?.includes('polls') !== false,
+      mediaUploadEnabled: userTrip.enabled_features?.includes('media') !== false,
+      conciergeEnabled: userTrip.enabled_features?.includes('concierge') === true,
+      enabled_features: userTrip.enabled_features
+    };
+  }
 
   // Enhanced trip data with event-specific features
   const trip = {

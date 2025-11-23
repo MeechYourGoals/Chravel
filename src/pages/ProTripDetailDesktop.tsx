@@ -128,6 +128,7 @@ export const ProTripDetailDesktop = () => {
     }
     
     // Convert to tripData format expected by components
+    const userTrip = userTrips.find(t => String(t.id) === proTripId);
     tripData = {
       id: proTrip.id,
       title: proTrip.title,
@@ -136,14 +137,16 @@ export const ProTripDetailDesktop = () => {
       description: proTrip.description,
       proTripCategory: 'sports', // Default category for authenticated trips
       participants: proTrip.participants || [],
-      basecamp_name: userTrips.find(t => t.id === proTripId)?.basecamp_name || '',
-      basecamp_address: userTrips.find(t => t.id === proTripId)?.basecamp_address || '',
+      basecamp_name: userTrip?.basecamp_name || '',
+      basecamp_address: userTrip?.basecamp_address || '',
       broadcasts: [],
       links: [],
       schedule: [],
       roster: [],
       tasks: [],
-      polls: []
+      polls: [],
+      enabled_features: userTrip?.enabled_features || [],
+      trip_type: userTrip?.trip_type || 'pro'
     };
   }
 

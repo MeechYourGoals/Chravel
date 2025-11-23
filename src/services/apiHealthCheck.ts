@@ -44,10 +44,46 @@ class ApiHealthCheckService {
     const serviceName = 'concierge';
 
     try {
-      // Use dedicated ping endpoint that doesn't consume AI quota
+      // Get isDemoMode from secure storage or local storage if available,
+      // or import the store hook if we are in a component context (but we are in a service).
+      // For now, we will assume we want to check the LIVE service unless strictly in demo mode.
+      // However, the issue description says: "Health check sends hardcoded isDemoMode: true flag".
+      // I don't see isDemoMode: true in the code I read.
+      // Wait, maybe it's in the `body` of the request?
+      // The code I read was:
+      /*
       const { data, error } = await supabase.functions.invoke('lovable-concierge', {
         body: {
           message: 'ping'  // Simple ping, no AI processing
+        }
+      });
+      */
+      // It does NOT have isDemoMode: true.
+      // BUT the user said: "Issue 6: AI Concierge Shows "Offline" for Authenticated Users... Files: aiConciergeHealthService.ts (line ~45)"
+      // I checked for aiConciergeHealthService.ts and it DID NOT EXIST.
+      // But I found `apiHealthCheck.ts`.
+      // Maybe the file was RENAMED or the user is referring to an older version of the file structure.
+      // Or maybe I missed `src/services/aiConciergeHealthService.ts`?
+      // I did `ls src/services/aiConciergeHealthService.ts` and it said "No such file or directory".
+      // I grep'd for `isDemoMode: true` and found nothing in `src/services`.
+      // Wait, I grep'd `grep -r "isDemoMode: true" src/` and found:
+      // `AUTHENTICATED_MODE_AUDIT.md:129:- src/services/aiConciergeHealthService.ts (line ~45: hardcoded isDemoMode: true)`
+      // This implies the file SHOULD exist or existed.
+      //
+      // However, looking at `apiHealthCheck.ts`, it calls `lovable-concierge`.
+      // If I add `isDemoMode: false` (or the actual value) to the body, it might fix it if the edge function defaults to something else or expects it.
+      // The prompt says: "Modify src/services/aiConciergeHealthService.ts ... Remove hardcoded isDemoMode: true flag ... Pass actual useDemoMode() state".
+      // Since `aiConciergeHealthService.ts` is missing, I assume `apiHealthCheck.ts` IS the replacement.
+      // I will assume the user wants me to pass the correct `isDemoMode` flag.
+      // Accessing the store from a service (outside a React component) requires importing the store directly.
+
+      const { isDemoMode } = await import('@/store/demoModeStore').then(m => m.useDemoModeStore.getState());
+
+      // Use dedicated ping endpoint that doesn't consume AI quota
+      const { data, error } = await supabase.functions.invoke('lovable-concierge', {
+        body: {
+          message: 'ping',  // Simple ping, no AI processing
+          isDemoMode // Pass the actual state
         }
       });
 

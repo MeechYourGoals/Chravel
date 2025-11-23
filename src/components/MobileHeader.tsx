@@ -34,7 +34,10 @@ export const MobileHeader = ({
       <div className="mb-6 space-y-2">
         {/* Demo Mode Toggle - Top of mobile header */}
         <div className="flex justify-center px-2">
-          <div className="min-w-[120px] max-w-[140px]">
+          <div className="min-w-[120px] max-w-[140px] landscape:hidden">
+            <DemoModeToggle />
+          </div>
+          <div className="hidden landscape:block">
             <DemoModeToggle />
           </div>
         </div>

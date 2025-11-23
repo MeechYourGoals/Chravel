@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { TaskList } from './TaskList';
 import { TaskFilters } from './TaskFilters';
 import { TaskCreateModal } from './TaskCreateModal';
+import { TasksEmptyState } from './TasksEmptyState';
 import { useTripTasks } from '../../hooks/useTripTasks';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '@/hooks/useDemoMode';
@@ -114,33 +115,39 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
         </Button>
       </div>
 
-      {/* Filters */}
-      <TaskFilters
-        status={status}
-        sortBy={sortBy}
-        onStatusChange={setStatus}
-        onSortChange={setSortBy}
-        hasActiveFilters={hasActiveFilters}
-        onClearFilters={clearFilters}
-      />
+      {displayTasks.length === 0 ? (
+        <TasksEmptyState onAddClick={() => setShowCreateModal(true)} />
+      ) : (
+        <>
+          {/* Filters */}
+          <TaskFilters
+            status={status}
+            sortBy={sortBy}
+            onStatusChange={setStatus}
+            onSortChange={setSortBy}
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={clearFilters}
+          />
 
-      {/* Open Tasks */}
-      <TaskList
-        tasks={openTasks}
-        tripId={tripId}
-        title="To Do"
-        emptyMessage="All caught up! No pending tasks."
-      />
+          {/* Open Tasks */}
+          <TaskList
+            tasks={openTasks}
+            tripId={tripId}
+            title="To Do"
+            emptyMessage="All caught up! No pending tasks."
+          />
 
-      {/* Completed Tasks */}
-      {completedTasks.length > 0 && (
-        <TaskList
-          tasks={completedTasks}
-          tripId={tripId}
-          title="Completed"
-          showCompleted={showCompleted}
-          onToggleCompleted={() => setShowCompleted(!showCompleted)}
-        />
+          {/* Completed Tasks */}
+          {completedTasks.length > 0 && (
+            <TaskList
+              tasks={completedTasks}
+              tripId={tripId}
+              title="Completed"
+              showCompleted={showCompleted}
+              onToggleCompleted={() => setShowCompleted(!showCompleted)}
+            />
+          )}
+        </>
       )}
 
       {/* Create Task Modal */}

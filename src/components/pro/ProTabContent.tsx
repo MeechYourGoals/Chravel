@@ -86,12 +86,26 @@ export const ProTabContent = ({
           </FeatureErrorBoundary>
         );
       case 'tasks':
+        if (tripData.enabled_features && !tripData.enabled_features.includes('tasks')) {
+            return (
+                <div className="p-8 text-center text-gray-400">
+                    <p>Tasks are disabled for this trip.</p>
+                </div>
+            );
+        }
         return (
           <FeatureErrorBoundary featureName="Tasks & Todo">
             <TripTasksTab tripId={tripId} />
           </FeatureErrorBoundary>
         );
       case 'polls':
+        if (tripData.enabled_features && !tripData.enabled_features.includes('polls')) {
+            return (
+                <div className="p-8 text-center text-gray-400">
+                    <p>Polls are disabled for this trip.</p>
+                </div>
+            );
+        }
         return (
           <FeatureErrorBoundary featureName="Polls & Comments">
             <CommentsWall tripId={tripId} />

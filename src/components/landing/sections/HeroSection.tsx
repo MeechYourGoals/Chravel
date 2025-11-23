@@ -10,8 +10,8 @@ interface HeroSectionProps {
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
   return (
     <div className="relative container mx-auto px-4 py-12 md:py-0 flex flex-col items-center justify-center min-h-[90vh] text-center space-y-6">
-      {/* Demo Mode Toggle - Desktop only (mobile uses sticky nav) */}
-      <div className="absolute top-4 right-4 md:top-6 md:right-6 z-20 hidden md:block">
+      {/* Demo Mode Toggle - Visible on all devices */}
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 z-20">
         <DemoModeToggle />
       </div>
       {/* Headline */}
