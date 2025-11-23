@@ -160,7 +160,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
             <TripCoverPhotoUpload
               tripId={trip.id.toString()}
               currentPhoto={coverPhoto}
-              onPhotoUploaded={(url) => setCoverPhoto(url)}
+              onPhotoUploaded={async (url) => { setCoverPhoto(url); return true; }}
               className="h-48 w-full"
             />
             {trip.trip_type === 'pro' && (

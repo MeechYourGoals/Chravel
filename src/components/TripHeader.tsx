@@ -51,7 +51,10 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
   const [showEditModal, setShowEditModal] = useState(false);
   const [descEditTick, setDescEditTick] = useState(0);
   const { variant, accentColors } = useTripVariant();
-  const { coverPhoto, updateCoverPhoto } = useTripCoverPhoto(trip);
+  const { coverPhoto, updateCoverPhoto, isUpdating } = useTripCoverPhoto(
+    trip.id.toString(), 
+    trip.coverPhoto
+  );
   const isPro = variant === 'pro';
   // Export is now available to everyone
   const canExport = true;
