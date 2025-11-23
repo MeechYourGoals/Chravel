@@ -58,7 +58,7 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
   };
 
   const renderEmailForm = () => (
-    <form onSubmit={handleEmailAuth} className="space-y-4">
+    <form onSubmit={handleEmailAuth} className="space-y-4 pb-2">
       {mode === 'signup' && (
         <>
           <div className="grid grid-cols-2 gap-4">
@@ -70,7 +70,8 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                 onChange={(e) => setFirstName(e.target.value)}
                 placeholder="John"
                 required
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange"
+                autoComplete="given-name"
+                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange"
               />
             </div>
             <div>
@@ -81,7 +82,8 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder="Doe"
                 required
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange"
+                autoComplete="family-name"
+                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange"
               />
             </div>
           </div>
@@ -98,7 +100,8 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your@email.com"
             required
-            className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange"
+            autoComplete="email"
+            className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange"
           />
         </div>
       </div>
@@ -112,7 +115,8 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             required
-            className="w-full bg-white/10 border border-white/20 rounded-xl pl-4 pr-10 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange"
+            autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+            className="w-full bg-white/10 border border-white/20 rounded-xl pl-4 pr-10 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange"
           />
           <button
             type="button"
@@ -153,8 +157,8 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
   );
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end tablet:items-center justify-center p-0 tablet:p-4 animate-fade-in">
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-t-3xl tablet:rounded-3xl p-6 tablet:p-8 max-w-md w-full safe-bottom animate-slide-in-bottom tablet:animate-scale-in">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-end tablet:items-center landscape:items-center justify-center p-0 tablet:p-4 landscape:p-4 animate-fade-in">
+      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-t-3xl tablet:rounded-3xl landscape:rounded-3xl p-6 tablet:p-8 max-w-md w-full safe-bottom animate-slide-in-bottom tablet:animate-scale-in max-h-[90dvh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white">
             {mode === 'signup' ? 'Create Account' : 'Welcome Back'}
