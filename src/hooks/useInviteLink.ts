@@ -37,6 +37,7 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
         created_by: user.id,
         is_active: true,
         current_uses: 0,
+        require_approval: requireApproval,
       };
 
       // Add expiration if enabled (7 days from now)
