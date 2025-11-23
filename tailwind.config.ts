@@ -28,6 +28,7 @@ export default {
 			'lg': '1024px', // iPad Pro
 			'xl': '1280px', // Desktop
 			'2xl': '1600px',
+			'landscape': { 'raw': '(orientation: landscape)' },
 		},
 		extend: {
 			fontFamily: {

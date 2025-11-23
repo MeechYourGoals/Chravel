@@ -63,7 +63,7 @@ interface AuthContextType {
   signInWithApple: () => Promise<{ error?: string }>;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
-  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error?: any }>;
   updateNotificationSettings: (updates: Partial<User['notificationSettings']>) => Promise<void>;
   switchRole: (role: string) => void;
 }
@@ -425,8 +425,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setSession(null);
   };
 
-  const updateProfile = async (updates: Partial<UserProfile>): Promise<void> => {
-    if (!user) return;
+  const updateProfile = async (updates: Partial<UserProfile>): Promise<{ error?: any }> => {
+    if (!user) return { error: 'No user logged in' };
 
     try {
       const { error } = await supabase
@@ -438,7 +438,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (import.meta.env.DEV) {
           console.error('Error updating profile:', error);
         }
-        return;
+        return { error };
       }
 
       // Update local user state
@@ -452,10 +452,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (updates.show_phone !== undefined) updatedUser.showPhone = updates.show_phone;
 
       setUser(updatedUser);
+      return {};
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error updating profile:', error);
       }
+      return { error };
     }
   };
 
