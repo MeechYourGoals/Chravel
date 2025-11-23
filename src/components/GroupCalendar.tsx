@@ -10,6 +10,7 @@ import { EventList } from './calendar/EventList';
 import { exportTripEventsToICal } from '@/services/calendarSync';
 import { useToast } from '@/hooks/use-toast';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
+import { CalendarEmptyState } from './calendar/CalendarEmptyState';
 
 interface GroupCalendarProps {
   tripId: string;
@@ -124,6 +125,8 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           <div className="flex justify-center items-center py-16">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
+        ) : events.length === 0 ? (
+          <CalendarEmptyState onAddClick={() => setShowAddEvent(true)} />
         ) : (
           <CalendarGrid
             events={events}

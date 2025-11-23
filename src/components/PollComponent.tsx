@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Poll as PollType } from './poll/types';
 import { Poll } from './poll/Poll';
 import { CreatePollForm } from './poll/CreatePollForm';
+import { PollsEmptyState } from './poll/PollsEmptyState';
 import { useTripPolls } from '@/hooks/useTripPolls';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -64,42 +65,44 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
 
   return (
     <div className="space-y-3 mobile-safe-scroll">
-      {!showCreatePoll && (
-        <Button
-          onClick={() => setShowCreatePoll(true)}
-          className="w-full h-10 rounded-xl bg-gradient-to-r from-glass-enterprise-blue to-glass-enterprise-blue-light hover:from-glass-enterprise-blue-light hover:to-glass-enterprise-blue font-semibold shadow-enterprise border border-glass-enterprise-blue/50 text-white text-sm"
-        >
-          <BarChart3 size={18} className="mr-2" />
-          Create Poll
-        </Button>
-      )}
-
-      {showCreatePoll && (
-        <CreatePollForm
-          onCreatePoll={handleCreatePoll}
-          onCancel={() => setShowCreatePoll(false)}
-          isSubmitting={isCreatingPoll}
-        />
-      )}
-
-      {isLoading ? (
-        <div className="flex justify-center py-6">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-        </div>
-      ) : formattedPolls.length === 0 ? (
-        <div className="text-center py-6 text-muted-foreground text-sm">
-          No polls have been created yet.
-        </div>
+      {formattedPolls.length === 0 && !showCreatePoll && !isLoading ? (
+        <PollsEmptyState onAddClick={() => setShowCreatePoll(true)} />
       ) : (
-        formattedPolls.map(poll => (
-          <Poll
-            key={poll.id}
-            poll={poll}
-            onVote={handleVote}
-            disabled={poll.status === 'closed' || !userId}
-            isVoting={isVoting}
-          />
-        ))
+        <>
+          {!showCreatePoll && (
+            <Button
+              onClick={() => setShowCreatePoll(true)}
+              className="w-full h-10 rounded-xl bg-gradient-to-r from-glass-enterprise-blue to-glass-enterprise-blue-light hover:from-glass-enterprise-blue-light hover:to-glass-enterprise-blue font-semibold shadow-enterprise border border-glass-enterprise-blue/50 text-white text-sm"
+            >
+              <BarChart3 size={18} className="mr-2" />
+              Create Poll
+            </Button>
+          )}
+
+          {showCreatePoll && (
+            <CreatePollForm
+              onCreatePoll={handleCreatePoll}
+              onCancel={() => setShowCreatePoll(false)}
+              isSubmitting={isCreatingPoll}
+            />
+          )}
+
+          {isLoading ? (
+            <div className="flex justify-center py-6">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+            </div>
+          ) : (
+            formattedPolls.map(poll => (
+              <Poll
+                key={poll.id}
+                poll={poll}
+                onVote={handleVote}
+                disabled={poll.status === 'closed' || !userId}
+                isVoting={isVoting}
+              />
+            ))
+          )}
+        </>
       )}
     </div>
   );

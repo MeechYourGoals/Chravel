@@ -105,7 +105,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
   return (
     <>
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50">
-        <div className="h-screen flex flex-col bg-white/10 backdrop-blur-md border-r border-white/20 w-full">
+        <div className="h-screen flex flex-col bg-white/10 backdrop-blur-md border-r border-white/20 w-full md:max-w-[80%] lg:max-w-[60%] xl:max-w-[50%]">
           {/* Header */}
           <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-white/20">
             <h2 className="text-xl font-semibold text-white">Settings</h2>

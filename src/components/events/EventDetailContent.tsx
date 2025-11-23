@@ -42,12 +42,12 @@ export const EventDetailContent = ({
   const tabs = [
     { id: 'agenda', label: 'Agenda', icon: Calendar, enabled: true, eventOnly: true },
     { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: true },
-    { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: eventData.chatEnabled !== false },
+    { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: (eventData.enabled_features ? eventData.enabled_features.includes('chat') : eventData.chatEnabled !== false) },
     { id: 'check-in', label: 'Check-In', icon: UserCheck, enabled: isAdmin, eventOnly: true, organizerOnly: true },
-    { id: 'ai-chat', label: 'Concierge', icon: Sparkles, enabled: eventData.conciergeEnabled === true },
-    { id: 'media', label: 'Media', icon: Camera, enabled: eventData.mediaUploadEnabled !== false },
+    { id: 'ai-chat', label: 'Concierge', icon: Sparkles, enabled: (eventData.enabled_features ? eventData.enabled_features.includes('concierge') : eventData.conciergeEnabled === true) },
+    { id: 'media', label: 'Media', icon: Camera, enabled: (eventData.enabled_features ? eventData.enabled_features.includes('media') : eventData.mediaUploadEnabled !== false) },
     { id: 'performers', label: 'Performers', icon: Users, enabled: true, eventOnly: true },
-    { id: 'polls', label: 'Polls', icon: BarChart3, enabled: eventData.pollsEnabled !== false },
+    { id: 'polls', label: 'Polls', icon: BarChart3, enabled: (eventData.enabled_features ? eventData.enabled_features.includes('polls') : eventData.pollsEnabled !== false) },
     { id: 'rsvp', label: 'RSVP', icon: CheckCircle2, enabled: true, eventOnly: true }
   ];
 
