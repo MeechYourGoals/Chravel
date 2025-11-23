@@ -148,7 +148,7 @@ export const pollService = {
   ): Promise<Poll> {
     if (isDemoMode) {
       // Demo mode uses localStorage with userId parameter
-      const result = await pollStorageService.voteOnPoll(tripId, pollId, optionId, 'demo-user');
+      const result = await pollStorageService.voteOnPoll(tripId, pollId, [optionId], 'demo-user');
       if (!result) throw new Error('Poll not found');
       
       return {

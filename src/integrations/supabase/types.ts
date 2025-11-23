@@ -2260,9 +2260,15 @@ export type Database = {
       }
       trip_polls: {
         Row: {
+          allow_multiple: boolean | null
+          allow_vote_change: boolean | null
+          closed_at: string | null
+          closed_by: string | null
           created_at: string
           created_by: string
+          deadline_at: string | null
           id: string
+          is_anonymous: boolean | null
           options: Json
           question: string
           status: string
@@ -2272,9 +2278,15 @@ export type Database = {
           version: number | null
         }
         Insert: {
+          allow_multiple?: boolean | null
+          allow_vote_change?: boolean | null
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           created_by: string
+          deadline_at?: string | null
           id?: string
+          is_anonymous?: boolean | null
           options?: Json
           question: string
           status?: string
@@ -2284,9 +2296,15 @@ export type Database = {
           version?: number | null
         }
         Update: {
+          allow_multiple?: boolean | null
+          allow_vote_change?: boolean | null
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           created_by?: string
+          deadline_at?: string | null
           id?: string
+          is_anonymous?: boolean | null
           options?: Json
           question?: string
           status?: string

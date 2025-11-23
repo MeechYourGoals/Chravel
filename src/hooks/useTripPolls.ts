@@ -15,6 +15,12 @@ interface TripPoll {
   created_by: string;
   created_at: string;
   updated_at: string;
+  allow_multiple?: boolean;
+  is_anonymous?: boolean;
+  allow_vote_change?: boolean;
+  deadline_at?: string;
+  closed_at?: string;
+  closed_by?: string;
 }
 
 interface PollOption {
@@ -27,11 +33,21 @@ interface PollOption {
 interface CreatePollRequest {
   question: string;
   options: string[];
+  settings?: {
+    allow_multiple?: boolean;
+    is_anonymous?: boolean;
+    allow_vote_change?: boolean;
+    deadline_at?: string;
+  };
 }
 
 interface VotePollRequest {
   pollId: string;
-  optionId: string;
+  optionIds: string | string[]; // Can be single ID or array for multiple choice
+}
+
+interface ClosePollRequest {
+  pollId: string;
 }
 
 export const useTripPolls = (tripId: string) => {
@@ -114,7 +130,11 @@ export const useTripPolls = (tripId: string) => {
           options: pollOptions,
           total_votes: 0,
           status: 'active',
-          created_by: user.id
+          created_by: user.id,
+          allow_multiple: poll.settings?.allow_multiple || false,
+          is_anonymous: poll.settings?.is_anonymous || false,
+          allow_vote_change: poll.settings?.allow_vote_change !== false,
+          deadline_at: poll.settings?.deadline_at || null
         })
         .select()
         .single();
@@ -140,11 +160,13 @@ export const useTripPolls = (tripId: string) => {
 
   // Vote on poll mutation
   const votePollMutation = useMutation({
-    mutationFn: async ({ pollId, optionId }: VotePollRequest) => {
+    mutationFn: async ({ pollId, optionIds }: VotePollRequest) => {
+      const optionIdsArray = Array.isArray(optionIds) ? optionIds : [optionIds];
+
       // Handle demo mode - use local storage
       if (isDemoMode) {
-        await pollStorageService.voteOnPoll(tripId, pollId, optionId);
-        return { pollId, optionId };
+        await pollStorageService.voteOnPoll(tripId, pollId, optionIdsArray);
+        return { pollId, optionIds: optionIdsArray };
       }
 
       // Handle authenticated mode - use database
@@ -154,31 +176,93 @@ export const useTripPolls = (tripId: string) => {
       // Get current poll version for optimistic locking
       const { data: poll, error: fetchError } = await supabase
         .from('trip_polls')
-        .select('version')
+        .select('version, allow_multiple, allow_vote_change')
         .eq('id', pollId)
         .single();
 
       if (fetchError) throw fetchError;
 
-      // Use atomic function to vote on poll with optimistic locking
-      const { error } = await supabase
-        .rpc('vote_on_poll', {
-          p_poll_id: pollId,
-          p_option_id: optionId,
-          p_user_id: user.id,
-          p_current_version: poll.version
-        });
+      // For now, use single vote RPC (TODO: create multi-vote RPC)
+      // For multiple choice, vote on each option sequentially
+      for (const optionId of optionIdsArray) {
+        const { error } = await supabase
+          .rpc('vote_on_poll', {
+            p_poll_id: pollId,
+            p_option_id: optionId,
+            p_user_id: user.id,
+            p_current_version: poll.version
+          });
 
-      if (error) throw error;
-      return { pollId, optionId };
+        if (error) {
+          // Check if this is a version conflict
+          if (error.message?.includes('modified by another user')) {
+            toast({
+              title: 'Poll Updated',
+              description: 'This poll was updated by someone else. Refreshing...',
+            });
+            // Auto-retry: refresh the polls
+            await queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+            throw error;
+          }
+          throw error;
+        }
+      }
+
+      return { pollId, optionIds: optionIdsArray };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
     },
+    onError: (error: any) => {
+      // Only show toast if it's not a version conflict (already handled above)
+      if (!error.message?.includes('modified by another user')) {
+        toast({
+          title: 'Error',
+          description: 'Failed to record vote. Please try again.',
+          variant: 'destructive'
+        });
+      }
+    }
+  });
+
+  // Close poll mutation
+  const closePollMutation = useMutation({
+    mutationFn: async ({ pollId }: ClosePollRequest) => {
+      // Handle demo mode
+      if (isDemoMode) {
+        return await pollStorageService.closePoll(tripId, pollId);
+      }
+
+      // Handle authenticated mode
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('trip_polls')
+        .update({
+          status: 'closed',
+          closed_at: new Date().toISOString(),
+          closed_by: user.id
+        })
+        .eq('id', pollId)
+        .eq('created_by', user.id) // Only creator can close
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+      toast({
+        title: 'Poll closed',
+        description: 'No more votes will be accepted.'
+      });
+    },
     onError: () => {
       toast({
         title: 'Error',
-        description: 'Failed to record vote. Please try again.',
+        description: 'Failed to close poll. Please try again.',
         variant: 'destructive'
       });
     }
@@ -191,7 +275,10 @@ export const useTripPolls = (tripId: string) => {
     createPollAsync: createPollMutation.mutateAsync,
     votePoll: votePollMutation.mutate,
     votePollAsync: votePollMutation.mutateAsync,
+    closePoll: closePollMutation.mutate,
+    closePollAsync: closePollMutation.mutateAsync,
     isCreatingPoll: createPollMutation.isPending,
-    isVoting: votePollMutation.isPending
+    isVoting: votePollMutation.isPending,
+    isClosing: closePollMutation.isPending
   };
 };
