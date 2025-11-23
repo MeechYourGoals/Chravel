@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { MobileActionBar } from '../components/MobileActionBar';
 import { AuthPromptBanner } from '../components/mobile/AuthPromptBanner';
 import { CreateTripModal } from '../components/CreateTripModal';
 import { UpgradeModal } from '../components/UpgradeModal';
@@ -9,6 +8,7 @@ import { AuthModal } from '../components/AuthModal';
 import { TripStatsOverview } from '../components/home/TripStatsOverview';
 import { TripViewToggle } from '../components/home/TripViewToggle';
 import { DesktopHeader } from '../components/home/DesktopHeader';
+import { TripActionBar } from '../components/home/TripActionBar';
 import { TripGrid } from '../components/home/TripGrid';
 import { RecommendationFilters } from '../components/home/RecommendationFilters';
 import { UnauthenticatedLanding } from '../components/UnauthenticatedLanding';
@@ -426,8 +426,8 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Simple Action Bar */}
-            <MobileActionBar
+            {/* Icons Row: Settings | Notifications | + | Search */}
+            <TripActionBar
               onSettings={() => setIsSettingsOpen(true)}
               onCreateTrip={handleCreateTrip}
               onSearch={() => setIsSearchOpen(true)}
@@ -435,9 +435,9 @@ const Index = () => {
           </div>
         )}
 
-        {/* Desktop Header - Full width container */}
+        {/* Desktop: Header + Action Bar */}
         {!isMobile && (
-          <div className="w-full">
+          <div className="w-full space-y-4 mb-6">
             <DesktopHeader
               viewMode={viewMode}
               onCreateTrip={handleCreateTrip}
@@ -447,6 +447,16 @@ const Index = () => {
                 if (activeSection) setSettingsInitialConsumerSection(activeSection);
                 setIsSettingsOpen(true);
               }}
+            />
+
+            {/* Icons Row: Settings | Notifications | + | Search */}
+            <TripActionBar
+              onSettings={() => {
+                setSettingsInitialType('consumer');
+                setIsSettingsOpen(true);
+              }}
+              onCreateTrip={handleCreateTrip}
+              onSearch={() => setIsSearchOpen(true)}
             />
           </div>
         )}
