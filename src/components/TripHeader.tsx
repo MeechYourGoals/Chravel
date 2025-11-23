@@ -137,7 +137,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
           </>
         )}
 
-        <div className={cn("flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6", hasCoverPhoto && isProOrEvent && "relative z-10")}>
+        <div className={cn("flex flex-col md:flex-row md:items-start md:justify-between gap-6", hasCoverPhoto && isProOrEvent && "relative z-10")}>
           {/* Left: Trip Details */}
           <div className="flex-1 space-y-4">
             {!coverPhoto && (
