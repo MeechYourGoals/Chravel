@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
 import { useEffect } from 'react';
+import imageCompression from 'browser-image-compression';
 
 interface TripMedia {
   id: string;
@@ -97,13 +98,35 @@ export const useTripMedia = (tripId: string) => {
   // Upload media mutation
   const uploadMediaMutation = useMutation({
     mutationFn: async ({ file, media_type }: UploadMediaRequest) => {
+      let fileToUpload = file;
+      
+      // Compress images before upload
+      if (file.type.startsWith('image/') && file.type !== 'image/gif') {
+        try {
+          const options = {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+            fileType: file.type,
+          };
+          fileToUpload = await imageCompression(file, options);
+          console.log('Image compressed:', {
+            original: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+            compressed: (fileToUpload.size / 1024 / 1024).toFixed(2) + 'MB',
+          });
+        } catch (error) {
+          console.warn('Failed to compress image, uploading original:', error);
+          fileToUpload = file;
+        }
+      }
+
       // Upload file to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${tripId}/${Date.now()}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('trip-media')
-        .upload(fileName, file);
+        .upload(fileName, fileToUpload);
 
       if (uploadError) throw uploadError;
 
@@ -121,7 +144,7 @@ export const useTripMedia = (tripId: string) => {
           media_url: publicUrl,
           filename: file.name,
           mime_type: file.type,
-          file_size: file.size,
+          file_size: fileToUpload.size,
           caption: null,
           tags: [],
           metadata: {
