@@ -40,34 +40,6 @@ export const TripDetailHeader = ({
         <span className="font-medium">Back to My Places</span>
       </button>
 
-      <div className="flex items-center gap-3">
-        {user && (
-          <>
-            <button
-              onClick={onShowInvite}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl transition-colors flex items-center gap-2"
-            >
-              <UserPlus size={16} />
-              <span className="hidden sm:inline">Invite</span>
-            </button>
-
-            <button
-              onClick={onToggleInbox}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors flex items-center gap-2"
-            >
-              <MessageCircle size={16} />
-              <span className="hidden sm:inline">{showInbox ? 'Hide Inbox' : 'Messages'}</span>
-            </button>
-
-            <button
-              onClick={onShowTripSettings}
-              className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-xl transition-colors"
-            >
-              <Settings size={20} />
-            </button>
-          </>
-        )}
-      </div>
     </div>
   );
 };
