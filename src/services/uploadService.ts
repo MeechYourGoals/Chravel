@@ -19,14 +19,14 @@ export async function uploadToStorage(
   const key = `${tripId}/${subdir}/${id}.${ext}`;
 
   const { data, error } = await supabase.storage
-    .from('advertiser-assets')
+    .from('trip-media')
     .upload(key, file, {
       contentType: file.type || file.mime || 'application/octet-stream',
       upsert: false,
     });
 
   if (error) throw error;
-  const { data: pub } = supabase.storage.from('advertiser-assets').getPublicUrl(key);
+  const { data: pub } = supabase.storage.from('trip-media').getPublicUrl(key);
   return { key, publicUrl: pub.publicUrl };
 }
 
@@ -51,6 +51,8 @@ export async function insertMediaIndex(params: {
       mime_type: params.mimeType ?? null,
       message_id: params.messageId ?? null,
       metadata: params.uploadedBy ? { uploaded_by: params.uploadedBy } : null,
+      caption: null,
+      tags: [],
     })
     .select()
     .single();

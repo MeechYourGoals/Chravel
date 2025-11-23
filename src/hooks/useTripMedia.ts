@@ -13,6 +13,8 @@ interface TripMedia {
   file_size?: number;
   message_id?: string;
   metadata?: any;
+  caption?: string;
+  tags?: string[];
   created_at: string;
 }
 
@@ -100,14 +102,14 @@ export const useTripMedia = (tripId: string) => {
       const fileName = `${tripId}/${Date.now()}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('advertiser-assets') // Using existing bucket
+        .from('trip-media')
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('advertiser-assets')
+        .from('trip-media')
         .getPublicUrl(fileName);
 
       // Save media record to database
@@ -120,6 +122,8 @@ export const useTripMedia = (tripId: string) => {
           filename: file.name,
           mime_type: file.type,
           file_size: file.size,
+          caption: null,
+          tags: [],
           metadata: {
             upload_path: uploadData.path,
             original_name: file.name
@@ -162,7 +166,7 @@ export const useTripMedia = (tripId: string) => {
         if (metadata.upload_path) {
           // Delete from storage
           await supabase.storage
-            .from('advertiser-assets')
+            .from('trip-media')
             .remove([metadata.upload_path]);
         }
       }
