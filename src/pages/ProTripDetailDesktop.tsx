@@ -475,7 +475,7 @@ export const ProTripDetailDesktop = () => {
               basecamp={basecamp}
               tripData={{
                 ...tripData,
-                enabled_features: supabaseTrip?.enabled_features || tripData.enabled_features,
+                enabled_features: tripData.enabled_features,
                 trip_type: 'pro'
               }}
               selectedCategory={tripData.proTripCategory as ProTripCategory}
