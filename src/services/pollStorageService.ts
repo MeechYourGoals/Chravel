@@ -17,11 +17,23 @@ interface TripPoll {
   created_by: string;
   created_at: string;
   updated_at: string;
+  allow_multiple?: boolean;
+  is_anonymous?: boolean;
+  allow_vote_change?: boolean;
+  deadline_at?: string;
+  closed_at?: string;
+  closed_by?: string;
 }
 
 interface CreatePollRequest {
   question: string;
   options: string[];
+  settings?: {
+    allow_multiple?: boolean;
+    is_anonymous?: boolean;
+    allow_vote_change?: boolean;
+    deadline_at?: string;
+  };
 }
 
 class PollStorageService {
@@ -68,7 +80,11 @@ class PollStorageService {
       status: 'active',
       created_by: 'demo-user',
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      allow_multiple: pollData.settings?.allow_multiple || false,
+      is_anonymous: pollData.settings?.is_anonymous || false,
+      allow_vote_change: pollData.settings?.allow_vote_change !== false,
+      deadline_at: pollData.settings?.deadline_at
     };
 
     polls.unshift(newPoll);
@@ -76,33 +92,46 @@ class PollStorageService {
     return newPoll;
   }
 
-  // Vote on a poll
-  async voteOnPoll(tripId: string, pollId: string, optionId: string, userId: string = 'demo-user'): Promise<TripPoll | null> {
+  // Vote on a poll (supports multiple choice)
+  async voteOnPoll(tripId: string, pollId: string, optionIds: string[], userId: string = 'demo-user'): Promise<TripPoll | null> {
     const polls = await this.getPolls(tripId);
     const pollIndex = polls.findIndex(p => p.id === pollId);
 
     if (pollIndex === -1) return null;
 
     const poll = polls[pollIndex];
-    const optionIndex = poll.options.findIndex(o => o.id === optionId);
 
-    if (optionIndex === -1) return null;
+    // Check if poll allows vote changes
+    const hasVoted = poll.options.some(option => option.voters.includes(userId));
+    if (hasVoted && !poll.allow_vote_change) {
+      return null; // Not allowed to change vote
+    }
 
-    // Remove previous vote if exists
-    poll.options.forEach(option => {
-      const voterIndex = option.voters.indexOf(userId);
-      if (voterIndex !== -1) {
-        option.voters.splice(voterIndex, 1);
-        option.votes = Math.max(0, option.votes - 1);
-        poll.total_votes = Math.max(0, poll.total_votes - 1);
+    // Remove previous votes if exists (for vote changes or single-choice)
+    if (!poll.allow_multiple || (poll.allow_multiple && poll.allow_vote_change)) {
+      poll.options.forEach(option => {
+        const voterIndex = option.voters.indexOf(userId);
+        if (voterIndex !== -1) {
+          option.voters.splice(voterIndex, 1);
+          option.votes = Math.max(0, option.votes - 1);
+          poll.total_votes = Math.max(0, poll.total_votes - 1);
+        }
+      });
+    }
+
+    // Add new votes
+    for (const optionId of optionIds) {
+      const optionIndex = poll.options.findIndex(o => o.id === optionId);
+      if (optionIndex === -1) continue;
+
+      if (!poll.options[optionIndex].voters.includes(userId)) {
+        // Store voter ID unless anonymous
+        if (!poll.is_anonymous) {
+          poll.options[optionIndex].voters.push(userId);
+        }
+        poll.options[optionIndex].votes += 1;
+        poll.total_votes += 1;
       }
-    });
-
-    // Add new vote
-    if (!poll.options[optionIndex].voters.includes(userId)) {
-      poll.options[optionIndex].voters.push(userId);
-      poll.options[optionIndex].votes += 1;
-      poll.total_votes += 1;
     }
 
     poll.updated_at = new Date().toISOString();

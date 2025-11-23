@@ -3,11 +3,12 @@ import { BarChart3 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Poll as PollType } from './poll/types';
 import { Poll } from './poll/Poll';
-import { CreatePollForm } from './poll/CreatePollForm';
+import { CreatePollForm, PollSettings } from './poll/CreatePollForm';
 import { PollsEmptyState } from './polls/PollsEmptyState';
 import { useTripPolls } from '@/hooks/useTripPolls';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { toast } from 'sonner';
 
 interface PollComponentProps {
   tripId: string;
@@ -22,15 +23,21 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
     isLoading,
     createPollAsync,
     votePollAsync,
+    closePollAsync,
     isCreatingPoll,
-    isVoting
+    isVoting,
+    isClosing
   } = useTripPolls(tripId);
 
   const userId = user?.id;
 
   const formattedPolls: PollType[] = useMemo(() => {
     return polls.map(poll => {
-      const userVoteOption = poll.options.find(option => option.voters?.includes(userId || ''));
+      const userVoteOptions = poll.options.filter(option => option.voters?.includes(userId || ''));
+      const userVote = poll.allow_multiple
+        ? userVoteOptions.map(opt => opt.id)
+        : userVoteOptions[0]?.id;
+        
       return {
         id: poll.id,
         question: poll.question,
@@ -41,28 +48,81 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
           voters: option.voters
         })),
         totalVotes: poll.total_votes,
-        userVote: userVoteOption?.id,
+        userVote,
         status: poll.status,
-        createdAt: poll.created_at
+        createdAt: poll.created_at,
+        createdBy: poll.created_by,
+        allow_multiple: poll.allow_multiple,
+        is_anonymous: poll.is_anonymous,
+        allow_vote_change: poll.allow_vote_change,
+        deadline_at: poll.deadline_at,
+        closed_at: poll.closed_at,
+        closed_by: poll.closed_by
       };
     });
   }, [polls, userId]);
 
-  const handleVote = async (pollId: string, optionId: string) => {
+  const handleVote = async (pollId: string, optionIds: string | string[]) => {
     try {
-      await votePollAsync({ pollId, optionId });
+      await votePollAsync({ pollId, optionIds });
     } catch (error) {
       console.error('Failed to vote on poll:', error);
     }
   };
 
-  const handleCreatePoll = async (question: string, options: string[]) => {
+  const handleCreatePoll = async (question: string, options: string[], settings: PollSettings) => {
     try {
-      await createPollAsync({ question, options });
+      await createPollAsync({ question, options, settings });
       setShowCreatePoll(false);
     } catch (error) {
       console.error('Failed to create poll:', error);
     }
+  };
+
+  const handleClosePoll = async (pollId: string) => {
+    try {
+      await closePollAsync({ pollId });
+    } catch (error) {
+      console.error('Failed to close poll:', error);
+    }
+  };
+
+  const handleExportPoll = (pollId: string) => {
+    const poll = formattedPolls.find(p => p.id === pollId);
+    if (!poll) return;
+
+    // Create CSV content
+    const csvLines = [
+      ['Poll Question', poll.question],
+      ['Total Votes', poll.totalVotes.toString()],
+      ['Status', poll.status],
+      [],
+      ['Option', 'Votes', 'Percentage', ...(poll.is_anonymous ? [] : ['Voters'])]
+    ];
+
+    poll.options.forEach(option => {
+      const percentage = poll.totalVotes > 0 ? ((option.votes / poll.totalVotes) * 100).toFixed(1) : '0';
+      const row = [
+        option.text,
+        option.votes.toString(),
+        `${percentage}%`,
+        ...(poll.is_anonymous ? [] : [option.voters?.join(', ') || ''])
+      ];
+      csvLines.push(row);
+    });
+
+    const csvContent = csvLines.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `poll-${pollId}-results.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast.success('Poll exported', {
+      description: 'Results saved as CSV file.'
+    });
   };
 
   // Show empty state if no polls and not in demo mode
@@ -115,8 +175,11 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
             key={poll.id}
             poll={poll}
             onVote={handleVote}
+            onClose={handleClosePoll}
+            onExport={handleExportPoll}
             disabled={poll.status === 'closed' || !userId}
             isVoting={isVoting}
+            isClosing={isClosing}
           />
         ))
       )}
