@@ -92,7 +92,9 @@ export async function getTripData(
   }
 
   if (sections.includes('places')) {
-    data.places = await fetchPlaces(supabase, tripId);
+    // Pass userId to include personal basecamp in export
+    const { data: { user } } = await supabase.auth.getUser();
+    data.places = await fetchPlaces(supabase, tripId, user?.id);
   }
 
   if (sections.includes('broadcasts') && layout === 'pro') {
@@ -370,10 +372,64 @@ async function fetchTasks(supabase: SupabaseClient, tripId: string): Promise<Tas
   }
 }
 
-async function fetchPlaces(supabase: SupabaseClient, tripId: string): Promise<LinkItem[]> {
+async function fetchPlaces(
+  supabase: SupabaseClient, 
+  tripId: string,
+  userId?: string
+): Promise<LinkItem[]> {
   try {
-    console.log('[EXPORT-DATA] Fetching places for trip:', tripId);
+    console.log('[EXPORT-DATA] Fetching places (basecamps + links) for trip:', tripId);
     
+    const places: LinkItem[] = [];
+
+    // 1. Fetch Trip Basecamp
+    const { data: trip } = await supabase
+      .from('trips')
+      .select('basecamp_name, basecamp_address, basecamp_latitude, basecamp_longitude')
+      .eq('id', tripId)
+      .single();
+
+    if (trip?.basecamp_address) {
+      const gmapsUrl = trip.basecamp_latitude && trip.basecamp_longitude
+        ? `https://www.google.com/maps/search/?api=1&query=${trip.basecamp_latitude},${trip.basecamp_longitude}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.basecamp_address)}`;
+      
+      places.push({
+        title: `🏠 Trip Basecamp${trip.basecamp_name ? ': ' + trip.basecamp_name : ''}`,
+        url: gmapsUrl,
+        domain: 'maps.google.com',
+        category: 'Basecamp',
+        notes: trip.basecamp_address,
+        qrSvg: undefined, // Skip QR for basecamps
+      });
+    }
+
+    // 2. Fetch Personal Basecamp (if userId provided)
+    if (userId) {
+      const { data: personalAccom } = await supabase
+        .from('trip_accommodations')
+        .select('name, address, latitude, longitude')
+        .eq('trip_id', tripId)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (personalAccom?.address) {
+        const gmapsUrl = personalAccom.latitude && personalAccom.longitude
+          ? `https://www.google.com/maps/search/?api=1&query=${personalAccom.latitude},${personalAccom.longitude}`
+          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(personalAccom.address)}`;
+        
+        places.push({
+          title: `📍 Personal Basecamp${personalAccom.name ? ': ' + personalAccom.name : ''}`,
+          url: gmapsUrl,
+          domain: 'maps.google.com',
+          category: 'Personal Basecamp',
+          notes: personalAccom.address,
+          qrSvg: undefined,
+        });
+      }
+    }
+
+    // 3. Fetch Trip Links
     const { data: links, error } = await supabase
       .from('trip_links')
       .select('title, url, category, description, created_at')
@@ -381,38 +437,34 @@ async function fetchPlaces(supabase: SupabaseClient, tripId: string): Promise<Li
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('[EXPORT-DATA] Error fetching places:', error);
-      return [];
-    }
-
-    if (!links || links.length === 0) {
-      console.log('[EXPORT-DATA] No places found');
-      return [];
-    }
-
-    console.log('[EXPORT-DATA] Found', links.length, 'places');
-
-    return links.map(link => {
-      // Extract domain from URL
-      let domain = '';
-      try {
-        if (link.url) {
-          const urlObj = new URL(link.url);
-          domain = urlObj.hostname.replace('www.', '');
+      console.error('[EXPORT-DATA] Error fetching trip links:', error);
+    } else if (links && links.length > 0) {
+      console.log('[EXPORT-DATA] Found', links.length, 'trip links');
+      
+      for (const link of links) {
+        let domain = '';
+        try {
+          if (link.url) {
+            const urlObj = new URL(link.url);
+            domain = urlObj.hostname.replace('www.', '');
+          }
+        } catch {
+          domain = 'Unknown';
         }
-      } catch {
-        domain = 'Unknown';
-      }
 
-      return {
-        title: link.title || 'Untitled',
-        url: link.url || '',
-        domain,
-        category: link.category || undefined,
-        notes: link.description || undefined,
-        qrSvg: link.url ? generateQRSvg(link.url, 48) : undefined,
-      };
-    });
+        places.push({
+          title: link.title || 'Untitled',
+          url: link.url || '',
+          domain,
+          category: link.category || undefined,
+          notes: link.description || undefined,
+          qrSvg: link.url ? generateQRSvg(link.url, 48) : undefined,
+        });
+      }
+    }
+
+    console.log('[EXPORT-DATA] Total places (basecamps + links):', places.length);
+    return places;
   } catch (error) {
     console.error('[EXPORT-DATA] Exception fetching places:', error);
     return [];

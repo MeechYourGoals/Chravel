@@ -347,8 +347,8 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     
     setContextBasecamp(newBasecamp);
     
-    // Center map immediately on new basecamp
-    handleCenterMap(newBasecamp.coordinates, 'trip');
+    // Note: Removed auto-centering - basecamp is reference address only
+    // Map will center only when user actively searches
     
     // Recalculate distances for existing places
     if (places.length > 0) {
@@ -461,41 +461,21 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     console.log('[PlacesSection] Context toggled to:', context);
     setSearchContext(context);
 
+    // Update search origin for biasing searches near basecamp
     if (context === 'trip' && contextBasecamp?.coordinates) {
-      console.log('[PlacesSection] Centering on trip basecamp:', contextBasecamp.coordinates);
-      // Update last location for priority tracking
-      setLastUpdatedLocation({
-        type: 'trip',
-        timestamp: Date.now(),
-        coords: contextBasecamp.coordinates
-      });
-      // Update search origin
       setSearchOrigin(contextBasecamp.coordinates);
-      // CRITICAL: Immediately center map with high zoom
-      if (mapRef.current) {
-        mapRef.current.centerOn(contextBasecamp.coordinates, 15);
-        console.log('[PlacesSection] Map centered on trip basecamp');
-      }
     } else if (context === 'personal' && personalBasecamp?.latitude && personalBasecamp?.longitude) {
-      const coords = { lat: personalBasecamp.latitude, lng: personalBasecamp.longitude };
-      console.log('[PlacesSection] Centering on personal basecamp:', coords);
-      // Update last location for priority tracking
-      setLastUpdatedLocation({
-        type: 'personal',
-        timestamp: Date.now(),
-        coords
-      });
-      // Update search origin
-      setSearchOrigin(coords);
-      // CRITICAL: Immediately center map with high zoom
-      if (mapRef.current) {
-        mapRef.current.centerOn(coords, 15);
-        console.log('[PlacesSection] Map centered on personal basecamp');
-      }
-    } else if (context === 'personal' && !personalBasecamp) {
+      setSearchOrigin({ lat: personalBasecamp.latitude, lng: personalBasecamp.longitude });
+    }
+
+    // Show personal basecamp selector if personal context selected but not set
+    if (context === 'personal' && !personalBasecamp) {
       console.warn('[PlacesSection] Personal basecamp not set, showing selector');
       setShowPersonalBasecampSelector(true);
     }
+    
+    // Note: Map centering removed - basecamps are reference addresses only
+    // Map will only center when user actively searches via search box
   };
 
   // Search handlers with autocomplete

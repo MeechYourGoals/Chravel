@@ -382,9 +382,20 @@ p {
 .link-url {
   font-family: 'Roboto Mono', monospace;
   font-size: 9pt;
-  color: var(--accent);
+  color: var(--muted);
   word-break: break-all;
   margin-top: 4pt;
+}
+
+.place-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2pt;
+  word-break: break-all;
+}
+
+.place-link:hover {
+  color: var(--primary);
 }
 
 /* ============================================

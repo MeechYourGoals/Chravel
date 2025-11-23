@@ -276,7 +276,11 @@ function renderPlaces(places: any[]): string {
         </div>
         ${place.category ? `<div class="small"><strong>Category:</strong> ${escapeHtml(place.category)}</div>` : ''}
         ${place.notes ? `<div class="small">${escapeHtml(place.notes)}</div>` : ''}
-        <div class="small link-url">${escapeHtml(place.url)}</div>
+        <div class="small link-url">
+          <a href="${escapeHtml(place.url)}" target="_blank" rel="noopener noreferrer" class="place-link">
+            ${escapeHtml(place.url)}
+          </a>
+        </div>
       </div>
     `).join('')}
   </section>`;
