@@ -115,10 +115,14 @@ export const ProTripDetailDesktop = () => {
     tripData = proTripMockData[proTripId];
   } else {
     // 🔐 AUTHENTICATED MODE: Fetch from Supabase
+    console.log('[ProTripDetail] Searching for Pro trip:', proTripId);
+    console.log('[ProTripDetail] Available trips:', userTrips.map(t => ({ id: t.id, type: t.trip_type })));
+    
     // ✅ FILTER: Find Pro trip directly from userTrips array by ID and trip_type
     const supabaseTrip = userTrips.find(t => t.id === proTripId && t.trip_type === 'pro');
 
     if (!supabaseTrip) {
+      console.error('[ProTripDetail] Pro trip not found or not Pro type');
       return (
         <ProTripNotFound
           message="Pro trip not found"
@@ -137,7 +141,8 @@ export const ProTripDetailDesktop = () => {
       location: proTrip.location,
       dateRange: proTrip.dateRange,
       description: proTrip.description,
-      proTripCategory: 'sports', // Default category for authenticated trips
+      // ✅ FIX: Default category for authenticated trips (will be customizable in creation modal)
+      proTripCategory: 'Sports – Pro, Collegiate, Youth',
       participants: proTrip.participants || [],
       basecamp_name: supabaseTrip?.basecamp_name || '',
       basecamp_address: supabaseTrip?.basecamp_address || '',
@@ -479,20 +484,11 @@ export const ProTripDetailDesktop = () => {
                 trip_type: 'pro'
               }}
               selectedCategory={tripData.proTripCategory as ProTripCategory}
+              trip={trip}
+              tripCreatorId={trip.created_by}
             />
-          </Suspense>
-
-          {/* Pro Admin Dashboard */}
-          {proTripId && isAdmin && (
-            <div className="mt-8">
-              <ProAdminDashboard
-                tripId={proTripId}
-                tripCreatorId={trip.created_by}
-                isAdmin={isAdmin}
-              />
-            </div>
-          )}
-        </div>
+        </Suspense>
+      </div>
 
         <TripDetailModals
           showSettings={showSettings}

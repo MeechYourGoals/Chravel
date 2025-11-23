@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PrivacyModeSelector } from './PrivacyModeSelector';
 import { PrivacyMode, getDefaultPrivacyMode } from '../types/privacy';
+import { ProTripCategory } from '../types/proCategories';
 
 interface CreateTripModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const [tripType, setTripType] = useState<'consumer' | 'pro' | 'event'>('consumer');
+  const [proTripCategory, setProTripCategory] = useState<ProTripCategory>('Sports – Pro, Collegiate, Youth');
   const [privacyMode, setPrivacyMode] = useState<PrivacyMode>(() => getDefaultPrivacyMode('consumer'));
   const [selectedOrganization, setSelectedOrganization] = useState<string>('');
   const [formData, setFormData] = useState({
@@ -170,6 +172,8 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         end_date: formData.endDate ? `${formData.endDate}T23:59:59Z` : undefined,
         destination: formData.location || undefined,
         trip_type: tripType,
+        // ✅ Phase 2: Pass category for Pro trips
+        ...(tripType === 'pro' && { category: proTripCategory }),
         privacy_mode: privacyMode,
         ai_access_enabled: privacyMode === 'standard',
         // ✅ Phase 2: Pass feature toggles for Pro/Event trips
@@ -364,6 +368,30 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             </ToggleGroupItem>
           </ToggleGroup>
         </div>
+
+        {/* Pro Trip Category Selector - Only for Pro trips */}
+        {tripType === 'pro' && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Pro Trip Category
+            </label>
+            <select
+              value={proTripCategory}
+              onChange={(e) => setProTripCategory(e.target.value as ProTripCategory)}
+              className="w-full bg-slate-700/50 border border-slate-600 text-white rounded-xl px-4 py-3 focus:border-blue-500 focus:outline-none transition-colors"
+            >
+              <option value="Sports – Pro, Collegiate, Youth">Sports – Pro, Collegiate, Youth</option>
+              <option value="Tour – Music, Comedy, etc.">Tour – Music, Comedy, etc.</option>
+              <option value="Business Travel">Business Travel</option>
+              <option value="School Trip">School Trip</option>
+              <option value="Content">Content</option>
+              <option value="Other">Other</option>
+            </select>
+            <p className="text-xs text-slate-400 mt-1">
+              This determines available roles and features for your Pro trip.
+            </p>
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
