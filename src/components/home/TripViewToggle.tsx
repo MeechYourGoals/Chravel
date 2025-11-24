@@ -2,24 +2,27 @@ import React from 'react';
 import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { ScrollFadeContainer } from './ScrollFadeContainer';
+import { cn } from '@/lib/utils';
 
 interface TripViewToggleProps {
   viewMode: string;
   onViewModeChange: (value: string) => void;
   showRecsTab?: boolean;
   recsTabDisabled?: boolean;
+  className?: string;
 }
 
 export const TripViewToggle = ({ 
   viewMode, 
   onViewModeChange, 
   showRecsTab = false,
-  recsTabDisabled = false
+  recsTabDisabled = false,
+  className
 }: TripViewToggleProps) => {
   const isMobile = useIsMobile();
 
   return (
-    <div className="w-full mb-6">
+    <div className={cn("", className)}>
       <ScrollFadeContainer className="w-full h-full contents md:contents lg:block">
         <ToggleGroup
           type="single"

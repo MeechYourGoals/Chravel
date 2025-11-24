@@ -416,7 +416,7 @@ const Index = () => {
         </div>
       )}
       <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
-        {/* Mobile: Demo Toggle + Action Bar */}
+        {/* Mobile: Demo Toggle + Stacked Bars */}
         {isMobile && (
           <div className="space-y-3 mb-6">
             {/* Demo Mode Toggle - Centered */}
@@ -426,16 +426,28 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Icons Row: Settings | Notifications | + | Search */}
-            <TripActionBar
-              onSettings={() => setIsSettingsOpen(true)}
-              onCreateTrip={handleCreateTrip}
-              onSearch={() => setIsSearchOpen(true)}
-            />
+            {/* Stacked: Action Bar above Toggle */}
+            <div className="w-full">
+              <TripActionBar
+                onSettings={() => setIsSettingsOpen(true)}
+                onCreateTrip={handleCreateTrip}
+                onSearch={() => setIsSearchOpen(true)}
+                className="w-full mb-3"
+              />
+            </div>
+            <div className="w-full">
+              <TripViewToggle 
+                viewMode={viewMode} 
+                onViewModeChange={handleViewModeChange}
+                showRecsTab={true}
+                recsTabDisabled={!isDemoMode}
+                className="w-full"
+              />
+            </div>
           </div>
         )}
 
-        {/* Desktop: Header + Action Bar */}
+        {/* Desktop: Header + Side-by-Side Bars */}
         {!isMobile && (
           <div className="w-full space-y-4 mb-6">
             <DesktopHeader
@@ -449,27 +461,27 @@ const Index = () => {
               }}
             />
 
-            {/* Icons Row: Settings | Notifications | + | Search */}
-            <TripActionBar
-              onSettings={() => {
-                setSettingsInitialType('consumer');
-                setIsSettingsOpen(true);
-              }}
-              onCreateTrip={handleCreateTrip}
-              onSearch={() => setIsSearchOpen(true)}
-            />
+            {/* Side by Side: Toggle (left) + Action Bar (right) */}
+            <div className="w-full flex flex-row gap-4 items-start animate-fade-in">
+              <TripViewToggle 
+                viewMode={viewMode} 
+                onViewModeChange={handleViewModeChange}
+                showRecsTab={true}
+                recsTabDisabled={!isDemoMode}
+                className="flex-1"
+              />
+              <TripActionBar
+                onSettings={() => {
+                  setSettingsInitialType('consumer');
+                  setIsSettingsOpen(true);
+                }}
+                onCreateTrip={handleCreateTrip}
+                onSearch={() => setIsSearchOpen(true)}
+                className="flex-shrink-0 w-[280px]"
+              />
+            </div>
           </div>
         )}
-
-        {/* Enhanced Toggle with smooth transitions - Full width container */}
-        <div className="w-full animate-fade-in mb-8">
-          <TripViewToggle 
-            viewMode={viewMode} 
-            onViewModeChange={handleViewModeChange}
-            showRecsTab={true}
-            recsTabDisabled={!isDemoMode}
-          />
-        </div>
 
         {/* Trip Stats Overview with loading state - moved above filters for travel recs */}
         {!isMobile && (
