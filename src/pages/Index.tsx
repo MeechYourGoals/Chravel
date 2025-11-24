@@ -446,6 +446,7 @@ const Index = () => {
                 onSettings={() => setIsSettingsOpen(true)}
                 onCreateTrip={handleCreateTrip}
                 onSearch={() => setIsSearchOpen(true)}
+                onNotifications={() => {}}
                 className="w-full mb-3"
               />
             </div>
@@ -492,6 +493,7 @@ const Index = () => {
                 }}
                 onCreateTrip={handleCreateTrip}
                 onSearch={() => setIsSearchOpen(true)}
+                onNotifications={() => {}}
                 className="flex-shrink-0 w-[280px]"
               />
             </div>
