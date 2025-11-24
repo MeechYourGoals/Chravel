@@ -16,6 +16,8 @@ export const TripActionBar = ({
   onSearch,
   className 
 }: TripActionBarProps) => {
+  console.log('🎯 TripActionBar RENDERING', { className });
+  
   return (
     <div className={cn("", className)}>
       <div className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg">
