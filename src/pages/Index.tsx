@@ -494,7 +494,7 @@ const Index = () => {
                 onCreateTrip={handleCreateTrip}
                 onSearch={() => setIsSearchOpen(true)}
                 onNotifications={() => {}}
-                className="flex-shrink-0 w-[280px]"
+                className="flex-1"
               />
             </div>
           </div>
