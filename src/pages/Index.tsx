@@ -478,7 +478,7 @@ const Index = () => {
             />
 
             {/* Side by Side: Toggle (left) + Action Bar (right) */}
-            <div className="w-full flex flex-row gap-4 items-start animate-fade-in">
+            <div className="w-full flex flex-row gap-4 items-stretch animate-fade-in">
               <TripViewToggle 
                 viewMode={viewMode} 
                 onViewModeChange={handleViewModeChange}
