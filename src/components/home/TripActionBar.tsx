@@ -72,12 +72,12 @@ export const TripActionBar = ({
   return (
     <div className={cn("", className)}>
       <div className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg">
-        <div className="grid grid-cols-4 gap-2 items-center">
+        <div className="grid grid-cols-4 gap-0.5 items-center min-h-[56px]">
           {/* Settings */}
           <button
             onClick={onSettings}
             aria-label="Settings"
-            className="w-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/5 transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/10 transition-all duration-300"
           >
             <Settings size={18} className="flex-shrink-0" />
             <span className="text-sm font-medium whitespace-nowrap">Settings</span>
@@ -87,12 +87,12 @@ export const TripActionBar = ({
           <button
             onClick={onNotifications}
             aria-label="Notifications"
-            className="w-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/5 transition-colors relative"
+            className="w-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/10 transition-all duration-300 relative"
           >
             <Bell size={18} className="flex-shrink-0" />
             <span className="text-sm font-medium whitespace-nowrap">Notifications</span>
             {unreadCount > 0 && (
-              <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+              <div className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </div>
             )}
@@ -112,7 +112,7 @@ export const TripActionBar = ({
           <button
             onClick={onSearch}
             aria-label="Search"
-            className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-background/40 border border-border/30 px-3 py-3 text-white hover:bg-background/60 hover:border-border/50 transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/10 transition-all duration-300"
           >
             <Search size={18} className="flex-shrink-0" />
             <span className="text-sm font-medium whitespace-nowrap">Search</span>
