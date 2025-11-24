@@ -58,6 +58,19 @@ const Index = () => {
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  
+  // Debug logging
+  console.log('📱 Index Page State:', { 
+    isMobile, 
+    windowWidth: typeof window !== 'undefined' ? window.innerWidth : 'SSR',
+    viewMode 
+  });
+  
+  if (isMobile) {
+    console.log('✅ MOBILE BRANCH ACTIVE');
+  } else {
+    console.log('💻 DESKTOP BRANCH ACTIVE');
+  }
   const location = useLocation();
   const { isDemoMode } = useDemoMode();
   const isMobilePortrait = useMobilePortrait();
@@ -419,6 +432,7 @@ const Index = () => {
         {/* Mobile: Demo Toggle + Stacked Bars */}
         {isMobile && (
           <div className="space-y-3 mb-6">
+            {/* Debug: Mobile branch active */}
             {/* Demo Mode Toggle - Centered */}
             <div className="flex justify-center">
               <div className="min-w-[120px] max-w-[140px]">
@@ -450,6 +464,7 @@ const Index = () => {
         {/* Desktop: Header + Side-by-Side Bars */}
         {!isMobile && (
           <div className="w-full space-y-4 mb-6">
+            {/* Debug: Desktop branch active */}
             <DesktopHeader
               viewMode={viewMode}
               onCreateTrip={handleCreateTrip}
