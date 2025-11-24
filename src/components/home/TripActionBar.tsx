@@ -26,13 +26,13 @@ export const TripActionBar = ({
           <button
             onClick={onSettings}
             aria-label="Settings"
-            className="mx-auto flex items-center justify-center rounded-xl p-3 text-white hover:bg-white/5 transition-colors"
+            className="w-full flex items-center justify-center rounded-xl p-3 text-white hover:bg-white/5 transition-colors"
           >
             <Settings size={18} />
           </button>
 
           {/* Notifications - aligns above Pro */}
-          <div className="flex justify-center">
+          <div className="w-full flex justify-center">
             <NotificationBell />
           </div>
 
@@ -40,7 +40,7 @@ export const TripActionBar = ({
           <button
             onClick={onCreateTrip}
             aria-label="Create New Trip"
-            className="mx-auto flex items-center justify-center rounded-xl bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] hover:from-[hsl(45,95%,55%)] hover:to-[hsl(45,90%,62%)] text-black px-3 py-3 font-semibold shadow-lg shadow-primary/30 transition-all duration-300"
+            className="w-full flex items-center justify-center rounded-xl bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] hover:from-[hsl(45,95%,55%)] hover:to-[hsl(45,90%,62%)] text-black px-3 py-3 font-semibold shadow-lg shadow-primary/30 transition-all duration-300"
           >
             <Plus size={18} />
           </button>
@@ -49,7 +49,7 @@ export const TripActionBar = ({
           <button
             onClick={onSearch}
             aria-label="Search"
-            className="mx-auto flex items-center justify-center rounded-xl bg-background/40 border border-border/30 px-3 py-3 text-white hover:bg-background/60 hover:border-border/50 transition-colors"
+            className="w-full flex items-center justify-center rounded-xl bg-background/40 border border-border/30 px-3 py-3 text-white hover:bg-background/60 hover:border-border/50 transition-colors"
           >
             <Search size={18} />
           </button>
