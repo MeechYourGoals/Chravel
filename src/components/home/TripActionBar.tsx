@@ -17,7 +17,7 @@ export const TripActionBar = ({
   className 
 }: TripActionBarProps) => {
   return (
-    <div className={cn("w-full mb-4", className)}>
+    <div className={cn("", className)}>
       <div className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg">
         <div className="grid grid-cols-4 gap-0.5 items-center">
           {/* Settings - aligns above My Trips */}
