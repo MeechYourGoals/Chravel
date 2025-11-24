@@ -77,20 +77,20 @@ export const TripActionBar = ({
           <button
             onClick={onSettings}
             aria-label="Settings"
-            className="w-full flex items-center justify-center gap-2 rounded-xl p-3 text-white hover:bg-white/5 transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/5 transition-colors"
           >
-            <Settings size={18} />
-            <span className="text-sm font-medium hidden sm:inline">Settings</span>
+            <Settings size={18} className="flex-shrink-0" />
+            <span className="text-sm font-medium whitespace-nowrap">Settings</span>
           </button>
 
           {/* Notifications */}
           <button
             onClick={onNotifications}
             aria-label="Notifications"
-            className="w-full flex items-center justify-center gap-2 rounded-xl p-3 text-white hover:bg-white/5 transition-colors relative"
+            className="w-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/5 transition-colors relative"
           >
-            <Bell size={18} />
-            <span className="text-sm font-medium hidden sm:inline">Notifications</span>
+            <Bell size={18} className="flex-shrink-0" />
+            <span className="text-sm font-medium whitespace-nowrap">Notifications</span>
             {unreadCount > 0 && (
               <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -102,20 +102,20 @@ export const TripActionBar = ({
           <button
             onClick={onCreateTrip}
             aria-label="Create New Trip"
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] hover:from-[hsl(45,95%,55%)] hover:to-[hsl(45,90%,62%)] text-black px-3 py-3 font-semibold shadow-lg shadow-primary/30 transition-all duration-300"
+            className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] hover:from-[hsl(45,95%,55%)] hover:to-[hsl(45,90%,62%)] text-black px-3 py-3 font-semibold shadow-lg shadow-primary/30 transition-all duration-300"
           >
-            <Plus size={18} />
-            <span className="text-sm font-medium hidden sm:inline">New Trip</span>
+            <Plus size={18} className="flex-shrink-0" />
+            <span className="text-sm font-medium whitespace-nowrap">New Trip</span>
           </button>
 
           {/* Search */}
           <button
             onClick={onSearch}
             aria-label="Search"
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-background/40 border border-border/30 px-3 py-3 text-white hover:bg-background/60 hover:border-border/50 transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-background/40 border border-border/30 px-3 py-3 text-white hover:bg-background/60 hover:border-border/50 transition-colors"
           >
-            <Search size={18} />
-            <span className="text-sm font-medium hidden sm:inline">Search</span>
+            <Search size={18} className="flex-shrink-0" />
+            <span className="text-sm font-medium whitespace-nowrap">Search</span>
           </button>
         </div>
       </div>
