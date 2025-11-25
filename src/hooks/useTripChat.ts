@@ -198,7 +198,7 @@ export const useTripChat = (tripId: string) => {
         content: sanitizedContent,
         author_name: InputValidator.sanitizeText(message.author_name),
         user_id: message.userId,
-        privacy_mode: message.privacyMode || 'normal',
+        privacy_mode: message.privacyMode || 'standard',
         media_type: message.media_type,
         media_url: message.media_url
       };

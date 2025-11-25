@@ -328,16 +328,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   return (
     <div className="space-y-3">
       {/* Payment Status Messages */}
-      {paymentMessages.length === 0 ? (
-        <Card className="bg-gradient-to-br from-blue-900/10 to-blue-950/10 border-blue-500/10">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-blue-400">
-              <CheckCircle size={20} />
-              <span className="text-sm font-medium">No payments yet. Create one below to split expenses.</span>
-            </div>
-          </CardContent>
-        </Card>
-      ) : paymentSummary.isSettled && (
+      {paymentSummary.isSettled && paymentMessages.length > 0 && (
         <Card className="bg-gradient-to-br from-emerald-900/20 to-emerald-950/20 border-emerald-500/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-emerald-400">
@@ -395,7 +386,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => upgradeToTier('explorer', 'monthly')}
+                onClick={() => window.location.href = '/settings?tab=subscription'}
                 className="text-blue-400 hover:text-blue-300 h-auto py-1"
               >
                 Upgrade

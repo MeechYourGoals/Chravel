@@ -148,7 +148,7 @@ class UnifiedMessagingService {
             content: options.content,
             author_name: options.userName,
             user_id: options.userId,
-            privacy_mode: options.privacyMode || 'normal',
+            privacy_mode: options.privacyMode || 'standard',
             reply_to_id: options.replyToId,
             thread_id: options.threadId,
             attachments: options.attachments || []

@@ -2264,6 +2264,42 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_personal_basecamps: {
+        Row: {
+          address: string
+          created_at: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          name: string | null
+          trip_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          address: string
+          created_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          trip_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string
+          created_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          trip_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       trip_polls: {
         Row: {
           allow_multiple: boolean | null
