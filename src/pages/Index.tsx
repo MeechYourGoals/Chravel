@@ -392,9 +392,8 @@ const Index = () => {
               onSeePricing={handleSeePricing}
             />
           )}
-        </div>
 
-        <AuthModal
+          <AuthModal
             isOpen={isAuthModalOpen}
             onClose={() => setIsAuthModalOpen(false)}
           />
@@ -433,12 +432,12 @@ const Index = () => {
             resultCount={searchResultCount}
           />
 
-        <ProfileSetupModal 
-          isOpen={showProfileSetup} 
-          onComplete={() => setShowProfileSetup(false)} 
-        />
-      </div>
-    );
+          <ProfileSetupModal 
+            isOpen={showProfileSetup} 
+            onComplete={() => setShowProfileSetup(false)} 
+          />
+        </div>
+      );
   }
 
   return (
@@ -461,7 +460,7 @@ const Index = () => {
             {/* Demo Mode Toggle - Centered */}
             <div className="flex justify-center">
               <div className="min-w-[120px] max-w-[140px]">
-                <DemoModeToggle />
+                <DemoModeSelector />
               </div>
             </div>
 
