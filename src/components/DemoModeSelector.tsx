@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, EyeOff, FileText } from 'lucide-react';
+import { Eye, EyeOff, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { DemoView } from '@/store/demoModeStore';
@@ -46,10 +46,10 @@ export const DemoModeSelector = () => {
                   ? 'bg-primary/30 text-primary shadow-sm border border-primary/20'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
-              aria-label="Marketing view"
+              aria-label="Home view"
             >
-              <FileText className="h-3 w-3" />
-              <span className="hidden sm:inline">Marketing</span>
+              <Home className="h-3 w-3" />
+              <span className="hidden sm:inline">Home</span>
             </button>
             <button
               onClick={() => handleViewChange('app-preview')}
@@ -60,18 +60,18 @@ export const DemoModeSelector = () => {
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
-              aria-label="App preview mode"
+              aria-label="Mock data mode"
             >
               <Eye className="h-3 w-3" />
-              <span className="hidden sm:inline">App</span>
+              <span className="hidden sm:inline">Mock</span>
             </button>
           </div>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-xs">
           <div className="space-y-2 text-xs">
-            <p><strong>OFF:</strong> Clean marketing pages</p>
-            <p><strong>Marketing:</strong> Marketing with demo previews</p>
-            <p><strong>App:</strong> Full app interface with mock data</p>
+            <p><strong>OFF:</strong> Demo mode</p>
+            <p><strong>Home:</strong> Unauthenticated user homepage</p>
+            <p><strong>Mock:</strong> Mock data preview</p>
           </div>
         </TooltipContent>
       </Tooltip>
