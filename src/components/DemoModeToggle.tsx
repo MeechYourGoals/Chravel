@@ -51,8 +51,7 @@ export const DemoModeToggle = () => {
                 ${isDemoMode 
                   ? 'bg-primary/30 border-primary/70 text-primary hover:bg-primary/40 shadow-lg shadow-primary/20 border-2 backdrop-blur-md' 
                   : 'bg-background/40 border-border/50 text-foreground/90 hover:bg-background/50 backdrop-blur-md border-2'
-                }
-                fixed top-3 left-1/2 -translate-x-1/2 z-[60] md:static md:translate-x-0`}
+                }`}
             >
               {isDemoMode ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
               <span className="text-[10px] font-medium leading-tight">
