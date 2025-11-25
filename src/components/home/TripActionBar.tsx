@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Plus, Search, Bell, MessageCircle, Calendar, Radio, X, FilePlus, Image, BarChart2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Settings, Plus, Search, Bell, MessageCircle, Calendar, Radio, BarChart2, FilePlus, Image, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { supabase } from '@/integrations/supabase/client';
 import { mockNotifications } from '@/mockData/notifications';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Notification {
@@ -35,20 +35,53 @@ export const TripActionBar = ({
   onSettings, 
   onCreateTrip, 
   onSearch,
-  onNotifications,
+  onNotifications: _onNotifications,
   className,
-  isNotificationsOpen = false,
+  isNotificationsOpen,
   setIsNotificationsOpen
 }: TripActionBarProps) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const navigate = useNavigate();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   // Fetch notifications and count
   useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!user) return;
+  
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+  
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        return;
+      }
+  
+      if (data) {
+        setNotifications(
+          data.map(n => ({
+            id: n.id,
+            type: (n.type || 'system') as any,
+            title: n.title,
+            description: n.message,
+            tripId: (n.metadata as any)?.trip_id || '',
+            tripName: (n.metadata as any)?.trip_name || '',
+            timestamp: formatDistanceToNow(new Date(n.created_at || new Date()), { addSuffix: true }),
+            isRead: n.is_read || false,
+            isHighPriority: n.type === 'broadcast',
+            data: n.metadata
+          }))
+        );
+      }
+    };
+
     if (!isDemoMode && user) {
       fetchNotifications();
       fetchUnreadCount();
@@ -142,14 +175,70 @@ export const TripActionBar = ({
   const fetchUnreadCount = async () => {
     if (!user) return;
 
-    const { count, error } = await supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('is_read', false);
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read locally
+    setNotifications(prev => 
+      prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
+    );
 
-    if (!error && count !== null) {
-      setUnreadCount(count);
+    // Mark as read in database (if not demo mode)
+    if (!isDemoMode && user) {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notification.id);
+    }
+
+    // Navigate based on notification type
+    if (notification.type === 'message' || notification.type === 'chat' || notification.type === 'mention') {
+      navigate(`/trip/${notification.tripId}?tab=chat`);
+    } else if (notification.type === 'calendar') {
+      navigate(`/trip/${notification.tripId}?tab=calendar`);
+    } else if (notification.type === 'task') {
+      navigate(`/trip/${notification.tripId}?tab=tasks`);
+    } else if (notification.type === 'payment') {
+      navigate(`/trip/${notification.tripId}?tab=payments`);
+    } else {
+      navigate(`/trip/${notification.tripId}`);
+    }
+
+    setIsNotificationsOpen?.(false);
+  };
+
+  const markAllAsRead = async () => {
+    // Mark locally
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+
+    // Mark in database (if not demo mode)
+    if (!isDemoMode && user) {
+      const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
+      if (unreadIds.length > 0) {
+        await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .in('id', unreadIds);
+      }
+    }
+  };
+
+  const getNotificationIcon = (type: string, isHighPriority?: boolean) => {
+    const iconClass = isHighPriority ? 'text-red-400' : 'text-gray-400';
+    
+    switch (type) {
+      case 'message':
+        return <MessageCircle size={16} className={iconClass} />;
+      case 'broadcast':
+        return <Radio size={16} className={iconClass} />;
+      case 'calendar':
+        return <Calendar size={16} className={iconClass} />;
+      case 'poll':
+        return <BarChart2 size={16} className={iconClass} />;
+      case 'files':
+        return <FilePlus size={16} className={iconClass} />;
+      case 'photos':
+        return <Image size={16} className={iconClass} />;
+      default:
+        return <Bell size={16} className={iconClass} />;
     }
   };
 
@@ -222,7 +311,7 @@ export const TripActionBar = ({
   };
   
   return (
-    <div className={cn("", className)}>
+    <div className={cn("relative", className)}>
       <div className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg">
         <div className="grid grid-cols-4 w-full h-16 gap-1.5">
           
@@ -336,7 +425,7 @@ export const TripActionBar = ({
             <span className="hidden md:inline text-xs lg:text-sm font-medium">New Trip</span>
           </button>
 
-          {/* Search */}
+          {/* Search - Fixed Height & Padding */}
           <div className="h-full flex items-center px-2 rounded-xl">
             <div className="relative w-full h-full flex items-center">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={16} />
@@ -355,6 +444,77 @@ export const TripActionBar = ({
           
         </div>
       </div>
+
+      {/* Notification Dropdown */}
+      {isNotificationsOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsNotificationsOpen?.(false)} />
+          
+          <div className="absolute right-0 top-full mt-2 w-96 bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-2xl shadow-2xl z-50 max-h-96 overflow-hidden">
+            <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white">Notifications</h3>
+              <div className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllAsRead}
+                    className="text-sm text-orange-500 hover:text-yellow-500 transition-colors"
+                  >
+                    Mark all read
+                  </button>
+                )}
+                <button onClick={() => setIsNotificationsOpen?.(false)} className="text-gray-400 hover:text-white transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="max-h-80 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="p-6 text-center text-gray-400">
+                  <Bell size={32} className="mx-auto mb-2 opacity-50" />
+                  <p>No notifications yet</p>
+                </div>
+              ) : (
+                notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`p-4 border-b border-gray-700/50 hover:bg-gray-800/50 cursor-pointer transition-colors ${
+                      !notification.isRead ? 'bg-gray-800/30' : ''
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1">
+                        {getNotificationIcon(notification.type, notification.isHighPriority)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className={`text-sm font-medium ${!notification.isRead ? 'text-white' : 'text-gray-300'}`}>
+                            {notification.title}
+                          </p>
+                          {notification.isHighPriority && (
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                          )}
+                          {!notification.isRead && (
+                            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-400 mb-1 truncate">
+                          {notification.description}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-gray-500">{notification.tripName}</p>
+                          <p className="text-xs text-gray-500">{notification.timestamp}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -160,7 +160,7 @@ const Index = () => {
   // 🛡️ Memoize expensive filtering operations with defensive guards
   const filteredData = useMemo(() => {
     // Always ensure safe values - never undefined
-    let safeTrips = Array.isArray(trips) ? trips : [];
+    const safeTrips = Array.isArray(trips) ? trips : [];
     
     // Initialize with demo data or empty objects
     let safeProTrips = isDemoMode ? (proTripMockData || {}) : {};
