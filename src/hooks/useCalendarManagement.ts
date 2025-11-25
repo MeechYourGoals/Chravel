@@ -69,7 +69,14 @@ export const useCalendarManagement = (tripId: string) => {
   };
 
   const handleAddEvent = async () => {
-    if (!newEvent.title || !selectedDate || !tripId) return;
+    if (!newEvent.title || !selectedDate || !tripId) {
+      toast({
+        title: 'Missing required fields',
+        description: 'Please enter a title for the event.',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     try {
       setIsSaving(true);
@@ -95,10 +102,17 @@ export const useCalendarManagement = (tripId: string) => {
         setEvents(prev => [...prev, formatted].sort((a, b) =>
           a.date.getTime() - b.date.getTime()
         ));
+        setShowAddEvent(false);
         resetForm();
         toast({
           title: 'Event added',
           description: 'Your event has been added to the shared calendar.'
+        });
+      } else {
+        toast({
+          title: 'Unable to create event',
+          description: 'You may not have permission to add events to this trip.',
+          variant: 'destructive'
         });
       }
     } catch (error) {

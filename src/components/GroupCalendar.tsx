@@ -113,28 +113,6 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
     );
   }
 
-  // Show empty state if no events and not in demo mode
-  if (!isLoading && events.length === 0 && !showAddEvent && !isDemoMode) {
-    return (
-      <div className="p-6">
-        <CalendarEmptyState onCreateEvent={() => setShowAddEvent(true)} />
-        <AddEventModal
-          open={showAddEvent}
-          onClose={() => {
-            setShowAddEvent(false);
-            setEditingEvent(null);
-            resetForm();
-          }}
-          newEvent={newEvent}
-          onUpdateField={updateEventField}
-          onSubmit={handleAddEvent}
-          isSubmitting={isSaving}
-          isEditing={!!editingEvent}
-          selectedDate={selectedDate}
-        />
-      </div>
-    );
-  }
 
   if (viewMode === 'grid') {
     return (
