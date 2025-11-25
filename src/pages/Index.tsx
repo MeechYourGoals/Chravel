@@ -33,7 +33,7 @@ import { proTripMockData } from '../data/proTripMockData';
 import { eventsMockData } from '../data/eventsMockData';
 import { tripsData } from '../data/tripsData';
 import { calculateTripStats, calculateProTripStats, calculateEventStats, filterItemsByStatus } from '../utils/tripStatsCalculator';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useMobilePortrait } from '../hooks/useMobilePortrait';
 import { convertSupabaseTripsToMock, convertSupabaseTripToProTrip, convertSupabaseTripToEvent } from '../utils/tripConverter';
 import { usePerformanceMonitor } from '../hooks/usePerformanceMonitor';
@@ -52,13 +52,14 @@ const Index = () => {
   const [activeFilter, setActiveFilter] = useState<string>('');
   const [recsFilter, setRecsFilter] = useState('all');
   const [settingsInitialConsumerSection, setSettingsInitialConsumerSection] = useState<string | undefined>(undefined);
-  const [settingsInitialType, setSettingsInitialType] = useState<'consumer' | 'enterprise' | 'events' | 'advertiser'>('consumer');
+  const [settingsInitialType, setSettingsInitialType] = useState<'consumer' | 'enterprise' | 'events'>('consumer');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   
   // Debug logging
   console.log('📱 Index Page State:', { 
@@ -307,9 +308,13 @@ const Index = () => {
                     onCreateTrip={handleCreateTrip}
                     onUpgrade={() => setIsUpgradeModalOpen(true)}
                     onSettings={(settingsType, activeSection) => {
-                      if (settingsType) setSettingsInitialType(settingsType);
-                      if (activeSection) setSettingsInitialConsumerSection(activeSection);
-                      setIsSettingsOpen(true);
+                      if (settingsType === 'advertiser') {
+                        navigate('/advertiser');
+                      } else {
+                        if (settingsType) setSettingsInitialType(settingsType);
+                        if (activeSection) setSettingsInitialConsumerSection(activeSection);
+                        setIsSettingsOpen(true);
+                      }
                     }}
                   />
                 </div>
@@ -483,9 +488,13 @@ const Index = () => {
               onCreateTrip={handleCreateTrip}
               onUpgrade={() => setIsUpgradeModalOpen(true)}
               onSettings={(settingsType, activeSection) => {
-                if (settingsType) setSettingsInitialType(settingsType);
-                if (activeSection) setSettingsInitialConsumerSection(activeSection);
-                setIsSettingsOpen(true);
+                if (settingsType === 'advertiser') {
+                  navigate('/advertiser');
+                } else {
+                  if (settingsType) setSettingsInitialType(settingsType);
+                  if (activeSection) setSettingsInitialConsumerSection(activeSection);
+                  setIsSettingsOpen(true);
+                }
               }}
             />
 
