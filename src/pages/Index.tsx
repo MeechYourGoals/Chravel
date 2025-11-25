@@ -55,6 +55,7 @@ const Index = () => {
   const [settingsInitialType, setSettingsInitialType] = useState<'consumer' | 'enterprise' | 'events' | 'advertiser'>('consumer');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const { user } = useAuth();
   const isMobile = useIsMobile();
@@ -445,8 +446,16 @@ const Index = () => {
               <TripActionBar
                 onSettings={() => setIsSettingsOpen(true)}
                 onCreateTrip={handleCreateTrip}
-                onSearch={() => setIsSearchOpen(true)}
-                onNotifications={() => {}}
+                onSearch={(query: string) => {
+                  setSearchQuery(query);
+                  if (query) {
+                    setIsSearchOpen(true);
+                  }
+                }}
+                onNotifications={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                isSettingsOpen={isSettingsOpen}
+                isNotificationsOpen={isNotificationsOpen}
+                isSearchActive={!!searchQuery || isSearchOpen}
                 className="w-full overflow-x-auto"
               />
               <TripViewToggle 
@@ -491,11 +500,15 @@ const Index = () => {
                 }}
                 onCreateTrip={handleCreateTrip}
                 onSearch={(query: string) => {
+                  setSearchQuery(query);
                   if (query) {
                     setIsSearchOpen(true);
                   }
                 }}
-                onNotifications={() => {}}
+                onNotifications={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                isSettingsOpen={isSettingsOpen}
+                isNotificationsOpen={isNotificationsOpen}
+                isSearchActive={!!searchQuery || isSearchOpen}
                 className="flex-1"
               />
             </div>

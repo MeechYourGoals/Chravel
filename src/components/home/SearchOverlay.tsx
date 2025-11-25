@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { X, Search } from 'lucide-react';
 import { Input } from '../ui/input';
+import { useUniversalSearch } from '@/hooks/useUniversalSearch';
+import { UniversalSearchResultsPane } from '../UniversalSearchResultsPane';
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -19,6 +21,12 @@ export const SearchOverlay = ({
 }: SearchOverlayProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Use the universal search hook for actual search functionality
+  const { results, isLoading } = useUniversalSearch(searchQuery, {
+    contentTypes: ['trips', 'messages', 'calendar', 'tasks', 'polls', 'media'],
+    searchMode: 'hybrid'
+  });
+
   useEffect(() => {
     if (isOpen && inputRef.current) {
       inputRef.current.focus();
@@ -34,6 +42,18 @@ export const SearchOverlay = ({
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
+
+  const handleResultClick = (result: { tripId?: string; deepLink?: string; [key: string]: any }) => {
+    if (result.tripId) {
+      window.location.href = `/tour/${result.tripId}`;
+    } else if (result.deepLink) {
+      const element = document.querySelector(result.deepLink);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -63,28 +83,47 @@ export const SearchOverlay = ({
             <Input
               ref={inputRef}
               type="text"
-              placeholder="Search across all your trips..."
+              placeholder="Search across all your trips and events..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               className="pl-12 pr-4 py-6 text-lg bg-background/50 border-border/50 rounded-full"
             />
           </div>
 
-          {/* Result Count */}
-          {searchQuery && (
-            <div className="text-sm text-muted-foreground text-center">
-              {resultCount > 0 ? (
-                <span>Found {resultCount} trip{resultCount !== 1 ? 's' : ''} matching "{searchQuery}"</span>
-              ) : (
-                <span>No trips found for "{searchQuery}" - try different search terms</span>
-              )}
+          {/* Loading State */}
+          {isLoading && (
+            <div className="text-center py-8">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+              <p className="text-sm text-muted-foreground mt-4">Searching...</p>
+            </div>
+          )}
+
+          {/* Search Results */}
+          {!isLoading && searchQuery && results.length > 0 && (
+            <div className="max-h-[60vh] overflow-y-auto">
+              <p className="text-sm text-muted-foreground mb-4">
+                Found {results.length} result{results.length !== 1 ? 's' : ''} for "{searchQuery}"
+              </p>
+              <UniversalSearchResultsPane 
+                results={results}
+                onResultClick={handleResultClick}
+              />
+            </div>
+          )}
+
+          {/* No Results */}
+          {!isLoading && searchQuery && results.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No results found for "{searchQuery}"</p>
+              <p className="text-sm">Try different keywords or check your spelling</p>
             </div>
           )}
 
           {/* Helper Text */}
           {!searchQuery && (
-            <div className="text-sm text-muted-foreground text-center">
-              Search by trip name, location, or description
+            <div className="text-sm text-muted-foreground text-center py-4">
+              Search by trip name, event, location, message, or place
             </div>
           )}
         </div>
