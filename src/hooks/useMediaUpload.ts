@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useDemoMode } from './useDemoMode';
+import { useMediaLimits } from './useMediaLimits';
 
 export interface UploadProgress {
   fileId: string;
@@ -44,9 +45,6 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
   const { isDemoMode } = useDemoMode();
   const [uploadQueue, setUploadQueue] = useState<UploadProgress[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-
-  // Import media limits hook
-  const { useMediaLimits } = require('./useMediaLimits');
   const mediaLimits = useMediaLimits(tripId);
 
   const determineMediaType = (file: File): 'image' | 'video' | 'document' => {
