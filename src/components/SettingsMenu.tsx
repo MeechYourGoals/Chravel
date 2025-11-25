@@ -13,14 +13,12 @@ import { ProfileSection } from './settings/ProfileSection';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { NotificationsSection } from './settings/NotificationsSection';
 import { SubscriptionSection } from './settings/SubscriptionSection';
-import { AdvertiserSettings } from './advertiser/AdvertiserSettings';
-import { Advertiser } from '../types/advertiser';
 
 interface SettingsMenuProps {
   isOpen: boolean;
   onClose: () => void;
   initialConsumerSection?: string;
-  initialSettingsType?: 'consumer' | 'enterprise' | 'events' | 'advertiser';
+  initialSettingsType?: 'consumer' | 'enterprise' | 'events';
 }
 
 export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialSettingsType }: SettingsMenuProps) => {
@@ -29,7 +27,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
   const isMobile = useIsMobile();
   const [showProModal, setShowProModal] = useState(false);
   const [activeSection, setActiveSection] = useState('profile');
-  const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events' | 'advertiser'>(initialSettingsType || 'consumer');
+  const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events'>(initialSettingsType || 'consumer');
   const { accentColors } = useTripVariant();
 
   // Create mock user for demo mode when no real user is authenticated
@@ -44,19 +42,6 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
 
   const currentUser = user || mockUser;
 
-  // Mock advertiser data for demo - must be before early return to avoid hooks violation
-  const mockAdvertiser: Advertiser = {
-    id: 'demo-advertiser-1',
-    user_id: currentUser.id,
-    company_name: 'Paradise Resorts International',
-    company_email: 'marketing@paradiseresorts.com',
-    website: 'https://www.paradiseresorts.com',
-    status: 'active',
-    created_at: new Date('2024-01-15').toISOString(),
-    updated_at: new Date().toISOString()
-  };
-
-  const [advertiser, setAdvertiser] = useState<Advertiser>(mockAdvertiser);
 
   if (!isOpen) return null;
 
@@ -141,12 +126,11 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
                   Events
                 </button>
                 <button
-                  onClick={() => setSettingsType('advertiser')}
-                  className={`py-2.5 px-6 rounded-lg text-base font-semibold transition-all whitespace-nowrap border ${
-                    settingsType === 'advertiser'
-                      ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
-                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10 hover:bg-white/5'
-                  }`}
+                  onClick={() => {
+                    onClose();
+                    navigate('/advertiser');
+                  }}
+                  className="py-2.5 px-6 rounded-lg text-base font-semibold transition-all whitespace-nowrap border text-gray-400 hover:text-white border-transparent hover:border-white/10 hover:bg-white/5"
                 >
                   Advertiser
                 </button>
@@ -178,13 +162,6 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
             ) : settingsType === 'events' ? (
               <div className="flex-1 min-h-0">
                 <EventsSettings currentUserId={currentUser.id} />
-              </div>
-            ) : settingsType === 'advertiser' ? (
-              <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
-                <AdvertiserSettings 
-                  advertiser={advertiser}
-                  onUpdate={setAdvertiser}
-                />
               </div>
             ) : null}
 
