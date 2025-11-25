@@ -135,11 +135,6 @@ export const BasecampCard: React.FC<BasecampCardProps> = ({ tripId }) => {
                 <p className="text-sm text-muted-foreground">
                   {tripBasecamp.address}
                 </p>
-                {tripBasecamp.latitude && tripBasecamp.longitude && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    📍 {tripBasecamp.latitude.toFixed(4)}, {tripBasecamp.longitude.toFixed(4)}
-                  </p>
-                )}
               </div>
               {isAdmin && (
                 <Button
@@ -151,10 +146,6 @@ export const BasecampCard: React.FC<BasecampCardProps> = ({ tripId }) => {
                   <Edit3 className="h-4 w-4" />
                 </Button>
               )}
-            </div>
-
-            <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-2 rounded">
-              🌍 This is the shared basecamp for all trip members
             </div>
           </div>
         )}
