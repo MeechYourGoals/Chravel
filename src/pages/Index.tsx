@@ -13,10 +13,9 @@ import { TripGrid } from '../components/home/TripGrid';
 import { RecommendationFilters } from '../components/home/RecommendationFilters';
 import { UnauthenticatedLanding } from '../components/UnauthenticatedLanding';
 import { FullPageLanding } from '../components/landing/FullPageLanding';
-import { DemoModeToggle } from '../components/DemoModeToggle';
+import { DemoModeSelector } from '../components/DemoModeSelector';
 import { SearchOverlay } from '../components/home/SearchOverlay';
 import { ProfileSetupModal } from '../components/ProfileSetupModal';
-import { FloatingAuthButton } from '../components/FloatingAuthButton';
 
 // New conversion components
 import { PersistentCTABar } from '../components/conversion/PersistentCTABar';
@@ -75,7 +74,7 @@ const Index = () => {
     console.log('💻 DESKTOP BRANCH ACTIVE');
   }
   const location = useLocation();
-  const { isDemoMode } = useDemoMode();
+  const { demoView, isDemoMode } = useDemoMode();
   const isMobilePortrait = useMobilePortrait();
 
   // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
@@ -288,40 +287,49 @@ const Index = () => {
     }
   }, [user]);
 
-  // Show marketing landing when logged out, allow demo mode toggle to show app features
+  // Show marketing landing when logged out, allow demo mode selector to control view
   if (!user) {
-    return (
-      <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
-        {!isDemoMode ? (
-          // Marketing landing content - Full-page scrolling experience
+    // Show marketing pages when in OFF or MARKETING view
+    if (demoView === 'off' || demoView === 'marketing') {
+      return (
+        <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
           <FullPageLanding 
             onSignUp={() => setIsAuthModalOpen(true)}
           />
-        ) : (
-          // Demo mode content - full app interface
-          <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
-            <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
-              {/* Desktop Header */}
-              {!isMobile && (
-                <div className="w-full">
-                  <DesktopHeader
-                    viewMode={viewMode}
-                    onCreateTrip={handleCreateTrip}
-                    onUpgrade={() => setIsUpgradeModalOpen(true)}
-                    onSettings={(settingsType, activeSection) => {
-                      if (settingsType === 'advertiser') {
-                        navigate('/advertiser');
-                      } else {
-                        if (settingsType) setSettingsInitialType(settingsType);
-                        if (activeSection) setSettingsInitialConsumerSection(activeSection);
-                        setIsSettingsOpen(true);
-                      }
-                    }}
-                  />
-                </div>
-              )}
+          
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+          />
+        </div>
+      );
+    }
 
-              <div className="max-w-[1500px] mx-auto">
+    // Show full app interface in APP-PREVIEW mode
+    return (
+      <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
+        <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
+          {/* Desktop Header */}
+          {!isMobile && (
+            <div className="w-full">
+              <DesktopHeader
+                viewMode={viewMode}
+                onCreateTrip={handleCreateTrip}
+                onUpgrade={() => setIsUpgradeModalOpen(true)}
+                onSettings={(settingsType, activeSection) => {
+                  if (settingsType === 'advertiser') {
+                    navigate('/advertiser');
+                  } else {
+                    if (settingsType) setSettingsInitialType(settingsType);
+                    if (activeSection) setSettingsInitialConsumerSection(activeSection);
+                    setIsSettingsOpen(true);
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          <div className="max-w-[1500px] mx-auto">
                 {/* Side by Side: Toggle (left) + Action Bar (right) */}
                 <div className="w-full flex flex-col md:flex-row gap-4 md:gap-6 items-start animate-fade-in">
                   <TripViewToggle 
@@ -377,61 +385,58 @@ const Index = () => {
               </div>
             </div>
 
-            {showMarketingContent && (viewMode === 'tripsPro' || viewMode === 'events') && (
-              <PersistentCTABar
-                viewMode={viewMode}
-                onScheduleDemo={handleScheduleDemo}
-                onSeePricing={handleSeePricing}
-              />
-            )}
-          </div>
-        )}
+          {showMarketingContent && (viewMode === 'tripsPro' || viewMode === 'events') && (
+            <PersistentCTABar
+              viewMode={viewMode}
+              onScheduleDemo={handleScheduleDemo}
+              onSeePricing={handleSeePricing}
+            />
+          )}
+        </div>
 
         <AuthModal
-          isOpen={isAuthModalOpen}
-          onClose={() => setIsAuthModalOpen(false)}
-        />
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+          />
 
-        <CreateTripModal 
-          isOpen={isCreateModalOpen} 
-          onClose={() => setIsCreateModalOpen(false)} 
-        />
+          <CreateTripModal 
+            isOpen={isCreateModalOpen} 
+            onClose={() => setIsCreateModalOpen(false)} 
+          />
 
-        <UpgradeModal 
-          isOpen={isUpgradeModalOpen} 
-          onClose={() => setIsUpgradeModalOpen(false)} 
-        />
+          <UpgradeModal 
+            isOpen={isUpgradeModalOpen} 
+            onClose={() => setIsUpgradeModalOpen(false)} 
+          />
 
-        <SettingsMenu 
-          isOpen={isSettingsOpen} 
-          onClose={() => setIsSettingsOpen(false)} 
-          initialConsumerSection={settingsInitialConsumerSection}
-          initialSettingsType={settingsInitialType}
-        />
+          <SettingsMenu 
+            isOpen={isSettingsOpen} 
+            onClose={() => setIsSettingsOpen(false)} 
+            initialConsumerSection={settingsInitialConsumerSection}
+            initialSettingsType={settingsInitialType}
+          />
 
-        <DemoModal
-          isOpen={isDemoModalOpen}
-          onClose={() => setIsDemoModalOpen(false)}
-          demoType={viewMode === 'events' ? 'events' : 'pro'}
-        />
+          <DemoModal
+            isOpen={isDemoModalOpen}
+            onClose={() => setIsDemoModalOpen(false)}
+            demoType={viewMode === 'events' ? 'events' : 'pro'}
+          />
 
-        <SearchOverlay
-          isOpen={isSearchOpen}
-          onClose={() => {
-            setIsSearchOpen(false);
-            setSearchQuery('');
-          }}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          resultCount={searchResultCount}
-        />
+          <SearchOverlay
+            isOpen={isSearchOpen}
+            onClose={() => {
+              setIsSearchOpen(false);
+              setSearchQuery('');
+            }}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            resultCount={searchResultCount}
+          />
 
         <ProfileSetupModal 
           isOpen={showProfileSetup} 
           onComplete={() => setShowProfileSetup(false)} 
         />
-
-        <FloatingAuthButton />
       </div>
     );
   }
@@ -611,8 +616,6 @@ const Index = () => {
         isOpen={showProfileSetup} 
         onComplete={() => setShowProfileSetup(false)} 
       />
-
-      <FloatingAuthButton />
     </div>
   );
 };
