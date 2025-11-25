@@ -231,9 +231,8 @@ export const TripActionBar = ({
   }, [isDemoMode, user]);
   
   return (
-    <div className={cn("relative", className)}>
-      <div className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg">
-        <div className="grid grid-cols-4 w-full h-16 gap-1.5">
+    <div className={cn("relative bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg", className)}>
+      <div className="grid grid-cols-4 w-full h-16 gap-1.5">
           
           {/* Settings */}
           <button
@@ -276,9 +275,9 @@ export const TripActionBar = ({
 
             {isNotificationsOpen && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsNotificationsOpen?.(false)} />
+                <div className="fixed inset-0 z-[9998]" onClick={() => setIsNotificationsOpen?.(false)} />
                 
-                <div className="absolute right-0 top-full mt-2 w-96 bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-2xl shadow-2xl z-50 max-h-96 overflow-hidden">
+                <div className="absolute right-0 top-full mt-2 w-96 bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-2xl shadow-2xl z-[9999] max-h-96 overflow-hidden">
                   <div className="p-4 border-b border-gray-700 flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-white">Notifications</h3>
                     <div className="flex items-center gap-2">
@@ -390,7 +389,6 @@ export const TripActionBar = ({
           </div>
           
         </div>
-      </div>
     </div>
   );
 };
