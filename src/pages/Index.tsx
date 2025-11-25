@@ -476,13 +476,13 @@ const Index = () => {
             />
 
             {/* Side by Side: Toggle (left) + Action Bar (right) */}
-            <div className="w-full flex flex-row gap-6 items-center justify-between animate-fade-in">
+            <div className="w-full flex flex-row gap-6 items-start animate-fade-in">
               <TripViewToggle 
                 viewMode={viewMode} 
                 onViewModeChange={handleViewModeChange}
                 showRecsTab={true}
                 recsTabDisabled={!isDemoMode}
-                className="flex-shrink-0"
+                className="flex-1"
               />
               <TripActionBar
                 onSettings={() => {
@@ -492,7 +492,7 @@ const Index = () => {
                 onCreateTrip={handleCreateTrip}
                 onSearch={() => setIsSearchOpen(true)}
                 onNotifications={() => {}}
-                className="flex-shrink-0"
+                className="flex-1"
               />
             </div>
           </div>
