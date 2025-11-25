@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MoreVertical, Info } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
@@ -11,8 +11,10 @@ import { proTripMockData } from '../data/proTripMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useTrips } from '../hooks/useTrips';
-import { convertSupabaseTripsToMock } from '../utils/tripConverter';
+import { convertSupabaseTripsToMock, convertSupabaseTripToProTrip } from '../utils/tripConverter';
 import { MockRolesService } from '../services/mockRolesService';
+import { tripService } from '../services/tripService';
+import { ProTripData, ProParticipant } from '../types/pro';
 
 export const MobileProTripDetail = () => {
   const { proTripId } = useParams();
@@ -27,6 +29,8 @@ export const MobileProTripDetail = () => {
   const [activeTab, setActiveTab] = useState('chat');
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
+  const [fetchedParticipants, setFetchedParticipants] = useState<ProParticipant[]>([]);
+
   const headerRef = React.useRef<HTMLDivElement>(null);
  
   // Keyboard handling for mobile inputs
@@ -51,6 +55,29 @@ export const MobileProTripDetail = () => {
       }
     }
   }, [isDemoMode, proTripId, user?.id]);
+
+  // Fetch participants for authenticated users
+  React.useEffect(() => {
+    if (!isDemoMode && proTripId) {
+      const fetchMembers = async () => {
+        try {
+          const members = await tripService.getTripMembers(proTripId);
+          setFetchedParticipants(members.map(m => ({
+            id: m.user_id,
+            name: m.profiles?.display_name || 'Unknown',
+            avatar: m.profiles?.avatar_url,
+            role: m.role || 'member',
+            email: m.profiles?.email || '',
+            credentialLevel: 'Guest', // Default
+            permissions: []
+          } as ProParticipant)));
+        } catch (error) {
+          console.error("Failed to fetch trip members:", error);
+        }
+      };
+      fetchMembers();
+    }
+  }, [isDemoMode, proTripId]);
 
   // ⚡ OPTIMIZATION: Show loading spinner before expensive computations
   if (demoModeLoading) {
@@ -121,45 +148,53 @@ export const MobileProTripDetail = () => {
     );
   }
 
-  // 🔐 AUTHENTICATED MODE: Fetch from Supabase
-  let tripData: any;
-  if (isDemoMode) {
-    tripData = proTripMockData[proTripId];
-  } else {
-    // Find Pro trip from Supabase data
-    const allTrips = convertSupabaseTripsToMock(userTrips);
-    const proTrip = allTrips.find(t => String(t.id) === proTripId && t.trip_type === 'pro');
-    
-    if (!proTrip) {
-      return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-4">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-white mb-4">Pro Trip Not Found</h1>
-            <p className="text-gray-400 mb-6">This Pro trip doesn't exist or you don't have access.</p>
-            <button
-              onClick={() => {
-                hapticService.light();
-                navigate('/');
-              }}
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
-            >
-              Back to My Trips
-            </button>
-          </div>
-        </div>
-      );
+  // Calculate tripData with useMemo to ensure referential stability
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const tripData = useMemo(() => {
+    if (isDemoMode) {
+      return proTripMockData[proTripId];
     }
+
+    // Find Pro trip from Supabase data
+    const supabaseTrip = userTrips.find(t => String(t.id) === proTripId && t.trip_type === 'pro');
     
-    // Convert to tripData format expected by components
-    tripData = {
-      id: proTrip.id,
-      title: proTrip.title,
-      location: proTrip.location,
-      dateRange: proTrip.dateRange,
-      description: proTrip.description,
-      proTripCategory: 'sports', // Default category
-      participants: proTrip.participants || []
-    };
+    if (!supabaseTrip) return null;
+    
+    // Convert to ProTripData format
+    const convertedTrip = convertSupabaseTripToProTrip(supabaseTrip);
+
+    // Populate with fetched participants and default values
+    return {
+      ...convertedTrip,
+      // Overwrite participants with fetched ones
+      participants: fetchedParticipants.length > 0 ? fetchedParticipants : [],
+      // Ensure roster is also populated
+      roster: fetchedParticipants.length > 0 ? fetchedParticipants : [],
+      // Ensure other fields are present if convertSupabaseTripToProTrip misses any
+      proTripCategory: 'Sports – Pro, Collegiate, Youth', // Default if missing
+      enabled_features: supabaseTrip.enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks'],
+    } as ProTripData;
+  }, [isDemoMode, proTripId, userTrips, fetchedParticipants]);
+
+  // Handle case where trip is not found in authenticated mode
+  if (!isDemoMode && !tripData) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-white mb-4">Pro Trip Not Found</h1>
+          <p className="text-gray-400 mb-6">This Pro trip doesn't exist or you don't have access.</p>
+          <button
+            onClick={() => {
+              hapticService.light();
+              navigate('/');
+            }}
+            className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+          >
+            Back to My Trips
+          </button>
+        </div>
+      </div>
+    );
   }
   
   React.useEffect(() => {
@@ -192,7 +227,7 @@ export const MobileProTripDetail = () => {
   }, []);
   
   const trip = {
-    id: parseInt(tripData.id) || 0,
+    id: parseInt(tripData.id) || 0, // Fallback for numeric ID
     title: tripData.title,
     location: tripData.location,
     dateRange: tripData.dateRange,
@@ -266,11 +301,12 @@ export const MobileProTripDetail = () => {
         tripId={proTripId}
         basecamp={basecamp}
         variant="pro"
-        participants={(tripData.participants || []).map(p => ({
+        participants={(tripData.participants || []).map((p) => ({
           id: String(p.id),
           name: p.name,
           role: p.role
         }))}
+        tripData={tripData} // Pass full trip data for feature toggles
       />
 
       {/* Trip Info Drawer */}
