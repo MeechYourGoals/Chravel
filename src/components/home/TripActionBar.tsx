@@ -70,55 +70,53 @@ export const TripActionBar = ({
   };
   
   return (
-    <div className={cn("", className)}>
-      <div className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg">
-        <div className="grid grid-cols-4 gap-0.5 items-center h-16">
-          {/* Settings */}
-          <button
-            onClick={onSettings}
-            aria-label="Settings"
-            className="w-full h-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/10 transition-all duration-300"
-          >
-            <Settings size={18} className="flex-shrink-0" />
-            <span className="text-sm font-medium whitespace-nowrap">Settings</span>
-          </button>
+    <div className={cn("flex gap-3 items-center", className)}>
+      
+      {/* Settings - Individual Pill */}
+      <button
+        onClick={onSettings}
+        aria-label="Settings"
+        className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-full bg-black/20 backdrop-blur-sm border border-white/10 text-white hover:bg-black/30 transition-all duration-200 whitespace-nowrap"
+      >
+        <Settings size={18} className="flex-shrink-0" />
+        <span className="text-sm font-medium">Settings</span>
+      </button>
 
-          {/* Notifications */}
-          <button
-            onClick={onNotifications}
-            aria-label="Notifications"
-            className="w-full h-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/10 transition-all duration-300 relative"
-          >
-            <Bell size={18} className="flex-shrink-0" />
-            <span className="text-sm font-medium whitespace-nowrap">Notifications</span>
-            {unreadCount > 0 && (
-              <div className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </div>
-            )}
-          </button>
+      {/* Notifications - Individual Pill with Badge */}
+      <button
+        onClick={onNotifications}
+        aria-label="Notifications"
+        className="relative flex items-center justify-center gap-2 px-5 py-3.5 rounded-full bg-black/20 backdrop-blur-sm border border-white/10 text-white hover:bg-black/30 transition-all duration-200 whitespace-nowrap"
+      >
+        <Bell size={18} className="flex-shrink-0" />
+        <span className="text-sm font-medium">Notifications</span>
+        {unreadCount > 0 && (
+          <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </div>
+        )}
+      </button>
 
-          {/* New Trip */}
-          <button
-            onClick={onCreateTrip}
-            aria-label="Create New Trip"
-            className="w-full h-full flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] hover:from-[hsl(45,95%,55%)] hover:to-[hsl(45,90%,62%)] text-black px-3 py-3 font-semibold shadow-lg shadow-primary/30 transition-all duration-300"
-          >
-            <Plus size={18} className="flex-shrink-0" />
-            <span className="text-sm font-medium whitespace-nowrap">New Trip</span>
-          </button>
+      {/* New Trip - Individual Pill with Accent */}
+      <button
+        onClick={onCreateTrip}
+        aria-label="Create New Trip"
+        className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-full bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-black/40 transition-all duration-200 whitespace-nowrap"
+      >
+        <Plus size={18} className="flex-shrink-0" />
+        <span className="text-sm font-medium">New Trip</span>
+      </button>
 
-          {/* Search */}
-          <button
-            onClick={onSearch}
-            aria-label="Search"
-            className="w-full h-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/10 transition-all duration-300"
-          >
-            <Search size={18} className="flex-shrink-0" />
-            <span className="text-sm font-medium whitespace-nowrap">Search</span>
-          </button>
-        </div>
-      </div>
+      {/* Search - Individual Pill */}
+      <button
+        onClick={onSearch}
+        aria-label="Search"
+        className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-full bg-black/20 backdrop-blur-sm border border-white/10 text-white hover:bg-black/30 transition-all duration-200 whitespace-nowrap"
+      >
+        <Search size={18} className="flex-shrink-0" />
+        <span className="text-sm font-medium">Search</span>
+      </button>
+      
     </div>
   );
 };
