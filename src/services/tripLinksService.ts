@@ -48,7 +48,49 @@ function getDemoLinksKey(tripId: string): string {
 function getDemoLinks(tripId: string): TripLink[] {
   try {
     const stored = localStorage.getItem(getDemoLinksKey(tripId));
-    return stored ? JSON.parse(stored) : [];
+    if (stored) {
+      return JSON.parse(stored);
+    }
+    
+    // Return default demo links if none exist
+    return [
+      {
+        id: 'demo-link-1',
+        trip_id: tripId,
+        url: 'https://www.google.com/maps/place/Eiffel+Tower',
+        title: 'Eiffel Tower',
+        description: 'Iconic Paris landmark',
+        category: 'attraction',
+        votes: 5,
+        added_by: 'demo-user',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: 'demo-link-2',
+        trip_id: tripId,
+        url: 'https://www.google.com/maps/place/Louvre+Museum',
+        title: 'Louvre Museum',
+        description: 'World-famous art museum',
+        category: 'attraction',
+        votes: 8,
+        added_by: 'demo-user',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: 'demo-link-3',
+        trip_id: tripId,
+        url: 'https://www.google.com/maps/place/Le+Jules+Verne',
+        title: 'Le Jules Verne',
+        description: 'Restaurant in the Eiffel Tower',
+        category: 'appetite',
+        votes: 3,
+        added_by: 'demo-user',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ];
   } catch (error) {
     console.error('[TripLinksService] Failed to parse demo links:', error);
     return [];
