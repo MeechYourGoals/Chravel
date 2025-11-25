@@ -177,6 +177,7 @@ export const TripDetailDesktop = () => {
   };
   
   // ⚡ OPTIMIZATION: Memoize trip data to prevent regeneration on every render
+  // 🔄 CRITICAL FIX: Merge real trip members for authenticated trips
   const tripWithUpdatedData = React.useMemo(() => {
     if (!trip) return null;
     return {
@@ -184,9 +185,18 @@ export const TripDetailDesktop = () => {
       title: tripData.title || trip.title,
       location: tripData.location || trip.location,
       dateRange: tripData.dateRange || trip.dateRange,
-      description: tripDescription || trip.description
+      description: tripDescription || trip.description,
+      // Merge real trip members for authenticated trips instead of empty array
+      participants: isDemoMode 
+        ? trip.participants 
+        : tripMembers.map(m => ({ 
+            id: m.id as any, // UUID strings for authenticated trips
+            name: m.name, 
+            avatar: m.avatar || '',
+            role: 'member'
+          })) as any
     };
-  }, [trip, tripData.title, tripData.location, tripData.dateRange, tripDescription]);
+  }, [trip, tripData.title, tripData.location, tripData.dateRange, tripDescription, isDemoMode, tripMembers]);
   
   // Generate dynamic mock data based on the trip - MEMOIZED for performance
   const mockData = React.useMemo(() => {

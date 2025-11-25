@@ -77,10 +77,12 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     
     const loadMembers = async () => {
       setMembersLoading(true);
-      const tripIdNum = parseInt(tripId);
+      // CRITICAL: Only parse as demo trip if tripId is ENTIRELY numeric (not a UUID)
+      const isNumericOnly = /^\d+$/.test(tripId);
+      const tripIdNum = parseInt(tripId, 10);
       
       // Consumer trips (1-12): use tripsData
-      if (tripIdNum >= 1 && tripIdNum <= 12) {
+      if (isNumericOnly && tripIdNum >= 1 && tripIdNum <= 12) {
         const trip = getTripById(tripIdNum);
         if (trip?.participants) {
           const formattedMembers = trip.participants.map(p => ({
