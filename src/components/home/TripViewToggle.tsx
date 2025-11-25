@@ -32,7 +32,7 @@ export const TripViewToggle = ({
               onViewModeChange(value);
             }
           }}
-          className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 w-full h-16 gap-0.5"
+          className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 w-full h-16 gap-1.5"
         >
           <ToggleGroupItem
             value="myTrips"
@@ -46,7 +46,8 @@ export const TripViewToggle = ({
             aria-label="Chravel Pro"
             className="justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-base tracking-wide whitespace-nowrap flex items-center justify-center"
           >
-            {isMobile ? 'Pro' : 'Chravel Pro'}
+            <span className="inline lg:hidden">Pro</span>
+            <span className="hidden lg:inline">Chravel Pro</span>
           </ToggleGroupItem>
           <ToggleGroupItem
             value="events"
@@ -69,7 +70,8 @@ export const TripViewToggle = ({
                 }
               }}
             >
-              {isMobile ? 'Recs' : 'Chravel Recs'}
+              <span className="inline lg:hidden">Recs</span>
+              <span className="hidden lg:inline">Chravel Recs</span>
             </ToggleGroupItem>
           )}
         </ToggleGroup>

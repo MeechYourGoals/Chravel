@@ -490,7 +490,11 @@ const Index = () => {
                   setIsSettingsOpen(true);
                 }}
                 onCreateTrip={handleCreateTrip}
-                onSearch={() => setIsSearchOpen(true)}
+                onSearch={(query: string) => {
+                  if (query) {
+                    setIsSearchOpen(true);
+                  }
+                }}
                 onNotifications={() => {}}
                 className="flex-1"
               />
