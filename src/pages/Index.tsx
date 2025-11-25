@@ -56,6 +56,7 @@ const Index = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { user } = useAuth();
   const isMobile = useIsMobile();
   
@@ -159,7 +160,7 @@ const Index = () => {
   // 🛡️ Memoize expensive filtering operations with defensive guards
   const filteredData = useMemo(() => {
     // Always ensure safe values - never undefined
-    let safeTrips = Array.isArray(trips) ? trips : [];
+    const safeTrips = Array.isArray(trips) ? trips : [];
     
     // Initialize with demo data or empty objects
     let safeProTrips = isDemoMode ? (proTripMockData || {}) : {};
@@ -446,7 +447,9 @@ const Index = () => {
                 onSettings={() => setIsSettingsOpen(true)}
                 onCreateTrip={handleCreateTrip}
                 onSearch={() => setIsSearchOpen(true)}
-                onNotifications={() => {}}
+                onNotifications={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                isNotificationsOpen={isNotificationsOpen}
+                setIsNotificationsOpen={setIsNotificationsOpen}
                 className="w-full overflow-x-auto"
               />
               <TripViewToggle 
@@ -495,7 +498,9 @@ const Index = () => {
                     setIsSearchOpen(true);
                   }
                 }}
-                onNotifications={() => {}}
+                onNotifications={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                isNotificationsOpen={isNotificationsOpen}
+                setIsNotificationsOpen={setIsNotificationsOpen}
                 className="flex-1"
               />
             </div>

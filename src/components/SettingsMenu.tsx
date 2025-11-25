@@ -93,7 +93,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
           {/* Settings Type Toggle */}
           <div className="flex-shrink-0 p-4 md:px-6 border-b border-white/10 bg-black/20">
             <ScrollArea className="w-full">
-              <div className="bg-white/5 rounded-xl p-1 inline-flex md:flex md:w-fit gap-1">
+              <div className="bg-white/5 rounded-xl p-1 flex w-full justify-center gap-2">
                 <button
                   onClick={() => setSettingsType('consumer')}
                   className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
