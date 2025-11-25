@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, Suspense, lazy, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { MessageInbox } from '../components/MessageInbox';
 import { ProTripDetailHeader } from '../components/pro/ProTripDetailHeader';
@@ -8,7 +8,7 @@ import { TripVariantProvider } from '../contexts/TripVariantContext';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useTrips } from '../hooks/useTrips';
-import { convertSupabaseTripsToMock } from '../utils/tripConverter';
+import { convertSupabaseTripsToMock, convertSupabaseTripToProTrip } from '../utils/tripConverter';
 import { proTripMockData } from '../data/proTripMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { ProTripCategory } from '../types/proCategories';
@@ -21,6 +21,8 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ProAdminDashboard } from '../components/pro/admin/ProAdminDashboard';
 import { useProTripAdmin } from '../hooks/useProTripAdmin';
 import { MockRolesService } from '../services/mockRolesService';
+import { tripService } from '../services/tripService';
+import { ProTripData, ProParticipant } from '../types/pro';
 
 // 🚀 OPTIMIZATION: Lazy load heavy components for faster initial render
 const TripHeader = lazy(() =>
@@ -56,6 +58,7 @@ export const ProTripDetailDesktop = () => {
   const [showTripSettings, setShowTripSettings] = useState(false);
   const [showTripsPlusModal, setShowTripsPlusModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [fetchedParticipants, setFetchedParticipants] = useState<ProParticipant[]>([]);
   
   // Check admin status for Pro trips
   const { isAdmin } = useProTripAdmin(proTripId || '');
@@ -77,6 +80,29 @@ export const ProTripDetailDesktop = () => {
     }
   }, [isDemoMode, proTripId, user?.id]);
 
+  // Fetch participants for authenticated users
+  React.useEffect(() => {
+    if (!isDemoMode && proTripId) {
+      const fetchMembers = async () => {
+        try {
+          const members = await tripService.getTripMembers(proTripId);
+          setFetchedParticipants(members.map(m => ({
+            id: m.user_id,
+            name: m.profiles?.display_name || 'Unknown',
+            avatar: m.profiles?.avatar_url,
+            role: m.role || 'member',
+            email: m.profiles?.email || '',
+            credentialLevel: 'Guest',
+            permissions: []
+          } as ProParticipant)));
+        } catch (error) {
+          console.error("Failed to fetch trip members:", error);
+        }
+      };
+      fetchMembers();
+    }
+  }, [isDemoMode, proTripId]);
+
   // ⚡ OPTIMIZATION: Show loading spinner instantly before expensive operations
   if (demoModeLoading || (tripsLoading && !isDemoMode)) {
     return (
@@ -96,12 +122,44 @@ export const ProTripDetailDesktop = () => {
     );
   }
 
-  // ✅ Fetch trip data based on mode
-  let tripData: any;
-  
-  if (isDemoMode) {
-    // 🔐 DEMO MODE: Use mock data
-    if (!(proTripId in proTripMockData)) {
+  // ✅ Fetch trip data based on mode - Memoized
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const tripData = useMemo(() => {
+    if (isDemoMode) {
+      // 🔐 DEMO MODE: Use mock data
+      if (!(proTripId in proTripMockData)) {
+        return null;
+      }
+      return proTripMockData[proTripId];
+    }
+
+    // 🔐 AUTHENTICATED MODE: Fetch from Supabase
+    // ✅ FILTER: Find Pro trip directly from userTrips array by ID and trip_type
+    const supabaseTrip = userTrips.find(t => t.id === proTripId && t.trip_type === 'pro');
+
+    if (!supabaseTrip) {
+      return null;
+    }
+
+    // Convert to ProTripData format
+    const convertedTrip = convertSupabaseTripToProTrip(supabaseTrip);
+
+    // Populate with fetched participants and default values
+    return {
+      ...convertedTrip,
+      // Overwrite participants with fetched ones
+      participants: fetchedParticipants.length > 0 ? fetchedParticipants : [],
+      // Ensure roster is also populated (often same as participants in simple cases)
+      roster: fetchedParticipants.length > 0 ? fetchedParticipants : [],
+      // Ensure other fields are present if convertSupabaseTripToProTrip misses any
+      proTripCategory: 'Sports – Pro, Collegiate, Youth', // Default if missing
+      enabled_features: supabaseTrip.enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks'],
+    } as ProTripData;
+  }, [isDemoMode, proTripId, userTrips, fetchedParticipants]);
+
+  // Handle trip not found case
+  if (!tripData) {
+    if (isDemoMode) {
       console.error(`ProTripDetail: Pro trip not found in mock data: ${proTripId}`);
       console.log('Available Pro trip IDs:', Object.keys(proTripMockData));
       return (
@@ -111,17 +169,7 @@ export const ProTripDetailDesktop = () => {
           availableIds={Object.keys(proTripMockData)}
         />
       );
-    }
-    tripData = proTripMockData[proTripId];
-  } else {
-    // 🔐 AUTHENTICATED MODE: Fetch from Supabase
-    console.log('[ProTripDetail] Searching for Pro trip:', proTripId);
-    console.log('[ProTripDetail] Available trips:', userTrips.map(t => ({ id: t.id, type: t.trip_type })));
-    
-    // ✅ FILTER: Find Pro trip directly from userTrips array by ID and trip_type
-    const supabaseTrip = userTrips.find(t => t.id === proTripId && t.trip_type === 'pro');
-
-    if (!supabaseTrip) {
+    } else {
       console.error('[ProTripDetail] Pro trip not found or not Pro type');
       return (
         <ProTripNotFound
@@ -130,31 +178,6 @@ export const ProTripDetailDesktop = () => {
         />
       );
     }
-
-    // Convert to mock format for UI compatibility
-    const proTrip = convertSupabaseTripsToMock([supabaseTrip])[0];
-
-    // Convert to tripData format expected by components
-    tripData = {
-      id: proTrip.id,
-      title: proTrip.title,
-      location: proTrip.location,
-      dateRange: proTrip.dateRange,
-      description: proTrip.description,
-      // ✅ FIX: Default category for authenticated trips (will be customizable in creation modal)
-      proTripCategory: 'Sports – Pro, Collegiate, Youth',
-      participants: proTrip.participants || [],
-      basecamp_name: supabaseTrip?.basecamp_name || '',
-      basecamp_address: supabaseTrip?.basecamp_address || '',
-      enabled_features: supabaseTrip?.enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks'],
-      trip_type: supabaseTrip?.trip_type || 'pro',
-      broadcasts: [],
-      links: [],
-      schedule: [],
-      roster: [],
-      tasks: [],
-      polls: []
-    };
   }
 
   // Transform trip data to match consumer trip structure
@@ -254,7 +277,7 @@ export const ProTripDetailDesktop = () => {
 
         // Map Calendar if selected
         if (sections.includes('calendar')) {
-          exportData.calendar = tripData.schedule?.map(s => ({
+          exportData.calendar = tripData.schedule?.map((s) => ({
             title: s.title || 'Event',
             start_time: s.startTime || new Date().toISOString(),
             location: s.location,
@@ -266,7 +289,7 @@ export const ProTripDetailDesktop = () => {
         if (sections.includes('payments')) {
           if (tripData.settlement && tripData.settlement.length > 0) {
             exportData.payments = {
-              items: tripData.settlement.map(p => ({
+              items: tripData.settlement.map((p) => ({
                 description: p.venue || 'Payment',
                 amount: p.finalPayout || 0,
                 currency: 'USD',
@@ -282,7 +305,7 @@ export const ProTripDetailDesktop = () => {
 
         // Map Tasks if selected
         if (sections.includes('tasks')) {
-          exportData.tasks = tripData.tasks?.map(t => ({
+          exportData.tasks = tripData.tasks?.map((t) => ({
             title: t.title,
             description: t.description,
             completed: t.completed,
@@ -293,7 +316,7 @@ export const ProTripDetailDesktop = () => {
 
         // Map Polls if selected
         if (sections.includes('polls')) {
-          exportData.polls = tripData.polls?.map(p => ({
+          exportData.polls = tripData.polls?.map((p) => ({
             question: p.question,
             options: p.options,
             total_votes: p.total_votes,
@@ -303,7 +326,7 @@ export const ProTripDetailDesktop = () => {
 
         // Map Places/Links if selected
         if (sections.includes('places')) {
-          exportData.places = tripData.links?.map(link => ({
+          exportData.places = tripData.links?.map((link) => ({
             name: link.title,
             url: link.url,
             description: link.description,
@@ -313,7 +336,7 @@ export const ProTripDetailDesktop = () => {
 
         // Map Broadcasts if selected (Pro/Events only)
         if (sections.includes('broadcasts')) {
-          exportData.broadcasts = tripData.broadcasts?.map(b => ({
+          exportData.broadcasts = tripData.broadcasts?.map((b) => ({
             message: b.message,
             priority: b.priority,
             timestamp: b.timestamp,
@@ -324,7 +347,7 @@ export const ProTripDetailDesktop = () => {
 
         // Map Roster if selected
         if (sections.includes('roster')) {
-          exportData.roster = tripData.roster?.map(r => ({
+          exportData.roster = tripData.roster?.map((r) => ({
             name: r.name,
             email: r.email,
             role: r.role
@@ -377,14 +400,14 @@ export const ProTripDetailDesktop = () => {
               destination: tripData.location,
               dateRange: tripData.dateRange,
               description: tripData.description || '',
-              calendar: tripData.schedule?.map(s => ({
+              calendar: tripData.schedule?.map((s) => ({
                 title: s.title || 'Event',
                 start_time: s.startTime || new Date().toISOString(),
                 location: s.location,
                 description: s.notes
               })) || [],
               payments: tripData.settlement && tripData.settlement.length > 0 ? {
-                items: tripData.settlement.map(p => ({
+                items: tripData.settlement.map((p) => ({
                   description: p.venue || 'Payment',
                   amount: p.finalPayout || 0,
                   currency: 'USD',
@@ -394,7 +417,7 @@ export const ProTripDetailDesktop = () => {
                 total: tripData.settlement.reduce((sum, p) => sum + (p.finalPayout || 0), 0),
                 currency: 'USD'
               } : undefined,
-              roster: tripData.roster?.map(r => ({
+              roster: tripData.roster?.map((r) => ({
                 name: r.name,
                 email: r.email,
                 role: r.role
