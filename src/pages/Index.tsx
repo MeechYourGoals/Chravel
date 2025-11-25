@@ -289,8 +289,8 @@ const Index = () => {
 
   // Show marketing landing when logged out, allow demo mode selector to control view
   if (!user) {
-    // Show marketing pages when in OFF or MARKETING view
-    if (demoView === 'off' || demoView === 'marketing') {
+    // OFF: Show marketing page only
+    if (demoView === 'off') {
       return (
         <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
           <FullPageLanding 
@@ -305,7 +305,129 @@ const Index = () => {
       );
     }
 
-    // Show full app interface in APP-PREVIEW mode
+    // HOME (marketing state): Show authenticated user experience WITHOUT mock data
+    // This renders the app interface as if logged in, but with empty/default state
+    if (demoView === 'marketing') {
+      return (
+        <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
+          <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
+            {/* Desktop Header */}
+            {!isMobile && (
+              <div className="w-full">
+                <DesktopHeader
+                  viewMode={viewMode}
+                  onCreateTrip={handleCreateTrip}
+                  onUpgrade={() => setIsUpgradeModalOpen(true)}
+                  onSettings={(settingsType, activeSection) => {
+                    if (settingsType === 'advertiser') {
+                      navigate('/advertiser');
+                    } else {
+                      if (settingsType) setSettingsInitialType(settingsType);
+                      if (activeSection) setSettingsInitialConsumerSection(activeSection);
+                      setIsSettingsOpen(true);
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            <div className="max-w-[1500px] mx-auto">
+              <div className="w-full flex flex-col md:flex-row gap-4 md:gap-6 items-start animate-fade-in">
+                <TripViewToggle 
+                  viewMode={viewMode} 
+                  onViewModeChange={handleViewModeChange}
+                  showRecsTab={true}
+                  recsTabDisabled={true}
+                  className="flex-1"
+                />
+                <TripActionBar
+                  onSettings={() => setIsSettingsOpen(true)}
+                  onCreateTrip={handleCreateTrip}
+                  onSearch={() => setIsSearchOpen(true)}
+                  onNotifications={() => {}}
+                  isNotificationsOpen={isNotificationsOpen}
+                  setIsNotificationsOpen={setIsNotificationsOpen}
+                  className="flex-1"
+                />
+              </div>
+
+              {!isMobile && (
+                <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                  <TripStatsOverview 
+                    stats={getCurrentStats()} 
+                    viewMode={viewMode} 
+                    activeFilter={activeFilter}
+                    onFilterClick={handleFilterClick}
+                  />
+                </div>
+              )}
+
+              {viewMode === 'travelRecs' && (
+                <div className="mb-6">
+                  <RecommendationFilters 
+                    activeFilter={recsFilter}
+                    onFilterChange={setRecsFilter}
+                    showInlineSearch={true}
+                  />
+                </div>
+              )}
+
+              <div className="mb-12 animate-fade-in w-full" style={{ animationDelay: '0.2s' }}>
+                <TripGrid
+                  viewMode={viewMode}
+                  trips={[]}
+                  proTrips={{}}
+                  events={{}}
+                  loading={isLoading}
+                  onCreateTrip={handleCreateTrip}
+                  activeFilter={recsFilter}
+                />
+              </div>
+            </div>
+          </div>
+
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+          />
+
+          <CreateTripModal 
+            isOpen={isCreateModalOpen} 
+            onClose={() => setIsCreateModalOpen(false)} 
+          />
+
+          <UpgradeModal 
+            isOpen={isUpgradeModalOpen} 
+            onClose={() => setIsUpgradeModalOpen(false)} 
+          />
+
+          <SettingsMenu 
+            isOpen={isSettingsOpen} 
+            onClose={() => setIsSettingsOpen(false)} 
+            initialConsumerSection={settingsInitialConsumerSection}
+            initialSettingsType={settingsInitialType}
+          />
+
+          <SearchOverlay
+            isOpen={isSearchOpen}
+            onClose={() => {
+              setIsSearchOpen(false);
+              setSearchQuery('');
+            }}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            resultCount={searchResultCount}
+          />
+
+          <ProfileSetupModal 
+            isOpen={showProfileSetup} 
+            onComplete={() => setShowProfileSetup(false)} 
+          />
+        </div>
+      );
+    }
+
+    // MOCK (app-preview state): Show full app interface WITH mock data
     return (
       <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
         <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">

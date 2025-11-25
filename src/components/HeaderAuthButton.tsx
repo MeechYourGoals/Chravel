@@ -3,6 +3,7 @@ import { LogIn, LogOut, User, Crown, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { AuthModal } from './AuthModal';
+import { SettingsMenu } from './SettingsMenu';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,8 @@ export const HeaderAuthButton = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<string>('profile');
 
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
@@ -25,7 +28,8 @@ export const HeaderAuthButton = () => {
 
   if (user) {
     return (
-      <DropdownMenu>
+      <>
+        <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
@@ -52,14 +56,20 @@ export const HeaderAuthButton = () => {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem 
-            onClick={() => navigate('/settings/profile')}
+            onClick={() => {
+              setSettingsSection('profile');
+              setShowSettings(true);
+            }}
             className="cursor-pointer"
           >
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
           <DropdownMenuItem 
-            onClick={() => navigate('/settings/subscription')}
+            onClick={() => {
+              setSettingsSection('subscription');
+              setShowSettings(true);
+            }}
             className="cursor-pointer"
           >
             <Crown className="mr-2 h-4 w-4" />
@@ -71,7 +81,14 @@ export const HeaderAuthButton = () => {
             <span>Sign out</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
-      </DropdownMenu>
+        </DropdownMenu>
+        <SettingsMenu
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+          initialConsumerSection={settingsSection}
+          initialSettingsType="consumer"
+        />
+      </>
     );
   }
 
