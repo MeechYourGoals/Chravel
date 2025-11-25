@@ -44,17 +44,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
 
   const currentUser = user || mockUser;
 
-  if (!isOpen) return null;
-
-  // Mock organization data - would come from your auth context
-  const userOrganization = {
-    id: 'org-123',
-    name: 'Acme Entertainment Group',
-    role: 'owner',
-    hasProAccess: true
-  };
-
-  // Mock advertiser data for demo
+  // Mock advertiser data for demo - must be before early return to avoid hooks violation
   const mockAdvertiser: Advertiser = {
     id: 'demo-advertiser-1',
     user_id: currentUser.id,
@@ -67,6 +57,16 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
   };
 
   const [advertiser, setAdvertiser] = useState<Advertiser>(mockAdvertiser);
+
+  if (!isOpen) return null;
+
+  // Mock organization data - would come from your auth context
+  const userOrganization = {
+    id: 'org-123',
+    name: 'Acme Entertainment Group',
+    role: 'owner',
+    hasProAccess: true
+  };
 
   // If enterprise section is active and user has pro access, show full enterprise settings
   if (activeSection === 'enterprise' && userOrganization?.hasProAccess) {
