@@ -26,10 +26,11 @@ interface TripHeaderProps {
     dateRange: string;
     description: string;
     participants: Array<{
-      id: number;
+      id: number | string;
       name: string;
       avatar: string;
       role?: string;
+      email?: string;
     }>;
     coverPhoto?: string;
     trip_type?: 'consumer' | 'pro' | 'event';

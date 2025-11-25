@@ -11,10 +11,10 @@ export const harrisElementaryFieldTrip: ProTripData = {
   proTripCategory: 'School Trip',
   tags: ['Education', 'Field Trip', 'Middle School'],
   participants: [
-    { id: 16, name: 'Ms. Jennifer Wilson', avatar: getMockAvatar('Ms. Jennifer Wilson'), role: 'Teachers' },
-    { id: 17, name: 'Mr. David Chen', avatar: getMockAvatar('Mr. David Chen'), role: 'Teachers' },
-    { id: 18, name: 'Student Group A', avatar: getMockAvatar('Student Group A'), role: 'Students' },
-    { id: 19, name: 'Student Group B', avatar: getMockAvatar('Student Group B'), role: 'Students' }
+    { id: '16', name: 'Ms. Jennifer Wilson', avatar: getMockAvatar('Ms. Jennifer Wilson'), role: 'Teachers' },
+    { id: '17', name: 'Mr. David Chen', avatar: getMockAvatar('Mr. David Chen'), role: 'Teachers' },
+    { id: '18', name: 'Student Group A', avatar: getMockAvatar('Student Group A'), role: 'Students' },
+    { id: '19', name: 'Student Group B', avatar: getMockAvatar('Student Group B'), role: 'Students' }
   ],
   budget: {
     total: 15000,

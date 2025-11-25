@@ -86,7 +86,7 @@ export const uncMensLacrosse: ProTripData = {
     }
   ],
   participants: Array.from({ length: 45 }, (_, i) => {
-    const id = 201 + i;
+    const id = String(201 + i);
     
     if (i < 6) {
       const coaches = ['Joe Breschi', 'Jon Thompson', 'Dave Pietramala', 'Peter Murphy', 'Assistant Coach', 'Graduate Assistant'];

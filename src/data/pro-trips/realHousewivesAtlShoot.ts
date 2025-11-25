@@ -10,10 +10,10 @@ export const realHousewivesAtlShoot: ProTripData = {
   category: 'TV Production',
   tags: ['TV Production', 'Reality Show', 'Cast & Crew'],
   participants: [
-    { id: 27, name: 'Kenya Moore', avatar: getMockAvatar('Kenya Moore'), role: 'Cast' },
-    { id: 28, name: 'Executive Producer', avatar: getMockAvatar('Executive Producer'), role: 'Producers' },
-    { id: 29, name: 'Camera Operator', avatar: getMockAvatar('Camera Operator'), role: 'Crew' },
-    { id: 30, name: 'Production Assistant', avatar: getMockAvatar('Production Assistant'), role: 'Crew' }
+    { id: '27', name: 'Kenya Moore', avatar: getMockAvatar('Kenya Moore'), role: 'Cast' },
+    { id: '28', name: 'Executive Producer', avatar: getMockAvatar('Executive Producer'), role: 'Producers' },
+    { id: '29', name: 'Camera Operator', avatar: getMockAvatar('Camera Operator'), role: 'Crew' },
+    { id: '30', name: 'Production Assistant', avatar: getMockAvatar('Production Assistant'), role: 'Crew' }
   ],
   budget: {
     total: 2500000,

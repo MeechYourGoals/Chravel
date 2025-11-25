@@ -86,10 +86,10 @@ export const postMaloneJellyRollTour: ProTripData = {
     }
   ],
   participants: [
-    { id: 1, name: 'Post Malone', avatar: getMockAvatar('Post Malone'), role: 'Headliner' },
-    { id: 2, name: 'Jelly Roll', avatar: getMockAvatar('Jelly Roll'), role: 'Co-Headliner' },
-    { id: 3, name: 'Dre London', avatar: getMockAvatar('Dre London'), role: 'Tour Manager' },
-    { id: 4, name: 'Marissa Jones', avatar: getMockAvatar('Marissa Jones'), role: 'Production Director' }
+    { id: '1', name: 'Post Malone', avatar: getMockAvatar('Post Malone'), role: 'Headliner' },
+    { id: '2', name: 'Jelly Roll', avatar: getMockAvatar('Jelly Roll'), role: 'Co-Headliner' },
+    { id: '3', name: 'Dre London', avatar: getMockAvatar('Dre London'), role: 'Tour Manager' },
+    { id: '4', name: 'Marissa Jones', avatar: getMockAvatar('Marissa Jones'), role: 'Production Director' }
   ],
   roster: [
     { id: '1', name: 'Post Malone', role: 'Headliner', email: 'postmalone@tour.com', avatar: getMockAvatar('Post Malone'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },

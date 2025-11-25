@@ -86,10 +86,10 @@ export const kaiDruskiStream: ProTripData = {
     }
   ],
   participants: [
-    { id: 1, name: 'Kai Cenat', avatar: getMockAvatar('Kai Cenat'), role: 'Content Creators' },
-    { id: 2, name: 'Druski', avatar: getMockAvatar('Druski'), role: 'Content Creators' },
-    { id: 3, name: 'Jake Paul', avatar: getMockAvatar('Jake Paul'), role: 'Content Creators' },
-    { id: 4, name: 'Adin Ross', avatar: getMockAvatar('Adin Ross'), role: 'Content Creators' }
+    { id: '1', name: 'Kai Cenat', avatar: getMockAvatar('Kai Cenat'), role: 'Content Creators' },
+    { id: '2', name: 'Druski', avatar: getMockAvatar('Druski'), role: 'Content Creators' },
+    { id: '3', name: 'Jake Paul', avatar: getMockAvatar('Jake Paul'), role: 'Content Creators' },
+    { id: '4', name: 'Adin Ross', avatar: getMockAvatar('Adin Ross'), role: 'Content Creators' }
   ],
   budget: {
     total: 150000,

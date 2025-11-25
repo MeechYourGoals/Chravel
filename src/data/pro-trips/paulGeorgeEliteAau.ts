@@ -86,7 +86,7 @@ export const paulGeorgeEliteAau: ProTripData = {
     }
   ],
   participants: Array.from({ length: 120 }, (_, i) => {
-    const id = 101 + i;
+    const id = String(101 + i);
     
     if (i < 10) {
       const coaches = ['Matt Barnes', 'Brandon Lincoln', 'Byron Joseph', 'Jerald Dickson', 'Dave McClure', 'Travis Oscar', 'Eddie Cruz', 'Paul George', 'Assistant Coach 1', 'Assistant Coach 2'];
