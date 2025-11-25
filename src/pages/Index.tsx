@@ -447,7 +447,7 @@ const Index = () => {
                 onSettings={() => setIsSettingsOpen(true)}
                 onCreateTrip={handleCreateTrip}
                 onSearch={() => setIsSearchOpen(true)}
-                onNotifications={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                onNotifications={() => {}}
                 isNotificationsOpen={isNotificationsOpen}
                 setIsNotificationsOpen={setIsNotificationsOpen}
                 className="w-full overflow-x-auto"
@@ -498,7 +498,7 @@ const Index = () => {
                     setIsSearchOpen(true);
                   }
                 }}
-                onNotifications={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                onNotifications={() => {}}
                 isNotificationsOpen={isNotificationsOpen}
                 setIsNotificationsOpen={setIsNotificationsOpen}
                 className="flex-1"
