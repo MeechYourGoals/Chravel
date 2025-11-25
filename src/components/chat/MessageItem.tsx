@@ -16,9 +16,12 @@ export const MessageItem = memo(({ message, reactions, onReaction, showSenderInf
   const { user } = useAuth();
   const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
   
-  // Handle demo mode: if no user, use 'demo-user' as fallback
-  const effectiveUserId = user?.id || 'demo-user';
-  const isOwnMessage = effectiveUserId === message.sender.id;
+  // Determine if message is from current user
+  // Check by user ID first (most reliable), then fall back to author name match
+  const senderUserId = (message.sender as any).userId || message.sender.id;
+  const isOwnMessage = user?.id 
+    ? (senderUserId === user.id || message.sender.id === user.id || message.sender.name === (user.displayName || user.email?.split('@')[0]))
+    : false;
 
   const handleEdit = useCallback(async (messageId: string, newContent: string) => {
     // Refresh will happen via real-time subscription or optimistic update
