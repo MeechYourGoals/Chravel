@@ -13,6 +13,8 @@ import { ProfileSection } from './settings/ProfileSection';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { NotificationsSection } from './settings/NotificationsSection';
 import { SubscriptionSection } from './settings/SubscriptionSection';
+import { AdvertiserSettings } from './advertiser/AdvertiserSettings';
+import { Advertiser } from '../types/advertiser';
 
 interface SettingsMenuProps {
   isOpen: boolean;
@@ -51,6 +53,20 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
     role: 'owner',
     hasProAccess: true
   };
+
+  // Mock advertiser data for demo
+  const mockAdvertiser: Advertiser = {
+    id: 'demo-advertiser-1',
+    user_id: currentUser.id,
+    company_name: 'Paradise Resorts International',
+    company_email: 'marketing@paradiseresorts.com',
+    website: 'https://www.paradiseresorts.com',
+    status: 'active',
+    created_at: new Date('2024-01-15').toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  const [advertiser, setAdvertiser] = useState<Advertiser>(mockAdvertiser);
 
   // If enterprise section is active and user has pro access, show full enterprise settings
   if (activeSection === 'enterprise' && userOrganization?.hasProAccess) {
@@ -93,10 +109,10 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
           {/* Settings Type Toggle */}
           <div className="flex-shrink-0 p-4 md:px-6 border-b border-white/10 bg-black/20">
             <ScrollArea className="w-full">
-              <div className="bg-white/5 rounded-xl p-1 flex w-full justify-center gap-2">
+              <div className="bg-white/5 rounded-xl p-1 flex w-full justify-center gap-4">
                 <button
                   onClick={() => setSettingsType('consumer')}
-                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
+                  className={`py-2.5 px-6 rounded-lg text-base font-semibold transition-all whitespace-nowrap border ${
                     settingsType === 'consumer'
                       ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
                       : 'text-gray-400 hover:text-white border-transparent hover:border-white/10 hover:bg-white/5'
@@ -106,7 +122,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
                 </button>
                 <button
                   onClick={() => setSettingsType('enterprise')}
-                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
+                  className={`py-2.5 px-6 rounded-lg text-base font-semibold transition-all whitespace-nowrap border ${
                     settingsType === 'enterprise'
                       ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
                       : 'text-gray-400 hover:text-white border-transparent hover:border-white/10 hover:bg-white/5'
@@ -116,7 +132,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
                 </button>
                 <button
                   onClick={() => setSettingsType('events')}
-                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
+                  className={`py-2.5 px-6 rounded-lg text-base font-semibold transition-all whitespace-nowrap border ${
                     settingsType === 'events'
                       ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
                       : 'text-gray-400 hover:text-white border-transparent hover:border-white/10 hover:bg-white/5'
@@ -126,7 +142,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
                 </button>
                 <button
                   onClick={() => setSettingsType('advertiser')}
-                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
+                  className={`py-2.5 px-6 rounded-lg text-base font-semibold transition-all whitespace-nowrap border ${
                     settingsType === 'advertiser'
                       ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
                       : 'text-gray-400 hover:text-white border-transparent hover:border-white/10 hover:bg-white/5'
@@ -164,18 +180,11 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
                 <EventsSettings currentUserId={currentUser.id} />
               </div>
             ) : settingsType === 'advertiser' ? (
-              <div className="flex-1 min-h-0">
-                <div className="flex items-center justify-center h-full">
-                  <button 
-                    onClick={() => {
-                      navigate('/advertiser');
-                      onClose();
-                    }}
-                    className="px-6 py-3 bg-primary text-black font-bold rounded-xl"
-                  >
-                    Go to Advertiser Dashboard
-                  </button>
-                </div>
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
+                <AdvertiserSettings 
+                  advertiser={advertiser}
+                  onUpdate={setAdvertiser}
+                />
               </div>
             ) : null}
 

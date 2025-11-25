@@ -18,7 +18,7 @@ export const BillingSection = ({ organization }: BillingSectionProps) => {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-2xl font-bold text-white">Billing & Subscription</h3>
+      <h3 className="text-2xl font-bold text-white">Subscriptions</h3>
       
       {/* Current Plan */}
       <div className="bg-gradient-to-r from-green-500/10 to-green-600/10 border border-green-500/20 rounded-xl p-4">

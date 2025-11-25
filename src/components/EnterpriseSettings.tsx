@@ -8,7 +8,6 @@ import { EnterpriseProfileSection } from './enterprise/EnterpriseProfileSection'
 import { EnterpriseNotificationsSection } from './enterprise/EnterpriseNotificationsSection';
 import { EnterprisePrivacySection } from './enterprise/EnterprisePrivacySection';
 import { EnterpriseGeneralSettings } from './enterprise/EnterpriseGeneralSettings';
-import { IntegrationsSection } from './enterprise/IntegrationsSection';
 import { GameSchedule } from './enterprise/GameSchedule';
 import { ShowSchedule } from './enterprise/ShowSchedule';
 
@@ -46,8 +45,7 @@ export const EnterpriseSettings = ({ organizationId, currentUserId, defaultSecti
   const getSidebarSections = (category: TripCategory) => {
     const baseSections = [
       { id: 'organization', label: 'Organization Profile', icon: Building },
-      { id: 'integrations', label: 'Integrations', icon: Settings },
-      { id: 'billing', label: 'Billing & Subscription', icon: CreditCard }
+      { id: 'billing', label: 'Subscriptions', icon: CreditCard }
     ];
 
     const categorySpecificSections: Record<TripCategory, any[]> = {
@@ -55,35 +53,35 @@ export const EnterpriseSettings = ({ organizationId, currentUserId, defaultSecti
         { id: 'seats', label: 'Team & Roles', icon: Users },
         { id: 'game-schedule', label: 'Game Schedule', icon: Calendar },
         { id: 'travel-wallet', label: 'Travel Wallet (Org)', icon: Wallet },
-        { id: 'notifications', label: 'Notifications & Broadcast', icon: Bell },
+        { id: 'notifications', label: 'Notifications', icon: Bell },
         { id: 'privacy', label: 'General & Privacy', icon: Settings }
       ],
       'Tour – Music, Comedy, etc.': [
         { id: 'seats', label: 'Team & Roles', icon: Users },
         { id: 'show-schedule', label: 'Show Schedule', icon: Calendar },
         { id: 'travel-wallet', label: 'Travel Wallet', icon: Wallet },
-        { id: 'notifications', label: 'Notifications & Broadcast', icon: Bell },
+        { id: 'notifications', label: 'Notifications', icon: Bell },
         { id: 'privacy', label: 'General & Privacy', icon: Settings }
       ],
       'Business Travel': [
         { id: 'travel-wallet', label: 'Travel Wallet', icon: Wallet },
-        { id: 'notifications', label: 'Notifications & Broadcast', icon: Bell },
+        { id: 'notifications', label: 'Notifications', icon: Bell },
         { id: 'privacy', label: 'General & Privacy', icon: Settings }
       ],
       'School Trip': [
         { id: 'seats', label: 'Team & Roles (Staff)', icon: Users },
-        { id: 'notifications', label: 'Notifications & Broadcast', icon: Bell },
+        { id: 'notifications', label: 'Notifications', icon: Bell },
         { id: 'privacy', label: 'General & Privacy', icon: Settings }
       ],
       'Content': [
         { id: 'seats', label: 'Team & Roles', icon: Users },
         { id: 'travel-wallet', label: 'Travel Wallet', icon: Wallet },
-        { id: 'notifications', label: 'Notifications & Broadcast', icon: Bell },
+        { id: 'notifications', label: 'Notifications', icon: Bell },
         { id: 'privacy', label: 'General & Privacy', icon: Settings }
       ],
       'Other': [
         { id: 'travel-wallet', label: 'Travel Wallet', icon: Wallet },
-        { id: 'notifications', label: 'Notifications & Broadcast', icon: Bell },
+        { id: 'notifications', label: 'Notifications', icon: Bell },
         { id: 'privacy', label: 'General & Privacy', icon: Settings }
       ]
     };
@@ -94,7 +92,6 @@ export const EnterpriseSettings = ({ organizationId, currentUserId, defaultSecti
   const renderSection = () => {
     switch (activeSection) {
       case 'organization': return <OrganizationSection organization={organization} />;
-      case 'integrations': return <IntegrationsSection />;
       case 'billing': return <BillingSection organization={organization} />;
       case 'seats': return <SeatManagementSection organization={organization} tripCategory={tripCategory} />;
       case 'profile': return <EnterpriseProfileSection />;
