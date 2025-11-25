@@ -86,7 +86,7 @@ export const ohioStateNotreDame: ProTripData = {
     }
   ],
   participants: Array.from({ length: 150 }, (_, i) => {
-    const id = 301 + i;
+    const id = String(301 + i);
     
     if (i < 15) {
       const coaches = ['Ryan Day', 'Offensive Coordinator', 'Defensive Coordinator', 'Special Teams Coach', 'QB Coach', 'RB Coach', 'WR Coach', 'OL Coach', 'DL Coach', 'LB Coach', 'DB Coach', 'Strength Coach', 'Assistant Coach 1', 'Assistant Coach 2', 'Graduate Assistant'];

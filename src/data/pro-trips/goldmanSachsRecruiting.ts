@@ -86,10 +86,10 @@ export const goldmanSachsRecruiting: ProTripData = {
     }
   ],
   participants: [
-    { id: 1, name: 'David Solomon', avatar: getMockAvatar('David Solomon'), role: 'CEO Speaker' },
-    { id: 2, name: 'Rachel Ma', avatar: getMockAvatar('Rachel Ma'), role: 'Campus Lead' },
-    { id: 3, name: 'Luis Vargas', avatar: getMockAvatar('Luis Vargas'), role: 'Analyst Panelist' },
-    { id: 4, name: 'Priya Dhillon', avatar: getMockAvatar('Priya Dhillon'), role: 'HR Coordinator' }
+    { id: '1', name: 'David Solomon', avatar: getMockAvatar('David Solomon'), role: 'CEO Speaker' },
+    { id: '2', name: 'Rachel Ma', avatar: getMockAvatar('Rachel Ma'), role: 'Campus Lead' },
+    { id: '3', name: 'Luis Vargas', avatar: getMockAvatar('Luis Vargas'), role: 'Analyst Panelist' },
+    { id: '4', name: 'Priya Dhillon', avatar: getMockAvatar('Priya Dhillon'), role: 'HR Coordinator' }
   ],
   roster: [
     { id: '1', name: 'David Solomon', role: 'CEO Speaker', email: 'david.solomon@gs.com', avatar: getMockAvatar('David Solomon'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },

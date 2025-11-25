@@ -291,7 +291,7 @@ export interface Broadcast {
 }
 
 export interface ProTripParticipant {
-  id: number;
+  id: string;
   name: string;
   email?: string;
   avatar: string;
@@ -345,7 +345,7 @@ export interface ProTripData {
   }>;
   // Feature toggles for Pro/Event trips
   enabled_features?: string[];
-  trip_type?: string;
+  trip_type?: 'consumer' | 'event' | 'pro';
   archived?: boolean;
   // Privacy settings
   privacy_mode?: 'standard' | 'high';

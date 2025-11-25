@@ -86,10 +86,10 @@ export const nvidiaBowlingNight: ProTripData = {
     }
   ],
   participants: [
-    { id: 1, name: 'Jensen Huang', avatar: getMockAvatar('Jensen Huang'), role: 'Host' },
-    { id: 2, name: 'Colette Kress', avatar: getMockAvatar('Colette Kress'), role: 'CFO' },
-    { id: 3, name: 'Mark Stevens', avatar: getMockAvatar('Mark Stevens'), role: 'People Ops' },
-    { id: 4, name: 'Lena Ko', avatar: getMockAvatar('Lena Ko'), role: 'Event Planner' }
+    { id: '1', name: 'Jensen Huang', avatar: getMockAvatar('Jensen Huang'), role: 'Host' },
+    { id: '2', name: 'Colette Kress', avatar: getMockAvatar('Colette Kress'), role: 'CFO' },
+    { id: '3', name: 'Mark Stevens', avatar: getMockAvatar('Mark Stevens'), role: 'People Ops' },
+    { id: '4', name: 'Lena Ko', avatar: getMockAvatar('Lena Ko'), role: 'Event Planner' }
   ],
   roster: [
     { id: '1', name: 'Jensen Huang', role: 'Host', email: 'jensen@nvidia.com', avatar: getMockAvatar('Jensen Huang'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },

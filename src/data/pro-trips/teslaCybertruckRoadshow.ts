@@ -86,10 +86,10 @@ export const teslaCybertruckRoadshow: ProTripData = {
     }
   ],
   participants: [
-    { id: 1, name: 'Elon Musk', avatar: getMockAvatar('Elon Musk'), role: 'Executive Team' },
-    { id: 2, name: 'Franz von Holzhausen', avatar: getMockAvatar('Franz von Holzhausen'), role: 'Design Team' },
-    { id: 3, name: 'Riley Brooks', avatar: getMockAvatar('Riley Brooks'), role: 'Logistics Team' },
-    { id: 4, name: 'Kaitlyn Ruiz', avatar: getMockAvatar('Kaitlyn Ruiz'), role: 'Technical Crew' }
+    { id: '1', name: 'Elon Musk', avatar: getMockAvatar('Elon Musk'), role: 'Executive Team' },
+    { id: '2', name: 'Franz von Holzhausen', avatar: getMockAvatar('Franz von Holzhausen'), role: 'Design Team' },
+    { id: '3', name: 'Riley Brooks', avatar: getMockAvatar('Riley Brooks'), role: 'Logistics Team' },
+    { id: '4', name: 'Kaitlyn Ruiz', avatar: getMockAvatar('Kaitlyn Ruiz'), role: 'Technical Crew' }
   ],
   budget: {
     total: 2000000,

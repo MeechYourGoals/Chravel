@@ -225,17 +225,32 @@ export const tripService = {
           id,
           user_id,
           role,
-          created_at,
-          profiles:user_id (
-            display_name,
-            avatar_url,
-            email
-          )
+          created_at
         `)
         .eq('trip_id', tripId);
 
       if (error) throw error;
-      return data || [];
+      
+      // Fetch profiles separately since there's no foreign key
+      if (!data || data.length === 0) return [];
+      
+      const userIds = data.map(m => m.user_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, avatar_url, email')
+        .in('user_id', userIds);
+      
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+      }
+      
+      // Merge trip_members with profiles
+      const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
+      
+      return data.map(m => ({
+        ...m,
+        profiles: profilesMap.get(m.user_id) || null
+      }));
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching trip members:', error);

@@ -11,10 +11,10 @@ export const googleIO2026: ProTripData = {
   proTripCategory: 'Business Travel',
   tags: ['Tech Conference', 'Enterprise', 'Developer'],
   participants: [
-    { id: 1, name: 'Sundar Pichai', avatar: getMockAvatar('Sundar Pichai'), role: 'Keynote Speakers' },
-    { id: 2, name: 'Aparna Pappu', avatar: getMockAvatar('Aparna Pappu'), role: 'Demo Team' },
-    { id: 3, name: 'Jordan Tigani', avatar: getMockAvatar('Jordan Tigani'), role: 'Product Managers' },
-    { id: 4, name: 'Maya Chen', avatar: getMockAvatar('Maya Chen'), role: 'Developer Advocates' }
+    { id: '1', name: 'Sundar Pichai', avatar: getMockAvatar('Sundar Pichai'), role: 'Keynote Speakers' },
+    { id: '2', name: 'Aparna Pappu', avatar: getMockAvatar('Aparna Pappu'), role: 'Demo Team' },
+    { id: '3', name: 'Jordan Tigani', avatar: getMockAvatar('Jordan Tigani'), role: 'Product Managers' },
+    { id: '4', name: 'Maya Chen', avatar: getMockAvatar('Maya Chen'), role: 'Developer Advocates' }
   ],
   budget: {
     total: 500000,

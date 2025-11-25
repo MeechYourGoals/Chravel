@@ -86,7 +86,7 @@ export const yCombinatorCohort: ProTripData = {
     }
   ],
   participants: Array.from({ length: 35 }, (_, i) => {
-    const id = 24 + i;
+    const id = String(24 + i);
     
     if (i < 5) {
       const partners = ['Marc Andreessen', 'Chris Dixon', 'Ben Horowitz', 'Jeff Jordan', 'Scott Weiss'];
