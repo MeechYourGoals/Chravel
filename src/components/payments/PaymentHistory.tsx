@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { supabase } from '../../integrations/supabase/client';
 import { paymentService } from '../../services/paymentService';
 import { demoModeService } from '../../services/demoModeService';
+import { useDemoMode } from '../../hooks/useDemoMode';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 
@@ -40,6 +41,7 @@ interface PaymentRecord {
 export const PaymentHistory = ({ tripId }: PaymentHistoryProps) => {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isDemoMode } = useDemoMode();
 
   useEffect(() => {
     const loadPayments = async () => {
@@ -48,9 +50,12 @@ export const PaymentHistory = ({ tripId }: PaymentHistoryProps) => {
         // Use paymentService to get payments
         let paymentMessages = await paymentService.getTripPaymentMessages(tripId);
 
-        // If empty and consumer trip (1-12), fallback to demo data
+        // Only show mock data if explicitly in demo mode AND trip is 1-12
+        const isNumericOnly = /^\d+$/.test(tripId);
         const tripIdNum = parseInt(tripId);
-        if (paymentMessages.length === 0 && tripIdNum >= 1 && tripIdNum <= 12) {
+        const shouldUseMockData = isDemoMode && isNumericOnly && tripIdNum >= 1 && tripIdNum <= 12;
+        
+        if (paymentMessages.length === 0 && shouldUseMockData) {
           // ⚡ OPTIMIZATION: Synchronous demo data loading
           const mockPayments = demoModeService.getMockPayments(tripId, false);
           paymentMessages = mockPayments.map((p: MockPayment) => ({
@@ -129,9 +134,12 @@ export const PaymentHistory = ({ tripId }: PaymentHistoryProps) => {
       } catch (error) {
         console.error('Error loading payment history:', error);
         
-        // Final fallback for consumer trips
+        // Final fallback only if in demo mode AND consumer trip
+        const isNumericOnly = /^\d+$/.test(tripId);
         const tripIdNum = parseInt(tripId);
-        if (tripIdNum >= 1 && tripIdNum <= 12) {
+        const shouldUseMockData = isDemoMode && isNumericOnly && tripIdNum >= 1 && tripIdNum <= 12;
+        
+        if (shouldUseMockData) {
           // ⚡ OPTIMIZATION: Synchronous demo data loading
           const mockPayments = demoModeService.getMockPayments(tripId, false);
           const fallbackPayments = mockPayments.map((p: MockPayment) => ({
@@ -154,7 +162,7 @@ export const PaymentHistory = ({ tripId }: PaymentHistoryProps) => {
     };
 
     loadPayments();
-  }, [tripId]);
+  }, [tripId, isDemoMode]);
 
   const formatCurrency = (amount: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {

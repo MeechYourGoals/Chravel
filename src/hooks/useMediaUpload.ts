@@ -45,6 +45,10 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
   const [uploadQueue, setUploadQueue] = useState<UploadProgress[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Import media limits hook
+  const { useMediaLimits } = require('./useMediaLimits');
+  const mediaLimits = useMediaLimits(tripId);
+
   const determineMediaType = (file: File): 'image' | 'video' | 'document' => {
     if (file.type.startsWith('image/')) return 'image';
     if (file.type.startsWith('video/')) return 'video';
@@ -130,6 +134,52 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
       const fileArray = Array.from(files);
       if (fileArray.length === 0) return [];
 
+      // Check limits before uploading
+      const photosToUpload = fileArray.filter(f => f.type.startsWith('image/')).length;
+      const videosToUpload = fileArray.filter(f => f.type.startsWith('video/')).length;
+      const filesToUpload = fileArray.filter(f => !f.type.startsWith('image/') && !f.type.startsWith('video/')).length;
+
+      if (!mediaLimits.isLoading) {
+        if (photosToUpload > 0 && !mediaLimits.photos.canUpload) {
+          const limit = mediaLimits.photos.limit;
+          toast.error(`Photo limit reached (${mediaLimits.photos.used}/${limit} for this trip). Upgrade to Explorer for unlimited uploads.`);
+          return [];
+        }
+        if (videosToUpload > 0 && !mediaLimits.videos.canUpload) {
+          const limit = mediaLimits.videos.limit;
+          toast.error(`Video limit reached (${mediaLimits.videos.used}/${limit} for this trip). Upgrade to Explorer for unlimited uploads.`);
+          return [];
+        }
+        if (filesToUpload > 0 && !mediaLimits.files.canUpload) {
+          const limit = mediaLimits.files.limit;
+          toast.error(`File limit reached (${mediaLimits.files.used}/${limit} for this trip). Upgrade to Explorer for unlimited uploads.`);
+          return [];
+        }
+
+        // Check if upload would exceed limits
+        if (photosToUpload > 0 && mediaLimits.photos.limit !== -1) {
+          const remaining = mediaLimits.photos.limit - mediaLimits.photos.used;
+          if (photosToUpload > remaining) {
+            toast.error(`Can only upload ${remaining} more photo${remaining === 1 ? '' : 's'} for this trip. Upgrade for unlimited.`);
+            return [];
+          }
+        }
+        if (videosToUpload > 0 && mediaLimits.videos.limit !== -1) {
+          const remaining = mediaLimits.videos.limit - mediaLimits.videos.used;
+          if (videosToUpload > remaining) {
+            toast.error(`Can only upload ${remaining} more video${remaining === 1 ? '' : 's'} for this trip. Upgrade for unlimited.`);
+            return [];
+          }
+        }
+        if (filesToUpload > 0 && mediaLimits.files.limit !== -1) {
+          const remaining = mediaLimits.files.limit - mediaLimits.files.used;
+          if (filesToUpload > remaining) {
+            toast.error(`Can only upload ${remaining} more file${remaining === 1 ? '' : 's'} for this trip. Upgrade for unlimited.`);
+            return [];
+          }
+        }
+      }
+
       setIsUploading(true);
 
       // Initialize queue
@@ -187,7 +237,7 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
 
       return results;
     },
-    [tripId, queryClient, onProgress, onComplete, onError, isDemoMode]
+    [tripId, queryClient, onProgress, onComplete, onError, isDemoMode, mediaLimits]
   );
 
   const clearQueue = useCallback(() => {

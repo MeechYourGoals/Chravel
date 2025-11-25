@@ -2,31 +2,28 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from './useAuth';
 
-const FREE_TIER_LIMIT = 10;
-const PLUS_TIER_LIMIT = 50;
-const PRO_TIER_LIMIT = -1; // Unlimited
+// Per-trip AI query limits for freemium model
+const FREE_TIER_LIMIT = 10; // 10 queries per trip
+const PAID_TIER_LIMIT = -1; // Unlimited
 
-type UserTier = 'free' | 'plus' | 'pro';
+type UserTier = 'free' | 'explorer' | 'frequent-chraveler' | 'pro';
 
 const getTierFromRole = (appRole?: string): UserTier => {
   if (!appRole || appRole === 'consumer') return 'free';
-  if (appRole === 'plus') return 'plus';
+  if (appRole === 'plus' || appRole === 'explorer') return 'explorer';
+  if (appRole === 'frequent-chraveler') return 'frequent-chraveler';
   if (appRole === 'pro' || appRole === 'enterprise' || appRole === 'advertiser') return 'pro';
   return 'free';
 };
 
 const getLimitForTier = (tier: UserTier): number => {
-  switch (tier) {
-    case 'pro': return PRO_TIER_LIMIT;
-    case 'plus': return PLUS_TIER_LIMIT;
-    default: return FREE_TIER_LIMIT;
-  }
+  if (tier === 'free') return FREE_TIER_LIMIT;
+  return PAID_TIER_LIMIT; // Unlimited for all paid tiers
 };
 
 const getUpgradeUrlForTier = (tier: UserTier): string => {
-  if (tier === 'free') return '/settings/billing?plan=plus';
-  if (tier === 'plus') return '/settings/billing?plan=pro';
-  return '/settings/billing'; // Pro users see billing page
+  if (tier === 'free') return '/settings/billing?plan=explorer';
+  return '/settings/billing';
 };
 
 export interface ConciergeUsage {
@@ -37,7 +34,7 @@ export interface ConciergeUsage {
   resetTime: string;
 }
 
-export const useConciergeUsage = (userId?: string) => {
+export const useConciergeUsage = (tripId: string, userId?: string) => {
   const { user } = useAuth();
   const targetUserId = userId || user?.id;
 
@@ -66,9 +63,9 @@ export const useConciergeUsage = (userId?: string) => {
   const tierLimit = getLimitForTier(userTier);
 
   const { data: usage, isLoading, error, refetch } = useQuery({
-    queryKey: ['concierge-usage', targetUserId, userTier],
+    queryKey: ['concierge-usage', tripId, targetUserId, userTier],
     queryFn: async (): Promise<ConciergeUsage> => {
-      if (!targetUserId) {
+      if (!targetUserId || !tripId) {
         return {
           dailyCount: 0,
           limit: FREE_TIER_LIMIT,
@@ -78,8 +75,8 @@ export const useConciergeUsage = (userId?: string) => {
         };
       }
 
-      // Pro tier has unlimited queries
-      if (tierLimit === PRO_TIER_LIMIT) {
+      // Paid tiers have unlimited queries
+      if (tierLimit === PAID_TIER_LIMIT) {
         return {
           dailyCount: 0,
           limit: -1,
@@ -89,16 +86,14 @@ export const useConciergeUsage = (userId?: string) => {
         };
       }
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
+      // Query per-trip usage (context_id = tripId)
       // @ts-ignore - Supabase type instantiation issue
       const result = await supabase
         // @ts-ignore - Supabase type instantiation issue
         .from('concierge_usage')
         .select('id')
         .eq('user_id', targetUserId)
-        .gte('created_at', today.toISOString());
+        .eq('context_id', tripId);
 
       // @ts-ignore - Supabase type instantiation issue
       const { data, error } = result;
@@ -114,26 +109,21 @@ export const useConciergeUsage = (userId?: string) => {
         };
       }
 
-      const dailyCount = data?.length || 0;
-      const remaining = Math.max(0, tierLimit - dailyCount);
-      const isLimitReached = dailyCount >= tierLimit;
-
-      // Calculate reset time (next midnight)
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
+      const tripCount = data?.length || 0;
+      const remaining = Math.max(0, tierLimit - tripCount);
+      const isLimitReached = tripCount >= tierLimit;
 
       return {
-        dailyCount,
+        dailyCount: tripCount,
         limit: tierLimit,
         remaining,
         isLimitReached,
-        resetTime: tomorrow.toISOString()
+        resetTime: new Date().toISOString()
       };
     },
-    enabled: !!targetUserId,
-    staleTime: 30 * 1000, // 30 seconds
-    refetchInterval: 60 * 1000, // Refetch every minute
+    enabled: !!targetUserId && !!tripId,
+    staleTime: 10 * 1000, // 10 seconds - refresh more often for per-trip tracking
+    refetchInterval: 30 * 1000, // Refetch every 30 seconds
   });
 
   const formatTimeUntilReset = (resetTime: string): string => {
@@ -160,30 +150,38 @@ export const useConciergeUsage = (userId?: string) => {
     if (!usage) {
       return {
         status: 'ok',
-        message: 'Loading usage data...',
-        color: 'text-gray-500'
+        message: 'Loading...',
+        color: 'text-muted-foreground'
+      };
+    }
+
+    if (usage.limit === -1) {
+      return {
+        status: 'ok',
+        message: 'Unlimited queries',
+        color: 'text-green-500'
       };
     }
 
     if (usage.isLimitReached) {
       return {
         status: 'limit_reached',
-        message: `Daily limit reached (${usage.dailyCount}/${usage.limit})`,
+        message: `Trip limit reached (${usage.dailyCount}/${usage.limit})`,
         color: 'text-red-500'
       };
     }
 
-    if (usage.remaining <= 2) {
+    if (usage.remaining <= 2 && usage.remaining > 0) {
       return {
         status: 'warning',
-        message: `${usage.remaining} queries remaining today`,
+        message: `${usage.remaining} ${usage.remaining === 1 ? 'query' : 'queries'} left for this trip`,
         color: 'text-yellow-500'
       };
     }
 
     return {
       status: 'ok',
-      message: `${usage.remaining} queries remaining today`,
+      message: `${usage.remaining}/${usage.limit} queries left`,
       color: 'text-green-500'
     };
   };

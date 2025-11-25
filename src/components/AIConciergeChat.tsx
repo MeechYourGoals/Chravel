@@ -48,7 +48,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   const { isPlus } = useConsumerSubscription();
   const { basecamp: globalBasecamp } = useBasecamp();
   const { user } = useAuth();
-  const { usage, getUsageStatus, formatTimeUntilReset, isFreeUser, upgradeUrl } = useConciergeUsage();
+  const { usage, getUsageStatus, formatTimeUntilReset, isFreeUser, upgradeUrl } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -615,6 +615,8 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
             onKeyPress={handleKeyPress}
             isTyping={isTyping}
             disabled={aiStatus === 'error' || (isFreeUser && usage?.isLimitReached)}
+            usageStatus={getUsageStatus()}
+            onUpgradeClick={() => window.location.href = upgradeUrl}
           />
         </div>
       </div>
