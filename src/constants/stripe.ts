@@ -1,18 +1,20 @@
 // Stripe product and price mapping
 export const STRIPE_PRODUCTS = {
-  // Consumer Plans - NEW 3-TIER STRUCTURE
+  // Consumer Plans - Active subscriptions with monthly & annual billing
   'consumer-explorer': {
-    product_id: 'prod_TBD_EXPLORER', // To be created in Stripe
-    price_monthly_id: 'price_explorer_monthly_9_99',
-    price_annual_id: 'price_explorer_annual_99',
+    product_id_monthly: 'prod_TUSZK0AHZUxjSs',
+    product_id_annual: 'prod_TUSZvz0y7GjzrW',
+    price_monthly_id: 'price_1SXTec02kHnoJKm0LMzJrQsU',
+    price_annual_id: 'price_1SXTed02kHnoJKm0UUTa0Zae',
     name: 'Explorer',
     monthly_price: 9.99,
     annual_price: 99,
   },
   'consumer-frequent-chraveler': {
-    product_id: 'prod_TBD_FREQUENT_CHRAVELER', // To be created in Stripe
-    price_monthly_id: 'price_fc_monthly_19_99',
-    price_annual_id: 'price_fc_annual_199',
+    product_id_monthly: 'prod_TUSZwE8Px8dtsw',
+    product_id_annual: 'prod_TUSZ2IsZkY3kZE',
+    price_monthly_id: 'price_1SXTee02kHnoJKm0htJtEiCE',
+    price_annual_id: 'price_1SXTef02kHnoJKm0uddOgvCF',
     name: 'Frequent Chraveler',
     monthly_price: 19.99,
     annual_price: 199,
@@ -24,21 +26,22 @@ export const STRIPE_PRODUCTS = {
     name: 'Consumer Plus (Legacy)',
     price: 9.99,
   },
+  // Pro Plans - Monthly subscriptions for organizations
   'pro-starter': {
-    product_id: 'prod_TBIiiBIOZryjJH',
-    price_id: 'price_1SEw6t02kHnoJKm0OmIvxWW9',
+    product_id: 'prod_TUSZ3TL7cgQGSs',
+    price_id: 'price_1SXTeg02kHnoJKm0lCAhIoyY',
     name: 'Pro Starter',
     price: 49,
   },
   'pro-growing': {
-    product_id: 'prod_TBIi8DMSX1VUEr',
-    price_id: 'price_1SEw7E02kHnoJKm0HPnZzLrj',
+    product_id: 'prod_TUSZycyjRavQuH',
+    price_id: 'price_1SXTeh02kHnoJKm0M4hHcpls',
     name: 'Pro Growing',
     price: 199,
   },
   'pro-enterprise': {
-    product_id: 'prod_TBIihCj6YgxiTp',
-    price_id: 'price_1SEw7L02kHnoJKm0o0TLldSz',
+    product_id: 'prod_TUSZvoEV9haJpI',
+    price_id: 'price_1SXTei02kHnoJKm0KVmUbpkx',
     name: 'Pro Enterprise',
     price: 499,
   },
