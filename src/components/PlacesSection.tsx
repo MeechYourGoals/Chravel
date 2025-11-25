@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Home } from 'lucide-react';
 import { MapCanvas, MapCanvasRef } from './places/MapCanvas';
 import { UnifiedMapControls } from './places/UnifiedMapControls';
-import { GreenNotice } from './places/GreenNotice';
 import { BasecampsPanel } from './places/BasecampsPanel';
 import { LinksPanel } from './places/LinksPanel';
 import { BasecampLocation, PlaceWithDistance, DistanceCalculationSettings, PlaceCategory } from '../types/basecamp';
@@ -322,22 +321,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   }, [contextBasecamp, isBasecampSet, distanceSettings.preferredMode, distanceSettings.unit]);
 
   const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
-    
-    // 🆕 Validate coordinates before proceeding
-    if (!newBasecamp.coordinates?.lat || !newBasecamp.coordinates?.lng) {
-      console.error('[PlacesSection] ❌ Invalid coordinates for trip basecamp:', newBasecamp.coordinates);
-      toast.error('Unable to set location - invalid coordinates');
-      return;
-    }
-    
-    // Validate coordinate ranges
-    if (newBasecamp.coordinates.lat < -90 || newBasecamp.coordinates.lat > 90 || 
-        newBasecamp.coordinates.lng < -180 || newBasecamp.coordinates.lng > 180) {
-      console.error('[PlacesSection] ❌ Coordinates out of range:', newBasecamp.coordinates);
-      toast.error('Invalid location coordinates');
-      return;
-    }
-    
     
     // Track local update for conflict resolution
     lastLocalUpdateRef.current = {
@@ -702,12 +685,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
               />
             )}
 
-            {/* Context Notice */}
-            <GreenNotice
-              activeContext={searchContext}
-              tripBasecamp={contextBasecamp}
-              personalBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : null}
-            />
           </div>
 
       {/* Map - ALWAYS AT BOTTOM */}
