@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Calendar, MapPin, Users, Plus, Settings, Edit, FileDown } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, Settings, Edit, FileDown, Camera } from 'lucide-react';
 import { InviteModal } from './InviteModal';
 import { TripCoverPhotoUpload } from './TripCoverPhotoUpload';
 import { EditableDescription } from './EditableDescription';
@@ -73,14 +73,24 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
 
   return (
     <>
-      {/* Cover Photo Hero (Consumer Only) */}
-      {coverPhoto && !isProOrEvent ? (
+      {/* Cover Photo Hero (Consumer Only) - Always show for consumer trips */}
+      {!isProOrEvent && (
         <div className="relative mb-8 rounded-3xl overflow-hidden">
           <div 
             className="h-64 bg-cover bg-center"
-            style={{ backgroundImage: `url(${coverPhoto})` }}
+            style={{ 
+              backgroundImage: coverPhoto ? `url(${coverPhoto})` : undefined,
+              backgroundColor: !coverPhoto ? '#1a1a2e' : undefined
+            }}
           >
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+            {/* Gradient overlay - darker when no photo */}
+            <div className={cn(
+              "absolute inset-0",
+              coverPhoto 
+                ? "bg-gradient-to-t from-black/60 via-black/20 to-transparent"
+                : "bg-gradient-to-t from-black/80 via-gray-900/90 to-gray-800/70"
+            )}></div>
+            
             <div className="absolute bottom-6 left-8 right-8">
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-4xl font-bold text-white">{trip.title}</h1>
@@ -97,6 +107,19 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
               </div>
             </div>
             
+            {/* Add Cover Photo Button - Show when no cover photo */}
+            {!coverPhoto && (
+              <div className="absolute top-4 right-4">
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2 text-white/80 hover:text-white transition-all"
+                >
+                  <Camera size={16} />
+                  <span className="text-sm font-medium">Add Cover Photo</span>
+                </button>
+              </div>
+            )}
+            
             {/* Edit Trip Button - Bottom right */}
             <div className="absolute bottom-2 right-2 z-10">
               <button
@@ -109,7 +132,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
             </div>
           </div>
         </div>
-      ) : null}
+      )}
 
       {/* Main Trip Info Section - Compact 75% height */}
       <div 
@@ -144,29 +167,29 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
         <div className={cn("flex flex-col md:flex-row md:items-start md:justify-between gap-6", hasCoverPhoto && isProOrEvent && "relative z-10")}>
           {/* Left: Trip Details */}
           <div className="flex-1 space-y-4">
-            {!coverPhoto && (
-              <div className="flex items-center gap-3 mb-4">
-                <h1 className="text-4xl font-bold text-white">{trip.title}</h1>
-              </div>
+            {/* Only show title/location/dates for Pro/Event trips (consumer trips show in hero) */}
+            {isProOrEvent && !coverPhoto && (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <h1 className="text-4xl font-bold text-white">{trip.title}</h1>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+                  <div className="flex items-center gap-2 text-gray-300">
+                    <MapPin size={18} className={`text-${accentColors.primary}`} />
+                    <span>{trip.location}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-300">
+                    <Calendar size={18} className={`text-${accentColors.primary}`} />
+                    <span>{trip.dateRange}</span>
+                  </div>
+                </div>
+              </>
             )}
             
             {/* Category Tags for Pro trips */}
             {isPro && category && (
               <div className="mb-4">
                 <CategoryTags category={category} tags={tags} />
-              </div>
-            )}
-            
-            {!coverPhoto && (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-                <div className="flex items-center gap-2 text-gray-300">
-                  <MapPin size={18} className={`text-${accentColors.primary}`} />
-                  <span>{trip.location}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-300">
-                  <Calendar size={18} className={`text-${accentColors.primary}`} />
-                  <span>{trip.dateRange}</span>
-                </div>
               </div>
             )}
             
@@ -273,8 +296,8 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
           </button>
         </div>
 
-        {/* Edit Trip Button - Positioned for all layouts except consumer with cover */}
-        {!(coverPhoto && !isProOrEvent) && (
+        {/* Edit Trip Button - Only show for Pro/Event trips (consumer trips have edit in hero) */}
+        {isProOrEvent && (
           <div className="absolute bottom-2 right-2 z-20">
             <button
               onClick={() => setShowEditModal(true)}
