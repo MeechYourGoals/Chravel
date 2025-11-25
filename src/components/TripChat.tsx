@@ -237,16 +237,21 @@ export const TripChat = ({
       id: message.id,
       text: message.content,
       sender: {
+        // Prefer user_id for accurate ownership detection, fallback to author_name for display
         id: message.user_id || message.author_name || 'unknown',
         name: message.author_name || 'Unknown',
-        avatar: getMockAvatar(message.author_name || 'Unknown')
+        avatar: getMockAvatar(message.author_name || 'Unknown'),
+        // Store original user_id separately for ownership checks
+        userId: message.user_id
       },
       createdAt: message.created_at,
-      isBroadcast: message.privacy_mode === 'broadcast',
+      // Note: privacy_mode only allows 'standard' or 'high', not 'broadcast'
+      // Broadcasts should be handled via a separate field or tag
+      isBroadcast: false, // TODO: Add broadcast field to messages table
       isPayment: false,
       tags: [] as string[]
     }));
-  }, [liveMessages, demoMode.isDemoMode]);
+  }, [liveMessages, demoMode.isDemoMode, user?.id]);
 
   const handleSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: any) => {
     // Transform paymentData if needed to match useChatComposer expectations
@@ -279,7 +284,9 @@ export const TripChat = ({
 
     const authorName = user?.displayName || user?.email?.split('@')[0] || 'You';
     try {
-      await sendTripMessage(message.text, authorName, undefined, undefined, user?.id, isBroadcast ? 'broadcast' : 'normal');
+      // Privacy mode must be 'standard' or 'high' per database constraint
+      // Broadcasts are handled via a separate flag, not privacy_mode
+      await sendTripMessage(message.text, authorName, undefined, undefined, user?.id, 'standard');
       
       // 🆕 Auto-parse message for entities (dates, times, locations)
       if (message.text && message.text.trim().length > 10) {
@@ -420,7 +427,7 @@ export const TripChat = ({
 
       {/* Chat Container - Messages with Integrated Filter Tabs */}
       <div className="flex-1 flex flex-col min-h-0 pb-4" data-chat-container>
-        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col max-h-[70vh]">
+        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col" style={{ maxHeight: 'calc(100vh - 320px)', minHeight: '400px' }}>
           {/* Search Bar and Filter Tabs Row */}
           <div className="flex items-center gap-2 p-2 border-b border-white/10 bg-black/30">
             <div className="flex-1">
