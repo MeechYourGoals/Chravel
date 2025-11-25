@@ -3,17 +3,20 @@ import { BalanceSummary } from './BalanceSummary';
 import { PersonBalanceCard } from './PersonBalanceCard';
 import { PaymentHistory } from './PaymentHistory';
 import { PaymentInput } from './PaymentInput';
+import { PaymentLocked } from './PaymentLocked';
 import { paymentBalanceService, BalanceSummary as BalanceSummaryType } from '../../services/paymentBalanceService';
 import { useAuth } from '../../hooks/useAuth';
 import { usePayments } from '../../hooks/usePayments';
 import { useToast } from '../../hooks/use-toast';
 import { useDemoMode } from '../../hooks/useDemoMode';
+import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
 import { supabase } from '../../integrations/supabase/client';
 import { getTripById } from '../../data/tripsData';
 import { demoModeService } from '../../services/demoModeService';
 import { AuthModal } from '../AuthModal';
 import { Loader2, LogIn } from 'lucide-react';
 import { Button } from '../ui/button';
+import { FREEMIUM_LIMITS } from '../../utils/featureTiers';
 
 interface PaymentsTabProps {
   tripId: string;
@@ -24,18 +27,22 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   const { createPaymentMessage } = usePayments(tripId);
   const { toast } = useToast();
   const { isDemoMode, isLoading: demoLoading } = useDemoMode();
+  const { tier, isLoading: tierLoading } = useConsumerSubscription();
   const [balanceSummary, setBalanceSummary] = useState<BalanceSummaryType | null>(null);
   const [loading, setLoading] = useState(true);
   const [tripMembers, setTripMembers] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
   const [membersLoading, setMembersLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Consumer trips (1-12) are ALWAYS in demo mode for testing/investors
   // CRITICAL: Only parse as demo trip if tripId is ENTIRELY numeric (not a UUID)
   const isNumericOnly = /^\d+$/.test(tripId);
   const tripIdNum = parseInt(tripId, 10);
   const isConsumerDemoTrip = isNumericOnly && !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
-  const demoActive = isDemoMode || isConsumerDemoTrip;
+  // Only activate demo mode for trips 1-12 if EXPLICITLY in demo mode
+  const demoActive = isDemoMode && isConsumerDemoTrip;
+
+  // Check if user can create payments
+  const canCreatePayments = FREEMIUM_LIMITS[tier]?.canCreatePayments ?? false;
 
   // Load trip members - use tripsData for consumer trips (1-12), DB for others
   useEffect(() => {
@@ -290,7 +297,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   return (
     <div className="space-y-3">
       {/* Payment Creation */}
-      {demoLoading ? (
+      {demoLoading || tierLoading ? (
         <div className="flex items-center justify-center py-6 opacity-80">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
         </div>
@@ -305,6 +312,8 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
             Sign In
           </Button>
         </div>
+      ) : !canCreatePayments && !demoActive ? (
+        <PaymentLocked />
       ) : membersLoading ? (
         <div className="flex items-center justify-center py-6 opacity-80">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />

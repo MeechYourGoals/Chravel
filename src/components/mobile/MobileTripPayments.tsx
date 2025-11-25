@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, DollarSign, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Plus, DollarSign, CheckCircle, Clock, AlertCircle, Lock } from 'lucide-react';
 import { hapticService } from '@/services/hapticService';
 import { CreatePaymentModal } from './CreatePaymentModal';
 import { demoModeService } from '@/services/demoModeService';
 import { supabase } from '@/integrations/supabase/client';
 import { getTripById } from '@/data/tripsData';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { getConsistentAvatar, getInitials } from '@/utils/avatarUtils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { FREEMIUM_LIMITS } from '@/utils/featureTiers';
 
 interface Payment {
   id: string;
@@ -34,6 +36,10 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   const [tripMembers, setTripMembers] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
   const [membersLoading, setMembersLoading] = useState(true);
   const { isDemoMode, isLoading: demoLoading } = useDemoMode();
+  const { tier, upgradeToTier } = useConsumerSubscription();
+  
+  // Check if user can create payments
+  const canCreatePayments = FREEMIUM_LIMITS[tier]?.canCreatePayments ?? false;
   // Mock data - replace with real data from backend
   const [payments, setPayments] = useState<Payment[]>([
     {
@@ -308,13 +314,26 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
 
       {/* Add Payment FAB */}
       <div className="sticky bottom-0 px-4 py-2 pb-[env(safe-area-inset-bottom)] bg-gradient-to-t from-black via-black to-transparent border-t border-white/10">
-        <button
-          onClick={handleAddPayment}
-          className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-medium py-4 rounded-xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
-        >
-          <Plus size={20} />
-          Add Payment Split
-        </button>
+        {canCreatePayments ? (
+          <button
+            onClick={handleAddPayment}
+            className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-medium py-4 rounded-xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
+          >
+            <Plus size={20} />
+            Add Payment Split
+          </button>
+        ) : (
+          <button
+            onClick={async () => {
+              await hapticService.light();
+              upgradeToTier('explorer', 'monthly');
+            }}
+            className="w-full bg-gradient-to-r from-purple-600 to-purple-500 text-white font-medium py-4 rounded-xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
+          >
+            <Lock size={20} />
+            Upgrade to Split Expenses
+          </button>
+        )}
       </div>
 
       {/* Create Payment Modal */}

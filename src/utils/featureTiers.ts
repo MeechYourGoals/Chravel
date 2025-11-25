@@ -47,6 +47,47 @@ export const EVENTS_FEATURE_TIERS: Record<string, string> = {
   'exhibitors': 'events'
 };
 
+// Freemium limits for consumer tiers
+export const FREEMIUM_LIMITS = {
+  free: {
+    aiQueriesPerTrip: 10,
+    photosPerTrip: 5,
+    videosPerTrip: 5,
+    filesPerTrip: 5,
+    urlsPerTrip: -1, // Unlimited
+    storageAccountMB: 500,
+    canCreatePayments: false,
+    canSettlePayments: false,
+  },
+  explorer: {
+    aiQueriesPerTrip: -1, // Unlimited
+    photosPerTrip: -1,
+    videosPerTrip: -1,
+    filesPerTrip: -1,
+    urlsPerTrip: -1,
+    storageAccountMB: 50000, // 50GB
+    canCreatePayments: true,
+    canSettlePayments: true,
+  },
+  'frequent-chraveler': {
+    aiQueriesPerTrip: -1,
+    photosPerTrip: -1,
+    videosPerTrip: -1,
+    filesPerTrip: -1,
+    urlsPerTrip: -1,
+    storageAccountMB: -1, // Unlimited
+    canCreatePayments: true,
+    canSettlePayments: true,
+    canCreateProTrip: true,
+  }
+} as const;
+
+export type FreemiumTier = keyof typeof FREEMIUM_LIMITS;
+
+export const getFreemiumLimits = (tier: FreemiumTier) => {
+  return FREEMIUM_LIMITS[tier];
+};
+
 export const getFeatureTierEmoji = (featureId: string, settingsType: 'consumer' | 'enterprise' | 'events'): string => {
   return '';
 };
