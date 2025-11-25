@@ -16,6 +16,7 @@ import { FullPageLanding } from '../components/landing/FullPageLanding';
 import { DemoModeToggle } from '../components/DemoModeToggle';
 import { SearchOverlay } from '../components/home/SearchOverlay';
 import { ProfileSetupModal } from '../components/ProfileSetupModal';
+import { FloatingAuthButton } from '../components/FloatingAuthButton';
 
 // New conversion components
 import { PersistentCTABar } from '../components/conversion/PersistentCTABar';
@@ -429,6 +430,8 @@ const Index = () => {
           isOpen={showProfileSetup} 
           onComplete={() => setShowProfileSetup(false)} 
         />
+
+        <FloatingAuthButton />
       </div>
     );
   }
@@ -608,6 +611,8 @@ const Index = () => {
         isOpen={showProfileSetup} 
         onComplete={() => setShowProfileSetup(false)} 
       />
+
+      <FloatingAuthButton />
     </div>
   );
 };
