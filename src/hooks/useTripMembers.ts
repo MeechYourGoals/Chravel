@@ -24,7 +24,13 @@ export const useTripMembers = (tripId?: string) => {
   };
 
   const getMockFallbackMembers = (tripId: string): TripMember[] => {
-    const numericTripId = parseInt(tripId);
+    // CRITICAL: Only use mock data if tripId is ENTIRELY numeric (not a UUID)
+    const isNumericOnly = /^\d+$/.test(tripId);
+    if (!isNumericOnly) {
+      // UUID trip - no mock fallback
+      return [];
+    }
+    const numericTripId = parseInt(tripId, 10);
     const trip = getTripById(numericTripId);
     
     if (trip && trip.participants) {

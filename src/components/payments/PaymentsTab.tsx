@@ -31,8 +31,10 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Consumer trips (1-12) are ALWAYS in demo mode for testing/investors
-  const tripIdNum = parseInt(tripId);
-  const isConsumerDemoTrip = !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
+  // CRITICAL: Only parse as demo trip if tripId is ENTIRELY numeric (not a UUID)
+  const isNumericOnly = /^\d+$/.test(tripId);
+  const tripIdNum = parseInt(tripId, 10);
+  const isConsumerDemoTrip = isNumericOnly && !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
   const demoActive = isDemoMode || isConsumerDemoTrip;
 
   // Load trip members - use tripsData for consumer trips (1-12), DB for others
