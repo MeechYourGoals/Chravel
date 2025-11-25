@@ -88,6 +88,31 @@ export const tripService = {
         throw new Error('Invalid user state - missing ID');
       }
 
+      // Check active trip limit for free users
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_status, subscription_product_id')
+        .eq('user_id', user.id)
+        .single();
+
+      const tier = profile?.subscription_status === 'active' 
+        ? (profile.subscription_product_id?.includes('explorer') ? 'explorer' : 'frequent-chraveler')
+        : 'free';
+
+      // Count active (non-archived) trips
+      const { count, error: countError } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .eq('created_by', user.id)
+        .eq('is_archived', false);
+
+      if (countError) throw countError;
+
+      const activeTripsLimit = tier === 'free' ? 3 : -1;
+      if (activeTripsLimit !== -1 && (count || 0) >= activeTripsLimit) {
+        throw new Error('TRIP_LIMIT_REACHED');
+      }
+
       // Dates already in ISO 8601 format from CreateTripModal - no normalization needed
       console.log('[tripService] Creating trip:', {
         name: tripData.name,

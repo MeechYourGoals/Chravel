@@ -148,9 +148,12 @@ export const paymentService = {
 
   async getTripPaymentMessages(tripId: string): Promise<PaymentMessage[]> {
     try {
-      // Check if demo mode is enabled
+      // Only use mock data for demo mode trips (1-12) when explicitly in demo mode
+      const tripIdNum = parseInt(tripId);
       const isDemoMode = await demoModeService.isDemoModeEnabled();
-      if (isDemoMode) {
+      const isDemoTrip = !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
+      
+      if (isDemoMode && isDemoTrip) {
         return mockPayments.filter(p => p.trip_id === tripId).map((payment: MockPayment) => ({
           id: payment.id,
           tripId: payment.trip_id,

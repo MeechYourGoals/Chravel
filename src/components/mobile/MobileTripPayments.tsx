@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getTripById } from '@/data/tripsData';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
+import { useAuth } from '@/hooks/useAuth';
 import { getConsistentAvatar, getInitials } from '@/utils/avatarUtils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { FREEMIUM_LIMITS } from '@/utils/featureTiers';
@@ -32,14 +33,21 @@ interface MobileTripPaymentsProps {
  * Shows payment splits, settlements, and status
  */
 export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
+  const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tripMembers, setTripMembers] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPaymentInput, setShowPaymentInput] = useState(false);
+  const [paymentMessages, setPaymentMessages] = useState<any[]>([]);
   const [membersLoading, setMembersLoading] = useState(true);
   const { isDemoMode, isLoading: demoLoading } = useDemoMode();
   const { tier, upgradeToTier } = useConsumerSubscription();
-  
-  // Check if user can create payments
-  const canCreatePayments = FREEMIUM_LIMITS[tier]?.canCreatePayments ?? false;
+
+  // Count user's payment requests
+  const userPaymentCount = paymentMessages.filter(p => p.created_by === user?.id).length;
+  const paymentLimit = tier === 'free' ? 5 : -1;
+  const remainingPayments = paymentLimit === -1 ? -1 : Math.max(0, paymentLimit - userPaymentCount);
+  const canCreateMorePayments = paymentLimit === -1 || userPaymentCount < paymentLimit;
   // Mock data - replace with real data from backend
   const [payments, setPayments] = useState<Payment[]>([
     {
@@ -312,26 +320,31 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         )}
       </div>
 
-      {/* Add Payment FAB */}
+      {/* Add Payment FAB with Limit Check */}
       <div className="sticky bottom-0 px-4 py-2 pb-[env(safe-area-inset-bottom)] bg-gradient-to-t from-black via-black to-transparent border-t border-white/10">
-        {canCreatePayments ? (
+        {tier === 'free' && remainingPayments > 0 && remainingPayments !== -1 && (
+          <div className="text-center text-xs text-blue-400 mb-2">
+            {remainingPayments} of 5 payment requests remaining
+          </div>
+        )}
+        {!canCreateMorePayments && tier === 'free' ? (
+          <button
+            onClick={async () => {
+              await hapticService.light();
+              upgradeToTier('explorer', 'monthly');
+            }}
+            className="w-full bg-gradient-to-r from-amber-600 to-amber-500 text-white font-medium py-4 rounded-xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
+          >
+            <Lock size={20} />
+            Upgrade for Unlimited Payments
+          </button>
+        ) : (
           <button
             onClick={handleAddPayment}
             className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-medium py-4 rounded-xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
           >
             <Plus size={20} />
             Add Payment Split
-          </button>
-        ) : (
-          <button
-            onClick={async () => {
-              await hapticService.light();
-              upgradeToTier('explorer', 'monthly');
-            }}
-            className="w-full bg-gradient-to-r from-purple-600 to-purple-500 text-white font-medium py-4 rounded-xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
-          >
-            <Lock size={20} />
-            Upgrade to Split Expenses
           </button>
         )}
       </div>

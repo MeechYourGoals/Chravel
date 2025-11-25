@@ -17,6 +17,33 @@ export const archiveTrip = async (tripId: string, tripType: TripType, userId?: s
 
 // Restore (unarchive) a trip
 export const restoreTrip = async (tripId: string, tripType: TripType, userId?: string): Promise<void> => {
+  // Check if user has reached their active trip limit
+  if (userId) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('subscription_status, subscription_product_id')
+      .eq('user_id', userId)
+      .single();
+
+    const tier = profile?.subscription_status === 'active' 
+      ? (profile.subscription_product_id?.includes('explorer') ? 'explorer' : 'frequent-chraveler')
+      : 'free';
+
+    // Count current active trips
+    const { count, error: countError } = await supabase
+      .from('trips')
+      .select('*', { count: 'exact', head: true })
+      .eq('created_by', userId)
+      .eq('is_archived', false);
+
+    if (countError) throw countError;
+
+    const activeTripsLimit = tier === 'free' ? 3 : -1;
+    if (activeTripsLimit !== -1 && (count || 0) >= activeTripsLimit) {
+      throw new Error('TRIP_LIMIT_REACHED');
+    }
+  }
+
   const { error } = await supabase
     .from('trips')
     .update({ is_archived: false })

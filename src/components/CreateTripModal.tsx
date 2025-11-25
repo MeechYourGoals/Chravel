@@ -257,6 +257,17 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
       
       if (error instanceof Error && error.message === 'AUTHENTICATION_REQUIRED') {
         toast.error('Please sign in to create a trip');
+      } else if (error instanceof Error && error.message === 'TRIP_LIMIT_REACHED') {
+        toast.error('You\'ve reached the free tier limit of 3 active trips. Archive a trip or upgrade to Explorer for unlimited trips.', {
+          duration: 6000,
+          action: {
+            label: 'View Plans',
+            onClick: () => {
+              // Navigate to settings/billing
+              window.location.href = '/settings';
+            }
+          }
+        });
       } else {
         toast.error(errorMessage);
       }

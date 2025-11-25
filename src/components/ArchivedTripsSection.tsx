@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { getArchivedTrips, restoreTrip } from '../services/archiveService';
 import { useToast } from '../hooks/use-toast';
+import { supabase } from '../integrations/supabase/client';
 import { ArchiveRestore, Calendar, MapPin, Users, Archive } from 'lucide-react';
 import { EnhancedEmptyState } from './ui/enhanced-empty-state';
 
@@ -32,24 +33,41 @@ export const ArchivedTripsSection = () => {
     loadArchivedTrips();
   }, [confirmDialog.isOpen]);
 
-  const handleRestoreClick = (tripId: string, tripTitle: string, tripType: 'consumer' | 'pro' | 'event') => {
-    setConfirmDialog({
-      isOpen: true,
-      tripId,
-      tripTitle,
-      tripType
-    });
+  const handleRestoreClick = async (tripId: string, tripTitle: string, tripType: 'consumer' | 'pro' | 'event') => {
+    try {
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await restoreTrip(tripId, tripType, user.id);
+      
+      toast({
+        title: "Trip restored",
+        description: `"${tripTitle}" has been restored to your trips list.`,
+      });
+      
+      // Force re-render by updating state
+      setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+    } catch (error) {
+      if (error instanceof Error && error.message === 'TRIP_LIMIT_REACHED') {
+        toast({
+          title: "Trip Limit Reached",
+          description: "You have 3 active trips (free tier limit). Archive a trip or upgrade to Explorer for unlimited trips.",
+          variant: "destructive",
+          duration: 6000,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to restore trip",
+          variant: "destructive"
+        });
+      }
+    }
   };
 
   const handleConfirmRestore = () => {
-    restoreTrip(confirmDialog.tripId, confirmDialog.tripType);
-    toast({
-      title: "Trip restored",
-      description: `"${confirmDialog.tripTitle}" has been restored to your trips list.`,
-    });
-    
-    // Force re-render by updating state
-    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+    handleRestoreClick(confirmDialog.tripId, confirmDialog.tripTitle, confirmDialog.tripType);
   };
 
   const renderTripCard = (trip: any, type: 'consumer' | 'pro' | 'event') => (
@@ -92,7 +110,12 @@ export const ArchivedTripsSection = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleRestoreClick(trip.id.toString(), trip.title, type)}
+            onClick={() => setConfirmDialog({
+              isOpen: true,
+              tripId: trip.id.toString(),
+              tripTitle: trip.title,
+              tripType: type
+            })}
             className="ml-4 flex items-center gap-2"
           >
             <ArchiveRestore className="h-4 w-4" />
