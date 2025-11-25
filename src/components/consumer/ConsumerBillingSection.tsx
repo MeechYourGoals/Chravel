@@ -99,7 +99,7 @@ export const ConsumerBillingSection = () => {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-2xl font-bold text-white">Billing & Subscription</h3>
+      <h3 className="text-2xl font-bold text-white">Subscriptions</h3>
       
       {/* Current Plan */}
       <div className={`rounded-xl p-4 ${

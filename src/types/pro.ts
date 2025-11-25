@@ -448,14 +448,9 @@ export const SUBSCRIPTION_TIERS = {
     features: [
       'Up to 100 team members',
       'Advanced role management',
-      'Multi-language broadcast system',
-      'Travel booking integrations (Saber, Concur)',
-      'Financial tools integration',
       'Travel wallet & rewards tracking',
-      'Advanced compliance & reporting',
       'Priority phone support',
-      'Custom branding options',
-      'Usage analytics & reporting'
+      'Custom branding options'
     ]
   },
   'enterprise': {
@@ -464,14 +459,10 @@ export const SUBSCRIPTION_TIERS = {
     seatLimit: 500,
     features: [
       'Up to 500 team members',
-      'Full SSO/MFA integration',
       'Advanced integrations & APIs',
-      'GDPR compliance suite',
-      'White-label options',
       'Advanced security features',
       'Priority support',
       'Custom branding',
-      'Advanced analytics',
       'Dedicated account manager'
     ]
   },
