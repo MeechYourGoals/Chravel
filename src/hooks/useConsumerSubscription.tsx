@@ -49,9 +49,16 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
         userTier = tier as 'free' | 'explorer' | 'frequent-chraveler';
       } else if (product_id) {
         // Fallback detection for legacy/unmapped products
-        if (product_id === STRIPE_PRODUCTS['consumer-explorer'].product_id) userTier = 'explorer';
-        else if (product_id === STRIPE_PRODUCTS['consumer-frequent-chraveler']?.product_id) userTier = 'frequent-chraveler';
-        else if (product_id === STRIPE_PRODUCTS['consumer-plus'].product_id) userTier = 'explorer'; // Legacy Plus -> Explorer
+        const explorerProduct = STRIPE_PRODUCTS['consumer-explorer'];
+        const fcProduct = STRIPE_PRODUCTS['consumer-frequent-chraveler'];
+        
+        if (product_id === explorerProduct.product_id_monthly || product_id === explorerProduct.product_id_annual) {
+          userTier = 'explorer';
+        } else if (product_id === fcProduct.product_id_monthly || product_id === fcProduct.product_id_annual) {
+          userTier = 'frequent-chraveler';
+        } else if (product_id === STRIPE_PRODUCTS['consumer-plus'].product_id) {
+          userTier = 'explorer'; // Legacy Plus -> Explorer
+        }
       }
       
       setSubscription({
