@@ -71,6 +71,18 @@ export function AddEventModal({
           </div>
 
           <div>
+            <Label htmlFor="modal-location" className="text-gray-300 text-sm">Location</Label>
+            <Input
+              id="modal-location"
+              className="mt-1.5 bg-gray-800 border-white/10 text-white"
+              value={newEvent.location}
+              onChange={(e) => onUpdateField('location', e.target.value)}
+              placeholder="e.g., Central Park, NYC"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div>
             <Label htmlFor="modal-description" className="text-gray-300 text-sm">Description</Label>
             <Textarea
               id="modal-description"
