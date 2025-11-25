@@ -56,8 +56,10 @@ export const FREEMIUM_LIMITS = {
     filesPerTrip: 5,
     urlsPerTrip: -1, // Unlimited
     storageAccountMB: 500,
-    canCreatePayments: false,
-    canSettlePayments: false,
+    activeTripsLimit: 3, // Max 3 active (non-archived) trips
+    paymentRequestsPerTrip: 5, // Max 5 payment requests per trip
+    canCreatePayments: true,
+    canSettlePayments: true,
   },
   explorer: {
     aiQueriesPerTrip: -1, // Unlimited
@@ -66,6 +68,8 @@ export const FREEMIUM_LIMITS = {
     filesPerTrip: -1,
     urlsPerTrip: -1,
     storageAccountMB: 50000, // 50GB
+    activeTripsLimit: -1, // Unlimited
+    paymentRequestsPerTrip: -1, // Unlimited
     canCreatePayments: true,
     canSettlePayments: true,
   },
@@ -76,6 +80,8 @@ export const FREEMIUM_LIMITS = {
     filesPerTrip: -1,
     urlsPerTrip: -1,
     storageAccountMB: -1, // Unlimited
+    activeTripsLimit: -1, // Unlimited
+    paymentRequestsPerTrip: -1, // Unlimited
     canCreatePayments: true,
     canSettlePayments: true,
     canCreateProTrip: true,
