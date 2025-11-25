@@ -56,6 +56,7 @@ const Index = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { user } = useAuth();
   const isMobile = useIsMobile();
   
@@ -447,6 +448,8 @@ const Index = () => {
                 onCreateTrip={handleCreateTrip}
                 onSearch={() => setIsSearchOpen(true)}
                 onNotifications={() => {}}
+                isNotificationsOpen={isNotificationsOpen}
+                setIsNotificationsOpen={setIsNotificationsOpen}
                 className="w-full overflow-x-auto"
               />
               <TripViewToggle 
@@ -496,6 +499,8 @@ const Index = () => {
                   }
                 }}
                 onNotifications={() => {}}
+                isNotificationsOpen={isNotificationsOpen}
+                setIsNotificationsOpen={setIsNotificationsOpen}
                 className="flex-1"
               />
             </div>
