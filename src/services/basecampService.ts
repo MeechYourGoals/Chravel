@@ -74,62 +74,22 @@ class BasecampService {
   }
 
   /**
-   * Validate address by attempting geocoding
-   * Returns coordinates if valid, null if invalid
-   */
-  async validateAddress(address: string): Promise<{ lat: number; lng: number } | null> {
-    try {
-      // Import GoogleMapsService dynamically to avoid circular dependencies
-      const { GoogleMapsService } = await import('./googleMapsService');
-      
-      // Try geocoding first (most reliable for addresses)
-      let coordinates = await GoogleMapsService.geocodeAddress(address);
-      
-      // If geocoding fails, try text search as fallback
-      if (!coordinates) {
-        const textSearchResult = await GoogleMapsService.searchPlacesByText(address);
-        if (textSearchResult?.results?.[0]?.geometry?.location) {
-          coordinates = {
-            lat: textSearchResult.results[0].geometry.location.lat,
-            lng: textSearchResult.results[0].geometry.location.lng
-          };
-        }
-      }
-
-
-      return coordinates;
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Error validating address:', error);
-      return null;
-    }
-  }
-
-  /**
    * Set the trip basecamp (shared across all users)
    * Only trip creator/admin can do this
-   * Validates address geocoding if coordinates not provided
    * Logs changes to history
    */
   async setTripBasecamp(
     tripId: string,
     basecamp: { name?: string; address: string; latitude?: number; longitude?: number },
-    options?: { validateAddress?: boolean; skipHistory?: boolean; currentVersion?: number }
+    options?: { skipHistory?: boolean; currentVersion?: number }
   ): Promise<{ success: boolean; error?: string; conflict?: boolean; coordinates?: { lat: number; lng: number } }> {
     try {
       // Get current version if not provided
       const currentVersion = options?.currentVersion ?? await this.getBasecampVersion(tripId);
       
-      let finalLatitude = basecamp.latitude;
-      let finalLongitude = basecamp.longitude;
-
-      // Validate address geocoding if coordinates missing and validation enabled
-      if ((!finalLatitude || !finalLongitude) && options?.validateAddress !== false) {
-        const validatedCoords = await this.validateAddress(basecamp.address);
-        if (validatedCoords) {
-          finalLatitude = validatedCoords.lat;
-          finalLongitude = validatedCoords.lng;
-        }
-      }
+      // No validation or geocoding - use provided coordinates (if any) or null
+      const finalLatitude = basecamp.latitude || null;
+      const finalLongitude = basecamp.longitude || null;
 
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id;
@@ -218,7 +178,6 @@ class BasecampService {
 
   /**
    * Set/update user's personal basecamp for a trip
-   * Validates address geocoding if coordinates not provided
    * Logs changes to history
    */
   async upsertPersonalBasecamp(
@@ -229,7 +188,7 @@ class BasecampService {
       latitude?: number;
       longitude?: number;
     },
-    options?: { validateAddress?: boolean; skipHistory?: boolean }
+    options?: { skipHistory?: boolean }
   ): Promise<PersonalBasecamp | null> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -241,17 +200,8 @@ class BasecampService {
       const currentBasecamp = await this.getPersonalBasecamp(payload.trip_id, user.id);
       const isUpdate = !!currentBasecamp;
 
-      let finalLatitude = payload.latitude;
-      let finalLongitude = payload.longitude;
-
-      // Validate address geocoding if coordinates missing and validation enabled
-      if ((!finalLatitude || !finalLongitude) && options?.validateAddress !== false) {
-        const validatedCoords = await this.validateAddress(payload.address);
-        if (validatedCoords) {
-          finalLatitude = validatedCoords.lat;
-          finalLongitude = validatedCoords.lng;
-        }
-      }
+      const finalLatitude = payload.latitude || null;
+      const finalLongitude = payload.longitude || null;
 
       const { data, error } = await (supabase as any)
         .from('trip_personal_basecamps')
