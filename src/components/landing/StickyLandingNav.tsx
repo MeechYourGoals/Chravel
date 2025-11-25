@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
-import { DemoModeToggle } from '../DemoModeToggle';
+import { DemoModeSelector } from '../DemoModeSelector';
+import { HeaderAuthButton } from '../HeaderAuthButton';
 
 interface NavSection {
   id: string;
@@ -86,18 +86,10 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ onSignUp }) 
           ))}
         </div>
 
-        {/* CTA and Demo Toggle */}
-        <div className="flex items-center gap-3">
-          {/* Demo Toggle - Always visible on mobile for easy access */}
-          <div className="md:hidden">
-            <DemoModeToggle />
-          </div>
-          <Button 
-            onClick={onSignUp}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            Get Started
-          </Button>
+        {/* Right: Demo Selector + Auth Button */}
+        <div className="flex items-center gap-2">
+          <DemoModeSelector />
+          <HeaderAuthButton />
         </div>
       </div>
     </nav>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { LogIn, User, LogOut } from 'lucide-react';
+import { LogIn, LogOut, User, Crown, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { AuthModal } from './AuthModal';
 import {
   DropdownMenu,
@@ -13,8 +14,9 @@ import {
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback } from './ui/avatar';
 
-export const FloatingAuthButton = () => {
+export const HeaderAuthButton = () => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const getInitials = (email: string) => {
@@ -27,14 +29,18 @@ export const FloatingAuthButton = () => {
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            size="icon"
-            className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full shadow-lg border-2 border-primary/20 bg-background/95 backdrop-blur-md hover:bg-primary/10"
+            size="sm"
+            className="flex items-center justify-center gap-1.5 transition-all duration-200 rounded-lg
+              bg-background/40 border-border/50 border-2 text-foreground/90 hover:bg-background/50 
+              backdrop-blur-md h-9 px-3"
           >
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-primary text-primary-foreground">
+            <Avatar className="h-4 w-4">
+              <AvatarFallback className="text-[8px] bg-primary text-primary-foreground">
                 {getInitials(user.email || 'U')}
               </AvatarFallback>
             </Avatar>
+            <span className="text-[10px] font-medium hidden sm:inline">Account</span>
+            <ChevronDown className="h-3 w-3" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
@@ -44,6 +50,21 @@ export const FloatingAuthButton = () => {
               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
           </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem 
+            onClick={() => navigate('/settings/profile')}
+            className="cursor-pointer"
+          >
+            <User className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={() => navigate('/settings/subscription')}
+            className="cursor-pointer"
+          >
+            <Crown className="mr-2 h-4 w-4" />
+            <span>Upgrade</span>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={signOut} className="cursor-pointer">
             <LogOut className="mr-2 h-4 w-4" />
@@ -58,10 +79,14 @@ export const FloatingAuthButton = () => {
     <>
       <Button
         onClick={() => setShowAuthModal(true)}
-        className="fixed bottom-4 right-4 z-50 shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2.5 rounded-lg flex items-center gap-2"
+        variant="outline"
+        size="sm"
+        className="flex items-center justify-center gap-1.5 transition-all duration-200 rounded-lg
+          bg-primary/30 border-primary/70 border-2 text-primary hover:bg-primary/40 
+          shadow-lg shadow-primary/20 backdrop-blur-md h-9 px-3"
       >
-        <LogIn size={18} />
-        <span className="font-medium">Login</span>
+        <LogIn className="h-4 w-4" />
+        <span className="text-[10px] font-medium">Login</span>
       </Button>
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
