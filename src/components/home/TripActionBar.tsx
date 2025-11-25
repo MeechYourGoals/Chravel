@@ -72,12 +72,12 @@ export const TripActionBar = ({
   return (
     <div className={cn("", className)}>
       <div className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg">
-        <div className="grid grid-cols-4 gap-0.5 items-center min-h-[56px]">
+        <div className="grid grid-cols-4 gap-0.5 items-center h-16">
           {/* Settings */}
           <button
             onClick={onSettings}
             aria-label="Settings"
-            className="w-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/10 transition-all duration-300"
+            className="w-full h-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/10 transition-all duration-300"
           >
             <Settings size={18} className="flex-shrink-0" />
             <span className="text-sm font-medium whitespace-nowrap">Settings</span>
@@ -87,7 +87,7 @@ export const TripActionBar = ({
           <button
             onClick={onNotifications}
             aria-label="Notifications"
-            className="w-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/10 transition-all duration-300 relative"
+            className="w-full h-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/10 transition-all duration-300 relative"
           >
             <Bell size={18} className="flex-shrink-0" />
             <span className="text-sm font-medium whitespace-nowrap">Notifications</span>
@@ -102,7 +102,7 @@ export const TripActionBar = ({
           <button
             onClick={onCreateTrip}
             aria-label="Create New Trip"
-            className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] hover:from-[hsl(45,95%,55%)] hover:to-[hsl(45,90%,62%)] text-black px-3 py-3 font-semibold shadow-lg shadow-primary/30 transition-all duration-300"
+            className="w-full h-full flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] hover:from-[hsl(45,95%,55%)] hover:to-[hsl(45,90%,62%)] text-black px-3 py-3 font-semibold shadow-lg shadow-primary/30 transition-all duration-300"
           >
             <Plus size={18} className="flex-shrink-0" />
             <span className="text-sm font-medium whitespace-nowrap">New Trip</span>
@@ -112,7 +112,7 @@ export const TripActionBar = ({
           <button
             onClick={onSearch}
             aria-label="Search"
-            className="w-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/10 transition-all duration-300"
+            className="w-full h-full flex items-center justify-center gap-1.5 rounded-xl p-3 text-white hover:bg-white/10 transition-all duration-300"
           >
             <Search size={18} className="flex-shrink-0" />
             <span className="text-sm font-medium whitespace-nowrap">Search</span>

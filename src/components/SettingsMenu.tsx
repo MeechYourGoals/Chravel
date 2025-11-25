@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
-import { X, User, Bell, Crown, LogOut, Building, Megaphone } from 'lucide-react';
+import { X, User, Bell, Crown, LogOut, Megaphone } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { ScrollArea, ScrollBar } from './ui/scroll-area';
+import { useIsMobile } from '../hooks/use-mobile';
 
 import { ProUpgradeModal } from './ProUpgradeModal';
 import { EnterpriseSettings } from './EnterpriseSettings';
@@ -24,6 +24,7 @@ interface SettingsMenuProps {
 export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialSettingsType }: SettingsMenuProps) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [showProModal, setShowProModal] = useState(false);
   const [activeSection, setActiveSection] = useState('profile');
   const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events' | 'advertiser'>(initialSettingsType || 'consumer');
@@ -54,14 +55,14 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
   // If enterprise section is active and user has pro access, show full enterprise settings
   if (activeSection === 'enterprise' && userOrganization?.hasProAccess) {
     return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-0 md:p-4" onClick={onClose}>
         <div
-          className="h-full bg-white/10 backdrop-blur-md border-l border-white/20 w-[85vw] max-w-md md:max-w-lg ml-auto animate-slide-in-right"
+          className="w-full h-full md:h-[85vh] md:max-w-6xl bg-black/90 md:bg-white/10 md:backdrop-blur-md md:border md:border-white/20 md:rounded-2xl shadow-2xl flex flex-col animate-fade-in overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between p-6 border-b border-white/20">
+          <div className="flex items-center justify-between p-4 md:p-6 border-b border-white/20">
             <h2 className="text-xl font-semibold text-white">Enterprise Settings</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <button onClick={onClose} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors">
               <X size={24} />
             </button>
           </div>
@@ -74,92 +75,61 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
     );
   }
 
-  const sections = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'subscription', label: 'Subscription', icon: Crown },
-    { id: 'advertiser', label: 'Advertiser Hub', icon: Megaphone }
-  ];
-
-  const renderSection = () => {
-    switch (activeSection) {
-      case 'profile':
-        return <ProfileSection userOrganization={userOrganization} />;
-      case 'notifications':
-        return <NotificationsSection />;
-      case 'subscription':
-        return (
-          <SubscriptionSection 
-            userOrganization={userOrganization}
-            onShowProModal={() => setShowProModal(true)}
-            onShowEnterpriseSettings={() => setActiveSection('enterprise')}
-          />
-        );
-      case 'advertiser':
-        // Redirect to advertiser dashboard
-        navigate('/advertiser');
-        onClose();
-        return null;
-      default:
-        return <ProfileSection userOrganization={userOrganization} />;
-    }
-  };
-
   return (
     <>
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-0 md:p-4" onClick={onClose}>
         <div
-          className="h-screen flex flex-col bg-white/10 backdrop-blur-md border-l border-white/20 w-[85vw] max-w-md md:max-w-lg ml-auto animate-slide-in-right"
+          className="w-full h-full md:h-[85vh] md:max-w-6xl bg-black/90 md:bg-card/95 md:backdrop-blur-xl md:border md:border-white/10 md:rounded-2xl shadow-2xl flex flex-col animate-fade-in overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-white/20">
+          <div className="flex-shrink-0 flex items-center justify-between p-4 md:px-6 md:py-4 border-b border-white/10">
             <h2 className="text-xl font-semibold text-white">Settings</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <button onClick={onClose} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors">
               <X size={24} />
             </button>
           </div>
 
           {/* Settings Type Toggle */}
-          <div className="flex-shrink-0 p-4 border-b border-white/20">
+          <div className="flex-shrink-0 p-4 md:px-6 border-b border-white/10 bg-black/20">
             <ScrollArea className="w-full">
-              <div className="bg-white/10 rounded-xl p-1 inline-flex md:grid md:grid-cols-4 gap-1">
+              <div className="bg-white/5 rounded-xl p-1 inline-flex md:flex md:w-fit gap-1">
                 <button
                   onClick={() => setSettingsType('consumer')}
-                  className={`py-2 px-3 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
+                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
                     settingsType === 'consumer'
                       ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
-                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10'
+                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10 hover:bg-white/5'
                   }`}
                 >
                   Consumer
                 </button>
                 <button
                   onClick={() => setSettingsType('enterprise')}
-                  className={`py-2 px-3 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
+                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
                     settingsType === 'enterprise'
                       ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
-                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10'
+                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10 hover:bg-white/5'
                   }`}
                 >
                   Enterprise
                 </button>
                 <button
                   onClick={() => setSettingsType('events')}
-                  className={`py-2 px-3 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
+                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
                     settingsType === 'events'
                       ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
-                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10'
+                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10 hover:bg-white/5'
                   }`}
                 >
                   Events
                 </button>
                 <button
                   onClick={() => setSettingsType('advertiser')}
-                  className={`py-2 px-3 rounded-lg text-base font-medium transition-all whitespace-nowrap border ${
+                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
                     settingsType === 'advertiser'
                       ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
-                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10'
+                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10 hover:bg-white/5'
                   }`}
                 >
                   Advertiser
@@ -170,14 +140,14 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
             
             {/* Helper text for Enterprise */}
             {settingsType === 'enterprise' && (
-              <p className="text-xs text-gray-400 mt-2 text-center">
+              <p className="text-xs text-gray-400 mt-2 ml-1">
                 Manage your organizations, teams, and pro features here
               </p>
             )}
           </div>
 
           {/* Render appropriate settings based on toggle */}
-          <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {settingsType === 'consumer' ? (
               <div className="flex-1 min-h-0">
                 <ConsumerSettings currentUserId={currentUser.id} initialSection={initialConsumerSection} onClose={onClose} />
@@ -195,18 +165,23 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
               </div>
             ) : settingsType === 'advertiser' ? (
               <div className="flex-1 min-h-0">
-                {/* Redirect to advertiser dashboard */}
-                {(() => {
-                  navigate('/advertiser');
-                  onClose();
-                  return null;
-                })()}
+                <div className="flex items-center justify-center h-full">
+                  <button 
+                    onClick={() => {
+                      navigate('/advertiser');
+                      onClose();
+                    }}
+                    className="px-6 py-3 bg-primary text-black font-bold rounded-xl"
+                  >
+                    Go to Advertiser Dashboard
+                  </button>
+                </div>
               </div>
             ) : null}
 
-            {/* Sign Out Button - Only show for consumer and advertiser settings */}
-            {(settingsType === 'consumer' || settingsType === 'advertiser') && (
-              <div className="flex-shrink-0 p-4 bg-white/5 border-t border-white/20">
+            {/* Sign Out Button - Only show for consumer settings (and advertiser if we didn't redirect) */}
+            {settingsType === 'consumer' && (
+              <div className="flex-shrink-0 p-4 bg-black/20 border-t border-white/10 md:hidden">
                 <button
                   onClick={signOut}
                   className="w-full flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-medium py-2.5 rounded-xl transition-colors"
