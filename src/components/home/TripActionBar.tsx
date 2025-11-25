@@ -7,6 +7,12 @@ import { mockNotifications } from '@/mockData/notifications';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Notification {
   id: string;
@@ -151,7 +157,7 @@ export const TripActionBar = ({
   };
 
   const getNotificationIcon = (type: string, isHighPriority?: boolean) => {
-    const iconClass = isHighPriority ? 'text-red-400' : 'text-gray-400';
+    const iconClass = isHighPriority ? 'text-destructive' : 'text-muted-foreground';
     
     switch (type) {
       case 'message':
@@ -244,104 +250,100 @@ export const TripActionBar = ({
                 : "text-white hover:text-foreground"
             )}
           >
-            <Settings size={18} className="flex-shrink-0" />
-            <span className="hidden md:inline text-xs lg:text-sm font-medium">Settings</span>
+            <Settings size={18} className="flex-shrink-0 md:hidden" />
+            <span className="hidden md:inline">Settings</span>
           </button>
 
           {/* Notifications with Badge */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setIsNotificationsOpen?.(!isNotificationsOpen);
-                _onNotifications();
-              }}
-              aria-label="Notifications"
-              className={cn(
-                "relative h-full w-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap",
-                isNotificationsActive
-                  ? "bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] text-black shadow-lg shadow-primary/30"
-                  : "text-white hover:text-foreground"
-              )}
-            >
-              <Bell size={18} className="flex-shrink-0" />
-              <span className="hidden md:inline text-xs lg:text-sm font-medium">Notifications</span>
-              {unreadCount > 0 && (
-                <div className="absolute top-0.5 right-0.5 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
-                  {unreadCount > 9 ? '9+' : unreadCount}
+          <button
+            onClick={() => {
+              setIsNotificationsOpen?.(!isNotificationsOpen);
+              _onNotifications();
+            }}
+            aria-label="Notifications"
+            className={cn(
+              "relative h-full w-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap",
+              isNotificationsActive
+                ? "bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] text-black shadow-lg shadow-primary/30"
+                : "text-white hover:text-foreground"
+            )}
+          >
+            <Bell size={18} className="flex-shrink-0 md:hidden" />
+            <span className="hidden md:inline">Notifications</span>
+            {unreadCount > 0 && (
+              <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </div>
+            )}
+          </button>
+
+          {/* Notifications Modal */}
+          <Dialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+            <DialogContent className="sm:max-w-[500px] max-h-[80vh] bg-card/95 backdrop-blur-xl border-2 border-border/50 text-foreground p-0">
+              <DialogHeader className="p-4 border-b border-border/50">
+                <div className="flex items-center justify-between">
+                  <DialogTitle className="text-lg font-semibold">Notifications</DialogTitle>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllAsRead}
+                      className="text-sm text-primary hover:text-primary/80 transition-colors font-medium"
+                    >
+                      Mark all read
+                    </button>
+                  )}
                 </div>
-              )}
-            </button>
+              </DialogHeader>
 
-            {isNotificationsOpen && (
-              <>
-                <div className="fixed inset-0 z-[9998]" onClick={() => setIsNotificationsOpen?.(false)} />
-                
-                <div className="fixed right-8 top-[110px] w-96 bg-card/95 backdrop-blur-xl border-2 border-border/50 rounded-2xl shadow-2xl z-[9999] max-h-96 overflow-hidden">
-                  <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-white">Notifications</h3>
-                    <div className="flex items-center gap-2">
-                      {unreadCount > 0 && (
-                        <button
-                          onClick={markAllAsRead}
-                          className="text-sm text-glass-orange hover:text-glass-yellow transition-colors"
-                        >
-                          Mark all read
-                        </button>
-                      )}
-                      <button onClick={() => setIsNotificationsOpen?.(false)} className="text-gray-400 hover:text-white transition-colors">
-                        <X size={16} />
-                      </button>
-                    </div>
+              <div className="max-h-[calc(80vh-8rem)] overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <Bell size={32} className="mx-auto mb-2 opacity-50" />
+                    <p>No notifications yet</p>
                   </div>
-
-                  <div className="max-h-80 overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <div className="p-6 text-center text-gray-400">
-                        <Bell size={32} className="mx-auto mb-2 opacity-50" />
-                        <p>No notifications yet</p>
-                      </div>
-                    ) : (
-                      notifications.map((notification) => (
-                        <div
-                          key={notification.id}
-                          onClick={() => handleNotificationClick(notification)}
-                          className={`p-4 border-b border-gray-700/50 hover:bg-gray-800/50 cursor-pointer transition-colors ${
-                            !notification.isRead ? 'bg-gray-800/30' : ''
-                          }`}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="mt-1">
-                              {getNotificationIcon(notification.type, notification.isHighPriority)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <p className={`text-sm font-medium ${!notification.isRead ? 'text-white' : 'text-gray-300'}`}>
-                                  {notification.title}
-                                </p>
-                                {notification.isHighPriority && (
-                                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                )}
-                                {!notification.isRead && (
-                                  <div className="w-2 h-2 bg-glass-orange rounded-full"></div>
-                                )}
-                              </div>
-                              <p className="text-xs text-gray-400 mb-1 truncate">
-                                {notification.description}
-                              </p>
-                              <div className="flex items-center justify-between">
-                                <p className="text-xs text-gray-500">{notification.tripName}</p>
-                                <p className="text-xs text-gray-500">{notification.timestamp}</p>
-                              </div>
-                            </div>
+                ) : (
+                  notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      onClick={() => handleNotificationClick(notification)}
+                      className={cn(
+                        "p-4 border-b border-border/50 hover:bg-accent/10 cursor-pointer transition-colors",
+                        !notification.isRead && "bg-accent/5"
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1">
+                          {getNotificationIcon(notification.type, notification.isHighPriority)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className={cn(
+                              "text-sm font-medium",
+                              !notification.isRead ? "text-foreground" : "text-muted-foreground"
+                            )}>
+                              {notification.title}
+                            </p>
+                            {notification.isHighPriority && (
+                              <div className="w-2 h-2 bg-destructive rounded-full"></div>
+                            )}
+                            {!notification.isRead && (
+                              <div className="w-2 h-2 bg-primary rounded-full"></div>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-1 truncate">
+                            {notification.description}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-muted-foreground/70">{notification.tripName}</p>
+                            <p className="text-xs text-muted-foreground/70">{notification.timestamp}</p>
                           </div>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* New Trip */}
           <button
@@ -354,8 +356,8 @@ export const TripActionBar = ({
                 : "text-white hover:text-foreground"
             )}
           >
-            <Plus size={18} className="flex-shrink-0" />
-            <span className="hidden md:inline text-xs lg:text-sm font-medium">New Trip</span>
+            <Plus size={18} className="flex-shrink-0 md:hidden" />
+            <span className="hidden md:inline">New Trip</span>
           </button>
 
           {/* Search - Fixed Height & Padding */}
