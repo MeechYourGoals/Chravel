@@ -89,7 +89,10 @@ export async function processQueue(): Promise<{ success: number; failed: number 
       // Attempt to send
       const { data, error } = await supabase
         .from('trip_chat_messages')
-        .insert(queued.message)
+        .insert({
+          ...queued.message,
+          privacy_mode: queued.message.privacy_mode || 'standard',
+        })
         .select()
         .single();
 

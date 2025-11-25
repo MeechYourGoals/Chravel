@@ -91,6 +91,7 @@ export function useShareAsset(tripId: string) {
           user_id: userId,
           author_name: user?.email?.split('@')[0] || 'Unknown User',
           content: '', // Empty content for pure media upload
+          privacy_mode: 'standard',
           media_type: kind,
           media_url: publicUrl,
           attachments: [{
@@ -145,6 +146,7 @@ export function useShareAsset(tripId: string) {
           user_id: userId,
           author_name: user?.email?.split('@')[0] || 'Unknown User',
           content: file.name,
+          privacy_mode: 'standard',
           attachments: [{
             type: 'file',
             ref_id: row.id,
@@ -236,6 +238,7 @@ export function useShareAsset(tripId: string) {
         user_id: userId,
         author_name: user?.email?.split('@')[0] || 'Unknown User',
         content: url,
+        privacy_mode: 'standard',
         link_preview: {
           url,
           title: ogData.title,

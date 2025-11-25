@@ -141,8 +141,8 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
   };
 
   const baseMaxHeight = orientation === 'portrait'
-    ? (isKeyboardVisible ? 'calc(100dvh - 240px)' : 'calc(100dvh - 220px)')
-    : (isKeyboardVisible ? 'calc(100dvh - 180px)' : 'calc(100dvh - 160px)');
+    ? (isKeyboardVisible ? 'calc(100dvh - 280px)' : 'calc(100dvh - 240px)')
+    : (isKeyboardVisible ? 'calc(100dvh - 200px)' : 'calc(100dvh - 180px)');
 
   const filteredMessages = filterMessages(messages);
 

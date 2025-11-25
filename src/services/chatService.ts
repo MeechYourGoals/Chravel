@@ -22,6 +22,7 @@ export async function sendChatMessage(msg: ChatMessageInsert) {
         .from('trip_chat_messages')
         .insert({
           ...msg,
+          privacy_mode: msg.privacy_mode || 'standard',
           attachments: msg.attachments as any,
         })
         .select()
