@@ -157,13 +157,13 @@ export const apiQuotaMonitor = new ApiQuotaMonitor();
 /**
  * Retry utility with exponential backoff
  * @param operation - The async operation to retry
- * @param maxRetries - Maximum number of retries (default: 3)
- * @param baseDelay - Base delay in milliseconds (default: 1000)
+ * @param maxRetries - Maximum number of retries (default: 2, reduced for faster feedback)
+ * @param baseDelay - Base delay in milliseconds (default: 500, reduced for speed)
  */
 export async function retryWithBackoff<T>(
   operation: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelay: number = 1000
+  maxRetries: number = 2,
+  baseDelay: number = 500
 ): Promise<T> {
   let lastError: Error;
   
@@ -197,7 +197,7 @@ export async function retryWithBackoff<T>(
  */
 export async function withTimeout<T>(
   promise: Promise<T>,
-  timeoutMs: number = 10000,
+  timeoutMs: number = 5000,
   errorMsg: string = 'API request timed out'
 ): Promise<T> {
   return Promise.race([
