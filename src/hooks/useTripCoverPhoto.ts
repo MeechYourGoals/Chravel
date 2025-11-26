@@ -22,6 +22,13 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
   }, [isDemoMode, tripId]);
 
   const updateCoverPhoto = async (photoUrl: string): Promise<boolean> => {
+    // Reject blob URLs from being saved to database (except in demo mode)
+    if (photoUrl.startsWith('blob:') && !isDemoMode) {
+      console.warn('[useTripCoverPhoto] Rejecting blob URL - not persistable');
+      toast.error('Upload in progress, please wait...');
+      return false;
+    }
+
     // Demo mode: update session storage
     if (isDemoMode) {
       setCoverPhoto(photoUrl);
