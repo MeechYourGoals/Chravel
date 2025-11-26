@@ -98,20 +98,61 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
     }
 
     setIsSending(true);
+    const userName = user.email?.split('@')[0] || 'Unknown User';
+    
+    // Create optimistic message
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticMessage: Message = {
+      id: optimisticId,
+      trip_id: tripId,
+      content,
+      author_name: userName,
+      user_id: user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      privacy_mode: privacyMode || 'standard',
+      is_deleted: false,
+      is_edited: false,
+      attachments: [],
+      media_type: null,
+      media_url: null,
+      reply_to_id: undefined,
+      thread_id: undefined,
+      link_preview: null,
+      privacy_encrypted: false,
+      edited_at: undefined,
+      deleted_at: undefined
+    };
+    
+    // Add to UI immediately
+    setMessages(prev => [...prev, optimisticMessage]);
+    
     try {
-      const userName = user.email?.split('@')[0] || 'Unknown User';
       const message = await unifiedMessagingService.sendMessage({
         content,
         tripId,
         userName,
         userId: user.id,
-        privacyMode: privacyMode || 'normal'
+        privacyMode: privacyMode || 'standard'
       });
+      
+      // Replace optimistic with server response
+      setMessages(prev => 
+        prev.map(m => m.id === optimisticId ? message : m)
+      );
       
       // Update cache with new message
       await saveMessagesToCache(tripId, [message as any]);
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error('Failed to send message:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        tripId,
+        userId: user.id
+      });
+      
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(m => m.id !== optimisticId));
+      
       toast({
         title: 'Send Failed',
         description: 'Failed to send message',
