@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, MapPin } from 'lucide-react';
+import { Sparkles, MapPin, Bell, FileText } from 'lucide-react';
 
 export const AiFeaturesSection = () => {
   const aiFeatures = [
@@ -14,6 +14,18 @@ export const AiFeaturesSection = () => {
       title: 'Smart Basecamp',
       description: 'Get location-aware recommendations within perfect travel distance from your home base. AI understands where you\'re staying and suggests venues, activities, and restaurants in your ideal radius.',
       badge: 'Location-Aware'
+    },
+    {
+      icon: <Bell className="text-accent" size={32} />,
+      title: 'Smart Notifications',
+      description: 'Context-aware alerts for flight changes, reservation reminders, and group updates — never miss what matters, without notification overload.',
+      badge: 'Context-Aware'
+    },
+    {
+      icon: <FileText className="text-primary" size={32} />,
+      title: 'AI Trip Summaries',
+      description: 'Get daily or weekly digests of what\'s happening with your group — upcoming events, pending payments, and recent photos, all in one smart briefing.',
+      badge: 'Automated'
     }
   ];
 
@@ -29,7 +41,7 @@ export const AiFeaturesSection = () => {
         </p>
       </div>
 
-      {/* AI Features */}
+      {/* AI Features - 2x2 Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 max-w-6xl w-full">
         {aiFeatures.map((feature, index) => (
           <div
@@ -57,7 +69,7 @@ export const AiFeaturesSection = () => {
       </div>
 
       {/* Bottom Text */}
-      <p className="text-lg text-muted-foreground max-w-2xl text-center">
+      <p className="text-xl text-white font-medium max-w-2xl text-center">
         Powered by advanced AI models with access to verified venue data, weather forecasts, and travel intelligence
       </p>
     </div>

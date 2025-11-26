@@ -75,7 +75,7 @@ export const UseCasesSection = () => {
             <div className="flex items-center gap-3 mb-4">
               <span className="text-3xl sm:text-4xl flex-shrink-0">{scenario.emoji}</span>
               <div className="min-w-0">
-                <h3 className="font-bold text-base sm:text-lg md:text-xl leading-tight break-words">{scenario.title}</h3>
+                <h3 className="font-bold text-xl md:text-2xl leading-tight break-words">{scenario.title}</h3>
                 <p className="text-xs sm:text-sm text-muted-foreground break-words">{scenario.subtitle}</p>
               </div>
             </div>
@@ -83,13 +83,13 @@ export const UseCasesSection = () => {
             {/* Before/After */}
             <div className="space-y-3 sm:space-y-4">
               <div>
-                <div className="text-xs font-semibold text-red-400 mb-1">BEFORE CHRAVEL</div>
-                <p className="text-xs sm:text-sm text-foreground leading-relaxed break-words">{scenario.before}</p>
+                <div className="text-xs sm:text-sm font-bold text-red-400 mb-1 uppercase">BEFORE CHRAVEL</div>
+                <p className="text-sm sm:text-base md:text-lg text-foreground leading-relaxed break-words">{scenario.before}</p>
               </div>
               
               <div>
-                <div className="text-xs font-semibold text-green-400 mb-1">WITH CHRAVEL</div>
-                <p className="text-xs sm:text-sm text-foreground leading-relaxed break-words">{scenario.after}</p>
+                <div className="text-xs sm:text-sm font-bold text-green-400 mb-1 uppercase">WITH CHRAVEL</div>
+                <p className="text-sm sm:text-base md:text-lg text-foreground leading-relaxed break-words">{scenario.after}</p>
               </div>
 
               {/* Savings Badge */}

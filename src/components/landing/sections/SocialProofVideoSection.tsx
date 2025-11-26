@@ -43,20 +43,20 @@ export const SocialProofVideoSection = () => {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5 md:gap-4 max-w-6xl w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5 md:gap-6 max-w-6xl w-full">
         {metrics.map((metric, index) => (
           <Card key={index} className="bg-card/50 backdrop-blur-sm border border-border/50 hover:border-primary/50 transition-all duration-300 max-w-md mx-auto sm:max-w-none">
-            <CardContent className="p-4 sm:p-5 md:p-6 text-center space-y-2 sm:space-y-3">
+            <CardContent className="p-6 md:p-8 text-center space-y-3">
               <div className="flex items-center justify-center text-primary">
-                {metric.icon}
+                {React.cloneElement(metric.icon as React.ReactElement, { size: 28 })}
               </div>
-              <div className="text-lg sm:text-xl md:text-2xl font-bold text-foreground leading-tight">
+              <div className="text-3xl md:text-4xl font-bold text-foreground leading-tight">
                 {metric.value}
               </div>
-              <div className="text-sm sm:text-base text-foreground leading-tight break-words">
+              <div className="text-base md:text-lg text-foreground leading-tight break-words">
                 {metric.label}
               </div>
-              <div className="text-xs sm:text-sm text-accent leading-normal break-words line-clamp-2 sm:line-clamp-3">
+              <div className="text-sm text-accent leading-normal break-words">
                 {metric.trend}
               </div>
             </CardContent>
@@ -65,7 +65,7 @@ export const SocialProofVideoSection = () => {
       </div>
 
       {/* Bottom CTA */}
-      <p className="text-lg text-muted-foreground max-w-2xl text-center">
+      <p className="text-xl text-white font-semibold max-w-2xl text-center">
         Join families, event planners, sports teams, touring artists, and corporate groups who've eliminated coordination chaos.
       </p>
     </div>

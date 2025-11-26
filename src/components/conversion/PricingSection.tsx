@@ -77,7 +77,7 @@ const consumerTiers: PricingTier[] = [
       'AI Trip Assistant (5 queries per user per trip)',
       'Save up to 3 active trips'
     ],
-    cta: 'Get Started Free',
+    cta: 'Start Free →',
     category: 'consumer',
     limitation: 'To create a new trip after 3, you\'ll need to delete an old one'
   },
@@ -98,7 +98,7 @@ const consumerTiers: PricingTier[] = [
       'Priority support - we\'ve got your back',
       'Custom trip categories - tag trips by type'
     ],
-    cta: 'Start Free Trial',
+    cta: 'Start Free →',
     popular: true,
     category: 'consumer',
     badge: 'Most Popular',
@@ -123,7 +123,7 @@ const consumerTiers: PricingTier[] = [
       'Early feature access - shape the future of Chravel',
       'Multi-stop route optimization'
     ],
-    cta: 'Start Free Trial',
+    cta: 'Start Free →',
     category: 'consumer',
     savings: 'Save $40/year'
   }
@@ -209,7 +209,7 @@ const eventsTiers: PricingTier[] = [
       '"Made with Chravel" footer',
       'Email support'
     ],
-    cta: 'Start Free',
+    cta: 'Start Free →',
     category: 'events'
   },
   {

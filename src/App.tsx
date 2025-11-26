@@ -56,6 +56,7 @@ const MobileEnterpriseHub = lazy(() => retryImport(() => import("./pages/MobileE
 const MobileOrganizationPage = lazy(() => retryImport(() => import("./pages/MobileOrganizationPage").then(module => ({ default: module.MobileOrganizationPage }))));
 const AcceptOrganizationInvite = lazy(() => retryImport(() => import("./pages/AcceptOrganizationInvite").then(module => ({ default: module.AcceptOrganizationInvite }))));
 const ChravelRecsPage = lazy(() => retryImport(() => import("./pages/ChravelRecsPage").then(module => ({ default: module.ChravelRecsPage }))));
+const ForTeams = lazy(() => retryImport(() => import("./pages/ForTeams").then(module => ({ default: module.ForTeams }))));
 const AdvertiserDashboard = lazy(() => retryImport(() => import("./pages/AdvertiserDashboard")));
 const Healthz = lazy(() => retryImport(() => import("./pages/Healthz")));
 
@@ -222,6 +223,11 @@ const App = () => {
                     <Route path="/event/:eventId" element={
                       <LazyRoute>
                         <EventDetail />
+                      </LazyRoute>
+                    } />
+                    <Route path="/teams" element={
+                      <LazyRoute>
+                        <ForTeams />
                       </LazyRoute>
                     } />
                     <Route path="/recs" element={
