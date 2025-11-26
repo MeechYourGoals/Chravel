@@ -3,6 +3,7 @@ import { MapPin, Home, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { BasecampLocation } from '../types/basecamp';
 import { toast } from 'sonner';
+import { resolveQuery, generateSessionToken } from '@/services/googlePlacesNew';
 
 interface BasecampSelectorProps {
   isOpen: boolean;
@@ -28,14 +29,56 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
     setIsLoading(true);
     
     try {
+      // Try to geocode the address to get coordinates
+      const sessionToken = generateSessionToken();
+      let coordinates: { lat: number; lng: number } | undefined;
+      let formattedAddress = address.trim();
+      let resolvedName = name.trim() || undefined;
+      
+      try {
+        const geocoded = await resolveQuery(address.trim(), null, sessionToken);
+        
+        if (geocoded?.geometry?.location) {
+          const loc = geocoded.geometry.location;
+          // Handle both function and direct property access for lat/lng
+          const latValue = typeof loc.lat === 'function' ? loc.lat() : loc.lat;
+          const lngValue = typeof loc.lng === 'function' ? loc.lng() : loc.lng;
+          
+          if (typeof latValue === 'number' && typeof lngValue === 'number') {
+            coordinates = { lat: latValue, lng: lngValue };
+          }
+          
+          // Use formatted address from Google if available
+          if (geocoded.formatted_address) {
+            formattedAddress = geocoded.formatted_address;
+          }
+          
+          // Use place name if no custom name provided
+          if (!resolvedName && geocoded.name) {
+            resolvedName = geocoded.name;
+          }
+        }
+      } catch (geocodeError) {
+        // Geocoding failed - that's okay, we'll save without coordinates
+        console.warn('[BasecampSelector] Geocoding failed, saving address as-is:', geocodeError);
+      }
+      
       const basecamp: BasecampLocation = {
-        address: address.trim(),
-        name: name.trim() || undefined,
+        address: formattedAddress,
+        name: resolvedName,
         type,
-        coordinates: undefined
+        coordinates,
       };
       
       await Promise.resolve(onBasecampSet(basecamp));
+      
+      // Show appropriate success message
+      if (coordinates) {
+        toast.success('Basecamp saved with map location! 📍');
+      } else {
+        toast.info('Basecamp saved! (Location not mappable, but saved as reference)');
+      }
+      
       onClose();
     } catch (error) {
       toast.error('Failed to set basecamp. Please try again.');

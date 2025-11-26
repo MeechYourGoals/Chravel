@@ -18,6 +18,7 @@ import { useDebouncedCallback } from '@/hooks/useDebounce';
 import { useMapState } from '@/hooks/map/useMapState';
 import { useMapSearch } from '@/hooks/map/useMapSearch';
 import { useMapRouting } from '@/hooks/map/useMapRouting';
+import { toast } from 'sonner';
 
 export interface MapMarker {
   id: string;
@@ -264,6 +265,9 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       // Emergency timeout: if map doesn't load in 8 seconds, force iframe fallback
       loadingTimeoutRef.current = setTimeout(() => {
         if (mounted && isMapLoading) {
+          toast.warning('Using simplified map view. Interactive search requires API access.', {
+            duration: 5000
+          });
           setForceIframeFallback(true);
           setUseFallbackEmbed(true);
           setIsMapLoading(false);

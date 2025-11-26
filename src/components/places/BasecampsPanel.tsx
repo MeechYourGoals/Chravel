@@ -154,28 +154,26 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           <div className="p-3 flex flex-col flex-1 justify-center">
             {tripBasecamp ? (
               <>
-                <div className="flex items-center justify-between mb-2">
+                <div className="relative flex items-center justify-center mb-2">
                   <div className="flex items-center gap-2">
                     <MapPin size={18} className="text-sky-400 md:w-5 md:h-5" />
                     <h3 className="text-white font-semibold text-base md:text-lg">Trip Base Camp</h3>
                   </div>
                   <button
                     onClick={() => setShowTripSelector(true)}
-                    className="bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 px-2 py-1 md:px-3 md:py-1.5 rounded-lg transition-colors text-xs md:text-sm border border-sky-500/30"
+                    className="absolute right-0 bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 px-2 py-1 md:px-3 md:py-1.5 rounded-lg transition-colors text-xs md:text-sm border border-sky-500/30"
                   >
                     Edit
                   </button>
                 </div>
 
-                <div className="bg-gray-800/50 rounded-xl p-3 md:p-4 border border-gray-700 flex-1 flex items-center">
-                  <div className="flex items-start gap-2 md:gap-3">
-                    <MapPin size={16} className="text-sky-400 mt-0.5 flex-shrink-0 md:w-5 md:h-5" />
-                    <div className="flex-1 min-w-0">
-                      {tripBasecamp.name && (
-                        <p className="text-white font-semibold text-sm md:text-base mb-0.5 md:mb-1">{tripBasecamp.name}</p>
-                      )}
-                      <p className="text-gray-300 text-sm md:text-base break-words font-medium">{tripBasecamp.address}</p>
-                    </div>
+                <div className="bg-gray-800/50 rounded-xl p-3 md:p-4 border border-gray-700 flex-1 flex items-center justify-center">
+                  <div className="flex flex-col items-center text-center gap-1">
+                    <MapPin size={16} className="text-sky-400 md:w-5 md:h-5" />
+                    {tripBasecamp.name && (
+                      <p className="text-white font-semibold text-sm md:text-base">{tripBasecamp.name}</p>
+                    )}
+                    <p className="text-gray-300 text-sm md:text-base break-words font-medium">{tripBasecamp.address}</p>
                   </div>
                 </div>
               </>
@@ -210,7 +208,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
               </div>
             ) : personalBasecamp ? (
               <>
-                <div className="flex items-center justify-between mb-2">
+                <div className="relative flex items-center justify-center mb-2">
                   <div className="flex items-center gap-2">
                     <User size={18} className="text-emerald-400 md:w-5 md:h-5" />
                     <h3 className="text-white font-semibold text-base md:text-lg">Personal Base Camp</h3>
@@ -221,21 +219,19 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   </div>
                   <button
                     onClick={() => setShowPersonalSelector(true)}
-                    className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-2 py-1 md:px-3 md:py-1.5 rounded-lg transition-colors text-xs md:text-sm border border-emerald-500/30"
+                    className="absolute right-0 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-2 py-1 md:px-3 md:py-1.5 rounded-lg transition-colors text-xs md:text-sm border border-emerald-500/30"
                   >
                     Edit
                   </button>
                 </div>
 
-                <div className="bg-gray-800/50 rounded-xl p-3 md:p-4 border border-gray-700 flex-1 flex items-center">
-                  <div className="flex items-start gap-2 md:gap-3">
-                    <MapPin size={16} className="text-emerald-400 mt-0.5 flex-shrink-0 md:w-5 md:h-5" />
-                    <div className="flex-1 min-w-0">
-                      {personalBasecamp.name && (
-                        <p className="text-white font-semibold text-sm md:text-base mb-0.5 md:mb-1">{personalBasecamp.name}</p>
-                      )}
-                      <p className="text-gray-300 text-sm md:text-base break-words font-medium">{personalBasecamp.address}</p>
-                    </div>
+                <div className="bg-gray-800/50 rounded-xl p-3 md:p-4 border border-gray-700 flex-1 flex items-center justify-center">
+                  <div className="flex flex-col items-center text-center gap-1">
+                    <MapPin size={16} className="text-emerald-400 md:w-5 md:h-5" />
+                    {personalBasecamp.name && (
+                      <p className="text-white font-semibold text-sm md:text-base">{personalBasecamp.name}</p>
+                    )}
+                    <p className="text-gray-300 text-sm md:text-base break-words font-medium">{personalBasecamp.address}</p>
                   </div>
                 </div>
               </>
