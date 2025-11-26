@@ -19,6 +19,7 @@ export interface MessageBubbleProps {
   isBroadcast?: boolean;
   isPayment?: boolean;
   isOwnMessage?: boolean;
+  isEdited?: boolean;
   reactions?: Record<string, { count: number; userReacted: boolean }>;
   onReaction: (messageId: string, reactionType: string) => void;
   showSenderInfo?: boolean;
@@ -42,6 +43,7 @@ export const MessageBubble = memo(({
   isBroadcast,
   isPayment,
   isOwnMessage = false,
+  isEdited = false,
   reactions,
   onReaction,
   messageType = 'trip',
@@ -92,6 +94,7 @@ export const MessageBubble = memo(({
           {showSenderInfo && (
             <span className="text-[10px] md:text-xs text-white/70 mb-0.5">
               {isOwnMessage ? 'You' : senderName} — {formatTime(timestamp)}
+              {isEdited && <span className="ml-1 text-white/50">(edited)</span>}
             </span>
           )}
           <MessageActions
@@ -111,8 +114,8 @@ export const MessageBubble = memo(({
             isOwnMessage
               ? 'bg-primary text-primary-foreground'
               : 'bg-muted/80 text-white',
-            isBroadcast && !isOwnMessage && 'border-2 border-red-500/50',
-            isPayment && !isOwnMessage && 'border-2 border-green-500/50',
+            isBroadcast && 'border-2 border-red-500/50 bg-gray-800',
+            isPayment && 'border-2 border-green-500/50',
           )}
         >
           {text}

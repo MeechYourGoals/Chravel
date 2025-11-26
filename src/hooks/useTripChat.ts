@@ -24,6 +24,9 @@ interface TripChatMessage {
   link_preview?: any;
   privacy_mode?: string;
   privacy_encrypted?: boolean;
+  message_type?: string;
+  is_edited?: boolean;
+  edited_at?: string;
 }
 
 interface CreateMessageRequest {
@@ -33,6 +36,7 @@ interface CreateMessageRequest {
   media_url?: string;
   userId?: string;
   privacyMode?: string;
+  messageType?: 'text' | 'broadcast' | 'payment' | 'system';
 }
 
 export const useTripChat = (tripId: string) => {
@@ -138,6 +142,25 @@ export const useTripChat = (tripId: string) => {
           });
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'trip_chat_messages',
+          filter: `trip_id=eq.${tripId}`
+        },
+        (payload) => {
+          // Handle message edits in real-time
+          queryClient.setQueryData(['tripChat', tripId], (old: TripChatMessage[] = []) => {
+            return old.map(msg => 
+              msg.id === payload.new.id 
+                ? { ...msg, ...payload.new as TripChatMessage }
+                : msg
+            );
+          });
+        }
+      )
       .subscribe();
 
     return () => {
@@ -199,6 +222,7 @@ export const useTripChat = (tripId: string) => {
         author_name: InputValidator.sanitizeText(message.author_name),
         user_id: message.userId,
         privacy_mode: message.privacyMode || 'standard',
+        message_type: message.messageType || 'text',
         media_type: message.media_type,
         media_url: message.media_url
       };
@@ -253,25 +277,27 @@ export const useTripChat = (tripId: string) => {
     }
   });
 
-  const sendMessage = (content: string, authorName: string, mediaType?: string, mediaUrl?: string, userId?: string, privacyMode?: string) => {
+  const sendMessage = (content: string, authorName: string, mediaType?: string, mediaUrl?: string, userId?: string, privacyMode?: string, messageType?: 'text' | 'broadcast' | 'payment' | 'system') => {
     createMessageMutation.mutate({
       content,
       author_name: authorName,
       media_type: mediaType,
       media_url: mediaUrl,
       userId,
-      privacyMode
+      privacyMode,
+      messageType
     });
   };
 
-  const sendMessageAsync = (content: string, authorName: string, mediaType?: string, mediaUrl?: string, userId?: string, privacyMode?: string) => {
+  const sendMessageAsync = (content: string, authorName: string, mediaType?: string, mediaUrl?: string, userId?: string, privacyMode?: string, messageType?: 'text' | 'broadcast' | 'payment' | 'system') => {
     return createMessageMutation.mutateAsync({
       content,
       author_name: authorName,
       media_type: mediaType,
       media_url: mediaUrl,
       userId,
-      privacyMode
+      privacyMode,
+      messageType
     });
   };
 
