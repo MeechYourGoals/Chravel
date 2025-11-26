@@ -39,7 +39,7 @@ export const SearchOverlay = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div 
@@ -63,28 +63,50 @@ export const SearchOverlay = ({
             <Input
               ref={inputRef}
               type="text"
-              placeholder="Search across all your trips..."
+              placeholder="Search trips by name, location, tags..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-12 pr-4 py-6 text-lg bg-background/50 border-border/50 rounded-full"
+              className="pl-12 pr-12 py-6 text-lg bg-background/50 border-border/50 rounded-full"
             />
+            {searchQuery && (
+              <button
+                onClick={() => onSearchChange('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted/50 transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4 text-muted-foreground" />
+              </button>
+            )}
           </div>
 
           {/* Result Count */}
           {searchQuery && (
-            <div className="text-sm text-muted-foreground text-center">
+            <div className="text-sm text-center space-y-2">
               {resultCount > 0 ? (
-                <span>Found {resultCount} trip{resultCount !== 1 ? 's' : ''} matching "{searchQuery}"</span>
+                <>
+                  <div className="text-foreground font-medium">
+                    Found {resultCount} trip{resultCount !== 1 ? 's' : ''} matching "{searchQuery}"
+                  </div>
+                  <button
+                    onClick={onClose}
+                    className="text-primary hover:text-primary/80 transition-colors text-xs underline"
+                  >
+                    Press ESC or click here to view results
+                  </button>
+                </>
               ) : (
-                <span>No trips found for "{searchQuery}" - try different search terms</span>
+                <span className="text-muted-foreground">
+                  No trips found for "{searchQuery}" - try different search terms
+                </span>
               )}
             </div>
           )}
 
           {/* Helper Text */}
           {!searchQuery && (
-            <div className="text-sm text-muted-foreground text-center">
-              Search by trip name, location, or description
+            <div className="text-sm text-muted-foreground text-center space-y-1">
+              <div>Search by trip name, location, or description</div>
+              <div className="text-xs">Results update instantly as you type</div>
             </div>
           )}
         </div>

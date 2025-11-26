@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { useSavedRecommendations } from '@/hooks/useSavedRecommendations';
 
 interface Trip {
-  id: number;
+  id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
   title: string;
   location: string;
   dateRange: string;
