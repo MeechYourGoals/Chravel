@@ -77,10 +77,10 @@ export const MessageBubble = memo(({
         <img
           src={senderAvatar || getMockAvatar(senderName)}
           alt={senderName}
-          className="w-8 h-8 rounded-full object-cover border-2 border-border/50 flex-shrink-0"
+          className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-2 border-border/50 flex-shrink-0"
         />
       )}
-      {!isOwnMessage && !showSenderInfo && <div className="w-8 flex-shrink-0" />}
+      {!isOwnMessage && !showSenderInfo && <div className="w-8 md:w-10 flex-shrink-0" />}
 
       <div
         className={cn(
@@ -90,7 +90,7 @@ export const MessageBubble = memo(({
       >
         <div className="flex items-center gap-2">
           {showSenderInfo && (
-            <span className="text-[10px] text-white/70 mb-0.5">
+            <span className="text-[10px] md:text-xs text-white/70 mb-0.5">
               {isOwnMessage ? 'You' : senderName} — {formatTime(timestamp)}
             </span>
           )}
@@ -106,7 +106,8 @@ export const MessageBubble = memo(({
         </div>
         <div
           className={cn(
-            'px-2.5 py-1.5 rounded-2xl break-words text-sm',
+            'px-3 py-2 md:px-4 md:py-2.5 rounded-2xl break-words',
+            'text-sm md:text-base',
             isOwnMessage
               ? 'bg-primary text-primary-foreground'
               : 'bg-muted/80 text-white',
