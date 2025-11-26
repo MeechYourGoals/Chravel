@@ -23,15 +23,18 @@ export const ReplacesGrid = () => {
       {/* Header */}
       <div className="text-center mb-6 sm:mb-8 md:mb-12">
         <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-3 md:mb-4 break-words">
-          The Operating System for Group Travel
+          The Operating System for Group Trips & Events
         </h2>
         <p className="text-sm sm:text-base md:text-lg lg:text-xl text-foreground max-w-3xl mx-auto leading-relaxed break-words">
-          Bring your most-used travel apps into one shared planning space. It keeps every plan, person, and payment in sync. Less changing apps. Less chaos. More Chravel.
+          Bring your most-used travel and event tools into one shared planning space. Chravel keeps every plan, person, and payment in sync — less app-switching, less chaos.
         </p>
         <p className="text-white font-medium text-sm sm:text-base md:text-lg mt-4 md:mt-6 text-center max-w-3xl mx-auto">
-          Travel 365 for When You're Out of Office 365: Chravel simplifies the workflows typically juggled across 15+ apps.
+          Use it for: family trips, youth sports, wedding weekends, group retreats, tours, and corporate events.
         </p>
         <p className="text-white/90 font-semibold text-base sm:text-lg md:text-xl mt-6 md:mt-8 text-center max-w-4xl mx-auto">
+          Your group's 365 — for when you're out of office or just out of the group chat.
+        </p>
+        <p className="text-white/90 font-medium text-sm sm:text-base md:text-lg mt-4 text-center max-w-4xl mx-auto">
           Spend less time switching between the apps below — Chravel brings your files, photos, docs, and more into Tabs instead of separate Apps.
         </p>
       </div>

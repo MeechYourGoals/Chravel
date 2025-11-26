@@ -1,22 +1,22 @@
 import React from 'react';
-import { Users, MessageSquare, Calendar } from 'lucide-react';
+import { Search, Clock, MessageCircle } from 'lucide-react';
 
 export const ProblemSolutionSection = () => {
   const features = [
     {
-      icon: <Users className="text-primary" size={28} />,
-      title: 'Collaborate in Real-Time',
-      description: 'Plan together with live updates, chat, and shared itineraries'
+      icon: <Search className="text-primary" size={28} />,
+      title: 'Never Ask "What\'s the Plan?"',
+      description: 'Everyone sees the same itinerary, updated instantly. No more digging through old texts or missed calendar invites.'
     },
     {
-      icon: <MessageSquare className="text-accent" size={28} />,
-      title: 'Stay in Sync',
-      description: 'Everyone gets instant alerts when plans change'
+      icon: <MessageCircle className="text-accent" size={28} />,
+      title: 'Never Lose a Memory',
+      description: 'All your group\'s photos, links, and moments in one searchable place — from boarding passes to game-day highlights.'
     },
     {
-      icon: <Calendar className="text-primary" size={28} />,
-      title: 'Smart Scheduling',
-      description: 'Automatic conflict detection prevents double-bookings'
+      icon: <Clock className="text-primary" size={28} />,
+      title: 'Never Chase a Payment',
+      description: 'See who paid, who owes, and split expenses without the awkward follow-up texts. Complete audit trail included.'
     }
   ];
 
@@ -28,7 +28,7 @@ export const ProblemSolutionSection = () => {
           Stop Juggling 15 Apps
         </h2>
         <p className="text-xl sm:text-2xl md:text-3xl text-foreground max-w-3xl mx-auto">
-          Bring your group, plans, and payments into one place
+          Bring your group, plans, and payments into one place — whether it's a road trip, soccer season, or wedding weekend.
         </p>
       </div>
 
