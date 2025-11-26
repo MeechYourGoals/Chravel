@@ -7,6 +7,8 @@ import { EditableDescription } from './EditableDescription';
 import { useAuth } from '../hooks/useAuth';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { useTripCoverPhoto } from '../hooks/useTripCoverPhoto';
+import { useDemoMode } from '../hooks/useDemoMode';
+import { supabase } from '../integrations/supabase/client';
 import { CategorySelector } from './pro/CategorySelector';
 import { CategoryTags } from './pro/CategoryTags';
 import { ProTripCategory } from '../types/proCategories';
@@ -47,6 +49,7 @@ interface TripHeaderProps {
 
 export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpdate, onShowExport, category, tags = [], onCategoryChange }: TripHeaderProps) => {
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const [showInvite, setShowInvite] = useState(false);
   const [showAllCollaborators, setShowAllCollaborators] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -92,14 +95,51 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       return;
     }
 
-    // Create object URL for immediate preview
-    const objectUrl = URL.createObjectURL(file);
-    
-    // Update cover photo through hook
-    const success = await updateCoverPhoto(objectUrl);
-    
-    if (success && fileInputRef.current) {
-      fileInputRef.current.value = '';
+    // Demo mode: use blob URL (temporary, session-only)
+    if (isDemoMode) {
+      const objectUrl = URL.createObjectURL(file);
+      const success = await updateCoverPhoto(objectUrl);
+      if (success && fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    // Authenticated mode: upload file first, then update with real URL
+    if (!user || !supabase) {
+      alert('Please sign in to upload cover photos');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', `trips/${trip.id}`);
+
+      const { data, error } = await supabase.functions.invoke('image-upload', {
+        body: formData
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        // Update cover photo with the real uploaded URL
+        const success = await updateCoverPhoto(data.url);
+        if (success && fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      } else {
+        throw new Error('Upload failed: No URL returned');
+      }
+    } catch (error) {
+      console.error('Failed to upload cover photo:', error);
+      alert('Failed to upload cover photo. Please try again.');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 

@@ -30,12 +30,15 @@ export const TripCoverPhotoUpload = ({
     setIsUploading(true);
     setUploadProgress(0);
 
+    // Store timeout ID so we can cancel it if authenticated upload succeeds
+    let demoTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
     try {
       // Demo mode: Create object URL for immediate preview
       const demoUrl = URL.createObjectURL(file);
       
-      // Simulate upload delay
-      setTimeout(async () => {
+      // Simulate upload delay (only used if authenticated upload fails or user is not authenticated)
+      demoTimeoutId = setTimeout(async () => {
         const success = await onPhotoUploaded(demoUrl);
         if (success) {
           setUploadSuccess(true);
@@ -60,6 +63,12 @@ export const TripCoverPhotoUpload = ({
           if (error) throw error;
           
           if (data?.url) {
+            // Cancel the demo fallback timeout since we have a successful upload
+            if (demoTimeoutId) {
+              clearTimeout(demoTimeoutId);
+              demoTimeoutId = null;
+            }
+            
             // Replace demo URL with real URL
             await onPhotoUploaded(data.url);
             setIsUploading(false);
@@ -74,6 +83,10 @@ export const TripCoverPhotoUpload = ({
         }
       }
     } catch (error) {
+      // Cancel demo timeout on error
+      if (demoTimeoutId) {
+        clearTimeout(demoTimeoutId);
+      }
       console.error('Photo upload error:', error);
       setIsUploading(false);
       setUploadProgress(0);
