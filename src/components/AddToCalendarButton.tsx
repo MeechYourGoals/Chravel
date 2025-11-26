@@ -61,9 +61,9 @@ export const AddToCalendarButton = ({
           variant="outline"
           size="sm"
           onClick={() => setIsModalOpen(true)}
-          className="text-xs"
+          className="text-xs md:text-sm md:px-3 md:py-2"
         >
-          <Calendar size={14} className="mr-1" />
+          <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1" />
           Add to Calendar
         </Button>
         <CalendarEventModal
