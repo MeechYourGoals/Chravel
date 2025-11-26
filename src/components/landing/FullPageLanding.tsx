@@ -1,15 +1,19 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { FullPageLandingSection } from './FullPageLandingSection';
 import { StickyLandingNav } from './StickyLandingNav';
 import { HeroSection } from './sections/HeroSection';
 import { ProblemSolutionSection } from './sections/ProblemSolutionSection';
-import { AiFeaturesSection } from './sections/AiFeaturesSection';
-import { UseCasesSection } from './sections/UseCasesSection';
-import { SocialProofVideoSection } from './sections/SocialProofVideoSection';
-import { SocialStorageSection } from './sections/SocialStorageSection';
-import { ReplacesSection } from './sections/ReplacesSection';
-import { PricingLandingSection } from './sections/PricingLandingSection';
-import { DemoModeToggle } from '../DemoModeToggle';
+
+// Lazy load sections for better performance
+const HowItWorksSection = lazy(() => import('./sections/HowItWorksSection').then(module => ({ default: module.HowItWorksSection })));
+const AiFeaturesSection = lazy(() => import('./sections/AiFeaturesSection').then(module => ({ default: module.AiFeaturesSection })));
+const UseCasesSection = lazy(() => import('./sections/UseCasesSection').then(module => ({ default: module.UseCasesSection })));
+const SocialStorageSection = lazy(() => import('./sections/SocialStorageSection').then(module => ({ default: module.SocialStorageSection })));
+const SocialProofVideoSection = lazy(() => import('./sections/SocialProofVideoSection').then(module => ({ default: module.SocialProofVideoSection })));
+const ReplacesSection = lazy(() => import('./sections/ReplacesSection').then(module => ({ default: module.ReplacesSection })));
+const FAQSection = lazy(() => import('./sections/FAQSection').then(module => ({ default: module.FAQSection })));
+const PricingLandingSection = lazy(() => import('./sections/PricingLandingSection').then(module => ({ default: module.PricingLandingSection })));
+const FooterSection = lazy(() => import('./FooterSection').then(module => ({ default: module.FooterSection })));
 
 // Import cinematic hero images
 import heroImage from '@/assets/hero-images/collaboration-hero-1920.jpg';
@@ -23,6 +27,13 @@ import pricingWorkspaceImage from '@/assets/hero-images/platform-showcase-1920.j
 interface FullPageLandingProps {
   onSignUp: () => void;
 }
+
+// Loading fallback component
+const SectionLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+  </div>
+);
 
 export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) => {
   return (
@@ -51,32 +62,38 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           <ProblemSolutionSection />
         </FullPageLandingSection>
 
-        {/* Section 3: AI Features */}
+        {/* Section 3: How It Works (NEW) */}
+        <FullPageLandingSection
+          id="section-how"
+          imageFallback={heroImage}
+          videoOpacity={0.5}
+        >
+          <Suspense fallback={<SectionLoader />}>
+            <HowItWorksSection />
+          </Suspense>
+        </FullPageLandingSection>
+
+        {/* Section 4: AI Features */}
         <FullPageLandingSection
           id="section-ai"
           imageFallback={aiImage}
           videoOpacity={0.5}
         >
-          <AiFeaturesSection />
+          <Suspense fallback={<SectionLoader />}>
+            <AiFeaturesSection />
+          </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 4: Use Cases */}
+        {/* Section 5: Use Cases */}
         <FullPageLandingSection
           id="section-use-cases"
           imageFallback={scenariosImage}
           videoOpacity={0.5}
           minHeight="120vh"
         >
-          <UseCasesSection />
-        </FullPageLandingSection>
-
-        {/* Section 5: Social Proof */}
-        <FullPageLandingSection
-          id="section-proof"
-          imageFallback={happyTravelersImage}
-          videoOpacity={0.5}
-        >
-          <SocialProofVideoSection />
+          <Suspense fallback={<SectionLoader />}>
+            <UseCasesSection />
+          </Suspense>
         </FullPageLandingSection>
 
         {/* Section 6: Social Storage */}
@@ -86,27 +103,62 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           videoOpacity={0.5}
           minHeight="110vh"
         >
-          <SocialStorageSection />
+          <Suspense fallback={<SectionLoader />}>
+            <SocialStorageSection />
+          </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 7: Replaces */}
+        {/* Section 7: Social Proof */}
+        <FullPageLandingSection
+          id="section-proof"
+          imageFallback={happyTravelersImage}
+          videoOpacity={0.5}
+        >
+          <Suspense fallback={<SectionLoader />}>
+            <SocialProofVideoSection />
+          </Suspense>
+        </FullPageLandingSection>
+
+        {/* Section 8: Replaces */}
         <FullPageLandingSection
           id="section-replaces"
           imageFallback={unifiedWorkspaceImage}
           videoOpacity={0.6}
         >
-          <ReplacesSection />
+          <Suspense fallback={<SectionLoader />}>
+            <ReplacesSection />
+          </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 8: Pricing */}
+        {/* Section 9: FAQ (NEW) */}
+        <FullPageLandingSection
+          id="section-faq"
+          imageFallback={pricingWorkspaceImage}
+          videoOpacity={0.5}
+        >
+          <Suspense fallback={<SectionLoader />}>
+            <FAQSection />
+          </Suspense>
+        </FullPageLandingSection>
+
+        {/* Section 10: Pricing */}
         <FullPageLandingSection
           id="section-pricing"
           imageFallback={pricingWorkspaceImage}
           videoOpacity={0.5}
           minHeight="110vh"
         >
-          <PricingLandingSection onSignUp={onSignUp} />
+          <Suspense fallback={<SectionLoader />}>
+            <PricingLandingSection onSignUp={onSignUp} />
+          </Suspense>
         </FullPageLandingSection>
+
+        {/* Footer (No snap) */}
+        <div id="section-footer" className="snap-start">
+          <Suspense fallback={<SectionLoader />}>
+            <FooterSection />
+          </Suspense>
+        </div>
       </div>
     </>
   );

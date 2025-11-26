@@ -48,19 +48,19 @@ export const SocialStorageSection = () => {
       </div>
 
       {/* Storage Types Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 max-w-6xl w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-6xl w-full">
         {storageTypes.map((type, index) => (
           <div
             key={index}
-            className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-5 md:p-6 hover:border-primary/50 transition-all duration-300 text-left max-w-md mx-auto md:max-w-none"
+            className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 sm:p-8 md:p-10 hover:border-primary/50 transition-all duration-300 text-left max-w-md mx-auto md:max-w-none"
           >
-            <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-primary">
-              {type.icon}
+            <div className="bg-primary/10 w-16 h-16 md:w-20 md:h-20 rounded-xl flex items-center justify-center mb-4 text-primary">
+              {React.cloneElement(type.icon as React.ReactElement, { size: window.innerWidth >= 768 ? 40 : 32 })}
             </div>
-            <h3 className="font-bold text-base sm:text-lg md:text-xl mb-3 leading-tight">
+            <h3 className="font-bold text-xl md:text-2xl mb-3 leading-tight">
               {type.label}
             </h3>
-            <p className="text-sm sm:text-base text-foreground leading-relaxed break-words">
+            <p className="text-base md:text-lg text-foreground leading-relaxed break-words">
               {type.description}
             </p>
           </div>

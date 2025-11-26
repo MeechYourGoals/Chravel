@@ -15,7 +15,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         <DemoModeToggle />
       </div>
       {/* Eyebrow Label */}
-      <p className="text-sm sm:text-base md:text-lg uppercase tracking-wide text-muted-foreground animate-fade-in">
+      <p className="text-sm sm:text-base md:text-lg uppercase tracking-wide text-white font-semibold animate-fade-in">
         For trips, teams, and events — near or far
       </p>
       
@@ -56,7 +56,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         className="text-xl px-8 py-7 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 animate-fade-in"
         style={{ animationDelay: '0.3s' }}
       >
-        Get Started Free · Log In or Sign Up
+        Start Free →
       </Button>
 
       {/* Trust Badge */}
