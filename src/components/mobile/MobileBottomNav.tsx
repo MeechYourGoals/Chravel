@@ -19,14 +19,14 @@ export const MobileBottomNav = ({ className }: MobileBottomNavProps) => {
       label: 'Trips',
       icon: Home,
       path: '/',
-      isActive: location.pathname === '/'
+      isActive: location.pathname === '/' && !location.search.includes('search=open')
     },
     {
       id: 'search',
       label: 'Search',
       icon: Search,
-      path: '/search',
-      isActive: location.pathname.includes('/search')
+      path: '/?search=open',
+      isActive: location.search.includes('search=open')
     },
     {
       id: 'recs',

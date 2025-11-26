@@ -37,6 +37,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useMobilePortrait } from '../hooks/useMobilePortrait';
 import { convertSupabaseTripsToMock, convertSupabaseTripToProTrip, convertSupabaseTripToEvent } from '../utils/tripConverter';
 import { usePerformanceMonitor } from '../hooks/usePerformanceMonitor';
+import { filterTrips, filterProTrips, filterEvents, type DateFacet } from '../utils/semanticTripFilter';
+import { X } from 'lucide-react';
 
 const Index = () => {
   usePerformanceMonitor('Index');
@@ -89,65 +91,63 @@ const Index = () => {
   const allTrips = isDemoMode 
     ? tripsData 
     : convertSupabaseTripsToMock(userTripsRaw.filter(t => t.trip_type === 'consumer' || !t.trip_type));
+  // Unified semantic search + date facet filtering
+  const trips = useMemo(() => {
+    return filterTrips(allTrips, searchQuery, activeFilter as DateFacet | '');
+  }, [allTrips, searchQuery, activeFilter]);
 
-  // Search filtering with async handling
-  const searchFilteredTrips = useMemo(() => {
-    if (!searchQuery.trim()) return allTrips;
-    
-    // Sync keyword search for immediate filtering
-    const lowerQuery = searchQuery.toLowerCase();
-    return allTrips.filter(trip => 
-      trip.title.toLowerCase().includes(lowerQuery) ||
-      trip.location?.toLowerCase().includes(lowerQuery) ||
-      trip.description?.toLowerCase().includes(lowerQuery)
-    );
-  }, [allTrips, searchQuery]);
-
-  const searchFilteredProTrips = useMemo(() => {
-    if (!searchQuery.trim() || !isDemoMode) return isDemoMode ? proTripMockData : {};
-    
-    const lowerQuery = searchQuery.toLowerCase();
-    const filtered = Object.fromEntries(
-      Object.entries(proTripMockData).filter(([_, trip]) => 
-        trip.title.toLowerCase().includes(lowerQuery) ||
-        trip.location?.toLowerCase().includes(lowerQuery) ||
-        trip.description?.toLowerCase().includes(lowerQuery)
-      )
-    );
-    return filtered;
-  }, [searchQuery, isDemoMode]);
-
-  const searchFilteredEvents = useMemo(() => {
-    if (!searchQuery.trim() || !isDemoMode) return isDemoMode ? eventsMockData : {};
-    
-    const lowerQuery = searchQuery.toLowerCase();
-    const filtered = Object.fromEntries(
-      Object.entries(eventsMockData).filter(([_, event]) => 
-        event.title.toLowerCase().includes(lowerQuery) ||
-        event.location?.toLowerCase().includes(lowerQuery) ||
-        event.description?.toLowerCase().includes(lowerQuery)
-      )
-    );
-    return filtered;
-  }, [searchQuery, isDemoMode]);
-
-  const trips = searchFilteredTrips;
-  
-  // Count total results across all view modes
+  // Count total results for current view mode
   const searchResultCount = useMemo(() => {
     if (!searchQuery.trim()) return 0;
-    return searchFilteredTrips.length + 
-           Object.keys(searchFilteredProTrips).length + 
-           Object.keys(searchFilteredEvents).length;
-  }, [searchQuery, searchFilteredTrips, searchFilteredProTrips, searchFilteredEvents]);
+    
+    // Get appropriate data based on demo mode
+    const safeProTrips = isDemoMode ? proTripMockData : {};
+    const safeEvents = isDemoMode ? eventsMockData : {};
+    
+    // For authenticated users, populate from userTripsRaw
+    if (!isDemoMode && userTripsRaw) {
+      const proTripsFromDB = userTripsRaw.filter(t => t.trip_type === 'pro');
+      const eventsFromDB = userTripsRaw.filter(t => t.trip_type === 'event');
+      
+      const proCount = proTripsFromDB.reduce((acc, trip) => {
+        acc[trip.id] = convertSupabaseTripToProTrip(trip);
+        return acc;
+      }, {} as Record<string, any>);
+      
+      const eventCount = eventsFromDB.reduce((acc, trip) => {
+        acc[trip.id] = convertSupabaseTripToEvent(trip);
+        return acc;
+      }, {} as Record<string, any>);
+      
+      const filteredPro = filterProTrips(proCount, searchQuery, activeFilter as DateFacet | '');
+      const filteredEvents = filterEvents(eventCount, searchQuery, activeFilter as DateFacet | '');
+      
+      return trips.length + Object.keys(filteredPro).length + Object.keys(filteredEvents).length;
+    }
+    
+    // Demo mode counts
+    const filteredPro = filterProTrips(safeProTrips, searchQuery, activeFilter as DateFacet | '');
+    const filteredEvents = filterEvents(safeEvents, searchQuery, activeFilter as DateFacet | '');
+    
+    return trips.length + Object.keys(filteredPro).length + Object.keys(filteredEvents).length;
+  }, [searchQuery, trips.length, isDemoMode, userTripsRaw, activeFilter]);
 
   if (import.meta.env.DEV) {
   }
 
-  // Calculate stats for each view mode - gate by demo mode
+  // Calculate stats for each view mode - use filtered data
   const tripStats = calculateTripStats(trips);
-  const proTripStats = isDemoMode ? calculateProTripStats(searchFilteredProTrips) : calculateProTripStats({});
-  const eventStats = isDemoMode ? calculateEventStats(searchFilteredEvents) : calculateEventStats({});
+  const proTripStats = useMemo(() => {
+    if (!isDemoMode) return calculateProTripStats({});
+    const filteredPro = filterProTrips(proTripMockData, searchQuery, activeFilter as DateFacet | '');
+    return calculateProTripStats(filteredPro);
+  }, [isDemoMode, searchQuery, activeFilter]);
+  
+  const eventStats = useMemo(() => {
+    if (!isDemoMode) return calculateEventStats({});
+    const filteredEvents = filterEvents(eventsMockData, searchQuery, activeFilter as DateFacet | '');
+    return calculateEventStats(filteredEvents);
+  }, [isDemoMode, searchQuery, activeFilter]);
 
   const getCurrentStats = () => {
     switch (viewMode) {
@@ -158,9 +158,9 @@ const Index = () => {
     }
   };
 
-  // 🛡️ Memoize expensive filtering operations with defensive guards
+  // 🛡️ Unified filtering with semantic search + date facets
   const filteredData = useMemo(() => {
-    // Always ensure safe values - never undefined
+    // Always ensure safe values
     const safeTrips = Array.isArray(trips) ? trips : [];
     
     // Initialize with demo data or empty objects
@@ -187,49 +187,17 @@ const Index = () => {
       }
     }
 
-    if (!activeFilter || activeFilter === 'total') {
-      return {
-        trips: safeTrips,
-        proTrips: safeProTrips,
-        events: safeEvents
-      };
-    }
+    // Apply unified semantic filter (already includes search + date facet)
+    // trips are already filtered above, now filter pro trips and events
+    const filteredProTrips = filterProTrips(safeProTrips, searchQuery, activeFilter as DateFacet | '');
+    const filteredEvents = filterEvents(safeEvents, searchQuery, activeFilter as DateFacet | '');
 
-    switch (viewMode) {
-      case 'myTrips':
-        return {
-          trips: filterItemsByStatus(safeTrips, activeFilter),
-          proTrips: safeProTrips,
-          events: safeEvents
-        };
-      case 'tripsPro':
-        return {
-          trips: safeTrips,
-          proTrips: Object.fromEntries(
-            Object.entries(safeProTrips).filter(([_, trip]) => 
-              filterItemsByStatus([trip], activeFilter).length > 0
-            )
-          ),
-          events: safeEvents
-        };
-      case 'events':
-        return {
-          trips: safeTrips,
-          proTrips: safeProTrips,
-          events: Object.fromEntries(
-            Object.entries(safeEvents).filter(([_, event]) => 
-              filterItemsByStatus([event], activeFilter).length > 0
-            )
-          )
-        };
-      default:
-        return { 
-          trips: safeTrips, 
-          proTrips: safeProTrips, 
-          events: safeEvents 
-        };
-    }
-  }, [activeFilter, viewMode, trips, isDemoMode]);
+    return {
+      trips: safeTrips,
+      proTrips: filteredProTrips,
+      events: filteredEvents
+    };
+  }, [trips, isDemoMode, userTripsRaw, searchQuery, activeFilter]);
 
   // Handle view mode changes without artificial delays
   const handleViewModeChange = (newMode: string) => {
@@ -238,8 +206,14 @@ const Index = () => {
       return;
     }
     setViewMode(newMode);
-    setActiveFilter(''); // Reset filter when changing view mode
-    setIsLoading(false); // Immediate response
+    // Keep search query active when switching views
+    setIsLoading(false);
+  };
+
+  // Clear search and reset filters
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setActiveFilter('');
   };
 
   const handleFilterClick = (filter: string) => {
@@ -275,6 +249,17 @@ const Index = () => {
     if (open === 'saved-recs') {
       setSettingsInitialConsumerSection('saved-recs');
       setIsSettingsOpen(true);
+    }
+  }, [location.search]);
+
+  // Detect mobile search trigger from URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('search') === 'open') {
+      setIsSearchOpen(true);
+      // Clean up URL without triggering navigation
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
     }
   }, [location.search]);
 
@@ -408,12 +393,31 @@ const Index = () => {
             initialSettingsType={settingsInitialType}
           />
 
+          {/* Search indicator when active */}
+          {searchQuery && (
+            <div className="flex items-center gap-2 mb-4 p-3 bg-primary/10 backdrop-blur-sm rounded-xl border border-primary/20 animate-fade-in">
+              <div className="flex items-center gap-2 flex-1">
+                <div className="h-2 w-2 bg-primary rounded-full animate-pulse" />
+                <span className="text-sm font-medium">
+                  Active search: <span className="text-primary">"{searchQuery}"</span>
+                  {activeFilter && activeFilter !== 'total' && (
+                    <span className="text-muted-foreground"> + {activeFilter}</span>
+                  )}
+                </span>
+              </div>
+              <button
+                onClick={handleClearSearch}
+                className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-primary hover:text-primary/80 hover:bg-primary/10 rounded-lg transition-colors"
+              >
+                <X className="h-3 w-3" />
+                Clear
+              </button>
+            </div>
+          )}
+
           <SearchOverlay
             isOpen={isSearchOpen}
-            onClose={() => {
-              setIsSearchOpen(false);
-              setSearchQuery('');
-            }}
+            onClose={() => setIsSearchOpen(false)}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             resultCount={searchResultCount}
@@ -543,12 +547,31 @@ const Index = () => {
             demoType={viewMode === 'events' ? 'events' : 'pro'}
           />
 
+          {/* Search indicator when active */}
+          {searchQuery && (
+            <div className="flex items-center gap-2 mb-4 p-3 bg-primary/10 backdrop-blur-sm rounded-xl border border-primary/20 animate-fade-in">
+              <div className="flex items-center gap-2 flex-1">
+                <div className="h-2 w-2 bg-primary rounded-full animate-pulse" />
+                <span className="text-sm font-medium">
+                  Active search: <span className="text-primary">"{searchQuery}"</span>
+                  {activeFilter && activeFilter !== 'total' && (
+                    <span className="text-muted-foreground"> + {activeFilter}</span>
+                  )}
+                </span>
+              </div>
+              <button
+                onClick={handleClearSearch}
+                className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-primary hover:text-primary/80 hover:bg-primary/10 rounded-lg transition-colors"
+              >
+                <X className="h-3 w-3" />
+                Clear
+              </button>
+            </div>
+          )}
+
           <SearchOverlay
             isOpen={isSearchOpen}
-            onClose={() => {
-              setIsSearchOpen(false);
-              setSearchQuery('');
-            }}
+            onClose={() => setIsSearchOpen(false)}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             resultCount={searchResultCount}
@@ -676,6 +699,28 @@ const Index = () => {
               onFilterChange={setRecsFilter}
               showInlineSearch={true}
             />
+          </div>
+        )}
+
+        {/* Search indicator when active */}
+        {searchQuery && (
+          <div className="flex items-center gap-2 mb-4 p-3 bg-primary/10 backdrop-blur-sm rounded-xl border border-primary/20 animate-fade-in">
+            <div className="flex items-center gap-2 flex-1">
+              <div className="h-2 w-2 bg-primary rounded-full animate-pulse" />
+              <span className="text-sm font-medium">
+                Active search: <span className="text-primary">"{searchQuery}"</span>
+                {activeFilter && activeFilter !== 'total' && (
+                  <span className="text-muted-foreground"> + {activeFilter}</span>
+                )}
+              </span>
+            </div>
+            <button
+              onClick={handleClearSearch}
+              className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-primary hover:text-primary/80 hover:bg-primary/10 rounded-lg transition-colors"
+            >
+              <X className="h-3 w-3" />
+              Clear
+            </button>
           </div>
         )}
 
