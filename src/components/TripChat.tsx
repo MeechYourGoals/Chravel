@@ -245,10 +245,10 @@ export const TripChat = ({
         userId: message.user_id
       },
       createdAt: message.created_at,
-      // Note: privacy_mode only allows 'standard' or 'high', not 'broadcast'
-      // Broadcasts should be handled via a separate field or tag
-      isBroadcast: false, // TODO: Add broadcast field to messages table
-      isPayment: false,
+      isBroadcast: message.message_type === 'broadcast',
+      isPayment: message.message_type === 'payment',
+      isEdited: message.is_edited || false,
+      editedAt: message.edited_at,
       tags: [] as string[]
     }));
   }, [liveMessages, demoMode.isDemoMode, user?.id]);
@@ -284,9 +284,10 @@ export const TripChat = ({
 
     const authorName = user?.displayName || user?.email?.split('@')[0] || 'You';
     try {
-      // Privacy mode must be 'standard' or 'high' per database constraint
-      // Broadcasts are handled via a separate flag, not privacy_mode
-      await sendTripMessage(message.text, authorName, undefined, undefined, user?.id, 'standard');
+      // Determine message type based on flags
+      const messageType = isBroadcast ? 'broadcast' : isPayment ? 'payment' : 'text';
+      
+      await sendTripMessage(message.text, authorName, undefined, undefined, user?.id, 'standard', messageType);
       
       // 🆕 Auto-parse message for entities (dates, times, locations)
       if (message.text && message.text.trim().length > 10) {

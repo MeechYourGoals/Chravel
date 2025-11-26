@@ -43,6 +43,7 @@ export const MessageItem = memo(({ message, reactions, onReaction, showSenderInf
       isBroadcast={message.isBroadcast}
       isPayment={message.isPayment || message.tags?.includes('payment')}
       isOwnMessage={isOwnMessage}
+      isEdited={(message as any).isEdited || false}
       reactions={reactions}
       onReaction={onReaction}
       showSenderInfo={showSenderInfo}

@@ -1754,6 +1754,7 @@ export type Database = {
           link_preview: Json | null
           media_type: string | null
           media_url: string | null
+          message_type: string | null
           privacy_encrypted: boolean | null
           privacy_mode: string | null
           reply_to_id: string | null
@@ -1776,6 +1777,7 @@ export type Database = {
           link_preview?: Json | null
           media_type?: string | null
           media_url?: string | null
+          message_type?: string | null
           privacy_encrypted?: boolean | null
           privacy_mode?: string | null
           reply_to_id?: string | null
@@ -1798,6 +1800,7 @@ export type Database = {
           link_preview?: Json | null
           media_type?: string | null
           media_url?: string | null
+          message_type?: string | null
           privacy_encrypted?: boolean | null
           privacy_mode?: string | null
           reply_to_id?: string | null

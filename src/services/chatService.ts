@@ -13,6 +13,7 @@ export interface ChatMessageInsert extends Omit<Insert, 'attachments'> {
     ref_id: string;
     url?: string;
   }[];
+  message_type?: 'text' | 'broadcast' | 'payment' | 'system';
 }
 
 export async function sendChatMessage(msg: ChatMessageInsert) {
@@ -23,6 +24,7 @@ export async function sendChatMessage(msg: ChatMessageInsert) {
         .insert({
           ...msg,
           privacy_mode: msg.privacy_mode || 'standard',
+          message_type: msg.message_type || 'text',
           attachments: msg.attachments as any,
         })
         .select()
