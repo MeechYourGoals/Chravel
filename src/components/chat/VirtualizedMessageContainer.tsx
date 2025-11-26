@@ -60,34 +60,47 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
     const oldMessageCount = previousMessageCountRef.current;
     
     if (newMessageCount > oldMessageCount) {
-      // Check if user was at bottom before new messages arrived
+      // Check if user was at bottom before new messages arrived (or if it's a new message from current user)
       const wasAtBottom = !userIsScrolledUp;
+      const isNewMessage = newMessageCount === oldMessageCount + 1;
       
-      if (wasAtBottom) {
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+      // Always scroll to bottom for new messages (user's own messages or when at bottom)
+      if (wasAtBottom || isNewMessage) {
+        // Use requestAnimationFrame for smoother scrolling
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            // Also ensure container scrolls to bottom
+            if (container) {
+              container.scrollTop = container.scrollHeight;
+            }
+          }, 50);
+        });
       }
     }
+    
+    previousMessageCountRef.current = newMessageCount;
   }, [messages.length, autoScroll, userIsScrolledUp]);
 
-  // Restore scroll position on mount
+  // Restore scroll position on mount - always scroll to bottom initially
   useEffect(() => {
     if (!restoreScroll) return;
     
     const container = containerRef.current;
     if (!container) return;
 
-    const savedScroll = localStorage.getItem(scrollKey);
-    if (savedScroll) {
-      container.scrollTop = parseInt(savedScroll, 10);
-    } else {
-      // If no saved position, scroll to bottom
+    // Always start at bottom to show latest messages and input box
+    requestAnimationFrame(() => {
       setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+        }
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
       }, 100);
-    }
-  }, [scrollKey, restoreScroll]);
+    });
+  }, [scrollKey, restoreScroll, messages.length]);
 
   // Save scroll position periodically
   useEffect(() => {

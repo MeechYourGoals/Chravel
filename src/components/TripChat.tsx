@@ -241,8 +241,9 @@ export const TripChat = ({
         id: message.user_id || message.author_name || 'unknown',
         name: message.author_name || 'Unknown',
         avatar: getMockAvatar(message.author_name || 'Unknown'),
-        // Store original user_id separately for ownership checks
-        userId: message.user_id
+        // Store original user_id separately for ownership checks (critical for isOwnMessage detection)
+        userId: message.user_id,
+        user_id: message.user_id // Also store as user_id for compatibility
       },
       createdAt: message.created_at,
       // Note: privacy_mode only allows 'standard' or 'high', not 'broadcast'
@@ -279,6 +280,10 @@ export const TripChat = ({
 
     if (demoMode.isDemoMode) {
       setDemoMessages(prev => [...prev, message as MockMessage]);
+      // Auto-scroll to bottom after sending in demo mode
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
       return;
     }
 
@@ -287,6 +292,19 @@ export const TripChat = ({
       // Privacy mode must be 'standard' or 'high' per database constraint
       // Broadcasts are handled via a separate flag, not privacy_mode
       await sendTripMessage(message.text, authorName, undefined, undefined, user?.id, 'standard');
+      
+      // Auto-scroll to bottom after sending message
+      // The VirtualizedMessageContainer will handle auto-scrolling via its useEffect
+      // But we can trigger it manually here as well
+      setTimeout(() => {
+        const chatContainer = document.querySelector('[data-chat-container]');
+        if (chatContainer) {
+          const scrollContainer = chatContainer.querySelector('.chat-scroll-container');
+          if (scrollContainer) {
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+          }
+        }
+      }, 300);
       
       // 🆕 Auto-parse message for entities (dates, times, locations)
       if (message.text && message.text.trim().length > 10) {
@@ -304,6 +322,9 @@ export const TripChat = ({
       if (import.meta.env.DEV) {
         console.error('Failed to send chat message:', error);
       }
+      // Show error toast to user
+      const { toast } = await import('sonner');
+      toast.error('Failed to send message. Please try again.');
     }
   };
 
@@ -427,7 +448,7 @@ export const TripChat = ({
 
       {/* Chat Container - Messages with Integrated Filter Tabs */}
       <div className="flex-1 flex flex-col min-h-0 pb-4" data-chat-container>
-        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col" style={{ maxHeight: 'calc(100vh - 320px)', minHeight: '400px' }}>
+        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col" style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '300px' }}>
           {/* Search Bar and Filter Tabs Row */}
           <div className="flex items-center gap-2 p-2 border-b border-white/10 bg-black/30">
             <div className="flex-1">

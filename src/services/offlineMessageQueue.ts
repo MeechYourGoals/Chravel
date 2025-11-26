@@ -86,12 +86,15 @@ export async function processQueue(): Promise<{ success: number; failed: number 
       // Update status to sending
       await db.put('queue', { ...queued, status: 'sending' });
 
+      // Ensure privacy_mode is always 'standard' or 'high' (never null, undefined, or empty)
+      const privacyMode = (queued.message.privacy_mode === 'high' ? 'high' : 'standard') as 'standard' | 'high';
+      
       // Attempt to send
       const { data, error } = await supabase
         .from('trip_chat_messages')
         .insert({
           ...queued.message,
-          privacy_mode: queued.message.privacy_mode || 'standard',
+          privacy_mode: privacyMode,
         })
         .select()
         .single();
