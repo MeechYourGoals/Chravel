@@ -193,12 +193,15 @@ export const useTripChat = (tripId: string) => {
         throw new Error('Message is too long. Please keep it under 1000 characters.');
       }
 
+      // Ensure privacy_mode is always 'standard' or 'high' (never null, undefined, or empty)
+      const privacyMode = (message.privacyMode === 'high' ? 'high' : 'standard') as 'standard' | 'high';
+      
       const messageData = {
         trip_id: tripId,
         content: sanitizedContent,
         author_name: InputValidator.sanitizeText(message.author_name),
         user_id: message.userId,
-        privacy_mode: message.privacyMode || 'standard',
+        privacy_mode: privacyMode,
         media_type: message.media_type,
         media_url: message.media_url
       };
@@ -242,13 +245,59 @@ export const useTripChat = (tripId: string) => {
       
       return data;
     },
-    onError: (error: any) => {
+    onMutate: async (message: CreateMessageRequest) => {
+      // Optimistic update - add message immediately to UI
+      const optimisticMessage: TripChatMessage = {
+        id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        trip_id: tripId,
+        content: message.content,
+        author_name: message.author_name,
+        user_id: message.userId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        privacy_mode: (message.privacyMode === 'high' ? 'high' : 'standard') as 'standard' | 'high',
+        media_type: message.media_type,
+        media_url: message.media_url
+      };
+
+      // Cancel outgoing queries to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ['tripChat', tripId] });
+
+      // Snapshot previous value
+      const previousMessages = queryClient.getQueryData<TripChatMessage[]>(['tripChat', tripId]);
+
+      // Optimistically update
+      queryClient.setQueryData<TripChatMessage[]>(['tripChat', tripId], (old = []) => {
+        const newMessages = [...old, optimisticMessage];
+        return newMessages.sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+      });
+
+      return { previousMessages };
+    },
+    onError: (error: any, message, context) => {
+      // Rollback optimistic update on error
+      if (context?.previousMessages) {
+        queryClient.setQueryData(['tripChat', tripId], context.previousMessages);
+      }
       console.error('Message creation error:', error);
       const errorMessage = error.message || 'Failed to send message. Please try again.';
       toast({
         title: 'Error',
         description: errorMessage,
         variant: 'destructive'
+      });
+    },
+    onSuccess: (data) => {
+      // Replace optimistic message with real one from server
+      queryClient.setQueryData<TripChatMessage[]>(['tripChat', tripId], (old = []) => {
+        // Remove optimistic message and add real one
+        const filtered = old.filter(msg => !msg.id.startsWith('temp_'));
+        const newMessages = [...filtered, data];
+        return newMessages.sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
       });
     }
   });

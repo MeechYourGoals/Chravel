@@ -18,9 +18,13 @@ export const MessageItem = memo(({ message, reactions, onReaction, showSenderInf
   
   // Determine if message is from current user
   // Check by user ID first (most reliable), then fall back to author name match
-  const senderUserId = (message.sender as any).userId || message.sender.id;
+  const senderUserId = (message.sender as any).userId || (message.sender as any).user_id || message.sender.id;
+  const currentUserName = user?.displayName || user?.email?.split('@')[0] || '';
   const isOwnMessage = user?.id 
-    ? (senderUserId === user.id || message.sender.id === user.id || message.sender.name === (user.displayName || user.email?.split('@')[0]))
+    ? (senderUserId === user.id || 
+       message.sender.id === user.id || 
+       (senderUserId && senderUserId === user.id) ||
+       (currentUserName && message.sender.name === currentUserName && message.sender.name !== 'Unknown'))
     : false;
 
   const handleEdit = useCallback(async (messageId: string, newContent: string) => {

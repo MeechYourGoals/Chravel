@@ -18,11 +18,14 @@ export interface ChatMessageInsert extends Omit<Insert, 'attachments'> {
 export async function sendChatMessage(msg: ChatMessageInsert) {
   return retryWithBackoff(
     async () => {
+      // Ensure privacy_mode is always 'standard' or 'high' (never null, undefined, or empty string)
+      const privacyMode = (msg.privacy_mode === 'high' ? 'high' : 'standard') as 'standard' | 'high';
+      
       const { data, error } = await supabase
         .from('trip_chat_messages')
         .insert({
           ...msg,
-          privacy_mode: msg.privacy_mode || 'standard',
+          privacy_mode: privacyMode,
           attachments: msg.attachments as any,
         })
         .select()
