@@ -165,15 +165,15 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
   return (
     <div className="space-y-4">
       {/* Header with Add Button - Redesigned to match demo mode */}
-      <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-4 shadow-lg">
+      <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-4 md:p-6 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-r from-red-600 to-red-700">
-              <Link2 size={20} className="text-white" />
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center bg-gradient-to-r from-red-600 to-red-700">
+              <Link2 className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Trip Links</h3>
-              <p className="text-gray-400 text-xs">
+              <h3 className="text-lg md:text-xl font-bold text-white">Trip Links</h3>
+              <p className="text-gray-400 text-xs md:text-sm">
                 {links.length > 0 ? `${links.length} saved links` : 'Save your trip links'}
               </p>
             </div>
@@ -186,9 +186,9 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                   <DialogTrigger asChild>
                     <button
                       onClick={() => resetForm()}
-                      className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-xl transition-all font-medium text-sm flex items-center shadow-lg shadow-green-500/25"
+                      className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 md:px-5 md:py-2.5 rounded-xl transition-all font-medium text-sm md:text-base flex items-center shadow-lg shadow-green-500/25"
                     >
-                      <Plus size={16} className="mr-1" />
+                      <Plus className="w-4 h-4 md:w-5 md:h-5 mr-1" />
                       Add Link
                     </button>
                   </DialogTrigger>
@@ -326,28 +326,28 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
         {links.map((link) => (
           <div
             key={link.id}
-            className="bg-gray-900/80 border border-white/10 rounded-2xl p-4 hover:border-sky-500/30 transition-all shadow-lg"
+            className="bg-gray-900/80 border border-white/10 rounded-2xl p-4 md:p-6 hover:border-sky-500/30 transition-all shadow-lg"
           >
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start justify-between gap-3 md:gap-4">
               <div className="flex-1 min-w-0">
                 {/* Title */}
-                <h4 className="text-white font-semibold text-sm mb-1">{link.title}</h4>
+                <h4 className="text-white font-semibold text-sm md:text-lg mb-1">{link.title}</h4>
                 
                 {/* Category Badge */}
                 {link.category && (
-                  <Badge variant="secondary" className="text-xs capitalize mb-2">
+                  <Badge variant="secondary" className="text-xs md:text-sm capitalize mb-2">
                     {link.category}
                   </Badge>
                 )}
                 
                 {/* Clickable URL */}
                 <div className="flex items-center gap-2 mb-3">
-                  <Globe className="w-3 h-3 text-sky-400 flex-shrink-0" />
+                  <Globe className="w-3 h-3 md:w-4 md:h-4 text-sky-400 flex-shrink-0" />
                   <a
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-sky-400 hover:text-sky-300 underline truncate"
+                    className="text-xs md:text-sm text-sky-400 hover:text-sky-300 underline truncate"
                     title={link.url}
                   >
                     {link.url}
@@ -356,7 +356,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
 
                 {/* Description */}
                 {link.description && (
-                  <p className="text-xs text-gray-400 mb-3">{link.description}</p>
+                  <p className="text-xs md:text-sm text-gray-400 mb-3">{link.description}</p>
                 )}
 
                 {/* Actions */}
@@ -375,24 +375,24 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                   
                   <button
                     onClick={() => openEditModal(link)}
-                    className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 transition-colors flex items-center gap-1"
+                    className="text-gray-400 hover:text-white text-xs md:text-sm px-2 py-1 md:px-3 md:py-2 rounded bg-gray-800 hover:bg-gray-700 transition-colors flex items-center gap-1"
                   >
-                    <Edit size={12} />
+                    <Edit className="w-3 h-3 md:w-3.5 md:h-3.5" />
                     Edit
                   </button>
 
                   <button
                     onClick={() => handleDeleteLink(link.id)}
-                    className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors flex items-center gap-1"
+                    className="text-red-400 hover:text-red-300 text-xs md:text-sm px-2 py-1 md:px-3 md:py-2 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors flex items-center gap-1"
                   >
-                    <Trash2 size={12} />
+                    <Trash2 className="w-3 h-3 md:w-3.5 md:h-3.5" />
                     Remove
                   </button>
                 </div>
               </div>
 
               {/* Avatar/Initial Badge */}
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+              <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-semibold text-sm md:text-lg flex-shrink-0">
                 {getInitials(link.title)}
               </div>
             </div>
