@@ -6,6 +6,7 @@ import { ProblemSolutionSection } from './sections/ProblemSolutionSection';
 import { AiFeaturesSection } from './sections/AiFeaturesSection';
 import { UseCasesSection } from './sections/UseCasesSection';
 import { SocialProofVideoSection } from './sections/SocialProofVideoSection';
+import { SocialStorageSection } from './sections/SocialStorageSection';
 import { ReplacesSection } from './sections/ReplacesSection';
 import { PricingLandingSection } from './sections/PricingLandingSection';
 import { DemoModeToggle } from '../DemoModeToggle';
@@ -78,7 +79,17 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           <SocialProofVideoSection />
         </FullPageLandingSection>
 
-        {/* Section 6: Replaces */}
+        {/* Section 6: Social Storage */}
+        <FullPageLandingSection
+          id="section-storage"
+          imageFallback={unifiedWorkspaceImage}
+          videoOpacity={0.5}
+          minHeight="110vh"
+        >
+          <SocialStorageSection />
+        </FullPageLandingSection>
+
+        {/* Section 7: Replaces */}
         <FullPageLandingSection
           id="section-replaces"
           imageFallback={unifiedWorkspaceImage}
@@ -87,7 +98,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           <ReplacesSection />
         </FullPageLandingSection>
 
-        {/* Section 7: Pricing */}
+        {/* Section 8: Pricing */}
         <FullPageLandingSection
           id="section-pricing"
           imageFallback={pricingWorkspaceImage}

@@ -14,6 +14,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       <div className="absolute top-4 right-4 md:top-6 md:right-6 z-20 hidden md:block">
         <DemoModeToggle />
       </div>
+      {/* Eyebrow Label */}
+      <p className="text-sm sm:text-base md:text-lg uppercase tracking-wide text-muted-foreground animate-fade-in">
+        For trips, teams, and events — near or far
+      </p>
+      
       {/* Headline */}
       <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight animate-fade-in">
         Plan Together.<br />Travel Better.
@@ -21,26 +26,26 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
 
       {/* Subheadline */}
       <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-foreground max-w-3xl animate-fade-in" style={{ animationDelay: '0.1s' }}>
-        The AI-powered platform for collaborative trip planning, real-time coordination, and unforgettable group experiences.
+        The AI-powered social storage platform for group plans, messages, and memories. Use Chravel for family trips, youth sports, weddings, tours, or any group that needs one place for chat, calendars, payments, and photos.
       </p>
 
       {/* Feature Pills */}
       <div className="flex flex-wrap justify-center gap-3 pt-2 animate-fade-in" style={{ animationDelay: '0.2s' }}>
         <div className="bg-background/50 backdrop-blur-sm border border-border rounded-full px-4 py-2 flex items-center gap-2">
           <Users size={16} className="text-primary" />
-          <span className="text-base md:text-lg">Group Planning</span>
+          <span className="text-base md:text-lg">Group Planning & Events</span>
         </div>
         <div className="bg-background/50 backdrop-blur-sm border border-border rounded-full px-4 py-2 flex items-center gap-2">
           <Calendar size={16} className="text-accent" />
-          <span className="text-base md:text-lg">Smart Itineraries</span>
+          <span className="text-base md:text-lg">Smart Itineraries & Schedules</span>
         </div>
         <div className="bg-background/50 backdrop-blur-sm border border-border rounded-full px-4 py-2 flex items-center gap-2">
           <MapPin size={16} className="text-primary" />
-          <span className="text-base md:text-lg">Real-Time Maps</span>
+          <span className="text-base md:text-lg">Real-Time Maps & Basecamps</span>
         </div>
         <div className="bg-background/50 backdrop-blur-sm border border-border rounded-full px-4 py-2 flex items-center gap-2">
           <Sparkles size={16} className="text-accent" />
-          <span className="text-base md:text-lg">AI Concierge</span>
+          <span className="text-base md:text-lg">AI Concierge & Search</span>
         </div>
       </div>
 
@@ -56,7 +61,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
 
       {/* Trust Badge */}
       <p className="text-base md:text-lg text-foreground pt-2 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-        Join thousands of travelers coordinating trips worldwide
+        Join families, teams, touring artists, and corporate crews who've already eliminated group-chat chaos.
       </p>
     </div>
   );

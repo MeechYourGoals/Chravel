@@ -5,7 +5,7 @@ import { Card, CardContent } from '../../ui/card';
 const metrics = [
   { 
     value: "Instantly See", 
-    label: "Itinerary Conflicts", 
+    label: "Schedule Conflicts", 
     icon: <MapPin size={20} />, 
     trend: "Automatically flags double-bookings before they happen" 
   },
@@ -19,11 +19,11 @@ const metrics = [
     value: "Real-Time", 
     label: "Updates", 
     icon: <Star size={20} />, 
-    trend: "Everyone gets instant alerts when plans change" 
+    trend: "Everyone stays in sync when plans change" 
   },
   { 
     value: "Proven", 
-    label: "Complex Travel", 
+    label: "Complex Group Logistics", 
     icon: <TrendingUp size={20} />, 
     trend: "Successfully handles sports teams, tours, and family reunions" 
   }
@@ -35,10 +35,10 @@ export const SocialProofVideoSection = () => {
       {/* Headline */}
       <div className="text-center space-y-4 max-w-4xl">
         <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
-          Trusted by Travelers Worldwide
+          Trusted by Groups Worldwide
         </h2>
         <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-          See why thousands choose Chravel for group coordination
+          See why thousands of families, teams, touring artists, and companies choose Chravel to coordinate group trips and events.
         </p>
       </div>
 
@@ -66,7 +66,7 @@ export const SocialProofVideoSection = () => {
 
       {/* Bottom CTA */}
       <p className="text-lg text-muted-foreground max-w-2xl text-center">
-        Join families, sports teams, touring artists, and corporate groups who've eliminated travel chaos
+        Join families, event planners, sports teams, touring artists, and corporate groups who've eliminated coordination chaos.
       </p>
     </div>
   );

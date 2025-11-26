@@ -310,6 +310,11 @@ const valuePropItems = [
     icon: <FileText size={20} />,
     title: 'Professional PDF exports',
     description: 'Share beautiful itineraries with one click'
+  },
+  {
+    icon: <Users size={20} />,
+    title: 'Plan your next trip, season, or wedding',
+    description: 'Plan your next family trip, sports season, or wedding weekend without ever leaving one app.'
   }
 ];
 
@@ -414,7 +419,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
             Start planning better trips today
           </h2>
           <p className="text-sm sm:text-base md:text-lg text-foreground max-w-3xl mx-auto leading-relaxed break-words">
-            Ensuring the next trip makes it out of the group chat. <span className="text-accent font-semibold">Save 23 hours per trip</span> with the world's first AI-native travel collaboration platform.
+            Ensuring the next trip makes it out of the group chat. <span className="text-accent font-semibold">Save 23 hours per trip</span> with the world's first AI-native group collaboration platform for trips and events.
           </p>
         </div>
 

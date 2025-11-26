@@ -5,33 +5,49 @@ const scenarios = [
     emoji: "🎢",
     title: "Family Trip",
     subtitle: "18 guests",
-    before: "10 different group chats, 4 email threads, and lost PDFs containing tickets and reservations.",
-    after: "One shared space for tickets, calendars, and park reservations — no confusion, just memories.",
+    before: "10 different group chats, 4 email threads, and lost PDFs with tickets and reservations.",
+    after: "One shared space for flights, calendars, park reservations, and photos — no confusion, just memories.",
     savings: "75% less stress"
   },
   {
     emoji: "🎤",
     title: "Touring Artists",
     subtitle: "12-person crew",
-    before: "Managing a 12-person touring crew across 21 cities over 5 months. Endless text threads, spreadsheets, and miscommunication.",
-    after: "All tour dates, crew chats, payments, and logistics in one app. Everyone in sync.",
+    before: "21 cities over 5 months. Endless text threads, spreadsheets, and miscommunication.",
+    after: "All show days, off days, crew chats, payments, and logistics in one app — everyone in sync on every city.",
     savings: "$30K saved"
+  },
+  {
+    emoji: "💒",
+    title: "Wedding Weekend",
+    subtitle: "Wedding party + families",
+    before: "A wedding website no one checks, email chains, and scattered group chats for bachelor and bachelorette events.",
+    after: "Guests chat in one space, see the weekend itinerary, pin hotel and Airbnb addresses, and upload photos in real time — no one asks 'where are we supposed to be?' again.",
+    savings: "3× more photos captured"
   },
   {
     emoji: "⚽",
     title: "Youth Soccer Season",
     subtitle: "Parents coordinating",
-    before: "Parents texting last-minute about who's bringing orange slices, who's driving, and what field we're at.",
-    after: "Shared season schedule, task assignments, and group photo uploads in one thread — automatically synced.",
+    before: "Parents texting last-minute about snacks, rides, and which field you're on this week.",
+    after: "One season calendar, carpool sign-ups, snack assignments, and shared photos — automatically synced for every parent.",
     savings: "10 hrs/month saved"
   },
   {
     emoji: "🏈",
     title: "College Football Program",
     subtitle: "80+ people",
-    before: "Coaches juggling 80+ players, staff, trainers, and hotel spreadsheets with constantly shifting plans and unclear responsibilities.",
-    after: "Role-based access, team calendars, and instant updates across staff and players — all organized.",
+    before: "Staff juggling travel, practices, classes, hotel rooming lists, and group chats across apps.",
+    after: "Role-based access, team calendars, academic schedules, and instant updates for staff and players — all organized in one place.",
     savings: "15 hrs/week saved"
+  },
+  {
+    emoji: "🐕",
+    title: "Friends & Community Groups",
+    subtitle: "Local crews & clubs",
+    before: "Your dog-park crew, weekly run club, or intramural team lives across DMs, texts, and random calendar invites.",
+    after: "One shared hub for meetups, locations, shared notes, and highlight photos — your local crew finally has a home base.",
+    savings: "1 home for recurring meetups"
   }
 ];
 
@@ -41,15 +57,15 @@ export const UseCasesSection = () => {
       {/* Headline */}
       <div className="text-center space-y-4 max-w-4xl">
         <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
-          Built for Every Journey
+          Built for Every Journey — Even When You're Not Traveling
         </h2>
         <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-          From family vacations to professional tours
+          From family vacations to local leagues and weddings, Chravel is your group's shared home for plans, messages, and memories.
         </p>
       </div>
 
-      {/* Scenarios Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6 max-w-6xl w-full">
+      {/* Scenarios Grid - 3 columns on desktop, 2 on tablet, 1 on mobile */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 max-w-7xl w-full">
         {scenarios.map((scenario, index) => (
           <div
             key={index}
