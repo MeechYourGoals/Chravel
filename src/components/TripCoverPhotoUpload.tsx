@@ -3,7 +3,9 @@ import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, Camera, X, Check } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useDemoMode } from '../hooks/useDemoMode';
 import { supabase } from '../integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface TripCoverPhotoUploadProps {
   tripId: string;
@@ -19,6 +21,7 @@ export const TripCoverPhotoUpload = ({
   className = "" 
 }: TripCoverPhotoUploadProps) => {
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSuccess, setUploadSuccess] = useState(false);
@@ -30,55 +33,52 @@ export const TripCoverPhotoUpload = ({
     setIsUploading(true);
     setUploadProgress(0);
 
+    // Create blob URL for preview only (not saved to database in authenticated mode)
+    const previewUrl = URL.createObjectURL(file);
+
     try {
-      // Demo mode: Create object URL for immediate preview
-      const demoUrl = URL.createObjectURL(file);
-      
-      // Simulate upload delay
-      setTimeout(async () => {
-        const success = await onPhotoUploaded(demoUrl);
+      // Demo mode: use blob URL (it's okay for demo, not persisted to DB)
+      if (isDemoMode || !user) {
+        const success = await onPhotoUploaded(previewUrl);
         if (success) {
           setUploadSuccess(true);
           setTimeout(() => setUploadSuccess(false), 2000);
         }
         setIsUploading(false);
-        setUploadProgress(0);
-      }, 1500);
+        return;
+      }
 
-      // If user is authenticated and we have Supabase, try real upload
-      if (user && supabase) {
-        try {
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('folder', `trips/${tripId}`);
+      // Authenticated mode: Upload to Supabase Storage
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', `trips/${tripId}`);
 
-          // Supabase client automatically includes auth headers
-          const { data, error } = await supabase.functions.invoke('image-upload', {
-            body: formData
-          });
+      const { data, error } = await supabase.functions.invoke('image-upload', {
+        body: formData
+      });
 
-          if (error) throw error;
-          
-          if (data?.url) {
-            // Replace demo URL with real URL
-            await onPhotoUploaded(data.url);
-            setIsUploading(false);
-            setUploadProgress(0);
-            setUploadSuccess(true);
-            setTimeout(() => setUploadSuccess(false), 2000);
-            return; // Exit early on success
-          }
-        } catch (error) {
-          console.error('Real upload failed, using demo URL:', error);
-          // Continue with demo URL if upload fails - the setTimeout above will handle it
-        }
+      if (error) throw error;
+      
+      if (!data?.url) {
+        throw new Error('No URL returned from upload');
+      }
+
+      // ✅ Only save the REAL Supabase URL to database
+      const success = await onPhotoUploaded(data.url);
+      if (success) {
+        setUploadSuccess(true);
+        setTimeout(() => setUploadSuccess(false), 2000);
       }
     } catch (error) {
       console.error('Photo upload error:', error);
+      toast.error('Failed to upload photo. Please try again.');
+    } finally {
       setIsUploading(false);
       setUploadProgress(0);
+      // Clean up blob URL to prevent memory leaks
+      URL.revokeObjectURL(previewUrl);
     }
-  }, [user, tripId, onPhotoUploaded]);
+  }, [user, isDemoMode, tripId, onPhotoUploaded]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
