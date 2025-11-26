@@ -1,5 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { isSameDay } from 'date-fns';
 import { LoadMoreIndicator } from './LoadMoreIndicator';
+import { DateSeparator } from './DateSeparator';
 import { hapticService } from '@/services/hapticService';
 
 interface VirtualizedMessageContainerProps {
@@ -216,11 +218,21 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
 
         {/* Messages */}
         <div className="space-y-2 p-3">
-          {visibleMessages.map((message, index) => (
-            <React.Fragment key={message.id}>
-              {renderMessage(message, index)}
-            </React.Fragment>
-          ))}
+          {visibleMessages.map((message, index) => {
+            const currentDate = new Date(message.created_at || message.createdAt);
+            const prevMessage = visibleMessages[index - 1];
+            const prevDate = prevMessage ? new Date(prevMessage.created_at || prevMessage.createdAt) : null;
+            
+            // Show date separator when day changes
+            const showDateSeparator = !prevDate || !isSameDay(currentDate, prevDate);
+            
+            return (
+              <React.Fragment key={message.id}>
+                {showDateSeparator && <DateSeparator date={currentDate} />}
+                {renderMessage(message, index)}
+              </React.Fragment>
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
       </div>
