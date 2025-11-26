@@ -50,22 +50,27 @@ export const TripCoverPhotoUpload = ({
         try {
           const formData = new FormData();
           formData.append('file', file);
-          formData.append('tripId', tripId);
-          formData.append('userId', user.id);
-          formData.append('caption', `Cover photo for trip ${tripId}`);
+          formData.append('folder', `trips/${tripId}`);
 
-          const { data, error } = await supabase.functions.invoke('photo-upload', {
+          // Supabase client automatically includes auth headers
+          const { data, error } = await supabase.functions.invoke('image-upload', {
             body: formData
           });
 
           if (error) throw error;
           
-          if (data?.success) {
+          if (data?.url) {
             // Replace demo URL with real URL
-            await onPhotoUploaded(data.publicUrl);
+            await onPhotoUploaded(data.url);
+            setIsUploading(false);
+            setUploadProgress(0);
+            setUploadSuccess(true);
+            setTimeout(() => setUploadSuccess(false), 2000);
+            return; // Exit early on success
           }
         } catch (error) {
           console.error('Real upload failed, using demo URL:', error);
+          // Continue with demo URL if upload fails - the setTimeout above will handle it
         }
       }
     } catch (error) {
@@ -84,12 +89,6 @@ export const TripCoverPhotoUpload = ({
     multiple: false
   });
 
-  const handleAuthPrompt = () => {
-    if (!user) {
-      alert('Please sign in to upload photos. Demo mode: Photo will be shown temporarily.');
-    }
-  };
-
   if (currentPhoto) {
     return (
       <div className={`relative group overflow-hidden rounded-2xl ${className}`}>
@@ -102,7 +101,6 @@ export const TripCoverPhotoUpload = ({
           <div
             {...getRootProps()}
             className="cursor-pointer bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2 flex items-center gap-2 text-white hover:bg-white/30 transition-colors"
-            onClick={handleAuthPrompt}
           >
             <input {...getInputProps()} />
             <Camera size={16} />
@@ -133,7 +131,6 @@ export const TripCoverPhotoUpload = ({
     <div
       {...getRootProps()}
       className={`border-2 border-dashed border-white/30 rounded-2xl p-8 text-center cursor-pointer transition-all hover:border-white/50 hover:bg-white/5 min-h-[192px] ${isDragActive ? 'border-blue-400 bg-blue-400/10' : ''} ${className}`}
-      onClick={handleAuthPrompt}
     >
       <input {...getInputProps()} />
       <div className="text-white">

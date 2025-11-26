@@ -3,6 +3,7 @@ import { X, Loader2, MapPin, Calendar as CalendarIcon, Type, Image as ImageIcon 
 import { parseDateRange, formatDateRange } from '@/utils/dateFormatters';
 import { tripService, Trip } from '@/services/tripService';
 import { useAuth } from '@/hooks/useAuth';
+import { useTripCoverPhoto } from '@/hooks/useTripCoverPhoto';
 import { toast } from '@/hooks/use-toast';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -27,7 +28,10 @@ interface EditTripModalProps {
 export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModalProps) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [coverPhoto, setCoverPhoto] = useState<string | undefined>(trip.coverPhoto);
+  const { coverPhoto, updateCoverPhoto } = useTripCoverPhoto(
+    trip.id.toString(),
+    trip.coverPhoto
+  );
   const [formData, setFormData] = useState({
     name: '',
     destination: '',
@@ -45,7 +49,6 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
         start_date: dates.start,
         end_date: dates.end
       });
-      setCoverPhoto(trip.coverPhoto);
     }
   }, [isOpen, trip]);
 
@@ -92,7 +95,8 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
       const mockUpdates: Partial<EditTripModalProps['trip']> = {
         title: formData.name,
         location: formData.destination,
-        dateRange: formatDateRange(formData.start_date, formData.end_date)
+        dateRange: formatDateRange(formData.start_date, formData.end_date),
+        coverPhoto: coverPhoto
       };
 
       // Demo mode: store in localStorage
@@ -160,7 +164,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
             <TripCoverPhotoUpload
               tripId={trip.id.toString()}
               currentPhoto={coverPhoto}
-              onPhotoUploaded={async (url) => { setCoverPhoto(url); return true; }}
+              onPhotoUploaded={updateCoverPhoto}
               className="h-48 w-full"
             />
             {trip.trip_type === 'pro' && (
