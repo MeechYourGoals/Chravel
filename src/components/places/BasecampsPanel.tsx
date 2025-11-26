@@ -150,7 +150,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mobile-safe-scroll">
         {/* Trip Base Camp Card */}
-        <div className="rounded-2xl bg-gray-900/80 border border-white/10 shadow-lg overflow-hidden flex flex-col min-h-[100px] max-h-[120px]">
+        <div className="rounded-2xl bg-gray-900/80 border border-white/10 shadow-lg overflow-hidden flex flex-col min-h-[100px]">
           <div className="p-3 flex flex-col flex-1 justify-center">
             {tripBasecamp ? (
               <>
@@ -199,7 +199,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         </div>
 
         {/* Personal Base Camp Card */}
-        <div className="rounded-2xl bg-gray-900/80 border border-white/10 shadow-lg overflow-hidden flex flex-col min-h-[100px] max-h-[120px]">
+        <div className="rounded-2xl bg-gray-900/80 border border-white/10 shadow-lg overflow-hidden flex flex-col min-h-[100px]">
           <div className="p-3 flex flex-col flex-1 justify-center">
             {loading ? (
               <div className="animate-pulse">

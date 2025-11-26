@@ -29,6 +29,12 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
     setIsLoading(true);
     
     try {
+      // Normalize address for better cache hits and consistency
+      const normalizedAddress = address.trim().toLowerCase();
+      
+      // Show loading indicator during geocoding
+      const loadingToastId = toast.loading('Finding location...');
+      
       // Try to geocode the address to get coordinates
       const sessionToken = generateSessionToken();
       let coordinates: { lat: number; lng: number } | undefined;
@@ -36,7 +42,9 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
       let resolvedName = name.trim() || undefined;
       
       try {
-        const geocoded = await resolveQuery(address.trim(), null, sessionToken);
+        console.log('[BasecampSelector] Starting geocode for:', normalizedAddress);
+        const geocoded = await resolveQuery(normalizedAddress, null, sessionToken);
+        console.log('[BasecampSelector] Geocode result:', geocoded);
         
         if (geocoded?.geometry?.location) {
           const loc = geocoded.geometry.location;
@@ -61,6 +69,9 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
       } catch (geocodeError) {
         // Geocoding failed - that's okay, we'll save without coordinates
         console.warn('[BasecampSelector] Geocoding failed, saving address as-is:', geocodeError);
+      } finally {
+        // Dismiss loading toast
+        toast.dismiss(loadingToastId);
       }
       
       const basecamp: BasecampLocation = {
