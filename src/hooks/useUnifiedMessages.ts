@@ -100,21 +100,31 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
     setIsSending(true);
     try {
       const userName = user.email?.split('@')[0] || 'Unknown User';
+      // Ensure privacy_mode is always 'standard' or 'high' (never 'normal', null, undefined, or empty)
+      const validPrivacyMode = (privacyMode === 'high' ? 'high' : 'standard') as 'standard' | 'high';
+      
       const message = await unifiedMessagingService.sendMessage({
         content,
         tripId,
         userName,
         userId: user.id,
-        privacyMode: privacyMode || 'normal'
+        privacyMode: validPrivacyMode
       });
       
       // Update cache with new message
       await saveMessagesToCache(tripId, [message as any]);
-    } catch (error) {
-      console.error('Failed to send message:', error);
+    } catch (error: any) {
+      console.error('Failed to send message:', {
+        error: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        tripId,
+        userId: user?.id
+      });
       toast({
         title: 'Send Failed',
-        description: 'Failed to send message',
+        description: error.message || 'Failed to send message. Please try again.',
         variant: 'destructive'
       });
       throw error;

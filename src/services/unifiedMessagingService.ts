@@ -141,6 +141,9 @@ class UnifiedMessagingService {
   async sendMessage(options: SendMessageOptions): Promise<Message> {
     return retryWithBackoff(
       async () => {
+        // Ensure privacy_mode is always 'standard' or 'high' (never null, undefined, or invalid)
+        const validPrivacyMode = (options.privacyMode === 'high' ? 'high' : 'standard') as 'standard' | 'high';
+        
         const { data, error } = await supabase
           .from('trip_chat_messages')
           .insert({
@@ -148,7 +151,7 @@ class UnifiedMessagingService {
             content: options.content,
             author_name: options.userName,
             user_id: options.userId,
-            privacy_mode: options.privacyMode || 'standard',
+            privacy_mode: validPrivacyMode,
             reply_to_id: options.replyToId,
             thread_id: options.threadId,
             attachments: options.attachments || []
