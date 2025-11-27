@@ -269,8 +269,6 @@ export const useTripTasks = (tripId: string, options?: {
   useEffect(() => {
     if (!tripId || isDemoMode) return;
 
-    console.log('[useTripTasks] Setting up real-time subscription for', tripId);
-
     const channel = supabase
       .channel(`trip_tasks:${tripId}`)
       .on(
@@ -282,7 +280,6 @@ export const useTripTasks = (tripId: string, options?: {
           filter: `trip_id=eq.${tripId}`,
         },
         (payload) => {
-          console.log('[useTripTasks] New task created:', payload.new);
           queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
           
           toast({
@@ -301,7 +298,6 @@ export const useTripTasks = (tripId: string, options?: {
           filter: `trip_id=eq.${tripId}`,
         },
         (payload) => {
-          console.log('[useTripTasks] Task deleted:', payload.old);
           queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
         }
       )
@@ -313,16 +309,12 @@ export const useTripTasks = (tripId: string, options?: {
           table: 'task_status',
         },
         (payload) => {
-          console.log('[useTripTasks] Task status updated:', payload.new);
           queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
         }
       )
-      .subscribe((status) => {
-        console.log('[useTripTasks] Subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('[useTripTasks] Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, [tripId, isDemoMode, queryClient, toast]);

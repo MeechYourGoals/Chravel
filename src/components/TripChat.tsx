@@ -74,7 +74,6 @@ export const TripChat = ({
   participants = []
 }: TripChatProps) => {
   const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
-  const [demoLoading, setDemoLoading] = useState(true);
   const [reactions, setReactions] = useState<{ [messageId: string]: { [reaction: string]: { count: number; userReacted: boolean } } }>({});
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
@@ -332,55 +331,47 @@ export const TripChat = ({
     setReactions(updatedReactions);
   };
 
+  // ⚡ PERFORMANCE: Synchronous demo message loading (no unnecessary async wrapper)
   useEffect(() => {
-    const loadDemoData = async () => {
-      // CRITICAL FIX: Only load demo messages when actually in demo mode
-      if (!demoMode.isDemoMode) {
-        setDemoMessages([]);
-        setDemoLoading(false);
-        return;
-      }
+    if (!demoMode.isDemoMode) {
+      setDemoMessages([]);
+      return;
+    }
 
-      setDemoLoading(true);
-      
-      // Detect if this is a Pro or Event trip
-      const isProTrip = isPro || params.proTripId;
-      const isEventTrip = isEvent || params.eventId;
-      
-      let demoMessagesData;
-      
-      if (isProTrip) {
-        demoMessagesData = demoModeService.getProMockMessages('pro', user?.id || 'demo-user');
-      } else if (isEventTrip) {
-        demoMessagesData = demoModeService.getProMockMessages('event', user?.id || 'demo-user');
-      } else {
-        demoMessagesData = demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
-      }
+    // Detect if this is a Pro or Event trip
+    const isProTripContext = isPro || params.proTripId;
+    const isEventContext = isEvent || params.eventId;
+    
+    let demoMessagesData;
+    
+    if (isProTripContext) {
+      demoMessagesData = demoModeService.getProMockMessages('pro', user?.id || 'demo-user');
+    } else if (isEventContext) {
+      demoMessagesData = demoModeService.getProMockMessages('event', user?.id || 'demo-user');
+    } else {
+      demoMessagesData = demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
+    }
 
-      const formattedMessages = demoMessagesData.map(msg => ({
-        id: msg.id,
-        text: msg.message_content || '',
-        sender: {
-          id: msg.sender_id || msg.sender_name || msg.id,
-          name: msg.sender_name || 'Unknown',
-          avatar: getMockAvatar(msg.sender_name || 'Unknown')
-        },
-        createdAt: new Date(Date.now() - (msg.timestamp_offset_days || 0) * 86400000).toISOString(),
-        isBroadcast: msg.tags?.includes('broadcast') || msg.tags?.includes('logistics') || msg.tags?.includes('urgent') || false,
-        trip_type: msg.trip_type,
-        sender_name: msg.sender_name,
-        message_content: msg.message_content,
-        delay_seconds: msg.delay_seconds,
-        timestamp_offset_days: msg.timestamp_offset_days,
-        tags: msg.tags
-      }));
+    const formattedMessages = demoMessagesData.map(msg => ({
+      id: msg.id,
+      text: msg.message_content || '',
+      sender: {
+        id: msg.sender_id || msg.sender_name || msg.id,
+        name: msg.sender_name || 'Unknown',
+        avatar: getMockAvatar(msg.sender_name || 'Unknown')
+      },
+      createdAt: new Date(Date.now() - (msg.timestamp_offset_days || 0) * 86400000).toISOString(),
+      isBroadcast: msg.tags?.includes('broadcast') || msg.tags?.includes('logistics') || msg.tags?.includes('urgent') || false,
+      trip_type: msg.trip_type,
+      sender_name: msg.sender_name,
+      message_content: msg.message_content,
+      delay_seconds: msg.delay_seconds,
+      timestamp_offset_days: msg.timestamp_offset_days,
+      tags: msg.tags
+    }));
 
-      setDemoMessages(formattedMessages);
-      setDemoLoading(false);
-    };
-
-    loadDemoData();
-  }, [demoMode.isDemoMode, isEvent, isPro, resolvedTripId, user?.id]);
+    setDemoMessages(formattedMessages);
+  }, [demoMode.isDemoMode, isPro, isEvent, params.proTripId, params.eventId, user?.id]);
 
   // Auto-select first channel when switching to 'channels' filter
   useEffect(() => {
@@ -398,7 +389,7 @@ export const TripChat = ({
 
   const filteredMessages = filterMessages(messagesToShow);
 
-  const isLoading = demoMode.isDemoMode ? demoLoading : liveLoading;
+  const isLoading = demoMode.isDemoMode ? false : liveLoading;
 
   // Global keyboard shortcut for search (Ctrl+F or Cmd+F)
   useEffect(() => {

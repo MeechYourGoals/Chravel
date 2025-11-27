@@ -39,7 +39,7 @@ interface CreateMessageRequest {
   messageType?: 'text' | 'broadcast' | 'payment' | 'system';
 }
 
-export const useTripChat = (tripId: string) => {
+export const useTripChat = (tripId: string | undefined) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isOffline } = useOfflineStatus();
@@ -50,6 +50,7 @@ export const useTripChat = (tripId: string) => {
   const { data: messages = [], isLoading, error } = useQuery({
     queryKey: ['tripChat', tripId],
     queryFn: async (): Promise<TripChatMessage[]> => {
+      if (!tripId) return [];
       // Try to load from cache first for instant display
       const cachedMessages = await loadMessagesFromCache(tripId);
       
