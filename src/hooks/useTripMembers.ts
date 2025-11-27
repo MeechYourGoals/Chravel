@@ -52,7 +52,16 @@ export const useTripMembers = (tripId?: string) => {
     setLoading(true);
     
     try {
-      // Always try database first
+      // ⚡ PERFORMANCE: Fast path for demo mode with numeric IDs - skip database entirely
+      const isNumericOnly = /^\d+$/.test(tripId);
+      if (isDemoMode && isNumericOnly) {
+        const mockMembers = getMockFallbackMembers(tripId);
+        setTripMembers(mockMembers);
+        setLoading(false);
+        return;
+      }
+
+      // Always try database first for authenticated trips
       const dbMembers = await tripService.getTripMembers(tripId);
       
       if (dbMembers && dbMembers.length > 0) {
@@ -68,7 +77,6 @@ export const useTripMembers = (tripId?: string) => {
         setTripMembers([]);
       }
     } catch (error) {
-      console.error('Error fetching trip members:', error);
       // On error: demo gets mocks, production gets empty
       if (isDemoMode) {
         const mockMembers = getMockFallbackMembers(tripId);

@@ -90,8 +90,11 @@ export const TripChat = ({
   const demoMode = useDemoMode();
   const { user } = useAuth();
 
-  // Live chat hooks - always initialize normally
-  const { tripMembers } = useTripMembers(resolvedTripId);
+  // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
+  const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
+  
+  // Live chat hooks - only initialize for authenticated trips
+  const { tripMembers } = useTripMembers(shouldSkipLiveChat ? undefined : resolvedTripId);
   const {
     messages: liveMessages,
     isLoading: liveLoading,
@@ -100,7 +103,7 @@ export const TripChat = ({
     loadMore: loadMoreMessages,
     hasMore,
     isLoadingMore
-  } = useTripChat(resolvedTripId);
+  } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
 
   const {
     inputMessage,

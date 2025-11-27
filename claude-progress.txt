@@ -218,6 +218,55 @@ None currently
 ## SESSION HISTORY (RECENT)
 ================================================================================
 
+### Session: Performance Optimization (2025-01-27) ← CURRENT
+**Goal:** Eliminate 4-5 second demo trip loading delays
+
+**Root Cause Analysis:**
+1. Async demo mode initialization with retry logic blocked render
+2. Database queries executed even for numeric demo trip IDs  
+3. Sequential loading waterfall (demo mode → trip → members)
+4. Console.log statements in hot paths
+5. TripChat initialized expensive hooks even in demo mode
+
+**Changes Made:**
+1. ✅ Made demo mode initialization SYNCHRONOUS
+   - `src/store/demoModeStore.ts`: init() now reads localStorage synchronously
+   - Removed retry logic, console.log overhead
+   - Changed interface from `() => Promise<void>` to `() => void`
+
+2. ✅ Removed blocking demo mode check in App.tsx
+   - Initialize demo mode at module load instead of async useEffect
+   - Removed `demoModeInitialized` state and blocking spinner
+   - App renders immediately without waiting
+
+3. ✅ Added fast-path for demo trips to skip database queries
+   - `src/hooks/useTripMembers.ts`: Early return for demo mode with numeric IDs
+   - Skips Supabase query entirely, uses mock data immediately
+   - Saves 1-2 seconds per trip load
+
+4. ✅ Optimized TripChat to skip DB for demo mode
+   - `src/components/TripChat.tsx`: Added `shouldSkipLiveChat` flag
+   - Passes `undefined` to hooks when in demo mode with numeric IDs
+   - Prevents unnecessary Supabase subscriptions
+
+5. ✅ Removed loading waterfall in TripDetailDesktop
+   - `src/pages/TripDetailDesktop.tsx`: Removed `membersLoading` from blocking condition
+   - Trip header shows immediately, members load in background
+   - Parallel data fetching instead of sequential
+
+6. ✅ Cleaned up console.log statements from hot paths
+   - Removed from demoModeStore, TripDetailDesktop, MobileTripDetail
+
+**Expected Result:** 
+- Demo trip loading: 4-5 seconds → ~1 second (80% improvement)
+- Authenticated trip loading: Also faster due to parallel fetching
+
+**Testing Needed:**
+- [ ] Demo mode trip loads in <1 second
+- [ ] Authenticated trips still work correctly  
+- [ ] Mobile trip detail loads fast
+- [ ] No functionality regressions
+
 ### Session: Privacy Policy + Terms Pages (2025-01-27)
 - Added Privacy Policy page with dark theme
 - Added Terms of Service page with standard content
@@ -225,7 +274,7 @@ None currently
 - Fixed read receipt service to use message_read_receipts table
 - Removed console.log statements from App.tsx
 
-### Session: Payment Split Fix (2025-01-27) ← CURRENT
+### Session: Payment Split Fix (2025-01-27)
 - Fixed PaymentsTab to load trip members from tripsData.ts for demo mode
 - Ensured "Split Between (#) People" shows same users as Trip Collaborators
 - Verified Coachella Squad 2026 demo trip now shows all 5 collaborators
