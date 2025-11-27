@@ -90,11 +90,9 @@ export const TripDetailDesktop = () => {
       
       if (isDemoMode) {
         // 🎭 DEMO MODE: Use mock data only - NO Supabase queries
-        console.log(`[TripDetailDesktop] Demo mode active, loading trip ${tripId}`);
         const tripIdNum = parseInt(tripId, 10);
 
         if (Number.isNaN(tripIdNum)) {
-          console.error(`[TripDetailDesktop] Invalid trip ID (not a number): ${tripId}`);
           toast.error('Invalid trip ID format for demo mode');
           setTrip(null);
           setLoading(false);
@@ -103,11 +101,7 @@ export const TripDetailDesktop = () => {
 
         const mockTrip = getTripById(tripIdNum);
         if (!mockTrip) {
-          console.error(`[TripDetailDesktop] Trip ${tripId} not found in demo data`);
-          console.log('[TripDetailDesktop] Available demo trip IDs:', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
           toast.error(`Demo trip ${tripId} not found. Available trips: 1-12`);
-        } else {
-          console.log(`[TripDetailDesktop] Successfully loaded demo trip:`, mockTrip.title);
         }
         setTrip(mockTrip || null);
       } else {
@@ -117,11 +111,9 @@ export const TripDetailDesktop = () => {
           if (realTrip) {
             setTrip(convertSupabaseTripToMock(realTrip));
           } else {
-            console.error(`TripDetailDesktop: Trip not found in Supabase: ${tripId}`);
             setTrip(null);
           }
         } catch (error) {
-          console.error('TripDetailDesktop: Error loading trip from Supabase:', error);
           setTrip(null);
         }
       }
@@ -235,8 +227,9 @@ export const TripDetailDesktop = () => {
     isPro: false
   }), [tripId, tripWithUpdatedData, basecamp, mockItinerary, mockBroadcasts, mockLinks, tripMessages, isDemoMode, tripMembers]);
 
-  // ⚡ OPTIMIZATION: Show loading spinner after data setup if still loading
-  if (demoModeLoading || loading || membersLoading) {
+  // ⚡ OPTIMIZATION: Show loading spinner only for critical data
+  // Don't block on members loading - show trip immediately, members load in background
+  if (demoModeLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <LoadingSpinner />

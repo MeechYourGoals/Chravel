@@ -61,18 +61,7 @@ export const MobileTripDetail = () => {
   const allTrips = isDemoMode ? tripsData : convertSupabaseTripsToMock(userTrips);
   const trip = allTrips.find(t => String(t.id) === tripId);
 
-  // Log for debugging
-  React.useEffect(() => {
-    if (!demoModeLoading) {
-      console.log('[MobileTripDetail] Loading trip:', {
-        tripId,
-        isDemoMode,
-        tripFound: !!trip,
-        tripTitle: trip?.title,
-        availableTrips: allTrips.length
-      });
-    }
-  }, [tripId, isDemoMode, trip, allTrips.length, demoModeLoading]);
+  // ⚡ PERFORMANCE: Removed console.log from hot path
   
   React.useEffect(() => {
     if (trip && !tripDescription) {

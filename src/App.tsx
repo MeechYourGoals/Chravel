@@ -75,43 +75,16 @@ const queryClient = new QueryClient();
 // Use HashRouter in preview to avoid hosting fallback issues
 const Router = isLovablePreview() ? HashRouter : BrowserRouter;
 
-const App = () => {
-  const [demoModeInitialized, setDemoModeInitialized] = React.useState(false);
+// ⚡ PERFORMANCE: Initialize demo mode synchronously at module load
+useDemoModeStore.getState().init();
 
+const App = () => {
   // Track app initialization performance
   const stopTiming = performanceService.startTiming('App Initialization');
   
   React.useEffect(() => {
     stopTiming();
   }, [stopTiming]);
-
-  // Initialize demo mode BEFORE rendering any components
-  useEffect(() => {
-    const initDemoMode = async () => {
-      let retries = 3;
-
-      while (retries > 0) {
-        try {
-          await useDemoModeStore.getState().init();
-          break;
-        } catch (error) {
-          retries--;
-          console.error('[App] Demo mode init failed:', error);
-
-          if (retries === 0) {
-            console.error('[App] Demo mode init failed after all retries. Continuing anyway...');
-            break;
-          }
-
-          // Wait before retrying (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, 500 * (4 - retries)));
-        }
-      }
-
-      setDemoModeInitialized(true);
-    };
-    initDemoMode();
-  }, []);
 
   // Initialize error tracking with user context
   useEffect(() => {
@@ -158,15 +131,6 @@ const App = () => {
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
     return () => window.removeEventListener('unhandledrejection', handleUnhandledRejection);
   }, []);
-
-  // Show loading screen until demo mode is initialized
-  if (!demoModeInitialized) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary" />
-      </div>
-    );
-  }
 
   return (
     <ErrorBoundary>
