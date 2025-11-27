@@ -42,7 +42,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
       <StickyLandingNav onSignUp={onSignUp} />
 
       {/* Full-Page Scrolling Container */}
-      <div className="snap-y snap-mandatory overflow-y-scroll h-screen scroll-smooth">
+      <div className="snap-y snap-proximity md:snap-mandatory overflow-y-auto h-screen scroll-smooth">
         {/* Section 1: Hero */}
         <FullPageLandingSection
           id="section-hero"

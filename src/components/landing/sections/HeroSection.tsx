@@ -9,7 +9,7 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
   return (
-    <div className="relative container mx-auto px-4 py-12 md:py-0 flex flex-col items-center justify-center min-h-[90vh] text-center space-y-6">
+    <div className="relative container mx-auto px-4 py-12 md:py-0 flex flex-col items-center justify-center min-h-[85vh] md:min-h-[90vh] text-center space-y-6">
       {/* Demo Mode Toggle - Desktop only (mobile uses sticky nav) */}
       <div className="absolute top-4 right-4 md:top-6 md:right-6 z-20 hidden md:block">
         <DemoModeToggle />
@@ -53,10 +53,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       <Button 
         size="lg" 
         onClick={onSignUp}
-        className="text-xl px-8 py-7 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 animate-fade-in"
+        className="text-base md:text-xl px-6 md:px-8 py-6 md:py-7 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 animate-fade-in"
         style={{ animationDelay: '0.3s' }}
       >
-        Start Free →
+        Get Started Free · Log In or Sign Up
       </Button>
 
       {/* Trust Badge */}
