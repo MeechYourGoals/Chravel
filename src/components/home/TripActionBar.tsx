@@ -123,6 +123,12 @@ export const TripActionBar = ({
       fetchUnreadCount();
     }
 
+    // Short-circuit if no tripId (system/metadata-less notifications)
+    if (!notification.tripId) {
+      setIsNotificationsOpen?.(false);
+      return;
+    }
+
     // Navigate based on notification type
     if (notification.type === 'message' || notification.type === 'chat' || notification.type === 'mention') {
       navigate(`/trip/${notification.tripId}?tab=chat`);

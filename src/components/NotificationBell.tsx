@@ -133,6 +133,12 @@ export const NotificationBell = () => {
         .eq('id', notification.id);
     }
 
+    // Short-circuit if no tripId (system/metadata-less notifications)
+    if (!notification.tripId) {
+      setIsOpen(false);
+      return;
+    }
+
     // Navigate based on notification type
     if (notification.type === 'message' || notification.type === 'chat' || notification.type === 'mention') {
       navigate(`/trip/${notification.tripId}?tab=chat`);
