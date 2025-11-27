@@ -20,7 +20,7 @@ export const AiFeaturesSection = () => {
     {
       icon: <Bell className="text-accent" size={32} />,
       title: 'Smart Notifications',
-      description: 'Context-aware alerts for flight changes, reservation reminders, and group updates — never miss what matters, without notification overload.',
+      description: 'Context-aware alerts for schedule conflicts, important chat messages, and group itineraries. Never miss what matters without notification overload.',
       badge: 'Context-Aware'
     },
     {

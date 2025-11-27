@@ -38,7 +38,7 @@ export const SocialProofVideoSection = () => {
           Trusted by Groups Worldwide
         </h2>
         <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-          See why thousands of families, teams, touring artists, and companies choose Chravel to coordinate group trips and events.
+          See why families, Sports teams, touring artists, and companies alike choose Chravel to remove the Chaos from Coordinating.
         </p>
       </div>
 
