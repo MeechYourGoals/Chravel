@@ -11,14 +11,12 @@ import type { PaymentProcessor, PaymentRequest, PaymentResponse, PaymentError } 
 export class StripeProcessor implements PaymentProcessor {
   private config: {
     publishableKey?: string;
-    secretKey?: string;
     environment: 'sandbox' | 'production';
   };
 
-  constructor(config: { publishableKey?: string; secretKey?: string; environment?: 'sandbox' | 'production' }) {
+  constructor(config: { publishableKey?: string; environment?: 'sandbox' | 'production' }) {
     this.config = {
       publishableKey: config.publishableKey || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
-      secretKey: config.secretKey || import.meta.env.VITE_STRIPE_SECRET_KEY,
       environment: config.environment || (import.meta.env.PROD ? 'production' : 'sandbox')
     };
   }
@@ -28,7 +26,8 @@ export class StripeProcessor implements PaymentProcessor {
   }
 
   isConfigured(): boolean {
-    return !!this.config.publishableKey && !!this.config.secretKey;
+    // Only check for publishable key - secret key is handled server-side
+    return !!this.config.publishableKey;
   }
 
   async validatePaymentMethod(identifier: string): Promise<boolean> {
