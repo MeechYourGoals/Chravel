@@ -71,6 +71,7 @@ interface AuthContextType {
   signInWithApple: () => Promise<{ error?: string }>;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error?: string }>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error?: any }>;
   updateNotificationSettings: (updates: Partial<User['notificationSettings']>) => Promise<void>;
   switchRole: (role: string) => void;
@@ -472,6 +473,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setSession(null);
   };
 
+  const resetPassword = async (email: string): Promise<{ error?: string }> => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.error('[Auth] Reset password error:', error);
+        }
+        return { error: error.message };
+      }
+      
+      return {};
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[Auth] Unexpected reset password error:', error);
+      }
+      return { error: 'An unexpected error occurred. Please try again.' };
+    }
+  };
+
   const updateProfile = async (updates: Partial<UserProfile>): Promise<{ error?: any }> => {
     if (!user) return { error: 'No user logged in' };
 
@@ -579,6 +602,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       signInWithApple,
       signUp,
       signOut,
+      resetPassword,
       updateProfile,
       updateNotificationSettings,
       switchRole

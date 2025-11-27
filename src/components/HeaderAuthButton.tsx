@@ -103,7 +103,7 @@ export const HeaderAuthButton = () => {
           shadow-lg shadow-primary/20 backdrop-blur-md h-9 px-3"
       >
         <LogIn className="h-4 w-4" />
-        <span className="text-[10px] font-medium">Login</span>
+        <span className="text-[10px] font-medium">Log In</span>
       </Button>
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
