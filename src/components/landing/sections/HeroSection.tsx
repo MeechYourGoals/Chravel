@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '../../ui/button';
 import { Users, Calendar, MapPin, Sparkles } from 'lucide-react';
 import { DemoModeToggle } from '../../DemoModeToggle';
+import tripsDashboard from '@/assets/app-screenshots/trips-dashboard.png';
 
 interface HeroSectionProps {
   onSignUp: () => void;
@@ -26,7 +27,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
 
       {/* Subheadline */}
       <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-foreground max-w-3xl animate-fade-in" style={{ animationDelay: '0.1s' }}>
-        The AI-powered social storage platform for group plans, messages, and memories. Use Chravel for family trips, youth sports, weddings, tours, or any group that needs one place for chat, calendars, payments, and photos.
+        Your group's shared home for plans, messages, and memories. One app instead of fifteen.
       </p>
 
       {/* Feature Pills */}
@@ -63,6 +64,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       <p className="text-base md:text-lg text-foreground pt-2 animate-fade-in" style={{ animationDelay: '0.4s' }}>
         Join families, teams, touring artists, and corporate crews who've already eliminated group-chat chaos.
       </p>
+
+      {/* Product Preview */}
+      <div className="mt-8 w-full max-w-5xl mx-auto animate-fade-in" style={{ animationDelay: '0.5s' }}>
+        <img 
+          src={tripsDashboard} 
+          alt="Chravel trips dashboard showing organized group travel" 
+          className="rounded-xl shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300"
+        />
+      </div>
     </div>
   );
 };

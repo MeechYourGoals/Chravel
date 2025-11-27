@@ -1,5 +1,6 @@
 import React from 'react';
 import { MessageSquare, Calendar, Image, DollarSign, MapPin, CheckSquare } from 'lucide-react';
+import pollsVoting from '@/assets/app-screenshots/polls-voting.png';
 
 const storageTypes = [
   {
@@ -65,6 +66,20 @@ export const SocialStorageSection = () => {
             </p>
           </div>
         ))}
+      </div>
+
+      {/* Polls Screenshot Showcase */}
+      <div className="w-full max-w-3xl mx-auto">
+        <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300">
+          <img 
+            src={pollsVoting} 
+            alt="Group polls and voting for collaborative decisions" 
+            className="w-full h-auto"
+          />
+        </div>
+        <p className="text-center text-foreground mt-4 text-base md:text-lg">
+          Make group decisions easier with polls and voting
+        </p>
       </div>
 
       {/* Closing Line */}
