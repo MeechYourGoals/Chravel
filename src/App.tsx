@@ -59,6 +59,8 @@ const ChravelRecsPage = lazy(() => retryImport(() => import("./pages/ChravelRecs
 const ForTeams = lazy(() => retryImport(() => import("./pages/ForTeams").then(module => ({ default: module.ForTeams }))));
 const AdvertiserDashboard = lazy(() => retryImport(() => import("./pages/AdvertiserDashboard")));
 const Healthz = lazy(() => retryImport(() => import("./pages/Healthz")));
+const PrivacyPolicy = lazy(() => retryImport(() => import("./pages/PrivacyPolicy")));
+const TermsOfService = lazy(() => retryImport(() => import("./pages/TermsOfService")));
 
 // Note: Large components are already optimized with code splitting
 
@@ -90,9 +92,7 @@ const App = () => {
 
       while (retries > 0) {
         try {
-          console.log('[App] Initializing demo mode... (attempts remaining: ' + retries + ')');
           await useDemoModeStore.getState().init();
-          console.log('[App] Demo mode initialized successfully');
           break;
         } catch (error) {
           retries--;
@@ -107,13 +107,6 @@ const App = () => {
           await new Promise(resolve => setTimeout(resolve, 500 * (4 - retries)));
         }
       }
-
-      // Log final state for debugging
-      const finalState = useDemoModeStore.getState();
-      console.log('[App] Demo mode final state:', {
-        isDemoMode: finalState.isDemoMode,
-        isLoading: finalState.isLoading
-      });
 
       setDemoModeInitialized(true);
     };
@@ -145,7 +138,6 @@ const App = () => {
       const error = event.reason?.message || String(event.reason);
       
       if (error.includes('Loading chunk') || error.includes('Failed to fetch dynamically imported')) {
-        console.warn('[App] Chunk load failure detected:', error);
         
         toast({
           title: "Update Available",
@@ -243,6 +235,16 @@ const App = () => {
                     <Route path="/healthz" element={
                       <LazyRoute>
                         <Healthz />
+                      </LazyRoute>
+                    } />
+                    <Route path="/privacy" element={
+                      <LazyRoute>
+                        <PrivacyPolicy />
+                      </LazyRoute>
+                    } />
+                    <Route path="/terms" element={
+                      <LazyRoute>
+                        <TermsOfService />
                       </LazyRoute>
                     } />
                     <Route path="/profile" element={

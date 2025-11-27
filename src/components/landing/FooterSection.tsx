@@ -1,6 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+const scrollToSection = (id: string) => {
+  const element = document.getElementById(id);
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+};
+
 export const FooterSection = () => {
   const currentYear = new Date().getFullYear();
 
@@ -23,19 +30,28 @@ export const FooterSection = () => {
             <h3 className="font-semibold text-lg text-foreground">Product</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#section-features" className="text-foreground hover:text-primary transition-colors">
+                <button
+                  onClick={() => scrollToSection('section-features')}
+                  className="text-foreground hover:text-primary transition-colors text-left"
+                >
                   Features
-                </a>
+                </button>
               </li>
               <li>
-                <a href="#section-ai" className="text-foreground hover:text-primary transition-colors">
+                <button
+                  onClick={() => scrollToSection('section-ai')}
+                  className="text-foreground hover:text-primary transition-colors text-left"
+                >
                   AI Features
-                </a>
+                </button>
               </li>
               <li>
-                <a href="#section-pricing" className="text-foreground hover:text-primary transition-colors">
+                <button
+                  onClick={() => scrollToSection('section-pricing')}
+                  className="text-foreground hover:text-primary transition-colors text-left"
+                >
                   Pricing
-                </a>
+                </button>
               </li>
               <li>
                 <Link to="/teams" className="text-foreground hover:text-primary transition-colors">
@@ -67,14 +83,14 @@ export const FooterSection = () => {
             <h3 className="font-semibold text-lg text-foreground">Legal</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="/privacy" className="text-foreground hover:text-primary transition-colors">
+                <Link to="/privacy" className="text-foreground hover:text-primary transition-colors">
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/terms" className="text-foreground hover:text-primary transition-colors">
+                <Link to="/terms" className="text-foreground hover:text-primary transition-colors">
                   Terms of Service
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

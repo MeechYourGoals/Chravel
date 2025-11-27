@@ -13,11 +13,11 @@ type ReadStatusInsert = any;
  */
 export async function markMessageAsRead(messageId: string, tripId: string, userId: string): Promise<void> {
   const { error } = await supabase
-    .from('message_read_status' as any)
+    .from('message_read_receipts')
     .upsert({
       message_id: messageId,
       user_id: userId,
-      trip_id: tripId,
+      message_type: 'trip',
       read_at: new Date().toISOString(),
     }, {
       onConflict: 'message_id,user_id'
@@ -36,12 +36,12 @@ export async function markMessagesAsRead(messageIds: string[], tripId: string, u
   const readStatuses: ReadStatusInsert[] = messageIds.map(messageId => ({
     message_id: messageId,
     user_id: userId,
-    trip_id: tripId,
+    message_type: 'trip',
     read_at: new Date().toISOString(),
   }));
 
   const { error } = await supabase
-    .from('message_read_status' as any)
+    .from('message_read_receipts')
     .upsert(readStatuses, {
       onConflict: 'message_id,user_id'
     });
@@ -57,7 +57,7 @@ export async function markMessagesAsRead(messageIds: string[], tripId: string, u
  */
 export async function getMessageReadStatus(messageId: string): Promise<ReadStatus[]> {
   const { data, error } = await supabase
-    .from('message_read_status' as any)
+    .from('message_read_receipts')
     .select('*')
     .eq('message_id', messageId)
     .order('read_at', { ascending: false });
@@ -75,7 +75,7 @@ export async function getMessageReadStatus(messageId: string): Promise<ReadStatu
  */
 export async function getMessagesReadStatus(messageIds: string[]): Promise<Record<string, ReadStatus[]>> {
   const { data, error } = await supabase
-    .from('message_read_status' as any)
+    .from('message_read_receipts')
     .select('*')
     .in('message_id', messageIds);
 
@@ -110,8 +110,7 @@ export function subscribeToReadReceipts(
       {
         event: 'INSERT',
         schema: 'public',
-        table: 'message_read_status',
-        filter: `trip_id=eq.${tripId}`
+        table: 'message_read_receipts'
       },
       (payload) => {
         onRead(payload.new as ReadStatus);

@@ -41,10 +41,9 @@ export function useUnreadCounts({
 
         // Query read status for current user
         const { data: readStatuses, error } = await supabase
-          .from('message_read_status' as any)
+          .from('message_read_receipts')
           .select('message_id')
           .eq('user_id', userId)
-          .eq('trip_id', tripId)
           .in('message_id', messageIds);
 
         if (error) {
@@ -88,7 +87,7 @@ export function useUnreadCounts({
         {
           event: '*',
           schema: 'public',
-          table: 'message_read_status',
+          table: 'message_read_receipts',
           filter: `user_id=eq.${userId}`
         },
         () => {
