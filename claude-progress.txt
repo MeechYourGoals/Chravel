@@ -1,0 +1,250 @@
+# CLAUDE-PROGRESS.TXT
+# Chravel | Anti-Goldfish Protocol
+# Last Updated: 2025-01-27 (Session after payment split fix)
+# Session: Post-Payment-Fix-1
+
+================================================================================
+## CURRENT STATE
+================================================================================
+
+### Environment
+- Branch: main
+- Last Commit: Fixed PaymentsTab to load trip members from tripsData.ts for demo mode
+- Server Status: Running (npm run dev)
+- Build Status: Passing ✅
+
+### What's Working
+- [x] Auth flow (login/signup/logout)
+- [x] Trip creation (demo mode) - 12 mock trips available
+- [x] Trip creation (authenticated mode)
+- [x] Dashboard renders trips
+- [x] Chat functionality (trip_chat_messages)
+- [x] Calendar sync (trip_events)
+- [x] Tasks CRUD (trip_tasks, task_assignments)
+- [x] Media uploads (S3 integration)
+- [x] AI concierge (contextual RAG)
+- [x] **Payment split between people now correctly loads trip collaborators** ✨
+- [x] State sync (Supabase ↔ UI with realtime)
+- [x] Read receipts (message_read_receipts table)
+- [x] Privacy Policy and Terms of Service pages
+- [x] Landing page with proper scroll navigation
+
+### What's Broken
+1. None currently known - all P0 blockers resolved ✅
+
+================================================================================
+## SESSION LOG
+================================================================================
+
+### This Session (Payment Split Fix)
+Started: 2025-01-27
+Goal: Fix "Split Between (#) People" to auto-populate from Trip Collaborators
+
+Progress:
+- [x] Analyzed root cause: PaymentsTab always queried Supabase, ignored demo mode
+- [x] Modified PaymentsTab.tsx to check demoActive first
+- [x] Load participants from tripsData.ts for demo trips
+- [x] Transform participant format: { id: string, name: string, avatar?: string }
+- [x] Verified CreatePaymentModal.tsx doesn't need changes (receives prop)
+- [x] Tested: Coachella Squad 2026 now shows 5 people (Tyler, Zoe, Mason, Chloe, Jordan)
+
+Commits:
+- [latest]: Fix PaymentsTab to load trip members from tripsData.ts for demo mode
+
+Tests Run:
+- E2E: Navigated to Coachella Squad 2026 → Payments tab → Verified 5 collaborators shown
+- E2E: Verified authenticated mode still queries Supabase correctly
+- Unit: TypeScript compilation ✅
+- Unit: ESLint ✅
+
+### Blockers Encountered
+None
+
+================================================================================
+## NEXT SESSION HANDOFF
+================================================================================
+
+### Immediate Next Action
+**Anti-Goldfish Protocol has been initialized.**
+
+Next coding session should:
+1. Run `bash _init.sh` to validate environment
+2. Read this file (claude-progress.txt)
+3. Read git log to see recent changes
+4. Pick ONE feature from Feature Queue below
+5. Implement, test E2E, commit, update this file
+
+### Do NOT Touch
+- `src/services/readReceiptService.ts` - Recently fixed to use message_read_receipts table
+- `src/components/payments/PaymentsTab.tsx` - Just fixed demo mode loading
+- `src/App.tsx` - Routes recently added for Privacy/Terms pages
+- `src/components/landing/FooterSection.tsx` - Scroll handlers just fixed
+
+### Known Gotchas
+- Demo mode trips use numeric IDs (1-12), authenticated trips use UUIDs
+- Always check `demoActive` when loading data - demo data lives in `tripsData.ts`
+- Payment splits expect `{ id: string, name: string, avatar?: string }` format
+- Message read receipts use `message_read_receipts` table (not `message_read_status`)
+
+### Feature Queue (Priority Order)
+1. [ ] **Trip notifications** - Calendar event reminders, broadcast messages - Est: M
+2. [ ] **Offline sync** - Service worker + IndexedDB for offline mode - Est: L
+3. [ ] **Places/Maps enhancements** - Trip Base Camp address persistence - Est: M
+4. [ ] **AI Concierge context expansion** - Include payment data in RAG - Est: S
+5. [ ] **Receipt scanning with OCR** - Auto-extract amounts from photos - Est: M
+6. [ ] **Multi-currency support** - Exchange rates in payment splits - Est: M
+7. [ ] **Task dependencies** - Block tasks until prerequisites done - Est: S
+8. [ ] **Broadcast scheduling** - Schedule messages for future send - Est: S
+9. [ ] **Event RSVP with waitlist** - Capacity limits + waitlist management - Est: M
+10. [ ] **Channel role permissions** - Restrict channels to specific roles - Est: S
+
+================================================================================
+## FEATURE CHECKLIST
+================================================================================
+
+### Core MVP Features
+| Feature | Status | Last Tested | Notes |
+|---------|--------|-------------|-------|
+| User auth | ✅ | 2025-01-27 | Login/signup/logout working |
+| Demo mode | ✅ | 2025-01-27 | 12 mock trips, all tabs functional |
+| Trip CRUD | ✅ | 2025-01-27 | Create/read/update/delete |
+| Invite flow | ✅ | 2025-01-25 | Invite links with codes |
+| Chat | ✅ | 2025-01-27 | Main chat + threads working |
+| Itinerary | ✅ | 2025-01-26 | Calendar events + drag-drop |
+| Tasks | ✅ | 2025-01-26 | CRUD + assignments |
+| Media/docs | ✅ | 2025-01-25 | S3 uploads working |
+| AI concierge | ✅ | 2025-01-26 | RAG with trip context |
+| Notifications | ⏳ | | Need calendar reminders |
+| **Payment splits** | ✅ | 2025-01-27 | **Just fixed - loads collaborators** |
+
+Status Key: ✅ Done | ⏳ In Progress | ❌ Broken | 🔜 Not Started
+
+### Infrastructure
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Supabase integration | ✅ | Auth + DB + Storage + Realtime |
+| TypeScript strict mode | ✅ | All types enforced |
+| ESLint + Prettier | ✅ | Code quality checks |
+| React Router v6 | ✅ | All routes working |
+| Zustand state mgmt | ✅ | Global state working |
+| TanStack Query | ✅ | Data fetching + caching |
+| Google Maps API | ✅ | Places, autocomplete, geocoding |
+| Capacitor (mobile) | ⏳ | iOS/Android setup present |
+| PWA setup | ⏳ | Service worker needed |
+| Testing (Vitest) | ⏳ | Infrastructure present, needs expansion |
+
+### Chravel Pro Features
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Organizations | ✅ | CRUD working |
+| Org billing (Stripe) | ✅ | Subscription management |
+| Team channels | ✅ | Role-based channels |
+| Trip roles | ✅ | Custom role creation |
+| Game/show schedules | ✅ | Sports/touring schedules |
+| Broadcast messages | ✅ | Priority messaging |
+| Category assignments | ✅ | Task categorization |
+
+### Chravel Events Features
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Event RSVPs | ✅ | CRUD working |
+| Check-in system | ✅ | QR codes + check-in tracking |
+| Q&A sessions | ✅ | Live questions + upvotes |
+| Waitlist | ⏳ | Schema present, UI needed |
+| Dietary restrictions | ✅ | Tracked in RSVP |
+
+### Advanced Features
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Conflict resolution | ✅ | Version-based conflict detection |
+| Retry logic | ✅ | useRetryableMutation hook |
+| Error tracking | ✅ | errorTracking service |
+| Rate limiting | ✅ | rate_limits table |
+| Security audit log | ✅ | security_audit_log table |
+| Link previews | ✅ | OG tags extracted |
+| Media albums | ✅ | Auto-organization |
+| Receipt scanning | 🔜 | OCR not implemented yet |
+| Loyalty programs | ✅ | Airlines/hotels/rentals |
+| Saved recommendations | ✅ | User bookmarks |
+
+================================================================================
+## TECHNICAL DEBT & KNOWN ISSUES
+================================================================================
+
+### High Priority
+None currently
+
+### Medium Priority
+1. Expand test coverage (currently ~15 unit tests, need 50%+)
+2. Add E2E tests with Playwright for critical flows
+3. Implement service worker for offline mode
+4. Add calendar event notifications (push notifications)
+
+### Low Priority
+1. Refactor long components (>300 lines) into smaller focused components
+2. Add visual regression testing
+3. Performance optimization for large trip datasets
+4. Add more comprehensive error boundaries
+
+================================================================================
+## ARCHITECTURE NOTES
+================================================================================
+
+### Data Flow Patterns
+- Demo mode: Data from `src/data/tripsData.ts` → Local state
+- Authenticated: Supabase query → TanStack Query cache → UI
+- Realtime: Supabase subscription → Direct state update + cache invalidation
+
+### Critical Services
+- `tripService.ts` - All trip CRUD operations
+- `chatService.ts` - Message sending/fetching
+- `paymentService.ts` - Payment splits and balances
+- `calendarService.ts` - Event management
+- `demoModeService.ts` - Demo data generation
+- `conflictResolutionService.ts` - Version conflict handling
+- `errorTracking.ts` - Error logging and breadcrumbs
+
+### State Management
+- Global: Zustand stores (auth, demo mode, trip context)
+- Server: TanStack Query (caching, invalidation, optimistic updates)
+- Local: useState/useReducer for component-specific state
+
+### Component Patterns
+- Desktop/Mobile split: Separate components for responsive design
+- Shadcn UI: All UI components themed via `index.css` semantic tokens
+- NO direct color classes (text-white, bg-black) - use semantic tokens only
+
+================================================================================
+## SESSION HISTORY (RECENT)
+================================================================================
+
+### Session: Privacy Policy + Terms Pages (2025-01-27)
+- Added Privacy Policy page with dark theme
+- Added Terms of Service page with standard content
+- Fixed footer navigation to use scroll handlers
+- Fixed read receipt service to use message_read_receipts table
+- Removed console.log statements from App.tsx
+
+### Session: Payment Split Fix (2025-01-27) ← CURRENT
+- Fixed PaymentsTab to load trip members from tripsData.ts for demo mode
+- Ensured "Split Between (#) People" shows same users as Trip Collaborators
+- Verified Coachella Squad 2026 demo trip now shows all 5 collaborators
+- Added Anti-Goldfish Protocol files (this file, CLAUDE_PROTOCOL.md, _init.sh)
+
+================================================================================
+## REMINDERS FOR NEXT CLAUDE
+================================================================================
+
+1. **Always start** by running `bash _init.sh` and reading this file
+2. **Pick ONE feature** from the Feature Queue
+3. **Test E2E** as a real user (click through the UI, verify it works)
+4. **Commit incrementally** with clear messages
+5. **Update this file** before ending the session
+6. **Follow CLAUDE_PROTOCOL.md** rules religiously
+7. **Never skip** the "Do NOT Touch" list check
+
+Remember: You're not a goldfish. You're a senior engineer maintaining a complex codebase.
+Read. Plan. Execute. Test. Document. Repeat.
+
+================================================================================
+EOF
