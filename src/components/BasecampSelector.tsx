@@ -29,8 +29,9 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
     setIsLoading(true);
     
     try {
-      // Normalize address for better cache hits and consistency
-      const normalizedAddress = address.trim().toLowerCase();
+      // Keep original casing for Google Places API matching
+      // (lowercase breaks business name matching like "Hotel One Miami")
+      const trimmedAddress = address.trim();
       
       // Show loading indicator during geocoding
       const loadingToastId = toast.loading('Finding location...');
@@ -38,12 +39,12 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
       // Try to geocode the address to get coordinates
       const sessionToken = generateSessionToken();
       let coordinates: { lat: number; lng: number } | undefined;
-      let formattedAddress = address.trim();
+      let formattedAddress = trimmedAddress;
       let resolvedName = name.trim() || undefined;
       
       try {
-        console.log('[BasecampSelector] Starting geocode for:', normalizedAddress);
-        const geocoded = await resolveQuery(normalizedAddress, null, sessionToken);
+        console.log('[BasecampSelector] Starting geocode for:', trimmedAddress);
+        const geocoded = await resolveQuery(trimmedAddress, null, sessionToken);
         console.log('[BasecampSelector] Geocode result:', geocoded);
         
         if (geocoded?.geometry?.location) {

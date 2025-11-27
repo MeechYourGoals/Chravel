@@ -24,6 +24,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   tripId,
   tripBasecamp,
   onTripBasecampSet,
+  onCenterMap,
   personalBasecamp: externalPersonalBasecamp,
   onPersonalBasecampUpdate
 }) => {
@@ -84,6 +85,11 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   const handleTripBasecampSet = async (newBasecamp: BasecampLocation) => {
     await onTripBasecampSet(newBasecamp);
     setShowTripSelector(false);
+    
+    // Center map on new trip basecamp if coordinates exist ("most recent wins" behavior)
+    if (newBasecamp.coordinates) {
+      onCenterMap(newBasecamp.coordinates, 'trip');
+    }
   };
 
   const handleTripBasecampDelete = () => {
@@ -93,8 +99,10 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
 
   const handlePersonalBasecampSet = async (location: BasecampLocation) => {
     try {
+      let savedBasecamp: PersonalBasecamp | null = null;
+      
       if (isDemoMode) {
-        const sessionBasecamp = demoModeService.setSessionPersonalBasecamp({
+        savedBasecamp = demoModeService.setSessionPersonalBasecamp({
           trip_id: tripId,
           user_id: effectiveUserId,
           name: location.name,
@@ -102,19 +110,25 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           latitude: location.coordinates?.lat,
           longitude: location.coordinates?.lng
         });
-        setPersonalBasecamp(sessionBasecamp);
+        setPersonalBasecamp(savedBasecamp);
       } else if (user) {
-        const dbBasecamp = await basecampService.upsertPersonalBasecamp({
+        savedBasecamp = await basecampService.upsertPersonalBasecamp({
           trip_id: tripId,
           name: location.name,
           address: location.address,
           latitude: location.coordinates?.lat,
           longitude: location.coordinates?.lng
         });
-        setPersonalBasecamp(dbBasecamp);
+        setPersonalBasecamp(savedBasecamp);
       }
+      
       setShowPersonalSelector(false);
       toast.success('Personal basecamp saved');
+      
+      // Center map on new personal basecamp if coordinates exist ("most recent wins" behavior)
+      if (savedBasecamp?.latitude && savedBasecamp?.longitude) {
+        onCenterMap({ lat: savedBasecamp.latitude, lng: savedBasecamp.longitude }, 'personal');
+      }
     } catch (error) {
       console.error('[BasecampsPanel] Failed to set personal basecamp:', error);
       toast.error('Failed to set personal base camp');

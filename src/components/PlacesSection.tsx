@@ -329,8 +329,10 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     
     setContextBasecamp(newBasecamp);
     
-    // Note: Removed auto-centering - basecamp is reference address only
-    // Map will center only when user actively searches
+    // Auto-center map on trip basecamp if coordinates exist ("most recent wins" behavior)
+    if (newBasecamp.coordinates) {
+      handleCenterMap(newBasecamp.coordinates, 'trip');
+    }
     
     // Recalculate distances for existing places
     if (places.length > 0) {
@@ -456,9 +458,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     if (context === 'personal' && !personalBasecamp) {
       setShowPersonalBasecampSelector(true);
     }
-    
-    // Note: Map centering removed - basecamps are reference addresses only
-    // Map will only center when user actively searches via search box
   };
 
   // Search handlers with autocomplete
@@ -605,6 +604,16 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
     coordinates: pb.latitude && pb.longitude ? { lat: pb.latitude, lng: pb.longitude } : undefined
   });
 
+  // Wrapper for personal basecamp updates that triggers map centering ("most recent wins" behavior)
+  const handlePersonalBasecampUpdate = (basecamp: PersonalBasecamp | null) => {
+    setPersonalBasecamp(basecamp);
+    
+    // Auto-center map on personal basecamp if coordinates exist
+    if (basecamp?.latitude && basecamp?.longitude) {
+      handleCenterMap({ lat: basecamp.latitude, lng: basecamp.longitude }, 'personal');
+    }
+  };
+
   const handleMapReady = () => {
     setIsMapLoading(false);
   };
@@ -650,7 +659,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
                 activeContext={searchContext}
                 onContextChange={handleContextChange}
                 personalBasecamp={personalBasecamp}
-                onPersonalBasecampUpdate={setPersonalBasecamp}
+                onPersonalBasecampUpdate={handlePersonalBasecampUpdate}
               />
             )}
 

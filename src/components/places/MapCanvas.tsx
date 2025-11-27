@@ -442,11 +442,11 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         targetBasecamp = personalBasecamp || null;
       }
 
-      // Update search origin for biasing only (no auto-centering)
+      // Update search origin for biasing searches near the active basecamp
       setSearchOrigin(targetBasecamp?.coordinates || null);
 
-      // Note: Removed auto-centering logic - basecamps are reference addresses only
-      // Map will center only when user geolocation is available AND no basecamps set
+      // Center on user geolocation only as fallback when no basecamps are set
+      // (Basecamp centering is handled by PlacesSection when basecamps are set/updated)
       if (!tripBasecamp && !personalBasecamp && userGeolocation && mapRef.current) {
         mapRef.current.setCenter(userGeolocation);
         mapRef.current.setZoom(13);
