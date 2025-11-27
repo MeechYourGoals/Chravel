@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Building, Users, Shield, Zap, BarChart3, Phone } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import channelsPro from '@/assets/app-screenshots/channels-pro.png';
 
 export const ForTeams = () => {
   const benefits = [
@@ -84,6 +85,25 @@ export const ForTeams = () => {
             >
               Start 14-Day Trial
             </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Pro Features Screenshot */}
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-5xl mx-auto space-y-6">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center text-foreground">
+            Role-Based Channels for Team Collaboration
+          </h2>
+          <p className="text-xl text-center text-foreground max-w-3xl mx-auto">
+            Keep coaches, players, and parents organized with dedicated channels
+          </p>
+          <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300">
+            <img 
+              src={channelsPro} 
+              alt="Role-based channels for team organization" 
+              className="w-full h-auto"
+            />
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { CalendarPlus, Share2, RefreshCw } from 'lucide-react';
+import tripDetail from '@/assets/app-screenshots/trip-detail.png';
 
 export const HowItWorksSection = () => {
   const steps = [
@@ -106,6 +107,23 @@ export const HowItWorksSection = () => {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Here's What You Get */}
+      <div className="w-full max-w-5xl space-y-6">
+        <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-foreground">
+          Here's What You Get
+        </h3>
+        <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300">
+          <img 
+            src={tripDetail} 
+            alt="Complete trip organization with chat, calendar, and payments" 
+            className="w-full h-auto"
+          />
+        </div>
+        <p className="text-center text-foreground text-lg sm:text-xl">
+          Your trip, organized in seconds
+        </p>
       </div>
 
       {/* Bottom tagline */}

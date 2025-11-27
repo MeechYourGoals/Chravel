@@ -1,5 +1,7 @@
 import React from 'react';
 import { Sparkles, MapPin, Bell, FileText } from 'lucide-react';
+import aiConcierge from '@/assets/app-screenshots/ai-concierge.png';
+import placesMaps from '@/assets/app-screenshots/places-maps.png';
 
 export const AiFeaturesSection = () => {
   const aiFeatures = [
@@ -41,31 +43,52 @@ export const AiFeaturesSection = () => {
         </p>
       </div>
 
-      {/* AI Features - 2x2 Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 max-w-6xl w-full">
-        {aiFeatures.map((feature, index) => (
-          <div
-            key={index}
-            className="bg-card/50 backdrop-blur-sm border border-border rounded-3xl p-4 sm:p-6 md:p-8 hover:border-accent/50 transition-all duration-300 group max-w-md mx-auto md:max-w-none"
-          >
-            <div className="flex items-start gap-4 mb-4">
-              <div className="bg-accent/10 p-3 sm:p-4 rounded-2xl group-hover:bg-accent/20 transition-colors flex-shrink-0">
-                {feature.icon}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
-                  <h3 className="font-bold text-lg sm:text-xl md:text-2xl leading-tight">{feature.title}</h3>
-                  <span className="text-xs px-2 py-1 bg-accent/20 text-accent rounded-full whitespace-nowrap">
-                    {feature.badge}
-                  </span>
+      {/* Split Layout: Screenshots + Features */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 max-w-7xl w-full items-center">
+        {/* Left: Screenshots */}
+        <div className="space-y-6">
+          <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300">
+            <img 
+              src={aiConcierge} 
+              alt="AI Concierge providing personalized recommendations" 
+              className="w-full h-auto"
+            />
+          </div>
+          <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-accent/30 transition-all duration-300">
+            <img 
+              src={placesMaps} 
+              alt="Interactive maps and places discovery" 
+              className="w-full h-auto"
+            />
+          </div>
+        </div>
+
+        {/* Right: AI Features Grid */}
+        <div className="grid grid-cols-1 gap-4 sm:gap-6">
+          {aiFeatures.map((feature, index) => (
+            <div
+              key={index}
+              className="bg-card/50 backdrop-blur-sm border border-border rounded-3xl p-4 sm:p-6 hover:border-accent/50 transition-all duration-300 group"
+            >
+              <div className="flex items-start gap-4">
+                <div className="bg-accent/10 p-3 rounded-2xl group-hover:bg-accent/20 transition-colors flex-shrink-0">
+                  {feature.icon}
                 </div>
-                <p className="text-sm sm:text-base md:text-lg text-foreground leading-relaxed break-words line-clamp-4 sm:line-clamp-none">
-                  {feature.description}
-                </p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <h3 className="font-bold text-lg sm:text-xl leading-tight">{feature.title}</h3>
+                    <span className="text-xs px-2 py-1 bg-accent/20 text-accent rounded-full whitespace-nowrap">
+                      {feature.badge}
+                    </span>
+                  </div>
+                  <p className="text-sm sm:text-base text-foreground leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Bottom Text */}
