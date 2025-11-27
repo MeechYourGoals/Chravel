@@ -51,7 +51,36 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       
       setMembersLoading(true);
       try {
-        // Fetch trip members and payments in parallel
+        // 🎭 DEMO MODE: Load participants from tripsData.ts (same as Trip Collaborators)
+        if (demoActive) {
+          const mockTrip = getTripById(tripIdNum);
+          
+          if (mockTrip && mockTrip.participants) {
+            // Transform participants to match expected format
+            const formattedMembers = mockTrip.participants.map(p => ({
+              id: String(p.id),
+              name: p.name,
+              avatar: p.avatar
+            }));
+            setTripMembers(formattedMembers);
+          } else {
+            // Fallback to generic demo members if trip not found
+            const demoMembers = demoModeService.getMockMembers(tripId);
+            setTripMembers(demoMembers.map(m => ({
+              id: m.user_id,
+              name: m.display_name,
+              avatar: m.avatar_url
+            })));
+          }
+          
+          // Demo payments
+          const demoPayments = demoModeService.getMockPayments(tripId, false);
+          setPaymentMessages(demoPayments);
+          setMembersLoading(false);
+          return;
+        }
+        
+        // 🔐 AUTHENTICATED MODE: Query Supabase
         const [membersData, paymentsData] = await Promise.all([
           tripService.getTripMembers(tripId),
           paymentService.getTripPaymentMessages(tripId)
@@ -98,7 +127,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     };
 
     fetchData();
-  }, [tripId, user]);
+  }, [tripId, user, demoActive]);
 
   // Count user's payment requests for this trip
   const userPaymentCount = useMemo(() => {
