@@ -32,8 +32,6 @@ export const useTripMedia = (tripId: string) => {
   useEffect(() => {
     if (!tripId) return;
 
-    console.log('[useTripMedia] Setting up real-time subscription for', tripId);
-
     const channel = supabase
       .channel(`trip_media:${tripId}`)
       .on(
@@ -45,7 +43,6 @@ export const useTripMedia = (tripId: string) => {
           filter: `trip_id=eq.${tripId}`,
         },
         (payload) => {
-          console.log('[useTripMedia] New media uploaded:', payload.new);
           queryClient.invalidateQueries({ queryKey: ['tripMedia', tripId] });
           
           const mediaItem = payload.new as TripMedia;
@@ -65,16 +62,12 @@ export const useTripMedia = (tripId: string) => {
           filter: `trip_id=eq.${tripId}`,
         },
         (payload) => {
-          console.log('[useTripMedia] Media deleted:', payload.old);
           queryClient.invalidateQueries({ queryKey: ['tripMedia', tripId] });
         }
       )
-      .subscribe((status) => {
-        console.log('[useTripMedia] Subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('[useTripMedia] Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, [tripId, queryClient, toast]);
@@ -110,12 +103,16 @@ export const useTripMedia = (tripId: string) => {
             fileType: file.type,
           };
           fileToUpload = await imageCompression(file, options);
-          console.log('Image compressed:', {
-            original: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-            compressed: (fileToUpload.size / 1024 / 1024).toFixed(2) + 'MB',
-          });
+          if (import.meta.env.DEV) {
+            console.log('Image compressed:', {
+              original: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+              compressed: (fileToUpload.size / 1024 / 1024).toFixed(2) + 'MB',
+            });
+          }
         } catch (error) {
-          console.warn('Failed to compress image, uploading original:', error);
+          if (import.meta.env.DEV) {
+            console.warn('Failed to compress image, uploading original:', error);
+          }
           fileToUpload = file;
         }
       }

@@ -62,19 +62,6 @@ const Index = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  
-  // Debug logging
-  console.log('📱 Index Page State:', { 
-    isMobile, 
-    windowWidth: typeof window !== 'undefined' ? window.innerWidth : 'SSR',
-    viewMode 
-  });
-  
-  if (isMobile) {
-    console.log('✅ MOBILE BRANCH ACTIVE');
-  } else {
-    console.log('💻 DESKTOP BRANCH ACTIVE');
-  }
   const location = useLocation();
   const { demoView, isDemoMode } = useDemoMode();
   const isMobilePortrait = useMobilePortrait();

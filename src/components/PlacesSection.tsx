@@ -321,7 +321,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   }, [contextBasecamp, isBasecampSet, distanceSettings.preferredMode, distanceSettings.unit]);
 
   const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
-    
     // Track local update for conflict resolution
     lastLocalUpdateRef.current = {
       timestamp: Date.now(),
@@ -411,15 +410,18 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   const handleCenterMap = (coords: { lat: number; lng: number }, type?: 'trip' | 'personal' | 'search') => {
-    
     if (!coords?.lat || !coords?.lng) {
-      console.warn('[Map] Invalid coordinates provided to handleCenterMap:', coords);
+      if (import.meta.env.DEV) {
+        console.warn('[Map] Invalid coordinates provided to handleCenterMap:', coords);
+      }
       return;
     }
     
     // Validate coordinate ranges
     if (coords.lat < -90 || coords.lat > 90 || coords.lng < -180 || coords.lng > 180) {
-      console.error('[Map] Coordinates out of valid range:', coords);
+      if (import.meta.env.DEV) {
+        console.error('[Map] Coordinates out of valid range:', coords);
+      }
       return;
     }
     
@@ -441,7 +443,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   };
 
   const handleContextChange = (context: 'trip' | 'personal') => {
-    console.log('[PlacesSection] Context toggled to:', context);
     setSearchContext(context);
 
     // Update search origin for biasing searches near basecamp
@@ -453,7 +454,6 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
 
     // Show personal basecamp selector if personal context selected but not set
     if (context === 'personal' && !personalBasecamp) {
-      console.warn('[PlacesSection] Personal basecamp not set, showing selector');
       setShowPersonalBasecampSelector(true);
     }
     
