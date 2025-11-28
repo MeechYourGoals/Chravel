@@ -1,5 +1,3 @@
-=== SCREEN: MapView START ===
-
 // MapView.swift
 // Chravel iOS - Map Screen with Places Search
 // Generated from MSPEC
@@ -678,5 +676,3 @@ struct PlaceDetailSheet: View {
     .environment(AuthViewModel())
     .preferredColorScheme(.dark)
 }
-
-=== SCREEN: MapView END ===

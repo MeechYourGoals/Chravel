@@ -1,5 +1,3 @@
-=== SCREEN: AIConciergeView START ===
-
 // AIConciergeView.swift
 // Chravel iOS - AI Concierge Chat Screen
 // Generated from MSPEC
@@ -482,5 +480,3 @@ struct AIInputBar: View {
     .environment(AuthViewModel())
     .preferredColorScheme(.dark)
 }
-
-=== SCREEN: AIConciergeView END ===

@@ -1,5 +1,3 @@
-=== SCREEN: ProfileView START ===
-
 // ProfileView.swift
 // Chravel iOS - User Profile Screen
 // Generated from MSPEC
@@ -700,5 +698,3 @@ struct UpgradeView: View {
     .environment(NavigationCoordinator())
     .preferredColorScheme(.dark)
 }
-
-=== SCREEN: ProfileView END ===

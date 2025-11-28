@@ -1,5 +1,3 @@
-=== NAVIGATION: Coordinator START ===
-
 // NavigationCoordinator.swift
 // Chravel iOS - Navigation Coordinator
 
@@ -599,5 +597,3 @@ struct MediaViewerView: View {
         Text("Media Viewer")
     }
 }
-
-=== NAVIGATION: Coordinator END ===

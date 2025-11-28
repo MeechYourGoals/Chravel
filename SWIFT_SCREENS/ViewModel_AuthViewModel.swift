@@ -1,5 +1,3 @@
-=== VIEWMODEL: AuthViewModel START ===
-
 // AuthViewModel.swift
 // Chravel iOS - Authentication ViewModel
 
@@ -481,5 +479,3 @@ extension JSONDecoder {
         return decoder
     }()
 }
-
-=== VIEWMODEL: AuthViewModel END ===

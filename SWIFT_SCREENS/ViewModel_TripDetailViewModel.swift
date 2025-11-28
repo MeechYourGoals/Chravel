@@ -1,5 +1,3 @@
-=== VIEWMODEL: TripDetailViewModel START ===
-
 // TripDetailViewModel.swift
 // Chravel iOS - Trip Detail ViewModel
 
@@ -584,5 +582,3 @@ enum MediaError: LocalizedError {
         }
     }
 }
-
-=== VIEWMODEL: TripDetailViewModel END ===

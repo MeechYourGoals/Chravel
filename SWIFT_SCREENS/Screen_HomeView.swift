@@ -1,5 +1,3 @@
-=== SCREEN: HomeView START ===
-
 // HomeView.swift
 // Chravel iOS - Main Trip Dashboard Screen
 // Generated from MSPEC
@@ -726,5 +724,3 @@ struct UpgradeSheet: View {
     .environment(NavigationCoordinator())
     .preferredColorScheme(.dark)
 }
-
-=== SCREEN: HomeView END ===

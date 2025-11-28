@@ -1,5 +1,3 @@
-=== VIEWMODEL: AIConciergeViewModel START ===
-
 // AIConciergeViewModel.swift
 // Chravel iOS - AI Concierge ViewModel
 
@@ -532,5 +530,3 @@ final class TasksService {
             .execute()
     }
 }
-
-=== VIEWMODEL: AIConciergeViewModel END ===

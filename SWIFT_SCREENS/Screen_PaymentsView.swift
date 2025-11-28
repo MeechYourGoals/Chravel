@@ -1,5 +1,3 @@
-=== SCREEN: PaymentsView START ===
-
 // PaymentsView.swift
 // Chravel iOS - Payments/Budget Screen
 // Generated from MSPEC
@@ -697,5 +695,3 @@ func formatCurrency(_ amount: Double) -> String {
     .environment(AuthViewModel())
     .preferredColorScheme(.dark)
 }
-
-=== SCREEN: PaymentsView END ===

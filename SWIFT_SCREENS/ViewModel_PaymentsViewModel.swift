@@ -1,5 +1,3 @@
-=== VIEWMODEL: PaymentsViewModel START ===
-
 // PaymentsViewModel.swift
 // Chravel iOS - Payments/Budget ViewModel
 
@@ -472,5 +470,3 @@ enum PaymentError: LocalizedError {
         }
     }
 }
-
-=== VIEWMODEL: PaymentsViewModel END ===

@@ -1,5 +1,3 @@
-=== VIEWMODEL: MapViewModel START ===
-
 // MapViewModel.swift
 // Chravel iOS - Map ViewModel
 
@@ -474,5 +472,3 @@ enum PlacesError: LocalizedError {
         }
     }
 }
-
-=== VIEWMODEL: MapViewModel END ===

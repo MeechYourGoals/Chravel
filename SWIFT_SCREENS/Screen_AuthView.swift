@@ -1,5 +1,3 @@
-=== SCREEN: AuthView START ===
-
 // AuthView.swift
 // Chravel iOS - Authentication Screen (Login/Signup)
 // Generated from MSPEC
@@ -657,5 +655,3 @@ extension String {
         .environment(AuthViewModel())
         .preferredColorScheme(.dark)
 }
-
-=== SCREEN: AuthView END ===

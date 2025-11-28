@@ -1,5 +1,3 @@
-=== SCREEN: TripDetailView START ===
-
 // TripDetailView.swift
 // Chravel iOS - Trip Detail Screen with Tabbed Navigation
 // Generated from MSPEC
@@ -691,5 +689,3 @@ struct AttachmentPickerSheet: View {
     .environment(NavigationCoordinator())
     .preferredColorScheme(.dark)
 }
-
-=== SCREEN: TripDetailView END ===

@@ -1,5 +1,3 @@
-=== SERVICES: SupabaseClient START ===
-
 // SupabaseClient.swift
 // Chravel iOS - Supabase Client Singleton
 
@@ -139,6 +137,7 @@ enum KeychainError: Error {
 // MARK: - Network Monitor
 
 import Network
+import Observation
 
 @Observable
 final class NetworkMonitor {
@@ -455,5 +454,3 @@ class RealtimeChannel {
 struct RealtimeMessage {
     let payload: [String: Any]
 }
-
-=== SERVICES: SupabaseClient END ===

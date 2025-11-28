@@ -1,5 +1,3 @@
-=== MODELS: Core START ===
-
 // Models_Core.swift
 // Chravel iOS - Core Data Models
 
@@ -497,5 +495,3 @@ struct BroadcastReaction: Identifiable, Codable {
         case createdAt = "created_at"
     }
 }
-
-=== MODELS: Core END ===
