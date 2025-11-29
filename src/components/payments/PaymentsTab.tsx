@@ -105,7 +105,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
           finalMembers = [
             {
               id: user.id,
-              name: profile?.display_name || user.email?.split('@')[0] || 'You',
+              name: profile?.display_name || user.email?.split('@')[0] || 'Unknown',
               avatar: profile?.avatar_url
             },
             ...formattedMembers
