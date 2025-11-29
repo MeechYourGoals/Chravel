@@ -497,7 +497,7 @@ export const useTripTasks = (tripId: string, options?: {
       } as TripTask;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId] });
+      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
       toast({
         title: 'Task created',
         description: 'Your task has been added to the list.'
