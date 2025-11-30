@@ -422,43 +422,42 @@ export const TripChat = ({
 
       {/* Chat Container - Messages with Integrated Filter Tabs */}
       <div className="flex-1 flex flex-col min-h-0 pb-4" data-chat-container>
-        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col" style={{ maxHeight: 'calc(100vh - 320px)', minHeight: '400px' }}>
-          {/* Search Bar and Filter Tabs Row */}
-          <div className="flex items-center gap-2 p-2 border-b border-white/10 bg-black/30">
-            <div className="flex-1">
-              {showSearch ? (
-                <MessageSearch
-                  tripId={resolvedTripId}
-                  localMessages={messagesToShow}
-                  isDemoMode={demoMode.isDemoMode}
-                  onMessageSelect={(messageId) => {
-                    // Scroll to message
-                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-                    if (messageElement) {
-                      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      // Highlight briefly
-                      messageElement.classList.add('ring-2', 'ring-blue-500', 'rounded-lg');
-                      setTimeout(() => {
-                        messageElement.classList.remove('ring-2', 'ring-blue-500', 'rounded-lg');
-                      }, 2000);
-                    }
-                    setShowSearch(false);
-                  }}
-                />
-              ) : (
-                <button
-                  onClick={() => setShowSearch(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors w-full"
-                >
-                  <Search size={14} />
-                  <span>Search messages...</span>
-                  <kbd className="ml-auto px-1.5 py-0.5 text-xs bg-gray-700 rounded border border-gray-600">
-                    ⌘F
-                  </kbd>
-                </button>
-              )}
+        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col relative" style={{ maxHeight: 'calc(100vh - 320px)', minHeight: '400px' }}>
+          
+          {/* Collapsible Search - Overlay when active */}
+          {showSearch && (
+            <div className="absolute top-2 left-2 right-2 z-20 bg-black/90 backdrop-blur-md border border-white/10 rounded-xl p-2 shadow-lg">
+              <MessageSearch
+                tripId={resolvedTripId}
+                localMessages={messagesToShow}
+                isDemoMode={demoMode.isDemoMode}
+                onMessageSelect={(messageId) => {
+                  // Scroll to message
+                  const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                  if (messageElement) {
+                    messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Highlight briefly
+                    messageElement.classList.add('ring-2', 'ring-blue-500', 'rounded-lg');
+                    setTimeout(() => {
+                      messageElement.classList.remove('ring-2', 'ring-blue-500', 'rounded-lg');
+                    }, 2000);
+                  }
+                  setShowSearch(false);
+                }}
+              />
             </div>
-          </div>
+          )}
+          
+          {/* Compact Search Icon - Top Right */}
+          {!showSearch && messageFilter !== 'channels' && (
+            <button
+              onClick={() => setShowSearch(true)}
+              className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 hover:bg-black/80 hover:border-white/20 transition-all text-gray-400 hover:text-white"
+              title="Search messages (⌘F)"
+            >
+              <Search size={16} />
+            </button>
+          )}
           
           {/* Filter Tabs */}
           <MessageTypeBar
