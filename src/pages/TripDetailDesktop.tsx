@@ -287,6 +287,7 @@ export const TripDetailDesktop = () => {
         const mockPayments = demoModeService.getMockPayments(tripId || '1');
         const mockPolls = demoModeService.getMockPolls(tripId || '1');
         const mockMembers = demoModeService.getMockMembers(tripId || '1');
+        const mockTasks = demoModeService.getMockTasks(tripId || '1');
 
         // Lazy load PDF generation (only when export is clicked)
         const { generateClientPDF } = await import('../utils/exportPdfClient');
@@ -304,17 +305,27 @@ export const TripDetailDesktop = () => {
               currency: mockPayments[0]?.currency || 'USD'
             } : undefined,
             polls: sections.includes('polls') ? mockPolls : undefined,
-            tasks: sections.includes('tasks') ? mockLinks.filter((link: any) => link.source === 'task').map((task: any) => ({
-              title: task.title || 'Unnamed Task',
+            tasks: sections.includes('tasks') ? mockTasks.map(task => ({
+              title: task.title,
               description: task.description,
-              completed: false
+              completed: task.completed
             })) : undefined,
-            places: sections.includes('places') ? mockLinks.filter((link: any) => link.source === 'places' || link.source === 'manual').map((link: any) => ({
-              name: link.title || 'Untitled',
-              url: link.url || '',
-              description: link.description,
-              votes: 0
-            })) : undefined,
+            places: sections.includes('places') ? [
+              // Trip Basecamp first
+              ...(basecamp ? [{
+                name: `📍 Trip Base Camp: ${basecamp.name || 'Main Location'}`,
+                url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(basecamp.address)}`,
+                description: basecamp.address,
+                votes: 0
+              }] : []),
+              // All trip links
+              ...mockLinks.map((link: any) => ({
+                name: link.title || 'Untitled',
+                url: link.url || '',
+                description: link.category ? `[${link.category}] ${link.description || ''}` : (link.description || ''),
+                votes: 0
+              }))
+            ] : undefined,
             roster: sections.includes('roster') ? mockMembers.map(m => ({
               name: m.display_name,
               email: undefined,
