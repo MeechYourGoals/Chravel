@@ -137,6 +137,12 @@ interface ExportData {
     sender: string;
     read_count: number;
   }>;
+  attachments?: Array<{
+    name: string;
+    type: string;
+    uploaded_at: string;
+    uploaded_by?: string;
+  }>;
 }
 
 /**
@@ -729,6 +735,76 @@ export async function generateClientPDF(
         doc.setFont('NotoSans', 'normal');
         doc.setTextColor(120);
         doc.text('No roster data available', margin, yPos);
+        yPos += 30;
+      }
+    }
+
+    // Attachments section
+    if (section === 'attachments') {
+      yPos = checkPageBreak(doc, yPos, 60);
+      
+      const attachments = data.attachments || [];
+      if (attachments.length > 0) {
+        const attachmentChunks = attachments.length > maxItems 
+          ? chunkArray(attachments, maxItems)
+          : [attachments];
+
+        for (let chunkIndex = 0; chunkIndex < attachmentChunks.length; chunkIndex++) {
+          const chunk = attachmentChunks[chunkIndex];
+          
+          yPos = checkPageBreak(doc, yPos, 60);
+          
+          if (chunkIndex === 0) {
+            doc.setFontSize(14);
+            doc.setFont('NotoSans', 'bold');
+            doc.setTextColor(0);
+            doc.text('Attachments', margin, yPos);
+            yPos += 20;
+          }
+
+          const attachmentRows = chunk.map((att: any) => [
+            att.name || 'Unnamed file',
+            att.type || 'Unknown',
+            att.uploaded_by || 'Unknown',
+            att.uploaded_at ? new Date(att.uploaded_at).toLocaleDateString() : 'N/A'
+          ]);
+
+          autoTable(doc, {
+            startY: yPos,
+            head: [['File Name', 'Type', 'Uploaded By', 'Date']],
+            body: attachmentRows,
+            theme: 'striped',
+            headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
+            margin: { left: margin, right: margin },
+            styles: { fontSize: 9 }
+          });
+
+          yPos = getFinalY(doc, yPos) + 10;
+
+          if (chunkIndex < attachmentChunks.length - 1) {
+            yPos = checkPageBreak(doc, yPos, 30);
+            doc.setFontSize(9);
+            doc.setFont('NotoSans', 'italic');
+            doc.setTextColor(120);
+            doc.text(`(Continued - showing ${(chunkIndex + 1) * maxItems} of ${attachments.length} attachments)`, margin, yPos);
+            yPos += 20;
+            doc.addPage();
+            yPos = margin;
+          }
+        }
+
+        // Add note about viewing full attachments
+        yPos = checkPageBreak(doc, yPos, 20);
+        doc.setFontSize(8);
+        doc.setFont('NotoSans', 'italic');
+        doc.setTextColor(100);
+        doc.text('Note: Download full attachments from the Chravel app', margin, yPos);
+        yPos += 20;
+      } else {
+        doc.setFontSize(10);
+        doc.setFont('NotoSans', 'normal');
+        doc.setTextColor(120);
+        doc.text('No attachments available', margin, yPos);
         yPos += 30;
       }
     }
