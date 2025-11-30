@@ -387,9 +387,17 @@ export const useTripTasks = (tripId: string, options?: {
           task_status: (task.task_status || []) as any[]
         }));
       } catch (error) {
-        console.error('Error fetching tasks:', error);
+        console.error('[useTripTasks] Error fetching tasks:', error);
+        console.error('[useTripTasks] Error details:', JSON.stringify(error, null, 2));
         
-        // ✅ In authenticated mode: return empty array on error (no seed tasks)
+        // Show user-friendly error
+        toast({
+          title: 'Failed to load tasks',
+          description: 'Unable to fetch tasks. Please refresh the page.',
+          variant: 'destructive'
+        });
+        
+        // Return empty array on error (no seed tasks for authenticated users)
         return [];
       }
     },
