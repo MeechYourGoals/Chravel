@@ -14,6 +14,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
+import TripSpecificMockDataService from './tripSpecificMockDataService';
 
 type TripLink = Database['public']['Tables']['trip_links']['Row'];
 type TripLinkInsert = Database['public']['Tables']['trip_links']['Insert'];
@@ -43,6 +44,18 @@ function getDemoLinksKey(tripId: string): string {
 }
 
 /**
+ * Map link source to category
+ */
+function mapSourceToCategory(source: string): string {
+  const categoryMap: Record<string, string> = {
+    'places': 'attraction',
+    'manual': 'other',
+    'chat': 'other'
+  };
+  return categoryMap[source] || 'other';
+}
+
+/**
  * Get demo links from localStorage
  */
 function getDemoLinks(tripId: string): TripLink[] {
@@ -52,45 +65,28 @@ function getDemoLinks(tripId: string): TripLink[] {
       return JSON.parse(stored);
     }
     
-    // Return default demo links if none exist
-    return [
-      {
-        id: 'demo-link-1',
+    // Return trip-specific demo links instead of hardcoded Paris links
+    const tripIdNum = parseInt(tripId, 10);
+    const tripLinks = TripSpecificMockDataService.getTripLinkItems(tripIdNum);
+    
+    if (tripLinks.length > 0) {
+      // Transform to TripLink format
+      return tripLinks.map((link, index) => ({
+        id: `demo-link-${tripId}-${index + 1}`,
         trip_id: tripId,
-        url: 'https://www.google.com/maps/place/Eiffel+Tower',
-        title: 'Eiffel Tower',
-        description: 'Iconic Paris landmark',
-        category: 'attraction',
-        votes: 5,
+        url: link.url,
+        title: link.title,
+        description: link.description || null,
+        category: mapSourceToCategory(link.source),
+        votes: 0,
         added_by: 'demo-user',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: 'demo-link-2',
-        trip_id: tripId,
-        url: 'https://www.google.com/maps/place/Louvre+Museum',
-        title: 'Louvre Museum',
-        description: 'World-famous art museum',
-        category: 'attraction',
-        votes: 8,
-        added_by: 'demo-user',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: 'demo-link-3',
-        trip_id: tripId,
-        url: 'https://www.google.com/maps/place/Le+Jules+Verne',
-        title: 'Le Jules Verne',
-        description: 'Restaurant in the Eiffel Tower',
-        category: 'appetite',
-        votes: 3,
-        added_by: 'demo-user',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-    ];
+        created_at: link.created_at,
+        updated_at: link.created_at,
+      }));
+    }
+    
+    // Return empty array if no trip-specific data exists
+    return [];
   } catch (error) {
     console.error('[TripLinksService] Failed to parse demo links:', error);
     return [];

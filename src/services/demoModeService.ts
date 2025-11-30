@@ -740,6 +740,13 @@ class DemoModeService {
   }
 
   /**
+   * Clear session trip basecamp for a specific trip
+   */
+  clearSessionTripBasecamp(tripId: string): void {
+    this.sessionTripBasecamps.delete(tripId);
+  }
+
+  /**
    * Cover Photo Management
    */
   setCoverPhoto(tripId: string, photoUrl: string): void {

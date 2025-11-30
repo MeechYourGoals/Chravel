@@ -9,10 +9,11 @@ interface BasecampSelectorProps {
   isOpen: boolean;
   onClose: () => void;
   onBasecampSet: (basecamp: BasecampLocation) => Promise<void> | void;
+  onBasecampClear?: () => Promise<void> | void;
   currentBasecamp?: BasecampLocation;
 }
 
-export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBasecamp }: BasecampSelectorProps) => {
+export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampClear, currentBasecamp }: BasecampSelectorProps) => {
   const [address, setAddress] = useState(currentBasecamp?.address || '');
   const [name, setName] = useState(currentBasecamp?.name || '');
   const [type, setType] = useState<'hotel' | 'short-term' | 'other'>(currentBasecamp?.type || 'hotel');
@@ -21,8 +22,27 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // If address is empty, treat as a clear request
     if (!address.trim()) {
-      toast.error('Please enter an address.');
+      if (currentBasecamp && onBasecampClear) {
+        setIsLoading(true);
+        try {
+          await Promise.resolve(onBasecampClear());
+          toast.success('Basecamp cleared');
+          onClose();
+        } catch (error) {
+          toast.error('Failed to clear basecamp');
+        } finally {
+          setIsLoading(false);
+        }
+        return;
+      } else if (!currentBasecamp) {
+        // No current basecamp and no address entered - just close
+        onClose();
+        return;
+      }
+      // Has current basecamp but no onBasecampClear handler - show error
+      toast.error('Cannot clear basecamp');
       return;
     }
     
@@ -135,7 +155,6 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Enter basecamp address"
-                required
                 className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-12 pr-4 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
               />
             </div>
@@ -170,23 +189,47 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, currentBaseca
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              onClick={onClose}
-              variant="outline"
-              className="flex-1"
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Saving...' : 'Save Basecamp'}
-            </Button>
+          <div className="flex flex-col gap-3 pt-2">
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                onClick={onClose}
+                variant="outline"
+                className="flex-1"
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Saving...' : 'Save Basecamp'}
+              </Button>
+            </div>
+            {currentBasecamp && onBasecampClear && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={async () => {
+                  setIsLoading(true);
+                  try {
+                    await Promise.resolve(onBasecampClear());
+                    toast.success('Basecamp cleared');
+                    onClose();
+                  } catch (error) {
+                    toast.error('Failed to clear basecamp');
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                disabled={isLoading}
+                className="w-full"
+              >
+                Clear Basecamp
+              </Button>
+            )}
           </div>
         </form>
       </div>
