@@ -443,6 +443,8 @@ export const TripChat = ({
           tripId={resolvedTripId}
           onClose={() => setShowSearchOverlay(false)}
           onResultSelect={scrollToMessage}
+          isDemoMode={demoMode.isDemoMode}
+          demoMessages={demoMessages}
         />
       )}
 

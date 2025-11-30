@@ -4,16 +4,29 @@ import { cn } from '@/lib/utils';
 import { searchChatContent, MessageSearchResult, BroadcastSearchResult } from '@/services/chatSearchService';
 import { format } from 'date-fns';
 
+interface MockMessage {
+  id: string;
+  text: string;
+  sender: { id: string; name: string; avatar?: string };
+  createdAt: string;
+  isBroadcast?: boolean;
+  tags?: string[];
+}
+
 interface ChatSearchOverlayProps {
   tripId: string;
   onClose: () => void;
   onResultSelect: (id: string, type: 'message' | 'broadcast') => void;
+  isDemoMode?: boolean;
+  demoMessages?: MockMessage[];
 }
 
 export const ChatSearchOverlay = ({
   tripId,
   onClose,
-  onResultSelect
+  onResultSelect,
+  isDemoMode = false,
+  demoMessages = []
 }: ChatSearchOverlayProps) => {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -40,15 +53,50 @@ export const ChatSearchOverlay = ({
 
     setIsSearching(true);
     const timer = setTimeout(async () => {
-      const results = await searchChatContent(tripId, query);
-      setMessages(results.messages);
-      setBroadcasts(results.broadcasts);
+      if (isDemoMode && demoMessages.length > 0) {
+        // Local search through demo messages
+        const lowerQuery = query.toLowerCase();
+        
+        // Filter regular messages
+        const matchedMessages = demoMessages
+          .filter(msg => !msg.isBroadcast && msg.text.toLowerCase().includes(lowerQuery))
+          .map(msg => ({
+            id: msg.id,
+            content: msg.text,
+            author_name: msg.sender.name,
+            user_id: msg.sender.id,
+            created_at: msg.createdAt,
+            type: 'message' as const
+          }));
+        
+        // Filter broadcasts
+        const matchedBroadcasts = demoMessages
+          .filter(msg => msg.isBroadcast && msg.text.toLowerCase().includes(lowerQuery))
+          .map(msg => ({
+            id: msg.id,
+            message: msg.text,
+            created_by: msg.sender.id,
+            created_by_name: msg.sender.name,
+            priority: msg.tags?.includes('urgent') ? 'urgent' : 
+                     msg.tags?.includes('logistics') ? 'high' : 'normal',
+            created_at: msg.createdAt,
+            type: 'broadcast' as const
+          }));
+
+        setMessages(matchedMessages);
+        setBroadcasts(matchedBroadcasts);
+      } else {
+        // Query Supabase for authenticated mode
+        const results = await searchChatContent(tripId, query);
+        setMessages(results.messages);
+        setBroadcasts(results.broadcasts);
+      }
       setIsSearching(false);
       setSelectedIndex(0);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query, tripId]);
+  }, [query, tripId, isDemoMode, demoMessages]);
 
   // Keyboard navigation
   useEffect(() => {

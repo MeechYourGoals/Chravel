@@ -182,6 +182,8 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
           tripId={tripId}
           onClose={() => setShowSearchOverlay(false)}
           onResultSelect={scrollToMessage}
+          isDemoMode={false}
+          demoMessages={[]}
         />
       )}
       {/* Chat Container - Messages with Integrated Filter Tabs */}
