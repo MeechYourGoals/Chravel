@@ -606,6 +606,35 @@ class DemoModeService {
     ];
   }
 
+  getMockTasks(tripId: string): Array<{ id: string; trip_id: string; title: string; description?: string; completed: boolean; due_at?: string }> {
+    return [
+      {
+        id: 'demo-task-1',
+        trip_id: tripId,
+        title: 'Make sure your visa and passport documents are handled at least one month prior',
+        description: 'Verify all travel documents are valid and up to date',
+        completed: false,
+        due_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: 'demo-task-2',
+        trip_id: tripId,
+        title: 'Making sure all clothes are packed before next destination',
+        description: 'Pack weather-appropriate clothing for all activities',
+        completed: false,
+        due_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: 'demo-task-3',
+        trip_id: tripId,
+        title: 'Jimmy to purchase alcohol for the house while Sam gets food',
+        description: 'Coordinate house supplies for the trip',
+        completed: true,
+        due_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      }
+    ];
+  }
+
   // Add payment to session store
   addSessionPayment(tripId: string, paymentData: {
     amount: number;

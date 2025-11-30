@@ -254,18 +254,61 @@ export async function getExportData(
 
     // Fetch places/links if requested
     if (sections.includes('places')) {
+      const placesData: Array<{ name: string; url: string; description?: string; votes: number }> = [];
+
+      // 1. Fetch Trip Basecamp from trips table
+      const { data: tripBasecamp } = await supabase
+        .from('trips')
+        .select('basecamp_name, basecamp_address')
+        .eq('id', tripId)
+        .single();
+
+      if (tripBasecamp?.basecamp_address) {
+        placesData.push({
+          name: `📍 Trip Base Camp: ${tripBasecamp.basecamp_name || 'Main Location'}`,
+          url: `https://maps.google.com/?q=${encodeURIComponent(tripBasecamp.basecamp_address)}`,
+          description: tripBasecamp.basecamp_address,
+          votes: 0
+        });
+      }
+
+      // 2. Fetch Personal Basecamp for current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: personalBasecamp } = await supabase
+          .from('trip_personal_basecamps')
+          .select('name, address')
+          .eq('trip_id', tripId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (personalBasecamp?.address) {
+          placesData.push({
+            name: `🏠 Personal Base Camp: ${personalBasecamp.name || 'My Location'}`,
+            url: `https://maps.google.com/?q=${encodeURIComponent(personalBasecamp.address)}`,
+            description: `${personalBasecamp.address} (Private)`,
+            votes: 0
+          });
+        }
+      }
+
+      // 3. Fetch Trip Links
       const { data: links } = await supabase
         .from('trip_links')
-        .select('title, url, description, votes')
+        .select('title, url, description, category, votes')
         .eq('trip_id', tripId)
         .order('votes', { ascending: false });
 
-      result.places = links?.map(link => ({
-        name: link.title,
-        url: link.url,
-        description: link.description || undefined,
-        votes: link.votes || 0
-      })) || [];
+      if (links) {
+        placesData.push(...links.map(link => ({
+          name: link.title,
+          url: link.url,
+          description: link.category ? `[${link.category}] ${link.description || ''}` : (link.description || undefined),
+          votes: link.votes || 0
+        })));
+      }
+
+      result.places = placesData;
     }
 
     // Fetch roster if requested
