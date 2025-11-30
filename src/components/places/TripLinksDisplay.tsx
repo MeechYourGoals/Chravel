@@ -21,10 +21,12 @@ import {
   updateTripLink, 
   deleteTripLink
 } from '@/services/tripLinksService';
+import { calendarService } from '@/services/calendarService';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
+import type { AddToCalendarData } from '@/types/calendar';
 
 type TripLink = Database['public']['Tables']['trip_links']['Row'];
 
@@ -147,6 +149,49 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
     setFormTitle(link.title);
     setFormDescription(link.description || '');
     setFormCategory(link.category || 'other');
+  };
+
+  const handleAddToCalendar = async (eventData: AddToCalendarData, link: TripLink) => {
+    try {
+      // Combine date and time into ISO string
+      const startDate = new Date(eventData.date);
+      const [hours, minutes] = eventData.time.split(':');
+      startDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
+
+      // Calculate end time if provided
+      let endTime: string | undefined;
+      if (eventData.endTime) {
+        const endDate = new Date(eventData.date);
+        const [endHours, endMinutes] = eventData.endTime.split(':');
+        endDate.setHours(parseInt(endHours, 10), parseInt(endMinutes, 10));
+        endTime = endDate.toISOString();
+      }
+
+      // Add URL to description
+      const description = `${eventData.description || ''}\n\nLink: ${link.url}`.trim();
+
+      const created = await calendarService.createEvent({
+        trip_id: tripId,
+        title: eventData.title,
+        description,
+        start_time: startDate.toISOString(),
+        end_time: endTime,
+        location: eventData.location || link.url,
+        event_category: eventData.category || 'other',
+        include_in_itinerary: eventData.include_in_itinerary ?? true,
+        source_type: 'places_tab',
+        source_data: { link_id: link.id, link_url: link.url }
+      });
+
+      if (created) {
+        toast.success('Event added to calendar!');
+      } else {
+        toast.error('Failed to add event to calendar');
+      }
+    } catch (error) {
+      console.error('Failed to add event to calendar:', error);
+      toast.error('Failed to add event to calendar');
+    }
   };
 
   // Get initials from title
@@ -365,11 +410,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                     placeName={link.title}
                     placeAddress={link.url}
                     category="other"
-                    onEventAdded={(eventData) => {
-                      // Add URL to description
-                      eventData.description = `${eventData.description || ''}\n\nLink: ${link.url}`.trim();
-                      toast.success('Added to calendar');
-                    }}
+                    onEventAdded={(eventData) => handleAddToCalendar(eventData, link)}
                     variant="pill"
                   />
                   
