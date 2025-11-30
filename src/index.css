@@ -320,6 +320,17 @@
   100% { opacity: 1; transform: scale(1); }
 }
 
+/* Search highlight flash animation */
+@keyframes search-flash {
+  0% { background-color: rgba(6, 182, 212, 0.3); }
+  100% { background-color: transparent; }
+}
+
+.search-highlight-flash {
+  animation: search-flash 1s ease-out;
+  border-radius: 0.5rem;
+}
+
 /* Modal animations */
 @keyframes fade-in {
   from {

@@ -30,11 +30,11 @@ import { TypingIndicator } from './chat/TypingIndicator';
 import { TypingIndicatorService } from '@/services/typingIndicatorService';
 import { markMessageAsRead, subscribeToReadReceipts } from '@/services/readReceiptService';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
-import { MessageSearch } from './chat/MessageSearch';
 import { ParsedContentSuggestions } from './chat/ParsedContentSuggestions';
 import { supabase } from '@/integrations/supabase/client';
 import { parseMessage } from '@/services/chatContentParser';
 import { MessageTypeBar } from './chat/MessageTypeBar';
+import { ChatSearchOverlay } from './chat/ChatSearchOverlay';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -78,7 +78,8 @@ export const TripChat = ({
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
   const typingServiceRef = useRef<TypingIndicatorService | null>(null);
-  const [showSearch, setShowSearch] = useState(false);
+  const [showSearchOverlay, setShowSearchOverlay] = useState(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   
   const { isOffline } = useOfflineStatus();
   const params = useParams<{ tripId?: string; proTripId?: string; eventId?: string }>();
@@ -391,12 +392,38 @@ export const TripChat = ({
 
   const isLoading = demoMode.isDemoMode ? false : liveLoading;
 
+  // Scroll to specific message with highlight animation
+  const scrollToMessage = (messageId: string, type: 'message' | 'broadcast') => {
+    setShowSearchOverlay(false);
+
+    // Switch to appropriate filter
+    if (type === 'broadcast' && messageFilter !== 'broadcasts') {
+      setMessageFilter('broadcasts');
+    } else if (type === 'message' && messageFilter !== 'all') {
+      setMessageFilter('all');
+    }
+
+    // Wait for filter to apply, then scroll
+    setTimeout(() => {
+      const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+      if (messageElement) {
+        messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Add highlight animation
+        messageElement.classList.add('search-highlight-flash');
+        setTimeout(() => {
+          messageElement.classList.remove('search-highlight-flash');
+        }, 1000);
+      }
+    }, 100);
+  };
+
   // Global keyboard shortcut for search (Ctrl+F or Cmd+F)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'f' && messageFilter !== 'channels') {
         e.preventDefault();
-        setShowSearch(true);
+        setShowSearchOverlay(true);
       }
     };
 
@@ -410,6 +437,15 @@ export const TripChat = ({
 
   return (
     <div className="flex flex-col h-full">
+      {/* Search Overlay Modal */}
+      {showSearchOverlay && (
+        <ChatSearchOverlay
+          tripId={resolvedTripId}
+          onClose={() => setShowSearchOverlay(false)}
+          onResultSelect={scrollToMessage}
+        />
+      )}
+
       {/* Offline Mode Banner */}
       {isOffline && (
         <Alert className="mx-4 mt-2 mb-0 border-warning/50 bg-warning/10">
@@ -422,48 +458,14 @@ export const TripChat = ({
 
       {/* Chat Container - Messages with Integrated Filter Tabs */}
       <div className="flex-1 flex flex-col min-h-0 pb-4" data-chat-container>
-        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col relative" style={{ maxHeight: 'calc(100vh - 320px)', minHeight: '400px' }}>
-          
-          {/* Collapsible Search - Overlay when active */}
-          {showSearch && (
-            <div className="absolute top-2 left-2 right-2 z-20 bg-black/90 backdrop-blur-md border border-white/10 rounded-xl p-2 shadow-lg">
-              <MessageSearch
-                tripId={resolvedTripId}
-                localMessages={messagesToShow}
-                isDemoMode={demoMode.isDemoMode}
-                onMessageSelect={(messageId) => {
-                  // Scroll to message
-                  const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-                  if (messageElement) {
-                    messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    // Highlight briefly
-                    messageElement.classList.add('ring-2', 'ring-blue-500', 'rounded-lg');
-                    setTimeout(() => {
-                      messageElement.classList.remove('ring-2', 'ring-blue-500', 'rounded-lg');
-                    }, 2000);
-                  }
-                  setShowSearch(false);
-                }}
-              />
-            </div>
-          )}
-          
-          {/* Compact Search Icon - Top Right */}
-          {!showSearch && messageFilter !== 'channels' && (
-            <button
-              onClick={() => setShowSearch(true)}
-              className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 hover:bg-black/80 hover:border-white/20 transition-all text-gray-400 hover:text-white"
-              title="Search messages (⌘F)"
-            >
-              <Search size={16} />
-            </button>
-          )}
+        <div ref={messagesContainerRef} className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col relative" style={{ maxHeight: 'calc(100vh - 320px)', minHeight: '400px' }}>
           
           {/* Filter Tabs */}
           <MessageTypeBar
             activeFilter={messageFilter}
             onFilterChange={setMessageFilter}
             hasChannels={availableChannels.length > 0 || participantRoles.length > 0}
+            onSearchClick={() => setShowSearchOverlay(true)}
             isPro={isPro}
             broadcastCount={broadcastCount}
             unreadCount={unreadCount}

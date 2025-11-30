@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageCircle, Megaphone, Hash } from 'lucide-react';
+import { MessageCircle, Megaphone, Hash, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ChatFilterTabsProps {
@@ -9,6 +9,7 @@ interface ChatFilterTabsProps {
   isPro?: boolean;
   broadcastCount?: number;
   unreadCount?: number;
+  onSearchClick?: () => void;
 }
 
 export const ChatFilterTabs = ({
@@ -18,6 +19,7 @@ export const ChatFilterTabs = ({
   isPro = false,
   broadcastCount = 0,
   unreadCount = 0,
+  onSearchClick,
 }: ChatFilterTabsProps) => {
   return (
     <div className="sticky top-0 z-10 backdrop-blur-lg px-2 py-1 rounded-t-2xl overflow-hidden">
@@ -88,6 +90,20 @@ export const ChatFilterTabs = ({
               <span>Channels</span>
             </button>
           )}
+
+          {/* Search Pill */}
+          <button
+            onClick={onSearchClick}
+            className={cn(
+              "relative flex items-center gap-1.5 px-3 py-2 rounded-xl",
+              "text-sm font-medium transition-all duration-200",
+              "text-cyan-400/70 hover:text-cyan-400 hover:bg-cyan-500/10"
+            )}
+            title="Search messages and broadcasts"
+          >
+            <Search className="w-4 h-4" />
+            <span>Search</span>
+          </button>
         </div>
       </div>
     </div>

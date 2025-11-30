@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { MessageCircle, Megaphone, Hash } from 'lucide-react';
+import { MessageCircle, Megaphone, Hash, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { TripChannel } from '@/types/roleChannels';
@@ -15,6 +15,8 @@ interface MessageTypeBarProps {
   availableChannels?: TripChannel[];
   activeChannel?: TripChannel | null;
   onChannelSelect?: (channel: TripChannel) => void;
+  // Search props
+  onSearchClick?: () => void;
 }
 
 export const MessageTypeBar = ({
@@ -27,6 +29,7 @@ export const MessageTypeBar = ({
   availableChannels = [],
   activeChannel,
   onChannelSelect,
+  onSearchClick,
 }: MessageTypeBarProps) => {
   const pillBarRef = useRef<HTMLDivElement>(null);
   const [pillBarWidth, setPillBarWidth] = useState(0);
@@ -179,6 +182,20 @@ export const MessageTypeBar = ({
               )}
             </Popover>
           )}
+
+          {/* Search Pill */}
+          <button
+            onClick={onSearchClick}
+            className={cn(
+              "relative flex items-center gap-1.5 px-3 py-2 rounded-xl",
+              "text-sm font-medium transition-all duration-200",
+              "text-cyan-400/70 hover:text-cyan-400 hover:bg-cyan-500/10"
+            )}
+            title="Search messages and broadcasts"
+          >
+            <Search className="w-4 h-4" />
+            <span>Search</span>
+          </button>
         </div>
       </div>
     </div>

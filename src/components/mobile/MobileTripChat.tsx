@@ -15,6 +15,7 @@ import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { MessageSkeleton } from './SkeletonLoader';
 import { hapticService } from '../../services/hapticService';
 import { ChatFilterTabs } from '../chat/ChatFilterTabs';
+import { ChatSearchOverlay } from '../chat/ChatSearchOverlay';
 import { supabase } from '@/integrations/supabase/client';
 import { markMessageAsRead } from '@/services/readReceiptService';
 
@@ -30,6 +31,7 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
   const [reactions, setReactions] = useState<{ [messageId: string]: { [reaction: string]: { count: number; userReacted: boolean } } }>({});
   const [messageFilter, setMessageFilter] = useState<'all' | 'broadcasts' | 'channels'>('all');
   const [userId, setUserId] = useState<string | null>(null);
+  const [showSearchOverlay, setShowSearchOverlay] = useState(false);
 
   // Get current user
   useEffect(() => {
@@ -146,8 +148,42 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
 
   const filteredMessages = filterMessages(messages);
 
+  // Scroll to specific message with highlight animation
+  const scrollToMessage = (messageId: string, type: 'message' | 'broadcast') => {
+    setShowSearchOverlay(false);
+
+    // Switch to appropriate filter
+    if (type === 'broadcast' && messageFilter !== 'broadcasts') {
+      setMessageFilter('broadcasts');
+    } else if (type === 'message' && messageFilter !== 'all') {
+      setMessageFilter('all');
+    }
+
+    // Wait for filter to apply, then scroll
+    setTimeout(() => {
+      const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+      if (messageElement) {
+        messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Add highlight animation
+        messageElement.classList.add('search-highlight-flash');
+        setTimeout(() => {
+          messageElement.classList.remove('search-highlight-flash');
+        }, 1000);
+      }
+    }, 100);
+  };
+
   return (
     <div className="flex flex-col h-full bg-black">
+      {/* Search Overlay Modal */}
+      {showSearchOverlay && (
+        <ChatSearchOverlay
+          tripId={tripId}
+          onClose={() => setShowSearchOverlay(false)}
+          onResultSelect={scrollToMessage}
+        />
+      )}
       {/* Chat Container - Messages with Integrated Filter Tabs */}
       <div className="flex-1 flex flex-col min-h-0 p-4">
         <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col">
@@ -159,6 +195,7 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
             isPro={false}
             broadcastCount={broadcastCount}
             unreadCount={unreadCount}
+            onSearchClick={() => setShowSearchOverlay(true)}
           />
           
           {isLoading ? (
