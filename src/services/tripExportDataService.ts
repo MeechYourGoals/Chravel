@@ -59,6 +59,19 @@ export interface ExportTripData {
     role?: string;
     avatar_url?: string;
   }>;
+  broadcasts?: Array<{
+    message: string;
+    priority: string;
+    timestamp: string;
+    sender: string;
+    read_count: number;
+  }>;
+  attachments?: Array<{
+    name: string;
+    type: string;
+    uploaded_at: string;
+    uploaded_by?: string;
+  }>;
 }
 
 export async function getExportData(
@@ -274,6 +287,60 @@ export async function getExportData(
         email: (m.profiles as any)?.email,
         role: m.role || 'member',
         avatar_url: (m.profiles as any)?.avatar_url
+      })) || [];
+    }
+
+    // Fetch broadcasts if requested
+    if (sections.includes('broadcasts')) {
+      const { data: broadcasts } = await supabase
+        .from('broadcasts')
+        .select(`
+          message,
+          priority,
+          created_at,
+          is_sent,
+          created_by,
+          profiles:created_by (
+            display_name
+          )
+        `)
+        .eq('trip_id', tripId)
+        .eq('is_sent', true)
+        .order('created_at', { ascending: true });
+
+      if (broadcasts && broadcasts.length > 0) {
+        (result as any).broadcasts = broadcasts.map(b => ({
+          message: b.message,
+          priority: b.priority || 'fyi',
+          timestamp: b.created_at,
+          sender: (b.profiles as any)?.display_name || 'Team Member',
+          read_count: 0
+        }));
+      }
+    }
+
+    // Fetch attachments if requested
+    if (sections.includes('attachments')) {
+      const { data: files } = await supabase
+        .from('trip_files')
+        .select(`
+          id,
+          name,
+          file_type,
+          created_at,
+          uploaded_by,
+          profiles:uploaded_by (
+            display_name
+          )
+        `)
+        .eq('trip_id', tripId)
+        .order('created_at', { ascending: false });
+
+      (result as any).attachments = files?.map(f => ({
+        name: f.name,
+        type: f.file_type,
+        uploaded_at: f.created_at,
+        uploaded_by: (f.profiles as any)?.display_name || 'Unknown'
       })) || [];
     }
 
