@@ -121,9 +121,9 @@ export const tripsData: Trip[] = [
   {
     id: 6,
     title: "Johnson Family Summer Vacay",
-    location: "Aspen, CO",
+    location: "Saratoga Springs, NY",
     dateRange: "Jul 20 - Jul 28, 2025",
-    description: "Multi-generational family retreat with hiking, spa time, and quality family bonding",
+    description: "Multi-generational family retreat with horse racing, spa time, and quality family bonding",
     coverPhoto: aspenFamilySummer,
     placesCount: 12,
     participants: [
@@ -297,6 +297,13 @@ const getCitySpecificLinks = (location: string) => {
       { title: 'Aspen Mountain Hiking Trails (Summer)', url: 'https://www.alltrails.com/parks/us/colorado/aspen', category: 'Activities', domain: 'alltrails.com', description: 'Maroon Bells and scenic backcountry routes' },
       { title: 'Best Restaurants in Downtown Aspen', url: 'https://www.tripadvisor.com/Restaurants-g29141-Aspen_Colorado.html', category: 'Food', domain: 'tripadvisor.com', description: 'Fine dining and après-ski spots' },
       { title: 'Aspen Spa & Wellness Centers', url: 'https://www.aspenchamber.org/wellness', category: 'Activities', domain: 'aspenchamber.org', description: 'Luxury spa treatments and hot springs' }
+    ],
+    'Saratoga Springs': [
+      { title: 'Saratoga Race Course - Historic Horse Racing', url: 'https://www.saratogaracecourse.com/', category: 'Attractions', domain: 'saratogaracecourse.com', description: 'Americas oldest thoroughbred racing venue' },
+      { title: 'Saratoga Spa State Park', url: 'https://parks.ny.gov/parks/saratogaspa/', category: 'Activities', domain: 'parks.ny.gov', description: 'Natural mineral springs and hiking trails' },
+      { title: 'Downtown Saratoga Restaurants & Cafes', url: 'https://www.saratoga.com/restaurants/', category: 'Food', domain: 'saratoga.com', description: 'Farm-to-table dining and local wineries' },
+      { title: 'Saratoga Hotels & Inns', url: 'https://www.booking.com/city/us/saratoga-springs.html', category: 'Accommodation', domain: 'booking.com', description: 'Historic hotels and bed & breakfasts' },
+      { title: 'Congress Park & Downtown Shopping', url: 'https://www.saratoga.com/things-to-do/', category: 'Activities', domain: 'saratoga.com', description: 'Boutique shops and art galleries' }
     ],
     'Phoenix': [
       { title: 'Scottsdale Golf Course Tee Times', url: 'https://www.golfnow.com/phoenix', category: 'Activities', domain: 'golfnow.com', description: 'TPC Scottsdale and top desert courses' },

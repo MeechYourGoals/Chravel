@@ -479,16 +479,16 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     ]
   },
 
-  // 6. Johnson Family Summer Vacay (Aspen)
+  // 6. Johnson Family Summer Vacay (Saratoga Springs)
   6: {
     tripId: 6,
     tripTitle: "Johnson Family Summer Vacay",
-    location: "Aspen, CO",
+    location: "Saratoga Springs, NY",
     photos: [
       {
-        id: 'aspen-photo-1',
+        id: 'saratoga-photo-1',
         media_url: '/mock/images/group-mountain-photo.jpg',
-        filename: 'Family Mountain Hike.jpg',
+        filename: 'Family at Saratoga Race Course.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -497,9 +497,9 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         mime_type: 'image/jpeg'
       },
       {
-        id: 'aspen-photo-2',
+        id: 'saratoga-photo-2',
         media_url: '/mock/images/travel-selfie.jpg',
-        filename: 'Multi-Gen Lodge Group.jpg',
+        filename: 'Congress Park Family Walk.jpg',
         media_type: 'image',
         metadata: { width: 800, height: 600 },
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
@@ -509,9 +509,9 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
       }
     ],
     videos: [{
-      id: 'aspen-video-1',
+      id: 'saratoga-video-1',
       media_url: '/mock/videos/team-celebration.mp4',
-      filename: 'Family Adventure Montage.mp4',
+      filename: 'Family Summer Adventure Montage.mp4',
       media_type: 'video',
       metadata: { duration: 10, width: 1280, height: 720, poster: '/mock/images/group-mountain-photo.jpg' },
       created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -521,9 +521,9 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     }],
     files: [
       {
-        id: 'aspen-file-1',
+        id: 'saratoga-file-1',
         media_url: '/mock/files/hotel-confirmation.pdf',
-        filename: 'Little Nell Resort Confirmation.pdf',
+        filename: 'Saratoga Arms Hotel Confirmation.pdf',
         media_type: 'document',
         metadata: { guests: 7, nights: 8 },
         created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
@@ -534,26 +534,37 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     ],
     links: [
       {
-        id: 'aspen-link-1',
-        url: 'https://www.thelittlenell.com/',
-        title: 'The Little Nell - Five-Star Aspen Resort',
-        description: 'Luxury ski-in/ski-out resort at the base of Aspen Mountain with world-class spa.',
-        domain: 'thelittlenell.com',
-        image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
+        id: 'saratoga-link-1',
+        url: 'https://www.saratogaracecourse.com/',
+        title: 'Saratoga Race Course - Historic Horse Racing',
+        description: 'Americas oldest thoroughbred racing venue with summer meets and family events.',
+        domain: 'saratogaracecourse.com',
+        image_url: 'https://images.unsplash.com/photo-1568032284447-5d3bcb9f9ef8?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 45).toISOString(),
         source: 'places' as const,
-        tags: ['resort', 'luxury', 'ski']
+        tags: ['racing', 'historic', 'entertainment']
       },
       {
-        id: 'aspen-link-2',
-        url: 'https://www.matsuhisaaspen.com/',
-        title: 'Matsuhisa Aspen - Renowned Japanese Cuisine',
-        description: 'World-famous Japanese restaurant by Nobu Matsuhisa with fresh sushi and mountain views.',
-        domain: 'matsuhisaaspen.com',
+        id: 'saratoga-link-2',
+        url: 'https://parks.ny.gov/parks/saratogaspa/',
+        title: 'Saratoga Spa State Park',
+        description: 'Natural mineral springs, hiking trails, and the historic Roosevelt Baths & Spa.',
+        domain: 'parks.ny.gov',
+        image_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
+        source: 'places' as const,
+        tags: ['park', 'spa', 'wellness']
+      },
+      {
+        id: 'saratoga-link-3',
+        url: 'https://www.saratoga.com/restaurants/',
+        title: 'Downtown Saratoga Restaurants & Cafes',
+        description: 'Historic Broadway street with farm-to-table dining and local wineries.',
+        domain: 'saratoga.com',
         image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
         source: 'places' as const,
-        tags: ['japanese', 'sushi', 'upscale']
+        tags: ['dining', 'downtown', 'local']
       }
     ]
   },
@@ -622,6 +633,17 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
         source: 'places' as const,
         tags: ['resort', 'luxury', 'golf']
+      },
+      {
+        id: 'phoenix-link-3',
+        url: 'https://www.tripadvisor.com/Restaurants-g31310-Phoenix_Arizona.html',
+        title: "Scottsdale Steakhouses & Fine Dining",
+        description: "Mastro's Steakhouse, Durant's, and top-rated desert restaurants.",
+        domain: 'tripadvisor.com',
+        image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
+        source: 'places' as const,
+        tags: ['steakhouse', 'dining', 'scottsdale']
       }
     ]
   },
@@ -894,16 +916,16 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     ]
   },
 
-  // 9. Trip 9 (Current route trip)
+  // 9. Newly Divorced Wine-Tasting Getaway (Napa Valley)
   9: {
     tripId: 9,
-    tripTitle: "Spring Break Cancun 2026", 
-    location: "Cancun, Mexico",
+    tripTitle: "Newly Divorced Wine-Tasting Getaway", 
+    location: "Napa Valley, CA",
     photos: [
       {
-        id: 'cancun-photo-1',
-        media_url: '/mock/images/beach-volleyball.jpg',
-        filename: 'Beach Day Paradise.jpg',
+        id: 'napa-photo-1',
+        media_url: '/mock/images/wedding-ceremony.jpg',
+        filename: 'Vineyard Toast with the Girls.jpg',
         media_type: 'image' as const,
         metadata: { width: 800, height: 600 },
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
@@ -912,9 +934,9 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         mime_type: 'image/jpeg'
       },
       {
-        id: 'cancun-photo-2', 
-        media_url: '/mock/images/group-mountain-photo.jpg',
-        filename: 'Resort Pool Vibes.jpg',
+        id: 'napa-photo-2', 
+        media_url: '/mock/images/travel-selfie.jpg',
+        filename: 'Spa Day Relaxation.jpg',
         media_type: 'image' as const,
         metadata: { width: 800, height: 600 },
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -925,9 +947,9 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     ],
     videos: [
       {
-        id: 'cancun-video-1',
-        media_url: '/mock/videos/team-celebration.mp4',
-        filename: 'Epic Beach Volleyball Game.mp4',
+        id: 'napa-video-1',
+        media_url: '/mock/videos/venue-tour.mp4',
+        filename: 'Hot Air Balloon Over Vineyards.mp4',
         media_type: 'video' as const,
         metadata: { duration: 45, width: 1280, height: 720 },
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
@@ -938,78 +960,383 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
     ],
     files: [
       {
-        id: 'cancun-file-1',
-        media_url: '/mock/images/conference-schedule-preview.jpg',
-        filename: 'Flight Confirmation - Mexico City.jpg',
-        media_type: 'image' as const,
+        id: 'napa-file-1',
+        media_url: '/mock/files/hotel-confirmation.pdf',
+        filename: 'Auberge du Soleil Resort Confirmation.pdf',
+        media_type: 'document' as const,
         metadata: { 
-          isTicket: true,
-          venue: 'AeroMexico Flight AM445',
-          date: '2026-03-15' 
+          nights: 4,
+          guests: 6
         },
         created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
         source: 'upload' as const,
         file_size: 234567,
-        mime_type: 'image/jpeg'
-      },
-      {
-        id: 'cancun-file-2',
-        media_url: '/mock/files/hotel-confirmation.pdf',
-        filename: 'Hotel Riu Cancun Confirmation.pdf',
-        media_type: 'document' as const,
-        metadata: { 
-          extractedEvents: 2,
-          pageCount: 3
-        },
-        created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
-        source: 'upload' as const,
-        file_size: 1456789,
         mime_type: 'application/pdf'
       },
       {
-        id: 'cancun-file-3',
-        media_url: '/mock/files/dinner_receipt.jpg',
-        filename: 'Dinner Receipt - La Isla.jpg',
-        media_type: 'image' as const,
-        metadata: { 
-          isReceipt: true,
-          totalAmount: 240,
-          splitCount: 6,
-          perPersonAmount: 40,
-          preferredMethod: 'venmo'
-        },
-        created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-        source: 'chat' as const,
-        file_size: 198765,
-        mime_type: 'image/jpeg'
-      },
-      {
-        id: 'cancun-file-4',
+        id: 'napa-file-2',
         media_url: '/mock/files/travel_itinerary.pdf',
-        filename: 'Cancun Week Itinerary.pdf',
+        filename: 'Napa Wine Tour Reservations.pdf',
         media_type: 'document' as const,
         metadata: { 
-          isSchedule: true,
-          extractedEvents: 12,
-          pageCount: 4
+          extractedEvents: 5,
+          pageCount: 3
         },
-        created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
+        created_at: new Date(Date.now() - 86400000 * 8).toISOString(),
         source: 'upload' as const,
-        file_size: 987654,
+        file_size: 1456789,
         mime_type: 'application/pdf'
       }
     ],
     links: [
       {
-        id: 'cancun-link-1',
-        url: 'https://www.airbnb.com/rooms/beachfront-villa-cancun',
-        title: 'Beachfront Villa with Private Pool',
-        description: 'Luxury 4BR villa steps from the beach, perfect for groups',
-        domain: 'airbnb.com',
+        id: 'napa-link-1',
+        url: 'https://www.viator.com/Napa-Valley/d909-ttd',
+        title: 'Napa Valley Winery Tours & Tastings',
+        description: 'Full-day wine tasting experiences at boutique vineyards and famous estates.',
+        domain: 'viator.com',
+        image_url: 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
+        source: 'places' as const,
+        tags: ['wine', 'tasting', 'tour']
+      },
+      {
+        id: 'napa-link-2',
+        url: 'https://www.aubergeresorts.com/aubergedusoleil/',
+        title: 'Auberge du Soleil - Luxury Spa Resort',
+        description: 'Five-star hillside resort with Michelin-starred dining and world-class spa.',
+        domain: 'aubergeresorts.com',
         image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
         source: 'places' as const,
-        tags: ['beachfront', 'villa', 'pool']
+        tags: ['luxury', 'spa', 'resort']
+      },
+      {
+        id: 'napa-link-3',
+        url: 'https://www.napavalleyballoons.com/',
+        title: 'Napa Valley Hot Air Balloon Rides',
+        description: 'Sunrise flights over vineyards with champagne brunch after landing.',
+        domain: 'napavalleyballoons.com',
+        image_url: 'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
+        source: 'places' as const,
+        tags: ['balloon', 'scenic', 'experience']
+      }
+    ]
+  },
+
+  // 8. Tulum Wellness Retreat
+  8: {
+    tripId: 8,
+    tripTitle: "Tulum Wellness Retreat",
+    location: "Tulum, Mexico",
+    photos: [
+      {
+        id: 'tulum-photo-1',
+        media_url: '/mock/images/wedding-ceremony.jpg',
+        filename: 'Beach Yoga Session.jpg',
+        media_type: 'image',
+        metadata: { width: 800, height: 600 },
+        created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+        source: 'chat',
+        file_size: 456789,
+        mime_type: 'image/jpeg'
+      }
+    ],
+    videos: [{
+      id: 'tulum-video-1',
+      media_url: '/mock/videos/venue-tour.mp4',
+      filename: 'Cenote Diving Adventure.mp4',
+      media_type: 'video',
+      metadata: { duration: 30, width: 1280, height: 720 },
+      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+      source: 'chat',
+      file_size: 11456000,
+      mime_type: 'video/mp4'
+    }],
+    files: [
+      {
+        id: 'tulum-file-1',
+        media_url: '/mock/files/hotel-confirmation.pdf',
+        filename: 'Azulik Eco-Resort Confirmation.pdf',
+        media_type: 'document',
+        metadata: { nights: 7, guests: 8 },
+        created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
+        source: 'upload',
+        file_size: 345600,
+        mime_type: 'application/pdf'
+      }
+    ],
+    links: [
+      {
+        id: 'tulum-link-1',
+        url: 'https://www.booking.com/city/mx/tulum.html',
+        title: 'Tulum Beachfront Boutique Hotels',
+        description: 'Eco-chic resorts on the Caribbean coast with yoga studios and wellness programs.',
+        domain: 'booking.com',
+        image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
+        source: 'places' as const,
+        tags: ['eco-resort', 'beach', 'wellness']
+      },
+      {
+        id: 'tulum-link-2',
+        url: 'https://www.bookyogaretreats.com/tulum',
+        title: 'Tulum Yoga Retreats & Classes',
+        description: 'Beachfront yoga studios and wellness centers with meditation and breathwork.',
+        domain: 'bookyogaretreats.com',
+        image_url: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 18).toISOString(),
+        source: 'places' as const,
+        tags: ['yoga', 'wellness', 'retreat']
+      },
+      {
+        id: 'tulum-link-3',
+        url: 'https://www.getyourguide.com/tulum-l1087/',
+        title: 'Cenote Swimming & Snorkeling Tours',
+        description: 'Underground caves and natural pools with crystal-clear waters.',
+        domain: 'getyourguide.com',
+        image_url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
+        source: 'places' as const,
+        tags: ['cenote', 'snorkeling', 'adventure']
+      }
+    ]
+  },
+
+  // 10. Corporate Holiday Ski Trip – Aspen
+  10: {
+    tripId: 10,
+    tripTitle: "Corporate Holiday Ski Trip – Aspen",
+    location: "Aspen, CO",
+    photos: [
+      {
+        id: 'aspen-corp-photo-1',
+        media_url: '/mock/images/group-mountain-photo.jpg',
+        filename: 'Team Ski Day on Aspen Mountain.jpg',
+        media_type: 'image',
+        metadata: { width: 800, height: 600 },
+        created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+        source: 'chat',
+        file_size: 467890,
+        mime_type: 'image/jpeg'
+      }
+    ],
+    videos: [{
+      id: 'aspen-corp-video-1',
+      media_url: '/mock/videos/team-celebration.mp4',
+      filename: 'Corporate Team Building Day.mp4',
+      media_type: 'video',
+      metadata: { duration: 35, width: 1280, height: 720 },
+      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+      source: 'chat',
+      file_size: 13567000,
+      mime_type: 'video/mp4'
+    }],
+    files: [
+      {
+        id: 'aspen-corp-file-1',
+        media_url: '/mock/files/hotel-confirmation.pdf',
+        filename: 'St. Regis Aspen Group Booking.pdf',
+        media_type: 'document',
+        metadata: { nights: 5, rooms: 12 },
+        created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
+        source: 'upload',
+        file_size: 456789,
+        mime_type: 'application/pdf'
+      }
+    ],
+    links: [
+      {
+        id: 'aspen-corp-link-1',
+        url: 'https://www.aspensnowmass.com/',
+        title: 'Aspen Snowmass Ski Resort Info',
+        description: 'Four mountains with world-class skiing, lift tickets, and group rates.',
+        domain: 'aspensnowmass.com',
+        image_url: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 35).toISOString(),
+        source: 'places' as const,
+        tags: ['skiing', 'resort', 'corporate']
+      },
+      {
+        id: 'aspen-corp-link-2',
+        url: 'https://www.booking.com/city/us/aspen.html',
+        title: 'Luxury Ski-In/Ski-Out Lodges',
+        description: 'Premium mountain hotels with spa services and meeting rooms for teams.',
+        domain: 'booking.com',
+        image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 40).toISOString(),
+        source: 'places' as const,
+        tags: ['luxury', 'lodging', 'ski']
+      },
+      {
+        id: 'aspen-corp-link-3',
+        url: 'https://www.tripadvisor.com/Restaurants-g29141-Aspen_Colorado.html',
+        title: 'Best Restaurants in Downtown Aspen',
+        description: 'Fine dining and après-ski spots perfect for corporate dinners and celebrations.',
+        domain: 'tripadvisor.com',
+        image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
+        source: 'places' as const,
+        tags: ['dining', 'apres-ski', 'upscale']
+      }
+    ]
+  },
+
+  // 11. Disney Cruise Family Vacation
+  11: {
+    tripId: 11,
+    tripTitle: "Disney Cruise Family Vacation",
+    location: "Port Canaveral, FL",
+    photos: [
+      {
+        id: 'disney-photo-1',
+        media_url: '/mock/images/travel-selfie.jpg',
+        filename: 'Family with Mickey on Deck.jpg',
+        media_type: 'image',
+        metadata: { width: 800, height: 600 },
+        created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+        source: 'chat',
+        file_size: 445678,
+        mime_type: 'image/jpeg'
+      }
+    ],
+    videos: [{
+      id: 'disney-video-1',
+      media_url: '/mock/videos/team-celebration.mp4',
+      filename: 'Disney Character Meet & Greet.mp4',
+      media_type: 'video',
+      metadata: { duration: 25, width: 1280, height: 720 },
+      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+      source: 'chat',
+      file_size: 10234000,
+      mime_type: 'video/mp4'
+    }],
+    files: [
+      {
+        id: 'disney-file-1',
+        media_url: '/mock/files/hotel-confirmation.pdf',
+        filename: 'Disney Dream Cruise Booking.pdf',
+        media_type: 'document',
+        metadata: { cabins: 2, guests: 7 },
+        created_at: new Date(Date.now() - 86400000 * 45).toISOString(),
+        source: 'upload',
+        file_size: 567890,
+        mime_type: 'application/pdf'
+      }
+    ],
+    links: [
+      {
+        id: 'disney-link-1',
+        url: 'https://disneycruise.disney.go.com/',
+        title: 'Disney Cruise Line Official Site',
+        description: 'Cruise bookings, itineraries, character experiences, and onboard activities.',
+        domain: 'disneycruise.disney.go.com',
+        image_url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 50).toISOString(),
+        source: 'places' as const,
+        tags: ['cruise', 'disney', 'family']
+      },
+      {
+        id: 'disney-link-2',
+        url: 'https://www.kennedyspacecenter.com/',
+        title: 'Kennedy Space Center Tickets',
+        description: 'NASA tours and exhibits - perfect pre or post-cruise day trip with the family.',
+        domain: 'kennedyspacecenter.com',
+        image_url: 'https://images.unsplash.com/photo-1517976487492-5750f3195933?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
+        source: 'places' as const,
+        tags: ['nasa', 'space', 'attraction']
+      },
+      {
+        id: 'disney-link-3',
+        url: 'https://www.tripadvisor.com/Restaurants-g34044-Cocoa_Beach_Florida.html',
+        title: 'Cocoa Beach Restaurants & Dining',
+        description: 'Fresh seafood and beachfront cafes near the port for pre-cruise meals.',
+        domain: 'tripadvisor.com',
+        image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
+        source: 'places' as const,
+        tags: ['seafood', 'beach', 'family-friendly']
+      }
+    ]
+  },
+
+  // 12. Yellowstone National-Park Hiking Adventure
+  12: {
+    tripId: 12,
+    tripTitle: "Yellowstone National-Park Hiking Adventure",
+    location: "Yellowstone, WY",
+    photos: [
+      {
+        id: 'yellowstone-photo-1',
+        media_url: '/mock/images/group-mountain-photo.jpg',
+        filename: 'Old Faithful Group Photo.jpg',
+        media_type: 'image',
+        metadata: { width: 800, height: 600 },
+        created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+        source: 'chat',
+        file_size: 478901,
+        mime_type: 'image/jpeg'
+      }
+    ],
+    videos: [{
+      id: 'yellowstone-video-1',
+      media_url: '/mock/videos/venue-tour.mp4',
+      filename: 'Bison Herd Crossing.mp4',
+      media_type: 'video',
+      metadata: { duration: 40, width: 1280, height: 720 },
+      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+      source: 'chat',
+      file_size: 14567000,
+      mime_type: 'video/mp4'
+    }],
+    files: [
+      {
+        id: 'yellowstone-file-1',
+        media_url: '/mock/files/hotel-confirmation.pdf',
+        filename: 'Old Faithful Inn Reservation.pdf',
+        media_type: 'document',
+        metadata: { nights: 7, rooms: 3 },
+        created_at: new Date(Date.now() - 86400000 * 40).toISOString(),
+        source: 'upload',
+        file_size: 345678,
+        mime_type: 'application/pdf'
+      }
+    ],
+    links: [
+      {
+        id: 'yellowstone-link-1',
+        url: 'https://www.nps.gov/yell/planyourvisit/fees.htm',
+        title: 'Yellowstone National Park Passes',
+        description: 'Entry fees, annual passes, and reservation requirements for visiting the park.',
+        domain: 'nps.gov',
+        image_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 45).toISOString(),
+        source: 'places' as const,
+        tags: ['national-park', 'pass', 'entrance']
+      },
+      {
+        id: 'yellowstone-link-2',
+        url: 'https://www.yellowstonenationalparklodges.com/',
+        title: 'Old Faithful Inn & Park Lodges',
+        description: 'Historic in-park lodging with rustic cabins and full-service hotels.',
+        domain: 'yellowstonenationalparklodges.com',
+        image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 50).toISOString(),
+        source: 'places' as const,
+        tags: ['lodging', 'historic', 'in-park']
+      },
+      {
+        id: 'yellowstone-link-3',
+        url: 'https://www.alltrails.com/parks/us/wyoming/yellowstone-national-park',
+        title: 'Best Hiking Trails in Yellowstone',
+        description: 'Grand Prismatic Spring, Lamar Valley wildlife viewing, and backcountry trails.',
+        domain: 'alltrails.com',
+        image_url: 'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
+        source: 'places' as const,
+        tags: ['hiking', 'trails', 'wildlife']
       }
     ]
   }
