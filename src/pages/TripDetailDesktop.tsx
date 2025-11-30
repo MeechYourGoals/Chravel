@@ -31,6 +31,7 @@ import { supabase } from '../integrations/supabase/client';
 import { openOrDownloadBlob } from '../utils/download';
 import { toast } from 'sonner';
 import { demoModeService } from '../services/demoModeService';
+import TripSpecificMockDataService from '../services/tripSpecificMockDataService';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { convertSupabaseTripToMock } from '../utils/tripConverter';
 import { useQueryClient } from '@tanstack/react-query';
@@ -288,6 +289,11 @@ export const TripDetailDesktop = () => {
         const mockPolls = demoModeService.getMockPolls(tripId || '1');
         const mockMembers = demoModeService.getMockMembers(tripId || '1');
         const mockTasks = demoModeService.getMockTasks(tripId || '1');
+        const mockPlaces = demoModeService.getMockPlaces(tripId || '1');
+        
+        // Get session basecamp if set, otherwise use existing basecamp
+        const sessionBasecamp = demoModeService.getSessionTripBasecamp(tripId || '1');
+        const actualBasecamp = sessionBasecamp || basecamp;
 
         // Lazy load PDF generation (only when export is clicked)
         const { generateClientPDF } = await import('../utils/exportPdfClient');
@@ -311,20 +317,15 @@ export const TripDetailDesktop = () => {
               completed: task.completed
             })) : undefined,
             places: sections.includes('places') ? [
-              // Trip Basecamp first
-              ...(basecamp ? [{
-                name: `📍 Trip Base Camp: ${basecamp.name || 'Main Location'}`,
-                url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(basecamp.address)}`,
-                description: basecamp.address,
+              // Trip Basecamp first (from session or trip-specific data)
+              ...(actualBasecamp ? [{
+                name: `📍 Trip Base Camp: ${actualBasecamp.name || 'Main Location'}`,
+                url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(actualBasecamp.address)}`,
+                description: actualBasecamp.address,
                 votes: 0
               }] : []),
-              // All trip links
-              ...mockLinks.map((link: any) => ({
-                name: link.title || 'Untitled',
-                url: link.url || '',
-                description: link.category ? `[${link.category}] ${link.description || ''}` : (link.description || ''),
-                votes: 0
-              }))
+              // Trip-specific places from tripSpecificMockDataService
+              ...mockPlaces
             ] : undefined,
             roster: sections.includes('roster') ? mockMembers.map(m => ({
               name: m.display_name,

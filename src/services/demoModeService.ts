@@ -1,5 +1,7 @@
 
 import { secureStorageService } from './secureStorageService';
+import { mockPolls } from '@/mockData/polls';
+import TripSpecificMockDataService from './tripSpecificMockDataService';
 
 interface MockMessage {
   id: string;
@@ -104,6 +106,7 @@ export interface SessionPersonalBasecamp {
 class DemoModeService {
   private sessionPayments: Map<string, SessionPayment[]> = new Map();
   private sessionPersonalBasecamps: Map<string, SessionPersonalBasecamp> = new Map();
+  private sessionTripBasecamps: Map<string, { name?: string; address: string }> = new Map();
   getTripType(trip: any): string {
     if (!trip) return 'demo';
     if (trip.category === 'pro') return 'pro-trip';
@@ -523,37 +526,24 @@ class DemoModeService {
   }
 
   getMockPolls(tripId: string): MockPoll[] {
-    return [
-      {
-        id: 'demo-poll-1',
-        trip_id: tripId,
-        question: 'Which restaurant should we try for dinner tonight?',
-        options: [
-          { id: 'opt1', text: 'Italian Bistro', votes: 7 },
-          { id: 'opt2', text: 'Sushi Bar', votes: 12 },
-          { id: 'opt3', text: 'Mexican Grill', votes: 5 },
-          { id: 'opt4', text: 'Thai Cuisine', votes: 3 }
-        ],
-        total_votes: 27,
-        created_by: 'user1',
-        created_at: new Date(Date.now() - 172800000).toISOString(),
-        status: 'active'
-      },
-      {
-        id: 'demo-poll-2',
-        trip_id: tripId,
-        question: 'What time should we leave for the beach?',
-        options: [
-          { id: 'opt1', text: '8:00 AM - Early start', votes: 4 },
-          { id: 'opt2', text: '10:00 AM - Mid-morning', votes: 15 },
-          { id: 'opt3', text: '12:00 PM - Noon', votes: 6 }
-        ],
-        total_votes: 25,
-        created_by: 'user2',
-        created_at: new Date(Date.now() - 86400000).toISOString(),
-        status: 'active'
-      }
-    ];
+    // Filter polls specific to this trip from mockPolls.ts
+    const tripPolls = mockPolls.filter(poll => poll.trip_id === tripId);
+    
+    // Transform to MockPoll format
+    return tripPolls.map(poll => ({
+      id: poll.id,
+      trip_id: poll.trip_id,
+      question: poll.question,
+      options: poll.options.map(opt => ({
+        id: opt.id,
+        text: opt.text,
+        votes: opt.voteCount
+      })),
+      total_votes: poll.total_votes,
+      created_by: poll.created_by,
+      created_at: poll.created_at,
+      status: poll.status
+    }));
   }
 
   getMockMembers(tripId: string): MockMember[] {
@@ -779,6 +769,58 @@ class DemoModeService {
   setMediaMeta(tripId: string, mediaId: string, caption: string, tags: string[]): void {
     const key = `demo_media_meta_${tripId}_${mediaId}`;
     sessionStorage.setItem(key, JSON.stringify({ caption, tags }));
+  }
+
+  // ============================================
+  // Trip Basecamp Methods (Demo Mode)
+  // ============================================
+
+  /**
+   * Get session trip basecamp (for demo mode PDF export)
+   */
+  getSessionTripBasecamp(tripId: string): { name?: string; address: string } | null {
+    return this.sessionTripBasecamps.get(tripId) || null;
+  }
+
+  /**
+   * Set session trip basecamp (for demo mode)
+   */
+  setSessionTripBasecamp(tripId: string, basecamp: { name?: string; address: string }): void {
+    this.sessionTripBasecamps.set(tripId, basecamp);
+  }
+
+  /**
+   * Clear session trip basecamps (called when demo mode is toggled off)
+   */
+  clearSessionTripBasecamps(tripId?: string): void {
+    if (tripId) {
+      this.sessionTripBasecamps.delete(tripId);
+    } else {
+      this.sessionTripBasecamps.clear();
+    }
+  }
+
+  // ============================================
+  // Trip-Specific Places/Links (Demo Mode)
+  // ============================================
+
+  /**
+   * Get trip-specific places/links from tripSpecificMockDataService
+   */
+  getMockPlaces(tripId: string): Array<{ name: string; url: string; description?: string; votes: number }> {
+    const numericTripId = parseInt(tripId);
+    const tripData = TripSpecificMockDataService.getTripMockData(numericTripId);
+    
+    if (!tripData?.links) {
+      return [];
+    }
+    
+    return tripData.links.map(link => ({
+      name: link.title,
+      url: link.url,
+      description: link.description,
+      votes: 0
+    }));
   }
 }
 
