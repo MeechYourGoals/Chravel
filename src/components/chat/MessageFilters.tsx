@@ -66,7 +66,7 @@ export const MessageFilters = ({
           }`}
         >
           <MessageCircle size={14} />
-          All Messages
+          Messages
         </button>
         <button
           onClick={() => onFilterChange('broadcast')}
@@ -154,7 +154,7 @@ export const MessageFilters = ({
         }`}
       >
         <MessageCircle size={16} />
-        All Messages
+        Messages
       </button>
       <button
         onClick={() => onFilterChange('broadcast')}
