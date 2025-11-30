@@ -92,9 +92,19 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
     }
   };
 
-  const handleTripBasecampDelete = () => {
+  const handleTripBasecampClear = async () => {
     if (!tripBasecamp) return;
-    clearBasecamp();
+    
+    try {
+      if (isDemoMode) {
+        demoModeService.clearSessionTripBasecamp(tripId);
+      }
+      clearBasecamp();
+      toast.success('Trip basecamp cleared');
+    } catch (error) {
+      console.error('Failed to clear trip basecamp:', error);
+      toast.error('Failed to clear trip basecamp');
+    }
   };
 
   const handlePersonalBasecampSet = async (location: BasecampLocation) => {
@@ -281,6 +291,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           isOpen={showTripSelector}
           onClose={() => setShowTripSelector(false)}
           onBasecampSet={handleTripBasecampSet}
+          onBasecampClear={handleTripBasecampClear}
           currentBasecamp={tripBasecamp || undefined}
         />
       )}
@@ -289,6 +300,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           isOpen={showPersonalSelector}
           onClose={() => setShowPersonalSelector(false)}
           onBasecampSet={handlePersonalBasecampSet}
+          onBasecampClear={handlePersonalBasecampDelete}
           currentBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : undefined}
         />
       )}
