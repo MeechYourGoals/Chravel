@@ -3,7 +3,6 @@ import { LogIn } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DemoModeToggle } from '../DemoModeToggle';
 import { AuthModal } from '../AuthModal';
-import charavelLogo from '@/assets/chravel-logo-white.png';
 
 interface MobileAuthHeaderProps {
   onSignUp?: () => void;
@@ -31,7 +30,7 @@ export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp }) 
         <div className="flex items-center justify-between px-4 py-3">
           {/* Logo */}
           <div className="flex items-center">
-            <img src={charavelLogo} alt="Chravel" className="h-8 w-auto" />
+            <img src="/chravel-logo.png" alt="Chravel" className="h-8 w-auto" />
           </div>
 
           {/* Demo Toggle */}
