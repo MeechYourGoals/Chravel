@@ -498,13 +498,7 @@ const Index = () => {
               </div>
             </div>
 
-          {showMarketingContent && (viewMode === 'tripsPro' || viewMode === 'events') && (
-            <PersistentCTABar
-              viewMode={viewMode}
-              onScheduleDemo={handleScheduleDemo}
-              onSeePricing={handleSeePricing}
-            />
-          )}
+          {/* PersistentCTABar removed until production-ready MVP launch */}
 
           <AuthModal
             isOpen={isAuthModalOpen}
@@ -727,14 +721,7 @@ const Index = () => {
 
       </div>
 
-      {/* Persistent CTA Bar - Only for Pro/Events views AND unauthenticated users */}
-      {showMarketingContent && (viewMode === 'tripsPro' || viewMode === 'events') && (
-        <PersistentCTABar
-          viewMode={viewMode}
-          onScheduleDemo={handleScheduleDemo}
-          onSeePricing={handleSeePricing}
-        />
-      )}
+      {/* PersistentCTABar removed until production-ready MVP launch */}
 
       {/* Modals */}
       <CreateTripModal 
