@@ -377,6 +377,17 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
         source: 'places' as const,
         tags: ['adventure', 'scenic', 'couples']
+      },
+      {
+        id: 'bali-link-4',
+        url: 'https://www.tripadvisor.com/Attraction_Review-g297701-d2629337-Reviews-Uluwatu_Temple-Pecatu_Nusa_Dua_Peninsula_Bali.html',
+        title: 'Uluwatu Temple Sunset Kecak Dance',
+        description: 'Ancient clifftop temple with traditional Balinese fire dance at sunset.',
+        domain: 'tripadvisor.com',
+        image_url: 'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
+        source: 'places' as const,
+        tags: ['temple', 'cultural', 'sunset']
       }
     ]
   },
@@ -475,6 +486,17 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
         source: 'places' as const,
         tags: ['music', 'historic', 'tour']
+      },
+      {
+        id: 'nashville-link-4',
+        url: 'https://www.visitmusiccity.com/broadway',
+        title: 'Broadway Honky Tonk District',
+        description: 'Neon-lit honky tonks with live bands, dancing, and Nashville nightlife.',
+        domain: 'visitmusiccity.com',
+        image_url: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+        source: 'places' as const,
+        tags: ['nightlife', 'music', 'broadway']
       }
     ]
   },
@@ -565,6 +587,17 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
         source: 'places' as const,
         tags: ['dining', 'downtown', 'local']
+      },
+      {
+        id: 'saratoga-link-4',
+        url: 'https://www.booking.com/hotel/us/the-adelphi.html',
+        title: 'The Adelphi Hotel - Historic Downtown Boutique',
+        description: 'Victorian-era luxury hotel with modern amenities in the heart of downtown.',
+        domain: 'booking.com',
+        image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 35).toISOString(),
+        source: 'places' as const,
+        tags: ['hotel', 'historic', 'boutique']
       }
     ]
   },
@@ -644,6 +677,17 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
         source: 'places' as const,
         tags: ['steakhouse', 'dining', 'scottsdale']
+      },
+      {
+        id: 'phoenix-link-4',
+        url: 'https://www.alltrails.com/trail/us/arizona/camelback-mountain-echo-canyon-trail',
+        title: 'Camelback Mountain Sunrise Hike',
+        description: 'Popular 1.2 mile trail with 1,280 ft elevation gain and stunning desert views.',
+        domain: 'alltrails.com',
+        image_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 8).toISOString(),
+        source: 'places' as const,
+        tags: ['hiking', 'scenic', 'sunrise']
       }
     ]
   },
@@ -1021,6 +1065,17 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
         source: 'places' as const,
         tags: ['balloon', 'scenic', 'experience']
+      },
+      {
+        id: 'napa-link-4',
+        url: 'https://www.bouchonbistro.com/',
+        title: 'Bouchon Bistro by Thomas Keller',
+        description: 'French bistro by renowned chef Thomas Keller with seasonal menus and wine pairings.',
+        domain: 'bouchonbistro.com',
+        image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 18).toISOString(),
+        source: 'places' as const,
+        tags: ['french', 'fine-dining', 'michelin']
       }
     ]
   },
@@ -1100,6 +1155,17 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
         source: 'places' as const,
         tags: ['cenote', 'snorkeling', 'adventure']
+      },
+      {
+        id: 'tulum-link-4',
+        url: 'https://www.tripadvisor.com/Attraction_Review-g150813-d155114-Reviews-Tulum_Archaeological_Site-Tulum_Yucatan_Peninsula.html',
+        title: 'Tulum Mayan Ruins Beachfront',
+        description: 'Ancient walled city perched on cliffs overlooking the Caribbean Sea.',
+        domain: 'tripadvisor.com',
+        image_url: 'https://images.unsplash.com/photo-1518638150340-f706e86654de?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 12).toISOString(),
+        source: 'places' as const,
+        tags: ['ruins', 'mayan', 'historic']
       }
     ]
   },
@@ -1179,6 +1245,17 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
         source: 'places' as const,
         tags: ['dining', 'apres-ski', 'upscale']
+      },
+      {
+        id: 'aspen-corp-link-4',
+        url: 'https://www.fs.usda.gov/recarea/whiteriver/recarea/?recid=41320',
+        title: 'Maroon Bells Scenic Area Winter Access',
+        description: 'Iconic twin peaks with snowshoeing and cross-country skiing trails.',
+        domain: 'fs.usda.gov',
+        image_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
+        source: 'places' as const,
+        tags: ['scenic', 'nature', 'snowshoeing']
       }
     ]
   },
@@ -1258,6 +1335,17 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
         source: 'places' as const,
         tags: ['seafood', 'beach', 'family-friendly']
+      },
+      {
+        id: 'disney-link-4',
+        url: 'https://disneycruise.disney.go.com/destinations/bahamas/castaway-cay/',
+        title: 'Castaway Cay Island Beach Day',
+        description: "Disney's private island with snorkeling, water slides, and character meet & greets.",
+        domain: 'disneycruise.disney.go.com',
+        image_url: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 40).toISOString(),
+        source: 'places' as const,
+        tags: ['island', 'beach', 'disney']
       }
     ]
   },
@@ -1337,6 +1425,17 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
         source: 'places' as const,
         tags: ['hiking', 'trails', 'wildlife']
+      },
+      {
+        id: 'yellowstone-link-4',
+        url: 'https://www.yellowstonenationalparklodges.com/dining/',
+        title: 'Lake Yellowstone Hotel Dining Room',
+        description: 'Historic lakeside fine dining with regional cuisine and Montana wines.',
+        domain: 'yellowstonenationalparklodges.com',
+        image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 35).toISOString(),
+        source: 'places' as const,
+        tags: ['dining', 'historic', 'lakeside']
       }
     ]
   }
