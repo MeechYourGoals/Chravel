@@ -17,6 +17,7 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
   const [lastName, setLastName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [resetEmailSent, setResetEmailSent] = useState(false);
 
   if (!isOpen) return null;
@@ -24,6 +25,7 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     try {
       let result;
       if (mode === 'signup') {
@@ -35,6 +37,11 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
       if (result.error) {
         setError(result.error);
         return;
+      }
+      
+      if (result.success) {
+        setSuccess(result.success);
+        return; // Keep modal open to show success message
       }
       
       onClose();
@@ -267,8 +274,15 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
           </button>
         </div>
 
+        {success && (
+          <div data-auth-message className="mb-4 p-4 bg-green-500/20 border border-green-500/50 rounded-xl text-green-200 text-sm animate-fade-in">
+            <p className="font-medium mb-1">✓ {success}</p>
+            <p className="text-xs text-green-300/80 mt-1">You can close this and sign in once confirmed.</p>
+          </div>
+        )}
+
         {error && (
-          <div className="mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm animate-fade-in">
+          <div data-auth-message className="mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm animate-fade-in">
             <p className="font-medium mb-1">{error}</p>
             {error.includes('email') && (
               <p className="text-xs text-red-300/80 mt-1">Check your email for a confirmation link</p>
