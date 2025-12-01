@@ -148,7 +148,9 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                 placeholder="John"
                 required
                 autoComplete="given-name"
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange"
+                inputMode="text"
+                enterKeyHint="next"
+                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange min-h-[48px]"
               />
             </div>
             <div>
@@ -160,7 +162,9 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                 placeholder="Doe"
                 required
                 autoComplete="family-name"
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange"
+                inputMode="text"
+                enterKeyHint="next"
+                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange min-h-[48px]"
               />
             </div>
           </div>
@@ -179,7 +183,9 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
             required
             autoFocus={mode === 'signin'}
             autoComplete="email"
-            className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange"
+            inputMode="email"
+            enterKeyHint="next"
+            className="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange min-h-[48px]"
           />
         </div>
       </div>
@@ -194,12 +200,13 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
             placeholder="••••••••"
             required
             autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-            className="w-full bg-white/10 border border-white/20 rounded-xl pl-4 pr-10 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange"
+            enterKeyHint={mode === 'signup' ? 'done' : 'go'}
+            className="w-full bg-white/10 border border-white/20 rounded-xl pl-4 pr-10 py-3 text-base text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange min-h-[48px]"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -261,8 +268,11 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm">
-            {error}
+          <div className="mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm animate-fade-in">
+            <p className="font-medium mb-1">{error}</p>
+            {error.includes('email') && (
+              <p className="text-xs text-red-300/80 mt-1">Check your email for a confirmation link</p>
+            )}
           </div>
         )}
 

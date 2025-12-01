@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { FullPageLandingSection } from './FullPageLandingSection';
 import { StickyLandingNav } from './StickyLandingNav';
+import { MobileAuthHeader } from './MobileAuthHeader';
 import { HeroSection } from './sections/HeroSection';
 import { ProblemSolutionSection } from './sections/ProblemSolutionSection';
 
@@ -38,6 +39,9 @@ const SectionLoader = () => (
 export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) => {
   return (
     <>
+      {/* Mobile Auth Header - Shows only on mobile */}
+      <MobileAuthHeader onSignUp={onSignUp} />
+      
       {/* Sticky Navigation */}
       <StickyLandingNav onSignUp={onSignUp} />
 
