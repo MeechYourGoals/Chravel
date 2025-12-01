@@ -304,24 +304,47 @@ const Index = () => {
             )}
 
             <div className="max-w-[1500px] mx-auto">
-              <div className="w-full flex flex-col md:flex-row gap-4 md:gap-6 items-start animate-fade-in">
-                <TripViewToggle 
-                  viewMode={viewMode} 
-                  onViewModeChange={handleViewModeChange}
-                  showRecsTab={true}
-                  recsTabDisabled={true}
-                  className="flex-1"
-                />
-                <TripActionBar
-                  onSettings={() => setIsSettingsOpen(true)}
-                  onCreateTrip={handleCreateTrip}
-                  onSearch={() => setIsSearchOpen(true)}
-                  onNotifications={() => {}}
-                  isNotificationsOpen={isNotificationsOpen}
-                  setIsNotificationsOpen={setIsNotificationsOpen}
-                  className="flex-1"
-                />
-              </div>
+              {isMobile ? (
+                // Mobile: Stacked vertically
+                <div className="w-full space-y-3 animate-fade-in">
+                  <TripActionBar
+                    onSettings={() => setIsSettingsOpen(true)}
+                    onCreateTrip={handleCreateTrip}
+                    onSearch={() => setIsSearchOpen(true)}
+                    onNotifications={() => {}}
+                    isNotificationsOpen={isNotificationsOpen}
+                    setIsNotificationsOpen={setIsNotificationsOpen}
+                    className="w-full"
+                  />
+                  <TripViewToggle 
+                    viewMode={viewMode} 
+                    onViewModeChange={handleViewModeChange}
+                    showRecsTab={true}
+                    recsTabDisabled={true}
+                    className="w-full"
+                  />
+                </div>
+              ) : (
+                // Desktop: Side by side
+                <div className="w-full flex flex-row gap-6 items-start animate-fade-in">
+                  <TripViewToggle 
+                    viewMode={viewMode} 
+                    onViewModeChange={handleViewModeChange}
+                    showRecsTab={true}
+                    recsTabDisabled={true}
+                    className="flex-1"
+                  />
+                  <TripActionBar
+                    onSettings={() => setIsSettingsOpen(true)}
+                    onCreateTrip={handleCreateTrip}
+                    onSearch={() => setIsSearchOpen(true)}
+                    onNotifications={() => {}}
+                    isNotificationsOpen={isNotificationsOpen}
+                    setIsNotificationsOpen={setIsNotificationsOpen}
+                    className="flex-1"
+                  />
+                </div>
+              )}
 
               {!isMobile && (
                 <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
@@ -443,25 +466,47 @@ const Index = () => {
           )}
 
           <div className="max-w-[1500px] mx-auto">
-                {/* Side by Side: Toggle (left) + Action Bar (right) */}
-                <div className="w-full flex flex-col md:flex-row gap-4 md:gap-6 items-start animate-fade-in">
-                  <TripViewToggle 
-                    viewMode={viewMode} 
-                    onViewModeChange={handleViewModeChange}
-                    showRecsTab={true}
-                    recsTabDisabled={!isDemoMode}
-                    className="flex-1"
-                  />
-                  <TripActionBar
-                    onSettings={() => setIsSettingsOpen(true)}
-                    onCreateTrip={handleCreateTrip}
-                    onSearch={() => setIsSearchOpen(true)}
-                    onNotifications={() => {}}
-                    isNotificationsOpen={isNotificationsOpen}
-                    setIsNotificationsOpen={setIsNotificationsOpen}
-                    className="flex-1"
-                  />
-                </div>
+                {isMobile ? (
+                  // Mobile: Stacked vertically
+                  <div className="w-full space-y-3 animate-fade-in">
+                    <TripActionBar
+                      onSettings={() => setIsSettingsOpen(true)}
+                      onCreateTrip={handleCreateTrip}
+                      onSearch={() => setIsSearchOpen(true)}
+                      onNotifications={() => {}}
+                      isNotificationsOpen={isNotificationsOpen}
+                      setIsNotificationsOpen={setIsNotificationsOpen}
+                      className="w-full"
+                    />
+                    <TripViewToggle 
+                      viewMode={viewMode} 
+                      onViewModeChange={handleViewModeChange}
+                      showRecsTab={true}
+                      recsTabDisabled={!isDemoMode}
+                      className="w-full"
+                    />
+                  </div>
+                ) : (
+                  // Desktop: Side by side
+                  <div className="w-full flex flex-row gap-6 items-start animate-fade-in">
+                    <TripViewToggle 
+                      viewMode={viewMode} 
+                      onViewModeChange={handleViewModeChange}
+                      showRecsTab={true}
+                      recsTabDisabled={!isDemoMode}
+                      className="flex-1"
+                    />
+                    <TripActionBar
+                      onSettings={() => setIsSettingsOpen(true)}
+                      onCreateTrip={handleCreateTrip}
+                      onSearch={() => setIsSearchOpen(true)}
+                      onNotifications={() => {}}
+                      isNotificationsOpen={isNotificationsOpen}
+                      setIsNotificationsOpen={setIsNotificationsOpen}
+                      className="flex-1"
+                    />
+                  </div>
+                )}
 
                 {!isMobile && (
                   <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
