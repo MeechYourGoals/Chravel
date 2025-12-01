@@ -16,6 +16,7 @@ import { FullPageLanding } from '../components/landing/FullPageLanding';
 import { DemoModeSelector } from '../components/DemoModeSelector';
 import { SearchOverlay } from '../components/home/SearchOverlay';
 import { ProfileSetupModal } from '../components/ProfileSetupModal';
+import { HeaderAuthButton } from '../components/HeaderAuthButton';
 
 // New conversion components
 import { PersistentCTABar } from '../components/conversion/PersistentCTABar';
@@ -590,8 +591,21 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Stacked: Action Bar above Toggle */}
+            {/* Stacked: View Toggle + Auth above Action Bar */}
             <div className="w-full space-y-3">
+              {/* Row 1: Trips/Pro/Events/Recs + Log In button */}
+              <div className="w-full flex items-center gap-2">
+                <TripViewToggle 
+                  viewMode={viewMode} 
+                  onViewModeChange={handleViewModeChange}
+                  showRecsTab={true}
+                  recsTabDisabled={!isDemoMode}
+                  className="flex-1 min-w-0"
+                />
+                <HeaderAuthButton />
+              </div>
+              
+              {/* Row 2: Settings/Alerts/+Trip/Search */}
               <TripActionBar
                 onSettings={() => setIsSettingsOpen(true)}
                 onCreateTrip={handleCreateTrip}
@@ -600,13 +614,6 @@ const Index = () => {
                 isNotificationsOpen={isNotificationsOpen}
                 setIsNotificationsOpen={setIsNotificationsOpen}
                 className="w-full overflow-x-auto"
-              />
-              <TripViewToggle 
-                viewMode={viewMode} 
-                onViewModeChange={handleViewModeChange}
-                showRecsTab={true}
-                recsTabDisabled={!isDemoMode}
-                className="w-full"
               />
             </div>
           </div>
