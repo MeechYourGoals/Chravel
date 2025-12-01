@@ -69,7 +69,7 @@ interface AuthContextType {
   signInWithPhone: (phone: string) => Promise<{ error?: string }>;
   signInWithGoogle: () => Promise<{ error?: string }>;
   signInWithApple: () => Promise<{ error?: string }>;
-  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error?: string }>;
+  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error?: string; success?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string }>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error?: any }>;
@@ -468,7 +468,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string): Promise<{ error?: string }> => {
+  const signUp = async (email: string, password: string, firstName: string, lastName: string): Promise<{ error?: string; success?: string }> => {
     try {
       setIsLoading(true);
 
@@ -505,7 +505,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Check if email confirmation is required
       if (data.user && !data.session) {
         setIsLoading(false);
-        return { error: 'Account created! Please check your email to confirm your account.' };
+        return { success: 'Account created! Please check your email to confirm your account.' };
       }
 
       setIsLoading(false);
