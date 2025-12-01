@@ -237,7 +237,7 @@ export const TripActionBar = ({
   }, [isDemoMode, user]);
   
   return (
-    <div className={cn("bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 w-full h-16 gap-1.5", className)}>
+    <div className={cn("bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 w-full h-16 gap-1 md:gap-1.5", className)}>
           
           {/* Settings */}
           <button
@@ -250,7 +250,7 @@ export const TripActionBar = ({
                 : "text-white hover:text-foreground"
             )}
           >
-            <span className="text-sm md:text-base">Settings</span>
+            <span className="text-sm md:text-base truncate">Settings</span>
           </button>
 
           {/* Notifications with Badge */}
@@ -267,8 +267,8 @@ export const TripActionBar = ({
                 : "text-white hover:text-foreground"
             )}
           >
-            <span className="inline md:hidden text-sm">Alerts</span>
-            <span className="hidden md:inline text-base">Notifications</span>
+            <span className="inline md:hidden text-sm truncate">Alerts</span>
+            <span className="hidden md:inline text-base truncate">Notifications</span>
             {unreadCount > 0 && (
               <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -355,8 +355,8 @@ export const TripActionBar = ({
                 : "text-white hover:text-foreground"
             )}
           >
-            <span className="inline md:hidden text-sm">+ Trip</span>
-            <span className="hidden md:inline text-base">New Trip</span>
+            <span className="inline md:hidden text-sm truncate">+ Trip</span>
+            <span className="hidden md:inline text-base truncate">New Trip</span>
           </button>
 
           {/* Search - Fixed Height & Padding */}
