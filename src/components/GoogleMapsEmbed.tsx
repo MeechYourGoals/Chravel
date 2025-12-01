@@ -66,7 +66,7 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
     <div className={`relative w-full h-full ${className}`}>
       {/* Loading State */}
       {isLoading && (
-        <div className="absolute inset-0 bg-gray-800 flex items-center justify-center z-5 rounded-3xl">
+        <div className="absolute inset-0 bg-gray-800 flex items-center justify-center z-10 rounded-3xl">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-3"></div>
             <p className="text-gray-300 text-sm">Loading map...</p>
@@ -76,7 +76,7 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
 
       {/* Error State */}
       {hasError && (
-        <div className="absolute inset-0 bg-gray-800 flex items-center justify-center z-5 rounded-3xl">
+        <div className="absolute inset-0 bg-gray-800 flex items-center justify-center z-10 rounded-3xl">
           <div className="text-center p-6">
             <MapPin size={48} className="text-gray-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-300 mb-2">Map unavailable</h3>
@@ -102,7 +102,7 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
         allow="geolocation; camera; microphone"
-        className="absolute inset-0 w-full h-full"
+        className="absolute inset-0 w-full h-full z-0"
         onLoad={handleIframeLoad}
         onError={handleIframeError}
         title="Google Maps"

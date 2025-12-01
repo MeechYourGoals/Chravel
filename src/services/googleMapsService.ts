@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { getGoogleMapsApiKey } from '@/config/maps';
 
 export class GoogleMapsService {
   private static async callProxy(endpoint: string, data: any) {
@@ -114,7 +115,7 @@ export class GoogleMapsService {
     destination?: string
   ): string {
     try {
-      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+      const apiKey = getGoogleMapsApiKey();
       
       // With API key: use official Embed API v1 (more stable)
       if (apiKey && apiKey !== 'placeholder') {
