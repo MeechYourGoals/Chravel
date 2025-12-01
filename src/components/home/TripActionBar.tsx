@@ -250,8 +250,7 @@ export const TripActionBar = ({
                 : "text-white hover:text-foreground"
             )}
           >
-            <Settings size={18} className="flex-shrink-0 md:hidden" />
-            <span className="hidden md:inline">Settings</span>
+            <span className="text-sm md:text-base">Settings</span>
           </button>
 
           {/* Notifications with Badge */}
@@ -268,8 +267,8 @@ export const TripActionBar = ({
                 : "text-white hover:text-foreground"
             )}
           >
-            <Bell size={18} className="flex-shrink-0 md:hidden" />
-            <span className="hidden md:inline">Notifications</span>
+            <span className="inline md:hidden text-sm">Alerts</span>
+            <span className="hidden md:inline text-base">Notifications</span>
             {unreadCount > 0 && (
               <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -356,8 +355,8 @@ export const TripActionBar = ({
                 : "text-white hover:text-foreground"
             )}
           >
-            <Plus size={18} className="flex-shrink-0 md:hidden" />
-            <span className="hidden md:inline">New Trip</span>
+            <span className="inline md:hidden text-sm">+ Trip</span>
+            <span className="hidden md:inline text-base">New Trip</span>
           </button>
 
           {/* Search - Fixed Height & Padding */}
