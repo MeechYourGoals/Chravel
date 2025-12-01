@@ -34,12 +34,12 @@ export const HeaderAuthButton = () => {
           <Button
             variant="outline"
             size="sm"
-            className="flex items-center justify-center gap-1.5 transition-all duration-200 rounded-lg
+            className="flex items-center justify-center gap-1.5 transition-all duration-200 rounded-xl
               bg-background/40 border-border/50 border-2 text-foreground/90 hover:bg-background/50 
-              backdrop-blur-md h-9 px-3"
+              backdrop-blur-md h-14 px-3"
           >
-            <Avatar className="h-4 w-4">
-              <AvatarFallback className="text-[8px] bg-primary text-primary-foreground">
+            <Avatar className="h-5 w-5">
+              <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">
                 {getInitials(user.email || 'U')}
               </AvatarFallback>
             </Avatar>
@@ -98,12 +98,12 @@ export const HeaderAuthButton = () => {
         onClick={() => setShowAuthModal(true)}
         variant="outline"
         size="sm"
-        className="flex items-center justify-center gap-1.5 transition-all duration-200 rounded-lg
+        className="flex items-center justify-center gap-1.5 transition-all duration-200 rounded-xl
           bg-primary/30 border-primary/70 border-2 text-primary hover:bg-primary/40 
-          shadow-lg shadow-primary/20 backdrop-blur-md h-9 px-3"
+          shadow-lg shadow-primary/20 backdrop-blur-md h-14 px-3 whitespace-nowrap"
       >
         <LogIn className="h-4 w-4" />
-        <span className="text-[10px] font-medium">Log In</span>
+        <span className="text-xs font-semibold">Log In</span>
       </Button>
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
