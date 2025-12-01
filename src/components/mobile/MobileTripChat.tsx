@@ -187,8 +187,8 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
         />
       )}
       {/* Chat Container - Messages with Integrated Filter Tabs */}
-      <div className="flex-1 flex flex-col min-h-0 p-4">
-        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col mx-4 mt-4">
           {/* Filter Tabs - Sticky Inside Chat Pane */}
           <ChatFilterTabs
             activeFilter={messageFilter}

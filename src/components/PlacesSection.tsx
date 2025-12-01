@@ -648,7 +648,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
       </div>
 
       {/* Tab Content - ABOVE map */}
-      <div className="w-full px-0 mb-6">
+      <div className="w-full px-0 mb-2 md:mb-6">
 
             {activeTab === 'basecamps' && (
               <BasecampsPanel
@@ -697,7 +697,7 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
           </div>
 
       {/* Map - ALWAYS AT BOTTOM */}
-      <div className="mb-6">
+      <div className="mb-2 md:mb-6">
         <div className="relative h-[52.5vh] md:h-[450px] rounded-2xl overflow-hidden shadow-2xl">
           <MapCanvas
             ref={mapRef}

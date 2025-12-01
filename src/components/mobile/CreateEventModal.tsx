@@ -15,10 +15,16 @@ interface CreateEventModalProps {
 
 export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEventCreated }: CreateEventModalProps) => {
   const [title, setTitle] = useState('');
+  const [eventDate, setEventDate] = useState(selectedDate);
   const [time, setTime] = useState('12:00');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Update eventDate when selectedDate prop changes
+  React.useEffect(() => {
+    setEventDate(selectedDate);
+  }, [selectedDate]);
 
   if (!isOpen) return null;
 
@@ -27,9 +33,9 @@ export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEven
     setIsSubmitting(true);
 
     try {
-      // Combine date and time into ISO string for start_time
+      // Combine selected date and time into ISO string for start_time
       const [hours, minutes] = time.split(':');
-      const startTime = new Date(selectedDate);
+      const startTime = new Date(eventDate);
       startTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
       // Create event via calendar service
@@ -112,6 +118,19 @@ export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEven
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Dinner at Italian Restaurant"
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Date
+            </label>
+            <input
+              type="date"
+              value={format(eventDate, 'yyyy-MM-dd')}
+              onChange={(e) => setEventDate(new Date(e.target.value))}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               required
             />
           </div>
