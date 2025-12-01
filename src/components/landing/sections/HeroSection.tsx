@@ -11,8 +11,8 @@ interface HeroSectionProps {
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
   return (
     <div className="relative container mx-auto px-4 py-12 md:py-0 flex flex-col items-center justify-center min-h-[85vh] md:min-h-[90vh] text-center space-y-6">
-      {/* Demo Mode Toggle - Desktop only (mobile uses sticky nav) */}
-      <div className="absolute top-4 right-4 md:top-6 md:right-6 z-20 hidden md:block">
+      {/* Demo Mode Toggle - Centered on mobile, top-right on desktop */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-6 z-20">
         <DemoModeToggle />
       </div>
       {/* Eyebrow Label */}
