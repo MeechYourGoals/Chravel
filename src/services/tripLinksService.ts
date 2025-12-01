@@ -57,36 +57,47 @@ function mapSourceToCategory(source: string): string {
 
 /**
  * Get demo links from localStorage
+ * Priority: Mock data for trips 1-12, then user-added links, then empty
  */
 function getDemoLinks(tripId: string): TripLink[] {
   try {
-    const stored = localStorage.getItem(getDemoLinksKey(tripId));
-    if (stored) {
-      return JSON.parse(stored);
-    }
-    
-    // Return trip-specific demo links instead of hardcoded Paris links
     const tripIdNum = parseInt(tripId, 10);
-    const tripLinks = TripSpecificMockDataService.getTripLinkItems(tripIdNum);
     
-    if (tripLinks.length > 0) {
-      // Transform to TripLink format
-      return tripLinks.map((link, index) => ({
-        id: `demo-link-${tripId}-${index + 1}`,
-        trip_id: tripId,
-        url: link.url,
-        title: link.title,
-        description: link.description || null,
-        category: mapSourceToCategory(link.source),
-        votes: 0,
-        added_by: 'demo-user',
-        created_at: link.created_at,
-        updated_at: link.created_at,
-      }));
+    // For trips 1-12, ALWAYS load mock data first (ignoring stale localStorage cache)
+    if (tripIdNum >= 1 && tripIdNum <= 12) {
+      const tripLinks = TripSpecificMockDataService.getTripLinkItems(tripIdNum);
+      
+      if (tripLinks.length > 0) {
+        // Transform trip-specific mock data to TripLink format
+        const mockLinks = tripLinks.map((link, index) => ({
+          id: `${tripId}-link-${index + 1}`,
+          trip_id: tripId,
+          url: link.url,
+          title: link.title,
+          description: link.description || null,
+          category: mapSourceToCategory(link.source),
+          votes: 0,
+          added_by: 'demo-user',
+          created_at: link.created_at,
+          updated_at: link.created_at,
+        }));
+        
+        // Merge with any user-added links (links not starting with tripId-link-)
+        const stored = localStorage.getItem(getDemoLinksKey(tripId));
+        if (stored) {
+          const userLinks = JSON.parse(stored).filter(
+            (link: TripLink) => !link.id.startsWith(`${tripId}-link-`)
+          );
+          return [...mockLinks, ...userLinks];
+        }
+        
+        return mockLinks;
+      }
     }
     
-    // Return empty array if no trip-specific data exists
-    return [];
+    // For non-demo trips or trips without mock data, use localStorage only
+    const stored = localStorage.getItem(getDemoLinksKey(tripId));
+    return stored ? JSON.parse(stored) : [];
   } catch (error) {
     console.error('[TripLinksService] Failed to parse demo links:', error);
     return [];

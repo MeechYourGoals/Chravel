@@ -366,75 +366,76 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
         </DialogContent>
       </Dialog>
 
-      {/* Links List - Redesigned to match demo mode design */}
+      {/* Links List - Compact 2-row design */}
       <div className="space-y-3">
         {links.map((link) => (
           <div
             key={link.id}
-            className="bg-gray-900/80 border border-white/10 rounded-2xl p-4 md:p-6 hover:border-sky-500/30 transition-all shadow-lg"
+            className="bg-gray-900/80 border border-white/10 rounded-2xl p-3 md:p-4 hover:border-sky-500/30 transition-all shadow-lg"
           >
-            <div className="flex items-start justify-between gap-3 md:gap-4">
-              <div className="flex-1 min-w-0">
-                {/* Title */}
-                <h4 className="text-white font-semibold text-sm md:text-lg mb-1">{link.title}</h4>
-                
-                {/* Category Badge */}
+            {/* Row 1: Title, Category, Action Buttons */}
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <h4 className="text-white font-semibold text-sm md:text-base truncate">
+                  {link.title}
+                </h4>
                 {link.category && (
-                  <Badge variant="secondary" className="text-xs md:text-sm capitalize mb-2">
+                  <Badge variant="secondary" className="text-xs capitalize flex-shrink-0">
                     {link.category}
                   </Badge>
                 )}
-                
-                {/* Clickable URL */}
-                <div className="flex items-center gap-2 mb-3">
-                  <Globe className="w-3 h-3 md:w-4 md:h-4 text-sky-400 flex-shrink-0" />
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs md:text-sm text-sky-400 hover:text-sky-300 underline truncate"
-                    title={link.url}
-                  >
-                    {link.url}
-                  </a>
-                </div>
-
-                {/* Description */}
-                {link.description && (
-                  <p className="text-xs md:text-sm text-gray-400 mb-3">{link.description}</p>
-                )}
-
-                {/* Actions */}
-                <div className="flex gap-2 flex-wrap">
-                  <AddToCalendarButton
-                    placeName={link.title}
-                    placeAddress={link.url}
-                    category="other"
-                    onEventAdded={(eventData) => handleAddToCalendar(eventData, link)}
-                    variant="pill"
-                  />
-                  
-                  <button
-                    onClick={() => openEditModal(link)}
-                    className="text-gray-400 hover:text-white text-xs md:text-sm px-2 py-1 md:px-3 md:py-2 rounded bg-gray-800 hover:bg-gray-700 transition-colors flex items-center gap-1"
-                  >
-                    <Edit className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                    Edit
-                  </button>
-
-                  <button
-                    onClick={() => handleDeleteLink(link.id)}
-                    className="text-red-400 hover:text-red-300 text-xs md:text-sm px-2 py-1 md:px-3 md:py-2 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                    Remove
-                  </button>
-                </div>
               </div>
+              
+              <div className="flex gap-1.5 flex-shrink-0">
+                <AddToCalendarButton
+                  placeName={link.title}
+                  placeAddress={link.url}
+                  category="other"
+                  onEventAdded={(eventData) => handleAddToCalendar(eventData, link)}
+                  variant="icon"
+                />
+                
+                <button
+                  onClick={() => openEditModal(link)}
+                  className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 transition-colors flex items-center gap-1"
+                  title="Edit"
+                >
+                  <Edit className="w-3 h-3" />
+                  <span className="hidden md:inline">Edit</span>
+                </button>
 
-              {/* Avatar/Initial Badge */}
-              <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-semibold text-sm md:text-lg flex-shrink-0">
-                {getInitials(link.title)}
+                <button
+                  onClick={() => handleDeleteLink(link.id)}
+                  className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors flex items-center gap-1"
+                  title="Remove"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span className="hidden md:inline">Remove</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Row 2: URL and Description */}
+            <div className="flex items-start gap-2">
+              <Globe className="w-3 h-3 md:w-3.5 md:h-3.5 text-sky-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-sky-400 hover:text-sky-300 underline truncate max-w-[200px] md:max-w-xs"
+                  title={link.url}
+                >
+                  {link.url.replace(/^https?:\/\/(www\.)?/, '')}
+                </a>
+                {link.description && (
+                  <>
+                    <span className="text-gray-600 hidden md:inline">•</span>
+                    <p className="text-xs text-gray-400 truncate flex-1 min-w-0">
+                      {link.description}
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </div>
