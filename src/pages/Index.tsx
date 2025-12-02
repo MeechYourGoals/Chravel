@@ -17,6 +17,7 @@ import { DemoModeSelector } from '../components/DemoModeSelector';
 import { SearchOverlay } from '../components/home/SearchOverlay';
 import { ProfileSetupModal } from '../components/ProfileSetupModal';
 import { HeaderAuthButton } from '../components/HeaderAuthButton';
+import { MobileSettingsSheet } from '../components/mobile/MobileSettingsSheet';
 
 // New conversion components
 import { PersistentCTABar } from '../components/conversion/PersistentCTABar';
@@ -60,6 +61,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -580,42 +582,28 @@ const Index = () => {
         </div>
       )}
       <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
-        {/* Mobile: Demo Toggle + Stacked Bars */}
+        {/* Mobile: Two Clean Nav Rows */}
         {isMobile && (
-          <div className="space-y-3 mb-6">
-            {/* Debug: Mobile branch active */}
-            {/* Demo Mode Toggle - Centered */}
-            <div className="flex justify-center">
-              <div className="min-w-[120px] max-w-[140px]">
-                <DemoModeSelector />
-              </div>
-            </div>
-
-            {/* Stacked: View Toggle + Auth above Action Bar */}
-            <div className="w-full space-y-3">
-              {/* Row 1: Trips/Pro/Events/Recs + Log In button */}
-              <div className="w-full flex items-center gap-2">
-                <TripViewToggle 
-                  viewMode={viewMode} 
-                  onViewModeChange={handleViewModeChange}
-                  showRecsTab={true}
-                  recsTabDisabled={!isDemoMode}
-                  className="flex-1 min-w-0"
-                />
-                <HeaderAuthButton />
-              </div>
-              
-              {/* Row 2: Settings/Alerts/+Trip/Search */}
-              <TripActionBar
-                onSettings={() => setIsSettingsOpen(true)}
-                onCreateTrip={handleCreateTrip}
-                onSearch={() => setIsSearchOpen(true)}
-                onNotifications={() => {}}
-                isNotificationsOpen={isNotificationsOpen}
-                setIsNotificationsOpen={setIsNotificationsOpen}
-                className="w-full overflow-x-auto"
-              />
-            </div>
+          <div className="w-full space-y-3 mb-6">
+            {/* Row 1: Trips/Pro/Events/Recs */}
+            <TripViewToggle 
+              viewMode={viewMode} 
+              onViewModeChange={handleViewModeChange}
+              showRecsTab={true}
+              recsTabDisabled={!isDemoMode}
+              className="w-full"
+            />
+            
+            {/* Row 2: Settings/Alerts/+Trip/Search */}
+            <TripActionBar
+              onSettings={() => setIsMobileSettingsOpen(true)}
+              onCreateTrip={handleCreateTrip}
+              onSearch={() => setIsSearchOpen(true)}
+              onNotifications={() => {}}
+              isNotificationsOpen={isNotificationsOpen}
+              setIsNotificationsOpen={setIsNotificationsOpen}
+              className="w-full"
+            />
           </div>
         )}
 
@@ -762,6 +750,15 @@ const Index = () => {
       <ProfileSetupModal 
         isOpen={showProfileSetup} 
         onComplete={() => setShowProfileSetup(false)} 
+      />
+
+      <MobileSettingsSheet
+        isOpen={isMobileSettingsOpen}
+        onClose={() => setIsMobileSettingsOpen(false)}
+        onOpenFullSettings={() => {
+          setIsMobileSettingsOpen(false);
+          setIsSettingsOpen(true);
+        }}
       />
     </div>
   );
