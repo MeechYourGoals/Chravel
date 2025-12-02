@@ -44,14 +44,10 @@ export const PollOption = ({
         </span>
       </div>
       
-      {/* Progress bar - always visible */}
-      <div className="w-full bg-muted/30 rounded-full h-1.5">
+      {/* Progress bar - always visible with blue-to-orange gradient */}
+      <div className="w-full bg-muted/30 rounded-full h-2">
         <div
-          className={`h-1.5 rounded-full transition-all duration-500 ${
-            isVoted 
-              ? 'bg-gradient-to-r from-orange-500 to-orange-400' 
-              : 'bg-gradient-to-r from-primary to-primary/70'
-          }`}
+          className="h-2 rounded-full transition-all duration-500 bg-gradient-to-r from-blue-500 via-blue-400 to-orange-500"
           style={{ width: `${Math.max(percentage, 0)}%` }}
         />
       </div>
