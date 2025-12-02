@@ -121,11 +121,58 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
           className="w-full h-full md:h-[85vh] md:max-w-6xl bg-black/90 md:bg-card/95 md:backdrop-blur-xl md:border md:border-white/10 md:rounded-2xl shadow-2xl flex flex-col animate-fade-in overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="flex-shrink-0 flex items-center justify-between p-4 md:px-6 md:py-4 border-b border-white/10">
-            <h2 className="text-xl font-semibold text-white">Settings</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors">
-              <X size={24} />
+          {/* Combined Header with Settings Type Toggle */}
+          <div className="flex-shrink-0 flex items-center justify-between p-3 md:px-4 md:py-3 border-b border-white/10 bg-black/20 gap-3">
+            <h2 className="text-lg font-semibold text-white whitespace-nowrap">Settings</h2>
+            
+            {/* Settings Type Tabs */}
+            <ScrollArea className="flex-1">
+              <div className="flex items-center justify-center gap-1 md:gap-2">
+                <button
+                  onClick={() => setSettingsType('consumer')}
+                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                    settingsType === 'consumer'
+                      ? 'bg-primary text-white shadow-lg'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  Consumer
+                </button>
+                <button
+                  onClick={() => setSettingsType('enterprise')}
+                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                    settingsType === 'enterprise'
+                      ? 'bg-primary text-white shadow-lg'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  Enterprise
+                </button>
+                <button
+                  onClick={() => setSettingsType('events')}
+                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                    settingsType === 'events'
+                      ? 'bg-primary text-white shadow-lg'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  Events
+                </button>
+                <button
+                  disabled
+                  className="py-2 px-4 rounded-lg text-sm font-medium whitespace-nowrap text-gray-500 cursor-not-allowed opacity-60 flex items-center gap-1"
+                >
+                  Advertiser
+                  <span className="text-xs bg-gray-600 text-gray-300 px-1 py-0.5 rounded-full">
+                    Soon
+                  </span>
+                </button>
+              </div>
+              <ScrollBar orientation="horizontal" className="md:hidden" />
+            </ScrollArea>
+            
+            <button onClick={onClose} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors flex-shrink-0">
+              <X size={20} />
             </button>
           </div>
 
@@ -156,61 +203,6 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
               )}
             </div>
           )}
-
-          {/* Settings Type Toggle */}
-          <div className="flex-shrink-0 p-4 md:px-6 border-b border-white/10 bg-black/20">
-            <ScrollArea className="w-full">
-              <div className="bg-white/5 rounded-xl p-1 flex w-full justify-center gap-4">
-                <button
-                  onClick={() => setSettingsType('consumer')}
-                  className={`py-2.5 px-6 rounded-lg text-base font-semibold transition-all whitespace-nowrap border ${
-                    settingsType === 'consumer'
-                      ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
-                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10 hover:bg-white/5'
-                  }`}
-                >
-                  Consumer
-                </button>
-                <button
-                  onClick={() => setSettingsType('enterprise')}
-                  className={`py-2.5 px-6 rounded-lg text-base font-semibold transition-all whitespace-nowrap border ${
-                    settingsType === 'enterprise'
-                      ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
-                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10 hover:bg-white/5'
-                  }`}
-                >
-                  Enterprise
-                </button>
-                <button
-                  onClick={() => setSettingsType('events')}
-                  className={`py-2.5 px-6 rounded-lg text-base font-semibold transition-all whitespace-nowrap border ${
-                    settingsType === 'events'
-                      ? `bg-${accentColors.primary} text-white border-white/20 shadow-lg`
-                      : 'text-gray-400 hover:text-white border-transparent hover:border-white/10 hover:bg-white/5'
-                  }`}
-                >
-                  Events
-                </button>
-                <button
-                  disabled
-                  className="py-2.5 px-6 rounded-lg text-base font-semibold transition-all whitespace-nowrap border text-gray-500 border-transparent cursor-not-allowed opacity-60 flex items-center gap-2"
-                >
-                  Advertiser
-                  <span className="text-xs bg-gray-600 text-gray-300 px-1.5 py-0.5 rounded-full">
-                    Soon
-                  </span>
-                </button>
-              </div>
-              <ScrollBar orientation="horizontal" className="md:hidden" />
-            </ScrollArea>
-            
-            {/* Helper text for Enterprise */}
-            {settingsType === 'enterprise' && (
-              <p className="text-xs text-gray-400 mt-2 ml-1">
-                Manage your organizations, teams, and pro features here
-              </p>
-            )}
-          </div>
 
           {/* Render appropriate settings based on toggle */}
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
