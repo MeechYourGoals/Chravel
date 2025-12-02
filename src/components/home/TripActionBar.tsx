@@ -39,6 +39,8 @@ interface TripActionBarProps {
   isNotificationsActive?: boolean;
   isNewTripActive?: boolean;
   isSearchActive?: boolean;
+  requireAuth?: boolean;
+  onAuthRequired?: () => void;
 }
 
 export const TripActionBar = ({ 
@@ -52,7 +54,9 @@ export const TripActionBar = ({
   isSettingsActive = false,
   isNotificationsActive = false,
   isNewTripActive = false,
-  isSearchActive = false
+  isSearchActive = false,
+  requireAuth = false,
+  onAuthRequired
 }: TripActionBarProps) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
@@ -241,7 +245,13 @@ export const TripActionBar = ({
           
           {/* Settings */}
           <button
-            onClick={onSettings}
+            onClick={() => {
+              if (requireAuth) {
+                onAuthRequired?.();
+              } else {
+                onSettings();
+              }
+            }}
             aria-label="Settings"
             className={cn(
               "h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap min-w-0 overflow-hidden",
@@ -256,8 +266,12 @@ export const TripActionBar = ({
           {/* Notifications with Badge */}
           <button
             onClick={() => {
-              setIsNotificationsOpen?.(!isNotificationsOpen);
-              _onNotifications();
+              if (requireAuth) {
+                onAuthRequired?.();
+              } else {
+                setIsNotificationsOpen?.(!isNotificationsOpen);
+                _onNotifications();
+              }
             }}
             aria-label="Notifications"
             className={cn(
@@ -346,7 +360,13 @@ export const TripActionBar = ({
 
           {/* New Trip */}
           <button
-            onClick={onCreateTrip}
+            onClick={() => {
+              if (requireAuth) {
+                onAuthRequired?.();
+              } else {
+                onCreateTrip();
+              }
+            }}
             aria-label="Create New Trip"
             className={cn(
               "h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap",
