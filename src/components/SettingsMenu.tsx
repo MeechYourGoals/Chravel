@@ -15,6 +15,8 @@ import { useTripVariant } from '../contexts/TripVariantContext';
 import { NotificationsSection } from './settings/NotificationsSection';
 import { SubscriptionSection } from './settings/SubscriptionSection';
 import { AuthModal } from './AuthModal';
+import { useDemoMode } from '../hooks/useDemoMode';
+import { createMockDemoUser } from '../utils/authGate';
 
 interface SettingsMenuProps {
   isOpen: boolean;
@@ -32,36 +34,48 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
   const [activeSection, setActiveSection] = useState('profile');
   const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events'>(initialSettingsType || 'consumer');
   const { accentColors } = useTripVariant();
+  const { demoView } = useDemoMode();
 
-  // Use real user only - no mock user
-  const currentUser = user;
+  // In app-preview mode, use mock user if not logged in (full demo access)
+  // In marketing mode or off, require real user
+  const isAppPreview = demoView === 'app-preview';
+  const currentUser = user || (isAppPreview ? createMockDemoUser() : null);
 
   if (!isOpen) return null;
 
-  // If no user on mobile, show login-first view
-  if (isMobile && !user) {
+  // Show login prompt only when NOT in app-preview mode and no real user
+  if (!currentUser) {
     return (
       <>
-        <div className="fixed inset-0 bg-black z-50">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-white/10">
-            <h2 className="text-xl font-semibold text-white">Settings</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors">
-              <X size={24} />
-            </button>
-          </div>
-          {/* Login CTA */}
-          <div className="flex flex-col items-center justify-center p-8 gap-6 text-center min-h-[80vh]">
-            <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center">
-              <User className="h-10 w-10 text-primary" />
+        <div className={`fixed inset-0 z-50 ${isMobile ? 'bg-black' : 'bg-black/80 backdrop-blur-sm flex items-center justify-center p-4'}`} onClick={!isMobile ? onClose : undefined}>
+          <div className={`${isMobile ? 'h-full' : 'bg-card/95 backdrop-blur-xl border border-white/10 rounded-2xl max-w-md w-full'}`} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <h2 className="text-xl font-semibold text-white">Settings</h2>
+              <button onClick={onClose} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors">
+                <X size={24} />
+              </button>
             </div>
-            <div>
-              <h3 className="text-xl font-bold text-white mb-2">Sign in to access settings</h3>
-              <p className="text-gray-400 text-sm">Create an account or log in to personalize your experience</p>
+            {/* Login CTA */}
+            <div className={`flex flex-col items-center justify-center p-8 gap-6 text-center ${isMobile ? 'min-h-[80vh]' : ''}`}>
+              <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center">
+                <User className="h-10 w-10 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">Sign in to access settings</h3>
+                <p className="text-gray-400 text-sm">Create an account or log in to personalize your experience</p>
+              </div>
+              <div className="flex gap-3 w-full max-w-xs">
+                {!isMobile && (
+                  <Button onClick={onClose} variant="outline" className="flex-1">
+                    Cancel
+                  </Button>
+                )}
+                <Button onClick={() => setShowAuthModal(true)} size="lg" className={isMobile ? 'w-full' : 'flex-1'}>
+                  <LogIn className="h-5 w-5 mr-2" /> Log In / Sign Up
+                </Button>
+              </div>
             </div>
-            <Button onClick={() => setShowAuthModal(true)} size="lg" className="w-full max-w-xs">
-              <LogIn className="h-5 w-5 mr-2" /> Log In / Sign Up
-            </Button>
           </div>
         </div>
         <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />

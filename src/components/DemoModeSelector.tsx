@@ -22,48 +22,48 @@ export const DemoModeSelector = () => {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="inline-flex rounded-lg border-2 border-border/50 p-1 bg-background/40 backdrop-blur-md shadow-sm">
+          <div className="inline-flex rounded-lg border-2 border-border/50 p-0.5 sm:p-1 bg-background/40 backdrop-blur-md shadow-sm">
             <button
               onClick={() => handleViewChange('off')}
               disabled={isLoading}
               className={cn(
-                'px-2.5 py-1.5 rounded-md text-[10px] font-medium transition-all duration-200 flex items-center gap-1',
+                'px-2 py-1.5 sm:px-2.5 rounded-md text-[9px] sm:text-[10px] font-medium transition-all duration-200 flex items-center gap-0.5 sm:gap-1 min-h-[32px] sm:min-h-[28px]',
                 demoView === 'off'
                   ? 'bg-muted text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
               aria-label="Demo mode off"
             >
-              <EyeOff className="h-3 w-3" />
-              <span className="hidden sm:inline">OFF</span>
+              <EyeOff className="h-3 w-3 flex-shrink-0" />
+              <span>OFF</span>
             </button>
             <button
               onClick={() => handleViewChange('marketing')}
               disabled={isLoading}
               className={cn(
-                'px-2.5 py-1.5 rounded-md text-[10px] font-medium transition-all duration-200 flex items-center gap-1',
+                'px-2 py-1.5 sm:px-2.5 rounded-md text-[9px] sm:text-[10px] font-medium transition-all duration-200 flex items-center gap-0.5 sm:gap-1 min-h-[32px] sm:min-h-[28px]',
                 demoView === 'marketing'
                   ? 'bg-primary/30 text-primary shadow-sm border border-primary/20'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
               aria-label="Home view"
             >
-              <Home className="h-3 w-3" />
-              <span className="hidden sm:inline">Home</span>
+              <Home className="h-3 w-3 flex-shrink-0" />
+              <span>Home</span>
             </button>
             <button
               onClick={() => handleViewChange('app-preview')}
               disabled={isLoading}
               className={cn(
-                'px-2.5 py-1.5 rounded-md text-[10px] font-medium transition-all duration-200 flex items-center gap-1',
+                'px-2 py-1.5 sm:px-2.5 rounded-md text-[9px] sm:text-[10px] font-medium transition-all duration-200 flex items-center gap-0.5 sm:gap-1 min-h-[32px] sm:min-h-[28px]',
                 demoView === 'app-preview'
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
               aria-label="Mock data mode"
             >
-              <Eye className="h-3 w-3" />
-              <span className="hidden sm:inline">Mock</span>
+              <Eye className="h-3 w-3 flex-shrink-0" />
+              <span>Mock</span>
             </button>
           </div>
         </TooltipTrigger>
