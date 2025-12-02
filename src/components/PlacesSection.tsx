@@ -39,10 +39,10 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
   const [searchContext, setSearchContext] = useState<'trip' | 'personal'>('trip');
   const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
   // Reserved for personal basecamp modal
-  const [_showPersonalBasecampSelector, _setShowPersonalBasecampSelector] = useState(false);
+  const [showPersonalBasecampSelector, setShowPersonalBasecampSelector] = useState(false);
   
-  // Track most recent location for priority centering - reserved for future use
-  const [_lastUpdatedLocation, _setLastUpdatedLocation] = useState<{
+  // Track most recent location for priority centering
+  const [lastUpdatedLocation, setLastUpdatedLocation] = useState<{
     type: 'trip' | 'personal' | 'search';
     timestamp: number;
     coords: { lat: number; lng: number };

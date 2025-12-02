@@ -44,11 +44,28 @@ export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPl
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   // Reserved for multi-result search view
-  const [_searchResults, _setSearchResults] = useState<ResolvedPlace[]>([]);
+  const [searchResults, setSearchResults] = useState<ResolvedPlace[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<ResolvedPlace | null>(null);
   const [inputType, setInputType] = useState<'url' | 'place_name' | null>(null);
   
   const { resolvePlaceName, isLoading: placeLoading } = usePlaceResolution();
+
+  // Helper function to categorize place types
+  const categorizePlaceType = (types: string[]): string => {
+    const typeMap: Record<string, string[]> = {
+      'Appetite': ['restaurant', 'food', 'cafe', 'bar', 'bakery', 'meal_takeaway', 'meal_delivery'],
+      'Accommodation': ['lodging', 'hotel', 'motel', 'resort'],
+      'Activity': ['gym', 'park', 'amusement_park', 'aquarium', 'zoo', 'museum', 'spa'],
+      'Attraction': ['tourist_attraction', 'point_of_interest', 'stadium', 'church', 'art_gallery']
+    };
+    
+    for (const [category, categoryTypes] of Object.entries(typeMap)) {
+      if (types.some(t => categoryTypes.includes(t))) {
+        return category;
+      }
+    }
+    return 'Other';
+  };
 
   // Handle smart input changes and detection
   useEffect(() => {
@@ -89,7 +106,7 @@ export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPl
 
       return () => clearTimeout(timeoutId);
     }
-  }, [smartInput, resolvePlaceName, categorizePlaceType, useAiSorting, category, placeName]);
+  }, [smartInput, resolvePlaceName, useAiSorting, category, placeName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
