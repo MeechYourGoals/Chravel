@@ -7,14 +7,18 @@
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
 
 @layer base {
-  /* Chat Input Persistent Positioning */
-  .chat-input-persistent {
-    position: sticky;
-    bottom: 0;
-    z-index: 20;
-    background: rgba(10, 10, 10, 0.95);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+  /* Search Highlight Flash Animation */
+  @keyframes searchHighlightFlash {
+    0%, 100% {
+      background-color: transparent;
+    }
+    50% {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .search-highlight-flash {
+    animation: searchHighlightFlash 1s ease-in-out;
   }
 
   /* Pill rounding safety net for chat composers */

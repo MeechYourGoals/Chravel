@@ -190,10 +190,10 @@ export const MobileTripTabs = ({
         </div>
       </div>
 
-      {/* Tab Content - Optimized height for mobile portrait */}
+      {/* Tab Content - NO safe-area padding, let chat input handle it */}
       <div
         ref={contentRef}
-        className="bg-background flex flex-col min-h-0 flex-1 pb-[env(safe-area-inset-bottom)]"
+        className="bg-background flex flex-col min-h-0 flex-1"
         style={{
           height: 'calc(100dvh - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px))',
           minHeight: '400px',
