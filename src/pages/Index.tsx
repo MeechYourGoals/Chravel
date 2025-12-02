@@ -307,49 +307,25 @@ const Index = () => {
             )}
 
           <div className="max-w-[1500px] mx-auto">
-            {/* Mobile: Two Clean Nav Rows */}
-            {isMobile && (
-              <div className="w-full space-y-3 mb-6">
-                <TripViewToggle 
-                  viewMode={viewMode} 
-                  onViewModeChange={handleViewModeChange}
-                  showRecsTab={true}
-                  recsTabDisabled={true}
-                  className="w-full h-16"
-                />
-                <TripActionBar
-                  onSettings={() => setIsMobileSettingsOpen(true)}
-                  onCreateTrip={handleCreateTrip}
-                  onSearch={() => setIsSearchOpen(true)}
-                  onNotifications={() => {}}
-                  isNotificationsOpen={isNotificationsOpen}
-                  setIsNotificationsOpen={setIsNotificationsOpen}
-                  className="w-full h-16"
-                />
-              </div>
-            )}
-
-            {/* Desktop: Side-by-Side Bars */}
-            {!isMobile && (
-              <div className="w-full flex flex-row gap-4 md:gap-6 items-start animate-fade-in">
-                <TripViewToggle 
-                  viewMode={viewMode} 
-                  onViewModeChange={handleViewModeChange}
-                  showRecsTab={true}
-                  recsTabDisabled={true}
-                  className="flex-1"
-                />
-                <TripActionBar
-                  onSettings={() => setIsSettingsOpen(true)}
-                  onCreateTrip={handleCreateTrip}
-                  onSearch={() => setIsSearchOpen(true)}
-                  onNotifications={() => {}}
-                  isNotificationsOpen={isNotificationsOpen}
-                  setIsNotificationsOpen={setIsNotificationsOpen}
-                  className="flex-1"
-                />
-              </div>
-            )}
+            {/* CSS-first responsive: stacks on mobile, side-by-side on tablet+ */}
+            <div className="w-full flex flex-col md:flex-row gap-3 md:gap-6 items-stretch mb-6">
+              <TripViewToggle 
+                viewMode={viewMode} 
+                onViewModeChange={handleViewModeChange}
+                showRecsTab={true}
+                recsTabDisabled={true}
+                className="w-full md:flex-1 h-16"
+              />
+              <TripActionBar
+                onSettings={() => isMobile ? setIsMobileSettingsOpen(true) : setIsSettingsOpen(true)}
+                onCreateTrip={handleCreateTrip}
+                onSearch={() => setIsSearchOpen(true)}
+                onNotifications={() => {}}
+                isNotificationsOpen={isNotificationsOpen}
+                setIsNotificationsOpen={setIsNotificationsOpen}
+                className="w-full md:flex-1 h-16"
+              />
+            </div>
 
               {!isMobile && (
                 <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
@@ -480,49 +456,25 @@ const Index = () => {
           )}
 
           <div className="max-w-[1500px] mx-auto">
-                {/* Mobile: Two Clean Nav Rows */}
-                {isMobile && (
-                  <div className="w-full space-y-3 mb-6">
-                    <TripViewToggle 
-                      viewMode={viewMode} 
-                      onViewModeChange={handleViewModeChange}
-                      showRecsTab={true}
-                      recsTabDisabled={!isDemoMode}
-                      className="w-full h-16"
-                    />
-                    <TripActionBar
-                      onSettings={() => setIsMobileSettingsOpen(true)}
-                      onCreateTrip={handleCreateTrip}
-                      onSearch={() => setIsSearchOpen(true)}
-                      onNotifications={() => {}}
-                      isNotificationsOpen={isNotificationsOpen}
-                      setIsNotificationsOpen={setIsNotificationsOpen}
-                      className="w-full h-16"
-                    />
-                  </div>
-                )}
-
-                {/* Desktop: Side-by-Side Bars */}
-                {!isMobile && (
-                  <div className="w-full flex flex-row gap-4 md:gap-6 items-start animate-fade-in">
-                    <TripViewToggle 
-                      viewMode={viewMode} 
-                      onViewModeChange={handleViewModeChange}
-                      showRecsTab={true}
-                      recsTabDisabled={!isDemoMode}
-                      className="flex-1"
-                    />
-                    <TripActionBar
-                      onSettings={() => setIsSettingsOpen(true)}
-                      onCreateTrip={handleCreateTrip}
-                      onSearch={() => setIsSearchOpen(true)}
-                      onNotifications={() => {}}
-                      isNotificationsOpen={isNotificationsOpen}
-                      setIsNotificationsOpen={setIsNotificationsOpen}
-                      className="flex-1"
-                    />
-                  </div>
-                )}
+                {/* CSS-first responsive: stacks on mobile, side-by-side on tablet+ */}
+                <div className="w-full flex flex-col md:flex-row gap-3 md:gap-6 items-stretch mb-6">
+                  <TripViewToggle 
+                    viewMode={viewMode} 
+                    onViewModeChange={handleViewModeChange}
+                    showRecsTab={true}
+                    recsTabDisabled={!isDemoMode}
+                    className="w-full md:flex-1 h-16"
+                  />
+                  <TripActionBar
+                    onSettings={() => isMobile ? setIsMobileSettingsOpen(true) : setIsSettingsOpen(true)}
+                    onCreateTrip={handleCreateTrip}
+                    onSearch={() => setIsSearchOpen(true)}
+                    onNotifications={() => {}}
+                    isNotificationsOpen={isNotificationsOpen}
+                    setIsNotificationsOpen={setIsNotificationsOpen}
+                    className="w-full md:flex-1 h-16"
+                  />
+                </div>
 
                 {!isMobile && (
                   <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
@@ -649,35 +601,9 @@ const Index = () => {
         </div>
       )}
       <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
-        {/* Mobile: Two Clean Nav Rows */}
-        {isMobile && (
-          <div className="w-full space-y-3 mb-6">
-            {/* Row 1: Trips/Pro/Events/Recs */}
-            <TripViewToggle 
-              viewMode={viewMode} 
-              onViewModeChange={handleViewModeChange}
-              showRecsTab={true}
-              recsTabDisabled={!isDemoMode}
-              className="w-full"
-            />
-            
-            {/* Row 2: Settings/Alerts/+Trip/Search */}
-            <TripActionBar
-              onSettings={() => setIsMobileSettingsOpen(true)}
-              onCreateTrip={handleCreateTrip}
-              onSearch={() => setIsSearchOpen(true)}
-              onNotifications={() => {}}
-              isNotificationsOpen={isNotificationsOpen}
-              setIsNotificationsOpen={setIsNotificationsOpen}
-              className="w-full"
-            />
-          </div>
-        )}
-
-        {/* Desktop: Header + Side-by-Side Bars */}
+        {/* Desktop Header - only show on desktop */}
         {!isMobile && (
-          <div className="w-full space-y-4 mb-6">
-            {/* Debug: Desktop branch active */}
+          <div className="w-full mb-4">
             <DesktopHeader
               viewMode={viewMode}
               onCreateTrip={handleCreateTrip}
@@ -692,35 +618,32 @@ const Index = () => {
                 }
               }}
             />
-
-            {/* Side by Side: Toggle (left) + Action Bar (right) */}
-            <div className="w-full flex flex-row gap-6 items-start animate-fade-in">
-              <TripViewToggle 
-                viewMode={viewMode} 
-                onViewModeChange={handleViewModeChange}
-                showRecsTab={true}
-                recsTabDisabled={!isDemoMode}
-                className="flex-1"
-              />
-              <TripActionBar
-                onSettings={() => {
-                  setSettingsInitialType('consumer');
-                  setIsSettingsOpen(true);
-                }}
-                onCreateTrip={handleCreateTrip}
-                onSearch={(query: string) => {
-                  if (query) {
-                    setIsSearchOpen(true);
-                  }
-                }}
-                onNotifications={() => {}}
-                isNotificationsOpen={isNotificationsOpen}
-                setIsNotificationsOpen={setIsNotificationsOpen}
-                className="flex-1"
-              />
-            </div>
           </div>
         )}
+
+        {/* CSS-first responsive: stacks on mobile, side-by-side on tablet+ */}
+        <div className="w-full flex flex-col md:flex-row gap-3 md:gap-6 items-stretch mb-6">
+          <TripViewToggle 
+            viewMode={viewMode} 
+            onViewModeChange={handleViewModeChange}
+            showRecsTab={true}
+            recsTabDisabled={!isDemoMode}
+            className="w-full md:flex-1 h-16"
+          />
+          <TripActionBar
+            onSettings={() => isMobile ? setIsMobileSettingsOpen(true) : (setSettingsInitialType('consumer'), setIsSettingsOpen(true))}
+            onCreateTrip={handleCreateTrip}
+            onSearch={(query: string) => {
+              if (query) {
+                setIsSearchOpen(true);
+              }
+            }}
+            onNotifications={() => {}}
+            isNotificationsOpen={isNotificationsOpen}
+            setIsNotificationsOpen={setIsNotificationsOpen}
+            className="w-full md:flex-1 h-16"
+          />
+        </div>
 
         {/* Trip Stats Overview with loading state - moved above filters for travel recs */}
         {!isMobile && (

@@ -237,20 +237,20 @@ export const TripActionBar = ({
   }, [isDemoMode, user]);
   
   return (
-    <div className={cn("bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 w-full h-16 gap-1.5", className)}>
+    <div className={cn("bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 w-full h-16 gap-1.5 min-w-0", className)}>
           
           {/* Settings */}
           <button
             onClick={onSettings}
             aria-label="Settings"
             className={cn(
-              "h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap",
+              "h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap min-w-0 overflow-hidden",
               isSettingsActive
                 ? "bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] text-black shadow-lg shadow-primary/30"
                 : "text-white hover:text-foreground"
             )}
           >
-            <span className="text-sm md:text-base">Settings</span>
+            <span className="text-sm md:text-base truncate">Settings</span>
           </button>
 
           {/* Notifications with Badge */}
