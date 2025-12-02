@@ -15,7 +15,7 @@ export function convertSupabaseTripToMock(supabaseTrip: SupabaseTrip): MockTrip 
       const startDate = new Date(supabaseTrip.start_date);
       const endDate = new Date(supabaseTrip.end_date);
       dateRange = `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d, yyyy')}`;
-    } catch (e) {
+    } catch {
       dateRange = `${supabaseTrip.start_date} - ${supabaseTrip.end_date}`;
     }
   }

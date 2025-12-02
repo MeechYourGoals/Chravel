@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Edit, Trash2, CreditCard, Smartphone, DollarSign, Mail, Phone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, CreditCard, Smartphone, DollarSign, Mail, Phone, Loader2 } from 'lucide-react';
 import { PaymentMethod } from '../../types/payments';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -7,32 +7,37 @@ import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { paymentService } from '../../services/paymentService';
+import { useToast } from '../../hooks/use-toast';
 
 interface PaymentMethodsSettingsProps {
   userId: string;
 }
 
 export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) => {
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    {
-      id: '1',
-      type: 'venmo',
-      identifier: '@jamiechen',
-      displayName: 'Venmo',
-      isPreferred: true,
-      isVisible: true
-    },
-    {
-      id: '2', 
-      type: 'zelle',
-      identifier: 'jamie@example.com',
-      displayName: 'Zelle',
-      isPreferred: false,
-      isVisible: true
-    }
-  ]);
+  const { toast } = useToast();
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null);
+
+  // Load payment methods from database
+  useEffect(() => {
+    const loadPaymentMethods = async () => {
+      if (!userId) return;
+      setIsLoading(true);
+      try {
+        const methods = await paymentService.getUserPaymentMethods(userId);
+        setPaymentMethods(methods);
+      } catch (error) {
+        console.error('Error loading payment methods:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadPaymentMethods();
+  }, [userId]);
 
   const [formData, setFormData] = useState({
     type: 'venmo' as PaymentMethod['type'],
@@ -53,23 +58,51 @@ export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) 
     { value: 'other', label: 'Other', icon: CreditCard, placeholder: 'Custom payment method' }
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newMethod: PaymentMethod = {
-      id: editingMethod?.id || Date.now().toString(),
-      ...formData,
-      displayName: formData.displayName || getDefaultDisplayName(formData.type)
-    };
+    if (!userId) return;
+    
+    setIsSaving(true);
+    try {
+      const methodData = {
+        ...formData,
+        displayName: formData.displayName || getDefaultDisplayName(formData.type)
+      };
 
-    if (editingMethod) {
-      setPaymentMethods(prev => prev.map(method => 
-        method.id === editingMethod.id ? newMethod : method
-      ));
-    } else {
-      setPaymentMethods(prev => [...prev, newMethod]);
+      if (editingMethod?.id) {
+        // Update existing method
+        const success = await paymentService.updatePaymentMethod(editingMethod.id, methodData);
+        if (success) {
+          setPaymentMethods(prev => prev.map(method => 
+            method.id === editingMethod.id ? { ...method, ...methodData } : method
+          ));
+          toast({ title: 'Payment method updated', description: 'Your changes have been saved.' });
+        } else {
+          throw new Error('Failed to update');
+        }
+      } else {
+        // Add new method
+        const success = await paymentService.savePaymentMethod(userId, methodData);
+        if (success) {
+          // Reload from database to get the new ID
+          const methods = await paymentService.getUserPaymentMethods(userId);
+          setPaymentMethods(methods);
+          toast({ title: 'Payment method added', description: 'Your new payment method has been saved.' });
+        } else {
+          throw new Error('Failed to save');
+        }
+      }
+      resetForm();
+    } catch (error) {
+      console.error('Error saving payment method:', error);
+      toast({ 
+        title: 'Error', 
+        description: 'Failed to save payment method. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSaving(false);
     }
-
-    resetForm();
   };
 
   const resetForm = () => {
@@ -96,8 +129,23 @@ export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) 
     setShowAddForm(true);
   };
 
-  const handleDelete = (methodId: string) => {
-    setPaymentMethods(prev => prev.filter(method => method.id !== methodId));
+  const handleDelete = async (methodId: string) => {
+    try {
+      const success = await paymentService.deletePaymentMethod(methodId);
+      if (success) {
+        setPaymentMethods(prev => prev.filter(method => method.id !== methodId));
+        toast({ title: 'Payment method removed', description: 'The payment method has been deleted.' });
+      } else {
+        throw new Error('Failed to delete');
+      }
+    } catch (error) {
+      console.error('Error deleting payment method:', error);
+      toast({ 
+        title: 'Error', 
+        description: 'Failed to delete payment method. Please try again.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const getDefaultDisplayName = (type: PaymentMethod['type']): string => {
@@ -128,6 +176,14 @@ export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) 
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <span className="ml-2 text-muted-foreground">Loading payment methods...</span>
+          </div>
+        ) : (
+        <>
         {/* Add/Edit Form */}
         {showAddForm && (
           <Card className="bg-muted/50">
@@ -204,10 +260,17 @@ export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) 
                 </div>
 
                 <div className="flex gap-2">
-                  <Button type="submit" className="bg-primary">
-                    {editingMethod ? 'Update Method' : 'Add Method'}
+                  <Button type="submit" className="bg-primary" disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 size={16} className="mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      editingMethod ? 'Update Method' : 'Add Method'
+                    )}
                   </Button>
-                  <Button type="button" variant="outline" onClick={resetForm}>
+                  <Button type="button" variant="outline" onClick={resetForm} disabled={isSaving}>
                     Cancel
                   </Button>
                 </div>
@@ -283,6 +346,8 @@ export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) 
             <Plus size={16} className="mr-2" />
             Add Payment Method
           </Button>
+        )}
+        </>
         )}
       </CardContent>
     </Card>

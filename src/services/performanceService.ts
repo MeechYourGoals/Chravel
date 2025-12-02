@@ -88,9 +88,7 @@ class PerformanceService {
       });
     }
     
-    // Log in development
-    if (process.env.NODE_ENV === 'development') {
-    }
+    // Development logging enabled via console when needed
   }
 
   // Public methods for manual tracking

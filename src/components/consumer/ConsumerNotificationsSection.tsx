@@ -1,13 +1,18 @@
 
-import React, { useState } from 'react';
-import { Bell, Mail, Smartphone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, Mail, Smartphone, Loader2 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { userPreferencesService, NotificationPreferences } from '../../services/userPreferencesService';
+import { useToast } from '../../hooks/use-toast';
 
 export const ConsumerNotificationsSection = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [isTesting, setIsTesting] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   
-  // Local state for notification settings
+  // State for notification settings
   const [notificationSettings, setNotificationSettings] = useState({
     messages: true,
     broadcasts: true,
@@ -17,23 +22,96 @@ export const ConsumerNotificationsSection = () => {
     sms: false,
     quietHours: true,
     vibration: true,
-    badgeCount: true
+    badgeCount: true,
+    quietStart: '22:00',
+    quietEnd: '08:00'
   });
 
-  // Create mock user for demo mode when no real user is authenticated
-  const mockUser = {
-    id: 'demo-user-123',
-    email: 'demo@example.com',
-    displayName: 'Demo User'
-  };
+  // Load notification preferences from database
+  useEffect(() => {
+    const loadPreferences = async () => {
+      if (!user?.id) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        const prefs = await userPreferencesService.getNotificationPreferences(user.id);
+        setNotificationSettings({
+          messages: prefs.chat_messages,
+          broadcasts: prefs.broadcasts,
+          tripUpdates: prefs.calendar_reminders,
+          email: prefs.email_enabled,
+          push: prefs.push_enabled,
+          sms: prefs.sms_enabled,
+          quietHours: prefs.quiet_hours_enabled,
+          vibration: true, // Not stored in DB yet
+          badgeCount: true, // Not stored in DB yet
+          quietStart: prefs.quiet_start,
+          quietEnd: prefs.quiet_end
+        });
+      } catch (error) {
+        console.error('Error loading notification preferences:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadPreferences();
+  }, [user?.id]);
 
-  const currentUser = user || mockUser;
-
-  const handleNotificationToggle = (setting: string) => {
+  const handleNotificationToggle = async (setting: string) => {
+    const newValue = !notificationSettings[setting as keyof typeof notificationSettings];
+    
+    // Update local state immediately for responsiveness
     setNotificationSettings(prev => ({
       ...prev,
-      [setting]: !prev[setting as keyof typeof prev]
+      [setting]: newValue
     }));
+
+    // Persist to database if user is authenticated
+    if (user?.id) {
+      try {
+        const updates: Partial<NotificationPreferences> = {};
+        
+        switch (setting) {
+          case 'messages':
+            updates.chat_messages = newValue as boolean;
+            break;
+          case 'broadcasts':
+            updates.broadcasts = newValue as boolean;
+            break;
+          case 'tripUpdates':
+            updates.calendar_reminders = newValue as boolean;
+            break;
+          case 'email':
+            updates.email_enabled = newValue as boolean;
+            break;
+          case 'push':
+            updates.push_enabled = newValue as boolean;
+            break;
+          case 'sms':
+            updates.sms_enabled = newValue as boolean;
+            break;
+          case 'quietHours':
+            updates.quiet_hours_enabled = newValue as boolean;
+            break;
+        }
+
+        await userPreferencesService.updateNotificationPreferences(user.id, updates);
+      } catch (error) {
+        console.error('Error saving notification preference:', error);
+        // Revert on error
+        setNotificationSettings(prev => ({
+          ...prev,
+          [setting]: !newValue
+        }));
+        toast({
+          title: 'Error',
+          description: 'Failed to save preference. Please try again.',
+          variant: 'destructive'
+        });
+      }
+    }
   };
 
   const handleTestNotification = async (type: string) => {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, MapPin, Plus, GripVertical, Star, DollarSign } from 'lucide-react';
+import { Calendar, Clock, Plus, GripVertical, Star, DollarSign } from 'lucide-react';
 import { MapView } from './MapView';
 
 interface ItineraryItem {
@@ -28,7 +28,7 @@ interface ItineraryBuilderProps {
   onUpdateItinerary?: (days: DayItinerary[]) => void;
 }
 
-export const ItineraryBuilder = ({ tripId, days, onUpdateItinerary }: ItineraryBuilderProps) => {
+export const ItineraryBuilder = ({ tripId: _tripId, days, onUpdateItinerary }: ItineraryBuilderProps) => {
   const [selectedDay, setSelectedDay] = useState(0);
   const [showMap, setShowMap] = useState(true);
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
@@ -47,7 +47,8 @@ export const ItineraryBuilder = ({ tripId, days, onUpdateItinerary }: ItineraryB
     }));
   };
 
-  const allPlaces = convertToMapPlaces(days.flatMap(day => day.items));
+  // allPlaces reserved for multi-day map view
+  const _allPlaces = convertToMapPlaces(days.flatMap(day => day.items));
   const currentDayPlaces = convertToMapPlaces(currentDay?.items || []);
 
   const handleDragStart = (e: React.DragEvent, itemId: string) => {

@@ -1,5 +1,5 @@
 
-import { Tour, TourTrip, ProTripData } from '../types/pro';
+import { Tour, ProTripData } from '../types/pro';
 
 export const convertProTripToTour = (proTripData: ProTripData): Tour => {
   return {

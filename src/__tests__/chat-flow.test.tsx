@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -49,7 +50,7 @@ describe('Chat Message Send → Receive Flow', () => {
           if (error) throw error;
           setMessages([...messages, data]);
           setStatus('success');
-        } catch (error) {
+        } catch {
           setStatus('error');
         }
       };

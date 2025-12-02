@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, Users, Building, PartyPopper, ChevronDown, Settings, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Building, PartyPopper, ChevronDown, Settings, Upload } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Switch } from './ui/switch';
@@ -12,7 +12,6 @@ import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { PrivacyModeSelector } from './PrivacyModeSelector';
 import { PrivacyMode, getDefaultPrivacyMode } from '../types/privacy';
 import { ProTripCategory } from '../types/proCategories';
 

@@ -41,9 +41,6 @@ export const calculateDaysCount = (dateRange: string): string => {
       
       // Parse dates more intelligently
       // Handle formats like "Feb 1 - May 31, 2025" and "Sep 13 - Sep 14, 2025"
-      let startDate: Date;
-      let endDate: Date;
-      
       // Check if the dateRange has a year at the end
       const yearMatch = dateRange.match(/, (\d{4})$/);
       const year = yearMatch ? yearMatch[1] : new Date().getFullYear().toString();
@@ -56,8 +53,8 @@ export const calculateDaysCount = (dateRange: string): string => {
       const startWithYear = cleanStartStr.includes(',') ? cleanStartStr : `${cleanStartStr}, ${year}`;
       const endWithYear = cleanEndStr.includes(',') ? cleanEndStr : `${cleanEndStr}, ${year}`;
       
-      startDate = new Date(startWithYear);
-      endDate = new Date(endWithYear);
+      const startDate = new Date(startWithYear);
+      const endDate = new Date(endWithYear);
       
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
         return "—";
@@ -71,7 +68,7 @@ export const calculateDaysCount = (dateRange: string): string => {
     
     // Single date
     return "1";
-  } catch (error) {
+  } catch {
     return "—";
   }
 };

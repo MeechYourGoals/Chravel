@@ -125,7 +125,8 @@ export const useTripMembers = (tripId?: string) => {
             )
             .subscribe();
         }
-      } catch (error) {
+      } catch {
+        // Subscription setup failed - members will be loaded without real-time updates
       }
     };
 

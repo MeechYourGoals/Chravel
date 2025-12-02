@@ -19,8 +19,6 @@ interface Trip {
 const parseDate = (dateString: string): Date | null => {
   // Handle different date formats: "Dec 15-22, 2024", "January 2025", etc.
   try {
-    const currentYear = new Date().getFullYear();
-    
     // Handle formats like "Dec 15-22, 2024"
     if (dateString.includes('-') && dateString.includes(',')) {
       const parts = dateString.split(',');

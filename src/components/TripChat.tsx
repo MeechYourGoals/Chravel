@@ -3,34 +3,27 @@ import { useParams } from 'react-router-dom';
 import { demoModeService } from '../services/demoModeService';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useChatComposer } from '../hooks/useChatComposer';
-import { useOrientation } from '../hooks/useOrientation';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
-import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { useSwipeGesture } from '../hooks/useSwipeGesture';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { ChatInput } from './chat/ChatInput';
-import { MessageList } from './chat/MessageList';
-import { MessageFilters } from './chat/MessageFilters';
 import { InlineReplyComponent } from './chat/InlineReplyComponent';
 import { VirtualizedMessageContainer } from './chat/VirtualizedMessageContainer';
 import { MessageItem } from './chat/MessageItem';
-import { PullToRefreshIndicator } from './mobile/PullToRefreshIndicator';
 import { MessageSkeleton } from './mobile/SkeletonLoader';
 import { getMockAvatar } from '../utils/mockAvatars';
 import { useTripMembers } from '../hooks/useTripMembers';
 import { useTripChat } from '@/hooks/useTripChat';
 import { useAuth } from '@/hooks/useAuth';
-import { PaymentData } from '@/types/payments';
 import { hapticService } from '../services/hapticService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Search, WifiOff } from 'lucide-react';
+import { WifiOff } from 'lucide-react';
 import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from './pro/channels/ChannelChatView';
 import { TypingIndicator } from './chat/TypingIndicator';
 import { TypingIndicatorService } from '@/services/typingIndicatorService';
 import { markMessageAsRead, subscribeToReadReceipts } from '@/services/readReceiptService';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
-import { ParsedContentSuggestions } from './chat/ParsedContentSuggestions';
 import { supabase } from '@/integrations/supabase/client';
 import { parseMessage } from '@/services/chatContentParser';
 import { MessageTypeBar } from './chat/MessageTypeBar';
@@ -65,8 +58,8 @@ interface MockMessage {
 }
 
 export const TripChat = ({
-  enableGroupChat = true,
-  showBroadcasts = true,
+  enableGroupChat: _enableGroupChat = true,
+  showBroadcasts: _showBroadcasts = true,
   isEvent = false,
   tripId: tripIdProp,
   isPro = false,

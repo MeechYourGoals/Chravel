@@ -12,7 +12,7 @@ interface BroadcastSystemProps {
 }
 
 export const BroadcastSystem = ({ 
-  tourId, 
+  tourId: _tourId, 
   tripId = '1', 
   tripTier = 'pro'
 }: BroadcastSystemProps) => {

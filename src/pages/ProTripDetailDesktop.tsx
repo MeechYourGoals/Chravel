@@ -63,16 +63,40 @@ export const ProTripDetailDesktop = () => {
   // Check admin status for Pro trips
   const { isAdmin } = useProTripAdmin(proTripId || '');
 
-  // 🆕 Initialize mock roles and channels ONLY in demo mode
+  // ✅ Calculate tripData with useMemo - MUST be before any conditional returns
+  const tripData = useMemo(() => {
+    if (!proTripId) return null;
+    
+    if (isDemoMode) {
+      return proTripId in proTripMockData ? proTripMockData[proTripId] : null;
+    }
+
+    // Find Pro trip from Supabase data
+    const supabaseTrip = userTrips.find(t => t.id === proTripId && t.trip_type === 'pro');
+    if (!supabaseTrip) return null;
+
+    // Convert to ProTripData format
+    const convertedTrip = convertSupabaseTripToProTrip(supabaseTrip);
+
+    return {
+      ...convertedTrip,
+      participants: fetchedParticipants.length > 0 ? fetchedParticipants : [],
+      roster: fetchedParticipants.length > 0 ? fetchedParticipants : [],
+      proTripCategory: 'Sports – Pro, Collegiate, Youth',
+      enabled_features: supabaseTrip.enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks'],
+    } as ProTripData;
+  }, [isDemoMode, proTripId, userTrips, fetchedParticipants]);
+
+  // Initialize mock roles and channels ONLY in demo mode
   React.useEffect(() => {
     if (isDemoMode && proTripId && proTripId in proTripMockData) {
-      const tripData = proTripMockData[proTripId];
+      const mockTripData = proTripMockData[proTripId];
       const existingRoles = MockRolesService.getRolesForTrip(proTripId);
       
       if (!existingRoles) {
         const roles = MockRolesService.seedRolesForTrip(
           proTripId,
-          tripData.proTripCategory,
+          mockTripData.proTripCategory,
           user?.id || 'demo-user'
         );
         MockRolesService.seedChannelsForRoles(proTripId, roles, user?.id || 'demo-user');
@@ -103,7 +127,68 @@ export const ProTripDetailDesktop = () => {
     }
   }, [isDemoMode, proTripId]);
 
-  // ⚡ OPTIMIZATION: Show loading spinner instantly before expensive operations
+  // ⚡ Memoize derived data - MUST be before any conditional returns
+  const tripContext = React.useMemo(() => {
+    if (!tripData) return null;
+    
+    const trip = {
+      id: tripData.id,
+      name: tripData.title,
+      description: tripData.description || '',
+      destination: tripData.location,
+      start_date: tripData.dateRange?.split(' - ')[0] || '',
+      end_date: tripData.dateRange?.split(' - ')[1] || '',
+      created_by: 'demo-user',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_archived: false,
+      trip_type: 'pro' as const
+    };
+    
+    const basecamp = {
+      name: tripData.basecamp_name || '',
+      address: tripData.basecamp_address || ''
+    };
+    
+    const broadcasts = tripData.broadcasts || [];
+    const links = tripData.links || [];
+    
+    return {
+      ...trip,
+      basecamp,
+      broadcasts,
+      links,
+      participants: tripData.participants || [],
+      proTripCategory: tripData.proTripCategory,
+      budget: tripData.budget,
+      schedule: tripData.schedule,
+      roster: tripData.roster,
+      roomAssignments: tripData.roomAssignments,
+      perDiem: tripData.perDiem,
+      settlement: tripData.settlement,
+      medical: tripData.medical,
+      compliance: tripData.compliance,
+      media: tripData.media,
+      sponsors: tripData.sponsors
+    };
+  }, [tripData]);
+
+  // Auto-scroll to chat on page load (chat-first viewport)
+  React.useEffect(() => {
+    if (!tripData) return;
+    const scrollToChat = () => {
+      setTimeout(() => {
+        const chatElement = document.querySelector('[data-chat-container]');
+        if (chatElement) {
+          chatElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+    };
+
+    scrollToChat();
+  }, [tripData]);
+
+  // ⚡ Loading states AFTER all hooks
   if (demoModeLoading || (tripsLoading && !isDemoMode)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
@@ -116,127 +201,46 @@ export const ProTripDetailDesktop = () => {
   }
 
   if (!proTripId) {
-    console.error('ProTripDetail: No proTripId provided');
     return (
       <ProTripNotFound message="No trip ID provided." />
     );
   }
 
-  // ✅ Fetch trip data based on mode - Memoized
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const tripData = useMemo(() => {
-    if (isDemoMode) {
-      // 🔐 DEMO MODE: Use mock data
-      if (!(proTripId in proTripMockData)) {
-        return null;
-      }
-      return proTripMockData[proTripId];
-    }
-
-    // 🔐 AUTHENTICATED MODE: Fetch from Supabase
-    // ✅ FILTER: Find Pro trip directly from userTrips array by ID and trip_type
-    const supabaseTrip = userTrips.find(t => t.id === proTripId && t.trip_type === 'pro');
-
-    if (!supabaseTrip) {
-      return null;
-    }
-
-    // Convert to ProTripData format
-    const convertedTrip = convertSupabaseTripToProTrip(supabaseTrip);
-
-    // Populate with fetched participants and default values
-    return {
-      ...convertedTrip,
-      // Overwrite participants with fetched ones
-      participants: fetchedParticipants.length > 0 ? fetchedParticipants : [],
-      // Ensure roster is also populated (often same as participants in simple cases)
-      roster: fetchedParticipants.length > 0 ? fetchedParticipants : [],
-      // Ensure other fields are present if convertSupabaseTripToProTrip misses any
-      proTripCategory: 'Sports – Pro, Collegiate, Youth', // Default if missing
-      enabled_features: supabaseTrip.enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks'],
-    } as ProTripData;
-  }, [isDemoMode, proTripId, userTrips, fetchedParticipants]);
-
-  // Handle trip not found case
-  if (!tripData) {
-    if (isDemoMode) {
-      console.error(`ProTripDetail: Pro trip not found in mock data: ${proTripId}`);
-      console.log('Available Pro trip IDs:', Object.keys(proTripMockData));
-      return (
-        <ProTripNotFound 
-          message="The requested trip could not be found in demo data."
-          details={`Trip ID: ${proTripId}`}
-          availableIds={Object.keys(proTripMockData)}
-        />
-      );
-    } else {
-      console.error('[ProTripDetail] Pro trip not found or not Pro type');
-      return (
-        <ProTripNotFound
-          message="Pro trip not found"
-          details="This Pro trip doesn't exist or you don't have access."
-        />
-      );
-    }
+  // Handle trip not found case - AFTER all hooks
+  if (!tripData || !tripContext) {
+    const errorMessage = isDemoMode 
+      ? "The requested trip could not be found in demo data."
+      : "This Pro trip doesn't exist or you don't have access.";
+    return (
+      <ProTripNotFound 
+        message={errorMessage}
+        details={isDemoMode ? `Trip ID: ${proTripId}` : undefined}
+        availableIds={isDemoMode ? Object.keys(proTripMockData) : undefined}
+      />
+    );
   }
 
-  // Transform trip data to match consumer trip structure
+  // Derived data for rendering
   const participants = tripData.participants || [];
-
   const trip = {
     id: tripData.id,
     name: tripData.title,
     description: tripData.description || '',
     destination: tripData.location,
-    start_date: tripData.dateRange.split(' - ')[0],
-    end_date: tripData.dateRange.split(' - ')[1],
+    start_date: tripData.dateRange?.split(' - ')[0] || '',
+    end_date: tripData.dateRange?.split(' - ')[1] || '',
     created_by: 'demo-user',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_archived: false,
     trip_type: 'pro' as const
   };
-
   const basecamp = {
     name: tripData.basecamp_name || '',
     address: tripData.basecamp_address || ''
   };
-
   const broadcasts = tripData.broadcasts || [];
   const links = tripData.links || [];
-
-  // ⚡ OPTIMIZATION: Memoize trip context to prevent child re-renders
-  const tripContext = React.useMemo(() => ({
-    ...trip,
-    basecamp,
-    broadcasts,
-    links,
-    proTripCategory: tripData.proTripCategory,
-    budget: tripData.budget,
-    schedule: tripData.schedule,
-    roster: tripData.roster,
-    roomAssignments: tripData.roomAssignments,
-    perDiem: tripData.perDiem,
-    settlement: tripData.settlement,
-    medical: tripData.medical,
-    compliance: tripData.compliance,
-    media: tripData.media,
-    sponsors: tripData.sponsors
-  }), [trip, basecamp, broadcasts, links, tripData]);
-
-  // 🆕 Auto-scroll to chat on page load (chat-first viewport)
-  React.useEffect(() => {
-    const scrollToChat = () => {
-      setTimeout(() => {
-        const chatElement = document.querySelector('[data-chat-container]');
-        if (chatElement) {
-          chatElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 300);
-    };
-
-    scrollToChat();
-  }, []);
 
   const handleExport = async (sections: ExportSection[]) => {
     try {

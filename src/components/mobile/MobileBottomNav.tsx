@@ -19,32 +19,37 @@ export const MobileBottomNav = ({ className, onSettingsPress }: MobileBottomNavP
       label: 'Trips',
       icon: Home,
       path: '/',
-      isActive: location.pathname === '/' && !location.search.includes('search=open')
+      isActive: location.pathname === '/' && !location.search.includes('search=open'),
+      comingSoon: false
     },
     {
       id: 'search',
       label: 'Search',
       icon: Search,
       path: '/?search=open',
-      isActive: location.search.includes('search=open')
+      isActive: location.search.includes('search=open'),
+      comingSoon: false
     },
     {
       id: 'recs',
       label: 'Recs',
       icon: Compass,
       path: '/recs',
-      isActive: location.pathname.includes('/recs')
+      isActive: location.pathname.includes('/recs'),
+      comingSoon: true
     },
     {
       id: 'settings',
       label: 'Settings',
       icon: Settings,
       path: '/settings',
-      isActive: location.pathname.includes('/settings')
+      isActive: location.pathname.includes('/settings'),
+      comingSoon: false
     }
   ];
 
   const handleTabPress = async (tab: typeof tabs[0]) => {
+    if (tab.comingSoon) return; // Don't navigate for coming soon tabs
     // Add haptic feedback
     await hapticService.light();
     
@@ -83,6 +88,7 @@ export const MobileBottomNav = ({ className, onSettingsPress }: MobileBottomNavP
             <button
               key={tab.id}
               onClick={() => handleTabPress(tab)}
+              disabled={tab.comingSoon}
               className={cn(
                 // Touch target and layout
                 "flex flex-col items-center justify-center min-w-[44px] min-h-[44px]",

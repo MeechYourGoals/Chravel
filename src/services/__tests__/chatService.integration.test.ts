@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { sendChatMessage, subscribeToChatMessages } from '../chatService';

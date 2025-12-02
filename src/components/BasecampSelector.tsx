@@ -3,7 +3,7 @@ import { MapPin, Home, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { BasecampLocation } from '../types/basecamp';
 import { toast } from 'sonner';
-import { resolveQuery, generateSessionToken } from '@/services/googlePlacesNew';
+import { resolveQuery } from '@/services/googlePlacesNew';
 
 interface BasecampSelectorProps {
   isOpen: boolean;
@@ -30,7 +30,7 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampCle
           await Promise.resolve(onBasecampClear());
           toast.success('Basecamp cleared');
           onClose();
-        } catch (error) {
+        } catch {
           toast.error('Failed to clear basecamp');
         } finally {
           setIsLoading(false);
@@ -112,7 +112,7 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampCle
       }
       
       onClose();
-    } catch (error) {
+    } catch {
       toast.error('Failed to set basecamp. Please try again.');
     } finally {
       setIsLoading(false);
@@ -218,7 +218,7 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampCle
                     await Promise.resolve(onBasecampClear());
                     toast.success('Basecamp cleared');
                     onClose();
-                  } catch (error) {
+                  } catch {
                     toast.error('Failed to clear basecamp');
                   } finally {
                     setIsLoading(false);

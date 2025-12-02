@@ -56,7 +56,7 @@ const mockTemplates: MessageTemplate[] = [
 export const MessageTemplateLibrary = ({ 
   onSelectTemplate, 
   tripType = 'general',
-  onClose 
+  onClose: _onClose 
 }: MessageTemplateLibraryProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');

@@ -2,19 +2,14 @@
 import React, { useState, useRef } from 'react';
 import { Calendar, MapPin, Users, Plus, Settings, Edit, FileDown, Camera } from 'lucide-react';
 import { InviteModal } from './InviteModal';
-import { TripCoverPhotoUpload } from './TripCoverPhotoUpload';
 import { EditableDescription } from './EditableDescription';
-import { useAuth } from '../hooks/useAuth';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { useTripCoverPhoto } from '../hooks/useTripCoverPhoto';
-import { CategorySelector } from './pro/CategorySelector';
 import { CategoryTags } from './pro/CategoryTags';
 import { ProTripCategory } from '../types/proCategories';
 import { CollaboratorsGrid } from './trip/CollaboratorsGrid';
 import { CollaboratorsModal } from './trip/CollaboratorsModal';
 import { EditTripModal } from './EditTripModal';
-import { Trip } from '@/services/tripService';
-import { formatDateRange } from '@/utils/dateFormatters';
 import { cn } from '@/lib/utils';
 
 
@@ -45,8 +40,7 @@ interface TripHeaderProps {
   onCategoryChange?: (category: ProTripCategory) => void;
 }
 
-export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpdate, onShowExport, category, tags = [], onCategoryChange }: TripHeaderProps) => {
-  const { user } = useAuth();
+export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpdate, onShowExport, category, tags = [], onCategoryChange: _onCategoryChange }: TripHeaderProps) => {
   const [showInvite, setShowInvite] = useState(false);
   const [showAllCollaborators, setShowAllCollaborators] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);

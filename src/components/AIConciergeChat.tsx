@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, CheckCircle, Search, AlertCircle, Crown, Clock } from 'lucide-react';
+import { CheckCircle, Search, AlertCircle, Crown, Clock } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { TripPreferences } from '../types/consumer';
 import { TripContextService } from '../services/tripContextService';
@@ -195,7 +195,6 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
     if (isEvent && user) {
       const canQuery = await conciergeRateLimitService.canQuery(user.id, tripId, getUserTier());
       if (!canQuery) {
-        const remaining = await conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier());
         const resetTime = await conciergeRateLimitService.getTimeUntilReset(user.id, tripId, getUserTier());
         
         setMessages(prev => [...prev, {
@@ -396,7 +395,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         };
         setMessages(prev => [...prev, errorMessage]);
         conciergeCacheService.cacheMessage(tripId, currentInput, errorMessage);
-      } catch (fallbackError) {
+      } catch {
         // Ultimate fallback
         const errorMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),

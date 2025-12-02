@@ -1,66 +1,51 @@
 
-import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Star, Plane, Car, Building, CreditCard, Settings, Link, Wallet } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, Star, Plane, Car, Building, CreditCard, Wallet, Loader2 } from 'lucide-react';
 import { AirlineProgram, HotelProgram, RentalCarProgram } from '../types/pro';
 import { PaymentMethodsSettings } from './payments/PaymentMethodsSettings';
+import { loyaltyProgramService, LoyaltyProgram, LoyaltyProgramType } from '../services/loyaltyProgramService';
+import { useToast } from '../hooks/use-toast';
 
 interface TravelWalletProps {
   userId: string;
 }
 
 export const TravelWallet = ({ userId }: TravelWalletProps) => {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'airlines' | 'hotels' | 'rentals'>('airlines');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Mock data - would come from your backend
-  const [airlinePrograms, setAirlinePrograms] = useState<AirlineProgram[]>([
-    {
-      id: '1',
-      airline: 'Delta',
-      programName: 'SkyMiles',
-      membershipNumber: 'DL123456789',
-      tier: 'Silver Medallion',
-      isPreferred: true
-    },
-    {
-      id: '2',
-      airline: 'American Airlines',
-      programName: 'AAdvantage',
-      membershipNumber: 'AA987654321',
-      tier: 'Gold',
-      isPreferred: false
-    }
-  ]);
+  const [airlinePrograms, setAirlinePrograms] = useState<AirlineProgram[]>([]);
+  const [hotelPrograms, setHotelPrograms] = useState<HotelProgram[]>([]);
+  const [rentalCarPrograms, setRentalCarPrograms] = useState<RentalCarProgram[]>([]);
 
-  const [hotelPrograms, setHotelPrograms] = useState<HotelProgram[]>([
-    {
-      id: '1',
-      hotelChain: 'Marriott',
-      programName: 'Bonvoy',
-      membershipNumber: 'MB555666777',
-      tier: 'Platinum Elite',
-      isPreferred: true
-    },
-    {
-      id: '2',
-      hotelChain: 'Hilton',
-      programName: 'Honors',
-      membershipNumber: 'HH111222333',
-      tier: 'Gold',
-      isPreferred: false
-    }
-  ]);
-
-  const [rentalCarPrograms, setRentalCarPrograms] = useState<RentalCarProgram[]>([
-    {
-      id: '1',
-      company: 'Hertz',
-      programName: 'Gold Plus Rewards',
-      membershipNumber: 'HZ999888777',
-      tier: 'President\'s Circle',
-      isPreferred: true
-    }
-  ]);
+  // Load loyalty programs from database
+  useEffect(() => {
+    const loadPrograms = async () => {
+      if (!userId) return;
+      setIsLoading(true);
+      try {
+        const programs = await loyaltyProgramService.getUserPrograms(userId);
+        
+        setAirlinePrograms(
+          programs.filter(p => p.program_type === 'airline').map(loyaltyProgramService.toAirlineProgram)
+        );
+        setHotelPrograms(
+          programs.filter(p => p.program_type === 'hotel').map(loyaltyProgramService.toHotelProgram)
+        );
+        setRentalCarPrograms(
+          programs.filter(p => p.program_type === 'rental').map(loyaltyProgramService.toRentalCarProgram)
+        );
+      } catch (error) {
+        console.error('Error loading loyalty programs:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadPrograms();
+  }, [userId]);
 
   const AddProgramForm = ({ type, onSave, onCancel }: { type: string, onSave: (data: any) => void, onCancel: () => void }) => {
     const [formData, setFormData] = useState({
@@ -246,19 +231,83 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
     );
   };
 
-  const handleAddProgram = (data: any) => {
-    switch (activeTab) {
-      case 'airlines':
-        setAirlinePrograms([...airlinePrograms, data]);
-        break;
-      case 'hotels':
-        setHotelPrograms([...hotelPrograms, data]);
-        break;
-      case 'rentals':
-        setRentalCarPrograms([...rentalCarPrograms, data]);
-        break;
+  const handleAddProgram = async (data: any) => {
+    if (!userId) return;
+    
+    setIsSaving(true);
+    try {
+      const programType: LoyaltyProgramType = 
+        activeTab === 'airlines' ? 'airline' : 
+        activeTab === 'hotels' ? 'hotel' : 'rental';
+      
+      const companyName = data.airline || data.hotelChain || data.company;
+      
+      const result = await loyaltyProgramService.saveProgram(userId, {
+        program_type: programType,
+        company_name: companyName,
+        program_name: data.programName,
+        membership_number: data.membershipNumber,
+        tier: data.tier,
+        is_preferred: data.isPreferred || false
+      });
+
+      if (result) {
+        // Add to local state
+        switch (activeTab) {
+          case 'airlines':
+            setAirlinePrograms(prev => [...prev, loyaltyProgramService.toAirlineProgram(result)]);
+            break;
+          case 'hotels':
+            setHotelPrograms(prev => [...prev, loyaltyProgramService.toHotelProgram(result)]);
+            break;
+          case 'rentals':
+            setRentalCarPrograms(prev => [...prev, loyaltyProgramService.toRentalCarProgram(result)]);
+            break;
+        }
+        toast({ title: 'Program added', description: 'Your loyalty program has been saved.' });
+      } else {
+        throw new Error('Failed to save program');
+      }
+    } catch (error) {
+      console.error('Error adding program:', error);
+      toast({ 
+        title: 'Error', 
+        description: 'Failed to save loyalty program. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSaving(false);
+      setShowAddForm(false);
     }
-    setShowAddForm(false);
+  };
+
+  const handleDeleteProgram = async (programId: string) => {
+    try {
+      const success = await loyaltyProgramService.deleteProgram(programId);
+      if (success) {
+        switch (activeTab) {
+          case 'airlines':
+            setAirlinePrograms(prev => prev.filter(p => p.id !== programId));
+            break;
+          case 'hotels':
+            setHotelPrograms(prev => prev.filter(p => p.id !== programId));
+            break;
+          case 'rentals':
+            setRentalCarPrograms(prev => prev.filter(p => p.id !== programId));
+            break;
+        }
+        toast({ title: 'Program removed', description: 'The loyalty program has been deleted.' });
+      } else {
+        throw new Error('Failed to delete');
+      }
+    } catch (error) {
+      console.error('Error deleting program:', error);
+      toast({ 
+        title: 'Error', 
+        description: 'Failed to delete loyalty program. Please try again.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const getCurrentPrograms = () => {
@@ -328,19 +377,26 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
       )}
 
       {/* Programs Grid */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+          <span className="ml-2 text-gray-400">Loading programs...</span>
+        </div>
+      ) : (
       <div className="grid md:grid-cols-2 gap-4">
         {getCurrentPrograms().map((program) => (
           <ProgramCard
             key={program.id}
             program={program}
             type={activeTab}
-            onEdit={() => {}}
-            onDelete={() => {}}
+            onEdit={() => {/* TODO: Implement edit */}}
+            onDelete={() => handleDeleteProgram(program.id)}
           />
         ))}
       </div>
+      )}
 
-      {getCurrentPrograms().length === 0 && (
+      {!isLoading && getCurrentPrograms().length === 0 && (
         <div className="text-center py-8">
           <div className="text-gray-400 mb-4">No {activeTab} programs added yet</div>
           <button

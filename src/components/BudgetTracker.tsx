@@ -27,7 +27,7 @@ interface BudgetTrackerProps {
   onAddExpense?: (expense: Omit<Expense, 'id'>) => void;
 }
 
-export const BudgetTracker = ({ tripId, totalBudget, expenses, onAddExpense }: BudgetTrackerProps) => {
+export const BudgetTracker = ({ tripId: _tripId, totalBudget, expenses, onAddExpense: _onAddExpense }: BudgetTrackerProps) => {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 

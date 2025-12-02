@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { format, isSameDay } from 'date-fns';
+import { format } from 'date-fns';
 import { Clock, MapPin, Download, Share2, Calendar } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { cn } from '../lib/utils';
-import { CalendarEvent, ItineraryDay } from '../types/calendar';
+import { CalendarEvent } from '../types/calendar';
 
 interface ItineraryViewProps {
   events: CalendarEvent[];

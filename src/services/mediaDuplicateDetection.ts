@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck - Temporary until trip_files columns added to generated types
 /**
  * Media Duplicate Detection Service

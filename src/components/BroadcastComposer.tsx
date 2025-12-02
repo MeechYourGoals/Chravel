@@ -69,7 +69,8 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
     { code: 'ar', name: 'Arabic' }
   ];
 
-  const roleOptions = Array.from(new Set(participants.map(p => p.role)));
+  // Reserved for role-based targeting in enterprise broadcasts
+  const _roleOptions = Array.from(new Set(participants.map(p => p.role)));
   const isConsumerTrip = tripTier === 'consumer';
 
   const handleFileUpload = async (files: FileList) => {
@@ -97,7 +98,7 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
         const fileExt = file.name.split('.').pop();
         const fileName = `broadcasts/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
         
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('trip-files')
           .upload(fileName, file, {
             contentType: file.type,

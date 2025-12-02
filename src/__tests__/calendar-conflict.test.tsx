@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockSupabase, supabaseMockHelpers } from './utils/supabaseMocks';
@@ -58,7 +59,7 @@ describe('Calendar Event → Conflict Detection', () => {
       error: null,
     });
 
-    const result = await calendarService.createEvent(newEventData);
+    await calendarService.createEvent(newEventData);
 
     // Should detect conflict
     expect(mockSupabase.rpc).toHaveBeenCalledWith(
@@ -111,11 +112,12 @@ describe('Calendar Event → Conflict Detection', () => {
 
   it('should handle events that end exactly when another starts', async () => {
     const trip = testFactories.createTrip();
-    const event1 = testFactories.createEvent({
+    const existingEvent = testFactories.createEvent({
       trip_id: trip.id,
       start_time: '2024-01-01T10:00:00Z',
       end_time: '2024-01-01T12:00:00Z',
     });
+    void existingEvent; // Used to set up mock state
 
     // Event 2 starts exactly when Event 1 ends - should not conflict
     const event2Data = {

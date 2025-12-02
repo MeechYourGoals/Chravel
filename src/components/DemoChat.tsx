@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Send, MessageCircle } from 'lucide-react';
 import { MessageItem } from './chat/MessageItem';
 import { VirtualizedMessageContainer } from './chat/VirtualizedMessageContainer';
@@ -33,11 +33,6 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
       e.preventDefault();
       handleSendMessage();
     }
-  };
-
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const handleReaction = (messageId: string, reactionType: string) => {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building, Users, CreditCard, Settings, Bell, User, Crown, Wallet, Calendar, Package, Users as UsersIcon, ChevronDown } from 'lucide-react';
+import { Building, Users, CreditCard, Settings, Bell, Wallet, Calendar, ChevronDown } from 'lucide-react';
 import { TravelWallet } from './TravelWallet';
 import { OrganizationSection } from './enterprise/OrganizationSection';
 import { BillingSection } from './enterprise/BillingSection';
@@ -13,7 +13,6 @@ import { ShowSchedule } from './enterprise/ShowSchedule';
 
 import { TripCategory } from '../types/enterprise';
 import { useIsMobile } from '../hooks/use-mobile';
-import { getFeatureTierEmoji, getTierLegend } from '../utils/featureTiers';
 
 interface EnterpriseSettingsProps {
   organizationId: string;

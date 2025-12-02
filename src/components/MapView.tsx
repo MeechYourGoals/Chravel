@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
-import { MapPin, Navigation, Clock, CheckCircle, ExternalLink } from 'lucide-react';
+import { MapPin, Clock, CheckCircle, ExternalLink } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -38,7 +38,8 @@ export const MapView = ({
   center = [48.8566, 2.3522], // Default to Paris
   showRoute = true 
 }: MapViewProps) => {
-  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+  // Reserved for future place details panel
+  const [_selectedPlace, setSelectedPlace] = useState<Place | null>(null);
 
   const getMarkerColor = (type: string) => {
     switch (type) {
@@ -73,7 +74,7 @@ export const MapView = ({
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           
-          {places.map((place, index) => (
+          {places.map((place) => (
             <Marker
               key={place.id}
               position={place.position}

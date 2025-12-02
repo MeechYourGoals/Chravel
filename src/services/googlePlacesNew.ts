@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck - Temporary until cache type constraints resolved
 /// <reference types="@types/google.maps" />
 

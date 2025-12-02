@@ -10,7 +10,7 @@ export interface SmartInputResult {
 const URL_PATTERNS = [
   /^https?:\/\/.+/i,
   /^www\..+\..+/i,
-  /\.(com|org|net|edu|gov|co|io|ai|app|ly|me|tv|fm|xyz|biz|info)[\s\/]?/i
+  /\.(com|org|net|edu|gov|co|io|ai|app|ly|me|tv|fm|xyz|biz|info)[\s/]?/i
 ];
 
 // Common business name patterns followed by location indicators

@@ -1,5 +1,3 @@
-import { useToast } from '@/hooks/use-toast';
-
 // Rate limiting utility
 class RateLimiter {
   private attempts: Map<string, { count: number; resetTime: number }> = new Map();
@@ -74,10 +72,16 @@ export async function retryWithBackoff<T>(
   throw lastError!;
 }
 
-// Conflict resolution utility
-export function handleConflictError(error: any, entityType: string = 'item') {
-  const { toast } = useToast();
-  
+// Toast function type for conflict error handling
+type ToastFunction = (options: { title: string; description: string; variant?: 'default' | 'destructive' }) => void;
+
+// Conflict resolution utility - accepts toast function as parameter
+// Usage: handleConflictError(error, toast, 'item')
+export function handleConflictError(
+  error: any, 
+  toast: ToastFunction, 
+  entityType: string = 'item'
+): void {
   if (error.message?.includes('conflict') || error.message?.includes('modified by another user')) {
     toast({
       title: 'Conflict Detected',
@@ -211,7 +215,7 @@ export function debounce<T extends (...args: any[]) => any>(
   
   return ((...args: any[]) => {
     clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(null, args), wait);
+    timeout = setTimeout(() => func(...args), wait);
   }) as T;
 }
 
@@ -224,7 +228,7 @@ export function throttle<T extends (...args: any[]) => any>(
   
   return ((...args: any[]) => {
     if (!inThrottle) {
-      func.apply(null, args);
+      func(...args);
       inThrottle = true;
       setTimeout(() => inThrottle = false, limit);
     }

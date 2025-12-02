@@ -44,6 +44,41 @@ const EventDetail = () => {
   const [showTripsPlusModal, setShowTripsPlusModal] = useState(false);
   const [tripDescription, setTripDescription] = useState<string>('');
 
+  // Determine event data availability
+  const eventNotFound = isDemoMode && eventId && !(eventId in eventsMockData);
+  const eventData = isDemoMode && eventId && !eventNotFound ? eventsMockData[eventId] : null;
+
+  // Initialize description state when event data is loaded
+  // ✅ FIXED: All hooks must be called unconditionally before any returns
+  React.useEffect(() => {
+    if (eventData?.description && !tripDescription) {
+      setTripDescription(eventData.description);
+    }
+  }, [eventData?.description, tripDescription]);
+
+  // Generate initial embeddings for RAG when event loads
+  React.useEffect(() => {
+    if (eventId && user) {
+      generateInitialEmbeddings();
+    }
+  }, [eventId, user, generateInitialEmbeddings]);
+
+  // 🆕 Auto-scroll to chat on page load (chat-first viewport)
+  React.useEffect(() => {
+    // Only scroll if we're showing the main content (not loading/error/mobile)
+    if (demoModeLoading || !eventId || eventNotFound || !isDemoMode || isMobile) return;
+    
+    const scrollToChat = () => {
+      setTimeout(() => {
+        const chatElement = document.querySelector('[data-chat-container]');
+        if (chatElement) {
+          chatElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+    };
+
+    scrollToChat();
+  }, [demoModeLoading, eventId, eventNotFound, isDemoMode, isMobile]);
 
   // ⚡ OPTIMIZATION: Show loading spinner instantly before expensive operations
   if (demoModeLoading) {
@@ -58,16 +93,13 @@ const EventDetail = () => {
   }
 
   if (!eventId) {
-    console.error('EventDetail: No eventId provided');
     return (
       <ProTripNotFound message="No event ID provided." />
     );
   }
 
   // 🔐 DEMO MODE: Show mock events
-  if (isDemoMode && !(eventId in eventsMockData)) {
-    console.error(`EventDetail: Event not found in mock data: ${eventId}`);
-    console.log('Available event IDs:', Object.keys(eventsMockData));
+  if (eventNotFound) {
     return (
       <ProTripNotFound 
         message="The requested demo event could not be found."
@@ -77,15 +109,8 @@ const EventDetail = () => {
     );
   }
 
-  // Get event data from demo mode or authenticated database
-  let eventData: any;
-
-  if (isDemoMode) {
-    // 🔐 DEMO MODE: Use mock events
-    eventData = eventsMockData[eventId];
-  } else {
-    // 🔐 AUTHENTICATED MODE: Events coming soon - but prepare the structure
-    // TODO: Full authenticated event support
+  // 🔐 AUTHENTICATED MODE: Events coming soon - but prepare the structure
+  if (!isDemoMode) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
         <div className="text-center max-w-md p-8">
@@ -104,6 +129,11 @@ const EventDetail = () => {
     );
   }
 
+  // TypeScript guard - eventData should be available at this point
+  if (!eventData) {
+    return <ProTripNotFound message="Event data unavailable." />;
+  }
+
   // Enhanced trip data with event-specific features
   const trip = {
     id: parseInt(eventId.replace(/\D/g, '') || '1'),
@@ -111,26 +141,12 @@ const EventDetail = () => {
     location: eventData.location,
     dateRange: eventData.dateRange,
     description: tripDescription || eventData.description || `Professional ${eventData.category.toLowerCase()} event in ${eventData.location}`,
-    participants: eventData.participants.map(p => ({
+    participants: eventData.participants.map((p: any) => ({
       id: p.id,
       name: p.name,
       avatar: p.avatar
     }))
   };
-
-  // Initialize description state when event data is loaded
-  React.useEffect(() => {
-    if (eventData.description && !tripDescription) {
-      setTripDescription(eventData.description);
-    }
-  }, [eventData.description, tripDescription]);
-
-  // Generate initial embeddings for RAG when event loads
-  React.useEffect(() => {
-    if (eventId && user) {
-      generateInitialEmbeddings();
-    }
-  }, [eventId, user, generateInitialEmbeddings]);
 
   // Mock basecamp data for Events
   const basecamp = {
@@ -153,25 +169,10 @@ const EventDetail = () => {
     { id: '3', title: "Networking Hub", url: "https://networking.events.com", category: "Networking", votes: 0, addedBy: "System", addedAt: new Date().toISOString() }
   ];
 
-  // Enhanced trip context with event-specific features
   // Early return for mobile after all hooks are initialized
   if (isMobile) {
     return <MobileEventDetail />;
   }
-
-  // 🆕 Auto-scroll to chat on page load (chat-first viewport)
-  React.useEffect(() => {
-    const scrollToChat = () => {
-      setTimeout(() => {
-        const chatElement = document.querySelector('[data-chat-container]');
-        if (chatElement) {
-          chatElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 300);
-    };
-
-    scrollToChat();
-  }, []);
 
   const tripContext: TripContext = {
     tripId: eventId,

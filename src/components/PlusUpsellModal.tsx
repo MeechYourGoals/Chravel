@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Crown, Sparkles, MessageCircle, Settings, Zap, Camera, Star, Globe } from 'lucide-react';
+import { X, Sparkles, MessageCircle, Settings, Zap, Camera, Globe } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { CONSUMER_PRICING } from '../types/consumer';
 
