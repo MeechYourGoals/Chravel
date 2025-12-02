@@ -214,7 +214,9 @@ serve(async (req) => {
     let comprehensiveContext = tripContext
     if (tripId && !tripContext) {
       try {
-        comprehensiveContext = await TripContextBuilder.buildContext(tripId)
+        // 🆕 Pass user.id to get personalized context with preferences + personal basecamp
+        comprehensiveContext = await TripContextBuilder.buildContext(tripId, user?.id)
+        console.log('[Context] Built context with user preferences:', !!comprehensiveContext?.userPreferences)
       } catch (error) {
         console.error('Failed to build comprehensive context:', error)
         // Continue with basic context
@@ -485,8 +487,22 @@ serve(async (req) => {
       /\b(where|restaurant|hotel|cafe|bar|attraction|place|location|near|around|close|best|find|suggest|recommend|visit|directions|route|food|eat|drink|stay|sushi|pizza|beach|museum|park)\b/i
     );
 
-    const hasLocationContext = comprehensiveContext?.places?.basecamp?.lat && comprehensiveContext?.places?.basecamp?.lng;
+    // 🆕 FIXED: Use personal basecamp as fallback for location grounding
+    const tripBasecamp = comprehensiveContext?.places?.tripBasecamp;
+    const personalBasecamp = comprehensiveContext?.places?.personalBasecamp;
+    const locationData = tripBasecamp?.lat && tripBasecamp?.lng 
+      ? tripBasecamp 
+      : personalBasecamp?.lat && personalBasecamp?.lng 
+        ? personalBasecamp 
+        : null;
+    
+    const hasLocationContext = !!locationData;
     const enableGrounding = isLocationQuery && hasLocationContext;
+    
+    if (enableGrounding) {
+      const basecampType = tripBasecamp?.lat ? 'trip' : 'personal';
+      console.log(`[Location] Using ${basecampType} basecamp for grounding: ${locationData?.name}`);
+    }
 
     // 🆕 SMART MODEL ROUTING: Use Pro for complex queries, Flash for simple ones
     const selectedModel = config.model || 
@@ -512,14 +528,14 @@ serve(async (req) => {
         temperature,
         max_tokens: config.maxTokens || 2048,
         stream: false,
-        // 🆕 Enable Google Maps grounding for location queries
-        ...(enableGrounding && {
+        // 🆕 Enable Google Maps grounding using trip OR personal basecamp
+        ...(enableGrounding && locationData && {
           tools: [{ googleMaps: { enableWidget: true } }],
           toolConfig: {
             retrievalConfig: {
               latLng: {
-                latitude: comprehensiveContext.places.basecamp.lat,
-                longitude: comprehensiveContext.places.basecamp.lng
+                latitude: locationData.lat,
+                longitude: locationData.lng
               }
             }
           }
@@ -737,7 +753,16 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
       basePrompt += ` (${collaborators.map((p: any) => p.name || p).join(', ')})`
     }
 
-    if (places?.basecamp) {
+    // 🆕 Handle both trip and personal basecamps
+    if (places?.tripBasecamp) {
+      basePrompt += `\n\n🏠 TRIP BASECAMP:`
+      basePrompt += `\nLocation: ${places.tripBasecamp.name}`
+      basePrompt += `\nAddress: ${places.tripBasecamp.address}`
+      if (places.tripBasecamp.lat && places.tripBasecamp.lng) {
+        basePrompt += `\nCoordinates: ${places.tripBasecamp.lat}, ${places.tripBasecamp.lng}`
+      }
+    } else if (places?.basecamp) {
+      // Backward compatibility with old structure
       basePrompt += `\n\n🏠 TRIP BASECAMP:`
       basePrompt += `\nLocation: ${places.basecamp.name}`
       basePrompt += `\nAddress: ${places.basecamp.address}`
@@ -746,13 +771,51 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
       }
     }
     
-    if (places?.userAccommodation) {
+    // 🆕 Personal basecamp (user's accommodation)
+    if (places?.personalBasecamp) {
+      basePrompt += `\n\n🏨 YOUR PERSONAL BASECAMP:`
+      basePrompt += `\nLocation: ${places.personalBasecamp.name}`
+      basePrompt += `\nAddress: ${places.personalBasecamp.address}`
+      if (places.personalBasecamp.lat && places.personalBasecamp.lng) {
+        basePrompt += `\nCoordinates: ${places.personalBasecamp.lat}, ${places.personalBasecamp.lng}`
+      }
+      basePrompt += `\nNote: Use this for "near me" queries when trip basecamp is not set.`
+    } else if (places?.userAccommodation) {
+      // Backward compatibility
       basePrompt += `\n\n🏨 YOUR ACCOMMODATION:`
       basePrompt += `\nLabel: ${places.userAccommodation.label}`
       basePrompt += `\nAddress: ${places.userAccommodation.address}`
       if (places.userAccommodation.lat && places.userAccommodation.lng) {
         basePrompt += `\nCoordinates: ${places.userAccommodation.lat}, ${places.userAccommodation.lng}`
       }
+    }
+
+    // 🆕 USER PREFERENCES FOR PERSONALIZED RECOMMENDATIONS
+    if (tripContext.userPreferences) {
+      const prefs = tripContext.userPreferences
+      basePrompt += `\n\n=== 👤 USER PREFERENCES ===`
+      basePrompt += `\nIMPORTANT: Factor these into ALL recommendations:`
+      
+      if (prefs.dietary?.length) {
+        basePrompt += `\n🥗 Dietary: ${prefs.dietary.join(', ')}`
+      }
+      if (prefs.vibe?.length) {
+        basePrompt += `\n🎯 Preferred Vibes: ${prefs.vibe.join(', ')}`
+      }
+      if (prefs.budget) {
+        basePrompt += `\n💰 Budget Level: ${prefs.budget}`
+      }
+      if (prefs.accessibility?.length) {
+        basePrompt += `\n♿ Accessibility Needs: ${prefs.accessibility.join(', ')}`
+      }
+      if (prefs.timePreference) {
+        basePrompt += `\n🕐 Time Preference: ${prefs.timePreference}`
+      }
+      if (prefs.travelStyle) {
+        basePrompt += `\n✈️ Travel Style: ${prefs.travelStyle}`
+      }
+      
+      basePrompt += `\n\n⚠️ Always respect these preferences when making recommendations!`
     }
 
     // Add comprehensive context sections

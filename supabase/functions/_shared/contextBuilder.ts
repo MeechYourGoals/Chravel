@@ -3,6 +3,16 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 
+// 🆕 User preferences interface for AI personalization
+export interface UserPreferences {
+  dietary?: string[];
+  vibe?: string[];
+  budget?: string;
+  accessibility?: string[];
+  timePreference?: string;
+  travelStyle?: string;
+}
+
 export interface ComprehensiveTripContext {
   tripMetadata: {
     id: string;
@@ -55,7 +65,13 @@ export interface ComprehensiveTripContext {
     status: 'active' | 'closed';
   }>;
   places: {
-    basecamp?: {
+    tripBasecamp?: {
+      name: string;
+      address: string;
+      lat?: number;
+      lng?: number;
+    };
+    personalBasecamp?: {
       name: string;
       address: string;
       lat?: number;
@@ -84,14 +100,17 @@ export interface ComprehensiveTripContext {
       addedBy: string;
     }>;
   };
+  // 🆕 User preferences for personalized AI responses
+  userPreferences?: UserPreferences;
 }
 
 export class TripContextBuilder {
-  static async buildContext(tripId: string): Promise<ComprehensiveTripContext> {
+  // 🆕 Updated to accept userId for personalization
+  static async buildContext(tripId: string, userId?: string): Promise<ComprehensiveTripContext> {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
     try {
-      // Parallel fetch all data sources
+      // Parallel fetch all data sources including user preferences
       const [
         tripMetadata,
         collaborators,
@@ -102,7 +121,8 @@ export class TripContextBuilder {
         polls,
         places,
         files,
-        links
+        links,
+        userPreferences
       ] = await Promise.all([
         this.fetchTripMetadata(supabase, tripId),
         this.fetchCollaborators(supabase, tripId),
@@ -111,9 +131,10 @@ export class TripContextBuilder {
         this.fetchTasks(supabase, tripId),
         this.fetchPayments(supabase, tripId),
         this.fetchPolls(supabase, tripId),
-        this.fetchPlaces(supabase, tripId),
+        this.fetchPlaces(supabase, tripId, userId), // 🆕 Pass userId for personal basecamp
         this.fetchFiles(supabase, tripId),
-        this.fetchLinks(supabase, tripId)
+        this.fetchLinks(supabase, tripId),
+        userId ? this.fetchUserPreferences(supabase, userId) : Promise.resolve(undefined)
       ]);
 
       return {
@@ -125,7 +146,8 @@ export class TripContextBuilder {
         payments,
         polls,
         places,
-        media: { files, links }
+        media: { files, links },
+        userPreferences // 🆕 Include user preferences
       };
     } catch (error) {
       console.error('Error building trip context:', error);
@@ -303,26 +325,51 @@ export class TripContextBuilder {
     }
   }
 
-  private static async fetchPlaces(supabase: any, tripId: string) {
+  // 🆕 Updated to fetch both trip basecamp AND personal basecamp
+  private static async fetchPlaces(supabase: any, tripId: string, userId?: string) {
     try {
+      // Fetch trip basecamp with coordinates
       const { data: trip } = await supabase
         .from('trips')
-        .select('basecamp_name, basecamp_address')
+        .select('basecamp_name, basecamp_address, basecamp_latitude, basecamp_longitude')
         .eq('id', tripId)
         .single();
 
+      // Fetch saved places
       const { data: places } = await supabase
         .from('trip_places')
         .select('name, address, category, lat, lng')
         .eq('trip_id', tripId);
 
+      // 🆕 Fetch personal basecamp if userId provided
+      let personalBasecamp = undefined;
+      if (userId) {
+        const { data: personalBasecampData } = await supabase
+          .from('trip_personal_basecamps')
+          .select('name, address, latitude, longitude')
+          .eq('trip_id', tripId)
+          .eq('user_id', userId)
+          .maybeSingle();
+        
+        if (personalBasecampData?.name) {
+          personalBasecamp = {
+            name: personalBasecampData.name,
+            address: personalBasecampData.address,
+            lat: personalBasecampData.latitude,
+            lng: personalBasecampData.longitude
+          };
+          console.log('[Context] Found personal basecamp:', personalBasecampData.name);
+        }
+      }
+
       return {
-        basecamp: trip?.basecamp_name ? {
+        tripBasecamp: trip?.basecamp_name ? {
           name: trip.basecamp_name,
           address: trip.basecamp_address,
-          lat: places?.find((p: any) => p.name === trip.basecamp_name)?.lat,
-          lng: places?.find((p: any) => p.name === trip.basecamp_name)?.lng
+          lat: trip.basecamp_latitude,
+          lng: trip.basecamp_longitude
         } : undefined,
+        personalBasecamp, // 🆕 Personal basecamp for location fallback
         savedPlaces: places?.map((p: any) => ({
           name: p.name,
           address: p.address,
@@ -332,9 +379,43 @@ export class TripContextBuilder {
     } catch (error) {
       console.error('Error fetching places:', error);
       return {
-        basecamp: undefined,
+        tripBasecamp: undefined,
+        personalBasecamp: undefined,
         savedPlaces: []
       };
+    }
+  }
+
+  // 🆕 Fetch user preferences for personalized AI responses
+  private static async fetchUserPreferences(supabase: any, userId: string): Promise<UserPreferences | undefined> {
+    try {
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .select('preferences')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.log('[Context] No user preferences found, using defaults');
+        return undefined;
+      }
+
+      const prefs = data?.preferences?.ai_concierge_preferences;
+      if (!prefs) return undefined;
+
+      console.log('[Context] Found user preferences:', Object.keys(prefs));
+      
+      return {
+        dietary: prefs.dietary_restrictions || [],
+        vibe: prefs.vibe_preferences || [],
+        budget: prefs.budget_preference,
+        accessibility: prefs.accessibility_needs || [],
+        timePreference: prefs.time_preference,
+        travelStyle: prefs.travel_style
+      };
+    } catch (error) {
+      console.error('Error fetching user preferences:', error);
+      return undefined;
     }
   }
 
