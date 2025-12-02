@@ -1442,15 +1442,15 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
 };
 
 class TripSpecificMockDataService {
-  private static readonly USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true' || import.meta.env.DEV;
-
+  // ✅ FIXED: Always return mock data when requested - calling code decides whether to use it
+  // The isDemoMode check happens in tripLinksService.ts, not here
+  
   static isUsingMockData(): boolean {
-    return this.USE_MOCK_DATA;
+    return true; // Always available - caller decides when to use
   }
 
   static getTripMockData(tripId: string | number): TripMockData | null {
-    if (!this.USE_MOCK_DATA) return null;
-    
+    // ✅ FIXED: Removed USE_MOCK_DATA check that was blocking in production
     const numericTripId = typeof tripId === 'string' ? parseInt(tripId, 10) : tripId;
     return TRIP_MOCK_DATA[numericTripId] || null;
   }
@@ -1489,11 +1489,8 @@ class TripSpecificMockDataService {
 
   // Helper methods for compatibility
   static async isEnabled(): Promise<boolean> {
-    // Check both environment variable and demo mode
-    const envEnabled = import.meta.env.VITE_USE_MOCK_DATA === 'true';
-    const demoModeValue = await getStorageItem<string>('TRIPS_DEMO_MODE');
-    const demoModeEnabled = demoModeValue === 'true';
-    return envEnabled || demoModeEnabled;
+    // ✅ FIXED: Always return true - calling code uses isDemoMode to gate usage
+    return true;
   }
 
   static getTripMediaItems(tripId: number): TripSpecificMediaItem[] {
