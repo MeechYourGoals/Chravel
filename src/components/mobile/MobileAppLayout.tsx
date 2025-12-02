@@ -1,6 +1,5 @@
 
 import React, { useEffect } from 'react';
-import { MobileBottomNav } from './MobileBottomNav';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { MobileOptimizationService } from '../../services/mobileOptimizationService';
 import { NativeMobileService } from '../../services/nativeMobileService';
@@ -52,13 +51,12 @@ export const MobileAppLayout = ({ children, className }: MobileAppLayoutProps) =
       isMobile ? "bg-gray-900" : "bg-background",
       className
     )}>
+      {/* Main Content Area - NO bottom padding, let individual pages handle safe-area */}
       <main
         className={cn(
-          "flex-1 overflow-y-auto",
-          isMobile && "pb-mobile-nav-height"
+          "flex-1 bg-background"
         )}
         style={isMobile ? {
-          paddingBottom: `calc(80px + env(safe-area-inset-bottom))`,
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain'
         } : undefined}
@@ -66,7 +64,7 @@ export const MobileAppLayout = ({ children, className }: MobileAppLayoutProps) =
         {children}
       </main>
 
-      {isMobile && <MobileBottomNav />}
+      {/* MobileBottomNav REMOVED - redundant with top navigation rows */}
     </div>
   );
 };
