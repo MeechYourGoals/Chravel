@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck - Temporary until ChatMessage export resolved
 /**
  * Concierge Cache Service

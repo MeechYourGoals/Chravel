@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, ExternalLink, MessageCircle, Globe, Calendar, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import MockDataService, { MockLinkItem } from '@/services/mockDataService';
-import { extractUrlsFromTripChat, type NormalizedUrl } from '@/services/chatUrlExtractor';
+import MockDataService from '@/services/mockDataService';
+import { extractUrlsFromTripChat } from '@/services/chatUrlExtractor';
 
 interface LinkItem {
   id: string;

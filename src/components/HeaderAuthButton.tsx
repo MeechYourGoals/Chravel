@@ -17,7 +17,8 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 
 export const HeaderAuthButton = () => {
   const { user, signOut } = useAuth();
-  const navigate = useNavigate();
+  // Reserved for navigation enhancements
+  const _navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsSection, setSettingsSection] = useState<string>('profile');

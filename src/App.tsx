@@ -1,5 +1,5 @@
 
-import React, { Suspense, lazy, useEffect } from "react";
+import React, { lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -52,8 +52,6 @@ const ArchivePage = lazy(() => retryImport(() => import("./pages/ArchivePage")))
 const AdminDashboard = lazy(() => retryImport(() => import("./pages/AdminDashboard").then(module => ({ default: module.AdminDashboard }))));
 const OrganizationDashboard = lazy(() => retryImport(() => import("./pages/OrganizationDashboard").then(module => ({ default: module.OrganizationDashboard }))));
 const OrganizationsHub = lazy(() => retryImport(() => import("./pages/OrganizationsHub").then(module => ({ default: module.OrganizationsHub }))));
-const MobileEnterpriseHub = lazy(() => retryImport(() => import("./pages/MobileEnterpriseHub").then(module => ({ default: module.MobileEnterpriseHub }))));
-const MobileOrganizationPage = lazy(() => retryImport(() => import("./pages/MobileOrganizationPage").then(module => ({ default: module.MobileOrganizationPage }))));
 const AcceptOrganizationInvite = lazy(() => retryImport(() => import("./pages/AcceptOrganizationInvite").then(module => ({ default: module.AcceptOrganizationInvite }))));
 const ChravelRecsPage = lazy(() => retryImport(() => import("./pages/ChravelRecsPage").then(module => ({ default: module.ChravelRecsPage }))));
 const ForTeams = lazy(() => retryImport(() => import("./pages/ForTeams").then(module => ({ default: module.ForTeams }))));

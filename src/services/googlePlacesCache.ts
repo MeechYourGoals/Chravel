@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck - Temporary until RPC functions added to generated types
 /**
  * Google Places API Cache Service

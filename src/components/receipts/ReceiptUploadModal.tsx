@@ -77,7 +77,8 @@ export const ReceiptUploadModal = ({
           const { data } = supabase.storage.from('trip-files').getPublicUrl(uploadData.path);
           publicUrl = data.publicUrl;
         }
-      } catch (err) {
+      } catch {
+        // Upload failed - will use fallback URL handling in parser
       }
 
       const { data, error } = await supabase.functions.invoke('receipt-parser', {

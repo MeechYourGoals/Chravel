@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, Video, FileText, Link, Play, Download, MessageCircle, ExternalLink, Receipt, DollarSign, Users } from 'lucide-react';
+import { Camera, Video, FileText, Link, Play, Download, MessageCircle, ExternalLink, DollarSign, Users } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { PaymentMethodIcon } from './receipts/PaymentMethodIcon';

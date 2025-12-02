@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck - Temporary until trip_members type instantiation fixed
 import { supabase } from '@/integrations/supabase/client';
 

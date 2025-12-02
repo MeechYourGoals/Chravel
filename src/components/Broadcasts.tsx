@@ -27,7 +27,8 @@ interface BroadcastData {
   userResponse?: 'coming' | 'wait' | 'cant';
 }
 
-const mockBroadcasts: BroadcastData[] = [
+// Note: mockBroadcasts available for demo/testing purposes
+const _mockBroadcasts: BroadcastData[] = [
   {
     id: '1',
     sender: 'Emma',

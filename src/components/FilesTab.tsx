@@ -6,7 +6,6 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Card } from './ui/card';
-import { Separator } from './ui/separator';
 import { useToast } from '../hooks/use-toast';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { useAuth } from '../hooks/useAuth';
@@ -80,8 +79,9 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
   ]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const [pendingEvents, setPendingEvents] = useState<any[]>([]);
-  const [showEventModal, setShowEventModal] = useState(false);
+  // Reserved for future calendar event integration
+  const [_pendingEvents, _setPendingEvents] = useState<any[]>([]);
+  const [_showEventModal, _setShowEventModal] = useState(false);
   const [showReceiptUploadModal, setShowReceiptUploadModal] = useState(false);
   const [showReceiptViewModal, setShowReceiptViewModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<TripFile | null>(null);

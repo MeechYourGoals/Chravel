@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home } from 'lucide-react';
 import { MapCanvas, MapCanvasRef } from './places/MapCanvas';
 import { UnifiedMapControls } from './places/UnifiedMapControls';
 import { BasecampsPanel } from './places/BasecampsPanel';
@@ -8,7 +7,6 @@ import { BasecampLocation, PlaceWithDistance, DistanceCalculationSettings, Place
 import { DistanceCalculator } from '../utils/distanceCalculator';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { AddToCalendarData } from '../types/calendar';
-import { useFeatureToggle, DEFAULT_FEATURES } from '../hooks/useFeatureToggle';
 import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
@@ -26,8 +24,9 @@ interface PlacesSectionProps {
 
 type TabView = 'basecamps' | 'links';
 
-export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSectionProps) => {
-  const { variant } = useTripVariant();
+export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' }: PlacesSectionProps) => {
+  // Reserved for context-aware title
+  const { variant: _variant } = useTripVariant();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const { basecamp: contextBasecamp, setBasecamp: setContextBasecamp, isBasecampSet } = useBasecamp();
@@ -39,10 +38,11 @@ export const PlacesSection = ({ tripId = '1', tripName = 'Your Trip' }: PlacesSe
   const [linkedPlaceIds, setLinkedPlaceIds] = useState<Set<string>>(new Set());
   const [searchContext, setSearchContext] = useState<'trip' | 'personal'>('trip');
   const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
-  const [showPersonalBasecampSelector, setShowPersonalBasecampSelector] = useState(false);
+  // Reserved for personal basecamp modal
+  const [_showPersonalBasecampSelector, _setShowPersonalBasecampSelector] = useState(false);
   
-  // Track most recent location for priority centering
-  const [lastUpdatedLocation, setLastUpdatedLocation] = useState<{
+  // Track most recent location for priority centering - reserved for future use
+  const [_lastUpdatedLocation, _setLastUpdatedLocation] = useState<{
     type: 'trip' | 'personal' | 'search';
     timestamp: number;
     coords: { lat: number; lng: number };

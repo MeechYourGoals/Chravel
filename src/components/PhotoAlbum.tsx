@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, X, Plus } from 'lucide-react';
+import { Camera, Upload, X } from 'lucide-react';
 
 interface Photo {
   id: string;

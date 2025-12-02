@@ -18,11 +18,11 @@ interface EventsSettingsProps {
 }
 
 export const EventsSettings = ({ 
-  currentUserId, 
-  userOrganization,
-  onShowProModal,
-  onShowEnterpriseSettings,
-  onShowAdvertiserHub
+  currentUserId: _currentUserId, 
+  userOrganization: _userOrganization,
+  onShowProModal: _onShowProModal,
+  onShowEnterpriseSettings: _onShowEnterpriseSettings,
+  onShowAdvertiserHub: _onShowAdvertiserHub
 }: EventsSettingsProps) => {
   const [activeSection, setActiveSection] = useState('profile');
   const [eventData, setEventData] = useState({});

@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { ExternalLink, MessageCircle, ThumbsUp, MoreHorizontal, User } from 'lucide-react';
-import { Button } from './ui/button';
 
 interface LinkPost {
   id: string;

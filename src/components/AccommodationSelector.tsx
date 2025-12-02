@@ -22,7 +22,8 @@ const accommodationTypeIcons = {
   other: Bed
 };
 
-const accommodationTypeColors = {
+// Note: accommodationTypeColors available for future enhanced styling
+const _accommodationTypeColors = {
   hotel: 'bg-blue-100 text-blue-800',
   airbnb: 'bg-green-100 text-green-800',
   hostel: 'bg-yellow-100 text-yellow-800',

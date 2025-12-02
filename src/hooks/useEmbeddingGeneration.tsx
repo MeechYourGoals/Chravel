@@ -124,8 +124,8 @@ export function useEmbeddingGeneration(tripId: string | undefined) {
       // Only generate if no embeddings exist
       if (!existingEmbeddings || existingEmbeddings.length === 0) {
         await generateEmbeddings('all', false);
-      } else {
       }
+      // Embeddings already exist, no action needed
     } catch (error) {
       console.error('Failed to check/generate initial embeddings:', error);
     }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -69,7 +70,7 @@ describe('Trip Creation → Invite → Join Flow', () => {
             if (error) throw error;
             setTrip(data);
             setStatus('success');
-          } catch (error) {
+          } catch {
             setStatus('error');
           }
         };

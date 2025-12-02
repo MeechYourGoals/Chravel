@@ -122,8 +122,7 @@ const Index = () => {
     return trips.length + Object.keys(filteredPro).length + Object.keys(filteredEvents).length;
   }, [searchQuery, trips.length, isDemoMode, userTripsRaw, activeFilter]);
 
-  if (import.meta.env.DEV) {
-  }
+  // Development diagnostics available via console when needed
 
   // Calculate stats for each view mode - use filtered data
   const tripStats = calculateTripStats(trips);

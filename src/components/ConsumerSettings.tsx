@@ -1,8 +1,6 @@
 
 import React, { useState } from 'react';
 import { User, Bell, CreditCard, Shield, Settings, Wallet, ChevronDown, Archive, Bookmark, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { getFeatureTierEmoji, getTierLegend } from '../utils/featureTiers';
 import { TravelWallet } from './TravelWallet';
 import { ConsumerProfileSection } from './consumer/ConsumerProfileSection';
 import { ConsumerBillingSection } from './consumer/ConsumerBillingSection';
@@ -20,11 +18,10 @@ interface ConsumerSettingsProps {
   onClose?: () => void;
 }
 
-export const ConsumerSettings = ({ currentUserId, initialSection, onClose }: ConsumerSettingsProps) => {
+export const ConsumerSettings = ({ currentUserId, initialSection, onClose: _onClose }: ConsumerSettingsProps) => {
   const [activeSection, setActiveSection] = useState(initialSection || 'profile');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
 
   const sections = [
     { id: 'profile', label: 'Profile', icon: User },

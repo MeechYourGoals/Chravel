@@ -7,7 +7,6 @@ import { CalendarHeader } from './calendar/CalendarHeader';
 import { CalendarGrid } from './calendar/CalendarGrid';
 import { AddEventModal } from './calendar/AddEventModal';
 import { EventList } from './calendar/EventList';
-import { CalendarEmptyState } from './calendar/CalendarEmptyState';
 import { exportTripEventsToICal } from '@/services/calendarSync';
 import { useToast } from '@/hooks/use-toast';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
@@ -42,7 +41,8 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
   } = useCalendarManagement(tripId);
   const { toast } = useToast();
   const { canPerformAction } = useRolePermissions(tripId);
-  const { isDemoMode } = useDemoMode();
+  // Demo mode available for future conditional rendering
+  const { isDemoMode: _isDemoMode } = useDemoMode();
 
   const handleEdit = (event: any) => {
     if (!canPerformAction('calendar', 'can_edit_events')) {

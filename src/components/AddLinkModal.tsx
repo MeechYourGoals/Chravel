@@ -78,7 +78,7 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
   const [selectedLinkOption, setSelectedLinkOption] = useState<LinkOption | null>(null);
   const [showPlacePreview, setShowPlacePreview] = useState(false);
 
-  const { resolvePlaceName, categorizePlaceType, isLoading: isResolving } = usePlaceResolution();
+  const { resolvePlaceName, isLoading: isResolving } = usePlaceResolution();
 
   // Apply prefill when modal opens
   React.useEffect(() => {
@@ -112,7 +112,7 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
           if (inputDomain === linkDomain) {
             similarity = Math.max(similarity, 0.7);
           }
-        } catch (e) {
+        } catch {
           // Invalid URL format
         }
       }
@@ -187,19 +187,18 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
     setIsLoading(true);
 
     try {
-      let finalUrl = url;
-      let finalTitle = title;
+      // Link data preparation for future API integration
+      const linkUrl = inputMode === 'place' && selectedLinkOption ? selectedLinkOption.url : url;
+      const linkTitle = inputMode === 'place' && selectedLinkOption ? (title || resolvedPlace?.name || '') : title;
       
-      // Use selected link option if in place mode
-      if (inputMode === 'place' && selectedLinkOption) {
-        finalUrl = selectedLinkOption.url;
-        finalTitle = title || resolvedPlace?.name || '';
-      }
+      // TODO: Send linkUrl and linkTitle to API when backend is ready
+      void linkUrl;
+      void linkTitle;
 
       onClose();
       resetForm();
-    } catch (error) {
-      console.error('Error adding link:', error);
+    } catch (err) {
+      console.error('Error adding link:', err);
     } finally {
       setIsLoading(false);
     }

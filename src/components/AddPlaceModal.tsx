@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Link, Sparkles, CheckCircle, MapPin, Search, Globe } from 'lucide-react';
+import { X, Sparkles, CheckCircle, MapPin, Search, Globe } from 'lucide-react';
 import { Button } from './ui/button';
 import { BasecampLocation, PlaceWithDistance } from '../types/basecamp';
 import { usePlaceResolution } from '../hooks/usePlaceResolution';
-import { detectInputType, normalizeUrl, formatPlaceQuery, extractPlaceComponents } from '../utils/smartInputDetector';
+import { detectInputType, normalizeUrl, formatPlaceQuery } from '../utils/smartInputDetector';
 
 interface ResolvedPlace {
   name: string;
@@ -43,11 +43,12 @@ export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPl
   const [useAiSorting, setUseAiSorting] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [searchResults, setSearchResults] = useState<ResolvedPlace[]>([]);
+  // Reserved for multi-result search view
+  const [_searchResults, _setSearchResults] = useState<ResolvedPlace[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<ResolvedPlace | null>(null);
   const [inputType, setInputType] = useState<'url' | 'place_name' | null>(null);
   
-  const { resolvePlaceName, categorizePlaceType, isLoading: placeLoading } = usePlaceResolution();
+  const { resolvePlaceName, isLoading: placeLoading } = usePlaceResolution();
 
   // Handle smart input changes and detection
   useEffect(() => {
