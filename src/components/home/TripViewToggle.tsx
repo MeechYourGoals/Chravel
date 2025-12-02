@@ -22,8 +22,8 @@ export const TripViewToggle = ({
   const isMobile = useIsMobile();
 
   return (
-    <div className={cn("", className)}>
-      <ScrollFadeContainer className="w-full h-full contents md:contents lg:block">
+    <div className={cn("w-full", className)}>
+      <ScrollFadeContainer className="h-full contents md:contents lg:block">
         <ToggleGroup
           type="single"
           value={viewMode}
@@ -32,7 +32,7 @@ export const TripViewToggle = ({
               onViewModeChange(value);
             }
           }}
-          className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 w-full h-16 gap-1.5"
+          className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 h-16 gap-1.5"
         >
           <ToggleGroupItem
             value="myTrips"
