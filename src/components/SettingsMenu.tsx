@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { X, User, Bell, Crown, LogOut, Megaphone } from 'lucide-react';
+import { X, User, Bell, Crown, LogOut, Megaphone, LogIn } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { ScrollArea, ScrollBar } from './ui/scroll-area';
 import { useIsMobile } from '../hooks/use-mobile';
+import { Button } from './ui/button';
 
 import { ProUpgradeModal } from './ProUpgradeModal';
 import { EnterpriseSettings } from './EnterpriseSettings';
@@ -13,6 +14,7 @@ import { ProfileSection } from './settings/ProfileSection';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { NotificationsSection } from './settings/NotificationsSection';
 import { SubscriptionSection } from './settings/SubscriptionSection';
+import { AuthModal } from './AuthModal';
 
 interface SettingsMenuProps {
   isOpen: boolean;
@@ -26,24 +28,46 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [showProModal, setShowProModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeSection, setActiveSection] = useState('profile');
   const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events'>(initialSettingsType || 'consumer');
   const { accentColors } = useTripVariant();
 
-  // Create mock user for demo mode when no real user is authenticated
-  const mockUser = {
-    id: 'demo-user-123',
-    email: 'demo@example.com',
-    user_metadata: {
-      full_name: 'Demo User',
-      avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'
-    }
-  };
-
-  const currentUser = user || mockUser;
-
+  // Use real user only - no mock user
+  const currentUser = user;
 
   if (!isOpen) return null;
+
+  // If no user on mobile, show login-first view
+  if (isMobile && !user) {
+    return (
+      <>
+        <div className="fixed inset-0 bg-black z-50">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-white/10">
+            <h2 className="text-xl font-semibold text-white">Settings</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors">
+              <X size={24} />
+            </button>
+          </div>
+          {/* Login CTA */}
+          <div className="flex flex-col items-center justify-center p-8 gap-6 text-center min-h-[80vh]">
+            <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center">
+              <User className="h-10 w-10 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-white mb-2">Sign in to access settings</h3>
+              <p className="text-gray-400 text-sm">Create an account or log in to personalize your experience</p>
+            </div>
+            <Button onClick={() => setShowAuthModal(true)} size="lg" className="w-full max-w-xs">
+              <LogIn className="h-5 w-5 mr-2" /> Log In / Sign Up
+            </Button>
+          </div>
+        </div>
+        <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      </>
+    );
+  }
 
   // Mock organization data - would come from your auth context
   const userOrganization = {
@@ -90,6 +114,34 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
               <X size={24} />
             </button>
           </div>
+
+          {/* Auth Section - Show at top for mobile */}
+          {isMobile && (
+            <div className="flex-shrink-0 p-4 border-b border-white/10 bg-gradient-to-r from-primary/10 to-primary/5">
+              {user ? (
+                // Logged In: Show user info + Sign Out
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">Signed in as</p>
+                      <p className="text-sm font-medium text-white truncate max-w-[200px]">{user.email}</p>
+                    </div>
+                  </div>
+                  <Button onClick={signOut} variant="destructive" size="sm">
+                    <LogOut className="h-4 w-4 mr-1" /> Sign Out
+                  </Button>
+                </div>
+              ) : (
+                // Logged Out: Show Login/Sign Up
+                <Button onClick={() => setShowAuthModal(true)} className="w-full">
+                  <LogIn className="h-4 w-4 mr-2" /> Log In / Sign Up
+                </Button>
+              )}
+            </div>
+          )}
 
           {/* Settings Type Toggle */}
           <div className="flex-shrink-0 p-4 md:px-6 border-b border-white/10 bg-black/20">
@@ -161,22 +213,9 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
               </div>
             ) : settingsType === 'events' ? (
               <div className="flex-1 min-h-0">
-                <EventsSettings currentUserId={currentUser.id} />
+                <EventsSettings currentUserId={currentUser?.id || ''} />
               </div>
             ) : null}
-
-            {/* Sign Out Button - Only show for consumer settings (and advertiser if we didn't redirect) */}
-            {settingsType === 'consumer' && (
-              <div className="flex-shrink-0 p-4 bg-black/20 border-t border-white/10 md:hidden">
-                <button
-                  onClick={signOut}
-                  className="w-full flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-medium py-2.5 rounded-xl transition-colors"
-                >
-                  <LogOut size={16} />
-                  Sign Out
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -185,6 +224,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
         isOpen={showProModal} 
         onClose={() => setShowProModal(false)} 
       />
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
   );
 };
