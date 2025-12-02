@@ -2,11 +2,13 @@
 import React, { useState } from 'react';
 import { CheckCircle, XCircle, AlertTriangle, Crown, Users, Shield } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
 import { hasTabAccess, isReadOnlyTab } from './ProTabsConfig';
 import { Button } from '../ui/button';
 
 export const ProFeatureDemo = () => {
   const { user } = useAuth();
+  const { permissions: subscriptionPermissions, isTestAccount } = useConsumerSubscription();
   const [testResults, setTestResults] = useState<Record<string, boolean>>({});
 
   if (!user?.isPro) return null;
@@ -21,9 +23,10 @@ export const ProFeatureDemo = () => {
       'Finance Access': hasTabAccess('finance', userRole, userPermissions),
       'Medical Access': hasTabAccess('medical', userRole, userPermissions),
       'Compliance Access': hasTabAccess('compliance', userRole, userPermissions),
-      'Admin Features': userPermissions.includes('admin'),
-      'Write Permissions': userPermissions.includes('write'),
-      'Read-Only Mode': isReadOnlyTab('finance', userRole, userPermissions)
+      'Admin Features': userPermissions.includes('admin') || subscriptionPermissions.includes('admin'),
+      'Write Permissions': userPermissions.includes('write') || subscriptionPermissions.includes('write'),
+      'Read-Only Mode': isReadOnlyTab('finance', userRole, userPermissions, false, subscriptionPermissions),
+      'Test Account': isTestAccount
     };
     
     setTestResults(tests);

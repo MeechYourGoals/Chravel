@@ -75,7 +75,7 @@ export const MessageTypeBar = ({
       <div className="flex items-center justify-center">
         <div 
           ref={pillBarRef}
-          className="inline-flex items-center bg-neutral-900/70 backdrop-blur-md border border-white/10 rounded-xl p-0.5 shadow-lg max-w-[560px] md:max-w-[420px] sm:max-w-[380px]"
+          className="inline-flex items-center bg-neutral-900/70 backdrop-blur-md border border-white/10 rounded-xl p-0.5 shadow-lg"
         >
           
           {/* Messages Segment */}

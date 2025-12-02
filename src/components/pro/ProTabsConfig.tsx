@@ -68,9 +68,20 @@ export const getVisibleTabs = (userRole: string, userPermissions: string[], cate
   });
 };
 
-export const isReadOnlyTab = (tabId: string, userRole: string, userPermissions: string[], isDemoMode?: boolean): boolean => {
+export const isReadOnlyTab = (
+  tabId: string, 
+  userRole: string, 
+  userPermissions: string[], 
+  isDemoMode?: boolean,
+  subscriptionPermissions?: string[]
+): boolean => {
   // Demo mode overrides all read-only restrictions
   if (isDemoMode) return false;
+  
+  // Subscription-level permissions override (for test accounts with full access)
+  if (subscriptionPermissions?.includes('admin') || subscriptionPermissions?.includes('write')) {
+    return false;
+  }
   
   // Finance and compliance tabs are read-only for certain roles
   if ((tabId === 'finance' || tabId === 'compliance') && 

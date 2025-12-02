@@ -17,6 +17,8 @@ interface ConsumerSubscriptionContextType {
   upgradeToTier: (tier: 'explorer' | 'frequent-chraveler', billingCycle: 'monthly' | 'annual') => Promise<void>;
   canCreateProTrip: boolean;
   proTripQuota: number;
+  permissions: string[];
+  isTestAccount: boolean;
 }
 
 const ConsumerSubscriptionContext = createContext<ConsumerSubscriptionContextType | undefined>(undefined);
@@ -41,7 +43,7 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
       
       if (error) throw error;
 
-      const { subscribed, product_id, tier, subscription_end } = data;
+      const { subscribed, product_id, tier, subscription_end, permissions, is_test_account } = data;
       
       // Map tier from backend or detect from product_id
       let userTier: 'free' | 'explorer' | 'frequent-chraveler' = 'free';
@@ -66,6 +68,8 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
         status: subscribed ? 'active' : 'expired',
         subscriptionEndsAt: subscription_end,
         stripeCustomerId: data.stripe_customer_id,
+        permissions: permissions || [],
+        isTestAccount: is_test_account || false,
       });
     } catch (error) {
       console.error('Error checking subscription:', error);
@@ -116,8 +120,11 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
   const currentTier = subscription?.tier || 'free';
   const isPlus = subscription?.status === 'active' && currentTier !== 'free'; // Any paid tier
   const isSubscribed = subscription?.status === 'active' && currentTier !== 'free';
-  const canCreateProTrip = currentTier === 'frequent-chraveler';
-  const proTripQuota = currentTier === 'frequent-chraveler' ? 1 : 0;
+  const isTestAccount = subscription?.isTestAccount || false;
+  // Test accounts and Frequent Chraveler tier can create Pro trips
+  const canCreateProTrip = currentTier === 'frequent-chraveler' || isTestAccount;
+  const proTripQuota = (currentTier === 'frequent-chraveler' || isTestAccount) ? 1 : 0;
+  const permissions = subscription?.permissions || [];
 
   return (
     <ConsumerSubscriptionContext.Provider value={{
@@ -130,7 +137,9 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
       upgradeToPlus,
       upgradeToTier,
       canCreateProTrip,
-      proTripQuota
+      proTripQuota,
+      permissions,
+      isTestAccount
     }}>
       {children}
     </ConsumerSubscriptionContext.Provider>

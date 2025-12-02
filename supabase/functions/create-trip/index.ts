@@ -45,20 +45,52 @@ serve(async (req) => {
 
     const { name, description, destination, start_date, end_date, trip_type, cover_image_url, enabled_features } = validation.data;
 
-    // TEMPORARILY DISABLED FOR MVP: Allow all users to create Pro/Event trips
-    // Will re-enable with feature gating (role-based channels, PDF export, AI Concierge) post-MVP
-    // if (trip_type === 'pro' || trip_type === 'event') {
-    //   const { data: roleData } = await supabase
-    //     .from('user_roles')
-    //     .select('role')
-    //     .eq('user_id', user.id)
-    //     .eq('role', 'pro')
-    //     .single();
-    //
-    //   if (!roleData) {
-    //     throw new Error('Pro subscription required to create professional trips');
-    //   }
-    // }
+    // TEST ACCOUNT BYPASS: Grant full access for development testing
+    const TEST_ACCOUNTS = ['ccamechi@gmail.com'];
+    const isTestAccount = user.email && TEST_ACCOUNTS.includes(user.email.toLowerCase());
+    
+    // Track whether user is using free trial (for incrementing counter after creation)
+    let isUsingFreeTrial = false;
+    let profileData: { free_pro_trips_used?: number; free_pro_trip_limit?: number } | null = null;
+
+    // FREE PRO TRIP TRIAL: Allow one free Pro trip per user
+    if ((trip_type === 'pro' || trip_type === 'event') && !isTestAccount) {
+      // Check if user has an active Pro subscription
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'pro')
+        .single();
+
+      // If no Pro subscription, check free trial quota
+      if (!roleData) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('free_pro_trips_used, free_pro_trip_limit')
+          .eq('user_id', user.id)
+          .single();
+
+        profileData = profile;
+        const used = profile?.free_pro_trips_used || 0;
+        const limit = profile?.free_pro_trip_limit || 1;
+
+        if (used >= limit) {
+          console.log(`Free Pro trip trial exhausted for user ${user.id}: ${used}/${limit}`);
+          return new Response(
+            JSON.stringify({ 
+              error: 'You have used your free Pro trip. Subscribe to Pro to create more professional trips.',
+              free_trial_exhausted: true
+            }),
+            { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Mark that we're using the free trial
+        isUsingFreeTrial = true;
+        console.log(`User ${user.id} creating Pro trip using free trial (${used + 1}/${limit})`);
+      }
+    }
 
     // Create trip
     const { data: trip, error: tripError } = await supabase
@@ -92,10 +124,20 @@ serve(async (req) => {
 
     if (memberError) throw memberError;
 
+    // Increment free trial usage counter if using free trial
+    if (isUsingFreeTrial) {
+      const currentUsed = profileData?.free_pro_trips_used || 0;
+      await supabase
+        .from('profiles')
+        .update({ free_pro_trips_used: currentUsed + 1 })
+        .eq('user_id', user.id);
+      console.log(`Free Pro trip trial counter incremented for user ${user.id}: ${currentUsed + 1}`);
+    }
+
     console.log(`Trip created: ${trip.id} by user ${user.id}`);
 
     return new Response(
-      JSON.stringify({ success: true, trip }),
+      JSON.stringify({ success: true, trip, used_free_trial: isUsingFreeTrial }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
