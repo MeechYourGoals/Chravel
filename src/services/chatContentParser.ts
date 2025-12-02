@@ -452,7 +452,7 @@ export async function applySuggestion(
 ): Promise<string | null> {
   try {
     switch (suggestion.action) {
-      case 'create_calendar_event':
+      case 'create_calendar_event': {
         if (!suggestion.data) return null;
         
         const eventData: CreateEventData = {
@@ -472,6 +472,7 @@ export async function applySuggestion(
 
         const event = await calendarService.createEvent(eventData);
         return event?.id || null;
+      }
       
       case 'create_todo':
         // TODO: Implement todo creation service

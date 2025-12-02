@@ -23,7 +23,6 @@ export const MobileProTripDetail = () => {
   const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
 
   // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
-  // The hook handles demo mode internally, returning empty arrays when in demo mode
   const { trips: userTrips, loading: tripsLoading } = useTrips();
 
   const [activeTab, setActiveTab] = useState('chat');
@@ -39,16 +38,42 @@ export const MobileProTripDetail = () => {
     adjustViewport: true
   });
 
-  // 🆕 Initialize mock roles and channels ONLY in demo mode
+  // Calculate tripData with useMemo - MUST be before any conditional returns
+  const tripData = useMemo(() => {
+    if (!proTripId) return null;
+    
+    if (isDemoMode) {
+      return proTripId in proTripMockData ? proTripMockData[proTripId] : null;
+    }
+
+    // Find Pro trip from Supabase data
+    const supabaseTrip = userTrips.find(t => String(t.id) === proTripId && t.trip_type === 'pro');
+    
+    if (!supabaseTrip) return null;
+    
+    // Convert to ProTripData format
+    const convertedTrip = convertSupabaseTripToProTrip(supabaseTrip);
+
+    // Populate with fetched participants and default values
+    return {
+      ...convertedTrip,
+      participants: fetchedParticipants.length > 0 ? fetchedParticipants : [],
+      roster: fetchedParticipants.length > 0 ? fetchedParticipants : [],
+      proTripCategory: 'Sports – Pro, Collegiate, Youth',
+      enabled_features: supabaseTrip.enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks'],
+    } as ProTripData;
+  }, [isDemoMode, proTripId, userTrips, fetchedParticipants]);
+
+  // Initialize mock roles and channels ONLY in demo mode
   React.useEffect(() => {
     if (isDemoMode && proTripId && proTripId in proTripMockData) {
-      const tripData = proTripMockData[proTripId];
+      const mockTripData = proTripMockData[proTripId];
       const existingRoles = MockRolesService.getRolesForTrip(proTripId);
       
       if (!existingRoles) {
         const roles = MockRolesService.seedRolesForTrip(
           proTripId,
-          tripData.proTripCategory,
+          mockTripData.proTripCategory,
           user?.id || 'demo-user'
         );
         MockRolesService.seedChannelsForRoles(proTripId, roles, user?.id || 'demo-user');
@@ -68,7 +93,7 @@ export const MobileProTripDetail = () => {
             avatar: m.profiles?.avatar_url,
             role: m.role || 'member',
             email: m.profiles?.email || '',
-            credentialLevel: 'Guest', // Default
+            credentialLevel: 'Guest',
             permissions: []
           } as ProParticipant)));
         } catch (error) {
@@ -79,7 +104,37 @@ export const MobileProTripDetail = () => {
     }
   }, [isDemoMode, proTripId]);
 
-  // ⚡ OPTIMIZATION: Show loading spinner before expensive computations
+  // Set trip description when tripData loads
+  React.useEffect(() => {
+    if (tripData && !tripDescription) {
+      setTripDescription(tripData.description || '');
+    }
+  }, [tripData, tripDescription]);
+  
+  // Measure header height and expose as CSS var for sticky offsets
+  React.useEffect(() => {
+    const setHeaderHeightVar = () => {
+      const h = headerRef.current?.offsetHeight || 73;
+      document.documentElement.style.setProperty('--mobile-header-h', `${h}px`);
+    };
+    const debounce = (fn: () => void, delay = 100) => {
+      let t: ReturnType<typeof setTimeout>;
+      return () => {
+        clearTimeout(t);
+        t = setTimeout(fn, delay);
+      };
+    };
+    const handler = debounce(setHeaderHeightVar, 100);
+    setHeaderHeightVar();
+    window.addEventListener('resize', handler);
+    window.addEventListener('orientationchange', handler);
+    return () => {
+      window.removeEventListener('resize', handler);
+      window.removeEventListener('orientationchange', handler);
+    };
+  }, []);
+
+  // ⚡ Now handle loading and error states AFTER all hooks
   if (demoModeLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -92,7 +147,6 @@ export const MobileProTripDetail = () => {
   }
 
   if (!proTripId) {
-    console.error('MobileProTripDetail: No proTripId provided');
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">
@@ -112,7 +166,6 @@ export const MobileProTripDetail = () => {
     );
   }
   
-  // Show loading state while fetching trips
   if (tripsLoading && !isDemoMode) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -124,65 +177,16 @@ export const MobileProTripDetail = () => {
     );
   }
 
-  // 🔐 DEMO MODE: Use mock data
-  if (isDemoMode && !(proTripId in proTripMockData)) {
-    console.error(`MobileProTripDetail: Pro trip not found in mock data: ${proTripId}`);
-    console.log('Available Pro trip IDs:', Object.keys(proTripMockData));
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Demo Trip Not Found</h1>
-          <p className="text-gray-400 mb-2">The demo trip you're looking for doesn't exist.</p>
-          <p className="text-xs text-gray-500 mb-6">Trip ID: {proTripId}</p>
-          <button
-            onClick={() => {
-              hapticService.light();
-              navigate('/');
-            }}
-            className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
-          >
-            Back to My Trips
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Calculate tripData with useMemo to ensure referential stability
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const tripData = useMemo(() => {
-    if (isDemoMode) {
-      return proTripMockData[proTripId];
-    }
-
-    // Find Pro trip from Supabase data
-    const supabaseTrip = userTrips.find(t => String(t.id) === proTripId && t.trip_type === 'pro');
-    
-    if (!supabaseTrip) return null;
-    
-    // Convert to ProTripData format
-    const convertedTrip = convertSupabaseTripToProTrip(supabaseTrip);
-
-    // Populate with fetched participants and default values
-    return {
-      ...convertedTrip,
-      // Overwrite participants with fetched ones
-      participants: fetchedParticipants.length > 0 ? fetchedParticipants : [],
-      // Ensure roster is also populated
-      roster: fetchedParticipants.length > 0 ? fetchedParticipants : [],
-      // Ensure other fields are present if convertSupabaseTripToProTrip misses any
-      proTripCategory: 'Sports – Pro, Collegiate, Youth', // Default if missing
-      enabled_features: supabaseTrip.enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks'],
-    } as ProTripData;
-  }, [isDemoMode, proTripId, userTrips, fetchedParticipants]);
-
-  // Handle case where trip is not found in authenticated mode
-  if (!isDemoMode && !tripData) {
+  if (!tripData) {
+    const errorMessage = isDemoMode 
+      ? "The demo trip you're looking for doesn't exist."
+      : "This Pro trip doesn't exist or you don't have access.";
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white mb-4">Pro Trip Not Found</h1>
-          <p className="text-gray-400 mb-6">This Pro trip doesn't exist or you don't have access.</p>
+          <p className="text-gray-400 mb-2">{errorMessage}</p>
+          {isDemoMode && <p className="text-xs text-gray-500 mb-6">Trip ID: {proTripId}</p>}
           <button
             onClick={() => {
               hapticService.light();
@@ -196,35 +200,6 @@ export const MobileProTripDetail = () => {
       </div>
     );
   }
-  
-  React.useEffect(() => {
-    if (tripData && !tripDescription) {
-      setTripDescription(tripData.description || '');
-    }
-  }, [tripData, tripDescription]);
-  
-  // Measure header height and expose as CSS var for sticky offsets
-  React.useEffect(() => {
-    const setHeaderHeightVar = () => {
-      const h = headerRef.current?.offsetHeight || 73;
-      document.documentElement.style.setProperty('--mobile-header-h', `${h}px`);
-    };
-    const debounce = (fn: () => void, delay = 100) => {
-      let t: any;
-      return () => {
-        clearTimeout(t);
-        t = setTimeout(fn, delay);
-      };
-    };
-    const handler = debounce(setHeaderHeightVar, 100);
-    setHeaderHeightVar();
-    window.addEventListener('resize', handler);
-    window.addEventListener('orientationchange', handler);
-    return () => {
-      window.removeEventListener('resize', handler);
-      window.removeEventListener('orientationchange', handler);
-    };
-  }, []);
   
   const trip = {
     id: parseInt(tripData.id) || 0, // Fallback for numeric ID

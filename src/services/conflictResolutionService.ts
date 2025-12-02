@@ -55,7 +55,7 @@ export function resolveConflict(
         resolvedData: remoteData,
       };
 
-    case 'merge':
+    case 'merge': {
       // Attempt to merge both changes (simple field-level merge)
       const merged = { ...localData };
       
@@ -84,6 +84,7 @@ export function resolveConflict(
         strategy: 'merge',
         resolvedData: merged,
       };
+    }
 
     case 'manual':
       // Let user choose

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MoreVertical, Info } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
@@ -11,16 +11,14 @@ import { useDemoMode } from '../hooks/useDemoMode';
 import { useTrips } from '../hooks/useTrips';
 import { convertSupabaseTripsToMock } from '../utils/tripConverter';
 import { eventsMockData } from '../data/eventsMockData';
-import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 
 export const MobileEventDetail = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user: _user } = useAuth(); // Prefixed as unused but kept for future auth needs
   const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
 
   // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
-  // The hook handles demo mode internally, returning empty arrays when in demo mode
   const { trips: userTrips, loading: tripsLoading } = useTrips();
 
   const [activeTab, setActiveTab] = useState('chat');
@@ -34,7 +32,62 @@ export const MobileEventDetail = () => {
     adjustViewport: true
   });
 
-  // 🔄 CRITICAL: Wait for demo mode to initialize before attempting data load
+  // ✅ Calculate eventData with useMemo - MUST be before any conditional returns
+  const eventData = useMemo(() => {
+    if (!eventId) return null;
+    
+    if (isDemoMode) {
+      return eventsMockData[eventId] || null;
+    }
+    
+    // Authenticated mode: find Event from Supabase data
+    const allTrips = convertSupabaseTripsToMock(userTrips);
+    const event = allTrips.find(t => String(t.id) === eventId && t.trip_type === 'event');
+    
+    if (!event) return null;
+    
+    // Convert to eventData format expected by components
+    return {
+      id: event.id,
+      title: event.title,
+      location: event.location,
+      dateRange: event.dateRange,
+      description: event.description,
+      participants: event.participants || []
+    };
+  }, [eventId, isDemoMode, userTrips]);
+
+  // Set trip description when eventData loads
+  React.useEffect(() => {
+    if (eventData && !tripDescription) {
+      setTripDescription(eventData.description || '');
+    }
+  }, [eventData, tripDescription]);
+  
+  // Measure header height and expose as CSS var for sticky offsets
+  React.useEffect(() => {
+    const setHeaderHeightVar = () => {
+      const h = headerRef.current?.offsetHeight || 73;
+      document.documentElement.style.setProperty('--mobile-header-h', `${h}px`);
+    };
+    const debounce = (fn: () => void, delay = 100) => {
+      let t: ReturnType<typeof setTimeout>;
+      return () => {
+        clearTimeout(t);
+        t = setTimeout(fn, delay);
+      };
+    };
+    const handler = debounce(setHeaderHeightVar, 100);
+    setHeaderHeightVar();
+    window.addEventListener('resize', handler);
+    window.addEventListener('orientationchange', handler);
+    return () => {
+      window.removeEventListener('resize', handler);
+      window.removeEventListener('orientationchange', handler);
+    };
+  }, []);
+
+  // ⚡ Loading and error states AFTER all hooks
   if (demoModeLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -46,9 +99,7 @@ export const MobileEventDetail = () => {
     );
   }
 
-  // Not found - handle early
   if (!eventId) {
-    console.error('MobileEventDetail: No eventId provided');
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">
@@ -68,7 +119,6 @@ export const MobileEventDetail = () => {
     );
   }
   
-  // Show loading state while fetching trips
   if (tripsLoading && !isDemoMode) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -79,97 +129,30 @@ export const MobileEventDetail = () => {
       </div>
     );
   }
-  
-  // Get event data - use demo data in demo mode, Supabase trips when authenticated
-  let eventData: any;
-  if (isDemoMode) {
-    eventData = eventsMockData[eventId];
-    if (!eventData) {
-      console.error(`MobileEventDetail: Event not found in mock data: ${eventId}`);
-      console.log('Available event IDs:', Object.keys(eventsMockData));
-      return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-4">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-white mb-4">Event Not Found</h1>
-            <p className="text-gray-400 mb-2">This demo event doesn't exist.</p>
-            <p className="text-xs text-gray-500 mb-6">Event ID: {eventId}</p>
-            <button
-              onClick={() => {
-                hapticService.light();
-                navigate('/');
-              }}
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
-            >
-              Back to My Trips
-            </button>
-          </div>
+
+  if (!eventData) {
+    const errorMessage = isDemoMode 
+      ? "This demo event doesn't exist."
+      : "This event doesn't exist or you don't have access.";
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-white mb-4">Event Not Found</h1>
+          <p className="text-gray-400 mb-2">{errorMessage}</p>
+          {isDemoMode && <p className="text-xs text-gray-500 mb-6">Event ID: {eventId}</p>}
+          <button
+            onClick={() => {
+              hapticService.light();
+              navigate('/');
+            }}
+            className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+          >
+            Back to My Trips
+          </button>
         </div>
-      );
-    }
-  } else {
-    // Authenticated mode: find Event from Supabase data
-    const allTrips = convertSupabaseTripsToMock(userTrips);
-    const event = allTrips.find(t => String(t.id) === eventId && t.trip_type === 'event');
-    
-    if (!event) {
-      return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-4">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-white mb-4">Event Not Found</h1>
-            <p className="text-gray-400 mb-6">This event doesn't exist or you don't have access.</p>
-            <button
-              onClick={() => {
-                hapticService.light();
-                navigate('/');
-              }}
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
-            >
-              Back to My Trips
-            </button>
-          </div>
-        </div>
-      );
-    }
-    
-    // Convert to eventData format expected by components
-    eventData = {
-      id: event.id,
-      title: event.title,
-      location: event.location,
-      dateRange: event.dateRange,
-      description: event.description,
-      participants: event.participants || []
-    };
+      </div>
+    );
   }
-  
-  React.useEffect(() => {
-    if (eventData && !tripDescription) {
-      setTripDescription(eventData.description || '');
-    }
-  }, [eventData, tripDescription]);
-  
-  // Measure header height and expose as CSS var for sticky offsets
-  React.useEffect(() => {
-    const setHeaderHeightVar = () => {
-      const h = headerRef.current?.offsetHeight || 73;
-      document.documentElement.style.setProperty('--mobile-header-h', `${h}px`);
-    };
-    const debounce = (fn: () => void, delay = 100) => {
-      let t: any;
-      return () => {
-        clearTimeout(t);
-        t = setTimeout(fn, delay);
-      };
-    };
-    const handler = debounce(setHeaderHeightVar, 100);
-    setHeaderHeightVar();
-    window.addEventListener('resize', handler);
-    window.addEventListener('orientationchange', handler);
-    return () => {
-      window.removeEventListener('resize', handler);
-      window.removeEventListener('orientationchange', handler);
-    };
-  }, []);
   
   const trip = {
     id: parseInt(eventId.replace(/\D/g, '') || '1'),

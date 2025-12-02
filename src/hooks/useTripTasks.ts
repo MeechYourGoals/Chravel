@@ -235,10 +235,11 @@ export const useTripTasks = (tripId: string, options?: {
           return new Date(a.due_at).getTime() - new Date(b.due_at).getTime();
         case 'created':
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        case 'priority':
+        case 'priority': {
           const aPriority = a.due_at ? 1 : 0;
           const bPriority = b.due_at ? 1 : 0;
           return bPriority - aPriority;
+        }
         default:
           return 0;
       }

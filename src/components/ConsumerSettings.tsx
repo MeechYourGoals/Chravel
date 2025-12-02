@@ -28,7 +28,7 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose: _onCl
     { id: 'billing', label: 'Billing', icon: CreditCard },
     { id: 'ai-concierge', label: 'AI Concierge', icon: Sparkles },
     { id: 'travel-wallet', label: 'Travel Wallet', icon: Wallet },
-    { id: 'saved-recs', label: 'Recommendations', icon: Bookmark },
+    { id: 'saved-recs', label: 'Recommendations', icon: Bookmark, comingSoon: true },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'privacy', label: 'Privacy & Security', icon: Shield },
     { id: 'settings', label: 'General Settings', icon: Settings },
@@ -81,21 +81,32 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose: _onCl
             <div className="mt-2 bg-white/10 rounded-xl overflow-hidden">
               {sections.map((section) => {
                 const Icon = section.icon;
+                const isComingSoon = 'comingSoon' in section && section.comingSoon;
                 return (
                   <button
                     key={section.id}
                     onClick={() => {
-                      setActiveSection(section.id);
-                      setShowMobileMenu(false);
+                      if (!isComingSoon) {
+                        setActiveSection(section.id);
+                        setShowMobileMenu(false);
+                      }
                     }}
+                    disabled={isComingSoon}
                     className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
-                      activeSection === section.id
-                        ? 'bg-glass-orange/20 text-glass-orange'
-                        : 'text-gray-300 hover:text-white hover:bg-white/10'
+                      isComingSoon 
+                        ? 'text-gray-500 cursor-not-allowed opacity-60'
+                        : activeSection === section.id
+                          ? 'bg-glass-orange/20 text-glass-orange'
+                          : 'text-gray-300 hover:text-white hover:bg-white/10'
                     }`}
                   >
                     <Icon size={20} />
-                    {section.label}
+                    <span className="flex-1">{section.label}</span>
+                    {isComingSoon && (
+                      <span className="text-xs bg-gray-600 text-gray-300 px-2 py-0.5 rounded-full">
+                        Coming Soon
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -121,20 +132,31 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose: _onCl
         <div className="space-y-1.5">
           {sections.map((section) => {
             const Icon = section.icon;
+            const isComingSoon = 'comingSoon' in section && section.comingSoon;
             return (
               <button
                 key={section.id}
                 onClick={() => {
-                  setActiveSection(section.id);
+                  if (!isComingSoon) {
+                    setActiveSection(section.id);
+                  }
                 }}
+                disabled={isComingSoon}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
-                  activeSection === section.id
-                    ? 'bg-glass-orange/20 text-glass-orange border border-glass-orange/30'
-                    : 'text-gray-300 hover:text-white hover:bg-white/10'
+                  isComingSoon
+                    ? 'text-gray-500 cursor-not-allowed opacity-60'
+                    : activeSection === section.id
+                      ? 'bg-glass-orange/20 text-glass-orange border border-glass-orange/30'
+                      : 'text-gray-300 hover:text-white hover:bg-white/10'
                 }`}
               >
                 <Icon size={20} />
-                {section.label}
+                <span className="flex-1 text-left">{section.label}</span>
+                {isComingSoon && (
+                  <span className="text-xs bg-gray-600 text-gray-300 px-1.5 py-0.5 rounded-full">
+                    Soon
+                  </span>
+                )}
               </button>
             );
           })}

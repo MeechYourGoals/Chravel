@@ -178,13 +178,13 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
                   Events
                 </button>
                 <button
-                  onClick={() => {
-                    onClose();
-                    navigate('/advertiser');
-                  }}
-                  className="py-2.5 px-6 rounded-lg text-base font-semibold transition-all whitespace-nowrap border text-gray-400 hover:text-white border-transparent hover:border-white/10 hover:bg-white/5"
+                  disabled
+                  className="py-2.5 px-6 rounded-lg text-base font-semibold transition-all whitespace-nowrap border text-gray-500 border-transparent cursor-not-allowed opacity-60 flex items-center gap-2"
                 >
                   Advertiser
+                  <span className="text-xs bg-gray-600 text-gray-300 px-1.5 py-0.5 rounded-full">
+                    Soon
+                  </span>
                 </button>
               </div>
               <ScrollBar orientation="horizontal" className="md:hidden" />

@@ -19,32 +19,37 @@ export const MobileBottomNav = ({ className }: MobileBottomNavProps) => {
       label: 'Trips',
       icon: Home,
       path: '/',
-      isActive: location.pathname === '/' && !location.search.includes('search=open')
+      isActive: location.pathname === '/' && !location.search.includes('search=open'),
+      comingSoon: false
     },
     {
       id: 'search',
       label: 'Search',
       icon: Search,
       path: '/?search=open',
-      isActive: location.search.includes('search=open')
+      isActive: location.search.includes('search=open'),
+      comingSoon: false
     },
     {
       id: 'recs',
       label: 'Recs',
       icon: Compass,
       path: '/recs',
-      isActive: location.pathname.includes('/recs')
+      isActive: location.pathname.includes('/recs'),
+      comingSoon: true
     },
     {
       id: 'settings',
       label: 'Settings',
       icon: Settings,
       path: '/settings',
-      isActive: location.pathname.includes('/settings')
+      isActive: location.pathname.includes('/settings'),
+      comingSoon: false
     }
   ];
 
   const handleTabPress = async (tab: typeof tabs[0]) => {
+    if (tab.comingSoon) return; // Don't navigate for coming soon tabs
     // Add haptic feedback
     await hapticService.light();
     navigate(tab.path);
@@ -76,28 +81,34 @@ export const MobileBottomNav = ({ className }: MobileBottomNavProps) => {
             <button
               key={tab.id}
               onClick={() => handleTabPress(tab)}
+              disabled={tab.comingSoon}
               className={cn(
                 // Touch target and layout
                 "flex flex-col items-center justify-center min-w-touch-target min-h-touch-target",
                 "px-2 py-1 rounded-lg transition-all duration-200",
-                // Active state
-                tab.isActive
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                // Touch feedback
-                "active:scale-95 active:bg-muted/70"
+                // Coming Soon state
+                tab.comingSoon
+                  ? "text-muted-foreground/50 cursor-not-allowed"
+                  // Active state
+                  : tab.isActive
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                // Touch feedback (only for non-disabled)
+                !tab.comingSoon && "active:scale-95 active:bg-muted/70"
               )}
             >
               <Icon 
                 size={20} 
                 className={cn(
                   "mb-1 transition-all duration-200",
-                  tab.isActive ? "scale-110" : ""
+                  tab.isActive && !tab.comingSoon ? "scale-110" : "",
+                  tab.comingSoon ? "opacity-50" : ""
                 )}
               />
               <span className={cn(
                 "text-xs font-medium transition-all duration-200",
-                tab.isActive ? "text-primary" : ""
+                tab.isActive && !tab.comingSoon ? "text-primary" : "",
+                tab.comingSoon ? "opacity-50" : ""
               )}>
                 {tab.label}
               </span>
