@@ -227,9 +227,16 @@ export const useTripPolls = (tripId: string) => {
         .from('trip_polls')
         .select('version, allow_multiple, allow_vote_change')
         .eq('id', pollId)
-        .single();
+        .maybeSingle();
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Error fetching poll:', fetchError);
+        throw fetchError;
+      }
+      
+      if (!poll) {
+        throw new Error('Poll not found');
+      }
 
       for (const optionId of optionIdsArray) {
         const { error } = await supabase
@@ -237,10 +244,11 @@ export const useTripPolls = (tripId: string) => {
             p_poll_id: pollId,
             p_option_id: optionId,
             p_user_id: user.id,
-            p_current_version: poll.version
+            p_current_version: poll.version ?? null
           });
 
         if (error) {
+          console.error('Vote RPC error:', error);
           if (error.message?.includes('modified by another user')) {
             toast({
               title: 'Poll Updated',
@@ -294,8 +302,22 @@ export const useTripPolls = (tripId: string) => {
         return { pollId };
       }
 
-      // Authenticated mode - TODO: implement database removal
-      throw new Error('Vote removal not yet implemented for authenticated mode');
+      // Authenticated mode - use database function
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .rpc('remove_vote_from_poll', {
+          p_poll_id: pollId,
+          p_user_id: user.id
+        });
+
+      if (error) {
+        console.error('Remove vote RPC error:', error);
+        throw error;
+      }
+
+      return { pollId };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });

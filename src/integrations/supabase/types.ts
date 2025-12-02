@@ -3077,6 +3077,10 @@ export type Database = {
         Args: { _role_id: string; _trip_id: string; _user_id: string }
         Returns: Json
       }
+      remove_vote_from_poll: {
+        Args: { p_poll_id: string; p_user_id: string }
+        Returns: undefined
+      }
       send_notification: {
         Args: {
           p_message: string
@@ -3115,12 +3119,12 @@ export type Database = {
       }
       vote_on_poll: {
         Args: {
-          p_current_version: number
+          p_current_version?: number
           p_option_id: string
           p_poll_id: string
           p_user_id: string
         }
-        Returns: Json
+        Returns: undefined
       }
     }
     Enums: {
