@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Search, Compass, Settings } from 'lucide-react';
@@ -7,9 +6,10 @@ import { hapticService } from '@/services/hapticService';
 
 interface MobileBottomNavProps {
   className?: string;
+  onSettingsPress?: () => void;
 }
 
-export const MobileBottomNav = ({ className }: MobileBottomNavProps) => {
+export const MobileBottomNav = ({ className, onSettingsPress }: MobileBottomNavProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -47,6 +47,13 @@ export const MobileBottomNav = ({ className }: MobileBottomNavProps) => {
   const handleTabPress = async (tab: typeof tabs[0]) => {
     // Add haptic feedback
     await hapticService.light();
+    
+    // Special handling for Settings - open sheet if callback provided
+    if (tab.id === 'settings' && onSettingsPress) {
+      onSettingsPress();
+      return;
+    }
+    
     navigate(tab.path);
   };
 
@@ -66,7 +73,7 @@ export const MobileBottomNav = ({ className }: MobileBottomNavProps) => {
         className
       )}
       style={{
-        paddingBottom: `max(16px, env(safe-area-inset-bottom))`
+        paddingBottom: `max(12px, env(safe-area-inset-bottom))`
       }}
     >
       <div className="flex items-center justify-around px-2 pt-2 pb-1">
@@ -78,8 +85,8 @@ export const MobileBottomNav = ({ className }: MobileBottomNavProps) => {
               onClick={() => handleTabPress(tab)}
               className={cn(
                 // Touch target and layout
-                "flex flex-col items-center justify-center min-w-touch-target min-h-touch-target",
-                "px-2 py-1 rounded-lg transition-all duration-200",
+                "flex flex-col items-center justify-center min-w-[44px] min-h-[44px]",
+                "px-3 py-1.5 rounded-lg transition-all duration-200",
                 // Active state
                 tab.isActive
                   ? "text-primary bg-primary/10"
@@ -91,12 +98,12 @@ export const MobileBottomNav = ({ className }: MobileBottomNavProps) => {
               <Icon 
                 size={20} 
                 className={cn(
-                  "mb-1 transition-all duration-200",
+                  "mb-0.5 transition-all duration-200",
                   tab.isActive ? "scale-110" : ""
                 )}
               />
               <span className={cn(
-                "text-xs font-medium transition-all duration-200",
+                "text-[10px] font-medium transition-all duration-200",
                 tab.isActive ? "text-primary" : ""
               )}>
                 {tab.label}
