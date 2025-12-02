@@ -228,7 +228,7 @@ export const TripChat = ({
     return () => {
       supabase.removeChannel(subscription).catch(error => {
         if (import.meta.env.DEV) {
-          console.error(error);
+          console.warn('[TripChat] Error removing read receipts subscription:', error);
         }
       });
     };

@@ -9,6 +9,7 @@ import { offlineSyncService } from '@/services/offlineSyncService';
 import { saveMessagesToCache, loadMessagesFromCache } from '@/services/chatStorage';
 import { useOfflineStatus } from './useOfflineStatus';
 import { sendChatMessage } from '@/services/chatService';
+import { useSupabaseSubscription } from './useSupabaseSubscription';
 
 interface TripChatMessage {
   id: string;
@@ -91,15 +92,16 @@ export const useTripChat = (tripId: string | undefined) => {
   });
 
   // Enhanced real-time subscription with rate limiting and batching
-  useEffect(() => {
-    if (!tripId) return;
+  // HIGH PRIORITY FIX: Using standardized subscription hook for proper cleanup
+  useSupabaseSubscription(() => {
+    if (!tripId) return null;
 
     let messageCount = 0;
     const maxMessagesPerMinute = 100;
     const rateLimitWindow = 60000; // 1 minute
     let windowStart = Date.now();
 
-    const channel = supabase
+    return supabase
       .channel(`trip_chat_${tripId}`)
       .on(
         'postgres_changes',
@@ -120,7 +122,9 @@ export const useTripChat = (tripId: string | undefined) => {
           
           // Rate limit protection
           if (messageCount >= maxMessagesPerMinute) {
-            console.warn('Message rate limit exceeded, dropping message');
+            if (import.meta.env.DEV) {
+              console.warn('Message rate limit exceeded, dropping message');
+            }
             return;
           }
           
@@ -163,10 +167,6 @@ export const useTripChat = (tripId: string | undefined) => {
         }
       )
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [tripId, queryClient]);
 
   // Process offline queue when connection is restored

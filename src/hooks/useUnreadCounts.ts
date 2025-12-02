@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Message } from '@/services/unifiedMessagingService';
+import { useSupabaseSubscription } from './useSupabaseSubscription';
 
 interface UseUnreadCountsOptions {
   tripId: string;
@@ -78,9 +79,13 @@ export function useUnreadCounts({
     };
 
     calculateUnreadCounts();
+  }, [tripId, userId, messages, enabled]);
 
-    // Subscribe to read status changes
-    const channel = supabase
+  // HIGH PRIORITY FIX: Using standardized subscription hook for proper cleanup
+  useSupabaseSubscription(() => {
+    if (!enabled || !userId || !tripId) return null;
+
+    return supabase
       .channel(`unread_counts:${tripId}:${userId}`)
       .on(
         'postgres_changes' as any,
@@ -92,14 +97,39 @@ export function useUnreadCounts({
         },
         () => {
           // Recalculate when read status changes
+          const calculateUnreadCounts = async () => {
+            try {
+              const messageIds = messages.map(m => m.id);
+              const { data: readStatuses, error } = await supabase
+                .from('message_read_receipts')
+                .select('message_id')
+                .eq('user_id', userId)
+                .in('message_id', messageIds);
+
+              if (error) return;
+
+              const readMessageIds = new Set(
+                ((readStatuses as any[]) || []).map((status: any) => status.message_id)
+              );
+
+              const unreadMessages = messages.filter(msg => 
+                !readMessageIds.has(msg.id) && msg.user_id !== userId
+              );
+
+              setUnreadCount(unreadMessages.length);
+              setBroadcastCount(unreadMessages.filter(
+                msg => msg.privacy_mode === 'broadcast'
+              ).length);
+            } catch (error) {
+              if (import.meta.env.DEV) {
+                console.error('Error recalculating unread counts:', error);
+              }
+            }
+          };
           calculateUnreadCounts();
         }
       )
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [tripId, userId, messages, enabled]);
 
   return { unreadCount, broadcastCount };

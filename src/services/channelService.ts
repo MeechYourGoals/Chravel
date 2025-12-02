@@ -10,6 +10,7 @@ import {
   CreateChannelRequest,
   SendMessageRequest
 } from '../types/roleChannels';
+import { errorHandlingService } from './errorHandlingService';
 
 interface AdminPermissions {
   can_manage_roles: boolean;
@@ -207,7 +208,11 @@ class ChannelService {
           .insert(accessRecords);
 
         if (accessError) {
-          console.error('Error granting role access:', accessError);
+          errorHandlingService.handleError(accessError, {
+            operation: 'createChannelWithRoles',
+            tripId,
+            metadata: { channelName, roleIds }
+          });
           // Don't fail the whole operation, channel is created
         }
       }
@@ -226,7 +231,11 @@ class ChannelService {
         updatedAt: channelData.updated_at
       };
     } catch (error) {
-      console.error('Error creating channel with roles:', error);
+      errorHandlingService.handleError(error, {
+        operation: 'createChannelWithRoles',
+        tripId,
+        metadata: { channelName, roleIds }
+      });
       return null;
     }
   }
@@ -351,7 +360,12 @@ class ChannelService {
 
       return !error;
     } catch (error) {
-      console.error('Error designating admin:', error);
+      errorHandlingService.handleError(error, {
+        operation: 'designateAdmin',
+        tripId,
+        userId,
+        metadata: { permissions }
+      });
       return false;
     }
   }
@@ -367,6 +381,18 @@ class ChannelService {
         throw new Error('Insufficient permissions to revoke admin access');
       }
 
+      // MEDIUM PRIORITY FIX: Prevent admin from demoting themselves if they're the only admin
+      const { count: adminCount, error: countError } = await supabase
+        .from('trip_admins')
+        .select('id', { count: 'exact', head: true })
+        .eq('trip_id', tripId);
+
+      if (countError) throw countError;
+
+      if (adminCount === 1 && userId === user.id) {
+        throw new Error('Cannot revoke yourself as the only admin. Please designate another admin first.');
+      }
+
       const { error } = await supabase
         .from('trip_admins')
         .delete()
@@ -375,7 +401,11 @@ class ChannelService {
 
       return !error;
     } catch (error) {
-      console.error('Error revoking admin:', error);
+      errorHandlingService.handleError(error, {
+        operation: 'revokeAdmin',
+        tripId,
+        userId
+      });
       return false;
     }
   }
@@ -420,7 +450,12 @@ class ChannelService {
 
       return !error;
     } catch (error) {
-      console.error('Error updating admin permissions:', error);
+      errorHandlingService.handleError(error, {
+        operation: 'updateAdminPermissions',
+        tripId,
+        userId,
+        metadata: { permissions }
+      });
       return false;
     }
   }
