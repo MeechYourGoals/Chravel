@@ -139,6 +139,30 @@ class PollStorageService {
     return poll;
   }
 
+  // Remove vote from a poll
+  async removeVote(tripId: string, pollId: string, userId: string = 'demo-user'): Promise<TripPoll | null> {
+    const polls = await this.getPolls(tripId);
+    const pollIndex = polls.findIndex(p => p.id === pollId);
+
+    if (pollIndex === -1) return null;
+
+    const poll = polls[pollIndex];
+
+    // Remove all votes by this user
+    poll.options.forEach(option => {
+      const voterIndex = option.voters.indexOf(userId);
+      if (voterIndex !== -1) {
+        option.voters.splice(voterIndex, 1);
+        option.votes = Math.max(0, option.votes - 1);
+        poll.total_votes = Math.max(0, poll.total_votes - 1);
+      }
+    });
+
+    poll.updated_at = new Date().toISOString();
+    await this.savePolls(tripId, polls);
+    return poll;
+  }
+
   // Close a poll
   async closePoll(tripId: string, pollId: string): Promise<TripPoll | null> {
     const polls = await this.getPolls(tripId);

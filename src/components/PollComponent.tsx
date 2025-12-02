@@ -23,9 +23,11 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
     isLoading,
     createPollAsync,
     votePollAsync,
+    removeVote,
     closePollAsync,
     isCreatingPoll,
     isVoting,
+    isRemovingVote,
     isClosing
   } = useTripPolls(tripId);
 
@@ -85,6 +87,10 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
     } catch (error) {
       console.error('Failed to close poll:', error);
     }
+  };
+
+  const handleRemoveVote = (pollId: string) => {
+    removeVote({ pollId });
   };
 
   const handleExportPoll = (pollId: string) => {
@@ -175,10 +181,12 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
             key={poll.id}
             poll={poll}
             onVote={handleVote}
+            onRemoveVote={handleRemoveVote}
             onClose={handleClosePoll}
             onExport={handleExportPoll}
             disabled={poll.status === 'closed' || !userId}
             isVoting={isVoting}
+            isRemovingVote={isRemovingVote}
             isClosing={isClosing}
           />
         ))
