@@ -1,4 +1,3 @@
-import { supabase } from '@/integrations/supabase/client';
 import { AirlineProgram, HotelProgram, RentalCarProgram } from '../types/pro';
 
 export type LoyaltyProgramType = 'airline' | 'hotel' | 'rental';
@@ -16,27 +15,13 @@ export interface LoyaltyProgram {
   updated_at?: string;
 }
 
+// In-memory storage for loyalty programs (table doesn't exist in Supabase yet)
+const loyaltyProgramsStorage = new Map<string, LoyaltyProgram[]>();
+
 export const loyaltyProgramService = {
   async getUserPrograms(userId: string): Promise<LoyaltyProgram[]> {
-    try {
-      const { data, error } = await supabase
-        .from('user_loyalty_programs')
-        .select('*')
-        .eq('user_id', userId)
-        .order('is_preferred', { ascending: false })
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        // Table might not exist yet - return empty array
-        console.error('Error fetching loyalty programs:', error);
-        return [];
-      }
-      
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching loyalty programs:', error);
-      return [];
-    }
+    // Use in-memory storage since table doesn't exist yet
+    return loyaltyProgramsStorage.get(userId) || [];
   },
 
   async getProgramsByType(userId: string, type: LoyaltyProgramType): Promise<LoyaltyProgram[]> {
@@ -45,61 +30,43 @@ export const loyaltyProgramService = {
   },
 
   async saveProgram(userId: string, program: Omit<LoyaltyProgram, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<LoyaltyProgram | null> {
-    try {
-      const { data, error } = await supabase
-        .from('user_loyalty_programs')
-        .insert({
-          user_id: userId,
-          program_type: program.program_type,
-          company_name: program.company_name,
-          program_name: program.program_name,
-          membership_number: program.membership_number,
-          tier: program.tier,
-          is_preferred: program.is_preferred
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error saving loyalty program:', error);
-      return null;
-    }
+    const newProgram: LoyaltyProgram = {
+      id: `lp-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+      user_id: userId,
+      ...program,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    const userPrograms = loyaltyProgramsStorage.get(userId) || [];
+    userPrograms.push(newProgram);
+    loyaltyProgramsStorage.set(userId, userPrograms);
+    
+    return newProgram;
   },
 
   async updateProgram(programId: string, updates: Partial<LoyaltyProgram>): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('user_loyalty_programs')
-        .update({
-          company_name: updates.company_name,
-          program_name: updates.program_name,
-          membership_number: updates.membership_number,
-          tier: updates.tier,
-          is_preferred: updates.is_preferred
-        })
-        .eq('id', programId);
-
-      return !error;
-    } catch (error) {
-      console.error('Error updating loyalty program:', error);
-      return false;
+    for (const [userId, programs] of loyaltyProgramsStorage.entries()) {
+      const index = programs.findIndex(p => p.id === programId);
+      if (index !== -1) {
+        programs[index] = { ...programs[index], ...updates, updated_at: new Date().toISOString() };
+        loyaltyProgramsStorage.set(userId, programs);
+        return true;
+      }
     }
+    return false;
   },
 
   async deleteProgram(programId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('user_loyalty_programs')
-        .delete()
-        .eq('id', programId);
-
-      return !error;
-    } catch (error) {
-      console.error('Error deleting loyalty program:', error);
-      return false;
+    for (const [userId, programs] of loyaltyProgramsStorage.entries()) {
+      const index = programs.findIndex(p => p.id === programId);
+      if (index !== -1) {
+        programs.splice(index, 1);
+        loyaltyProgramsStorage.set(userId, programs);
+        return true;
+      }
     }
+    return false;
   },
 
   // Helper functions to convert to legacy types

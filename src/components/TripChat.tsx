@@ -128,7 +128,6 @@ export const TripChat = ({
   // Mobile-specific hooks
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const orientation = useOrientation();
   
   // Handle keyboard visibility for better UX
   const { isKeyboardVisible } = useKeyboardHandler({
@@ -139,15 +138,6 @@ export const TripChat = ({
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 300);
     }
-  });
-
-  // Pull to refresh functionality
-  const { isPulling, isRefreshing, pullDistance, shouldTrigger } = usePullToRefresh({
-    onRefresh: async () => {
-      // Refresh messages logic here
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    },
-    threshold: 80
   });
 
   // Swipe gestures for mobile navigation

@@ -57,7 +57,7 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampCle
       const loadingToastId = toast.loading('Finding location...');
       
       // Try to geocode the address to get coordinates
-      const sessionToken = generateSessionToken();
+      const sessionToken = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
       let coordinates: { lat: number; lng: number } | undefined;
       let formattedAddress = trimmedAddress;
       let resolvedName = name.trim() || undefined;

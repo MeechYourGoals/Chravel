@@ -244,7 +244,7 @@ export const MobileEventDetail = () => {
           setShowTripInfo(false);
         }}
         onDescriptionUpdate={setTripDescription}
-        category={eventData.category}
+        category={'category' in eventData ? (eventData as any).category : undefined}
       />
       </div>
     </MobileErrorBoundary>
