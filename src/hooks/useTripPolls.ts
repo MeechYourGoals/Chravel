@@ -230,6 +230,10 @@ export const useTripPolls = (tripId: string) => {
         .single();
 
       if (fetchError) throw fetchError;
+      if (!poll) throw new Error('Poll not found');
+
+      // Handle null version (for polls created before version was added)
+      const currentVersion = poll.version ?? 1;
 
       for (const optionId of optionIdsArray) {
         const { error } = await supabase
@@ -237,10 +241,11 @@ export const useTripPolls = (tripId: string) => {
             p_poll_id: pollId,
             p_option_id: optionId,
             p_user_id: user.id,
-            p_current_version: poll.version
+            p_current_version: currentVersion
           });
 
         if (error) {
+          console.error('Vote error:', error);
           if (error.message?.includes('modified by another user')) {
             toast({
               title: 'Poll Updated',
@@ -249,6 +254,14 @@ export const useTripPolls = (tripId: string) => {
             await queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
             throw error;
           }
+          // Log the full error for debugging
+          console.error('Failed to vote on poll:', {
+            pollId,
+            optionId,
+            userId: user.id,
+            version: currentVersion,
+            error: error.message || error
+          });
           throw error;
         }
       }
