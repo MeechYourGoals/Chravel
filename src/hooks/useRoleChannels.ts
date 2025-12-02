@@ -5,7 +5,14 @@ import { TripChannel, ChannelMessage } from '../types/roleChannels';
 import { useDemoMode } from './useDemoMode';
 import { MockRolesService } from '@/services/mockRolesService';
 
-const DEMO_TRIP_IDS = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026', '13', '14', '15', '16'];
+// All demo trip IDs including Pro and Event trips
+const DEMO_TRIP_IDS = [
+  // Pro trips
+  'lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026',
+  '13', '14', '15', '16',
+  // Consumer demo trips (numeric IDs)
+  '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'
+];
 
 // Convert RoleChannel to TripChannel
 const convertToTripChannel = (channel: RoleChannel): TripChannel => ({
@@ -48,7 +55,7 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
   const loadChannels = useCallback(async () => {
     setIsLoading(true);
 
-    // 🆕 DEMO MODE: Load from mock service
+    // DEMO MODE: Load from mock service
     if (isDemoMode || isDemoTrip) {
       // First try mock service (user-created channels)
       const mockChannels = MockRolesService.getChannelsForTrip(tripId);
@@ -66,14 +73,28 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
       return;
     }
 
-    const channels = await roleChannelService.getRoleChannels(tripId);
+    // AUTHENTICATED MODE: Fetch from database
+    try {
+      const channels = await roleChannelService.getRoleChannels(tripId);
+      
+      // If no channels found, user might not have a role yet - show empty state
+      if (!channels || channels.length === 0) {
+        setAvailableChannels([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Filter to only show channels user can access and convert to TripChannel
+      const accessibleChannels = channels
+        .filter(channel => roleChannelService.canUserAccessChannel(channel, userRole))
+        .map(convertToTripChannel);
+      
+      setAvailableChannels(accessibleChannels);
+    } catch (error) {
+      console.error('Error loading channels:', error);
+      setAvailableChannels([]);
+    }
     
-    // Filter to only show channels user can access and convert to TripChannel
-    const accessibleChannels = channels
-      .filter(channel => roleChannelService.canUserAccessChannel(channel, userRole))
-      .map(convertToTripChannel);
-    
-    setAvailableChannels(accessibleChannels);
     setIsLoading(false);
   }, [tripId, userRole, isDemoMode, isDemoTrip, roles]);
 

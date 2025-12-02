@@ -2930,6 +2930,23 @@ export type Database = {
         Args: { p_trip_id: string; p_user_id: string }
         Returns: boolean
       }
+      get_admin_accessible_channels: {
+        Args: { _trip_id: string; _user_id: string }
+        Returns: {
+          channel_name: string
+          channel_slug: string
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          is_archived: boolean
+          is_private: boolean
+          member_count: number
+          required_role_id: string
+          trip_id: string
+          updated_at: string
+        }[]
+      }
       get_broadcast_read_count: {
         Args: { p_broadcast_id: string }
         Returns: number

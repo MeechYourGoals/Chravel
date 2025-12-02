@@ -307,9 +307,74 @@ class ChannelService {
 
   async getMessages(channelId: string, limit = 50): Promise<ChannelMessage[]> {
     try {
-      const { data } = await supabase.from('channel_messages').select('*').eq('channel_id', channelId).is('deleted_at', null).order('created_at').limit(limit);
-      return (data || []).map(d => ({ id: d.id, channelId: d.channel_id, senderId: d.sender_id, content: d.content, messageType: d.message_type as 'text' | 'file' | 'system', metadata: (d.metadata || {}) as Record<string, any>, createdAt: d.created_at }));
-    } catch { return []; }
+      // Join with profiles to get sender names
+      const { data } = await supabase
+        .from('channel_messages')
+        .select(`
+          *,
+          profiles!channel_messages_sender_id_fkey(display_name, avatar_url)
+        `)
+        .eq('channel_id', channelId)
+        .is('deleted_at', null)
+        .order('created_at')
+        .limit(limit);
+      
+      return (data || []).map(d => {
+        const profile = d.profiles as any;
+        return {
+          id: d.id,
+          channelId: d.channel_id,
+          senderId: d.sender_id,
+          senderName: profile?.display_name || 'Unknown',
+          senderAvatar: profile?.avatar_url,
+          content: d.content,
+          messageType: d.message_type as 'text' | 'file' | 'system',
+          metadata: (d.metadata || {}) as Record<string, any>,
+          createdAt: d.created_at
+        };
+      });
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      return [];
+    }
+  }
+
+  async getAllChannelsForAdmin(tripId: string): Promise<TripChannel[]> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      // Check if user is admin
+      const isAdmin = await this.isAdmin(tripId, user.id);
+      if (!isAdmin) return [];
+
+      const { data } = await supabase
+        .from('trip_channels')
+        .select(`
+          *,
+          trip_roles(role_name)
+        `)
+        .eq('trip_id', tripId)
+        .eq('is_archived', false)
+        .order('created_at');
+
+      return (data || []).map(d => ({
+        id: d.id,
+        tripId: d.trip_id,
+        channelName: d.channel_name,
+        channelSlug: d.channel_slug,
+        description: d.description,
+        requiredRoleId: d.required_role_id,
+        requiredRoleName: (d.trip_roles as any)?.role_name,
+        isPrivate: d.is_private,
+        isArchived: d.is_archived,
+        createdBy: d.created_by,
+        createdAt: d.created_at,
+        updatedAt: d.updated_at
+      }));
+    } catch {
+      return [];
+    }
   }
 
   subscribeToChannel(channelId: string, onMessage: (msg: ChannelMessage) => void): () => void {
