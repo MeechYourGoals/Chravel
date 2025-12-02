@@ -33,36 +33,11 @@ export const MobileTripDetail = () => {
     adjustViewport: true
   });
 
-  // ⚡ OPTIMIZATION: Show loading spinner instantly before data lookup
-  if (demoModeLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Initializing...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Show loading state while fetching trips
-  if (tripsLoading && !isDemoMode) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading trip...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Get trip data - use demo data in demo mode, Supabase trips when authenticated
+  // ✅ CRITICAL FIX: Get trip data BEFORE any early returns (Rules of Hooks)
   const allTrips = isDemoMode ? tripsData : convertSupabaseTripsToMock(userTrips);
   const trip = allTrips.find(t => String(t.id) === tripId);
 
-  // ⚡ PERFORMANCE: Removed console.log from hot path
-  
+  // ✅ CRITICAL FIX: ALL useEffect hooks MUST be called before any early returns
   React.useEffect(() => {
     if (trip && !tripDescription) {
       setTripDescription(trip.description);
@@ -92,7 +67,7 @@ export const MobileTripDetail = () => {
     };
   }, []);
   
-  // ⚡ OPTIMIZATION: Memoize trip data to prevent unnecessary re-creation
+  // ✅ CRITICAL FIX: ALL useMemo hooks MUST be called before any early returns
   const tripWithUpdatedDescription = React.useMemo(() => {
     if (!trip) return null;
     return {
@@ -100,9 +75,39 @@ export const MobileTripDetail = () => {
       description: tripDescription || trip.description
     };
   }, [trip, tripDescription]);
-  
-  // Handle missing trip - check after data loaded
 
+  const mockData = React.useMemo(() => {
+    if (!trip) return null;
+    return generateTripMockData(trip);
+  }, [trip]);
+  
+  const basecamp = mockData?.basecamp;
+
+  // ✅ NOW SAFE: All hooks called unconditionally, early returns come AFTER
+  if (demoModeLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show loading state while fetching trips
+  if (tripsLoading && !isDemoMode) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading trip...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle missing trip - check after data loaded
   if (!tripWithUpdatedDescription) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -123,13 +128,6 @@ export const MobileTripDetail = () => {
     );
   }
 
-  // ⚡ OPTIMIZATION: Memoize expensive mock data generation
-  const mockData = React.useMemo(() => {
-    if (!trip) return null;
-    return generateTripMockData(trip);
-  }, [trip]);
-  
-  const basecamp = mockData?.basecamp;
 
   const handleBack = () => {
     hapticService.light();
