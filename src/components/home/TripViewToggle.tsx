@@ -37,10 +37,10 @@ export const TripViewToggle = ({
           <ToggleGroupItem
             value="myTrips"
             aria-label="My Trips"
-            className="justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center"
+            className="justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center overflow-hidden text-ellipsis min-w-0"
           >
-            <span className="inline md:hidden">Trips</span>
-            <span className="hidden md:inline">My Trips</span>
+            <span className="inline md:hidden truncate">Trips</span>
+            <span className="hidden md:inline truncate">My Trips</span>
           </ToggleGroupItem>
           <ToggleGroupItem
             value="tripsPro"
