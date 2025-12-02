@@ -306,8 +306,32 @@ const Index = () => {
               </div>
             )}
 
-            <div className="max-w-[1500px] mx-auto">
-              <div className="w-full flex flex-col md:flex-row gap-4 md:gap-6 items-start animate-fade-in">
+          <div className="max-w-[1500px] mx-auto">
+            {/* Mobile: Two Clean Nav Rows */}
+            {isMobile && (
+              <div className="w-full space-y-3 mb-6">
+                <TripViewToggle 
+                  viewMode={viewMode} 
+                  onViewModeChange={handleViewModeChange}
+                  showRecsTab={true}
+                  recsTabDisabled={true}
+                  className="w-full h-16"
+                />
+                <TripActionBar
+                  onSettings={() => setIsMobileSettingsOpen(true)}
+                  onCreateTrip={handleCreateTrip}
+                  onSearch={() => setIsSearchOpen(true)}
+                  onNotifications={() => {}}
+                  isNotificationsOpen={isNotificationsOpen}
+                  setIsNotificationsOpen={setIsNotificationsOpen}
+                  className="w-full h-16"
+                />
+              </div>
+            )}
+
+            {/* Desktop: Side-by-Side Bars */}
+            {!isMobile && (
+              <div className="w-full flex flex-row gap-4 md:gap-6 items-start animate-fade-in">
                 <TripViewToggle 
                   viewMode={viewMode} 
                   onViewModeChange={handleViewModeChange}
@@ -325,6 +349,7 @@ const Index = () => {
                   className="flex-1"
                 />
               </div>
+            )}
 
               {!isMobile && (
                 <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
@@ -417,6 +442,15 @@ const Index = () => {
             isOpen={showProfileSetup} 
             onComplete={() => setShowProfileSetup(false)} 
           />
+
+          <MobileSettingsSheet
+            isOpen={isMobileSettingsOpen}
+            onClose={() => setIsMobileSettingsOpen(false)}
+            onOpenFullSettings={() => {
+              setIsMobileSettingsOpen(false);
+              setIsSettingsOpen(true);
+            }}
+          />
         </div>
       );
     }
@@ -446,25 +480,49 @@ const Index = () => {
           )}
 
           <div className="max-w-[1500px] mx-auto">
-                {/* Side by Side: Toggle (left) + Action Bar (right) */}
-                <div className="w-full flex flex-col md:flex-row gap-4 md:gap-6 items-start animate-fade-in">
-                  <TripViewToggle 
-                    viewMode={viewMode} 
-                    onViewModeChange={handleViewModeChange}
-                    showRecsTab={true}
-                    recsTabDisabled={!isDemoMode}
-                    className="flex-1"
-                  />
-                  <TripActionBar
-                    onSettings={() => setIsSettingsOpen(true)}
-                    onCreateTrip={handleCreateTrip}
-                    onSearch={() => setIsSearchOpen(true)}
-                    onNotifications={() => {}}
-                    isNotificationsOpen={isNotificationsOpen}
-                    setIsNotificationsOpen={setIsNotificationsOpen}
-                    className="flex-1"
-                  />
-                </div>
+                {/* Mobile: Two Clean Nav Rows */}
+                {isMobile && (
+                  <div className="w-full space-y-3 mb-6">
+                    <TripViewToggle 
+                      viewMode={viewMode} 
+                      onViewModeChange={handleViewModeChange}
+                      showRecsTab={true}
+                      recsTabDisabled={!isDemoMode}
+                      className="w-full h-16"
+                    />
+                    <TripActionBar
+                      onSettings={() => setIsMobileSettingsOpen(true)}
+                      onCreateTrip={handleCreateTrip}
+                      onSearch={() => setIsSearchOpen(true)}
+                      onNotifications={() => {}}
+                      isNotificationsOpen={isNotificationsOpen}
+                      setIsNotificationsOpen={setIsNotificationsOpen}
+                      className="w-full h-16"
+                    />
+                  </div>
+                )}
+
+                {/* Desktop: Side-by-Side Bars */}
+                {!isMobile && (
+                  <div className="w-full flex flex-row gap-4 md:gap-6 items-start animate-fade-in">
+                    <TripViewToggle 
+                      viewMode={viewMode} 
+                      onViewModeChange={handleViewModeChange}
+                      showRecsTab={true}
+                      recsTabDisabled={!isDemoMode}
+                      className="flex-1"
+                    />
+                    <TripActionBar
+                      onSettings={() => setIsSettingsOpen(true)}
+                      onCreateTrip={handleCreateTrip}
+                      onSearch={() => setIsSearchOpen(true)}
+                      onNotifications={() => {}}
+                      isNotificationsOpen={isNotificationsOpen}
+                      setIsNotificationsOpen={setIsNotificationsOpen}
+                      className="flex-1"
+                    />
+                  </div>
+                )}
 
                 {!isMobile && (
                   <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
@@ -564,6 +622,15 @@ const Index = () => {
           <ProfileSetupModal 
             isOpen={showProfileSetup} 
             onComplete={() => setShowProfileSetup(false)} 
+          />
+
+          <MobileSettingsSheet
+            isOpen={isMobileSettingsOpen}
+            onClose={() => setIsMobileSettingsOpen(false)}
+            onOpenFullSettings={() => {
+              setIsMobileSettingsOpen(false);
+              setIsSettingsOpen(true);
+            }}
           />
         </div>
       );
