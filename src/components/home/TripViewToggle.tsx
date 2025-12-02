@@ -10,6 +10,8 @@ interface TripViewToggleProps {
   showRecsTab?: boolean;
   recsTabDisabled?: boolean;
   className?: string;
+  requireAuth?: boolean;
+  onAuthRequired?: () => void;
 }
 
 export const TripViewToggle = ({ 
@@ -17,7 +19,9 @@ export const TripViewToggle = ({
   onViewModeChange, 
   showRecsTab = false,
   recsTabDisabled = false,
-  className
+  className,
+  requireAuth = false,
+  onAuthRequired
 }: TripViewToggleProps) => {
   const isMobile = useIsMobile();
 
@@ -29,6 +33,11 @@ export const TripViewToggle = ({
           value={viewMode}
           onValueChange={(value) => {
             if (value) {
+              // If auth is required for protected tabs, trigger auth modal
+              if (requireAuth && ['myTrips', 'tripsPro', 'events'].includes(value)) {
+                onAuthRequired?.();
+                return;
+              }
               onViewModeChange(value);
             }
           }}

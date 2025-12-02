@@ -315,6 +315,8 @@ const Index = () => {
                 showRecsTab={true}
                 recsTabDisabled={true}
                 className="w-full md:flex-1 h-16"
+                requireAuth={true}
+                onAuthRequired={() => setIsAuthModalOpen(true)}
               />
               <TripActionBar
                 onSettings={() => isMobile ? setIsMobileSettingsOpen(true) : setIsSettingsOpen(true)}
@@ -324,6 +326,8 @@ const Index = () => {
                 isNotificationsOpen={isNotificationsOpen}
                 setIsNotificationsOpen={setIsNotificationsOpen}
                 className="w-full md:flex-1 h-16"
+                requireAuth={true}
+                onAuthRequired={() => setIsAuthModalOpen(true)}
               />
             </div>
 

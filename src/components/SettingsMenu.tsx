@@ -15,6 +15,8 @@ import { useTripVariant } from '../contexts/TripVariantContext';
 import { NotificationsSection } from './settings/NotificationsSection';
 import { SubscriptionSection } from './settings/SubscriptionSection';
 import { AuthModal } from './AuthModal';
+import { useDemoMode } from '../hooks/useDemoMode';
+import { createMockDemoUser } from '../utils/authGate';
 
 interface SettingsMenuProps {
   isOpen: boolean;
@@ -32,14 +34,17 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
   const [activeSection, setActiveSection] = useState('profile');
   const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events'>(initialSettingsType || 'consumer');
   const { accentColors } = useTripVariant();
+  const { demoView } = useDemoMode();
 
-  // Use real user only - no mock user
-  const currentUser = user;
+  // In app-preview mode, use mock user if not logged in (full demo access)
+  // In marketing mode or off, require real user
+  const isAppPreview = demoView === 'app-preview';
+  const currentUser = user || (isAppPreview ? createMockDemoUser() : null);
 
   if (!isOpen) return null;
 
-  // If no user, show login-first view (for all devices)
-  if (!user) {
+  // Show login prompt only when NOT in app-preview mode and no real user
+  if (!currentUser) {
     return (
       <>
         <div className={`fixed inset-0 z-50 ${isMobile ? 'bg-black' : 'bg-black/80 backdrop-blur-sm flex items-center justify-center p-4'}`} onClick={!isMobile ? onClose : undefined}>
