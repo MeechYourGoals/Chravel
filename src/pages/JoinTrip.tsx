@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'sonner';
-import { Loader2, Users, MapPin, Calendar, Clock } from 'lucide-react';
+import { Loader2, Users, MapPin, Calendar, Clock, Image } from 'lucide-react';
 
 interface InviteData {
   trip_id: string;
@@ -20,6 +20,16 @@ interface InviteData {
   updated_at?: string;
 }
 
+interface TripDetails {
+  name: string;
+  destination?: string;
+  start_date?: string;
+  end_date?: string;
+  cover_image_url?: string;
+  trip_type?: string;
+  member_count?: number;
+}
+
 const JoinTrip = () => {
   const { token } = useParams<{ token?: string }>();
   const navigate = useNavigate();
@@ -27,15 +37,17 @@ const JoinTrip = () => {
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [inviteData, setInviteData] = useState<InviteData | null>(null);
+  const [tripDetails, setTripDetails] = useState<TripDetails | null>(null);
   const [error, setError] = useState<string>('');
-  const [isMockInvite, setIsMockInvite] = useState(false);
 
   // Set document head for rich link previews
   useEffect(() => {
-    // Update page title and meta tags for social sharing
-    document.title = 'Join Trip - Chravel';
+    const tripName = tripDetails?.name || 'an Amazing Trip';
+    const destination = tripDetails?.destination || 'an exciting destination';
+    const imageUrl = tripDetails?.cover_image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop';
     
-    // Add Open Graph meta tags
+    document.title = `Join ${tripName} - Chravel`;
+    
     const updateMetaTag = (property: string, content: string) => {
       let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
       if (!meta) {
@@ -56,19 +68,18 @@ const JoinTrip = () => {
       meta.content = content;
     };
 
-    updateMetaTag('og:title', 'Join an Amazing Trip!');
-    updateMetaTag('og:description', 'You\'ve been invited to join a trip. Click to see details and join the adventure!');
+    updateMetaTag('og:title', `Join ${tripName}!`);
+    updateMetaTag('og:description', `You've been invited to join a trip to ${destination}. Click to see details and join the adventure!`);
     updateMetaTag('og:type', 'website');
-    updateMetaTag('og:image', 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop');
+    updateMetaTag('og:image', imageUrl);
     updateMetaName('twitter:card', 'summary_large_image');
-    updateMetaName('twitter:title', 'Join an Amazing Trip!');
-    updateMetaName('twitter:description', 'You\'ve been invited to join a trip. Click to see details and join the adventure!');
-    updateMetaName('twitter:image', 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop');
-  }, []);
+    updateMetaName('twitter:title', `Join ${tripName}!`);
+    updateMetaName('twitter:description', `You've been invited to join a trip to ${destination}. Click to see details!`);
+    updateMetaName('twitter:image', imageUrl);
+  }, [tripDetails]);
 
   useEffect(() => {
     if (token) {
-      // Check if this is coming from our universal link
       checkDeepLinkAndFetchInvite();
     } else {
       setError('Invalid invite link');
@@ -79,24 +90,18 @@ const JoinTrip = () => {
   const checkDeepLinkAndFetchInvite = async () => {
     if (!token) return;
 
-    // Try to open the app via deep link first
     const deepLinkUrl = `chravel://join-trip/${token}`;
     
-    // Check if we're on mobile and try to open the app
     if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-      // Attempt to open the app
       const startTime = Date.now();
       window.location.href = deepLinkUrl;
       
-      // If user comes back to browser after a short time, app probably isn't installed
       setTimeout(() => {
         if (Date.now() - startTime < 2000) {
-          // App likely not installed, continue with web flow
           fetchInviteData();
         }
       }, 1500);
     } else {
-      // Desktop or app not available, proceed with web flow
       fetchInviteData();
     }
   };
@@ -105,21 +110,21 @@ const JoinTrip = () => {
     if (!token) return;
 
     try {
-      // Fetch real invite data from database
-      const { data: invite, error } = await supabase
+      // Fetch invite data
+      const { data: invite, error: inviteError } = await supabase
         .from('trip_invites')
         .select('*')
         .eq('code', token)
         .single();
 
-      if (error || !invite) {
-        console.error('Error fetching invite:', error);
+      if (inviteError || !invite) {
+        console.error('Error fetching invite:', inviteError);
         setError('Invalid invite link');
         setLoading(false);
         return;
       }
 
-      // Check if invite is still valid
+      // Validate invite
       if (!invite.is_active) {
         setError('This invite link has been deactivated');
         setLoading(false);
@@ -138,12 +143,11 @@ const JoinTrip = () => {
         return;
       }
 
-      setIsMockInvite(false);
       setInviteData({
         trip_id: invite.trip_id,
         invite_token: token,
         created_at: invite.created_at,
-        require_approval: false, // Not implemented yet
+        require_approval: false,
         expires_at: invite.expires_at,
         max_uses: invite.max_uses,
         current_uses: invite.current_uses,
@@ -152,8 +156,33 @@ const JoinTrip = () => {
         id: invite.id,
         created_by: invite.created_by
       });
-      setLoading(false);
 
+      // Fetch trip details
+      const { data: trip, error: tripError } = await supabase
+        .from('trips')
+        .select('name, destination, start_date, end_date, cover_image_url, trip_type')
+        .eq('id', invite.trip_id)
+        .single();
+
+      if (!tripError && trip) {
+        // Get member count
+        const { count } = await supabase
+          .from('trip_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('trip_id', invite.trip_id);
+
+        setTripDetails({
+          name: trip.name,
+          destination: trip.destination,
+          start_date: trip.start_date,
+          end_date: trip.end_date,
+          cover_image_url: trip.cover_image_url,
+          trip_type: trip.trip_type,
+          member_count: count || 0
+        });
+      }
+
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching invite data:', error);
       setError('Failed to load invite details');
@@ -171,7 +200,6 @@ const JoinTrip = () => {
 
     setJoining(true);
     try {
-      // Call the join-trip edge function
       const { data, error } = await supabase.functions.invoke('join-trip', {
         body: { inviteCode: token }
       });
@@ -189,19 +217,15 @@ const JoinTrip = () => {
         return;
       }
 
-      // Check if approval is required
       if (data.requires_approval) {
         toast.success(data.message || 'Join request submitted!');
         setJoining(false);
-        // Don't redirect - show pending approval message
         setInviteData(prev => prev ? { ...prev, require_approval: true } as any : null);
         return;
       }
 
-      // Success! Show message and redirect to trip
       toast.success(data.message || 'Successfully joined the trip!');
       
-      // Redirect based on trip type
       setTimeout(() => {
         if (data.trip_type === 'pro') {
           navigate(`/tour/pro/${data.trip_id}`);
@@ -220,12 +244,25 @@ const JoinTrip = () => {
     }
   };
 
+  const formatDateRange = () => {
+    if (!tripDetails?.start_date) return null;
+    const start = new Date(tripDetails.start_date);
+    const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    
+    if (tripDetails.end_date) {
+      const end = new Date(tripDetails.end_date);
+      const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return `${startStr} - ${endStr}`;
+    }
+    return startStr;
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-white mx-auto mb-4" />
-          <p className="text-gray-400">Loading invite details...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading invite details...</p>
         </div>
       </div>
     );
@@ -233,13 +270,13 @@ const JoinTrip = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center max-w-md">
-          <h1 className="text-2xl font-bold text-white mb-4">Invalid Invite</h1>
-          <p className="text-gray-400 mb-6">{error}</p>
+          <h1 className="text-2xl font-bold text-foreground mb-4">Invalid Invite</h1>
+          <p className="text-muted-foreground mb-6">{error}</p>
           <button
             onClick={() => navigate('/')}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-colors"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-colors"
           >
             Go to Dashboard
           </button>
@@ -248,103 +285,122 @@ const JoinTrip = () => {
     );
   }
 
+  const coverImage = tripDetails?.cover_image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=400&fit=crop';
+
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-8 max-w-md w-full">
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Users className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-2">You're Invited!</h1>
-          <p className="text-gray-400">Join this amazing trip with your friends</p>
-        </div>
-
-        {/* Enhanced Trip Preview Card */}
-        <div className="bg-gradient-to-br from-yellow-600/20 via-yellow-500/10 to-transparent border border-yellow-500/20 rounded-2xl p-4 mb-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop')] bg-cover bg-center opacity-10 rounded-2xl"></div>
-          <div className="relative z-10">
-            <h3 className="text-lg font-semibold text-white mb-3">
-              Trip Invitation
-            </h3>
-            <div className="space-y-2 text-sm text-gray-300">
-              <div className="flex items-center gap-2">
-                <MapPin size={16} className="text-yellow-400" />
-                <span>Trip ID: {inviteData?.trip_id}</span>
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="bg-card/50 backdrop-blur-md border border-border rounded-3xl overflow-hidden max-w-md w-full">
+        {/* Cover Image */}
+        <div className="relative h-48 overflow-hidden">
+          <img 
+            src={coverImage} 
+            alt={tripDetails?.name || 'Trip'} 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
+          <div className="absolute bottom-4 left-4 right-4">
+            <h1 className="text-2xl font-bold text-foreground">
+              {tripDetails?.name || 'Trip Invitation'}
+            </h1>
+            {tripDetails?.destination && (
+              <div className="flex items-center gap-1 text-muted-foreground mt-1">
+                <MapPin size={14} />
+                <span className="text-sm">{tripDetails.destination}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Calendar size={16} className="text-yellow-400" />
-                <span>Invited {inviteData?.created_at ? new Date(inviteData.created_at).toLocaleDateString() : 'Recently'}</span>
-              </div>
-              {inviteData?.expires_at && (
-                <div className="flex items-center gap-2">
-                  <Calendar size={16} className="text-yellow-400" />
-                  <span>Expires: {new Date(inviteData.expires_at).toLocaleDateString()}</span>
-                </div>
-              )}
-              {inviteData?.max_uses && (
-                <div className="flex items-center gap-2 text-gray-400 text-xs">
-                  <span>Uses: {inviteData.current_uses || 0} / {inviteData.max_uses}</span>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </div>
 
-        {!user ? (
-          <div className="space-y-4">
-            <p className="text-gray-300 text-center">Please log in to join this trip</p>
-            <div className="space-y-3">
-              <button
-                onClick={() => navigate('/login')}
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white py-3 px-6 rounded-xl transition-all duration-200 font-medium"
-              >
-                Log In
-              </button>
-              <button
-                onClick={() => navigate('/signup')}
-                className="w-full bg-white/10 hover:bg-white/20 border border-white/20 text-white py-3 px-6 rounded-xl transition-colors"
-              >
-                Sign Up
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <button
-              onClick={handleJoinTrip}
-              disabled={joining}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white py-4 px-6 rounded-xl transition-all duration-200 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {joining ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Joining...
-                </>
-              ) : (
-                'Join Trip'
-              )}
-            </button>
+        <div className="p-6">
+          {/* Trip Info */}
+          <div className="bg-muted/30 border border-border rounded-xl p-4 mb-6 space-y-3">
+            {formatDateRange() && (
+              <div className="flex items-center gap-3 text-sm">
+                <Calendar size={16} className="text-primary" />
+                <span className="text-foreground">{formatDateRange()}</span>
+              </div>
+            )}
             
-            <button
-              onClick={() => navigate('/')}
-              className="w-full bg-white/10 hover:bg-white/20 border border-white/20 text-white py-3 px-6 rounded-xl transition-colors"
-            >
-              Go to Dashboard
-            </button>
-          </div>
-        )}
+            {tripDetails?.member_count !== undefined && (
+              <div className="flex items-center gap-3 text-sm">
+                <Users size={16} className="text-primary" />
+                <span className="text-foreground">
+                  {tripDetails.member_count} {tripDetails.member_count === 1 ? 'member' : 'members'}
+                </span>
+              </div>
+            )}
 
-        {inviteData?.require_approval && !joining && (
-          <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="h-5 w-5 text-yellow-400" />
-              <p className="font-medium text-yellow-400">Approval Required</p>
-            </div>
-            <p className="text-yellow-400/80 text-sm">
-              This trip requires approval from the organizer. Your request will be reviewed once submitted.
-            </p>
+            {tripDetails?.trip_type && tripDetails.trip_type !== 'standard' && (
+              <div className="inline-flex px-2 py-1 bg-primary/20 text-primary text-xs font-medium rounded-full">
+                {tripDetails.trip_type === 'pro' ? 'Pro Trip' : 'Event'}
+              </div>
+            )}
+
+            {inviteData?.expires_at && (
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <Clock size={14} />
+                <span>Invite expires: {new Date(inviteData.expires_at).toLocaleDateString()}</span>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Actions */}
+          {!user ? (
+            <div className="space-y-4">
+              <p className="text-muted-foreground text-center text-sm">Please log in to join this trip</p>
+              <div className="space-y-3">
+                <button
+                  onClick={() => navigate('/login')}
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 px-6 rounded-xl transition-all duration-200 font-medium"
+                >
+                  Log In
+                </button>
+                <button
+                  onClick={() => navigate('/signup')}
+                  className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground py-3 px-6 rounded-xl transition-colors"
+                >
+                  Sign Up
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <button
+                onClick={handleJoinTrip}
+                disabled={joining}
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-4 px-6 rounded-xl transition-all duration-200 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {joining ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Joining...
+                  </>
+                ) : (
+                  'Join Trip'
+                )}
+              </button>
+              
+              <button
+                onClick={() => navigate('/')}
+                className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground py-3 px-6 rounded-xl transition-colors"
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          )}
+
+          {inviteData?.require_approval && !joining && (
+            <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="h-5 w-5 text-yellow-400" />
+                <p className="font-medium text-yellow-400">Approval Required</p>
+              </div>
+              <p className="text-yellow-400/80 text-sm">
+                This trip requires approval from the organizer. Your request will be reviewed once submitted.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
