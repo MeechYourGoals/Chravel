@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, MapPin, Users, Plus, Settings, Edit, FileDown, Camera } from 'lucide-react';
 import { InviteModal } from './InviteModal';
 import { EditableDescription } from './EditableDescription';
@@ -11,6 +11,8 @@ import { CollaboratorsGrid } from './trip/CollaboratorsGrid';
 import { CollaboratorsModal } from './trip/CollaboratorsModal';
 import { EditTripModal } from './EditTripModal';
 import { cn } from '@/lib/utils';
+import { useTripMembers } from '../hooks/useTripMembers';
+import { useAuth } from '../hooks/useAuth';
 
 
 interface TripHeaderProps {
@@ -50,6 +52,19 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
     trip.id.toString(), 
     trip.coverPhoto
   );
+  const { user } = useAuth();
+  const { tripCreatorId, canRemoveMembers, removeMember } = useTripMembers(trip.id.toString());
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Check if current user can remove members
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const canRemove = await canRemoveMembers();
+      setIsAdmin(canRemove);
+    };
+    checkAdmin();
+  }, [canRemoveMembers]);
+  
   const isPro = variant === 'pro';
   // Export is now available to everyone
   const canExport = true;
@@ -370,6 +385,10 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
         onOpenChange={setShowAllCollaborators}
         participants={trip.participants}
         tripType={trip.trip_type || 'consumer'}
+        currentUserId={user?.id}
+        tripCreatorId={tripCreatorId}
+        isAdmin={isAdmin}
+        onRemoveMember={removeMember}
       />
 
       <EditTripModal
