@@ -1,26 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { Poll as PollType } from './types';
 import { PollOption } from './PollOption';
-import { Clock, Download, X } from 'lucide-react';
+import { Clock, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useAuth } from '@/hooks/useAuth';
 
 interface PollProps {
   poll: PollType;
   onVote: (pollId: string, optionIds: string | string[]) => void;
+  onRemoveVote?: (pollId: string) => void;
   onClose?: (pollId: string) => void;
   onExport?: (pollId: string) => void;
   disabled?: boolean;
   isVoting?: boolean;
   isClosing?: boolean;
+  isRemovingVote?: boolean;
 }
 
-export const Poll = ({ poll, onVote, onClose, onExport, disabled = false, isVoting = false, isClosing = false }: PollProps) => {
+export const Poll = ({ 
+  poll, 
+  onVote, 
+  onRemoveVote,
+  onClose, 
+  onExport, 
+  disabled = false, 
+  isVoting = false, 
+  isClosing = false,
+  isRemovingVote = false
+}: PollProps) => {
   const { user } = useAuth();
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
 
-  // Calculate time remaining for deadline
   useEffect(() => {
     if (!poll.deadline_at || poll.status === 'closed') return;
 
@@ -48,12 +59,11 @@ export const Poll = ({ poll, onVote, onClose, onExport, disabled = false, isVoti
     };
 
     updateCountdown();
-    const interval = setInterval(updateCountdown, 60000); // Update every minute
+    const interval = setInterval(updateCountdown, 60000);
 
     return () => clearInterval(interval);
   }, [poll.deadline_at, poll.status]);
 
-  // Check if voting is allowed
   const isDeadlinePassed = poll.deadline_at ? new Date(poll.deadline_at) < new Date() : false;
   const canVote = !disabled && !isVoting && poll.status === 'active' && !isDeadlinePassed;
   const hasVoted = poll.allow_multiple 
@@ -66,7 +76,6 @@ export const Poll = ({ poll, onVote, onClose, onExport, disabled = false, isVoti
     if (!canVote && !canChangeVote) return;
 
     if (poll.allow_multiple) {
-      // Multiple choice: toggle selection
       setSelectedOptions(prev => {
         const newSelection = prev.includes(optionId)
           ? prev.filter(id => id !== optionId)
@@ -74,7 +83,6 @@ export const Poll = ({ poll, onVote, onClose, onExport, disabled = false, isVoti
         return newSelection;
       });
     } else {
-      // Single choice: immediate vote
       onVote(poll.id, optionId);
     }
   };
@@ -85,58 +93,35 @@ export const Poll = ({ poll, onVote, onClose, onExport, disabled = false, isVoti
     }
   };
 
+  const handleRemoveVote = () => {
+    if (onRemoveVote) {
+      onRemoveVote(poll.id);
+    }
+  };
+
   const handleClose = () => {
     if (onClose && isCreator) {
       onClose(poll.id);
     }
   };
 
-  const handleExport = () => {
-    if (onExport) {
-      onExport(poll.id);
-    }
-  };
-
   return (
-    <div className="bg-glass-slate-card border border-glass-slate-border rounded-xl p-3 shadow-enterprise-lg">
-      {/* Header with question and status */}
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <h3 className="text-base font-semibold text-white flex-1">{poll.question}</h3>
-        <div className="flex items-center gap-2">
-          {poll.status === 'closed' && (
-            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
-              Closed
-            </span>
-          )}
-          {isDeadlinePassed && poll.status === 'active' && (
-            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
-              Expired
-            </span>
-          )}
-        </div>
+    <div className="space-y-3">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-base font-semibold text-white">{poll.question}</h3>
+        {poll.status === 'closed' && (
+          <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">
+            Closed
+          </span>
+        )}
       </div>
 
-      {/* Deadline countdown */}
+      {/* Deadline */}
       {poll.deadline_at && poll.status === 'active' && !isDeadlinePassed && (
-        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Clock size={12} />
           <span>{timeRemaining}</span>
-        </div>
-      )}
-
-      {/* Poll type indicators */}
-      {(poll.allow_multiple || poll.is_anonymous) && (
-        <div className="flex items-center gap-2 mb-2">
-          {poll.allow_multiple && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              Multiple Choice
-            </span>
-          )}
-          {poll.is_anonymous && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
-              Anonymous
-            </span>
-          )}
         </div>
       )}
 
@@ -152,7 +137,6 @@ export const Poll = ({ poll, onVote, onClose, onExport, disabled = false, isVoti
             onVote={handleVote}
             disabled={!canVote && !canChangeVote}
             isMultiple={poll.allow_multiple}
-            isAnonymous={poll.is_anonymous}
           />
         ))}
       </div>
@@ -162,35 +146,30 @@ export const Poll = ({ poll, onVote, onClose, onExport, disabled = false, isVoti
         <Button
           onClick={handleSubmitMultiple}
           disabled={selectedOptions.length === 0 || isVoting}
-          className="w-full mt-3 h-9 rounded-lg bg-gradient-to-r from-glass-enterprise-blue to-glass-enterprise-blue-light hover:from-glass-enterprise-blue-light hover:to-glass-enterprise-blue font-semibold shadow-enterprise border border-glass-enterprise-blue/50 text-white text-sm"
+          className="w-full h-9 rounded-lg bg-primary hover:bg-primary/90 font-medium text-primary-foreground text-sm"
         >
           {isVoting ? 'Submitting...' : `Submit ${selectedOptions.length} Vote${selectedOptions.length !== 1 ? 's' : ''}`}
         </Button>
       )}
 
-      {/* Vote change hint */}
-      {hasVoted && canChangeVote && (
-        <p className="text-xs text-gray-400 mt-2 text-center">
-          Click {poll.allow_multiple ? 'options' : 'another option'} to change your vote
-        </p>
-      )}
-
-      {/* Footer with vote count and actions */}
-      <div className="flex items-center justify-between mt-3 pt-2 border-t border-glass-slate-border">
-        <p className="text-xs text-gray-400">
-          {poll.totalVotes} total vote{poll.totalVotes !== 1 ? 's' : ''}
+      {/* Footer with actions */}
+      <div className="flex items-center justify-between pt-1">
+        <p className="text-xs text-muted-foreground">
+          {poll.totalVotes} vote{poll.totalVotes !== 1 ? 's' : ''}
         </p>
         
-        <div className="flex items-center gap-1">
-          {/* Export button */}
-          {onExport && hasVoted && (
+        <div className="flex items-center gap-2">
+          {/* Remove vote button */}
+          {hasVoted && poll.allow_vote_change && onRemoveVote && (
             <Button
-              onClick={handleExport}
+              onClick={handleRemoveVote}
+              disabled={isRemovingVote}
               variant="ghost"
               size="sm"
-              className="h-7 px-2 text-xs text-gray-400 hover:text-white"
+              className="h-7 px-2 text-xs text-muted-foreground hover:text-white"
             >
-              <Download size={14} />
+              <Trash2 size={12} className="mr-1" />
+              {isRemovingVote ? 'Removing...' : 'Remove Vote'}
             </Button>
           )}
           
@@ -201,14 +180,9 @@ export const Poll = ({ poll, onVote, onClose, onExport, disabled = false, isVoti
               disabled={isClosing}
               variant="ghost"
               size="sm"
-              className="h-7 px-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
+              className="h-7 px-2 text-xs text-destructive hover:text-destructive/80"
             >
-              {isClosing ? 'Closing...' : (
-                <>
-                  <X size={14} className="mr-1" />
-                  Close Poll
-                </>
-              )}
+              {isClosing ? 'Closing...' : 'Close Poll'}
             </Button>
           )}
         </div>
