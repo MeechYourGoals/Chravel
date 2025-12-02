@@ -45,6 +45,20 @@ serve(async (req) => {
     const user = userData.user;
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // TEST ACCOUNT BYPASS: Grant full subscription privileges for development testing
+    const TEST_ACCOUNTS = ['ccamechi@gmail.com'];
+    if (user.email && TEST_ACCOUNTS.includes(user.email.toLowerCase())) {
+      logStep("Test account detected - granting full subscription privileges", { email: user.email });
+      return createSecureResponse({
+        subscribed: true,
+        product_id: 'test-account-full-access',
+        tier: 'frequent-chraveler',
+        subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
+        is_test_account: true,
+        permissions: ['read', 'write', 'admin', 'finance', 'medical', 'compliance']
+      });
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     

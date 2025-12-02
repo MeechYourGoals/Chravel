@@ -19,6 +19,7 @@ import { ProTripCategory } from '../../types/proCategories';
 import { isReadOnlyTab, hasTabAccess } from './ProTabsConfig';
 import { useAuth } from '../../hooks/useAuth';
 import { useDemoMode } from '../../hooks/useDemoMode';
+import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
 
 interface ProTabContentProps {
   activeTab: string;
@@ -45,6 +46,7 @@ export const ProTabContent = ({
 }: ProTabContentProps) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
+  const { permissions: subscriptionPermissions } = useConsumerSubscription();
   
   const userRole = user?.proRole || 'staff';
   const userPermissions = user?.permissions || ['read'];
@@ -62,7 +64,7 @@ export const ProTabContent = ({
     );
   }
 
-  const isReadOnly = isReadOnlyTab(activeTab, userRole, userPermissions, isDemoMode);
+  const isReadOnly = isReadOnlyTab(activeTab, userRole, userPermissions, isDemoMode, subscriptionPermissions);
 
   const renderTabContent = () => {
     switch (activeTab) {

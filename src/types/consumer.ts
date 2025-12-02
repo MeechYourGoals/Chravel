@@ -8,6 +8,8 @@ export interface ConsumerSubscription {
   stripeSubscriptionId?: string;
   storageUsedMB?: number;
   storageQuotaMB?: number;
+  permissions?: string[];
+  isTestAccount?: boolean;
 }
 
 export interface StorageQuota {
