@@ -26,24 +26,27 @@ export const STRIPE_PRODUCTS = {
     name: 'Consumer Plus (Legacy)',
     price: 9.99,
   },
-  // Pro Plans - Monthly subscriptions for organizations
+  // Pro Plans - NEW PRICING (December 2024)
   'pro-starter': {
-    product_id: 'prod_TUSZ3TL7cgQGSs',
-    price_id: 'price_1SXTeg02kHnoJKm0lCAhIoyY',
+    product_id: 'prod_TX9iM9JRPyeuQD',
+    price_id: 'price_1Sa5P202kHnoJKm0xF6yaIva',
     name: 'Pro Starter',
     price: 49,
+    member_limit: 50,
   },
   'pro-growing': {
-    product_id: 'prod_TUSZycyjRavQuH',
-    price_id: 'price_1SXTeh02kHnoJKm0M4hHcpls',
-    name: 'Pro Growing',
-    price: 199,
+    product_id: 'prod_TX9ipGhU3RdKF8',
+    price_id: 'price_1Sa5P402kHnoJKm03NTbRDYr',
+    name: 'Pro Growth',
+    price: 99,
+    member_limit: 100,
   },
   'pro-enterprise': {
-    product_id: 'prod_TUSZvoEV9haJpI',
-    price_id: 'price_1SXTei02kHnoJKm0KVmUbpkx',
+    product_id: 'prod_TX9iwkqlB0oOy2',
+    price_id: 'price_1Sa5P502kHnoJKm07b3ZACeF',
     name: 'Pro Enterprise',
-    price: 499,
+    price: 199,
+    member_limit: 250,
   },
 } as const;
 

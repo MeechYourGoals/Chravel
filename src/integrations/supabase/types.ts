@@ -1287,6 +1287,10 @@ export type Database = {
           display_name: string | null
           email: string | null
           first_name: string | null
+          free_event_limit: number | null
+          free_events_used: number | null
+          free_pro_trip_limit: number | null
+          free_pro_trips_used: number | null
           id: string
           last_name: string | null
           notification_settings: Json | null
@@ -1311,6 +1315,10 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           first_name?: string | null
+          free_event_limit?: number | null
+          free_events_used?: number | null
+          free_pro_trip_limit?: number | null
+          free_pro_trips_used?: number | null
           id?: string
           last_name?: string | null
           notification_settings?: Json | null
@@ -1335,6 +1343,10 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           first_name?: string | null
+          free_event_limit?: number | null
+          free_events_used?: number | null
+          free_pro_trip_limit?: number | null
+          free_pro_trips_used?: number | null
           id?: string
           last_name?: string | null
           notification_settings?: Json | null

@@ -34,22 +34,22 @@ export const TripViewToggle = ({
           onValueChange={(value) => {
             if (value) {
               // If auth is required for protected tabs, trigger auth modal
-              if (requireAuth && ['myTrips', 'tripsPro', 'events'].includes(value)) {
+              if (requireAuth && ['myTrips', 'tripsPro'].includes(value)) {
                 onAuthRequired?.();
                 return;
               }
               onViewModeChange(value);
             }
           }}
-          className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 h-16 gap-1.5"
+          className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-3 h-16 gap-1.5"
         >
           <ToggleGroupItem
             value="myTrips"
-            aria-label="My Trips"
+            aria-label="Chravel Plus"
             className="justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center overflow-hidden text-ellipsis min-w-0"
           >
-            <span className="inline md:hidden truncate">Trips</span>
-            <span className="hidden md:inline truncate">My Trips</span>
+            <span className="inline md:hidden truncate">Plus</span>
+            <span className="hidden md:inline truncate">Chravel Plus</span>
           </ToggleGroupItem>
           <ToggleGroupItem
             value="tripsPro"
@@ -58,13 +58,6 @@ export const TripViewToggle = ({
           >
             <span className="inline lg:hidden">Pro</span>
             <span className="hidden lg:inline">Chravel Pro</span>
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="events"
-            aria-label="Events"
-            className="justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center"
-          >
-            Events
           </ToggleGroupItem>
           {showRecsTab && (
             <ToggleGroupItem

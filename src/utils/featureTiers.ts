@@ -60,6 +60,11 @@ export const FREEMIUM_LIMITS = {
     paymentRequestsPerTrip: 5, // Max 5 payment requests per trip
     canCreatePayments: true,
     canSettlePayments: true,
+    // Taste test: 1 free Pro trip + 1 free Event
+    freeProTripsLimit: 1,
+    freeEventsLimit: 1,
+    eventAttendeesLimit: 50,
+    canCreateEvents: true,
   },
   explorer: {
     aiQueriesPerTrip: -1, // Unlimited
@@ -72,6 +77,10 @@ export const FREEMIUM_LIMITS = {
     paymentRequestsPerTrip: -1, // Unlimited
     canCreatePayments: true,
     canSettlePayments: true,
+    // Events bundled into Explorer
+    canCreateEvents: true,
+    eventsLimit: -1, // Unlimited
+    eventAttendeesLimit: 100,
   },
   'frequent-chraveler': {
     aiQueriesPerTrip: -1,
@@ -85,13 +94,45 @@ export const FREEMIUM_LIMITS = {
     canCreatePayments: true,
     canSettlePayments: true,
     canCreateProTrip: true,
+    proTripsPerMonth: 1,
+    // Events bundled into Frequent Chraveler
+    canCreateEvents: true,
+    eventsLimit: -1, // Unlimited
+    eventAttendeesLimit: 200,
+  }
+} as const;
+
+// Pro tier limits
+export const PRO_LIMITS = {
+  'starter': {
+    memberLimit: 50,
+    canCreateEvents: true,
+    eventsLimit: -1, // Unlimited
+    eventAttendeesLimit: -1, // Unlimited for Pro
+  },
+  'growth': {
+    memberLimit: 100,
+    canCreateEvents: true,
+    eventsLimit: -1,
+    eventAttendeesLimit: -1,
+  },
+  'enterprise': {
+    memberLimit: 250,
+    canCreateEvents: true,
+    eventsLimit: -1,
+    eventAttendeesLimit: -1,
   }
 } as const;
 
 export type FreemiumTier = keyof typeof FREEMIUM_LIMITS;
+export type ProTier = keyof typeof PRO_LIMITS;
 
 export const getFreemiumLimits = (tier: FreemiumTier) => {
   return FREEMIUM_LIMITS[tier];
+};
+
+export const getProLimits = (tier: ProTier) => {
+  return PRO_LIMITS[tier];
 };
 
 export const getFeatureTierEmoji = (featureId: string, settingsType: 'consumer' | 'enterprise' | 'events'): string => {

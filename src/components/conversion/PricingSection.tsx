@@ -12,26 +12,16 @@ import {
   Users,
   Shield,
   Zap,
-  BarChart3,
-  Phone,
-  Camera,
   ChevronDown,
   Sparkles,
   Globe,
-  Headphones,
-  Calculator,
-  Quote,
-  TrendingUp,
-  Clock,
+  Camera,
   MessageSquare,
   Heart,
   Calendar,
   FileText,
-  Bell,
-  Search,
-  Briefcase,
   MapPin,
-  Settings
+  TrendingUp
 } from 'lucide-react';
 
 interface PricingTier {
@@ -47,7 +37,7 @@ interface PricingTier {
   popular?: boolean;
   recommended?: boolean;
   enterprise?: boolean;
-  category: 'consumer' | 'pro' | 'events';
+  category: 'consumer' | 'pro';
   badge?: string;
   savings?: string;
   ctaAction?: () => void;
@@ -58,7 +48,7 @@ interface PricingSectionProps {
   onSignUp?: () => void;
 }
 
-// Consumer Pricing Tiers - NEW 3-TIER STRUCTURE
+// Consumer Pricing Tiers - Chravel Plus (Free, Explorer, Frequent Chraveler)
 const consumerTiers: PricingTier[] = [
   {
     id: 'free',
@@ -75,7 +65,9 @@ const consumerTiers: PricingTier[] = [
       'Expense tracking',
       'Polls & decision making',
       'AI Trip Assistant (5 queries per user per trip)',
-      'Save up to 3 active trips'
+      'Save up to 3 active trips',
+      '🎁 1 Free Chravel Pro trip to try',
+      '🎁 1 Free Event to try'
     ],
     cta: 'Get Started Free · Log In or Sign Up',
     category: 'consumer',
@@ -96,7 +88,9 @@ const consumerTiers: PricingTier[] = [
       'Smart notifications - never miss important updates',
       'Search past trips - find that perfect restaurant again',
       'Priority support - we\'ve got your back',
-      'Custom trip categories - tag trips by type'
+      'Custom trip categories - tag trips by type',
+      '🎉 Unlimited Events included (up to 100 guests each)',
+      '🎁 Your first Pro Trip + Event included free'
     ],
     cta: 'Get Started Free · Log In or Sign Up',
     popular: true,
@@ -121,7 +115,9 @@ const consumerTiers: PricingTier[] = [
       'Role-based channels & pro features on your Pro trip',
       'Custom trip categories - tag by type (work/leisure/family/etc.)',
       'Early feature access - shape the future of Chravel',
-      'Multi-stop route optimization'
+      'Multi-stop route optimization',
+      '🎉 Unlimited Events included (up to 200 guests each)',
+      '🎁 Your first Pro Trip + Event included free'
     ],
     cta: 'Get Started Free · Log In or Sign Up',
     category: 'consumer',
@@ -129,7 +125,7 @@ const consumerTiers: PricingTier[] = [
   }
 ];
 
-// Pro/Enterprise Tiers
+// Pro/Enterprise Tiers - Chravel Pro (Starter, Growth, Enterprise)
 const proTiers: PricingTier[] = [
   {
     id: 'starter-pro',
@@ -138,12 +134,14 @@ const proTiers: PricingTier[] = [
     description: 'Perfect for small touring acts, AAU teams, local clubs',
     icon: <Building size={24} />,
     features: [
-      'Up to 25 team members',
+      'Up to 50 team members',
       'Advanced permissions',
       'Compliance features',
       'Team management dashboard',
       'Basic integrations',
-      'Email support'
+      'Email support',
+      '🎉 Unlimited Events for your team',
+      '🎁 Your first Pro Trip + Event included free'
     ],
     cta: 'Start 14-Day Trial',
     category: 'pro',
@@ -153,7 +151,7 @@ const proTiers: PricingTier[] = [
   {
     id: 'growth-pro',
     name: 'Growth Pro',
-    price: '$199',
+    price: '$99',
     description: 'For college teams, mid-size productions, corporate groups',
     icon: <TrendingUp size={24} />,
     features: [
@@ -162,7 +160,9 @@ const proTiers: PricingTier[] = [
       'Priority support',
       'Advanced integrations',
       'Custom workflows',
-      'Analytics dashboard'
+      'Analytics dashboard',
+      '🎉 Unlimited Events for your team',
+      '🎁 Your first Pro Trip + Event included free'
     ],
     cta: 'Start 14-Day Trial',
     popular: true,
@@ -174,109 +174,23 @@ const proTiers: PricingTier[] = [
   {
     id: 'enterprise',
     name: 'Enterprise',
-    price: '$499',
+    price: '$199',
     description: 'For professional leagues, major tours, Fortune 500',
     icon: <Shield size={24} />,
     features: [
-      'Up to 500 team members',
+      'Up to 250 team members',
       'Custom integrations',
       'Dedicated success manager',
       'SLA guarantees',
       'White-label options',
-      '24/7 premium support'
+      '24/7 premium support',
+      '🎉 Unlimited Events for your team',
+      '🎁 Your first Pro Trip + Event included free'
     ],
     cta: 'Contact Sales',
     category: 'pro',
     enterprise: true,
     ctaAction: () => window.location.href = 'mailto:christian@chravelapp.com?subject=Enterprise%20Inquiry'
-  }
-];
-
-// Events Tiers - NEW STRUCTURE
-const eventsTiers: PricingTier[] = [
-  {
-    id: 'basic-events',
-    name: 'Basic Events',
-    price: '$0',
-    description: 'For 3–50 attendees per event',
-    icon: <CalendarPlus size={24} />,
-    features: [
-      'Event page & RSVP management',
-      'Shared group chat',
-      'Photo & media sharing',
-      'Polls & simple itinerary',
-      'Basic customization',
-      '"Made with Chravel" footer',
-      'Email support'
-    ],
-    cta: 'Get Started Free · Log In or Sign Up',
-    category: 'events'
-  },
-  {
-    id: 'premium-events',
-    name: 'Premium Events',
-    price: '$0.99',
-    description: 'For 51–149 attendees • hard cap $150',
-    icon: <Star size={24} />,
-    features: [
-      'Everything in Basic',
-      'Custom branding (remove footer, theme colors)',
-      'Higher media limits',
-      'Advanced polls (ranked choice)',
-      'CSV export (guest list & RSVPs)',
-      'VIP tags (e.g., staff, speakers)'
-    ],
-    cta: 'Upgrade This Event',
-    category: 'events'
-  },
-  {
-    id: 'premium-plus',
-    name: 'Premium Plus',
-    price: '$0.49',
-    description: 'For 150–500 attendees',
-    icon: <Zap size={24} />,
-    features: [
-      'Everything in Premium',
-      'Optimized for larger crowds',
-      'No per-attendee charge for Host Pass events'
-    ],
-    cta: 'Upgrade This Event',
-    category: 'events'
-  },
-  {
-    id: 'host-pass',
-    name: 'Host Pass',
-    price: '$9.99',
-    description: '2 events/month • up to 149 attendees each • no per-attendee fees',
-    icon: <Crown size={24} />,
-    features: [
-      'All Premium features on covered events',
-      'Ideal for monthly shows & series',
-      '3 organizer seats included',
-      'Priority email support',
-      'Add another Host Pass for more covered events'
-    ],
-    cta: 'Get Host Pass',
-    popular: true,
-    category: 'events',
-    badge: 'Recommended'
-  },
-  {
-    id: 'enterprise-events',
-    name: 'Enterprise',
-    price: 'Custom',
-    description: '501+ attendees per event or higher-volume organizers',
-    icon: <Shield size={24} />,
-    features: [
-      'Larger attendee caps & advanced permissions',
-      'Security reviews & DPA/SOC2 roadmap',
-      'Onboarding & support aligned to your scale',
-      'Annual contract'
-    ],
-    cta: 'Contact Sales',
-    category: 'events',
-    enterprise: true,
-    ctaAction: () => window.location.href = 'mailto:christian@chravelapp.com?subject=Enterprise%20Events%20Inquiry'
   }
 ];
 
@@ -337,7 +251,15 @@ const faqItems = [
   },
   {
     question: "Do all trip members need to pay?",
-    answer: "Trips are free with limited features. Or upgrade to Explorer or Pro to keep unlimited trips and more features. For Chravel Pro, only the admin pays and can assign a set number of seats to team members — ideal for organizations, sports teams, and tour management."
+    answer: "No! Only the trip creator or organization admin pays. All invited members join for free. For Chravel Pro, the admin pays and can assign seats to team members — ideal for organizations, sports teams, and tour management."
+  },
+  {
+    question: "What's included with the free Pro Trip and Event?",
+    answer: "Every account gets 1 free Chravel Pro trip and 1 free Event to experience all premium features. It's our way of letting you try before you buy — no commitment required!"
+  },
+  {
+    question: "Are Events included in my subscription?",
+    answer: "Yes! Events are bundled into all paid plans. Explorer includes unlimited Events with up to 100 guests each. Frequent Chraveler includes Events with up to 200 guests. All Pro tiers include unlimited Events for your entire team."
   }
 ];
 
@@ -364,7 +286,7 @@ const testimonials = [
 
 export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
-  const [activeTab, setActiveTab] = useState<'consumer' | 'pro' | 'events'>('consumer');
+  const [activeTab, setActiveTab] = useState<'consumer' | 'pro'>('consumer');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const handlePlanSelect = (planId: string, tier?: PricingTier) => {
@@ -377,14 +299,6 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
     // For consumer plans, trigger sign-up modal
     if (activeTab === 'consumer' && onSignUp) {
       onSignUp();
-    } else if (activeTab === 'events') {
-      // For basic events, trigger sign-up
-      if (planId === 'basic-events' && onSignUp) {
-        onSignUp();
-      } else {
-        // For paid events, open email
-        window.location.href = 'mailto:christian@chravelapp.com?subject=Event%20Planning%20Inquiry';
-      }
     }
   };
 
@@ -392,7 +306,6 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
     switch (activeTab) {
       case 'consumer': return consumerTiers;
       case 'pro': return proTiers;
-      case 'events': return eventsTiers;
       default: return consumerTiers;
     }
   };
@@ -447,13 +360,12 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
           </div>
         )}
 
-        {/* Category Tabs */}
+        {/* Category Tabs - Only 2 tabs now: Chravel Plus and Chravel Pro */}
         <div className="flex justify-center">
           <div className="bg-card/50 rounded-lg p-1 flex gap-1">
             {[
-              { id: 'consumer', label: 'My Trips', icon: <Users size={16} /> },
-              { id: 'pro', label: 'Chravel Pro', icon: <Building size={16} /> },
-              { id: 'events', label: 'Chravel Events', icon: <CalendarPlus size={16} /> }
+              { id: 'consumer', label: 'Chravel Plus', icon: <Users size={16} /> },
+              { id: 'pro', label: 'Chravel Pro', icon: <Building size={16} /> }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -503,28 +415,17 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
       <div className={`grid gap-4 md:gap-6 max-w-7xl mx-auto ${
         activeTab === 'consumer' 
           ? 'md:grid-cols-3' 
-          : activeTab === 'events'
-          ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5'
           : 'md:grid-cols-2 lg:grid-cols-3'
       }`}>
         {getCurrentTiers().map((tier) => (
-          <div 
-            key={tier.id}
-            className={activeTab === 'events' && tier.enterprise ? 'col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-1' : ''}
-          >
+          <div key={tier.id}>
             <Card 
               className={`relative backdrop-blur-sm border transition-all hover:scale-105 hover:shadow-lg min-h-[480px] flex flex-col ${
-                activeTab === 'events' 
-                  ? tier.popular || tier.recommended
-                    ? 'bg-blue-950/40 border-blue-500/40 shadow-lg ring-1 ring-blue-500/40'
-                    : tier.enterprise
-                    ? 'bg-gray-900/80 border-amber-500/30'
-                    : 'bg-gray-900/80 border-gray-700/50'
-                  : tier.popular || tier.recommended
-                    ? 'bg-card/80 border-primary/50 shadow-lg ring-1 ring-primary/20' 
-                    : tier.enterprise 
-                    ? 'bg-card/80 border-accent/50' 
-                    : 'bg-card/80 border-border/50'
+                tier.popular || tier.recommended
+                  ? 'bg-card/80 border-primary/50 shadow-lg ring-1 ring-primary/20' 
+                  : tier.enterprise 
+                  ? 'bg-card/80 border-accent/50' 
+                  : 'bg-card/80 border-border/50'
               }`}
             >
             {(tier.popular || tier.recommended) && (
@@ -537,17 +438,11 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
             
             <CardHeader className="text-center pb-4 md:pb-6 p-4 md:p-6">
               <div className={`w-12 h-12 md:w-16 md:h-16 mx-auto rounded-full flex items-center justify-center mb-3 md:mb-4 ${
-                activeTab === 'events'
-                  ? tier.popular || tier.recommended
-                    ? 'bg-blue-600/30 text-blue-400'
-                    : tier.enterprise
-                    ? 'bg-amber-600/20 text-amber-500'
-                    : 'bg-gray-700/50 text-gray-300'
-                  : tier.popular || tier.recommended
-                    ? 'bg-primary/20 text-primary' 
-                    : tier.enterprise 
-                    ? 'bg-accent/20 text-accent' 
-                    : 'bg-muted/50 text-muted-foreground'
+                tier.popular || tier.recommended
+                  ? 'bg-primary/20 text-primary' 
+                  : tier.enterprise 
+                  ? 'bg-accent/20 text-accent' 
+                  : 'bg-muted/50 text-muted-foreground'
               }`}>
                 {React.cloneElement(tier.icon as React.ReactElement, { 
                   size: 20
@@ -559,18 +454,6 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
                   <div className="text-3xl md:text-4xl font-bold text-foreground">
                     {getPrice(tier)}
                   </div>
-                  {/* Events per-attendee pricing */}
-                  {tier.category === 'events' && ['premium-events', 'premium-plus'].includes(tier.id) && (
-                    <div className="text-sm sm:text-base md:text-lg text-foreground font-normal mt-1">
-                      /attendee
-                    </div>
-                  )}
-                  {/* Events Host Pass monthly pricing */}
-                  {tier.category === 'events' && tier.id === 'host-pass' && (
-                    <div className="text-sm sm:text-base md:text-lg text-foreground font-normal mt-1">
-                      /month
-                    </div>
-                  )}
                   {/* Pro monthly pricing */}
                   {tier.category === 'pro' && tier.price.includes('$') && !tier.price.includes('Starting') && (
                     <div className="text-sm sm:text-base md:text-lg text-foreground font-normal mt-1">
@@ -637,17 +520,11 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
               <Button
                 onClick={tier.ctaAction || (() => handlePlanSelect(tier.id))}
                 className={`w-full h-10 md:h-12 font-medium text-sm sm:text-base ${
-                  activeTab === 'events'
-                    ? tier.popular || tier.recommended
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : tier.enterprise
-                      ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : tier.popular || tier.recommended
-                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
-                      : tier.enterprise 
-                      ? 'bg-accent hover:bg-accent/90 text-accent-foreground' 
-                      : 'bg-secondary hover:bg-secondary/80'
+                  tier.popular || tier.recommended
+                    ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
+                    : tier.enterprise 
+                    ? 'bg-accent hover:bg-accent/90 text-accent-foreground' 
+                    : 'bg-secondary hover:bg-secondary/80'
                 }`}
               >
                 {tier.cta}
@@ -657,33 +534,6 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
           </div>
         ))}
       </div>
-
-      {/* How Billing Works (Events only) */}
-      {activeTab === 'events' && (
-        <div className="max-w-4xl mx-auto rounded-xl border border-border/40 bg-card/20 backdrop-blur-sm p-4 md:p-6">
-          <div className="text-base sm:text-lg font-semibold mb-3 text-foreground">How billing works</div>
-          <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground list-disc pl-5">
-            <li>
-              "Joiner" = attendee who accepts the invite and enters the event space. Unopened/declined invites aren't billed.
-            </li>
-            <li>
-              <strong>Premium</strong>: $0.99 per joiner for 51–149 attendees, <strong>capped at $150 per event</strong>.
-            </li>
-            <li>
-              <strong>Premium Plus</strong>: $0.49 per joiner for 150–500 attendees.
-            </li>
-            <li>
-              <strong>Host Pass</strong>: covers <strong>2 events/month</strong> up to <strong>149 attendees each</strong> with <strong>no per-attendee fees</strong>. Extra events that month use Premium pricing or you can add another Host Pass.
-            </li>
-            <li>
-              Final charge occurs when you lock the event or 24h after the end date (whichever comes first).
-            </li>
-          </ul>
-          <p className="mt-3 text-[10px] sm:text-[11px] text-muted-foreground/60">
-            Prices USD. Features subject to fair-use. See Terms.
-          </p>
-        </div>
-      )}
 
       {/* FAQ Section */}
       <div className="max-w-3xl mx-auto">
