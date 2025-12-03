@@ -72,7 +72,15 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
       setEditingEvent(null);
       resetForm();
     } else {
-      // Create new event
+      // Create new event - check permissions first
+      if (!canPerformAction('calendar', 'can_create_events')) {
+        toast({
+          title: 'Permission denied',
+          description: 'You do not have permission to create events',
+          variant: 'destructive'
+        });
+        return;
+      }
       await handleAddEvent();
     }
   };
@@ -121,7 +129,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         <CalendarHeader
           viewMode={viewMode}
           onToggleView={toggleViewMode}
-          onAddEvent={() => setShowAddEvent(!showAddEvent)}
+          onAddEvent={canPerformAction('calendar', 'can_create_events') ? () => setShowAddEvent(!showAddEvent) : undefined}
           onExport={handleExport}
         />
 
@@ -134,10 +142,10 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
             events={events}
             selectedDate={selectedDate || new Date()}
             onSelectDate={setSelectedDate}
-            onAddEvent={(date) => {
+            onAddEvent={canPerformAction('calendar', 'can_create_events') ? (date) => {
               setSelectedDate(date);
               setShowAddEvent(true);
-            }}
+            } : undefined}
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}
           />
@@ -168,7 +176,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
       <CalendarHeader
         viewMode={viewMode}
         onToggleView={toggleViewMode}
-        onAddEvent={() => setShowAddEvent(!showAddEvent)}
+        onAddEvent={canPerformAction('calendar', 'can_create_events') ? () => setShowAddEvent(!showAddEvent) : undefined}
         onExport={handleExport}
       />
         <ItineraryView events={events} tripName="Trip Itinerary" />
@@ -181,7 +189,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
       <CalendarHeader
         viewMode={viewMode}
         onToggleView={toggleViewMode}
-        onAddEvent={() => setShowAddEvent(!showAddEvent)}
+        onAddEvent={canPerformAction('calendar', 'can_create_events') ? () => setShowAddEvent(!showAddEvent) : undefined}
         onExport={handleExport}
       />
 
