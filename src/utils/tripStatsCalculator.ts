@@ -7,6 +7,7 @@ export interface StatsData {
   upcoming: number;
   completed: number;
   inProgress: number;
+  archived: number;
 }
 
 interface Trip {
@@ -92,12 +93,13 @@ const getStatus = (dateRange: string): StatusType => {
   return 'completed';
 };
 
-export const calculateTripStats = (trips: Trip[]): StatsData => {
+export const calculateTripStats = (trips: Trip[], archivedCount: number = 0): StatsData => {
   const stats = {
     total: trips.length,
     upcoming: 0,
     completed: 0,
-    inProgress: 0
+    inProgress: 0,
+    archived: archivedCount
   };
 
   trips.forEach(trip => {
@@ -114,13 +116,14 @@ export const calculateTripStats = (trips: Trip[]): StatsData => {
   return stats;
 };
 
-export const calculateProTripStats = (proTrips: Record<string, ProTripData>): StatsData => {
+export const calculateProTripStats = (proTrips: Record<string, ProTripData>, archivedCount: number = 0): StatsData => {
   const trips = Object.values(proTrips);
   const stats = {
     total: trips.length,
     upcoming: 0,
     completed: 0,
-    inProgress: 0
+    inProgress: 0,
+    archived: archivedCount
   };
 
   trips.forEach(trip => {
@@ -137,13 +140,14 @@ export const calculateProTripStats = (proTrips: Record<string, ProTripData>): St
   return stats;
 };
 
-export const calculateEventStats = (events: Record<string, EventData>): StatsData => {
+export const calculateEventStats = (events: Record<string, EventData>, archivedCount: number = 0): StatsData => {
   const eventList = Object.values(events);
   const stats = {
     total: eventList.length,
     upcoming: 0,
     completed: 0,
-    inProgress: 0
+    inProgress: 0,
+    archived: archivedCount
   };
 
   eventList.forEach(event => {

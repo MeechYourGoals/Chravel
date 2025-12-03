@@ -2610,6 +2610,7 @@ export type Database = {
           end_date: string | null
           id: string
           is_archived: boolean | null
+          is_hidden: boolean | null
           name: string
           privacy_mode: string | null
           registration_status: string | null
@@ -2635,6 +2636,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           is_archived?: boolean | null
+          is_hidden?: boolean | null
           name: string
           privacy_mode?: string | null
           registration_status?: string | null
@@ -2660,6 +2662,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           is_archived?: boolean | null
+          is_hidden?: boolean | null
           name?: string
           privacy_mode?: string | null
           registration_status?: string | null

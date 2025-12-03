@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Crown, FileText, Eye, Users, Clock, MoreHorizontal, Archive } from 'lucide-react';
+import { Calendar, MapPin, Crown, FileText, Eye, Users, Clock, MoreHorizontal, Archive, EyeOff } from 'lucide-react';
 import { Button } from './ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
@@ -10,7 +10,7 @@ import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { TripExportModal } from './trip/TripExportModal';
 import { ProTripData } from '../types/pro';
 import { useTripVariant } from '../contexts/TripVariantContext';
-import { archiveTrip } from '../services/archiveService';
+import { archiveTrip, hideTrip } from '../services/archiveService';
 import { useToast } from '../hooks/use-toast';
 import { calculatePeopleCount, calculateDaysCount, calculateProTripPlacesCount } from '../utils/tripStatsUtils';
 import { processTeamMembers, processRoles } from '../utils/teamDisplayUtils';
@@ -23,6 +23,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 
@@ -96,8 +97,24 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
     archiveTrip(trip.id, 'pro');
     toast({
       title: "Professional trip archived",
-      description: `"${trip.title}" has been archived. You can restore it from Settings.`,
+      description: `"${trip.title}" has been archived. View it in the Archived tab.`,
     });
+  };
+
+  const handleHideTrip = async () => {
+    try {
+      await hideTrip(trip.id);
+      toast({
+        title: "Trip hidden",
+        description: `"${trip.title}" is now hidden. Enable "Show Hidden Trips" in Settings to view it.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to hide trip",
+        description: "There was an error hiding your trip. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Get next load-in event from schedule
@@ -170,6 +187,13 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
             >
               <Archive className="mr-2 h-4 w-4" />
               Archive Trip
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={handleHideTrip}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <EyeOff className="mr-2 h-4 w-4" />
+              Hide Trip
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

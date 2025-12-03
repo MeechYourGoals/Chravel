@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, Settings, MoreHorizontal, Archive } from 'lucide-react';
+import { Calendar, MapPin, Users, Settings, MoreHorizontal, Archive, EyeOff } from 'lucide-react';
 import { EventData } from '../types/events';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
-import { archiveTrip } from '../services/archiveService';
+import { archiveTrip, hideTrip } from '../services/archiveService';
 import { useToast } from '../hooks/use-toast';
 import { calculatePeopleCount, calculateDaysCount, calculateEventPlacesCount } from '../utils/tripStatsUtils';
 import { getInitials } from '../utils/avatarUtils';
@@ -14,6 +14,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 
@@ -35,8 +36,24 @@ export const EventCard = ({ event }: EventCardProps) => {
     archiveTrip(event.id, 'event');
     toast({
       title: "Event archived",
-      description: `"${event.title}" has been archived. You can restore it from Settings.`,
+      description: `"${event.title}" has been archived. View it in the Archived tab.`,
     });
+  };
+
+  const handleHideEvent = async () => {
+    try {
+      await hideTrip(event.id);
+      toast({
+        title: "Event hidden",
+        description: `"${event.title}" is now hidden. Enable "Show Hidden Trips" in Settings to view it.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to hide event",
+        description: "There was an error hiding your event. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getCategoryColor = (category: string) => {
@@ -71,15 +88,23 @@ export const EventCard = ({ event }: EventCardProps) => {
               <MoreHorizontal size={16} />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-background border-border">
-            <DropdownMenuItem 
-              onClick={() => setShowArchiveDialog(true)}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Archive className="mr-2 h-4 w-4" />
-              Archive Event
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+            <DropdownMenuContent align="end" className="bg-background border-border">
+              <DropdownMenuItem 
+                onClick={() => setShowArchiveDialog(true)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Archive className="mr-2 h-4 w-4" />
+                Archive Event
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={handleHideEvent}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <EyeOff className="mr-2 h-4 w-4" />
+                Hide Event
+              </DropdownMenuItem>
+            </DropdownMenuContent>
         </DropdownMenu>
       </div>
 

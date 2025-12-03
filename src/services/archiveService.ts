@@ -2,6 +2,87 @@ import { supabase } from '@/integrations/supabase/client';
 
 type TripType = 'consumer' | 'pro' | 'event';
 
+// Hide a trip (privacy feature - separate from archive)
+export const hideTrip = async (tripId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('trips')
+    .update({ is_hidden: true })
+    .eq('id', tripId);
+
+  if (error) {
+    console.error('Failed to hide trip:', error);
+    throw error;
+  }
+};
+
+// Unhide a trip
+export const unhideTrip = async (tripId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('trips')
+    .update({ is_hidden: false })
+    .eq('id', tripId);
+
+  if (error) {
+    console.error('Failed to unhide trip:', error);
+    throw error;
+  }
+};
+
+// Check if a trip is hidden
+export const isTripHidden = async (tripId: string): Promise<boolean> => {
+  const { data, error } = await supabase
+    .from('trips')
+    .select('is_hidden')
+    .eq('id', tripId)
+    .single();
+
+  if (error) {
+    console.error('Failed to check hidden status:', error);
+    return false;
+  }
+
+  return data?.is_hidden ?? false;
+};
+
+// Get hidden trips (only when show_hidden_trips preference is true)
+export const getHiddenTrips = async (userId: string) => {
+  const { data: hiddenTrips, error } = await supabase
+    .from('trips')
+    .select('*')
+    .eq('is_hidden', true)
+    .eq('created_by', userId);
+
+  if (error) {
+    console.error('Failed to get hidden trips:', error);
+    return [];
+  }
+
+  return hiddenTrips || [];
+};
+
+// Get archived trip count for stats
+export const getArchivedTripCount = async (userId: string, tripType?: TripType): Promise<number> => {
+  let query = supabase
+    .from('trips')
+    .select('id', { count: 'exact', head: true })
+    .eq('is_archived', true)
+    .eq('created_by', userId);
+
+  if (tripType) {
+    const dbTripType = tripType === 'consumer' ? 'standard' : tripType;
+    query = query.eq('trip_type', dbTripType);
+  }
+
+  const { count, error } = await query;
+
+  if (error) {
+    console.error('Failed to get archived trip count:', error);
+    return 0;
+  }
+
+  return count || 0;
+};
+
 // Archive a trip
 export const archiveTrip = async (tripId: string, tripType: TripType, userId?: string): Promise<void> => {
   const { error } = await supabase
