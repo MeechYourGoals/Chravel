@@ -6,7 +6,7 @@ import { ViewMode } from '@/hooks/useCalendarManagement';
 interface CalendarHeaderProps {
   viewMode: ViewMode;
   onToggleView: () => void;
-  onAddEvent: () => void;
+  onAddEvent?: () => void;
   onExport?: () => void;
 }
 
@@ -56,10 +56,12 @@ export const CalendarHeader = ({ viewMode, onToggleView, onAddEvent, onExport }:
           {getViewButtonContent()}
         </Button>
 
-        <Button variant="outline" onClick={onAddEvent} size="sm">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Event
-        </Button>
+        {onAddEvent && (
+          <Button variant="outline" onClick={onAddEvent} size="sm">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Event
+          </Button>
+        )}
       </div>
     </div>
   );

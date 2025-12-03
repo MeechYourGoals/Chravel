@@ -45,6 +45,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
   const { isDemoMode: _isDemoMode } = useDemoMode();
 
   const handleEdit = (event: any) => {
+    // Check permissions (will return true in Demo Mode)
     if (!canPerformAction('calendar', 'can_edit_events')) {
       toast({
         title: 'Permission denied',
@@ -120,7 +121,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         <CalendarHeader
           viewMode={viewMode}
           onToggleView={toggleViewMode}
-          onAddEvent={canPerformAction('calendar', 'can_create_events') ? () => setShowAddEvent(!showAddEvent) : undefined}
+          onAddEvent={() => setShowAddEvent(!showAddEvent)}
           onExport={handleExport}
         />
 
@@ -133,10 +134,10 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
             events={events}
             selectedDate={selectedDate || new Date()}
             onSelectDate={setSelectedDate}
-            onAddEvent={canPerformAction('calendar', 'can_create_events') ? (date) => {
+            onAddEvent={(date) => {
               setSelectedDate(date);
               setShowAddEvent(true);
-            } : undefined}
+            }}
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}
           />
@@ -167,7 +168,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
       <CalendarHeader
         viewMode={viewMode}
         onToggleView={toggleViewMode}
-        onAddEvent={canPerformAction('calendar', 'can_create_events') ? () => setShowAddEvent(!showAddEvent) : undefined}
+        onAddEvent={() => setShowAddEvent(!showAddEvent)}
         onExport={handleExport}
       />
         <ItineraryView events={events} tripName="Trip Itinerary" />
@@ -180,7 +181,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
       <CalendarHeader
         viewMode={viewMode}
         onToggleView={toggleViewMode}
-        onAddEvent={canPerformAction('calendar', 'can_create_events') ? () => setShowAddEvent(!showAddEvent) : undefined}
+        onAddEvent={() => setShowAddEvent(!showAddEvent)}
         onExport={handleExport}
       />
 
