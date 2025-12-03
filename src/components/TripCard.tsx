@@ -1,12 +1,12 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, User, Plus, MoreHorizontal, Archive, Flame, TrendingUp } from 'lucide-react';
+import { Calendar, MapPin, User, Plus, MoreHorizontal, Archive, Flame, TrendingUp, EyeOff } from 'lucide-react';
 import { InviteModal } from './InviteModal';
 import { ShareTripModal } from './share/ShareTripModal';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { TravelerTooltip } from './ui/traveler-tooltip';
-import { archiveTrip } from '../services/archiveService';
+import { archiveTrip, hideTrip } from '../services/archiveService';
 import { useToast } from '../hooks/use-toast';
 import { Badge } from './ui/badge';
 import { gamificationService } from '../services/gamificationService';
@@ -15,6 +15,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 
@@ -57,8 +58,24 @@ export const TripCard = ({ trip }: TripCardProps) => {
     archiveTrip(trip.id.toString(), 'consumer');
     toast({
       title: "Trip archived",
-      description: `"${trip.title}" has been archived. You can restore it from Settings.`,
+      description: `"${trip.title}" has been archived. View it in the Archived tab.`,
     });
+  };
+
+  const handleHideTrip = async () => {
+    try {
+      await hideTrip(trip.id.toString());
+      toast({
+        title: "Trip hidden",
+        description: `"${trip.title}" is now hidden. Enable "Show Hidden Trips" in Settings to view it.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to hide trip",
+        description: "There was an error hiding your trip. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Ensure all participants have proper avatar URLs
@@ -140,6 +157,14 @@ export const TripCard = ({ trip }: TripCardProps) => {
               >
                 <Archive className="mr-2 h-4 w-4" />
                 Archive Trip
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleHideTrip}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <EyeOff className="mr-2 h-4 w-4" />
+                Hide Trip
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

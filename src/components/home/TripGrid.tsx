@@ -1,20 +1,24 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { TripCard } from '../TripCard';
 import { ProTripCard } from '../ProTripCard';
 import { EventCard } from '../EventCard';
 import { MobileEventCard } from '../MobileEventCard';
 import { RecommendationCard } from '../RecommendationCard';
 import { LocationSearchBar } from './LocationSearchBar';
+import { ArchivedTripCard } from './ArchivedTripCard';
+import { UpgradeModal } from '../UpgradeModal';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { ProTripData } from '../../types/pro';
 import { EventData } from '../../types/events';
 import { TripCardSkeleton } from '../ui/loading-skeleton';
 import { EnhancedEmptyState } from '../ui/enhanced-empty-state';
-import { filterActiveTrips } from '../../services/archiveService';
+import { getArchivedTrips, restoreTrip, unhideTrip } from '../../services/archiveService';
 import { useLocationFilteredRecommendations } from '../../hooks/useLocationFilteredRecommendations';
-import { MapPin, Calendar, Briefcase, Compass, Info } from 'lucide-react';
+import { MapPin, Calendar, Briefcase, Compass, Info, Archive } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
 import { useSavedRecommendations } from '@/hooks/useSavedRecommendations';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface Trip {
   id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
@@ -51,11 +55,81 @@ export const TripGrid = React.memo(({
   const isMobile = useIsMobile();
   const [manualLocation, setManualLocation] = useState<string>('');
   const { toggleSave } = useSavedRecommendations();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [archivedTrips, setArchivedTrips] = useState<any[]>([]);
 
   // Filter out archived trips - use synchronous version since we don't have async user context
   const activeTrips = useMemo(() => trips, [trips]);
   const activeProTrips = useMemo(() => proTrips, [proTrips]);
   const activeEvents = useMemo(() => events, [events]);
+
+  // Fetch archived trips when filter is 'archived'
+  useEffect(() => {
+    if (activeFilter === 'archived' && user?.id) {
+      getArchivedTrips(user.id).then(data => {
+        // Combine all archived trips based on viewMode
+        let combined: any[] = [];
+        if (viewMode === 'myTrips') {
+          combined = data.consumer;
+        } else if (viewMode === 'tripsPro') {
+          combined = data.pro;
+        } else if (viewMode === 'events') {
+          combined = data.events;
+        } else {
+          combined = [...data.consumer, ...data.pro, ...data.events];
+        }
+        setArchivedTrips(combined);
+      });
+    }
+  }, [activeFilter, user?.id, viewMode]);
+
+  const handleRestoreTrip = async (tripId: string) => {
+    try {
+      const tripType = viewMode === 'tripsPro' ? 'pro' : viewMode === 'events' ? 'event' : 'consumer';
+      await restoreTrip(tripId, tripType, user?.id);
+      toast({
+        title: "Trip restored",
+        description: "Your trip has been moved back to active trips.",
+      });
+      // Refresh archived trips
+      if (user?.id) {
+        const data = await getArchivedTrips(user.id);
+        let combined: any[] = [];
+        if (viewMode === 'myTrips') combined = data.consumer;
+        else if (viewMode === 'tripsPro') combined = data.pro;
+        else if (viewMode === 'events') combined = data.events;
+        setArchivedTrips(combined);
+      }
+    } catch (error: any) {
+      if (error.message === 'TRIP_LIMIT_REACHED') {
+        setShowUpgradeModal(true);
+      } else {
+        toast({
+          title: "Failed to restore trip",
+          description: "There was an error restoring your trip. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleUnhideTrip = async (tripId: string) => {
+    try {
+      await unhideTrip(tripId);
+      toast({
+        title: "Trip unhidden",
+        description: "Your trip is now visible in the main list.",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to unhide trip",
+        description: "There was an error. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Get location-filtered recommendations for travel recs view
   const { 
@@ -77,7 +151,9 @@ export const TripGrid = React.memo(({
   }
 
   // Check if we have content for the current view mode (using filtered data)
-  const hasContent = viewMode === 'myTrips' 
+  const hasContent = activeFilter === 'archived'
+    ? archivedTrips.length > 0
+    : viewMode === 'myTrips' 
     ? activeTrips.length > 0 
     : viewMode === 'tripsPro' 
     ? Object.keys(activeProTrips).length > 0
@@ -90,6 +166,15 @@ export const TripGrid = React.memo(({
   // Show enhanced empty state if no content
   if (!hasContent) {
     const getEmptyStateProps = () => {
+      if (activeFilter === 'archived') {
+        return {
+          icon: Archive,
+          title: 'No archived trips',
+          description: 'Trips you archive will appear here. Archive trips to declutter your main view.',
+          actionLabel: undefined,
+          onAction: undefined
+        };
+      }
       switch (viewMode) {
         case 'myTrips':
           return {
@@ -181,7 +266,17 @@ export const TripGrid = React.memo(({
       )}
 
       <div className={`grid gap-6 w-full ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
-        {viewMode === 'myTrips' ? (
+        {activeFilter === 'archived' ? (
+          archivedTrips.map((trip) => (
+            <ArchivedTripCard 
+              key={trip.id} 
+              trip={trip}
+              onRestore={handleRestoreTrip}
+              onUnhide={handleUnhideTrip}
+              onUpgrade={() => setShowUpgradeModal(true)}
+            />
+          ))
+        ) : viewMode === 'myTrips' ? (
           activeTrips.map((trip) => (
             <TripCard key={trip.id} trip={trip} />
           ))
@@ -212,6 +307,11 @@ export const TripGrid = React.memo(({
           ))
         ) : null}
       </div>
+
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </div>
   );
 });
