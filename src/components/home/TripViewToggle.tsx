@@ -28,41 +28,47 @@ export const TripViewToggle = ({
   return (
     <div className={cn("w-full", className)}>
       <ScrollFadeContainer className="h-full contents md:contents lg:block">
-        <ToggleGroup
+          <ToggleGroup
           type="single"
           value={viewMode}
           onValueChange={(value) => {
             if (value) {
               // If auth is required for protected tabs, trigger auth modal
-              if (requireAuth && ['myTrips', 'tripsPro'].includes(value)) {
+              if (requireAuth && ['myTrips', 'tripsPro', 'events'].includes(value)) {
                 onAuthRequired?.();
                 return;
               }
               onViewModeChange(value);
             }
           }}
-          className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-3 h-16 gap-1.5"
+          className="bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 h-16 gap-1"
         >
           <ToggleGroupItem
             value="myTrips"
-            aria-label="Chravel Plus"
+            aria-label="My Trips"
             className="justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center overflow-hidden text-ellipsis min-w-0"
           >
-            <span className="inline md:hidden truncate">Plus</span>
-            <span className="hidden md:inline truncate">Chravel Plus</span>
+            <span className="inline md:hidden truncate">Trips</span>
+            <span className="hidden md:inline truncate">My Trips</span>
           </ToggleGroupItem>
           <ToggleGroupItem
             value="tripsPro"
-            aria-label="Chravel Pro"
+            aria-label="Pro"
             className="justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center"
           >
-            <span className="inline lg:hidden">Pro</span>
-            <span className="hidden lg:inline">Chravel Pro</span>
+            Pro
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="events"
+            aria-label="Events"
+            className="justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center"
+          >
+            Events
           </ToggleGroupItem>
           {showRecsTab && (
             <ToggleGroupItem
               value="travelRecs"
-              aria-label="Chravel Recs"
+              aria-label="Recs"
               disabled={recsTabDisabled}
               title={recsTabDisabled ? "Enable Demo Mode to access Travel Recommendations" : undefined}
               className={`justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center ${recsTabDisabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : ''}`}
@@ -73,8 +79,7 @@ export const TripViewToggle = ({
                 }
               }}
             >
-              <span className="inline lg:hidden">Recs</span>
-              <span className="hidden lg:inline">Chravel Recs</span>
+              Recs
             </ToggleGroupItem>
           )}
         </ToggleGroup>

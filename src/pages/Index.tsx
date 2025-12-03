@@ -18,6 +18,7 @@ import { SearchOverlay } from '../components/home/SearchOverlay';
 import { ProfileSetupModal } from '../components/ProfileSetupModal';
 import { HeaderAuthButton } from '../components/HeaderAuthButton';
 import { MobileSettingsSheet } from '../components/mobile/MobileSettingsSheet';
+import { MobileTopBar } from '../components/mobile/MobileTopBar';
 
 // New conversion components
 import { PersistentCTABar } from '../components/conversion/PersistentCTABar';
@@ -305,15 +306,18 @@ const Index = () => {
               </div>
             )}
 
-          <div className="max-w-[1500px] mx-auto">
-            {/* CSS-first responsive: stacks on mobile, side-by-side on tablet+ */}
-            <div className="w-full flex flex-col md:flex-row gap-3 md:gap-6 items-stretch mb-6">
+          {/* Mobile Top Bar for login/demo controls */}
+          {isMobile && <MobileTopBar onSettingsPress={() => setIsMobileSettingsOpen(true)} />}
+
+          <div className="max-w-[1500px] mx-auto" style={{ paddingTop: isMobile ? '60px' : '0' }}>
+            {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}
+            <div className="w-full flex flex-col lg:flex-row gap-3 lg:gap-6 items-stretch mb-6">
               <TripViewToggle 
                 viewMode={viewMode} 
                 onViewModeChange={handleViewModeChange}
                 showRecsTab={true}
                 recsTabDisabled={true}
-                className="w-full md:flex-1 h-16"
+                className="w-full lg:flex-1 h-16"
                 requireAuth={true}
                 onAuthRequired={() => setIsAuthModalOpen(true)}
               />
@@ -324,7 +328,7 @@ const Index = () => {
                 onNotifications={() => {}}
                 isNotificationsOpen={isNotificationsOpen}
                 setIsNotificationsOpen={setIsNotificationsOpen}
-                className="w-full md:flex-1 h-16"
+                className="w-full lg:flex-1 h-16"
                 requireAuth={true}
                 onAuthRequired={() => setIsAuthModalOpen(true)}
               />
@@ -458,15 +462,18 @@ const Index = () => {
             </div>
           )}
 
-          <div className="max-w-[1500px] mx-auto">
-                {/* CSS-first responsive: stacks on mobile, side-by-side on tablet+ */}
-                <div className="w-full flex flex-col md:flex-row gap-3 md:gap-6 items-stretch mb-6">
+          {/* Mobile Top Bar for login/demo controls */}
+          {isMobile && <MobileTopBar onSettingsPress={() => setIsMobileSettingsOpen(true)} />}
+
+          <div className="max-w-[1500px] mx-auto" style={{ paddingTop: isMobile ? '60px' : '0' }}>
+                {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}
+                <div className="w-full flex flex-col lg:flex-row gap-3 lg:gap-6 items-stretch mb-6">
                   <TripViewToggle 
                     viewMode={viewMode} 
                     onViewModeChange={handleViewModeChange}
                     showRecsTab={true}
                     recsTabDisabled={!isDemoMode}
-                    className="w-full md:flex-1 h-16"
+                    className="w-full lg:flex-1 h-16"
                   />
                   <TripActionBar
                     onSettings={() => isMobile ? setIsMobileSettingsOpen(true) : setIsSettingsOpen(true)}
@@ -475,7 +482,7 @@ const Index = () => {
                     onNotifications={() => {}}
                     isNotificationsOpen={isNotificationsOpen}
                     setIsNotificationsOpen={setIsNotificationsOpen}
-                    className="w-full md:flex-1 h-16"
+                    className="w-full lg:flex-1 h-16"
                   />
                 </div>
 
@@ -624,14 +631,14 @@ const Index = () => {
           </div>
         )}
 
-        {/* CSS-first responsive: stacks on mobile, side-by-side on tablet+ */}
-        <div className="w-full flex flex-col md:flex-row gap-3 md:gap-6 items-stretch mb-6">
+        {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}
+        <div className="w-full flex flex-col lg:flex-row gap-3 lg:gap-6 items-stretch mb-6">
           <TripViewToggle 
             viewMode={viewMode} 
             onViewModeChange={handleViewModeChange}
             showRecsTab={true}
             recsTabDisabled={!isDemoMode}
-            className="w-full md:flex-1 h-16"
+            className="w-full lg:flex-1 h-16"
           />
           <TripActionBar
             onSettings={() => isMobile ? setIsMobileSettingsOpen(true) : (setSettingsInitialType('consumer'), setIsSettingsOpen(true))}
@@ -644,7 +651,7 @@ const Index = () => {
             onNotifications={() => {}}
             isNotificationsOpen={isNotificationsOpen}
             setIsNotificationsOpen={setIsNotificationsOpen}
-            className="w-full md:flex-1 h-16"
+            className="w-full lg:flex-1 h-16"
           />
         </div>
 
