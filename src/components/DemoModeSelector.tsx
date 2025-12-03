@@ -22,7 +22,7 @@ export const DemoModeSelector = () => {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="inline-flex rounded-lg border-2 border-border/50 p-0.5 sm:p-1 bg-background/40 backdrop-blur-md shadow-sm">
+          <div className="inline-flex rounded-lg border-2 border-border/50 p-0.5 sm:p-1 bg-background/40 backdrop-blur-md shadow-sm min-h-[36px]">
             <button
               onClick={() => handleViewChange('off')}
               disabled={isLoading}
