@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Search, Compass, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticService } from '@/services/hapticService';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface MobileBottomNavProps {
   className?: string;
@@ -12,6 +13,8 @@ interface MobileBottomNavProps {
 export const MobileBottomNav = ({ className, onSettingsPress }: MobileBottomNavProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { demoView } = useDemoMode();
+  const isAppPreview = demoView === 'app-preview';
 
   const tabs = [
     {
@@ -36,7 +39,7 @@ export const MobileBottomNav = ({ className, onSettingsPress }: MobileBottomNavP
       icon: Compass,
       path: '/recs',
       isActive: location.pathname.includes('/recs'),
-      comingSoon: true
+      comingSoon: !isAppPreview
     },
     {
       id: 'settings',

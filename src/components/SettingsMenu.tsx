@@ -159,13 +159,20 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
                   Events
                 </button>
                 <button
-                  disabled
-                  className="py-2 px-4 rounded-lg text-sm font-medium whitespace-nowrap text-gray-500 cursor-not-allowed opacity-60 flex items-center gap-1"
+                  onClick={() => isAppPreview && navigate('/advertiser')}
+                  disabled={!isAppPreview}
+                  className={`py-2 px-4 rounded-lg text-sm font-medium whitespace-nowrap flex items-center gap-1 transition-all ${
+                    isAppPreview
+                      ? 'text-gray-400 hover:text-white hover:bg-white/5'
+                      : 'text-gray-500 cursor-not-allowed opacity-60'
+                  }`}
                 >
                   Advertiser
-                  <span className="text-xs bg-gray-600 text-gray-300 px-1 py-0.5 rounded-full">
-                    Soon
-                  </span>
+                  {!isAppPreview && (
+                    <span className="text-xs bg-gray-600 text-gray-300 px-1 py-0.5 rounded-full">
+                      Soon
+                    </span>
+                  )}
                 </button>
               </div>
               <ScrollBar orientation="horizontal" className="md:hidden" />

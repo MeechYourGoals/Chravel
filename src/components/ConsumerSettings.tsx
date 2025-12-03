@@ -11,6 +11,7 @@ import { ArchivedTripsSection } from './ArchivedTripsSection';
 import { useIsMobile } from '../hooks/use-mobile';
 import { SavedRecommendations } from './SavedRecommendations';
 import { ConsumerAIConciergeSection } from './consumer/ConsumerAIConciergeSection';
+import { useDemoMode } from '../hooks/useDemoMode';
 
 interface ConsumerSettingsProps {
   currentUserId: string;
@@ -22,13 +23,15 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose: _onCl
   const [activeSection, setActiveSection] = useState(initialSection || 'profile');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const isMobile = useIsMobile();
+  const { demoView } = useDemoMode();
+  const isAppPreview = demoView === 'app-preview';
 
   const sections = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'billing', label: 'Billing', icon: CreditCard },
     { id: 'ai-concierge', label: 'AI Concierge', icon: Sparkles },
     { id: 'travel-wallet', label: 'Travel Wallet', icon: Wallet },
-    { id: 'saved-recs', label: 'Recommendations', icon: Bookmark, comingSoon: true },
+    { id: 'saved-recs', label: 'Recommendations', icon: Bookmark, comingSoon: !isAppPreview },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'privacy', label: 'Privacy & Security', icon: Shield },
     { id: 'settings', label: 'General Settings', icon: Settings },
