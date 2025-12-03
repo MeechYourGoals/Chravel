@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogIn } from 'lucide-react';
+import { LogIn, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DemoModeSelector } from '../DemoModeSelector';
 import { AuthModal } from '../AuthModal';
@@ -48,43 +48,41 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
         className={cn(
           "fixed top-0 left-0 right-0 z-50",
           "bg-background/95 backdrop-blur-md border-b border-border/50",
-          "md:hidden", // Only show on mobile
+          "block lg:hidden", // Show on mobile/tablet, hide on desktop (1024px+)
           className
         )}
         style={{
-          paddingTop: `max(8px, env(safe-area-inset-top))`
+          paddingTop: `max(8px, env(safe-area-inset-top))`,
+          paddingLeft: `max(12px, env(safe-area-inset-left))`,
+          paddingRight: `max(12px, env(safe-area-inset-right))`
         }}
       >
-        <div className="flex items-center justify-between px-3 py-2">
-          {/* Logo */}
-          <div className="flex items-center min-w-[60px]">
-            <img 
-              src="/chravel-logo.png" 
-              alt="Chravel" 
-              className="h-7 w-auto"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
+        <div className="flex items-center justify-between py-2 gap-2">
+          {/* Left: Chravel Pill */}
+          <div className="flex items-center flex-shrink-0">
+            <span className="px-3 py-1.5 bg-muted text-foreground rounded-lg text-sm font-semibold min-h-[36px] flex items-center border border-border/30">
+              Chravel
+            </span>
           </div>
 
-          {/* Demo Mode Selector - Center */}
-          <div className="flex-1 flex justify-center">
+          {/* Center: Demo Mode Toggle */}
+          <div className="flex-1 flex justify-center min-w-0">
             <DemoModeSelector />
           </div>
 
-          {/* Login/Account Button - Right */}
-          <div className="min-w-[60px] flex justify-end">
+          {/* Right: Login/Account Pill */}
+          <div className="flex-shrink-0">
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1.5 p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
-                    <Avatar className="h-7 w-7">
+                  <button className="flex items-center gap-1.5 px-2 py-1.5 bg-muted hover:bg-muted/80 rounded-lg transition-colors min-h-[36px] border border-border/30">
+                    <Avatar className="h-6 w-6">
                       <AvatarImage src={user.avatar || undefined} />
                       <AvatarFallback className="text-xs bg-primary/20 text-primary">
                         {getInitials(user.displayName, user.email)}
                       </AvatarFallback>
                     </Avatar>
+                    <ChevronDown size={14} className="text-muted-foreground" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">

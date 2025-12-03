@@ -134,7 +134,7 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
   return (
     <div className={cn(
       "flex w-full gap-2",
-      isOwnMessage ? 'justify-end flex-row-reverse' : 'justify-start flex-row'
+      isOwnMessage ? 'justify-end' : 'justify-start'
     )}>
       {/* AI Avatar for assistant messages */}
       {!isOwnMessage && (
