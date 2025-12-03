@@ -31,7 +31,6 @@ serve(async (req) => {
       );
     }
 
-    // Validate and sanitize input
     const requestBody = await req.json();
     const validation = validateInput(CreateTripSchema, requestBody);
     
@@ -45,35 +44,47 @@ serve(async (req) => {
 
     const { name, description, destination, start_date, end_date, trip_type, cover_image_url, enabled_features } = validation.data;
 
-    // TEMPORARILY DISABLED FOR MVP: Allow all users to create Pro/Event trips
-    // Will re-enable with feature gating (role-based channels, PDF export, AI Concierge) post-MVP
-    // if (trip_type === 'pro' || trip_type === 'event') {
-    //   const { data: roleData } = await supabase
-    //     .from('user_roles')
-    //     .select('role')
-    //     .eq('user_id', user.id)
-    //     .eq('role', 'pro')
-    //     .single();
-    //
-    //   if (!roleData) {
-    //     throw new Error('Pro subscription required to create professional trips');
-    //   }
-    // }
+    // Get user's subscription tier and taste test usage
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('subscription_status, subscription_product_id, free_pro_trips_used, free_events_used, free_pro_trip_limit, free_event_limit')
+      .eq('user_id', user.id)
+      .single();
+
+    const subscriptionStatus = profile?.subscription_status;
+    const productId = profile?.subscription_product_id;
+    const freeProTripsUsed = profile?.free_pro_trips_used || 0;
+    const freeEventsUsed = profile?.free_events_used || 0;
+    const freeProTripLimit = profile?.free_pro_trip_limit || 1;
+    const freeEventLimit = profile?.free_event_limit || 1;
+
+    const isFreeTier = !subscriptionStatus || subscriptionStatus !== 'active' || !productId;
+    const isFrequentChraveler = productId?.includes('frequent') || productId?.includes('chraveler');
+
+    // Taste test validation for free users creating Pro trips
+    if (trip_type === 'pro' && isFreeTier && freeProTripsUsed >= freeProTripLimit) {
+      return new Response(
+        JSON.stringify({ error: 'UPGRADE_REQUIRED_PRO_TRIP', message: 'Upgrade to create more Pro trips!' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Taste test validation for free users creating Events
+    if (trip_type === 'event' && isFreeTier && freeEventsUsed >= freeEventLimit) {
+      return new Response(
+        JSON.stringify({ error: 'UPGRADE_REQUIRED_EVENT', message: 'Upgrade to create unlimited Events!' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Create trip
     const { data: trip, error: tripError } = await supabase
       .from('trips')
       .insert({
-        name,
-        description,
-        destination,
-        start_date,
-        end_date,
+        name, description, destination, start_date, end_date,
         trip_type: trip_type || 'consumer',
         cover_image_url,
         created_by: user.id,
-        // ✅ Phase 2: Store enabled features for Pro/Event trips
-        // Consumer trips ignore this column and always have all features
         enabled_features: enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks']
       })
       .select()
@@ -81,18 +92,20 @@ serve(async (req) => {
 
     if (tripError) throw tripError;
 
-    // Add creator as admin member
     const { error: memberError } = await supabase
       .from('trip_members')
-      .insert({
-        trip_id: trip.id,
-        user_id: user.id,
-        role: 'admin'
-      });
+      .insert({ trip_id: trip.id, user_id: user.id, role: 'admin' });
 
     if (memberError) throw memberError;
 
-    console.log(`Trip created: ${trip.id} by user ${user.id}`);
+    // Increment taste test usage for free users
+    if (isFreeTier && trip_type === 'pro') {
+      await supabase.from('profiles').update({ free_pro_trips_used: freeProTripsUsed + 1 }).eq('user_id', user.id);
+    } else if (isFreeTier && trip_type === 'event') {
+      await supabase.from('profiles').update({ free_events_used: freeEventsUsed + 1 }).eq('user_id', user.id);
+    }
+
+    console.log(`Trip created: ${trip.id} by user ${user.id}, type: ${trip_type || 'consumer'}`);
 
     return new Response(
       JSON.stringify({ success: true, trip }),
