@@ -32,29 +32,24 @@ export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp }) 
           paddingTop: `max(8px, env(safe-area-inset-top))`
         }}
       >
-        <div className="flex items-center justify-between px-3 py-2">
-          {/* Logo */}
-          <div className="flex items-center min-w-[60px]">
-            <img 
-              src="/chravel-logo.png" 
-              alt="Chravel" 
-              className="h-7 w-auto"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
+        <div className="flex items-center justify-between px-3 py-2 gap-2">
+          {/* Chravel Pill */}
+          <div className="flex items-center flex-shrink-0">
+            <span className="px-3 py-1.5 bg-muted text-foreground rounded-lg text-sm font-semibold min-h-[36px] flex items-center border border-border/30">
+              Chravel
+            </span>
           </div>
 
           {/* Demo Toggle - Center */}
-          <div className="flex-1 flex justify-center">
+          <div className="flex-1 flex justify-center min-w-0">
             <DemoModeSelector />
           </div>
 
           {/* Login Button */}
-          <div className="min-w-[60px] flex justify-end">
+          <div className="flex-shrink-0">
             <button
               onClick={handleAuthClick}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm font-medium min-h-[36px]"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm font-medium min-h-[36px] border border-primary/30"
             >
               <LogIn size={16} />
               <span>Log In</span>
