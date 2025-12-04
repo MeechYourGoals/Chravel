@@ -13,7 +13,8 @@ export interface BasecampsPanelProps {
   tripId: string;
   tripBasecamp: BasecampLocation | null;
   onTripBasecampSet: (basecamp: BasecampLocation) => Promise<void> | void;
-  onCenterMap: (coords: { lat: number; lng: number }, type: 'trip' | 'personal') => void;
+  /** @deprecated Map centering is now disconnected from basecamp saving */
+  onCenterMap?: (coords: { lat: number; lng: number }, type: 'trip' | 'personal') => void;
   activeContext: 'trip' | 'personal';
   onContextChange: (context: 'trip' | 'personal') => void;
   personalBasecamp?: PersonalBasecamp | null;
@@ -24,7 +25,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   tripId,
   tripBasecamp,
   onTripBasecampSet,
-  onCenterMap,
+  // onCenterMap is deprecated - map centering is disconnected from basecamp saving
   personalBasecamp: externalPersonalBasecamp,
   onPersonalBasecampUpdate
 }) => {
@@ -85,11 +86,8 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   const handleTripBasecampSet = async (newBasecamp: BasecampLocation) => {
     await onTripBasecampSet(newBasecamp);
     setShowTripSelector(false);
-    
-    // Center map on new trip basecamp if coordinates exist ("most recent wins" behavior)
-    if (newBasecamp.coordinates) {
-      onCenterMap(newBasecamp.coordinates, 'trip');
-    }
+    // Note: Map centering is now disconnected from basecamp saving
+    // Basecamps are simple text references without coordinates
   };
 
   const handleTripBasecampClear = async () => {
@@ -112,33 +110,34 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
       let savedBasecamp: PersonalBasecamp | null = null;
       
       if (isDemoMode) {
+        // Save without coordinates - basecamp is just a text reference now
         savedBasecamp = demoModeService.setSessionPersonalBasecamp({
           trip_id: tripId,
           user_id: effectiveUserId,
           name: location.name,
           address: location.address,
-          latitude: location.coordinates?.lat,
-          longitude: location.coordinates?.lng
+          // No coordinates - basecamp is text-only
+          latitude: undefined,
+          longitude: undefined
         });
         setPersonalBasecamp(savedBasecamp);
       } else if (user) {
+        // Save without coordinates - basecamp is just a text reference now
         savedBasecamp = await basecampService.upsertPersonalBasecamp({
           trip_id: tripId,
           name: location.name,
           address: location.address,
-          latitude: location.coordinates?.lat,
-          longitude: location.coordinates?.lng
+          // No coordinates - basecamp is text-only
+          latitude: undefined,
+          longitude: undefined
         });
         setPersonalBasecamp(savedBasecamp);
       }
       
       setShowPersonalSelector(false);
       toast.success('Personal basecamp saved');
-      
-      // Center map on new personal basecamp if coordinates exist ("most recent wins" behavior)
-      if (savedBasecamp?.latitude && savedBasecamp?.longitude) {
-        onCenterMap({ lat: savedBasecamp.latitude, lng: savedBasecamp.longitude }, 'personal');
-      }
+      // Note: Map centering is now disconnected from basecamp saving
+      // Basecamps are simple text references without coordinates
     } catch (error) {
       console.error('[BasecampsPanel] Failed to set personal basecamp:', error);
       toast.error('Failed to set personal base camp');
