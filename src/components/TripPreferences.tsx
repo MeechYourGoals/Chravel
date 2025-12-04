@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
-import { Settings, Sparkles, Crown } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { TripPreferences as TripPreferencesType, DIETARY_OPTIONS, VIBE_OPTIONS, ACCESSIBILITY_OPTIONS, BUSINESS_OPTIONS, ENTERTAINMENT_OPTIONS, LIFESTYLE_OPTIONS } from '../types/consumer';
 import { Input } from './ui/input';
-import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { useDemoMode } from '../hooks/useDemoMode';
 
@@ -14,7 +13,6 @@ interface TripPreferencesProps {
 }
 
 export const TripPreferences = ({ tripId, onPreferencesChange, initialPreferences }: TripPreferencesProps) => {
-  const { isPlus } = useConsumerSubscription();
   const { isDemoMode } = useDemoMode();
   const { accentColors } = useTripVariant();
   const [preferences, setPreferences] = useState<TripPreferencesType>({
@@ -91,42 +89,6 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
     setPreferences(newPreferences);
     onPreferencesChange(newPreferences);
   };
-
-  if (!isPlus && !isDemoMode) {
-    return (
-      <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 relative">
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10">
-          <div className="text-center">
-            <Crown size={48} className={`text-${accentColors.primary} mx-auto mb-4`} />
-            <h3 className="text-xl font-bold text-white mb-2">Plus Exclusive</h3>
-            <p className="text-gray-300 mb-4">Set group preferences to get personalized AI recommendations</p>
-            <button className={`bg-gradient-to-r ${accentColors.gradient} text-white px-6 py-3 rounded-xl font-medium hover:scale-105 transition-transform`}>
-              Upgrade to Plus
-            </button>
-          </div>
-        </div>
-        
-        <div className="opacity-30">
-          <div className="flex items-center gap-3 mb-6">
-            <Settings size={24} className={`text-${accentColors.primary}`} />
-            <h3 className="text-lg font-semibold text-white">Trip Preferences</h3>
-          </div>
-          <div className="space-y-6">
-            <div>
-              <h4 className="text-white font-medium mb-3">Dietary Preferences</h4>
-              <div className="flex flex-wrap gap-2">
-                {DIETARY_OPTIONS.slice(0, 6).map((option) => (
-                  <span key={option} className="bg-gray-700 text-gray-300 px-3 py-1 rounded-full text-sm">
-                    {option}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
