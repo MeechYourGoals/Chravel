@@ -4,7 +4,7 @@ import { MessageReactionBar } from './MessageReactionBar';
 import { MessageActions } from './MessageActions';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { GroundingCitationCard } from './GroundingCitationCard';
-import { ChatMessageWithGrounding, GroundingCitation } from '@/types/grounding';
+import { GroundingCitation } from '@/types/grounding';
 import { MapPin, Maximize2, FileText, Download, Link, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMobilePortrait } from '@/hooks/useMobilePortrait';
