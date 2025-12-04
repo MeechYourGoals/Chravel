@@ -3,7 +3,6 @@ import { MapPin, Home, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { BasecampLocation } from '../types/basecamp';
 import { toast } from 'sonner';
-import { resolveQuery } from '@/services/googlePlacesNew';
 
 interface BasecampSelectorProps {
   isOpen: boolean;
@@ -49,68 +48,21 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampCle
     setIsLoading(true);
     
     try {
-      // Keep original casing for Google Places API matching
-      // (lowercase breaks business name matching like "Hotel One Miami")
+      // Simple text save - no geocoding, no Google Places API validation
+      // Users can enter any text: "Grandma's house", "Hotel lobby", etc.
       const trimmedAddress = address.trim();
-      
-      // Show loading indicator during geocoding
-      const loadingToastId = toast.loading('Finding location...');
-      
-      // Try to geocode the address to get coordinates
-      const sessionToken = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      let coordinates: { lat: number; lng: number } | undefined;
-      let formattedAddress = trimmedAddress;
-      let resolvedName = name.trim() || undefined;
-      
-      try {
-        console.log('[BasecampSelector] Starting geocode for:', trimmedAddress);
-        const geocoded = await resolveQuery(trimmedAddress, null, sessionToken);
-        console.log('[BasecampSelector] Geocode result:', geocoded);
-        
-        if (geocoded?.geometry?.location) {
-          const loc = geocoded.geometry.location;
-          // Handle both function and direct property access for lat/lng
-          const latValue = typeof loc.lat === 'function' ? loc.lat() : loc.lat;
-          const lngValue = typeof loc.lng === 'function' ? loc.lng() : loc.lng;
-          
-          if (typeof latValue === 'number' && typeof lngValue === 'number') {
-            coordinates = { lat: latValue, lng: lngValue };
-          }
-          
-          // Use formatted address from Google if available
-          if (geocoded.formatted_address) {
-            formattedAddress = geocoded.formatted_address;
-          }
-          
-          // Use place name if no custom name provided
-          if (!resolvedName && geocoded.name) {
-            resolvedName = geocoded.name;
-          }
-        }
-      } catch (geocodeError) {
-        // Geocoding failed - that's okay, we'll save without coordinates
-        console.warn('[BasecampSelector] Geocoding failed, saving address as-is:', geocodeError);
-      } finally {
-        // Dismiss loading toast
-        toast.dismiss(loadingToastId);
-      }
+      const resolvedName = name.trim() || undefined;
       
       const basecamp: BasecampLocation = {
-        address: formattedAddress,
+        address: trimmedAddress,
         name: resolvedName,
         type,
-        coordinates,
+        // No coordinates - basecamp is just a text reference now
+        coordinates: undefined,
       };
       
       await Promise.resolve(onBasecampSet(basecamp));
-      
-      // Show appropriate success message
-      if (coordinates) {
-        toast.success('Basecamp saved with map location! 📍');
-      } else {
-        toast.info('Basecamp saved! (Location not mappable, but saved as reference)');
-      }
-      
+      toast.success('Basecamp saved!');
       onClose();
     } catch {
       toast.error('Failed to set basecamp. Please try again.');
@@ -146,7 +98,7 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampCle
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="relative">
             <label className="block text-sm font-semibold text-white mb-2">
-              Basecamp Address *
+              Basecamp Location *
             </label>
             <div className="relative">
               <MapPin size={18} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 z-10" />
@@ -154,21 +106,24 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampCle
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="Enter basecamp address"
+                placeholder="e.g., Grandma's house, Hotel lobby, 123 Main St"
                 className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-12 pr-4 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
               />
             </div>
+            <p className="text-gray-500 text-xs mt-1">
+              Enter any description - no exact address needed
+            </p>
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-white mb-2">
-              Basecamp Name (optional)
+              Nickname (optional)
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., 'Grand Hotel Paris' or 'Downtown Airbnb'"
+              placeholder="e.g., 'The Beach House' or 'Mom's Place'"
               className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
             />
           </div>

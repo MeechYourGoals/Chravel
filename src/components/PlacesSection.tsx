@@ -4,9 +4,7 @@ import { UnifiedMapControls } from './places/UnifiedMapControls';
 import { BasecampsPanel } from './places/BasecampsPanel';
 import { LinksPanel } from './places/LinksPanel';
 import { BasecampLocation, PlaceWithDistance, DistanceCalculationSettings, PlaceCategory } from '../types/basecamp';
-import { DistanceCalculator } from '../utils/distanceCalculator';
 import { useTripVariant } from '../contexts/TripVariantContext';
-import { AddToCalendarData } from '../types/calendar';
 import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
@@ -39,10 +37,10 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
   const [searchContext, setSearchContext] = useState<'trip' | 'personal'>('trip');
   const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
   // Reserved for personal basecamp modal
-  const [showPersonalBasecampSelector, setShowPersonalBasecampSelector] = useState(false);
+  const [_showPersonalBasecampSelector, setShowPersonalBasecampSelector] = useState(false);
   
-  // Track most recent location for priority centering
-  const [lastUpdatedLocation, setLastUpdatedLocation] = useState<{
+  // Track most recent location for priority centering (reserved for future use)
+  const [_lastUpdatedLocation, setLastUpdatedLocation] = useState<{
     type: 'trip' | 'personal' | 'search';
     timestamp: number;
     coords: { lat: number; lng: number };
@@ -56,13 +54,14 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchOrigin, setSearchOrigin] = useState<{ lat: number; lng: number } | null>(null);
   const [isMapLoading, setIsMapLoading] = useState(true);
-  const [distanceSettings] = useState<DistanceCalculationSettings>({
+  // Distance settings for display purposes (basecamp distances are no longer calculated)
+  const distanceSettings: DistanceCalculationSettings = {
     preferredMode: 'driving',
     unit: 'miles',
-    showDistances: true
-  });
+    showDistances: false // Disabled since basecamps no longer have coordinates
+  };
 
-  const { createLinkFromPlace, removeLinkByPlaceId, updateLinkByPlaceId } = usePlacesLinkSync();
+  const { createLinkFromPlace, removeLinkByPlaceId } = usePlacesLinkSync();
 
   // Generate demo user ID
   const getDemoUserId = () => {
@@ -238,7 +237,7 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
           table: 'trips',
           filter: `id=eq.${tripId}`
         },
-        async (payload) => {
+        async (_payload) => {
           // Fetch updated basecamp
           const updatedBasecamp = await basecampService.getTripBasecamp(tripId);
           if (!updatedBasecamp) return;
@@ -268,57 +267,9 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
     };
   }, [tripId, isDemoMode, setContextBasecamp]);
 
-  // Update search origin when context or basecamps change
-  useEffect(() => {
-    if (searchContext === 'trip' && contextBasecamp?.coordinates) {
-      setSearchOrigin(contextBasecamp.coordinates);
-    } else if (searchContext === 'personal' && personalBasecamp?.latitude && personalBasecamp?.longitude) {
-      setSearchOrigin({ lat: personalBasecamp.latitude, lng: personalBasecamp.longitude });
-    } else {
-      setSearchOrigin(null);
-    }
-  }, [searchContext, contextBasecamp, personalBasecamp]);
-
-  // Recalculate distances for existing places when basecamp changes
-  useEffect(() => {
-    if (isBasecampSet && contextBasecamp && places.length > 0) {
-      const recalculateDistances = async () => {
-        const updatedPlaces = await Promise.all(
-          places.map(async (place) => {
-            try {
-              const distance = await DistanceCalculator.calculateDistance(
-                contextBasecamp,
-                place,
-                distanceSettings
-              );
-              
-              const updatedPlace = {
-                ...place,
-                distanceFromBasecamp: distance ? {
-                  [distanceSettings.preferredMode]: distance,
-                  unit: distanceSettings.unit as 'miles' | 'km',
-                  calculatedAt: new Date().toISOString()
-                } : undefined
-              };
-
-              // Update the corresponding link
-              await updateLinkByPlaceId(place.id, updatedPlace, tripId, user?.id);
-              return updatedPlace;
-            } catch (error) {
-              if (import.meta.env.DEV) {
-                console.warn(`Failed to calculate distance for place ${place.id}:`, error);
-              }
-              return place;
-            }
-          })
-        );
-
-        setPlaces(updatedPlaces);
-      };
-
-      recalculateDistances();
-    }
-  }, [contextBasecamp, isBasecampSet, distanceSettings.preferredMode, distanceSettings.unit]);
+  // Note: Search origin and distance calculations are no longer tied to basecamps
+  // Basecamps are now simple text references without coordinates
+  // The map is for browsing only and is not affected by basecamp changes
 
   const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
     // Track local update for conflict resolution
@@ -329,86 +280,9 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
     
     setContextBasecamp(newBasecamp);
     
-    // Auto-center map on trip basecamp if coordinates exist ("most recent wins" behavior)
-    if (newBasecamp.coordinates) {
-      handleCenterMap(newBasecamp.coordinates, 'trip');
-    }
-    
-    // Recalculate distances for existing places
-    if (places.length > 0) {
-      const updatedPlaces = await Promise.all(
-        places.map(async (place) => {
-          const distance = await DistanceCalculator.calculateDistance(
-            newBasecamp,
-            place,
-            distanceSettings
-          );
-          
-          const updatedPlace = {
-            ...place,
-            distanceFromBasecamp: distance ? {
-              ...place.distanceFromBasecamp,
-              [distanceSettings.preferredMode]: distance,
-              unit: distanceSettings.unit
-            } : undefined
-          };
-
-          // Update the corresponding link
-          await updateLinkByPlaceId(place.id, updatedPlace, tripId, user?.id);
-          return updatedPlace;
-        })
-      );
-      setPlaces(updatedPlaces);
-    }
-  };
-
-  const handlePlaceAdded = async (newPlace: PlaceWithDistance) => {
-    // Calculate distance if basecamp is set
-    if (contextBasecamp && distanceSettings.showDistances) {
-      const distance = await DistanceCalculator.calculateDistance(
-        contextBasecamp,
-        newPlace,
-        distanceSettings
-      );
-
-      if (distance) {
-        newPlace.distanceFromBasecamp = {
-          [distanceSettings.preferredMode]: distance,
-          unit: distanceSettings.unit
-        };
-      }
-    }
-
-    setPlaces([...places, newPlace]);
-
-    // Note: Link creation is now manual via "Add to Links" button
-  };
-
-  const handleAddToLinks = async (place: PlaceWithDistance) => {
-    try {
-      await createLinkFromPlace(place, 'You', tripId, user?.id);
-      setLinkedPlaceIds(prev => new Set(prev).add(place.id));
-      return true;
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Failed to add place to links:', error);
-      }
-      return false;
-    }
-  };
-
-  const handlePlaceRemoved = async (placeId: string) => {
-    setPlaces(prev => prev.filter(place => place.id !== placeId));
-    setLinkedPlaceIds(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(placeId);
-      return newSet;
-    });
-    await removeLinkByPlaceId(placeId, tripId, user?.id);
-  };
-
-  const handleEventAdded = (eventData: AddToCalendarData) => {
-    // Event added to calendar
+    // Note: Map centering is now disconnected from basecamp saving
+    // Basecamps are simple text references without coordinates
+    // The map is for browsing only and is not affected by basecamp changes
   };
 
   const handleCenterMap = (coords: { lat: number; lng: number }, type?: 'trip' | 'personal' | 'search') => {
@@ -446,13 +320,8 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
 
   const handleContextChange = (context: 'trip' | 'personal') => {
     setSearchContext(context);
-
-    // Update search origin for biasing searches near basecamp
-    if (context === 'trip' && contextBasecamp?.coordinates) {
-      setSearchOrigin(contextBasecamp.coordinates);
-    } else if (context === 'personal' && personalBasecamp?.latitude && personalBasecamp?.longitude) {
-      setSearchOrigin({ lat: personalBasecamp.latitude, lng: personalBasecamp.longitude });
-    }
+    // Note: Search origin is no longer tied to basecamps since they don't have coordinates
+    // Users can still search the map freely
 
     // Show personal basecamp selector if personal context selected but not set
     if (context === 'personal' && !personalBasecamp) {
@@ -604,14 +473,11 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
     coordinates: pb.latitude && pb.longitude ? { lat: pb.latitude, lng: pb.longitude } : undefined
   });
 
-  // Wrapper for personal basecamp updates that triggers map centering ("most recent wins" behavior)
+  // Wrapper for personal basecamp updates
   const handlePersonalBasecampUpdate = (basecamp: PersonalBasecamp | null) => {
     setPersonalBasecamp(basecamp);
-    
-    // Auto-center map on personal basecamp if coordinates exist
-    if (basecamp?.latitude && basecamp?.longitude) {
-      handleCenterMap({ lat: basecamp.latitude, lng: basecamp.longitude }, 'personal');
-    }
+    // Note: Map centering is now disconnected from basecamp saving
+    // Basecamps are simple text references without coordinates
   };
 
   const handleMapReady = () => {
@@ -681,8 +547,8 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
                   return true;
                 }}
                 linkedPlaceIds={linkedPlaceIds}
-                onEventAdded={(eventData) => {
-                  // Event added to calendar
+                onEventAdded={(_eventData) => {
+                  // Event added to calendar (reserved for future use)
                 }}
                 onCenterMap={(coords) => {
                   if (mapRef.current) {
