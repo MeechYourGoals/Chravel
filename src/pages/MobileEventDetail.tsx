@@ -9,7 +9,7 @@ import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useTrips } from '../hooks/useTrips';
-import { convertSupabaseTripsToMock } from '../utils/tripConverter';
+import { convertSupabaseTripToEvent } from '../utils/tripConverter';
 import { eventsMockData } from '../data/eventsMockData';
 
 export const MobileEventDetail = () => {
@@ -40,21 +40,12 @@ export const MobileEventDetail = () => {
       return eventsMockData[eventId] || null;
     }
     
-    // Authenticated mode: find Event from Supabase data
-    const allTrips = convertSupabaseTripsToMock(userTrips);
-    const event = allTrips.find(t => String(t.id) === eventId && t.trip_type === 'event');
+    // Authenticated mode: find event from user's trips (Supabase data)
+    const eventTrip = userTrips?.find(t => t.id === eventId && t.trip_type === 'event');
+    if (!eventTrip) return null;
     
-    if (!event) return null;
-    
-    // Convert to eventData format expected by components
-    return {
-      id: event.id,
-      title: event.title,
-      location: event.location,
-      dateRange: event.dateRange,
-      description: event.description,
-      participants: event.participants || []
-    };
+    // Convert Supabase trip to full EventData format
+    return convertSupabaseTripToEvent(eventTrip);
   }, [eventId, isDemoMode, userTrips]);
 
   // Set trip description when eventData loads
