@@ -38,17 +38,25 @@ export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEven
       const startTime = new Date(eventDate);
       startTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
-      // Create event via calendar service
-      const createdEvent = await calendarService.createEvent({
-        trip_id: tripId,
-        title,
-        description: description || undefined,
-        start_time: startTime.toISOString(),
-        location: location || undefined,
-        include_in_itinerary: true,
-        source_type: 'manual',
-        source_data: { created_from: 'mobile' }
+      // Create timeout promise (10 seconds)
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Event creation timed out. Please try again.')), 10000);
       });
+
+      // Race between actual creation and timeout
+      const createdEvent = await Promise.race([
+        calendarService.createEvent({
+          trip_id: tripId,
+          title,
+          description: description || undefined,
+          start_time: startTime.toISOString(),
+          location: location || undefined,
+          include_in_itinerary: true,
+          source_type: 'manual',
+          source_data: { created_from: 'mobile' }
+        }),
+        timeoutPromise
+      ]);
 
       if (createdEvent) {
         toast.success('Event created', {
@@ -69,8 +77,9 @@ export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEven
       }
     } catch (error) {
       console.error('Failed to create event:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Please try again or contact support';
       toast.error('Failed to create event', {
-        description: 'Please try again or contact support if the issue persists'
+        description: errorMessage
       });
     } finally {
       setIsSubmitting(false);

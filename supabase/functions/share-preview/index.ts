@@ -320,7 +320,7 @@ serve(async (req): Promise<Response> => {
       imageUrl: tripData.cover_image_url || DEFAULT_IMAGE,
       url: redirectUrl,
       siteName: "Chravel",
-      type: tripType === 'consumer' ? 'trip' : tripType as 'trip' | 'event' | 'pro',
+      type: tripType,
       destination: tripData.destination || undefined,
       dateRange: dateRange || undefined,
       memberCount
