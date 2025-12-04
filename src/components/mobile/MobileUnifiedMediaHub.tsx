@@ -127,7 +127,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           { id: 'photos', label: 'Photos', count: photosCount },
           { id: 'videos', label: 'Videos', count: videosCount },
           { id: 'files', label: 'Files', count: filesCount },
-          { id: 'urls', label: 'URLs', count: urlsCount }
+          { id: 'urls', label: 'Links', count: urlsCount }
         ] as const).map((tab) => (
           <button
             key={tab.id}
@@ -172,11 +172,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
             <div className="ios-bounce">
               <ImageIcon size={48} className="text-gray-600 mx-auto mb-3" />
               <p className="text-gray-400 mb-2 font-medium">
-                {selectedTab === 'urls' ? 'No URLs yet' : 'No media yet'}
+                {selectedTab === 'urls' ? 'No links yet' : 'No media yet'}
               </p>
               <p className="text-sm text-gray-500">
                 {selectedTab === 'urls' 
-                  ? 'Links shared in chat will appear here' 
+                  ? 'URLs shared in chat will appear here' 
                   : 'Tap the camera button to add photos'
                 }
               </p>

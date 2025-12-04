@@ -21,11 +21,12 @@ export interface Message {
     url: string;
     name?: string;
   }>;
-  media_type?: string;
-  media_url?: string;
+  media_type?: string | null;
+  media_url?: string | null;
   link_preview?: any;
   privacy_mode?: string;
   privacy_encrypted?: boolean;
+  message_type?: 'text' | 'broadcast' | 'payment' | 'system';
 }
 
 export interface SendMessageOptions {
@@ -332,7 +333,8 @@ class UnifiedMessagingService {
       media_url: data.media_url,
       link_preview: data.link_preview,
       privacy_mode: data.privacy_mode,
-      privacy_encrypted: data.privacy_encrypted
+      privacy_encrypted: data.privacy_encrypted,
+      message_type: data.message_type
     };
   }
 

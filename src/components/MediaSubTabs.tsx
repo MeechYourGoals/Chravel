@@ -74,10 +74,10 @@ export const MediaSubTabs = ({ items, type, searchQuery }: MediaSubTabsProps) =>
 
     return (
       <div className="space-y-4">
-        {/* Header with Add URL Button */}
+        {/* Header with Add Link Button */}
         <div className="flex justify-between items-center p-4 bg-muted/30 rounded-lg">
           <h3 className="text-lg font-semibold text-foreground">
-            All URLs ({linkItems.length})
+            All Links ({linkItems.length})
           </h3>
           <Button
             variant="ghost"
@@ -86,21 +86,21 @@ export const MediaSubTabs = ({ items, type, searchQuery }: MediaSubTabsProps) =>
             className="text-xs"
           >
             <Link className="w-4 h-4 mr-1" />
-            + Add URL
+            + Add Link
           </Button>
         </div>
 
-        {/* URLs Display */}
+        {/* Links Display */}
         {linkItems.length === 0 ? (
           <div className="text-center py-8">
             <Link className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
             <p className="text-muted-foreground text-sm">
-              URLs shared in chat will appear here automatically
+              Links shared in chat will appear here automatically
             </p>
           </div>
         ) : null}
 
-        {/* URLs Display */}
+        {/* Links Display */}
         {linkItems.length > 0 && linkItems.map((item) => (
           <div key={item.id} className="bg-card border rounded-lg p-4 hover:bg-card/80 transition-colors">
             <div className="flex gap-4">

@@ -298,7 +298,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                 </Dialog>
               </TooltipTrigger>
               <TooltipContent>
-                <p className="text-xs">💡 Add important URLs for your trip here. You can also promote URLs from the Media tab.</p>
+                <p className="text-xs">💡 Add important links for your trip here. You can also promote links from the Media tab.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
