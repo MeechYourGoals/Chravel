@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Calendar, MapPin, Users, Plus, Settings, Edit, FileDown, Camera } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, Settings, Edit, FileDown, Camera, Loader2 } from 'lucide-react';
 import { InviteModal } from './InviteModal';
 import { EditableDescription } from './EditableDescription';
 import { useTripVariant } from '../contexts/TripVariantContext';
@@ -13,6 +13,9 @@ import { EditTripModal } from './EditTripModal';
 import { cn } from '@/lib/utils';
 import { useTripMembers } from '../hooks/useTripMembers';
 import { useAuth } from '../hooks/useAuth';
+import { useDemoMode } from '../hooks/useDemoMode';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 
 interface TripHeaderProps {
@@ -53,8 +56,10 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
     trip.coverPhoto
   );
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const { tripCreatorId, canRemoveMembers, removeMember } = useTripMembers(trip.id.toString());
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   
   // Check if current user can remove members
   useEffect(() => {
@@ -91,24 +96,74 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      toast.error('Please select an image file');
       return;
     }
 
     // Validate file size (10MB max)
     if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB');
+      toast.error('File size must be less than 10MB');
       return;
     }
 
-    // Create object URL for immediate preview
-    const objectUrl = URL.createObjectURL(file);
-    
-    // Update cover photo through hook
-    const success = await updateCoverPhoto(objectUrl);
-    
-    if (success && fileInputRef.current) {
-      fileInputRef.current.value = '';
+    // Demo mode: use blob URL (it's fine for demo)
+    if (isDemoMode) {
+      const objectUrl = URL.createObjectURL(file);
+      const success = await updateCoverPhoto(objectUrl);
+      if (success && fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    // Authenticated mode: upload to Supabase Storage
+    if (!user) {
+      toast.error('Please sign in to upload cover photos');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${trip.id}-${Date.now()}.${fileExt}`;
+      const filePath = `trip-covers/${trip.id}/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data, error: uploadError } = await supabase.storage
+        .from('trip-photos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        toast.error('Failed to upload cover photo');
+        return;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('trip-photos')
+        .getPublicUrl(filePath);
+
+      if (!urlData?.publicUrl) {
+        toast.error('Failed to get image URL');
+        return;
+      }
+
+      // Update cover photo with real URL
+      const success = await updateCoverPhoto(urlData.publicUrl);
+      
+      if (success && fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Cover photo upload error:', error);
+      toast.error('Failed to upload cover photo');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -154,12 +209,21 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
               <div className="absolute top-4 right-4 z-10">
                 <button
                   onClick={handleAddCoverPhotoClick}
-                  disabled={isUpdating}
+                  disabled={isUpdating || isUploading}
                   className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2 text-white/80 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Add cover photo"
                 >
-                  <Camera size={16} />
-                  <span className="text-sm font-medium">Add Cover Photo</span>
+                  {isUploading ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span className="text-sm font-medium">Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera size={16} />
+                      <span className="text-sm font-medium">Add Cover Photo</span>
+                    </>
+                  )}
                 </button>
                 <input
                   ref={fileInputRef}
@@ -215,7 +279,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
           </>
         )}
 
-        <div className={cn("flex flex-col md:flex-row md:items-start md:justify-between gap-6", hasCoverPhoto && isProOrEvent && "relative z-10")}>
+        <div className={cn("flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4", hasCoverPhoto && isProOrEvent && "relative z-10")}>
           {/* Left: Trip Details */}
           <div className="flex-1 space-y-4">
             {/* Show title/location/dates here only for Pro/Event trips (consumer trips show in hero section) */}
@@ -261,10 +325,10 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
             />
           </div>
 
-          {/* Right: Collaborators Panel - Reduced to 75% height */}
+          {/* Right: Collaborators Panel - Full width on mobile, constrained on desktop */}
           <div 
             className={cn(
-              "rounded-2xl p-3 pb-2 lg:mb-4 min-w-[280px] lg:w-[40%] border border-white/10 max-h-[240px]",
+              "rounded-2xl p-3 pb-2 w-full lg:min-w-[280px] lg:w-[40%] border border-white/10 max-h-[240px]",
               hasCoverPhoto && isProOrEvent 
                 ? "bg-black/50 backdrop-blur-md" 
                 : "bg-white/5 backdrop-blur-sm"

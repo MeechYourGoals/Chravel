@@ -39,10 +39,10 @@ export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
   return (
     <section aria-labelledby="collab-title" className="relative">
       <div className="relative">
+        {/* Use flex-wrap for content-sized pills instead of grid with 1fr */}
         <div
-          className="grid gap-2"
+          className="flex flex-wrap gap-2"
           style={{
-            gridTemplateColumns: `repeat(auto-fill, minmax(${minColWidth}px, 1fr))`,
             maxHeight: `${clampHeight}px`,
             overflow: 'hidden',
           }}
@@ -52,7 +52,7 @@ export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
           {participants.map((c) => (
             <button
               key={c.id}
-              className="group flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 transition"
+              className="group inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 transition w-auto shrink-0 max-w-[200px]"
               role="listitem"
               title={c.role ? `${c.name} • ${c.role}` : c.name}
             >
@@ -60,15 +60,15 @@ export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
               <img
                 src={c.avatar}
                 alt={c.name}
-                className="h-7 w-7 rounded-full object-cover border border-white/20"
+                className="h-7 w-7 rounded-full object-cover border border-white/20 shrink-0"
                 loading="lazy"
               />
             ) : (
-              <div className="h-7 w-7 rounded-full bg-white/10 text-white/80 grid place-items-center text-[10px] font-semibold border border-white/20">
+              <div className="h-7 w-7 rounded-full bg-white/10 text-white/80 grid place-items-center text-[10px] font-semibold border border-white/20 shrink-0">
                 {getInitials(c.name)}
               </div>
             )}
-            <div className="flex-1 min-w-0 text-left">
+            <div className="min-w-0 text-left">
               <div className="truncate text-xs font-medium text-white">{formatCollaboratorName(c.name, tripType)}</div>
                 {c.role && (
                   <div className="truncate text-[10px] text-gray-400">{c.role}</div>
