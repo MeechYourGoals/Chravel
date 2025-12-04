@@ -147,7 +147,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
     return (
       <div className="text-center py-12">
         <Globe className="mx-auto h-12 w-12 text-red-400 mb-4" />
-        <h3 className="text-lg font-medium text-foreground mb-2">Error Loading URLs</h3>
+        <h3 className="text-lg font-medium text-foreground mb-2">Error Loading Links</h3>
         <p className="text-muted-foreground mb-4">{error}</p>
         <Button onClick={fetchUrls} variant="outline">
           Retry
@@ -160,9 +160,9 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
     return (
       <div className="text-center py-12">
         <Link className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium text-foreground mb-2">No URLs Yet</h3>
+        <h3 className="text-lg font-medium text-foreground mb-2">No Links Yet</h3>
         <p className="text-muted-foreground">
-          Share a website in Chat and it shows up here automatically
+          Share a URL in Chat and it shows up here automatically
         </p>
       </div>
     );
@@ -173,7 +173,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
       {/* Header */}
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-foreground">
-          URLs from Chat ({urls.length})
+          Links from Chat ({urls.length})
         </h3>
       </div>
 
@@ -259,7 +259,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
       {/* Info Footer */}
       <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-lg">
         <p className="text-xs text-muted-foreground">
-          💡 <strong>Tip:</strong> URLs shared in Chat automatically appear here. 
+          💡 <strong>Tip:</strong> Links shared in Chat automatically appear here. 
           Use "Promote to Trip Link" to save important ones to your Places tab.
         </p>
       </div>

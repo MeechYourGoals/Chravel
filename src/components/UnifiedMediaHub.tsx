@@ -169,7 +169,7 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
             )}
           </TabsTrigger>
           <TabsTrigger value="urls" className="text-xs">
-            URLs
+            Links
             {urlsCount > 0 && (
               <span className="ml-1 text-[10px] opacity-70">({urlsCount})</span>
             )}
