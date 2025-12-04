@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Plus, Megaphone, Link, Camera, Video, FileText, Loader2 } from 'lucide-react';
+import { Send, Plus, Megaphone, Link, Camera, Video, FileText, Loader2, Upload, Image, Film, File } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { PaymentInput } from '../payments/PaymentInput';
@@ -9,11 +8,21 @@ import { useMediaUpload } from '@/hooks/useMediaUpload';
 import { ParsedContentSuggestions } from './ParsedContentSuggestions';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
+import { fetchOGMetadata } from '@/services/ogMetadataService';
+import { cn } from '@/lib/utils';
+
+// URL detection regex
+const URL_REGEX = /https?:\/\/[^\s<>"{}|\\^`[\]]+/gi;
+
+function extractFirstUrl(text: string): string | null {
+  const matches = text.match(URL_REGEX);
+  return matches ? matches[0] : null;
+}
 
 interface ChatInputProps {
   inputMessage: string;
   onInputChange: (message: string) => void;
-  onSendMessage: (isBroadcast?: boolean, isPayment?: boolean, paymentData?: any) => void;
+  onSendMessage: (isBroadcast?: boolean, isPayment?: boolean, paymentData?: any, linkPreview?: any) => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
   onFileUpload?: (files: FileList, type: 'image' | 'video' | 'document') => void;
   apiKey: string;
@@ -42,7 +51,11 @@ export const ChatInput = ({
 }: ChatInputProps) => {
   const [isBroadcastMode, setIsBroadcastMode] = useState(false);
   const [isPaymentMode, setIsPaymentMode] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false);
+  const [isFetchingPreview, setIsFetchingPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+  
   const { 
     shareFile, 
     shareLink, 
@@ -76,10 +89,35 @@ export const ChatInput = ({
     }
   }, [inputMessage, onTypingChange]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!isPaymentMode) {
       onTypingChange?.(false);
-      onSendMessage(isBroadcastMode, false);
+      
+      // Check for URL and fetch OG metadata
+      const url = extractFirstUrl(inputMessage);
+      let linkPreview = null;
+      
+      if (url) {
+        setIsFetchingPreview(true);
+        try {
+          const metadata = await fetchOGMetadata(url);
+          if (metadata && !metadata.error) {
+            linkPreview = {
+              url,
+              title: metadata.title,
+              description: metadata.description,
+              image: metadata.image,
+              domain: new URL(url).hostname.replace('www.', ''),
+            };
+          }
+        } catch (error) {
+          console.warn('Failed to fetch OG metadata:', error);
+        } finally {
+          setIsFetchingPreview(false);
+        }
+      }
+      
+      onSendMessage(isBroadcastMode, false, undefined, linkPreview);
     }
   };
 
@@ -124,8 +162,32 @@ export const ChatInput = ({
     fileInputRef.current.click();
   };
 
+  // Drag and drop handlers with visual feedback
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set inactive if leaving the drop zone entirely
+    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
+      setIsDragActive(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+    
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       // Use new upload hook with progress tracking
@@ -144,10 +206,6 @@ export const ChatInput = ({
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
   const handleLinkShare = async () => {
     const url = prompt('Paste the link you want to share:');
     if (url && url.trim()) {
@@ -157,6 +215,28 @@ export const ChatInput = ({
         console.error('Failed to share link:', error);
       }
     }
+  };
+
+  // Detect file type from drag event
+  const getFileTypeFromDrag = (e: React.DragEvent): 'image' | 'video' | 'document' | 'mixed' => {
+    const items = e.dataTransfer.items;
+    if (!items || items.length === 0) return 'document';
+    
+    let hasImage = false;
+    let hasVideo = false;
+    let hasDocument = false;
+    
+    for (let i = 0; i < items.length; i++) {
+      const type = items[i].type;
+      if (type.startsWith('image/')) hasImage = true;
+      else if (type.startsWith('video/')) hasVideo = true;
+      else hasDocument = true;
+    }
+    
+    if (hasImage && !hasVideo && !hasDocument) return 'image';
+    if (hasVideo && !hasImage && !hasDocument) return 'video';
+    if (hasDocument && !hasImage && !hasVideo) return 'document';
+    return 'mixed';
   };
 
   return (
@@ -184,11 +264,36 @@ export const ChatInput = ({
       {/* Composer Row with + Button */}
       {!isPaymentMode && (
         <div 
-          className="chat-composer flex items-center gap-2 px-3 py-2 bg-neutral-950/90 backdrop-blur-md sticky bottom-0"
+          ref={dropZoneRef}
+          className={cn(
+            "chat-composer flex items-center gap-2 px-3 py-2 bg-neutral-950/90 backdrop-blur-md sticky bottom-0 relative transition-all duration-200",
+            isDragActive && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+          )}
           style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
-          onDrop={handleDrop}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
+          onDrop={handleDrop}
         >
+          {/* Drag overlay */}
+          {isDragActive && (
+            <div className="absolute inset-0 z-20 bg-primary/10 border-2 border-dashed border-primary rounded-xl flex flex-col items-center justify-center gap-3 backdrop-blur-sm">
+              <Upload className="w-8 h-8 text-primary animate-bounce" />
+              <p className="text-primary font-medium text-sm">Drop files here</p>
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Image className="w-4 h-4" /> Photos
+                </span>
+                <span className="flex items-center gap-1">
+                  <Film className="w-4 h-4" /> Videos
+                </span>
+                <span className="flex items-center gap-1">
+                  <File className="w-4 h-4" /> Documents
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* + Button with Dropdown Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -263,24 +368,30 @@ export const ChatInput = ({
                 : "Type a message…"
             }
             rows={1}
-            className={`flex-1 min-h-[44px] sm:min-h-[48px] px-4 py-2 rounded-full resize-none focus:outline-none focus-visible:ring-2 transition-all ${
+            className={cn(
+              "flex-1 min-h-[44px] sm:min-h-[48px] px-4 py-2 rounded-full resize-none focus:outline-none focus-visible:ring-2 transition-all",
               isBroadcastMode
                 ? 'bg-white/5 border border-orange-500/50 focus-visible:ring-orange-500/40 backdrop-blur-sm text-white placeholder-red-800/80'
                 : 'bg-white/5 border border-white/10 focus-visible:ring-blue-500/40 backdrop-blur-sm text-white placeholder-neutral-400'
-            }`}
+            )}
           />
 
           {/* Send Button */}
           <button
             onClick={handleSend}
-            disabled={(!inputMessage.trim() && !isMediaUploading && !isShareUploading) || isTyping}
-            className={`size-10 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${
+            disabled={(!inputMessage.trim() && !isMediaUploading && !isShareUploading) || isTyping || isFetchingPreview}
+            className={cn(
+              "size-10 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center",
               isBroadcastMode
                 ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:opacity-90'
                 : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90'
-            }`}
+            )}
           >
-            <Send size={18} className="text-white" />
+            {isFetchingPreview ? (
+              <Loader2 size={18} className="text-white animate-spin" />
+            ) : (
+              <Send size={18} className="text-white" />
+            )}
           </button>
 
           {/* Hidden file input */}
@@ -316,13 +427,14 @@ export const ChatInput = ({
             <div key={progress.fileId} className="flex items-center gap-2 text-sm">
               <div className="flex-1 bg-neutral-700 rounded-full h-2 overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-300 ${
+                  className={cn(
+                    "h-full transition-all duration-300",
                     progress.status === 'completed'
                       ? 'bg-green-500'
                       : progress.status === 'error'
                       ? 'bg-red-500'
                       : 'bg-blue-500'
-                  }`}
+                  )}
                   style={{ width: `${progress.progress}%` }}
                 />
               </div>
