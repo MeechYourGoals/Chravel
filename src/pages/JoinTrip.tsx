@@ -1,53 +1,58 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'sonner';
-import { Loader2, Users, MapPin, Calendar, Clock, Image } from 'lucide-react';
+import { Loader2, Users, MapPin, Calendar, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
 
-interface InviteData {
-  trip_id: string;
-  invite_token?: string;
-  created_at: string;
-  require_approval?: boolean;
-  expires_at?: string | null;
-  max_uses?: number;
-  current_uses?: number;
-  is_active?: boolean;
-  code?: string;
-  id?: string;
-  created_by?: string;
-  updated_at?: string;
+interface InvitePreviewData {
+  invite: {
+    trip_id: string;
+    is_active: boolean;
+    expires_at: string | null;
+    max_uses: number | null;
+    current_uses: number;
+    require_approval: boolean;
+  };
+  trip: {
+    name: string;
+    destination: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    cover_image_url: string | null;
+    trip_type: string | null;
+    member_count: number;
+  };
 }
 
-interface TripDetails {
-  name: string;
-  destination?: string;
-  start_date?: string;
-  end_date?: string;
-  cover_image_url?: string;
-  trip_type?: string;
-  member_count?: number;
+type ErrorCode = 'INVALID' | 'EXPIRED' | 'INACTIVE' | 'MAX_USES' | 'NOT_FOUND' | 'NETWORK';
+
+interface InviteError {
+  message: string;
+  code: ErrorCode;
 }
+
+const INVITE_CODE_STORAGE_KEY = 'chravel_pending_invite_code';
 
 const JoinTrip = () => {
   const { token } = useParams<{ token?: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const location = useLocation();
+  const { user, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
-  const [inviteData, setInviteData] = useState<InviteData | null>(null);
-  const [tripDetails, setTripDetails] = useState<TripDetails | null>(null);
-  const [error, setError] = useState<string>('');
+  const [inviteData, setInviteData] = useState<InvitePreviewData | null>(null);
+  const [error, setError] = useState<InviteError | null>(null);
+  const [joinSuccess, setJoinSuccess] = useState(false);
 
   // Set document head for rich link previews
   useEffect(() => {
-    const tripName = tripDetails?.name || 'an Amazing Trip';
-    const destination = tripDetails?.destination || 'an exciting destination';
-    const imageUrl = tripDetails?.cover_image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop';
-    
+    const tripName = inviteData?.trip.name || 'an Amazing Trip';
+    const destination = inviteData?.trip.destination || 'an exciting destination';
+    const imageUrl = inviteData?.trip.cover_image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop';
+
     document.title = `Join ${tripName} - Chravel`;
-    
+
     const updateMetaTag = (property: string, content: string) => {
       let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
       if (!meta) {
@@ -76,13 +81,23 @@ const JoinTrip = () => {
     updateMetaName('twitter:title', `Join ${tripName}!`);
     updateMetaName('twitter:description', `You've been invited to join a trip to ${destination}. Click to see details!`);
     updateMetaName('twitter:image', imageUrl);
-  }, [tripDetails]);
+  }, [inviteData]);
+
+  // Check for stored invite code after login
+  useEffect(() => {
+    const storedInviteCode = sessionStorage.getItem(INVITE_CODE_STORAGE_KEY);
+    if (storedInviteCode && user && !token) {
+      // User just logged in with a pending invite
+      sessionStorage.removeItem(INVITE_CODE_STORAGE_KEY);
+      navigate(`/join/${storedInviteCode}`, { replace: true });
+    }
+  }, [user, token, navigate]);
 
   useEffect(() => {
     if (token) {
       checkDeepLinkAndFetchInvite();
     } else {
-      setError('Invalid invite link');
+      setError({ message: 'Invalid invite link', code: 'INVALID' });
       setLoading(false);
     }
   }, [token]);
@@ -91,108 +106,73 @@ const JoinTrip = () => {
     if (!token) return;
 
     const deepLinkUrl = `chravel://join-trip/${token}`;
-    
+
     if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
       const startTime = Date.now();
       window.location.href = deepLinkUrl;
-      
+
       setTimeout(() => {
         if (Date.now() - startTime < 2000) {
-          fetchInviteData();
+          fetchInvitePreview();
         }
       }, 1500);
     } else {
-      fetchInviteData();
+      fetchInvitePreview();
     }
   };
 
-  const fetchInviteData = async () => {
+  const fetchInvitePreview = async () => {
     if (!token) return;
 
     try {
-      // Fetch invite data
-      const { data: invite, error: inviteError } = await supabase
-        .from('trip_invites')
-        .select('*')
-        .eq('code', token)
-        .single();
+      setLoading(true);
 
-      if (inviteError || !invite) {
-        console.error('Error fetching invite:', inviteError);
-        setError('Invalid invite link');
-        setLoading(false);
-        return;
-      }
-
-      // Validate invite
-      if (!invite.is_active) {
-        setError('This invite link has been deactivated');
-        setLoading(false);
-        return;
-      }
-
-      if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
-        setError('This invite link has expired');
-        setLoading(false);
-        return;
-      }
-
-      if (invite.max_uses && invite.current_uses >= invite.max_uses) {
-        setError('This invite link has reached its maximum number of uses');
-        setLoading(false);
-        return;
-      }
-
-      setInviteData({
-        trip_id: invite.trip_id,
-        invite_token: token,
-        created_at: invite.created_at,
-        require_approval: false,
-        expires_at: invite.expires_at,
-        max_uses: invite.max_uses,
-        current_uses: invite.current_uses,
-        is_active: invite.is_active,
-        code: invite.code,
-        id: invite.id,
-        created_by: invite.created_by
+      // Use edge function to get invite preview (works without auth)
+      const { data, error: funcError } = await supabase.functions.invoke('get-invite-preview', {
+        body: { code: token }
       });
 
-      // Fetch trip details
-      const { data: trip, error: tripError } = await supabase
-        .from('trips')
-        .select('name, destination, start_date, end_date, cover_image_url, trip_type')
-        .eq('id', invite.trip_id)
-        .single();
-
-      if (!tripError && trip) {
-        // Get member count
-        const { count } = await supabase
-          .from('trip_members')
-          .select('*', { count: 'exact', head: true })
-          .eq('trip_id', invite.trip_id);
-
-        setTripDetails({
-          name: trip.name,
-          destination: trip.destination,
-          start_date: trip.start_date,
-          end_date: trip.end_date,
-          cover_image_url: trip.cover_image_url,
-          trip_type: trip.trip_type,
-          member_count: count || 0
+      if (funcError) {
+        console.error('Error fetching invite preview:', funcError);
+        setError({
+          message: 'Failed to load invite details. Please check your connection and try again.',
+          code: 'NETWORK'
         });
+        setLoading(false);
+        return;
       }
 
+      if (!data.success) {
+        console.error('Invite preview error:', data.error);
+        setError({
+          message: data.error || 'Invalid invite link',
+          code: data.error_code || 'INVALID'
+        });
+        setLoading(false);
+        return;
+      }
+
+      setInviteData(data);
       setLoading(false);
-    } catch (error) {
-      console.error('Error fetching invite data:', error);
-      setError('Failed to load invite details');
+
+    } catch (err) {
+      console.error('Error fetching invite preview:', err);
+      setError({
+        message: 'An unexpected error occurred. Please try again.',
+        code: 'NETWORK'
+      });
       setLoading(false);
     }
   };
 
   const handleJoinTrip = async () => {
     if (!user) {
-      toast.error('Please log in to join this trip');
+      // Store invite code and redirect to login
+      if (token) {
+        sessionStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
+      }
+      toast.info('Please log in to join this trip');
+      navigate('/');
       return;
     }
 
@@ -219,13 +199,19 @@ const JoinTrip = () => {
 
       if (data.requires_approval) {
         toast.success(data.message || 'Join request submitted!');
+        setJoinSuccess(true);
         setJoining(false);
-        setInviteData(prev => prev ? { ...prev, require_approval: true } as any : null);
         return;
       }
 
-      toast.success(data.message || 'Successfully joined the trip!');
-      
+      if (data.already_member) {
+        toast.info(data.message || "You're already a member!");
+      } else {
+        toast.success(data.message || 'Successfully joined the trip!');
+      }
+
+      setJoinSuccess(true);
+
       setTimeout(() => {
         if (data.trip_type === 'pro') {
           navigate(`/tour/pro/${data.trip_id}`);
@@ -236,28 +222,71 @@ const JoinTrip = () => {
         }
       }, 1000);
 
-    } catch (error) {
-      console.error('Error joining trip:', error);
+    } catch (err) {
+      console.error('Error joining trip:', err);
       toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setJoining(false);
     }
   };
 
+  const handleLoginRedirect = () => {
+    if (token) {
+      sessionStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
+    }
+    navigate('/');
+  };
+
+  const handleSignupRedirect = () => {
+    if (token) {
+      sessionStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
+    }
+    navigate('/');
+  };
+
   const formatDateRange = () => {
-    if (!tripDetails?.start_date) return null;
-    const start = new Date(tripDetails.start_date);
+    if (!inviteData?.trip.start_date) return null;
+    const start = new Date(inviteData.trip.start_date);
     const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    
-    if (tripDetails.end_date) {
-      const end = new Date(tripDetails.end_date);
+
+    if (inviteData.trip.end_date) {
+      const end = new Date(inviteData.trip.end_date);
       const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       return `${startStr} - ${endStr}`;
     }
     return startStr;
   };
 
-  if (loading) {
+  const getErrorIcon = (code: ErrorCode) => {
+    switch (code) {
+      case 'EXPIRED':
+      case 'INACTIVE':
+      case 'MAX_USES':
+        return <Clock className="h-12 w-12 text-yellow-400 mx-auto mb-4" />;
+      default:
+        return <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />;
+    }
+  };
+
+  const getErrorTitle = (code: ErrorCode) => {
+    switch (code) {
+      case 'EXPIRED':
+        return 'Invite Expired';
+      case 'INACTIVE':
+        return 'Invite Deactivated';
+      case 'MAX_USES':
+        return 'Invite Limit Reached';
+      case 'NOT_FOUND':
+        return 'Invite Not Found';
+      case 'NETWORK':
+        return 'Connection Error';
+      default:
+        return 'Invalid Invite';
+    }
+  };
+
+  // Show loading while auth is initializing or fetching invite
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -270,13 +299,28 @@ const JoinTrip = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Invalid Invite</h1>
-          <p className="text-muted-foreground mb-6">{error}</p>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center max-w-md bg-card/50 backdrop-blur-md border border-border rounded-3xl p-8">
+          {getErrorIcon(error.code)}
+          <h1 className="text-2xl font-bold text-foreground mb-4">{getErrorTitle(error.code)}</h1>
+          <p className="text-muted-foreground mb-6">{error.message}</p>
+
+          {error.code === 'NETWORK' && (
+            <button
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                fetchInvitePreview();
+              }}
+              className="mb-4 w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground px-6 py-3 rounded-xl transition-colors"
+            >
+              Try Again
+            </button>
+          )}
+
           <button
             onClick={() => navigate('/')}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-colors"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-colors"
           >
             Go to Dashboard
           </button>
@@ -285,27 +329,48 @@ const JoinTrip = () => {
     );
   }
 
-  const coverImage = tripDetails?.cover_image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=400&fit=crop';
+  if (joinSuccess) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center max-w-md bg-card/50 backdrop-blur-md border border-border rounded-3xl p-8">
+          <CheckCircle2 className="h-12 w-12 text-green-400 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-foreground mb-4">
+            {inviteData?.invite.require_approval ? 'Request Submitted!' : 'Welcome!'}
+          </h1>
+          <p className="text-muted-foreground mb-6">
+            {inviteData?.invite.require_approval
+              ? 'Your join request has been submitted. The organizer will review it soon.'
+              : `You've successfully joined ${inviteData?.trip.name}!`
+            }
+          </p>
+          <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground mt-2">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const coverImage = inviteData?.trip.cover_image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=400&fit=crop';
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="bg-card/50 backdrop-blur-md border border-border rounded-3xl overflow-hidden max-w-md w-full">
         {/* Cover Image */}
         <div className="relative h-48 overflow-hidden">
-          <img 
-            src={coverImage} 
-            alt={tripDetails?.name || 'Trip'} 
+          <img
+            src={coverImage}
+            alt={inviteData?.trip.name || 'Trip'}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
           <div className="absolute bottom-4 left-4 right-4">
             <h1 className="text-2xl font-bold text-foreground">
-              {tripDetails?.name || 'Trip Invitation'}
+              {inviteData?.trip.name || 'Trip Invitation'}
             </h1>
-            {tripDetails?.destination && (
+            {inviteData?.trip.destination && (
               <div className="flex items-center gap-1 text-muted-foreground mt-1">
                 <MapPin size={14} />
-                <span className="text-sm">{tripDetails.destination}</span>
+                <span className="text-sm">{inviteData.trip.destination}</span>
               </div>
             )}
           </div>
@@ -320,26 +385,26 @@ const JoinTrip = () => {
                 <span className="text-foreground">{formatDateRange()}</span>
               </div>
             )}
-            
-            {tripDetails?.member_count !== undefined && (
+
+            {inviteData?.trip.member_count !== undefined && (
               <div className="flex items-center gap-3 text-sm">
                 <Users size={16} className="text-primary" />
                 <span className="text-foreground">
-                  {tripDetails.member_count} {tripDetails.member_count === 1 ? 'member' : 'members'}
+                  {inviteData.trip.member_count} {inviteData.trip.member_count === 1 ? 'member' : 'members'}
                 </span>
               </div>
             )}
 
-            {tripDetails?.trip_type && tripDetails.trip_type !== 'standard' && (
+            {inviteData?.trip.trip_type && inviteData.trip.trip_type !== 'consumer' && (
               <div className="inline-flex px-2 py-1 bg-primary/20 text-primary text-xs font-medium rounded-full">
-                {tripDetails.trip_type === 'pro' ? 'Pro Trip' : 'Event'}
+                {inviteData.trip.trip_type === 'pro' ? 'Pro Trip' : 'Event'}
               </div>
             )}
 
-            {inviteData?.expires_at && (
+            {inviteData?.invite.expires_at && (
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <Clock size={14} />
-                <span>Invite expires: {new Date(inviteData.expires_at).toLocaleDateString()}</span>
+                <span>Invite expires: {new Date(inviteData.invite.expires_at).toLocaleDateString()}</span>
               </div>
             )}
           </div>
@@ -350,13 +415,13 @@ const JoinTrip = () => {
               <p className="text-muted-foreground text-center text-sm">Please log in to join this trip</p>
               <div className="space-y-3">
                 <button
-                  onClick={() => navigate('/login')}
+                  onClick={handleLoginRedirect}
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 px-6 rounded-xl transition-all duration-200 font-medium"
                 >
                   Log In
                 </button>
                 <button
-                  onClick={() => navigate('/signup')}
+                  onClick={handleSignupRedirect}
                   className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground py-3 px-6 rounded-xl transition-colors"
                 >
                   Sign Up
@@ -379,7 +444,7 @@ const JoinTrip = () => {
                   'Join Trip'
                 )}
               </button>
-              
+
               <button
                 onClick={() => navigate('/')}
                 className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground py-3 px-6 rounded-xl transition-colors"
@@ -389,7 +454,7 @@ const JoinTrip = () => {
             </div>
           )}
 
-          {inviteData?.require_approval && !joining && (
+          {inviteData?.invite.require_approval && !joining && user && (
             <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
               <div className="flex items-center gap-2 mb-2">
                 <Clock className="h-5 w-5 text-yellow-400" />

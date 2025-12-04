@@ -262,6 +262,17 @@ const Index = () => {
     }
   }, [user]);
 
+  // Handle pending invite code after login
+  useEffect(() => {
+    if (user) {
+      const pendingInviteCode = sessionStorage.getItem('chravel_pending_invite_code');
+      if (pendingInviteCode) {
+        sessionStorage.removeItem('chravel_pending_invite_code');
+        navigate(`/join/${pendingInviteCode}`, { replace: true });
+      }
+    }
+  }, [user, navigate]);
+
   // Show marketing landing when logged out, allow demo mode selector to control view
   if (!user) {
     // OFF: Show marketing page only
