@@ -1,4 +1,3 @@
-
 import * as React from "react"
 
 // Updated to 768px for true tablet/desktop distinction (iPad mini and up)
@@ -25,4 +24,3 @@ export function useIsMobile() {
 
   return !!isMobile
 }
-
