@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Plus, Megaphone, Link, Image, Camera, Video, FileText, Loader2 } from 'lucide-react';
+import { Send, Plus, Megaphone, Link, Camera, Video, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { PaymentInput } from '../payments/PaymentInput';
@@ -221,15 +221,6 @@ export const ChatInput = ({
               >
                 <FileText className="w-4 h-4" />
                 File
-              </DropdownMenuItem>
-              
-              {/* Image */}
-              <DropdownMenuItem 
-                onClick={() => handleFileUpload('image')}
-                className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
-              >
-                <Image className="w-4 h-4" />
-                Image
               </DropdownMenuItem>
               
               {/* Link */}
