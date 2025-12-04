@@ -27,8 +27,7 @@ const featureMatrix: Record<FeatureName, FeatureAvailability> = {
   },
   'events-module': {
     demoMode: true,
-    authenticated: false,
-    comingSoonMessage: 'Events are coming soon for authenticated users! Turn on Demo Mode to preview.'
+    authenticated: true,  // ✅ ENABLED for authenticated users
   },
   'pro-trips': {
     demoMode: true,

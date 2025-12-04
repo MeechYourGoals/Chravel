@@ -21,12 +21,14 @@ import { TripVariantProvider } from '../contexts/TripVariantContext';
 import { useAuth } from '../hooks/useAuth';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { useTrips } from '../hooks/useTrips';
 import { eventsMockData } from '../data/eventsMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { TripContext } from '../types/tripContext';
 import { Message } from '../types/messages';
 import { MobileEventDetail } from './MobileEventDetail';
 import { useEmbeddingGeneration } from '../hooks/useEmbeddingGeneration';
+import { convertSupabaseTripToEvent } from '../utils/tripConverter';
 
 
 const EventDetail = () => {
@@ -35,6 +37,7 @@ const EventDetail = () => {
   const { generateInitialEmbeddings } = useEmbeddingGeneration(eventId);
   const { user } = useAuth();
   const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
+  const { trips: userTrips, loading: tripsLoading } = useTrips();
   const [activeTab, setActiveTab] = useState('chat');
   const [showInbox, setShowInbox] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -44,9 +47,25 @@ const EventDetail = () => {
   const [showTripsPlusModal, setShowTripsPlusModal] = useState(false);
   const [tripDescription, setTripDescription] = useState<string>('');
 
-  // Determine event data availability
+  // Determine event data availability - handle both demo and authenticated modes
   const eventNotFound = isDemoMode && eventId && !(eventId in eventsMockData);
-  const eventData = isDemoMode && eventId && !eventNotFound ? eventsMockData[eventId] : null;
+  
+  // Get event data from appropriate source
+  const eventData = React.useMemo(() => {
+    if (!eventId) return null;
+    
+    // Demo mode: use mock data
+    if (isDemoMode) {
+      return eventNotFound ? null : eventsMockData[eventId];
+    }
+    
+    // Authenticated mode: find event from user's trips
+    const eventTrip = userTrips?.find(t => t.id === eventId && t.trip_type === 'event');
+    if (!eventTrip) return null;
+    
+    // Convert Supabase trip to EventData format
+    return convertSupabaseTripToEvent(eventTrip);
+  }, [eventId, isDemoMode, eventNotFound, userTrips]);
 
   // Initialize description state when event data is loaded
   // ✅ FIXED: All hooks must be called unconditionally before any returns
@@ -81,12 +100,12 @@ const EventDetail = () => {
   }, [demoModeLoading, eventId, eventNotFound, isDemoMode, isMobile]);
 
   // ⚡ OPTIMIZATION: Show loading spinner instantly before expensive operations
-  if (demoModeLoading) {
+  if (demoModeLoading || (tripsLoading && !isDemoMode)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Initializing...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading event...</p>
         </div>
       </div>
     );
@@ -98,8 +117,8 @@ const EventDetail = () => {
     );
   }
 
-  // 🔐 DEMO MODE: Show mock events
-  if (eventNotFound) {
+  // 🔐 DEMO MODE: Show mock events not found
+  if (isDemoMode && eventNotFound) {
     return (
       <ProTripNotFound 
         message="The requested demo event could not be found."
@@ -109,29 +128,18 @@ const EventDetail = () => {
     );
   }
 
-  // 🔐 AUTHENTICATED MODE: Events coming soon - but prepare the structure
-  if (!isDemoMode) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <div className="text-center max-w-md p-8">
-          <h1 className="text-3xl font-bold text-white mb-4">Events Coming Soon</h1>
-          <p className="text-gray-400 mb-6">
-            Events are currently only available in demo mode. Turn on Demo Mode to preview event features.
-          </p>
-          <button
-            onClick={() => window.location.href = '/'}
-            className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors"
-          >
-            Back to My Trips
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // TypeScript guard - eventData should be available at this point
+  // Event data not found (either mode)
   if (!eventData) {
-    return <ProTripNotFound message="Event data unavailable." />;
+    const errorMessage = isDemoMode 
+      ? "This demo event doesn't exist."
+      : "This event doesn't exist or you don't have access.";
+    return (
+      <ProTripNotFound 
+        message={errorMessage}
+        details={isDemoMode ? `Event ID: ${eventId}` : undefined}
+        availableIds={isDemoMode ? Object.keys(eventsMockData) : undefined}
+      />
+    );
   }
 
   // Enhanced trip data with event-specific features
