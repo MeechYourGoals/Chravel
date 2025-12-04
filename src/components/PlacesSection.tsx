@@ -400,9 +400,45 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
         return;
       }
 
+      // Check if we're in fallback mode (Nominatim results have _coords)
+      const nominatimCoords = (prediction as any)._coords;
+      if (nominatimCoords) {
+        // Direct use of Nominatim coordinates
+        const lat = nominatimCoords.lat;
+        const lng = nominatimCoords.lng;
+        console.log('[PlacesSection] Using Nominatim coords, centering map:', { lat, lng });
+
+        setLastUpdatedLocation({
+          type: 'search',
+          timestamp: Date.now(),
+          coords: { lat, lng }
+        });
+        setSearchOrigin({ lat, lng });
+
+        if (mapRef.current) {
+          mapRef.current.centerOn({ lat, lng }, 15);
+          console.log('[PlacesSection] Map centered on Nominatim result');
+        }
+
+        const newPlace: PlaceWithDistance = {
+          id: prediction.place_id || `place-${Date.now()}`,
+          name: prediction.structured_formatting?.main_text || prediction.description,
+          url: '',
+          address: prediction.description,
+          coordinates: { lat, lng },
+          category: 'Other'
+        };
+
+        setPlaces([newPlace]);
+        setIsSearching(false);
+        return;
+      }
+
+      // Google Maps JS API path
       const map = mapRef.current.getMap();
       if (!map) {
-        console.error('Map instance not available');
+        // Fallback: use search method directly
+        await mapRef.current.search(prediction.description);
         setIsSearching(false);
         return;
       }
@@ -572,6 +608,19 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
             personalBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : null}
             className="w-full h-full"
             onMapReady={handleMapReady}
+            onSaveSearchAsBasecamp={(location) => {
+              // Save searched location as trip basecamp
+              const newBasecamp: BasecampLocation = {
+                address: location.address,
+                name: location.address.split(',')[0],
+                type: 'other',
+                coordinates: { lat: location.lat, lng: location.lng }
+              };
+              handleBasecampSet(newBasecamp);
+              toast.success('Saved as Trip Base Camp!', {
+                description: newBasecamp.name
+              });
+            }}
           />
 
           {/* Unified Map Controls - floating on map (search bar only) */}

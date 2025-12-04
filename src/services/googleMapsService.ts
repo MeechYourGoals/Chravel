@@ -60,7 +60,98 @@ export class GoogleMapsService {
       if (import.meta.env.DEV) {
         console.error('Geocoding error:', error);
       }
+      // Fallback to Nominatim if Google proxy fails
+      return this.geocodeWithNominatim(address);
+    }
+  }
+
+  /**
+   * Fallback geocoding using OpenStreetMap Nominatim (free, no API key required)
+   * Used when Google Maps API is unavailable or in iframe fallback mode
+   */
+  static async geocodeWithNominatim(address: string): Promise<{ lat: number; lng: number; displayName?: string } | null> {
+    try {
+      const encodedAddress = encodeURIComponent(address);
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&limit=1`,
+        {
+          headers: {
+            'User-Agent': 'Chravel-App/1.0'
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Nominatim request failed: ${response.status}`);
+      }
+      
+      const results = await response.json();
+      
+      if (results && results.length > 0) {
+        const result = results[0];
+        return {
+          lat: parseFloat(result.lat),
+          lng: parseFloat(result.lon),
+          displayName: result.display_name
+        };
+      }
+      
       return null;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[GoogleMapsService] Nominatim geocoding error:', error);
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Fallback autocomplete using Nominatim (free, no API key required)
+   * Returns suggestions in a simplified format compatible with Google's structure
+   */
+  static async autocompleteWithNominatim(query: string, limit: number = 5): Promise<Array<{
+    place_id: string;
+    description: string;
+    structured_formatting?: {
+      main_text: string;
+      secondary_text: string;
+    };
+  }>> {
+    try {
+      const encodedQuery = encodeURIComponent(query);
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodedQuery}&limit=${limit}&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'Chravel-App/1.0'
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Nominatim request failed: ${response.status}`);
+      }
+      
+      const results = await response.json();
+      
+      return results.map((result: any) => ({
+        place_id: `nominatim-${result.place_id}`,
+        description: result.display_name,
+        structured_formatting: {
+          main_text: result.name || result.display_name.split(',')[0],
+          secondary_text: result.display_name.split(',').slice(1).join(',').trim()
+        },
+        // Store coordinates for direct use
+        _coords: {
+          lat: parseFloat(result.lat),
+          lng: parseFloat(result.lon)
+        }
+      }));
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[GoogleMapsService] Nominatim autocomplete error:', error);
+      }
+      return [];
     }
   }
 

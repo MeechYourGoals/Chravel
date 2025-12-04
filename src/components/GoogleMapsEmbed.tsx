@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MapPin } from 'lucide-react';
 import { GoogleMapsService } from '@/services/googleMapsService';
@@ -6,9 +5,17 @@ import { useBasecamp } from '@/contexts/BasecampContext';
 
 interface GoogleMapsEmbedProps {
   className?: string;
+  /** External search location - when set, map centers on these coordinates */
+  searchLocation?: { lat: number; lng: number; address?: string } | null;
+  /** Callback when user wants to save searched location as basecamp */
+  onSaveAsBasecamp?: (location: { lat: number; lng: number; address: string }) => void;
 }
 
-export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
+export const GoogleMapsEmbed = ({ 
+  className, 
+  searchLocation,
+  onSaveAsBasecamp 
+}: GoogleMapsEmbedProps) => {
   const { basecamp, isBasecampSet } = useBasecamp();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -25,28 +32,34 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
     try {
       let url: string;
       
-      if (isBasecampSet && basecamp?.address) {
-        // Use keyless embed format - always free, no API key needed
+      // Priority 1: External search location (from search bar)
+      if (searchLocation?.lat && searchLocation?.lng) {
+        url = GoogleMapsService.buildEmbeddableUrl(
+          searchLocation.address,
+          { lat: searchLocation.lat, lng: searchLocation.lng }
+        );
+      }
+      // Priority 2: Trip basecamp from context
+      else if (isBasecampSet && basecamp?.address) {
         url = GoogleMapsService.buildEmbeddableUrl(basecamp.address, basecamp.coordinates);
-      } else {
-        // Default fallback - show world map centered on US
+      } 
+      // Priority 3: Default world map
+      else {
         url = DEFAULT_EMBED_URL;
       }
 
       setEmbedUrl(url);
     } catch (error) {
       console.error('[GoogleMapsEmbed] Error building URL:', error);
-      // Ultimate fallback - keyless embed
       setEmbedUrl(DEFAULT_EMBED_URL);
     }
     
-    // Always stop loading after a short delay to ensure UI updates
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 100);
     
     return () => clearTimeout(timer);
-  }, [isBasecampSet, basecamp, retryCount]);
+  }, [isBasecampSet, basecamp, retryCount, searchLocation]);
 
   const handleIframeLoad = () => {
     setIsLoading(false);
@@ -94,7 +107,24 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
         </div>
       )}
 
-      {/* Google Maps Iframe - Always render using free keyless embed */}
+      {/* Save as Base Camp button - shown when search location is active */}
+      {searchLocation && onSaveAsBasecamp && searchLocation.address && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
+          <button
+            onClick={() => onSaveAsBasecamp({
+              lat: searchLocation.lat,
+              lng: searchLocation.lng,
+              address: searchLocation.address || ''
+            })}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg transition-colors flex items-center gap-2"
+          >
+            <MapPin size={16} />
+            Save as Trip Base Camp
+          </button>
+        </div>
+      )}
+
+      {/* Google Maps Iframe */}
       <iframe
         key={`${embedUrl}-${retryCount}`}
         src={embedUrl || DEFAULT_EMBED_URL}
