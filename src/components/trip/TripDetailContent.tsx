@@ -33,6 +33,7 @@ export const TripDetailContent = ({
       showPlaces={true}
       showConcierge={true}
       isDemoMode={isDemoMode}
+      tripData={{ trip_type: 'consumer' }}
     />
   );
 };

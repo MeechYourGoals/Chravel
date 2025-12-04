@@ -28,6 +28,7 @@ interface User {
   email?: string;
   phone?: string;
   displayName: string;
+  hasCompletedProfileSetup: boolean;
   firstName?: string;
   lastName?: string;
   avatar?: string;
@@ -125,6 +126,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return {
         id: 'demo-user',
         displayName: 'Demo User',
+        hasCompletedProfileSetup: true,
         isPro: false,
         showEmail: false,
         showPhone: false,
@@ -242,11 +244,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       proRole = 'admin';
     }
     
+    // Check if profile has been properly set up (display_name exists and is not empty)
+    const hasCompletedProfileSetup = !!(userProfile?.display_name && userProfile.display_name.trim() !== '');
+    
     return {
       id: supabaseUser.id,
       email: supabaseUser.email,
       phone: supabaseUser.phone,
       displayName: userProfile?.display_name || supabaseUser.email || 'User',
+      hasCompletedProfileSetup,
       firstName: userProfile?.first_name || '',
       lastName: userProfile?.last_name || '',
       avatar: userProfile?.avatar_url || '',
