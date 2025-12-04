@@ -1,18 +1,14 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Check, X, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Check, Trash2 } from 'lucide-react';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { TaskSkeleton } from './SkeletonLoader';
 import { hapticService } from '../../services/hapticService';
-import { CreateTaskModal } from './CreateTaskModal';
-
-interface Task {
-  id: string;
-  title: string;
-  completed: boolean;
-  assignee?: string;
-  dueDate?: string;
-}
+import { TaskCreateModal } from '../todo/TaskCreateModal';
+import { useTripTasks } from '../../hooks/useTripTasks';
+import { useAuth } from '../../hooks/useAuth';
+import { useQueryClient } from '@tanstack/react-query';
+import { useDemoMode } from '../../hooks/useDemoMode';
 
 interface MobileTripTasksProps {
   tripId: string;
@@ -20,47 +16,52 @@ interface MobileTripTasksProps {
 
 export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: '1', title: 'Book flights', completed: true, assignee: 'Sarah' },
-    { id: '2', title: 'Reserve hotel rooms', completed: false, assignee: 'Mike', dueDate: 'Tomorrow' },
-    { id: '3', title: 'Plan day 1 itinerary', completed: false, assignee: 'Alex' }
-  ]);
   const [showCompleted, setShowCompleted] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
   const [swipedTaskId, setSwipedTaskId] = useState<string | null>(null);
+  
+  const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
+  const queryClient = useQueryClient();
+  const { tasks, isLoading, toggleTaskMutation } = useTripTasks(tripId);
 
-  const { isPulling, isRefreshing, pullDistance } = usePullToRefresh({
+  const { isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: async () => {
-      setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setIsLoading(false);
+      await queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
     }
   });
 
-  useEffect(() => {
-    setTimeout(() => setIsLoading(false), 600);
-  }, []);
+  // Helper to check if task is completed by current user
+  const isTaskCompleted = (task: any) => {
+    if (!user) return task.completed || false;
+    const statusArray = task.task_status || [];
+    const userStatus = statusArray.find((s: any) => s.user_id === user.id);
+    return userStatus?.completed || false;
+  };
 
   const handleToggleTask = async (taskId: string) => {
     await hapticService.success();
-    setTasks(tasks.map(task =>
-      task.id === taskId ? { ...task, completed: !task.completed } : task
-    ));
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    const isCompleted = isTaskCompleted(task);
+    toggleTaskMutation.mutate({
+      taskId,
+      completed: !isCompleted
+    });
   };
 
   const handleDeleteTask = async (taskId: string) => {
     await hapticService.heavy();
     setSwipedTaskId(null);
-    setTimeout(() => {
-      setTasks(tasks.filter(task => task.id !== taskId));
-    }, 150);
+    // Note: Delete functionality would need to be added to useTripTasks hook
+    // For now, just close the swipe
   };
 
-  const activeTasks = tasks.filter(t => !t.completed);
-  const completedTasks = tasks.filter(t => t.completed);
+  const activeTasks = tasks.filter(t => !isTaskCompleted(t));
+  const completedTasks = tasks.filter(t => isTaskCompleted(t));
 
   return (
-    <div className="flex flex-col h-full bg-black px-4 py-4 relative">
+    <div className="flex flex-col flex-1 bg-black px-4 py-4 relative min-h-0">
       <PullToRefreshIndicator
         isRefreshing={isRefreshing}
         pullDistance={pullDistance}
@@ -87,11 +88,16 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
       </div>
 
       {/* Active Tasks */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0">
         {isLoading ? (
           <TaskSkeleton />
         ) : (
           <div className="space-y-3 mb-6">
+            {activeTasks.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <p>No tasks yet. Tap + to add one!</p>
+              </div>
+            )}
             {activeTasks.map((task) => {
               const isSwiped = swipedTaskId === task.id;
               
@@ -144,16 +150,18 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
                         onClick={() => handleToggleTask(task.id)}
                         className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full border-2 border-gray-400 flex items-center justify-center active:scale-95 transition-transform"
                       >
-                        {task.completed && <Check size={14} className="text-white" />}
+                        {isTaskCompleted(task) && <Check size={14} className="text-white" />}
                       </button>
                       <div className="flex-1">
                         <h4 className="text-white font-medium">{task.title}</h4>
                         <div className="flex items-center gap-3 mt-1">
-                          {task.assignee && (
-                            <span className="text-xs text-gray-400">@{task.assignee}</span>
+                          {task.description && (
+                            <span className="text-xs text-gray-400 line-clamp-1">{task.description}</span>
                           )}
-                          {task.dueDate && (
-                            <span className="text-xs text-orange-400">{task.dueDate}</span>
+                          {task.due_at && (
+                            <span className="text-xs text-orange-400">
+                              {new Date(task.due_at).toLocaleDateString()}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -197,8 +205,8 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
                       </button>
                       <div className="flex-1">
                         <h4 className="text-gray-300 line-through">{task.title}</h4>
-                        {task.assignee && (
-                          <span className="text-xs text-gray-500">@{task.assignee}</span>
+                        {task.description && (
+                          <span className="text-xs text-gray-500 line-clamp-1">{task.description}</span>
                         )}
                       </div>
                     </div>
@@ -210,15 +218,13 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
         )}
       </div>
 
-      {/* Create Task Modal */}
-      <CreateTaskModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        tripId={tripId}
-        onTaskCreated={(task) => {
-          setTasks(prev => [task, ...prev]);
-        }}
-      />
+      {/* Create Task Modal - Full-featured version */}
+      {isModalOpen && (
+        <TaskCreateModal
+          tripId={tripId}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </div>
   );
 };
