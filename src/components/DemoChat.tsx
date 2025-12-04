@@ -1,10 +1,12 @@
 
-import React, { useState, useMemo } from 'react';
-import { Send, MessageCircle } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { MessageCircle } from 'lucide-react';
 import { MessageItem } from './chat/MessageItem';
 import { VirtualizedMessageContainer } from './chat/VirtualizedMessageContainer';
 import { useUnifiedMessages } from '@/hooks/useUnifiedMessages';
+import { ChatInput } from './chat/ChatInput';
 import { ChatMessage } from '@/hooks/useChatComposer';
+import { useShareAsset } from '@/hooks/useShareAsset';
 
 interface DemoChatProps {
   tripId: string;
@@ -20,13 +22,17 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
     isLoadingMore 
   } = useUnifiedMessages({ tripId, enabled: true });
   const [inputValue, setInputValue] = useState('');
-  const [reactions, setReactions] = useState<Record<string, Record<string, { count: number; userReacted: boolean }>>>({});
+  const [reactions, setReactions] = useState<Record<string, Record<string, { count: number; userReacted: boolean }>>>({}); 
+  const [isTyping, setIsTyping] = useState(false);
+  
+  // Use share asset hook for file uploads in demo mode
+  const { shareMultipleFiles } = useShareAsset(tripId);
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = useCallback(async (_isBroadcast?: boolean, _isPayment?: boolean, _paymentData?: unknown) => {
     if (!inputValue.trim()) return;
     await sendMessage(inputValue);
     setInputValue('');
-  };
+  }, [inputValue, sendMessage]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -34,6 +40,14 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
       handleSendMessage();
     }
   };
+
+  const handleFileUpload = useCallback(async (files: FileList, type: 'image' | 'video' | 'document') => {
+    try {
+      await shareMultipleFiles(files, type);
+    } catch (error) {
+      console.error('File upload failed:', error);
+    }
+  }, [shareMultipleFiles]);
 
   const handleReaction = (messageId: string, reactionType: string) => {
     setReactions(prev => {
@@ -56,6 +70,7 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
   };
 
   // Transform messages from useUnifiedMessages format to ChatMessage format
+  // IMPORTANT: Preserve media data for rich content rendering
   const transformedMessages = useMemo((): ChatMessage[] => {
     return messages.map(msg => ({
       id: msg.id,
@@ -66,9 +81,14 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
         avatar: undefined
       },
       createdAt: msg.created_at,
-      isBroadcast: false,
-      isPayment: false,
-      reactions: {}
+      isBroadcast: msg.message_type === 'broadcast',
+      isPayment: msg.message_type === 'payment',
+      reactions: {},
+      // Preserve rich media data
+      mediaType: msg.media_type as 'image' | 'video' | 'document' | null | undefined,
+      mediaUrl: msg.media_url,
+      linkPreview: msg.link_preview,
+      attachments: msg.attachments as any,
     }));
   }, [messages]);
 
@@ -119,27 +139,24 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
           />
         )}
 
-        {/* Message Input */}
-        <div className="border-t border-gray-700 p-4">
-          <div className="flex items-center gap-3">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your message... (demo mode)"
-              className="flex-1 bg-gray-800 text-white placeholder-gray-400 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-700"
-            />
-            <button
-              onClick={handleSendMessage}
-              disabled={!inputValue.trim()}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-colors flex items-center justify-center"
-            >
-              <Send size={16} />
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Demo mode: Messages are for demonstration only and won't be saved
+        {/* Message Input - Full ChatInput with media support */}
+        <div className="border-t border-gray-700">
+          <ChatInput
+            inputMessage={inputValue}
+            onInputChange={setInputValue}
+            onSendMessage={handleSendMessage}
+            onKeyPress={handleKeyPress}
+            onFileUpload={handleFileUpload}
+            apiKey=""
+            isTyping={isTyping}
+            tripId={tripId}
+            onTypingChange={setIsTyping}
+            hidePayments={true}
+            isInChannelMode={false}
+            isPro={false}
+          />
+          <p className="text-xs text-gray-500 px-4 pb-2">
+            Demo mode: Share photos, videos, and links just like in WhatsApp
           </p>
         </div>
       </div>

@@ -33,6 +33,9 @@ export const MessageItem = memo(({ message, reactions, onReaction, showSenderInf
     console.log('Message deleted:', messageId);
   }, []);
   
+  // Extract media data from message
+  const messageWithMedia = message as any;
+  
   return (
     <MessageBubble
       id={message.id}
@@ -55,6 +58,11 @@ export const MessageItem = memo(({ message, reactions, onReaction, showSenderInf
         sources: messageWithGrounding.sources,
         googleMapsWidget: messageWithGrounding.googleMapsWidget
       } : undefined}
+      // 🆕 Pass rich media data
+      mediaType={messageWithMedia.mediaType}
+      mediaUrl={messageWithMedia.mediaUrl}
+      linkPreview={messageWithMedia.linkPreview}
+      attachments={messageWithMedia.attachments}
     />
   );
 });

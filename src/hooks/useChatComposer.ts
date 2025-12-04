@@ -14,6 +14,21 @@ export interface ChatMessage {
   reactions?: { [key: string]: string[] };
   replyTo?: { id: string; text: string; sender: string };
   tags?: string[];
+  // Rich media support
+  mediaType?: 'image' | 'video' | 'document' | null;
+  mediaUrl?: string | null;
+  linkPreview?: {
+    url: string;
+    title?: string;
+    description?: string;
+    image?: string;
+    domain?: string;
+  } | null;
+  attachments?: Array<{
+    type: 'image' | 'video' | 'file' | 'link';
+    ref_id: string;
+    url?: string;
+  }>;
 }
 
 export interface ReplyContext {
