@@ -36,6 +36,8 @@ export interface MapCanvasProps {
   personalBasecamp?: BasecampLocation | null;
   markers?: MapMarker[];
   onMapReady?: () => void;
+  /** Callback when user saves a searched location as basecamp (iframe fallback mode) */
+  onSaveSearchAsBasecamp?: (location: { lat: number; lng: number; address: string }) => void;
 }
 
 export interface MapCanvasRef {
@@ -48,6 +50,7 @@ export interface MapCanvasRef {
   showRoute: (origin: { lat: number; lng: number }, destination: { lat: number; lng: number }) => Promise<void>;
   clearRoute: () => void;
   getAutocomplete: (query: string, origin?: SearchOrigin) => Promise<any[]>;
+  isInFallbackMode?: () => boolean;
 }
 
 export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
@@ -59,9 +62,16 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       personalBasecamp,
       markers = [],
       onMapReady,
+      onSaveSearchAsBasecamp,
     },
     ref
   ) => {
+    // State for iframe fallback search
+    const [iframeSearchLocation, setIframeSearchLocation] = useState<{
+      lat: number;
+      lng: number;
+      address?: string;
+    } | null>(null);
     // Custom hooks for state management
     const mapState = useMapState();
     const mapSearch = useMapSearch();
@@ -187,9 +197,40 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     // Use clearRoute from mapRouting hook
     const clearRoute = clearRouteFromHook;
 
+    // Fallback search handler for iframe mode using Nominatim geocoding
+    const handleFallbackSearch = async (query: string): Promise<void> => {
+      const { GoogleMapsService } = await import('@/services/googleMapsService');
+      const coords = await GoogleMapsService.geocodeWithNominatim(query);
+      if (coords) {
+        setIframeSearchLocation({
+          lat: coords.lat,
+          lng: coords.lng,
+          address: coords.displayName || query
+        });
+      } else {
+        throw new Error('Location not found');
+      }
+    };
+
+    // Fallback autocomplete for iframe mode using Nominatim
+    const handleFallbackAutocomplete = async (query: string): Promise<any[]> => {
+      const { GoogleMapsService } = await import('@/services/googleMapsService');
+      return GoogleMapsService.autocompleteWithNominatim(query, 5);
+    };
+
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
       centerOn: (latLng: { lat: number; lng: number }, zoom = 15) => {
+        // Handle iframe fallback mode
+        if (useFallbackEmbed || forceIframeFallback) {
+          setIframeSearchLocation({
+            lat: latLng.lat,
+            lng: latLng.lng,
+            address: undefined
+          });
+          return;
+        }
+        
         if (mapRef.current && window.google && latLng) {
           mapRef.current.panTo(latLng);
           mapRef.current.setZoom(zoom);
@@ -232,9 +273,16 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       },
       getMap: () => mapRef.current,
       search: async (query: string) => {
+        // Handle iframe fallback mode
+        if (useFallbackEmbed || forceIframeFallback) {
+          await handleFallbackSearch(query);
+          return;
+        }
         await handleSearch(query);
       },
       clearSearch: () => {
+        // Clear iframe search location
+        setIframeSearchLocation(null);
         handleClearSearch();
       },
       showRoute: async (origin: { lat: number; lng: number }, destination: { lat: number; lng: number }) => {
@@ -244,6 +292,11 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         clearRoute();
       },
       getAutocomplete: async (query: string, origin?: SearchOrigin) => {
+        // Handle iframe fallback mode
+        if (useFallbackEmbed || forceIframeFallback) {
+          return handleFallbackAutocomplete(query);
+        }
+        
         if (!sessionToken) {
           console.warn('[MapCanvas] No session token for autocomplete');
           return [];
@@ -255,7 +308,9 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           console.error('[MapCanvas] Autocomplete error:', error);
           return [];
         }
-      }
+      },
+      // New: Check if in fallback mode
+      isInFallbackMode: () => useFallbackEmbed || forceIframeFallback,
     }));
 
     // Initialize map
@@ -734,7 +789,11 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     if (useFallbackEmbed || forceIframeFallback) {
       return (
         <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
-          <GoogleMapsEmbed className="w-full h-full" />
+          <GoogleMapsEmbed 
+            className="w-full h-full" 
+            searchLocation={iframeSearchLocation}
+            onSaveAsBasecamp={onSaveSearchAsBasecamp}
+          />
         </div>
       );
     }
