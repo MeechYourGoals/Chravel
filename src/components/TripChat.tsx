@@ -442,8 +442,8 @@ export const TripChat = ({
       )}
 
       {/* Chat Container - Messages with Integrated Filter Tabs */}
-      <div className="flex-1 flex flex-col min-h-0 pb-4" data-chat-container>
-        <div ref={messagesContainerRef} className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col relative" style={{ maxHeight: 'calc(100vh - 320px)', minHeight: '400px' }}>
+      <div className="flex-1 flex flex-col min-h-0" data-chat-container>
+        <div ref={messagesContainerRef} className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col relative" style={{ maxHeight: 'calc(100vh - 240px)', minHeight: '300px' }}>
           
           {/* Filter Tabs */}
           <MessageTypeBar
@@ -524,7 +524,7 @@ export const TripChat = ({
       {/* Persistent Chat Input - Fixed at Bottom (Hidden when in Channels mode) */}
       {messageFilter !== 'channels' && (
         <div className="chat-input-persistent pb-[env(safe-area-inset-bottom)]">
-          <div className="px-4 py-2">
+          <div className="px-4 py-1">
             <ChatInput
               inputMessage={inputMessage}
               onInputChange={setInputMessage}
