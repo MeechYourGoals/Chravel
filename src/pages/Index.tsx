@@ -15,7 +15,6 @@ import { UnauthenticatedLanding } from '../components/UnauthenticatedLanding';
 import { FullPageLanding } from '../components/landing/FullPageLanding';
 import { DemoModeSelector } from '../components/DemoModeSelector';
 import { SearchOverlay } from '../components/home/SearchOverlay';
-import { ProfileSetupModal } from '../components/ProfileSetupModal';
 import { HeaderAuthButton } from '../components/HeaderAuthButton';
 import { MobileSettingsSheet } from '../components/mobile/MobileSettingsSheet';
 import { MobileTopBar } from '../components/mobile/MobileTopBar';
@@ -60,7 +59,6 @@ const Index = () => {
   const [settingsInitialType, setSettingsInitialType] = useState<'consumer' | 'enterprise' | 'events'>('consumer');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
   const { user } = useAuth();
@@ -253,14 +251,6 @@ const Index = () => {
     }
   }, [location.search]);
 
-  // Check if user needs profile setup on first login
-  useEffect(() => {
-    if (user && !user.hasCompletedProfileSetup) {
-      setShowProfileSetup(true);
-    } else {
-      setShowProfileSetup(false);
-    }
-  }, [user]);
 
   // Handle pending invite code after login
   useEffect(() => {
@@ -432,10 +422,6 @@ const Index = () => {
             resultCount={searchResultCount}
           />
 
-          <ProfileSetupModal 
-            isOpen={showProfileSetup} 
-            onComplete={() => setShowProfileSetup(false)} 
-          />
 
           <MobileSettingsSheet
             isOpen={isMobileSettingsOpen}
@@ -592,10 +578,6 @@ const Index = () => {
             resultCount={searchResultCount}
           />
 
-          <ProfileSetupModal 
-            isOpen={showProfileSetup} 
-            onComplete={() => setShowProfileSetup(false)} 
-          />
 
           <MobileSettingsSheet
             isOpen={isMobileSettingsOpen}
@@ -756,11 +738,6 @@ const Index = () => {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
-      />
-
-      <ProfileSetupModal 
-        isOpen={showProfileSetup} 
-        onComplete={() => setShowProfileSetup(false)} 
       />
 
       <MobileSettingsSheet
