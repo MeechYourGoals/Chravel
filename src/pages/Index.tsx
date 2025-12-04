@@ -255,7 +255,7 @@ const Index = () => {
 
   // Check if user needs profile setup on first login
   useEffect(() => {
-    if (user && (!user.displayName || user.displayName.trim() === '')) {
+    if (user && !user.hasCompletedProfileSetup) {
       setShowProfileSetup(true);
     } else {
       setShowProfileSetup(false);
