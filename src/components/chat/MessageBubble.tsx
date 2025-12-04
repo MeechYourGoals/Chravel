@@ -4,6 +4,7 @@ import { MessageReactionBar } from './MessageReactionBar';
 import { MessageActions } from './MessageActions';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { GroundingCitationCard } from './GroundingCitationCard';
+import { ImageLightbox } from './ImageLightbox';
 import { GroundingCitation } from '@/types/grounding';
 import { MapPin, Maximize2, FileText, Download, Link, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -47,6 +48,8 @@ export interface MessageBubbleProps {
     ref_id: string;
     url?: string;
   }>;
+  // 🆕 Gallery support - all images in chat for navigation
+  allChatImages?: { url: string; caption?: string }[];
 }
 
 export const MessageBubble = memo(({
@@ -71,14 +74,25 @@ export const MessageBubble = memo(({
   mediaUrl,
   linkPreview,
   attachments,
+  allChatImages = [],
 }: MessageBubbleProps) => {
   const [showReactions, setShowReactions] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const isMobilePortrait = useMobilePortrait();
 
   // Check for media content
   const hasMedia = mediaType && mediaUrl;
   const hasLinkPreview = linkPreview && typeof linkPreview === 'object';
   const hasAttachments = attachments && Array.isArray(attachments) && attachments.length > 0;
+
+  // Handle image click - open lightbox
+  const handleImageClick = (imageUrl: string) => {
+    // Find the index of this image in the chat images array
+    const index = allChatImages.findIndex(img => img.url === imageUrl);
+    setLightboxIndex(index >= 0 ? index : 0);
+    setLightboxOpen(true);
+  };
 
   // Render media content based on type
   const renderMediaContent = () => {
@@ -93,10 +107,10 @@ export const MessageBubble = memo(({
               alt="Shared image"
               className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-95 transition-opacity"
               style={{ maxHeight: '300px' }}
-              onClick={() => window.open(mediaUrl!, '_blank')}
+              onClick={() => handleImageClick(mediaUrl!)}
             />
             <button
-              onClick={() => window.open(mediaUrl!, '_blank')}
+              onClick={() => handleImageClick(mediaUrl!)}
               className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
               aria-label="View full size"
             >
@@ -145,6 +159,26 @@ export const MessageBubble = memo(({
     return (
       <div className="mt-2 space-y-2">
         {attachments.map((attachment, index) => {
+          if (attachment.type === 'image' && attachment.url) {
+            return (
+              <div key={index} className="relative group">
+                <img
+                  src={attachment.url}
+                  alt={`Attachment ${index + 1}`}
+                  className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-95 transition-opacity"
+                  style={{ maxHeight: '300px' }}
+                  onClick={() => handleImageClick(attachment.url!)}
+                />
+                <button
+                  onClick={() => handleImageClick(attachment.url!)}
+                  className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="View full size"
+                >
+                  <Maximize2 size={16} />
+                </button>
+              </div>
+            );
+          }
           if (attachment.type === 'file' && attachment.url) {
             return (
               <a
@@ -226,111 +260,121 @@ export const MessageBubble = memo(({
   });
 
   return (
-    <div className={cn('flex gap-2 group', isOwnMessage ? 'justify-end' : 'justify-start')}>
-      {!isOwnMessage && showSenderInfo && (
-        <img
-          src={senderAvatar || getMockAvatar(senderName)}
-          alt={senderName}
-          className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-2 border-border/50 flex-shrink-0"
-        />
-      )}
-      {!isOwnMessage && !showSenderInfo && <div className="w-8 md:w-10 flex-shrink-0" />}
-
-      <div
-        className={cn(
-          'flex flex-col max-w-[85%]',
-          isOwnMessage ? 'items-end text-right' : 'items-start text-left',
-        )}
-      >
-        <div className="flex items-center gap-2">
-          {showSenderInfo && (
-            <span className="text-[10px] md:text-xs text-white/70 mb-0.5">
-              {isOwnMessage ? 'You' : senderName} — {formatTime(timestamp)}
-              {isEdited && <span className="ml-1 text-white/50">(edited)</span>}
-            </span>
-          )}
-          <MessageActions
-            messageId={id}
-            messageContent={text}
-            messageType={messageType}
-            isOwnMessage={isOwnMessage}
-            isDeleted={isDeleted}
-            onEdit={onEdit}
-            onDelete={onDelete}
+    <>
+      <div className={cn('flex gap-2 group', isOwnMessage ? 'justify-end' : 'justify-start')}>
+        {!isOwnMessage && showSenderInfo && (
+          <img
+            src={senderAvatar || getMockAvatar(senderName)}
+            alt={senderName}
+            className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-2 border-border/50 flex-shrink-0"
           />
-        </div>
+        )}
+        {!isOwnMessage && !showSenderInfo && <div className="w-8 md:w-10 flex-shrink-0" />}
+
         <div
           className={cn(
-            'px-3 py-2 md:px-4 md:py-2.5 rounded-2xl break-words',
-            'text-sm md:text-base',
-            isOwnMessage
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted/80 text-white',
-            isBroadcast && 'border-2 border-red-500/50 bg-gray-800',
-            isPayment && 'border-2 border-green-500/50',
-            // Adjust styling for media-only messages
-            (hasMedia || hasLinkPreview) && !text && 'p-1 bg-transparent',
+            'flex flex-col max-w-[85%]',
+            isOwnMessage ? 'items-end text-right' : 'items-start text-left',
           )}
         >
-          {/* Text content - only show if not a pure media message */}
-          {text && (
-            <p className="whitespace-pre-wrap">{text}</p>
-          )}
-          
-          {/* Rich media content */}
-          {renderMediaContent()}
-          
-          {/* File attachments */}
-          {renderFileAttachments()}
-          
-          {/* Link preview */}
-          {renderLinkPreview()}
-        </div>
-        
-        {/* Google Maps Widget */}
-        {grounding?.googleMapsWidget && (
-          <div className="mt-2">
-            <GoogleMapsWidget 
-              widgetToken={grounding.googleMapsWidget} 
-              height={isMobilePortrait ? 200 : 250} 
+          <div className="flex items-center gap-2">
+            {showSenderInfo && (
+              <span className="text-[10px] md:text-xs text-white/70 mb-0.5">
+                {isOwnMessage ? 'You' : senderName} — {formatTime(timestamp)}
+                {isEdited && <span className="ml-1 text-white/50">(edited)</span>}
+              </span>
+            )}
+            <MessageActions
+              messageId={id}
+              messageContent={text}
+              messageType={messageType}
+              isOwnMessage={isOwnMessage}
+              isDeleted={isDeleted}
+              onEdit={onEdit}
+              onDelete={onDelete}
             />
           </div>
-        )}
-        
-        {/* Grounding Sources */}
-        {grounding?.sources && grounding.sources.length > 0 && (
-          <div className={cn("space-y-2", "mt-2", "w-full")}>
+          <div
+            className={cn(
+              'px-3 py-2 md:px-4 md:py-2.5 rounded-2xl break-words',
+              'text-sm md:text-base',
+              isOwnMessage
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted/80 text-white',
+              isBroadcast && 'border-2 border-red-500/50 bg-gray-800',
+              isPayment && 'border-2 border-green-500/50',
+              // Adjust styling for media-only messages
+              (hasMedia || hasLinkPreview) && !text && 'p-1 bg-transparent',
+            )}
+          >
+            {/* Text content - only show if not a pure media message */}
+            {text && (
+              <p className="whitespace-pre-wrap">{text}</p>
+            )}
+            
+            {/* Rich media content */}
+            {renderMediaContent()}
+            
+            {/* File attachments */}
+            {renderFileAttachments()}
+            
+            {/* Link preview */}
+            {renderLinkPreview()}
+          </div>
+          
+          {/* Google Maps Widget */}
+          {grounding?.googleMapsWidget && (
+            <div className="mt-2">
+              <GoogleMapsWidget 
+                widgetToken={grounding.googleMapsWidget} 
+                height={isMobilePortrait ? 200 : 250} 
+              />
+            </div>
+          )}
+          
+          {/* Grounding Sources */}
+          {grounding?.sources && grounding.sources.length > 0 && (
+            <div className={cn("space-y-2", "mt-2", "w-full")}>
+              <div className={cn(
+                "font-medium text-white/80 flex items-center gap-2",
+                isMobilePortrait ? "text-[10px]" : "text-xs"
+              )}>
+                <span>Sources:</span>
+                {grounding.sources.filter(s => s.source === 'google_maps_grounding').length > 0 && (
+                  <span className={cn(
+                    "bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded flex items-center gap-1",
+                    isMobilePortrait ? "text-[9px]" : "text-[10px]"
+                  )}>
+                    <MapPin size={isMobilePortrait ? 10 : 12} />
+                    {grounding.sources.filter(s => s.source === 'google_maps_grounding').length} verified by Google
+                  </span>
+                )}
+              </div>
+              <div className="space-y-2">
+                {grounding.sources.map((source, idx) => (
+                  <GroundingCitationCard key={source.id || idx} citation={source} index={idx} />
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {showReactions && (
             <div className={cn(
-              "font-medium text-white/80 flex items-center gap-2",
-              isMobilePortrait ? "text-[10px]" : "text-xs"
+              isMobilePortrait ? 'mt-1' : 'mt-1'
             )}>
-              <span>Sources:</span>
-              {grounding.sources.filter(s => s.source === 'google_maps_grounding').length > 0 && (
-                <span className={cn(
-                  "bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded flex items-center gap-1",
-                  isMobilePortrait ? "text-[9px]" : "text-[10px]"
-                )}>
-                  <MapPin size={isMobilePortrait ? 10 : 12} />
-                  {grounding.sources.filter(s => s.source === 'google_maps_grounding').length} verified by Google
-                </span>
-              )}
+              <MessageReactionBar messageId={id} reactions={reactions} onReaction={onReaction} />
             </div>
-            <div className="space-y-2">
-              {grounding.sources.map((source, idx) => (
-                <GroundingCitationCard key={source.id || idx} citation={source} index={idx} />
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {showReactions && (
-          <div className={cn(
-            isMobilePortrait ? 'mt-1' : 'mt-1'
-          )}>
-            <MessageReactionBar messageId={id} reactions={reactions} onReaction={onReaction} />
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Image Lightbox */}
+      <ImageLightbox
+        isOpen={lightboxOpen}
+        images={allChatImages.length > 0 ? allChatImages : mediaUrl ? [{ url: mediaUrl }] : []}
+        initialIndex={lightboxIndex}
+        onClose={() => setLightboxOpen(false)}
+      />
+    </>
   );
 });
