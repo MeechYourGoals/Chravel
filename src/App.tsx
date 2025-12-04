@@ -23,18 +23,33 @@ import { toast } from "@/hooks/use-toast";
 import { setupGlobalSyncProcessor } from "./services/globalSyncProcessor";
 
 // Lazy load pages for better performance
-const retryImport = <T,>(importFn: () => Promise<T>, retries = 3): Promise<T> => {
+// Enhanced retry mechanism with exponential backoff and better error handling
+const retryImport = <T,>(importFn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> => {
   return new Promise((resolve, reject) => {
     importFn()
       .then(resolve)
       .catch((error) => {
-        if (retries === 0) {
+        const errorMessage = error?.message || String(error);
+        const isChunkError = 
+          errorMessage.includes('Failed to fetch dynamically imported module') ||
+          errorMessage.includes('Loading chunk') ||
+          errorMessage.includes('Failed to fetch') ||
+          errorMessage.includes('NetworkError');
+        
+        // Only retry on chunk loading errors
+        if (!isChunkError || retries === 0) {
+          console.error('Import failed after retries:', error);
           reject(error);
           return;
         }
+        
+        // Exponential backoff: 1s, 2s, 4s
+        const nextDelay = delay * Math.pow(2, 3 - retries);
+        console.warn(`Retrying import (${retries} retries left) after ${nextDelay}ms...`);
+        
         setTimeout(() => {
-          retryImport(importFn, retries - 1).then(resolve, reject);
-        }, 1000);
+          retryImport(importFn, retries - 1, delay).then(resolve, reject);
+        }, nextDelay);
       });
   });
 };
@@ -103,31 +118,67 @@ const App = () => {
   }, []);
 
 
-  // Chunk load failure recovery (no auto-reload to avoid loops)
+  // Chunk load failure recovery with better error detection
   useEffect(() => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const error = event.reason?.message || String(event.reason);
+      const errorString = String(event.reason);
       
-      if (error.includes('Loading chunk') || error.includes('Failed to fetch dynamically imported')) {
+      const isChunkError = 
+        error.includes('Loading chunk') || 
+        error.includes('Failed to fetch dynamically imported') ||
+        error.includes('Failed to fetch') ||
+        errorString.includes('Failed to fetch dynamically imported') ||
+        errorString.includes('Loading chunk');
+      
+      if (isChunkError) {
+        console.error('Chunk loading error detected:', error);
+        
+        // Prevent multiple toasts
+        const existingToast = document.querySelector('[data-sonner-toast]');
+        if (existingToast) return;
         
         toast({
-          title: "Update Available",
-          description: "Click to refresh and load the latest version.",
+          title: "Loading Error",
+          description: "Failed to load page. This may be due to a network issue or outdated cache. Please refresh.",
           action: (
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                // Clear cache and reload
+                if ('caches' in window) {
+                  caches.keys().then(names => {
+                    names.forEach(name => caches.delete(name));
+                  });
+                }
+                window.location.reload();
+              }}
               className="px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
             >
               Refresh
             </button>
           ),
-          duration: 10000,
+          duration: 15000,
         });
       }
     };
     
+    // Also handle error events
+    const handleError = (event: ErrorEvent) => {
+      const error = event.message || String(event.error);
+      if (error.includes('Failed to fetch dynamically imported') || error.includes('Loading chunk')) {
+        handleUnhandledRejection({
+          reason: { message: error },
+          preventDefault: () => {},
+        } as PromiseRejectionEvent);
+      }
+    };
+    
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
-    return () => window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    window.addEventListener('error', handleError);
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('error', handleError);
+    };
   }, []);
 
   return (
