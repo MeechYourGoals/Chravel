@@ -8,6 +8,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { errorHandlingService } from './errorHandlingService';
 
 export interface MediaItem {
   id: string;
@@ -37,6 +38,12 @@ export const mediaService = {
       if (!user) throw new Error('Not authenticated');
 
       const { tripId, file, media_type } = request;
+
+      // CRITICAL FIX: Enforce file size limit (10MB)
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error(`File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit. Please compress or use a smaller file.`);
+      }
 
       // Generate unique filename
       const fileExt = file.name.split('.').pop();
@@ -90,7 +97,12 @@ export const mediaService = {
         mime_type: mediaItem.mime_type
       };
     } catch (error) {
-      console.error('[mediaService] Error uploading media:', error);
+      // HIGH PRIORITY FIX: Use error handling service consistently
+      errorHandlingService.handleError(error, {
+        operation: 'uploadMedia',
+        tripId: request.tripId,
+        metadata: { filename: request.file.name, fileSize: request.file.size }
+      });
       throw error;
     }
   },
@@ -121,7 +133,10 @@ export const mediaService = {
         mime_type: item.mime_type
       }));
     } catch (error) {
-      console.error('[mediaService] Error fetching media:', error);
+      errorHandlingService.handleError(error, {
+        operation: 'getMediaItems',
+        tripId
+      });
       throw error;
     }
   },
@@ -153,7 +168,11 @@ export const mediaService = {
         mime_type: item.mime_type
       }));
     } catch (error) {
-      console.error('[mediaService] Error fetching media by type:', error);
+      errorHandlingService.handleError(error, {
+        operation: 'getMediaByType',
+        tripId,
+        metadata: { mediaType }
+      });
       throw error;
     }
   },
@@ -193,7 +212,10 @@ export const mediaService = {
 
       if (dbError) throw dbError;
     } catch (error) {
-      console.error('[mediaService] Error deleting media:', error);
+      errorHandlingService.handleError(error, {
+        operation: 'deleteMedia',
+        metadata: { mediaId }
+      });
       throw error;
     }
   },

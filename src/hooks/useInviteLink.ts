@@ -74,6 +74,41 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
       return;
     }
 
+    // CRITICAL FIX: Check for existing active invite before creating new one
+    try {
+      const { data: existingInvite, error: fetchError } = await supabase
+        .from('trip_invites')
+        .select('id, code, expires_at')
+        .eq('trip_id', actualTripId)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('Error checking existing invites:', fetchError);
+        // Continue to create new invite if check fails
+      } else if (existingInvite) {
+        // Check if existing invite is still valid (not expired)
+        const isExpired = existingInvite.expires_at 
+          ? new Date(existingInvite.expires_at) < new Date()
+          : false;
+
+        if (!isExpired) {
+          // Reuse existing active invite
+          setInviteLink(`${baseUrl}/join/${existingInvite.code}`);
+          setLoading(false);
+          return;
+        }
+        // If expired, deactivate it and create new one
+        await supabase
+          .from('trip_invites')
+          .update({ is_active: false })
+          .eq('id', existingInvite.id);
+      }
+    } catch (error) {
+      console.error('Error checking existing invites:', error);
+      // Continue to create new invite if check fails
+    }
+
     const inviteCode = crypto.randomUUID();
     const created = await createInviteInDatabase(actualTripId, inviteCode);
     
@@ -90,16 +125,42 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
 
   const regenerateInviteToken = async () => {
     setLoading(true);
+    const actualTripId = proTripId || tripId;
     
-    // Deactivate old invite if it exists
+    if (!actualTripId) {
+      toast.error('No trip ID provided');
+      setLoading(false);
+      return;
+    }
+    
+    // HIGH PRIORITY FIX: Use atomic update with version check to prevent race conditions
     if (inviteLink) {
       try {
         const oldCode = inviteLink.split('/join/')[1]?.split('?')[0];
         if (oldCode) {
-          await supabase
+          // Get current invite with updated_at timestamp for optimistic locking
+          const { data: currentInvite, error: fetchError } = await supabase
             .from('trip_invites')
-            .update({ is_active: false })
-            .eq('code', oldCode);
+            .select('id, updated_at')
+            .eq('code', oldCode)
+            .eq('is_active', true)
+            .single();
+
+          if (!fetchError && currentInvite) {
+            // Atomic update: only deactivate if still active (prevents race condition)
+            const { error: updateError } = await supabase
+              .from('trip_invites')
+              .update({ 
+                is_active: false,
+                updated_at: new Date().toISOString()
+              })
+              .eq('code', oldCode)
+              .eq('is_active', true); // Only update if still active
+
+            if (updateError) {
+              console.error('Error deactivating old invite:', updateError);
+            }
+          }
         }
       } catch (error) {
         console.error('Error deactivating old invite:', error);

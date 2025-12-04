@@ -692,7 +692,22 @@ DECLARE
   payment_id uuid;
   participant uuid;
   split_amount numeric;
+  invalid_user_id uuid;
 BEGIN
+  -- CRITICAL FIX: Validate all split participants are trip members
+  SELECT user_id INTO invalid_user_id
+  FROM (
+    SELECT jsonb_array_elements_text(p_split_participants)::uuid AS user_id
+  ) AS participants
+  WHERE user_id NOT IN (
+    SELECT user_id FROM trip_members WHERE trip_id = p_trip_id
+  )
+  LIMIT 1;
+  
+  IF invalid_user_id IS NOT NULL THEN
+    RAISE EXCEPTION 'User % is not a trip member. All split participants must be members of the trip.', invalid_user_id;
+  END IF;
+  
   split_amount := p_amount / p_split_count;
   
   INSERT INTO trip_payment_messages (

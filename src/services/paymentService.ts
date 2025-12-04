@@ -3,6 +3,7 @@ import { PaymentMethod, PaymentMessage, PaymentSplit } from '../types/payments';
 import { demoModeService } from './demoModeService';
 import { mockPayments } from '@/mockData/payments';
 import { recordPaymentSplitPattern } from './chatAnalysisService';
+import { errorHandlingService } from './errorHandlingService';
 
 interface MockPayment {
   id: string;
@@ -141,7 +142,12 @@ export const paymentService = {
 
       return paymentId;
     } catch (error) {
-      console.error('Error creating payment message:', error);
+      errorHandlingService.handleError(error, {
+        operation: 'createPaymentMessage',
+        tripId,
+        userId,
+        metadata: { amount: paymentData.amount, splitCount: paymentData.splitCount }
+      });
       return null;
     }
   },
@@ -193,7 +199,10 @@ export const paymentService = {
         isSettled: msg.is_settled,
       }));
     } catch (error) {
-      console.error('Error fetching payment messages:', error);
+      errorHandlingService.handleError(error, {
+        operation: 'getTripPaymentMessages',
+        tripId
+      });
       return [];
     }
   },
@@ -226,7 +235,10 @@ export const paymentService = {
 
       return !error;
     } catch (error) {
-      console.error('Error settling payment:', error);
+      errorHandlingService.handleError(error, {
+        operation: 'settlePayment',
+        metadata: { splitId, settlementMethod }
+      });
       return false;
     }
   },
