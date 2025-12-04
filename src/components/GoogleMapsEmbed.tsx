@@ -15,6 +15,9 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
   const [embedUrl, setEmbedUrl] = useState('');
   const [retryCount, setRetryCount] = useState(0);
   
+  // Default keyless embed URL (free, no API required)
+  const DEFAULT_EMBED_URL = 'https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d25211418.31451683!2d-95.665!3d37.6!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sus';
+
   useEffect(() => {
     setIsLoading(true);
     setHasError(false);
@@ -23,18 +26,18 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
       let url: string;
       
       if (isBasecampSet && basecamp?.address) {
-        // Initialize with Base Camp
+        // Use keyless embed format - always free, no API key needed
         url = GoogleMapsService.buildEmbeddableUrl(basecamp.address, basecamp.coordinates);
       } else {
         // Default fallback - show world map centered on US
-        url = 'https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d25211418.31451683!2d-95.665!3d37.6!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sus!4v1234567890!5m2!1sen!2sus';
+        url = DEFAULT_EMBED_URL;
       }
 
       setEmbedUrl(url);
     } catch (error) {
       console.error('[GoogleMapsEmbed] Error building URL:', error);
-      // Ultimate fallback - simple embed without API key
-      setEmbedUrl('https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d25211418.31451683!2d-95.665!3d37.6!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sus!4v1234567890!5m2!1sen!2sus');
+      // Ultimate fallback - keyless embed
+      setEmbedUrl(DEFAULT_EMBED_URL);
     }
     
     // Always stop loading after a short delay to ensure UI updates
@@ -91,10 +94,10 @@ export const GoogleMapsEmbed = ({ className }: GoogleMapsEmbedProps) => {
         </div>
       )}
 
-      {/* Google Maps Iframe - Always render */}
+      {/* Google Maps Iframe - Always render using free keyless embed */}
       <iframe
         key={`${embedUrl}-${retryCount}`}
-        src={embedUrl || 'https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d25211418.31451683!2d-95.665!3d37.6!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sus!4v1234567890!5m2!1sen!2sus'}
+        src={embedUrl || DEFAULT_EMBED_URL}
         width="100%"
         height="100%"
         style={{ border: 0 }}
