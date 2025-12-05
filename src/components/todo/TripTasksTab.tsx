@@ -8,6 +8,7 @@ import { useTripTasks } from '../../hooks/useTripTasks';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
+import { useToast } from '@/hooks/use-toast';
 
 interface TripTasksTabProps {
   tripId: string;
@@ -16,6 +17,7 @@ interface TripTasksTabProps {
 export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
+  const { toast } = useToast();
   const { accentColors } = useTripVariant();
   const { tasks, isLoading, applyFilters, status, setStatus, assignee, setAssignee, dateRange, setDateRange, sortBy, setSortBy, hasActiveFilters, clearFilters } = useTripTasks(tripId);
   const { isDemoMode } = useDemoMode();
@@ -130,6 +132,7 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
         tripId={tripId}
         title="To Do"
         emptyMessage="All caught up! No pending tasks."
+        onEditTask={(task) => toast({ title: 'Edit Task', description: `Editing "${task.title}" - Feature coming soon!` })}
       />
 
       {/* Completed Tasks */}
@@ -140,6 +143,7 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
           title="Completed"
           showCompleted={showCompleted}
           onToggleCompleted={() => setShowCompleted(!showCompleted)}
+          onEditTask={(task) => toast({ title: 'Edit Task', description: `Editing "${task.title}" - Feature coming soon!` })}
         />
       )}
 
