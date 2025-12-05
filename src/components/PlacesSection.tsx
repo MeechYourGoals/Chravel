@@ -475,43 +475,45 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
 
           </div>
 
-      {/* Map - ALWAYS AT BOTTOM */}
-      <div className="mb-2 md:mb-6">
-        <div className="relative h-[52.5vh] md:h-[450px] rounded-2xl overflow-hidden shadow-2xl">
-          <MapCanvas
-            ref={mapRef}
-            activeContext={searchContext}
-            tripBasecamp={contextBasecamp}
-            personalBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : null}
-            className="w-full h-full"
-            onMapReady={handleMapReady}
-            onSaveSearchAsBasecamp={(location) => {
-              // Save searched location as trip basecamp
-              const newBasecamp: BasecampLocation = {
-                address: location.address,
-                name: location.address.split(',')[0],
-                type: 'other',
-                coordinates: { lat: location.lat, lng: location.lng }
-              };
-              handleBasecampSet(newBasecamp);
-              toast.success('Saved as Trip Base Camp!', {
-                description: newBasecamp.name
-              });
-            }}
-          />
+      {/* Map - ONLY SHOW ON BASECAMPS TAB */}
+      {activeTab === 'basecamps' && (
+        <div className="mb-2 md:mb-6">
+          <div className="relative h-[52.5vh] md:h-[450px] rounded-2xl overflow-hidden shadow-2xl">
+            <MapCanvas
+              ref={mapRef}
+              activeContext={searchContext}
+              tripBasecamp={contextBasecamp}
+              personalBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : null}
+              className="w-full h-full"
+              onMapReady={handleMapReady}
+              onSaveSearchAsBasecamp={(location) => {
+                // Save searched location as trip basecamp
+                const newBasecamp: BasecampLocation = {
+                  address: location.address,
+                  name: location.address.split(',')[0],
+                  type: 'other',
+                  coordinates: { lat: location.lat, lng: location.lng }
+                };
+                handleBasecampSet(newBasecamp);
+                toast.success('Saved as Trip Base Camp!', {
+                  description: newBasecamp.name
+                });
+              }}
+            />
 
-          {/* Unified Map Controls - floating on map (simple search bar) */}
-          <UnifiedMapControls
-            searchQuery={searchQuery}
-            onSearchChange={handleSearchChange}
-            onSearchSubmit={handleSearchSubmit}
-            isSearching={isSearching}
-            searchError={searchError}
-            onClearSearch={handleClearSearch}
-            isMapLoading={isMapLoading}
-          />
+            {/* Unified Map Controls - floating on map (simple search bar) */}
+            <UnifiedMapControls
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchChange}
+              onSearchSubmit={handleSearchSubmit}
+              isSearching={isSearching}
+              searchError={searchError}
+              onClearSearch={handleClearSearch}
+              isMapLoading={isMapLoading}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
