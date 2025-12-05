@@ -25,9 +25,16 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
 
   const createInviteInDatabase = async (tripIdValue: string, inviteCode: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.error('Auth error:', authError);
+        toast.error('Authentication error. Please log in again.');
+        return false;
+      }
+
       if (!user) {
         console.error('User not authenticated');
+        toast.error('You must be logged in to create invite links.');
         return false;
       }
 
@@ -53,12 +60,21 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
 
       if (error) {
         console.error('Error creating invite:', error);
+        // Provide more specific error messages based on error code
+        if (error.code === '42501') {
+          toast.error('You do not have permission to create invites for this trip.');
+        } else if (error.code === '23503') {
+          toast.error('Trip not found. Please try again.');
+        } else {
+          toast.error(`Failed to create invite: ${error.message}`);
+        }
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error creating invite:', error);
+      console.error('Unexpected error creating invite:', error);
+      toast.error('An unexpected error occurred. Please try again.');
       return false;
     }
   };
