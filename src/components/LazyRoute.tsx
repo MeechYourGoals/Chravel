@@ -245,6 +245,10 @@ export const LazyRoute: React.FC<LazyRouteProps> = ({
 
       // Otherwise, attempt auto-retry
       attemptAutoRetry();
+    } else if (hasChunkError && retryCount >= MAX_AUTO_RETRIES) {
+      // Max retries exhausted - reset auto-retry flag to show manual recovery UI
+      console.warn('[LazyRoute] Max auto-retries exhausted, showing manual recovery UI');
+      setIsAutoRetrying(false);
     }
   }, [hasChunkError, retryCount, attemptAutoRetry]);
 
