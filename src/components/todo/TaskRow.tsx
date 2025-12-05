@@ -114,7 +114,7 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
           {task.description && (
             <>
               <span className="text-muted-foreground hidden sm:inline">•</span>
-              <span className="text-muted-foreground text-sm truncate max-w-[200px]">
+              <span className="text-muted-foreground text-sm truncate max-w-[350px]">
                 {task.description}
               </span>
             </>
