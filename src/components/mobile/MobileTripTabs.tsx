@@ -49,6 +49,14 @@ export const MobileTripTabs = ({
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const features = useFeatureToggle(tripData || {});
 
+  // Track error boundary reset key to force re-render on retry
+  const [errorBoundaryKey, setErrorBoundaryKey] = useState(0);
+
+  // Callback for ErrorBoundary retry
+  const handleErrorRetry = useCallback(() => {
+    setErrorBoundaryKey(prev => prev + 1);
+  }, []);
+
   // Tab configuration based on variant
   const getTabsForVariant = () => {
     // Event-specific tabs - matches EventDetailContent.tsx
@@ -232,7 +240,13 @@ export const MobileTripTabs = ({
           WebkitOverflowScrolling: 'touch'
         }}
       >
-        {renderTabContent()}
+        <ErrorBoundary
+          key={`${activeTab}-${errorBoundaryKey}`}
+          compact
+          onRetry={handleErrorRetry}
+        >
+          {renderTabContent()}
+        </ErrorBoundary>
       </div>
     </>
   );
