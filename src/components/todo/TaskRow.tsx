@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Pencil, Trash2, CheckCircle } from 'lucide-react';
-import { Checkbox } from '../ui/checkbox';
+import { Pencil, Trash2, Check } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { CompletionDrawer } from './CompletionDrawer';
+import { TaskDetailModal } from './TaskDetailModal';
 import { useTripTasks } from '../../hooks/useTripTasks';
 import { formatDistanceToNow, isAfter } from 'date-fns';
 import { TripTask } from '../../types/tasks';
@@ -30,6 +30,7 @@ interface TaskRowProps {
 export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
   const [showCompletionDrawer, setShowCompletionDrawer] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
   const { toggleTaskMutation, deleteTaskMutation } = useTripTasks(tripId);
 
@@ -56,7 +57,8 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
   const completionCount = task.task_status?.filter(s => s.completed).length || 0;
   const totalUsers = task.task_status?.length || 1;
 
-  const handleToggleComplete = () => {
+  const handleToggleComplete = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent opening detail modal
     const willBeCompleted = !userCompleted;
     
     if (willBeCompleted) {
@@ -78,30 +80,33 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
     setShowDeleteDialog(false);
   };
 
+  const handleRowClick = () => {
+    setShowDetailModal(true);
+  };
+
   return (
     <>
-      <div className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 transition-all hover:bg-white/10 ${
-        userCompleted ? 'opacity-75' : ''
-      }`}>
+      <div 
+        className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 transition-all hover:bg-white/10 cursor-pointer ${
+          userCompleted ? 'opacity-75' : ''
+        }`}
+        onClick={handleRowClick}
+      >
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Checkbox with Animation */}
-          <div className="relative flex-shrink-0">
-            <Checkbox
-              checked={userCompleted}
-              onCheckedChange={handleToggleComplete}
-            />
-            {justCompleted && (
-              <div className="absolute -inset-2 pointer-events-none">
-                <CheckCircle 
-                  className="w-6 h-6 text-green-400 animate-scale-in" 
-                  fill="currentColor"
-                />
-              </div>
-            )}
-          </div>
+          {/* Completion Circle Button */}
+          <button
+            onClick={handleToggleComplete}
+            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+              userCompleted 
+                ? 'bg-green-500 border-green-500' 
+                : 'border-muted-foreground hover:border-foreground'
+            } ${justCompleted ? 'scale-110' : ''}`}
+          >
+            {userCompleted && <Check size={12} className="text-white" />}
+          </button>
 
-          {/* Title - strikethrough on personal completion */}
-          <span className={`font-medium text-white ${userCompleted ? 'line-through text-muted-foreground' : ''}`}>
+          {/* Title */}
+          <span className={`font-medium text-foreground ${userCompleted ? 'text-muted-foreground' : ''}`}>
             {task.title}
           </span>
 
@@ -135,8 +140,11 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowCompletionDrawer(true)}
-                className="text-xs text-muted-foreground hover:text-white px-2 h-7"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowCompletionDrawer(true);
+                }}
+                className="text-xs text-muted-foreground hover:text-foreground px-2 h-7"
               >
                 {completionCount}/{totalUsers} done
               </Button>
@@ -148,21 +156,25 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
 
           {/* Actions */}
           <div className="flex items-center gap-1 flex-shrink-0">
-            {onEdit && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onEdit(task)}
-                className="h-7 px-2 text-xs text-muted-foreground hover:text-white"
-              >
-                <Pencil size={14} className="mr-1" />
-                Edit
-              </Button>
-            )}
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowDeleteDialog(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit?.(task);
+              }}
+              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <Pencil size={14} className="mr-1" />
+              Edit
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDeleteDialog(true);
+              }}
               className="h-7 px-2 text-xs text-destructive hover:text-destructive/80"
             >
               <Trash2 size={14} className="mr-1" />
@@ -171,6 +183,15 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
           </div>
         </div>
       </div>
+
+      {/* Task Detail Modal */}
+      <TaskDetailModal
+        task={task}
+        isOpen={showDetailModal}
+        onClose={() => setShowDetailModal(false)}
+        onEdit={onEdit}
+        userCompleted={userCompleted}
+      />
 
       {/* Completion Drawer for Group Tasks */}
       {showCompletionDrawer && (

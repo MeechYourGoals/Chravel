@@ -10,6 +10,7 @@ interface TaskListProps {
   emptyMessage?: string;
   showCompleted?: boolean;
   onToggleCompleted?: () => void;
+  onEditTask?: (task: TripTask) => void;
 }
 
 export const TaskList = ({ 
@@ -18,7 +19,8 @@ export const TaskList = ({
   title, 
   emptyMessage,
   showCompleted,
-  onToggleCompleted 
+  onToggleCompleted,
+  onEditTask 
 }: TaskListProps) => {
   const isCompletedSection = title.toLowerCase().includes('completed');
 
@@ -53,7 +55,7 @@ export const TaskList = ({
         (!isCompletedSection || showCompleted) && (
           <div className="space-y-2">
             {tasks.map((task) => (
-              <TaskRow key={task.id} task={task} tripId={tripId} />
+              <TaskRow key={task.id} task={task} tripId={tripId} onEdit={onEditTask} />
             ))}
           </div>
         )

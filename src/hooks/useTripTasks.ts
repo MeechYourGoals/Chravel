@@ -55,7 +55,7 @@ const generateSeedTasks = (tripId: string): TripTask[] => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         creator: { id: 'seed-user', name: 'Trip Organizer' },
-        task_status: [{ task_id: 'seed-1-1', user_id: 'current-user', completed: false }]
+        task_status: [{ task_id: 'seed-1-1', user_id: 'demo-user', completed: false }]
       },
       {
         id: 'seed-1-2',
@@ -68,7 +68,7 @@ const generateSeedTasks = (tripId: string): TripTask[] => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         creator: { id: 'seed-user', name: 'Trip Organizer' },
-        task_status: [{ task_id: 'seed-1-2', user_id: 'current-user', completed: false }]
+        task_status: [{ task_id: 'seed-1-2', user_id: 'demo-user', completed: false }]
       }
     ],
     '4': [ // Bachelorette Party
@@ -83,7 +83,7 @@ const generateSeedTasks = (tripId: string): TripTask[] => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         creator: { id: 'seed-user', name: 'Ashley' },
-        task_status: [{ task_id: 'seed-4-1', user_id: 'current-user', completed: false }]
+        task_status: [{ task_id: 'seed-4-1', user_id: 'demo-user', completed: false }]
       }
     ],
     '6': [ // Family Vacation
@@ -98,7 +98,7 @@ const generateSeedTasks = (tripId: string): TripTask[] => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         creator: { id: 'seed-user', name: 'Dad (Mike)' },
-        task_status: [{ task_id: 'seed-6-1', user_id: 'current-user', completed: false }]
+        task_status: [{ task_id: 'seed-6-1', user_id: 'demo-user', completed: false }]
       }
     ],
     '7': [ // Golf Trip
@@ -113,7 +113,7 @@ const generateSeedTasks = (tripId: string): TripTask[] => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         creator: { id: 'seed-user', name: 'Commissioner Mike' },
-        task_status: [{ task_id: 'seed-7-1', user_id: 'current-user', completed: false }]
+        task_status: [{ task_id: 'seed-7-1', user_id: 'demo-user', completed: false }]
       }
     ]
   };
