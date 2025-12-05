@@ -1,10 +1,6 @@
 
 import React, { useState } from 'react';
-import { Calendar, Users, FileText, MessageSquare, ChevronDown, User, Bell } from 'lucide-react';
-import { SimpleEventSetupSection } from './events/SimpleEventSetupSection';
-import { SimpleAttendeeSection } from './events/SimpleAttendeeSection';
-import { SimpleAgendaSection } from './events/SimpleAgendaSection';
-import { SimpleChatSection } from './events/SimpleChatSection';
+import { User, Bell, ChevronDown } from 'lucide-react';
 import { EventProfileSection } from './events/EventProfileSection';
 import { EventNotificationsSection } from './events/EventNotificationsSection';
 import { useIsMobile } from '../hooks/use-mobile';
@@ -25,31 +21,19 @@ export const EventsSettings = ({
   onShowAdvertiserHub: _onShowAdvertiserHub
 }: EventsSettingsProps) => {
   const [activeSection, setActiveSection] = useState('profile');
-  const [eventData, setEventData] = useState({});
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const isMobile = useIsMobile();
 
+  // Only Profile and Notifications - event-specific features belong in individual events
   const sections = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'setup', label: 'Event Setup', icon: Calendar },
-    { id: 'attendees', label: 'Attendees', icon: Users },
-    { id: 'agenda', label: 'Agenda', icon: FileText },
-    { id: 'chat', label: 'Chat', icon: MessageSquare }
+    { id: 'profile', label: 'Organizer Profile', icon: User },
+    { id: 'notifications', label: 'Notifications', icon: Bell }
   ];
-
-  const handleEventDataChange = (data: any) => {
-    setEventData(prev => ({ ...prev, ...data }));
-  };
 
   const renderSection = () => {
     switch (activeSection) {
       case 'profile': return <EventProfileSection />;
       case 'notifications': return <EventNotificationsSection />;
-      case 'setup': return <SimpleEventSetupSection eventData={eventData} onEventDataChange={handleEventDataChange} />;
-      case 'attendees': return <SimpleAttendeeSection />;
-      case 'agenda': return <SimpleAgendaSection />;
-      case 'chat': return <SimpleChatSection />;
       default: return <EventProfileSection />;
     }
   };
@@ -116,6 +100,9 @@ export const EventsSettings = ({
       {/* Desktop Sidebar */}
       <div className="w-64 flex-shrink-0 bg-white/5 backdrop-blur-md border-r border-white/10 p-4 overflow-y-auto">
         <h2 className="text-xl font-bold text-white mb-3">Event Settings</h2>
+        <p className="text-xs text-gray-400 mb-4">
+          Global organizer settings. Event-specific features (Agenda, Attendees, Chat) are in each event.
+        </p>
         <div className="space-y-1.5">
           {sections.map((section) => {
             const Icon = section.icon;

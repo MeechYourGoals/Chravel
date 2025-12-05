@@ -224,6 +224,7 @@ export const MobileEventDetail = () => {
         tripId={eventId}
         basecamp={basecamp}
         variant="event"
+        eventData={eventData}
       />
 
       {/* Trip Info Drawer */}
