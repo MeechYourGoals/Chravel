@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { MessageCircle, Calendar, ClipboardList, BarChart3, Camera, MapPin, Sparkles, CreditCard, Lock } from 'lucide-react';
+import React, { useRef, useEffect } from 'react';
+import { MessageCircle, Calendar, ClipboardList, BarChart3, Camera, MapPin, Sparkles, CreditCard, Lock, Users, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFeatureToggle } from '../../hooks/useFeatureToggle';
 import { TripChat } from '../TripChat';
@@ -14,7 +14,10 @@ import { MobileTripPayments } from './MobileTripPayments';
 import { hapticService } from '../../services/hapticService';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '../../hooks/useDemoMode';
-import { ErrorBoundary } from '../ErrorBoundary';
+import { EnhancedAgendaTab } from '../events/EnhancedAgendaTab';
+import { SpeakerDirectory } from '../events/SpeakerDirectory';
+import { EventRSVPManager } from '../events/EventRSVPManager';
+import type { EventData } from '../../types/events';
 
 interface MobileTripTabsProps {
   activeTab: string;
@@ -22,11 +25,12 @@ interface MobileTripTabsProps {
   tripId: string;
   basecamp: { name: string; address: string };
   variant?: 'consumer' | 'pro' | 'event';
-  participants?: Array<{ id: string; name: string; role?: string }>; // 🆕 For Pro/Event trips with role channels
+  participants?: Array<{ id: string; name: string; role?: string }>;
   tripData?: {
     enabled_features?: string[];
     trip_type?: 'consumer' | 'pro' | 'event';
   };
+  eventData?: EventData | null;
 }
 
 export const MobileTripTabs = ({
@@ -36,7 +40,8 @@ export const MobileTripTabs = ({
   basecamp,
   variant = 'consumer',
   participants = [],
-  tripData
+  tripData,
+  eventData
 }: MobileTripTabsProps) => {
   const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
@@ -54,6 +59,20 @@ export const MobileTripTabs = ({
 
   // Tab configuration based on variant
   const getTabsForVariant = () => {
+    // Event-specific tabs - matches EventDetailContent.tsx
+    if (variant === 'event') {
+      return [
+        { id: 'agenda', label: 'Agenda', icon: Calendar, enabled: true },
+        { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: true },
+        { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: features.showChat },
+        { id: 'media', label: 'Media', icon: Camera, enabled: features.showMedia },
+        { id: 'performers', label: 'Performers', icon: Users, enabled: true },
+        { id: 'polls', label: 'Polls', icon: BarChart3, enabled: features.showPolls },
+        { id: 'rsvp', label: 'RSVP', icon: CheckCircle2, enabled: true }
+      ];
+    }
+
+    // Consumer/Pro tabs
     const baseTabs = [
       { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: features.showChat },
       { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: features.showCalendar },
@@ -65,8 +84,6 @@ export const MobileTripTabs = ({
       { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: features.showTasks }
     ];
 
-    // All variants currently use the same tabs
-    // Pro/Event specific tabs can be added here in the future
     return baseTabs;
   };
 
@@ -117,6 +134,21 @@ export const MobileTripTabs = ({
 
   const renderTabContent = () => {
     switch (activeTab) {
+      // Event-specific tabs
+      case 'agenda':
+        return <EnhancedAgendaTab eventId={tripId} userRole="attendee" />;
+      case 'performers':
+        return <SpeakerDirectory speakers={eventData?.speakers || []} userRole="attendee" />;
+      case 'rsvp':
+        return (
+          <EventRSVPManager 
+            eventId={tripId} 
+            eventTitle={eventData?.title || ''} 
+            eventCapacity={eventData?.capacity || 100} 
+            registrationStatus="open" 
+          />
+        );
+      // Common tabs
       case 'chat':
         return <TripChat 
           tripId={tripId} 

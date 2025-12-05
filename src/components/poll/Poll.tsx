@@ -10,23 +10,27 @@ interface PollProps {
   onVote: (pollId: string, optionIds: string | string[]) => void;
   onRemoveVote?: (pollId: string) => void;
   onClose?: (pollId: string) => void;
+  onDelete?: (pollId: string) => void;
   onExport?: (pollId: string) => void;
   disabled?: boolean;
   isVoting?: boolean;
   isClosing?: boolean;
   isRemovingVote?: boolean;
+  isDeleting?: boolean;
 }
 
 export const Poll = ({ 
   poll, 
   onVote, 
   onRemoveVote,
-  onClose, 
+  onClose,
+  onDelete,
   onExport, 
   disabled = false, 
   isVoting = false, 
   isClosing = false,
-  isRemovingVote = false
+  isRemovingVote = false,
+  isDeleting = false
 }: PollProps) => {
   const { user } = useAuth();
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
@@ -105,6 +109,12 @@ export const Poll = ({
     }
   };
 
+  const handleDelete = () => {
+    if (onDelete && isCreator) {
+      onDelete(poll.id);
+    }
+  };
+
   return (
     <div className="space-y-3">
       {/* Header */}
@@ -180,9 +190,23 @@ export const Poll = ({
               disabled={isClosing}
               variant="ghost"
               size="sm"
-              className="h-7 px-2 text-xs text-destructive hover:text-destructive/80"
+              className="h-7 px-2 text-xs text-muted-foreground hover:text-white"
             >
               {isClosing ? 'Closing...' : 'Close Poll'}
+            </Button>
+          )}
+          
+          {/* Delete button (only for creator) */}
+          {isCreator && onDelete && (
+            <Button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs text-destructive hover:text-destructive/80"
+            >
+              <Trash2 size={12} className="mr-1" />
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>
           )}
         </div>
