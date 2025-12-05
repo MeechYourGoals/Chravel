@@ -10,24 +10,16 @@
  * Used in: EventDetailContent for attendee registration flow
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useEventRSVP } from '@/hooks/useEventRSVP';
 import { RSVPStatus } from '@/types/events';
-import { CheckCircle2, Clock, XCircle, Users, AlertCircle, QrCode, Download } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, Users, AlertCircle, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-// QR Code generation - requires qrcode package: npm install qrcode @types/qrcode
-// For now, using dynamic import to handle missing package gracefully
-let QRCode: any = null;
-try {
-  // @ts-ignore - Dynamic import for optional dependency
-  QRCode = require('qrcode');
-} catch {
-  // QR code library not installed - will show fallback UI
-  console.warn('QR code library not installed. Install with: npm install qrcode @types/qrcode');
-}
+// QR Code feature is disabled until qrcode package is properly installed and configured
+// For MVP, ticket data will be displayed as text with QR code support coming soon
 
 interface EventRSVPManagerProps {
   eventId: string;
@@ -43,47 +35,10 @@ export const EventRSVPManager: React.FC<EventRSVPManagerProps> = ({
   registrationStatus = 'open'
 }) => {
   const { rsvp, capacity, isLoading, isSubmitting, submitRSVP } = useEventRSVP(eventId);
-  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
-  const [showQRCode, setShowQRCode] = useState(false);
-
-  // Generate QR code image from ticket data
-  const generateQRCodeImage = async (qrData: string) => {
-    if (!QRCode) {
-      // Fallback: Show QR data as text if library not available
-      alert('QR code library not installed. Please install qrcode package.');
-      return;
-    }
-    try {
-      const url = await QRCode.toDataURL(qrData, {
-        width: 300,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      });
-      setQrCodeUrl(url);
-    } catch (error) {
-      console.error('Failed to generate QR code:', error);
-    }
-  };
 
   // Handle RSVP submission
   const handleRSVP = async (status: RSVPStatus) => {
-    const success = await submitRSVP(status);
-    if (success && status === 'going' && rsvp?.ticketQrCode) {
-      await generateQRCodeImage(rsvp.ticketQrCode);
-      setShowQRCode(true);
-    }
-  };
-
-  // Download QR code
-  const downloadQRCode = () => {
-    if (!qrCodeUrl) return;
-    const link = document.createElement('a');
-    link.download = `${eventTitle}-ticket.png`;
-    link.href = qrCodeUrl;
-    link.click();
+    await submitRSVP(status);
   };
 
   if (isLoading) {
@@ -217,30 +172,21 @@ export const EventRSVPManager: React.FC<EventRSVPManagerProps> = ({
                 <CardDescription>Present this QR code at check-in</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {qrCodeUrl ? (
-                  <>
-                    <div className="flex justify-center">
-                      <img src={qrCodeUrl} alt="Ticket QR Code" className="w-64 h-64 border-2 border-white/20 rounded-lg" />
-                    </div>
-                    <Button
-                      variant="outline"
-                      onClick={downloadQRCode}
-                      className="w-full"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download Ticket
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="outline"
-                    onClick={() => generateQRCodeImage(rsvp.ticketQrCode!)}
-                    className="w-full"
-                  >
-                    <QrCode className="h-4 w-4 mr-2" />
-                    Generate QR Code
-                  </Button>
-                )}
+                {/* Show ticket code as text - QR generation coming soon */}
+                <div className="flex flex-col items-center gap-4 p-4 bg-white/5 rounded-lg">
+                  <div className="w-32 h-32 flex items-center justify-center border-2 border-dashed border-white/30 rounded-lg">
+                    <QrCode className="h-12 w-12 text-white/40" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-400 mb-2">Your Ticket Code:</p>
+                    <code className="text-lg font-mono bg-white/10 px-3 py-1 rounded">
+                      {rsvp.ticketQrCode?.slice(0, 12) || 'TICKET'}
+                    </code>
+                  </div>
+                  <p className="text-xs text-gray-500 text-center">
+                    QR code display coming soon. Present this code at check-in.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           )}
