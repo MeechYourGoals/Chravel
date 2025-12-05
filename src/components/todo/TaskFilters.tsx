@@ -28,7 +28,7 @@ export const TaskFilters = ({
   ];
 
   return (
-    <div className="flex items-center gap-4 mb-4">
+    <div className="flex items-center gap-3 flex-wrap">
       <div className="flex items-center gap-2 text-slate-400 text-sm">
         <Filter size={16} />
         <span>Filter:</span>

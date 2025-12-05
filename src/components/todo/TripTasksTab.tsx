@@ -101,12 +101,9 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header - Title Row */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-white">Tasks</h2>
-          <p className="text-gray-400 text-sm">Keep track of everything that needs to get done</p>
-        </div>
+        <h2 className="text-xl font-semibold text-white">Tasks</h2>
         <Button
           onClick={() => setShowCreateModal(true)}
           className={`bg-gradient-to-r ${accentColors.gradient} hover:opacity-90`}
@@ -116,15 +113,18 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
         </Button>
       </div>
 
-      {/* Filters */}
-      <TaskFilters
-        status={status}
-        sortBy={sortBy}
-        onStatusChange={setStatus}
-        onSortChange={setSortBy}
-        hasActiveFilters={hasActiveFilters}
-        onClearFilters={clearFilters}
-      />
+      {/* Subtitle + Filters on same row */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <p className="text-gray-400 text-sm">Keep track of everything that needs to get done</p>
+        <TaskFilters
+          status={status}
+          sortBy={sortBy}
+          onStatusChange={setStatus}
+          onSortChange={setSortBy}
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={clearFilters}
+        />
+      </div>
 
       {/* Open Tasks */}
       <TaskList
