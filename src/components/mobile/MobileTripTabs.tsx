@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { MessageCircle, Calendar, ClipboardList, BarChart3, Camera, MapPin, Sparkles, CreditCard, Lock, Users, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFeatureToggle } from '../../hooks/useFeatureToggle';
@@ -14,6 +14,7 @@ import { MobileTripPayments } from './MobileTripPayments';
 import { hapticService } from '../../services/hapticService';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '../../hooks/useDemoMode';
+import { ErrorBoundary } from '../ErrorBoundary';
 import { EnhancedAgendaTab } from '../events/EnhancedAgendaTab';
 import { SpeakerDirectory } from '../events/SpeakerDirectory';
 import { EventRSVPManager } from '../events/EventRSVPManager';
