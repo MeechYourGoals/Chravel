@@ -219,6 +219,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     };
 
     // Expose methods via ref
+    // IMPORTANT: The dependency array ensures these methods update when fallback mode changes
     useImperativeHandle(ref, () => ({
       centerOn: (latLng: { lat: number; lng: number }, zoom = 15) => {
         // Handle iframe fallback mode
@@ -230,7 +231,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           });
           return;
         }
-        
+
         if (mapRef.current && window.google && latLng) {
           mapRef.current.panTo(latLng);
           mapRef.current.setZoom(zoom);
@@ -296,7 +297,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         if (useFallbackEmbed || forceIframeFallback) {
           return handleFallbackAutocomplete(query);
         }
-        
+
         if (!sessionToken) {
           console.warn('[MapCanvas] No session token for autocomplete');
           return [];
@@ -311,7 +312,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       },
       // New: Check if in fallback mode
       isInFallbackMode: () => useFallbackEmbed || forceIframeFallback,
-    }));
+    }), [useFallbackEmbed, forceIframeFallback, sessionToken, searchOrigin, markers]);
 
     // Initialize map
     useEffect(() => {
