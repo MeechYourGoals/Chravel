@@ -124,6 +124,16 @@ const JoinTrip = () => {
   const fetchInvitePreview = async () => {
     if (!token) return;
 
+    // Handle demo invite codes gracefully
+    if (token.startsWith('demo-')) {
+      setError({
+        message: 'This is a demonstration invite link. Create a real trip to generate shareable invite links that others can use to join!',
+        code: 'INVALID'
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
 

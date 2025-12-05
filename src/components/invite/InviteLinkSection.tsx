@@ -1,10 +1,11 @@
 import React from 'react';
-import { Copy, Check, RotateCcw } from 'lucide-react';
+import { Copy, Check, RotateCcw, AlertTriangle } from 'lucide-react';
 
 interface InviteLinkSectionProps {
   inviteLink: string;
   loading: boolean;
   copied: boolean;
+  isDemoMode?: boolean;
   onCopyLink: () => void;
   onRegenerate: () => void;
 }
@@ -12,10 +13,13 @@ interface InviteLinkSectionProps {
 export const InviteLinkSection = ({ 
   inviteLink, 
   loading, 
-  copied, 
+  copied,
+  isDemoMode = false,
   onCopyLink, 
   onRegenerate 
 }: InviteLinkSectionProps) => {
+  const isDemoLink = inviteLink?.includes('/join/demo-');
+
   return (
     <div className="mb-3">
       <div className="flex items-center justify-between mb-2">
@@ -31,7 +35,7 @@ export const InviteLinkSection = ({
       </div>
       <div className="flex gap-2">
         <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-gray-300 text-sm font-mono truncate">
-          {loading ? 'Loading invite link...' : inviteLink || 'Generating link...'}
+          {loading ? 'Generating invite link...' : inviteLink || 'Failed to generate link'}
         </div>
         <button
           onClick={onCopyLink}
@@ -42,6 +46,14 @@ export const InviteLinkSection = ({
           <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
         </button>
       </div>
+      
+      {/* Demo mode indicator */}
+      {(isDemoMode || isDemoLink) && inviteLink && (
+        <div className="mt-2 flex items-center gap-2 text-xs text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 rounded-lg px-3 py-2">
+          <AlertTriangle size={14} />
+          <span>Demo mode - This link is for demonstration only. Create a real trip to share working invite links.</span>
+        </div>
+      )}
     </div>
   );
 };

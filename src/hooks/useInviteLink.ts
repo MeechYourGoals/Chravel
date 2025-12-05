@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface UseInviteLinkProps {
   isOpen: boolean;
@@ -11,54 +12,111 @@ interface UseInviteLinkProps {
   proTripId?: string;
 }
 
-export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days, tripId, proTripId }: UseInviteLinkProps) => {
+interface InviteLinkResult {
+  copied: boolean;
+  inviteLink: string;
+  loading: boolean;
+  isDemoMode: boolean;
+  regenerateInviteToken: () => Promise<void>;
+  resendInvite: (recipientEmail?: string, recipientPhone?: string) => Promise<boolean>;
+  handleCopyLink: () => Promise<void>;
+  handleShare: () => Promise<void>;
+  handleEmailInvite: () => void;
+  handleSMSInvite: () => void;
+}
+
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const useInviteLink = ({ 
+  isOpen, 
+  tripName, 
+  requireApproval, 
+  expireIn7Days, 
+  tripId, 
+  proTripId 
+}: UseInviteLinkProps): InviteLinkResult => {
   const [copied, setCopied] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   const [loading, setLoading] = useState(false);
+  const { isDemoMode } = useDemoMode();
 
-  // Generate real trip link immediately when modal opens
+  // Generate invite link when modal opens
   useEffect(() => {
     if (isOpen) {
       generateTripLink();
     }
-  }, [isOpen, requireApproval, expireIn7Days, tripId, proTripId]);
+  }, [isOpen, requireApproval, expireIn7Days, tripId, proTripId, isDemoMode]);
 
-  const createInviteInDatabase = async (tripIdValue: string, inviteCode: string) => {
+  const createInviteInDatabase = async (tripIdValue: string, inviteCode: string): Promise<boolean> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.error('User not authenticated');
+        console.error('[InviteLink] User not authenticated');
+        toast.error('Please log in to create invite links');
         return false;
       }
 
-      const inviteData: any = {
+      // Verify trip exists and user has permission
+      const { data: trip, error: tripError } = await supabase
+        .from('trips')
+        .select('id, created_by')
+        .eq('id', tripIdValue)
+        .single();
+
+      if (tripError || !trip) {
+        console.error('[InviteLink] Trip not found:', tripError);
+        toast.error('Trip not found in database. Make sure this is a real trip, not a demo trip.');
+        return false;
+      }
+
+      // Check if user is creator or admin
+      if (trip.created_by !== user.id) {
+        const { data: admin } = await supabase
+          .from('trip_admins')
+          .select('id')
+          .eq('trip_id', tripIdValue)
+          .eq('user_id', user.id)
+          .single();
+
+        if (!admin) {
+          console.error('[InviteLink] User not authorized');
+          toast.error('Only the trip creator or admins can create invite links');
+          return false;
+        }
+      }
+
+      const inviteData = {
         trip_id: tripIdValue,
         code: inviteCode,
         created_by: user.id,
         is_active: true,
         current_uses: 0,
         require_approval: requireApproval,
+        expires_at: expireIn7Days 
+          ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() 
+          : null,
       };
-
-      // Add expiration if enabled (7 days from now)
-      if (expireIn7Days) {
-        const expirationDate = new Date();
-        expirationDate.setDate(expirationDate.getDate() + 7);
-        inviteData.expires_at = expirationDate.toISOString();
-      }
 
       const { error } = await supabase
         .from('trip_invites')
-        .insert(inviteData);
+        .insert([inviteData]);
 
       if (error) {
-        console.error('Error creating invite:', error);
+        console.error('[InviteLink] Database insert error:', error);
+        if (error.code === '42501' || error.message?.includes('RLS')) {
+          toast.error('Permission denied. You may not have access to create invites for this trip.');
+        } else {
+          toast.error('Failed to create invite link. Please try again.');
+        }
         return false;
       }
 
+      console.log('[InviteLink] Invite created successfully:', inviteCode.substring(0, 8));
       return true;
     } catch (error) {
-      console.error('Error creating invite:', error);
+      console.error('[InviteLink] Unexpected error:', error);
+      toast.error('An unexpected error occurred. Please try again.');
       return false;
     }
   };
@@ -74,11 +132,38 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
       return;
     }
 
+    // DEMO MODE: Generate demonstration link without database
+    if (isDemoMode) {
+      const demoInviteCode = `demo-${actualTripId}-${Date.now().toString(36)}`;
+      setInviteLink(`${baseUrl}/join/${demoInviteCode}`);
+      setLoading(false);
+      toast.success('Demo invite link created!');
+      return;
+    }
+
+    // AUTHENTICATED MODE: Validate and create real invite
+    
+    // Check if trip ID is a valid UUID (real trips have UUIDs, demo trips have mock IDs)
+    if (!UUID_REGEX.test(actualTripId)) {
+      console.error('[InviteLink] Invalid trip ID format (not UUID):', actualTripId);
+      toast.error('This appears to be a demo trip. Create a real trip to generate shareable invite links.');
+      setLoading(false);
+      return;
+    }
+
+    // Check authentication
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Please log in to create invite links');
+      setLoading(false);
+      return;
+    }
+
+    // Create the invite in database
     const inviteCode = crypto.randomUUID();
     const created = await createInviteInDatabase(actualTripId, inviteCode);
     
     if (!created) {
-      toast.error('Failed to create invite link.');
       setLoading(false);
       return;
     }
@@ -89,33 +174,26 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
   };
 
   const regenerateInviteToken = async () => {
-    setLoading(true);
-    
-    // Deactivate old invite if it exists
-    if (inviteLink) {
+    // Deactivate old invite if it exists (only for real invites)
+    if (inviteLink && !isDemoMode) {
       try {
         const oldCode = inviteLink.split('/join/')[1]?.split('?')[0];
-        if (oldCode) {
+        if (oldCode && !oldCode.startsWith('demo-')) {
           await supabase
             .from('trip_invites')
             .update({ is_active: false })
             .eq('code', oldCode);
         }
       } catch (error) {
-        console.error('Error deactivating old invite:', error);
+        console.error('[InviteLink] Error deactivating old invite:', error);
       }
     }
     
-    // Generate new trip link
+    // Generate new invite link
     await generateTripLink();
-    toast.success('New invite link generated!');
   };
 
-  /**
-   * Resend an existing invite link via email or SMS
-   * This allows trip organizers to resend invites without generating new tokens
-   */
-  const resendInvite = async (recipientEmail?: string, recipientPhone?: string) => {
+  const resendInvite = async (recipientEmail?: string, recipientPhone?: string): Promise<boolean> => {
     if (!inviteLink) {
       toast.error('No invite link available. Please generate one first.');
       return false;
@@ -146,7 +224,7 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
         return false;
       }
     } catch (error) {
-      console.error('Error resending invite:', error);
+      console.error('[InviteLink] Error resending invite:', error);
       toast.error('Failed to resend invite. Please try again.');
       return false;
     } finally {
@@ -163,7 +241,7 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
       toast.success('Link copied to clipboard!');
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error('Failed to copy:', error);
+      console.error('[InviteLink] Failed to copy:', error);
       toast.error('Failed to copy link');
     }
   };
@@ -179,7 +257,7 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
           url: inviteLink
         });
       } catch (error) {
-        console.error('Error sharing:', error);
+        console.error('[InviteLink] Error sharing:', error);
       }
     } else {
       handleCopyLink();
@@ -212,6 +290,7 @@ export const useInviteLink = ({ isOpen, tripName, requireApproval, expireIn7Days
     copied,
     inviteLink,
     loading,
+    isDemoMode,
     regenerateInviteToken,
     resendInvite,
     handleCopyLink,

@@ -22,6 +22,7 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId }: InviteModalPr
     copied,
     inviteLink,
     loading,
+    isDemoMode,
     regenerateInviteToken,
     handleCopyLink,
     handleShare,
@@ -40,6 +41,7 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId }: InviteModalPr
           inviteLink={inviteLink}
           loading={loading}
           copied={copied}
+          isDemoMode={isDemoMode}
           onCopyLink={handleCopyLink}
           onRegenerate={regenerateInviteToken}
         />
