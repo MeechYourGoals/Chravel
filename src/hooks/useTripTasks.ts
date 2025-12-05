@@ -326,9 +326,21 @@ export const useTripTasks = (tripId: string, options?: {
       // Demo mode: use localStorage
       if (isDemoMode) {
         const demoTasks = await taskStorageService.getTasks(tripId);
-        // If no demo tasks exist, create seed tasks
+        // If no demo tasks exist, persist seed tasks to storage so they can be toggled
         if (demoTasks.length === 0) {
-          return generateSeedTasks(tripId);
+          const seedTasks = generateSeedTasks(tripId);
+          // Save seed tasks to storage for persistence and toggle capability
+          for (const task of seedTasks) {
+            await taskStorageService.createTask(tripId, {
+              title: task.title,
+              description: task.description || undefined,
+              due_at: task.due_at,
+              is_poll: task.is_poll || false,
+              assignedTo: ['demo-user']
+            });
+          }
+          // Return the persisted tasks (they now have proper IDs in storage)
+          return await taskStorageService.getTasks(tripId);
         }
         return demoTasks;
       }
@@ -647,12 +659,12 @@ export const useTripTasks = (tripId: string, options?: {
       return toggleTaskWithRetry(taskId, completed);
     },
     onMutate: async ({ taskId, completed }) => {
-      // Optimistic update
-      await queryClient.cancelQueries({ queryKey: ['tripTasks', tripId] });
+      // Optimistic update - use correct query key with isDemoMode
+      await queryClient.cancelQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
       
-      const previousTasks = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId]);
+      const previousTasks = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode]);
       
-      queryClient.setQueryData<TripTask[]>(['tripTasks', tripId], (old) => {
+      queryClient.setQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode], (old) => {
         if (!old) return old;
         
         return old.map(task => {
@@ -683,7 +695,7 @@ export const useTripTasks = (tripId: string, options?: {
     onError: (err: any, variables, context) => {
       // Rollback on error (unless it's an offline queue operation)
       if (context?.previousTasks && !err?.message?.includes('OFFLINE:')) {
-        queryClient.setQueryData(['tripTasks', tripId], context.previousTasks);
+        queryClient.setQueryData(['tripTasks', tripId, isDemoMode], context.previousTasks);
       }
       
       // Provide specific error messages
