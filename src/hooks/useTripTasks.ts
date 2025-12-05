@@ -669,7 +669,8 @@ export const useTripTasks = (tripId: string, options?: {
         
         return old.map(task => {
           if (task.id === taskId) {
-            const currentUserId = user?.id || 'demo-user';
+            // Must match the logic in TaskRow.tsx - check isDemoMode first
+            const currentUserId = isDemoMode || !user ? 'demo-user' : user.id;
             const updatedStatus = task.task_status?.map(status => {
               if (status.user_id === currentUserId) {
                 return {
