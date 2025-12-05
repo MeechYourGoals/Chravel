@@ -578,21 +578,18 @@ export const useTripTasks = (tripId: string, options?: {
     }
 
     try {
-      // Get current task status to determine if we need to toggle
-      // @ts-ignore - is_completed and version columns not yet in generated types
-      const { data: currentStatus, error: statusError } = await (supabase as any)
-        .from('task_status')
-        .select('is_completed, version')
-        .eq('task_id', taskId)
-        .eq('user_id', authUser.id)
-        .single() as { data: { is_completed: boolean; version: number } | null; error: any };
+      // Get current task version from trip_tasks table (not task_status)
+      const { data: taskData, error: taskError } = await supabase
+        .from('trip_tasks')
+        .select('version')
+        .eq('id', taskId)
+        .maybeSingle();
 
-      if (statusError && statusError.code !== 'PGRST116') {
-        // PGRST116 means no rows found, which is OK for new status
-        throw new Error(`Failed to fetch task status: ${statusError.message}`);
+      if (taskError) {
+        throw new Error(`Failed to fetch task: ${taskError.message}`);
       }
 
-      const currentVersion = currentStatus?.version || 1;
+      const currentVersion = taskData?.version || 1;
 
       // Use atomic function to toggle task status
       // @ts-ignore - p_completed param not yet in generated types
@@ -746,6 +743,39 @@ export const useTripTasks = (tripId: string, options?: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, isDemoMode, tripId]);
 
+  // Delete task mutation - any trip member can delete
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      if (isDemoMode || !user) {
+        const success = await taskStorageService.deleteTask(tripId, taskId);
+        if (!success) throw new Error('Failed to delete task');
+        return taskId;
+      }
+
+      const { error } = await supabase
+        .from('trip_tasks')
+        .delete()
+        .eq('id', taskId);
+
+      if (error) throw error;
+      return taskId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      toast({
+        title: 'Task deleted',
+        description: 'The task has been removed.'
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete task.',
+        variant: 'destructive'
+      });
+    }
+  });
+
   // Pagination helpers
   const hasMoreTasks = (tasksQuery.data?.length || 0) >= TASKS_PER_PAGE && !showAllTasks;
   const loadAllTasks = useCallback(() => {
@@ -816,6 +846,7 @@ export const useTripTasks = (tripId: string, options?: {
     
     // Mutations
     createTaskMutation,
-    toggleTaskMutation
+    toggleTaskMutation,
+    deleteTaskMutation
   };
 };

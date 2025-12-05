@@ -25,10 +25,12 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
     votePollAsync,
     removeVote,
     closePollAsync,
+    deletePollAsync,
     isCreatingPoll,
     isVoting,
     isRemovingVote,
-    isClosing
+    isClosing,
+    isDeleting
   } = useTripPolls(tripId);
 
   const userId = user?.id;
@@ -91,6 +93,14 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
 
   const handleRemoveVote = (pollId: string) => {
     removeVote({ pollId });
+  };
+
+  const handleDeletePoll = async (pollId: string) => {
+    try {
+      await deletePollAsync(pollId);
+    } catch (error) {
+      console.error('Failed to delete poll:', error);
+    }
   };
 
   const handleExportPoll = (pollId: string) => {
@@ -183,11 +193,13 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
             onVote={handleVote}
             onRemoveVote={handleRemoveVote}
             onClose={handleClosePoll}
+            onDelete={handleDeletePoll}
             onExport={handleExportPoll}
             disabled={poll.status === 'closed' || !userId}
             isVoting={isVoting}
             isRemovingVote={isRemovingVote}
             isClosing={isClosing}
+            isDeleting={isDeleting}
           />
         ))
       )}
