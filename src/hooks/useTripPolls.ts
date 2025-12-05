@@ -376,6 +376,43 @@ export const useTripPolls = (tripId: string) => {
     }
   });
 
+  // Delete poll mutation - only creator can delete
+  const deletePollMutation = useMutation({
+    mutationFn: async (pollId: string) => {
+      if (isDemoMode) {
+        const success = await pollStorageService.deletePoll(tripId, pollId);
+        if (!success) throw new Error('Failed to delete poll');
+        return pollId;
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('trip_polls')
+        .delete()
+        .eq('id', pollId)
+        .eq('created_by', user.id); // Only creator can delete
+
+      if (error) throw error;
+      return pollId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+      toast({
+        title: 'Poll deleted',
+        description: 'The poll has been removed.'
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete poll. Only the creator can delete.',
+        variant: 'destructive'
+      });
+    }
+  });
+
   return {
     polls,
     isLoading,
@@ -387,9 +424,12 @@ export const useTripPolls = (tripId: string) => {
     removeVoteAsync: removeVoteMutation.mutateAsync,
     closePoll: closePollMutation.mutate,
     closePollAsync: closePollMutation.mutateAsync,
+    deletePoll: deletePollMutation.mutate,
+    deletePollAsync: deletePollMutation.mutateAsync,
     isCreatingPoll: createPollMutation.isPending,
     isVoting: votePollMutation.isPending,
     isRemovingVote: removeVoteMutation.isPending,
-    isClosing: closePollMutation.isPending
+    isClosing: closePollMutation.isPending,
+    isDeleting: deletePollMutation.isPending
   };
 };
