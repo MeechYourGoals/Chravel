@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { MessageCircle, Calendar, ClipboardList, BarChart3, Camera, MapPin, Sparkles, CreditCard, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFeatureToggle } from '../../hooks/useFeatureToggle';
@@ -14,6 +14,7 @@ import { MobileTripPayments } from './MobileTripPayments';
 import { hapticService } from '../../services/hapticService';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '../../hooks/useDemoMode';
+import { ErrorBoundary } from '../ErrorBoundary';
 
 interface MobileTripTabsProps {
   activeTab: string;
@@ -42,6 +43,14 @@ export const MobileTripTabs = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const features = useFeatureToggle(tripData || {});
+
+  // Track error boundary reset key to force re-render on retry
+  const [errorBoundaryKey, setErrorBoundaryKey] = useState(0);
+
+  // Callback for ErrorBoundary retry
+  const handleErrorRetry = useCallback(() => {
+    setErrorBoundaryKey(prev => prev + 1);
+  }, []);
 
   // Tab configuration based on variant
   const getTabsForVariant = () => {
@@ -199,7 +208,13 @@ export const MobileTripTabs = ({
           WebkitOverflowScrolling: 'touch'
         }}
       >
-        {renderTabContent()}
+        <ErrorBoundary
+          key={`${activeTab}-${errorBoundaryKey}`}
+          compact
+          onRetry={handleErrorRetry}
+        >
+          {renderTabContent()}
+        </ErrorBoundary>
       </div>
     </>
   );

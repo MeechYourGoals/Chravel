@@ -118,61 +118,123 @@ const App = () => {
   }, []);
 
 
-  // Chunk load failure recovery with better error detection
+  // Build version check for "New Version Available" toast
   useEffect(() => {
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      const error = event.reason?.message || String(event.reason);
-      const errorString = String(event.reason);
-      
-      const isChunkError = 
-        error.includes('Loading chunk') || 
-        error.includes('Failed to fetch dynamically imported') ||
-        error.includes('Failed to fetch') ||
-        errorString.includes('Failed to fetch dynamically imported') ||
-        errorString.includes('Loading chunk');
-      
-      if (isChunkError) {
-        console.error('Chunk loading error detected:', error);
-        
-        // Prevent multiple toasts
-        const existingToast = document.querySelector('[data-sonner-toast]');
-        if (existingToast) return;
-        
+    const BUILD_VERSION_KEY = 'chravel_build_version';
+
+    const checkForNewVersion = () => {
+      const meta = document.querySelector('meta[name="build-version"]');
+      const currentVersion = meta?.getAttribute('content') || 'unknown';
+      const storedVersion = localStorage.getItem(BUILD_VERSION_KEY);
+
+      // Skip if version is placeholder or unknown
+      if (currentVersion === 'unknown' || currentVersion === '__BUILD_VERSION__') return;
+
+      // First visit - store version
+      if (!storedVersion) {
+        localStorage.setItem(BUILD_VERSION_KEY, currentVersion);
+        return;
+      }
+
+      // New version detected
+      if (currentVersion !== storedVersion) {
+        console.log('[App] New version detected:', { stored: storedVersion, current: currentVersion });
+
         toast({
-          title: "Loading Error",
-          description: "Failed to load page. This may be due to a network issue or outdated cache. Please refresh.",
+          title: "New Version Available",
+          description: "A new version of Chravel is available. Click to reload and get the latest features.",
           action: (
             <button
-              onClick={() => {
-                // Clear cache and reload
+              onClick={async () => {
+                // Clear caches
                 if ('caches' in window) {
-                  caches.keys().then(names => {
-                    names.forEach(name => caches.delete(name));
-                  });
+                  const names = await caches.keys();
+                  await Promise.all(names.map(name => caches.delete(name)));
                 }
+                // Update stored version
+                localStorage.setItem(BUILD_VERSION_KEY, currentVersion);
+                // Reload
                 window.location.reload();
               }}
               className="px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              Refresh
+              Reload Now
             </button>
           ),
-          duration: 15000,
+          duration: 30000, // Show for 30 seconds
         });
       }
     };
-    
+
+    // Check on mount (slight delay to ensure DOM is ready)
+    const timeoutId = setTimeout(checkForNewVersion, 1000);
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  // Chunk load failure recovery with better error detection
+  useEffect(() => {
+    let toastShown = false;
+
+    const clearCachesAndReload = async () => {
+      if ('caches' in window) {
+        const names = await caches.keys();
+        await Promise.all(names.map(name => caches.delete(name)));
+      }
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(reg => reg.unregister()));
+      }
+      window.location.reload();
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const error = event.reason?.message || String(event.reason);
+      const errorString = String(event.reason);
+
+      const isChunkError =
+        error.includes('Loading chunk') ||
+        error.includes('Failed to fetch dynamically imported') ||
+        error.includes('Failed to fetch') ||
+        error.includes('Failed to load module script') ||
+        errorString.includes('Failed to fetch dynamically imported') ||
+        errorString.includes('Loading chunk');
+
+      if (isChunkError && !toastShown) {
+        console.error('[App] Chunk loading error detected:', error);
+        toastShown = true;
+
+        toast({
+          title: "Loading Error",
+          description: "Failed to load page. This usually happens after an app update. Clear cache to continue.",
+          action: (
+            <button
+              onClick={clearCachesAndReload}
+              className="px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Clear Cache & Reload
+            </button>
+          ),
+          duration: 20000,
+        });
+      }
+    };
+
     // Also handle error events
     const handleError = (event: ErrorEvent) => {
       const error = event.message || String(event.error);
-      if (error.includes('Failed to fetch dynamically imported') || error.includes('Loading chunk')) {
+      if (
+        (error.includes('Failed to fetch dynamically imported') ||
+         error.includes('Loading chunk') ||
+         error.includes('Failed to load module script')) &&
+        !toastShown
+      ) {
         handleUnhandledRejection({
           reason: { message: error },
           preventDefault: () => {},
         } as PromiseRejectionEvent);
       }
     };
-    
+
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
     window.addEventListener('error', handleError);
     return () => {
