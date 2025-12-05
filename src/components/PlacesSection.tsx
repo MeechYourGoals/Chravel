@@ -46,13 +46,10 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
     coords: { lat: number; lng: number };
   } | null>(null);
   
-  // Search state (lifted from MapCanvas)
+  // Search state (simplified - no autocomplete)
   const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [searchOrigin, setSearchOrigin] = useState<{ lat: number; lng: number } | null>(null);
   const [isMapLoading, setIsMapLoading] = useState(true);
   // Distance settings for display purposes (basecamp distances are no longer calculated)
   const distanceSettings: DistanceCalculationSettings = {
@@ -329,52 +326,42 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
     }
   };
 
-  // Search handlers with autocomplete
-  const handleSearchChange = async (query: string) => {
+  // Simple search handler - just update the query
+  const handleSearchChange = (query: string) => {
     setSearchQuery(query);
     setSearchError(null);
-    
-    if (!query.trim()) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-    
-    // Fetch autocomplete suggestions
-    try {
-      const predictions = await mapRef.current?.getAutocomplete(query, searchOrigin);
-      setSuggestions(predictions || []);
-      setShowSuggestions((predictions || []).length > 0);
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[PlacesSection] Autocomplete error:', error);
-      }
-      setSuggestions([]);
-    }
   };
 
+  // Simple search submit - geocode and center map (like Trip Base Camp)
   const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim()) return;
-    
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) return;
+
     setIsSearching(true);
-    setShowSuggestions(false);
-    
-    // Failsafe: Reset searching state after 15 seconds max
+    setSearchError(null);
+
+    // Failsafe: Reset searching state after 10 seconds max
     const timeoutId = setTimeout(() => {
       setIsSearching(false);
       setSearchError('Search timed out. Please try again.');
-    }, 15000);
+    }, 10000);
 
     try {
-      // Search will center the map internally
-      await mapRef.current?.search(searchQuery);
+      // Import and use Nominatim geocoding directly (same as Trip Base Camp)
+      const { GoogleMapsService } = await import('@/services/googleMapsService');
+      const coords = await GoogleMapsService.geocodeWithNominatim(trimmedQuery);
+
       clearTimeout(timeoutId);
-      setSearchError(null);
-      
-      // 🆕 Track this search as the most recent location update
-      // Note: We can't easily get coordinates from a text search without using Places API
-      // The map's internal search already centered, so we just log the action
+
+      if (coords) {
+        // Center map on the found location
+        mapRef.current?.centerOn({ lat: coords.lat, lng: coords.lng }, 15);
+        setSearchError(null);
+      } else {
+        // Location not found - show error
+        setSearchError('Location not found');
+      }
     } catch (error) {
       clearTimeout(timeoutId);
       if (import.meta.env.DEV) {
@@ -386,119 +373,9 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
     }
   };
 
-  const handleSuggestionClick = async (prediction: google.maps.places.AutocompletePrediction) => {
-    console.log('[PlacesSection] Suggestion clicked:', prediction.description);
-    setSearchQuery(prediction.description);
-    setShowSuggestions(false);
-    setIsSearching(true);
-    setSearchError(null);
-
-    try {
-      if (!mapRef.current) {
-        console.error('Map reference is not available');
-        setIsSearching(false);
-        return;
-      }
-
-      // Check if we're in fallback mode (Nominatim results have _coords)
-      const nominatimCoords = (prediction as any)._coords;
-      if (nominatimCoords) {
-        // Direct use of Nominatim coordinates
-        const lat = nominatimCoords.lat;
-        const lng = nominatimCoords.lng;
-        console.log('[PlacesSection] Using Nominatim coords, centering map:', { lat, lng });
-
-        setLastUpdatedLocation({
-          type: 'search',
-          timestamp: Date.now(),
-          coords: { lat, lng }
-        });
-        setSearchOrigin({ lat, lng });
-
-        if (mapRef.current) {
-          mapRef.current.centerOn({ lat, lng }, 15);
-          console.log('[PlacesSection] Map centered on Nominatim result');
-        }
-
-        const newPlace: PlaceWithDistance = {
-          id: prediction.place_id || `place-${Date.now()}`,
-          name: prediction.structured_formatting?.main_text || prediction.description,
-          url: '',
-          address: prediction.description,
-          coordinates: { lat, lng },
-          category: 'Other'
-        };
-
-        setPlaces([newPlace]);
-        setIsSearching(false);
-        return;
-      }
-
-      // Google Maps JS API path
-      const map = mapRef.current.getMap();
-      if (!map) {
-        // Fallback: use search method directly
-        await mapRef.current.search(prediction.description);
-        setIsSearching(false);
-        return;
-      }
-
-      const placesService = new google.maps.places.PlacesService(map);
-      
-      placesService.getDetails(
-        { placeId: prediction.place_id },
-        (place, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
-            const lat = place.geometry.location.lat();
-            const lng = place.geometry.location.lng();
-            console.log('[PlacesSection] Place details fetched, centering map:', { lat, lng });
-
-            // Update last location with search priority
-            setLastUpdatedLocation({
-              type: 'search',
-              timestamp: Date.now(),
-              coords: { lat, lng }
-            });
-
-            // Update search origin
-            setSearchOrigin({ lat, lng });
-
-            // CRITICAL: Center map immediately on selected place with high zoom
-            if (mapRef.current) {
-              mapRef.current.centerOn({ lat, lng }, 15);
-              console.log('[PlacesSection] Map centered on search result');
-            }
-
-            // Add to places list as a search result
-            const newPlace: PlaceWithDistance = {
-              id: place.place_id || `place-${Date.now()}`,
-              name: place.name || prediction.description,
-              url: '',
-              address: place.formatted_address || '',
-              coordinates: { lat, lng },
-              category: 'Other'
-            };
-
-            setPlaces([newPlace]);
-          } else {
-            console.error('Failed to get place details:', status);
-            setSearchError('Failed to get location details');
-          }
-          setIsSearching(false);
-        }
-      );
-    } catch (error) {
-      console.error('Error fetching place details:', error);
-      setSearchError(error instanceof Error ? error.message : 'Failed to fetch place details');
-      setIsSearching(false);
-    }
-  };
-
   const handleClearSearch = () => {
     setSearchQuery('');
     setSearchError(null);
-    setSuggestions([]);
-    setShowSuggestions(false);
     mapRef.current?.clearSearch();
   };
 
@@ -623,22 +500,14 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
             }}
           />
 
-          {/* Unified Map Controls - floating on map (search bar only) */}
+          {/* Unified Map Controls - floating on map (simple search bar) */}
           <UnifiedMapControls
             searchQuery={searchQuery}
             onSearchChange={handleSearchChange}
             onSearchSubmit={handleSearchSubmit}
-            suggestions={suggestions}
-            showSuggestions={showSuggestions}
             isSearching={isSearching}
             searchError={searchError}
-            searchOrigin={searchOrigin}
-            activeContext={searchContext}
-            onContextChange={handleContextChange}
-            tripBasecampSet={isBasecampSet}
-            personalBasecampSet={!!personalBasecamp}
             onClearSearch={handleClearSearch}
-            onSuggestionClick={handleSuggestionClick}
             isMapLoading={isMapLoading}
           />
         </div>
