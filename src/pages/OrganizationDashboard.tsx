@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InviteMemberModal } from '@/components/enterprise/InviteMemberModal';
 import { OrganizationSection } from '@/components/enterprise/OrganizationSection';
-import { SeatManagementSection } from '@/components/enterprise/SeatManagementSection';
+import { SeatManagement } from '@/components/enterprise/SeatManagement';
 import { BillingSection } from '@/components/enterprise/BillingSection';
 import { MobileTeamMemberCard } from '@/components/MobileTeamMemberCard';
 import { SUBSCRIPTION_TIERS } from '@/types/pro';
@@ -349,12 +349,7 @@ export const OrganizationDashboard = () => {
           </TabsContent>
 
           <TabsContent value="team" className="mt-6">
-            <SeatManagementSection
-              organization={{
-                seatLimit: currentOrg.seat_limit,
-                seatsUsed: currentOrg.seats_used,
-              }}
-            />
+            <SeatManagement />
           </TabsContent>
 
           <TabsContent value="trips" className="mt-6">
