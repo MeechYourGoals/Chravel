@@ -241,18 +241,18 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
           </div>
         </div>
 
-        {/* Action Buttons - Responsive sizing */}
-        <div className="space-y-3">
+        {/* Action Buttons - Side by side */}
+        <div className="grid grid-cols-2 gap-2 md:gap-3">
           <button
             onClick={handleViewTrip}
-            className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold py-4 rounded-xl md:rounded-2xl transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25"
+            className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25 text-xs md:text-sm"
           >
-            View Trip Details
+            View Details
           </button>
 
           <button
             onClick={() => setShowShareModal(true)}
-            className="w-full bg-gray-800/50 hover:bg-gray-700/50 text-white py-3 px-4 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-sm md:text-base"
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm"
           >
             Share Trip
           </button>
