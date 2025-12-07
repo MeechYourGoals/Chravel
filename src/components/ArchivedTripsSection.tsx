@@ -6,6 +6,7 @@ import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { getArchivedTrips, restoreTrip, getHiddenTrips, unhideTrip } from '../services/archiveService';
 import { useToast } from '../hooks/use-toast';
 import { supabase } from '../integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { ArchiveRestore, Calendar, MapPin, Users, Archive, Eye, EyeOff } from 'lucide-react';
 import { EnhancedEmptyState } from './ui/enhanced-empty-state';
 import { format } from 'date-fns';
@@ -27,6 +28,7 @@ export const ArchivedTripsSection = () => {
   });
   
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [archivedTrips, setArchivedTrips] = useState<{ consumer: any[]; pro: any[]; events: any[]; total: number }>({ consumer: [], pro: [], events: [], total: 0 });
   const [hiddenTrips, setHiddenTrips] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,6 +67,9 @@ export const ArchivedTripsSection = () => {
 
       await restoreTrip(tripId, tripType, user.id);
       
+      // Invalidate trips query cache so main list updates immediately
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      
       toast({
         title: "Trip restored",
         description: `"${tripTitle}" has been restored to your trips list.`,
@@ -92,6 +97,10 @@ export const ArchivedTripsSection = () => {
   const handleUnhideClick = async (tripId: string, tripName: string) => {
     try {
       await unhideTrip(tripId);
+      
+      // Invalidate trips query cache so main list updates immediately
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      
       toast({
         title: "Trip unhidden",
         description: `"${tripName}" is now visible in your trips list.`,

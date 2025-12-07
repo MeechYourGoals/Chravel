@@ -152,12 +152,13 @@ export const isTripArchived = async (tripId: string, tripType: TripType, userId?
   return data?.is_archived ?? false;
 };
 
-// Get all archived trips
+// Get all archived trips (excludes hidden trips - they have their own section)
 export const getArchivedTrips = async (userId?: string) => {
   const { data: archivedTrips, error } = await supabase
     .from('trips')
     .select('*')
     .eq('is_archived', true)
+    .eq('is_hidden', false)  // Hidden trips should not appear in archive section
     .eq('created_by', userId || '');
 
   if (error) {

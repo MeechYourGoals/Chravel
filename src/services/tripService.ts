@@ -186,11 +186,13 @@ export const tripService = {
 
       // Phase 2: Optimized query - direct lookup without JOIN
       // Uses indexed created_by column and RLS policies for access control
+      // Filters out both archived and hidden trips (they have separate sections)
       const { data, error } = await supabase
         .from('trips')
         .select('*')
         .eq('created_by', user.id)
         .eq('is_archived', false)
+        .eq('is_hidden', false)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

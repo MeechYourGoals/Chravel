@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { useSavedRecommendations } from '@/hooks/useSavedRecommendations';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface Trip {
   id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
@@ -57,6 +58,7 @@ export const TripGrid = React.memo(({
   const { toggleSave } = useSavedRecommendations();
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [archivedTrips, setArchivedTrips] = useState<any[]>([]);
 
@@ -89,6 +91,10 @@ export const TripGrid = React.memo(({
     try {
       const tripType = viewMode === 'tripsPro' ? 'pro' : viewMode === 'events' ? 'event' : 'consumer';
       await restoreTrip(tripId, tripType, user?.id);
+      
+      // Invalidate trips query cache so main list updates immediately
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      
       toast({
         title: "Trip restored",
         description: "Your trip has been moved back to active trips.",
@@ -118,6 +124,10 @@ export const TripGrid = React.memo(({
   const handleUnhideTrip = async (tripId: string) => {
     try {
       await unhideTrip(tripId);
+      
+      // Invalidate trips query cache so main list updates immediately
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      
       toast({
         title: "Trip unhidden",
         description: "Your trip is now visible in the main list.",
