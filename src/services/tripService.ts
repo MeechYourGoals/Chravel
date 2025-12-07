@@ -96,8 +96,8 @@ export const tripService = {
         .single();
 
       // Super admin bypass - ccamechi@gmail.com has unlimited access
-      const SUPER_ADMIN_EMAILS = ['ccamechi@gmail.com'];
-      const isSuperAdmin = profile?.email && SUPER_ADMIN_EMAILS.includes(profile.email.toLowerCase());
+      const { SUPER_ADMIN_EMAILS } = await import('@/constants/admins');
+      const isSuperAdmin = profile?.email && SUPER_ADMIN_EMAILS.includes(profile.email.toLowerCase().trim());
       
       if (isSuperAdmin) {
         console.log('[tripService] Super admin bypass for:', profile.email);
