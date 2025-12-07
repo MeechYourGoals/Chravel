@@ -11,6 +11,7 @@ import { extractUniqueRoles, getRoleColorClass } from '../../../utils/roleUtils'
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { useDemoMode } from '../../../hooks/useDemoMode';
+import { useSuperAdmin } from '../../../hooks/useSuperAdmin';
 import { AdminManagerDialog } from '../admin/AdminManagerDialog';
 import { JoinRequestsDialog } from '../admin/JoinRequestsDialog';
 
@@ -44,6 +45,7 @@ export const RolesView = ({
   trip
 }: RolesViewProps) => {
   const { isDemoMode } = useDemoMode();
+  const { isSuperAdmin } = useSuperAdmin();
   const [selectedRole, setSelectedRole] = useState<string>('all');
   const [editingMember, setEditingMember] = useState<ProParticipant | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(true);
@@ -53,6 +55,9 @@ export const RolesView = ({
   const [showRoleCreation, setShowRoleCreation] = useState(false);
   const [showAdminsDialog, setShowAdminsDialog] = useState(false);
   const [showRequestsDialog, setShowRequestsDialog] = useState(false);
+
+  // Super admins are never in read-only mode
+  const effectiveIsReadOnly = isSuperAdmin ? false : isReadOnly;
 
   const { terminology: { teamLabel }, roles: categoryRoles } = getCategoryConfig(category);
 
@@ -70,7 +75,7 @@ export const RolesView = ({
     : roster.filter(member => member.role === selectedRole);
 
   const handleEditMember = (member: ProParticipant) => {
-    if (isReadOnly || !onUpdateMemberRole) return;
+    if (effectiveIsReadOnly || !onUpdateMemberRole) return;
     setEditingMember(member);
   };
 
@@ -101,12 +106,13 @@ export const RolesView = ({
     alert(`Role "${newRoleName}" created! You can now assign this role to team members.`);
   };
 
-  const isAdmin = userRole === 'admin' || userRole === 'tour manager' || userRole === 'manager';
+  // Super admins are always treated as admins
+  const isAdmin = isSuperAdmin || userRole === 'admin' || userRole === 'tour manager' || userRole === 'manager';
 
   return (
     <div className="space-y-6">
       {/* Onboarding Banner */}
-      {showOnboarding && hasUnassignedRoles && !isReadOnly && (
+      {showOnboarding && hasUnassignedRoles && !effectiveIsReadOnly && (
         <TeamOnboardingBanner
           hasUnassignedRoles={hasUnassignedRoles}
           onAssignRoles={handleAssignRolesClick}
@@ -114,8 +120,8 @@ export const RolesView = ({
         />
       )}
 
-      {/* Read-only notice */}
-      {isReadOnly && !isDemoMode && (
+      {/* Read-only notice - Never shown for super admins */}
+      {effectiveIsReadOnly && !isDemoMode && !isSuperAdmin && (
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
           <p className="text-yellow-400 text-sm">Read-only access for your role</p>
         </div>
@@ -130,13 +136,13 @@ export const RolesView = ({
             <h2 className="text-lg font-bold text-white">{teamLabel}</h2>
             <span className="text-gray-400 text-sm">{roster.length} members</span>
           </div>
-          {canManageRoles && !isReadOnly && (
+          {(canManageRoles || isSuperAdmin) && !effectiveIsReadOnly && (
             <span className="text-xs text-gray-500">Admin Access</span>
           )}
         </div>
 
         {/* Row 2: Consolidated Admin Action Buttons (4 buttons) */}
-        {canManageRoles && !isReadOnly && (
+        {(canManageRoles || isSuperAdmin) && !effectiveIsReadOnly && (
           <div className="flex items-center justify-center gap-2 mb-3">
             <Button
               onClick={onCreateRole}
@@ -183,7 +189,7 @@ export const RolesView = ({
         )}
 
         {/* Role Creation Form - Admin Only */}
-        {showRoleCreation && isAdmin && !isReadOnly && (
+        {showRoleCreation && isAdmin && !effectiveIsReadOnly && (
           <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4 mb-6">
             <h3 className="text-purple-300 font-medium mb-3 text-sm">Create New Role</h3>
             <div className="flex gap-2">
@@ -292,7 +298,7 @@ export const RolesView = ({
                   </span>
                 </div>
               </div>
-              {userRole === 'admin' && !isReadOnly && onUpdateMemberRole && (
+                {(isAdmin || isSuperAdmin) && !effectiveIsReadOnly && onUpdateMemberRole && (
                 <button 
                   onClick={() => handleEditMember(member)}
                   className="text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-white/10 flex-shrink-0"

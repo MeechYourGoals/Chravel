@@ -4,6 +4,7 @@ import { Crown, Lock } from 'lucide-react';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useDemoMode } from '../../hooks/useDemoMode';
+import { useSuperAdmin } from '../../hooks/useSuperAdmin';
 import { ProTab, isReadOnlyTab } from './ProTabsConfig';
 import { ProTripCategory } from '../../types/proCategories';
 
@@ -18,6 +19,7 @@ export const ProTabNavigation = ({ tabs, activeTab, onTabChange, category }: Pro
   const { accentColors } = useTripVariant();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
+  const { isSuperAdmin } = useSuperAdmin();
 
   const userRole = user?.proRole || 'staff';
   const userPermissions = user?.permissions || ['read'];
@@ -29,7 +31,8 @@ export const ProTabNavigation = ({ tabs, activeTab, onTabChange, category }: Pro
     <div className="flex whitespace-nowrap mb-2 overflow-x-auto scrollbar-thin scrollbar-thumb-white/20">
       {tabs.map((tab) => {
         const Icon = tab.icon;
-        const isReadOnly = isReadOnlyTab(tab.id, userRole, userPermissions, isDemoMode);
+        // Super admins bypass read-only restrictions
+        const isReadOnly = isSuperAdmin ? false : isReadOnlyTab(tab.id, userRole, userPermissions, isDemoMode);
         const displayLabel =
           tab.id === 'team' && category === 'Content' ? 'Cast & Crew' : tab.label;
         
