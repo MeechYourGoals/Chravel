@@ -5,7 +5,7 @@ import { calendarStorageService } from './calendarStorageService';
 import { calendarOfflineQueue } from './calendarOfflineQueue';
 import { offlineSyncService } from './offlineSyncService';
 import { retryWithBackoff } from '@/utils/retry';
-import { SUPER_ADMIN_EMAILS } from '@/hooks/useSuperAdmin';
+import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 
 export interface TripEvent {
   id: string;

@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, useCallback, useRef } f
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Trip } from '@/services/tripService';
+import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 
 // Timeout utility to prevent indefinite hanging on database queries
 const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
@@ -228,19 +229,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const roles = userRolesResult.data?.map((r: any) => r.role) || [];
     const isPro = roles.includes('pro');
     const isSystemAdmin = roles.includes('enterprise_admin');
+    const isSuperAdminEmail = SUPER_ADMIN_EMAILS.includes(supabaseUser.email?.toLowerCase().trim() || '');
     
     // Map roles to permissions - only grant what user actually has
     const permissions: string[] = ['read'];
-    if (isPro || isSystemAdmin) {
+    if (isPro || isSystemAdmin || isSuperAdminEmail) {
       permissions.push('write');
     }
-    if (isSystemAdmin) {
+    if (isSystemAdmin || isSuperAdminEmail) {
       permissions.push('admin', 'finance', 'compliance');
     }
     
     // Map org member role to proRole type (owner/admin maps to admin, otherwise undefined)
     let proRole: User['proRole'] = undefined;
-    if (orgMemberResult.data?.role === 'owner' || orgMemberResult.data?.role === 'admin') {
+    if (orgMemberResult.data?.role === 'owner' || orgMemberResult.data?.role === 'admin' || isSuperAdminEmail) {
       proRole = 'admin';
     }
     

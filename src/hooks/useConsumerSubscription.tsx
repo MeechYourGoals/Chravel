@@ -4,7 +4,7 @@ import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { STRIPE_PRODUCTS } from '@/constants/stripe';
 import { toast } from 'sonner';
-import { SUPER_ADMIN_EMAILS } from './useSuperAdmin';
+import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 
 interface ConsumerSubscriptionContextType {
   subscription: ConsumerSubscription | null;
