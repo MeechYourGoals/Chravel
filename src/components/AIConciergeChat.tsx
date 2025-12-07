@@ -254,10 +254,13 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         }
       }
 
-      // Build chat history for context
+      // Build chat history for context - truncate each message to prevent validation overflow
+      const MAX_MESSAGE_LENGTH = 3000; // Keep under 20000 limit with room for multiple messages
       const chatHistory = messages.slice(-6).map(msg => ({
         role: msg.type === 'user' ? 'user' : 'assistant',
-        content: msg.content
+        content: msg.content.length > MAX_MESSAGE_LENGTH 
+          ? msg.content.substring(0, MAX_MESSAGE_LENGTH) + '...[truncated]'
+          : msg.content
       }));
 
       // Prepare basecamp location (already declared above)
@@ -443,9 +446,26 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       return `📅 Check the Calendar tab for your trip schedule.`;
     }
     
-    // Payment queries
+    // Payment queries - provide actual payment data from context
     if (lowerQuery.match(/\b(payment|money|owe|spent|cost|budget|expense)\b/)) {
-      return `💰 Check the Payments tab to see expense details and who owes what.`;
+      if (tripContext?.payments?.length) {
+        const unsettled = tripContext.payments.filter((p: any) => !p.isSettled && !p.settled);
+        if (unsettled.length > 0) {
+          const totalOwed = unsettled.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+          let response = `💰 **Outstanding Payments**\n\n`;
+          unsettled.slice(0, 5).forEach((p: any) => {
+            const paidBy = p.paidBy || p.createdByName || 'Someone';
+            response += `• ${p.description}: $${p.amount?.toFixed(2) || '0.00'} (paid by ${paidBy})\n`;
+          });
+          response += `\n**Total Outstanding:** $${totalOwed.toFixed(2)}`;
+          if (unsettled.length > 5) {
+            response += `\n\n_...and ${unsettled.length - 5} more payments. Check the Payments tab for full details._`;
+          }
+          return response;
+        }
+        return `💰 **All Settled!**\n\nNo outstanding payments for this trip. Check the Payments tab to add new expenses.`;
+      }
+      return `💰 No payment data available yet. Add expenses in the Payments tab to track who owes what.`;
     }
     
     // Task queries
