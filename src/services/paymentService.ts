@@ -201,7 +201,6 @@ export const paymentService = {
   // Payment Settlement
   async settlePayment(splitId: string, settlementMethod: string): Promise<boolean> {
     try {
-      // Add optimistic locking by checking the current state first
       const { data: currentSplit, error: fetchError } = await supabase
         .from('payment_splits')
         .select('is_settled')
@@ -222,11 +221,78 @@ export const paymentService = {
           settlement_method: settlementMethod,
         })
         .eq('id', splitId)
-        .eq('is_settled', false); // Ensure it hasn't been settled by another transaction
+        .eq('is_settled', false);
 
       return !error;
     } catch (error) {
       console.error('Error settling payment:', error);
+      return false;
+    }
+  },
+
+  // Update payment message (creator only)
+  async updatePaymentMessage(paymentId: string, updates: { amount?: number; description?: string }): Promise<boolean> {
+    try {
+      const updateData: Record<string, any> = {};
+      if (updates.amount !== undefined) updateData.amount = updates.amount;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      updateData.updated_at = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('trip_payment_messages')
+        .update(updateData)
+        .eq('id', paymentId);
+
+      if (error) throw error;
+
+      // If amount changed, update splits proportionally
+      if (updates.amount !== undefined) {
+        const { data: payment } = await supabase
+          .from('trip_payment_messages')
+          .select('split_count')
+          .eq('id', paymentId)
+          .single();
+
+        if (payment) {
+          const newSplitAmount = updates.amount / payment.split_count;
+          await supabase
+            .from('payment_splits')
+            .update({ amount_owed: newSplitAmount })
+            .eq('payment_message_id', paymentId);
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating payment message:', error);
+      return false;
+    }
+  },
+
+  // Delete payment message (creator only)
+  async deletePaymentMessage(paymentId: string): Promise<boolean> {
+    try {
+      // First delete related splits
+      await supabase
+        .from('payment_splits')
+        .delete()
+        .eq('payment_message_id', paymentId);
+
+      // Delete audit log entries
+      await supabase
+        .from('payment_audit_log')
+        .delete()
+        .eq('payment_message_id', paymentId);
+
+      // Delete the payment message
+      const { error } = await supabase
+        .from('trip_payment_messages')
+        .delete()
+        .eq('id', paymentId);
+
+      return !error;
+    } catch (error) {
+      console.error('Error deleting payment message:', error);
       return false;
     }
   },
@@ -241,10 +307,8 @@ export const paymentService = {
     }>;
   }> {
     try {
-      // Get all payment messages for the trip
       const paymentMessages = await this.getTripPaymentMessages(tripId);
       
-      // Get all payment splits for the trip
       const { data: splits, error } = await supabase
         .from('payment_splits')
         .select(`
@@ -255,14 +319,12 @@ export const paymentService = {
 
       if (error) throw error;
 
-      // Calculate balances
       const userBalances: { [userId: string]: number } = {};
       let totalExpenses = 0;
 
       paymentMessages.forEach(payment => {
         totalExpenses += payment.amount;
         
-        // Payer gets positive balance
         if (!userBalances[payment.createdBy]) {
           userBalances[payment.createdBy] = 0;
         }
@@ -270,14 +332,12 @@ export const paymentService = {
       });
 
       splits.forEach((split: any) => {
-        // Debtors get negative balance
         if (!userBalances[split.debtor_user_id]) {
           userBalances[split.debtor_user_id] = 0;
         }
         userBalances[split.debtor_user_id] -= parseFloat(split.amount_owed.toString());
       });
 
-      // Generate settlement suggestions (simplified)
       const settlementSuggestions: Array<{ from: string; to: string; amount: number }> = [];
       const debtors = Object.entries(userBalances).filter(([_, balance]) => balance < 0);
       const creditors = Object.entries(userBalances).filter(([_, balance]) => balance > 0);
