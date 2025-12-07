@@ -256,12 +256,12 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
               </div>
             )}
             
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3 max-h-48 overflow-y-auto">
+            <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
               {tripMembers.map(member => (
                 <label
                   key={member.id}
                   htmlFor={`participant-${member.id}`}
-                  className="flex items-center space-x-2 bg-gray-800/50 hover:bg-gray-800/70 rounded-lg px-3 py-2 cursor-pointer transition-all"
+                  className="inline-flex items-center gap-2 bg-gray-800/50 hover:bg-gray-800/70 rounded-lg px-3 py-2 cursor-pointer transition-all w-auto shrink-0"
                 >
                   <Checkbox
                     id={`participant-${member.id}`}
@@ -273,10 +273,10 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                     <img
                       src={member.avatar}
                       alt={member.name}
-                      className="w-6 h-6 rounded-full object-cover"
+                      className="w-6 h-6 rounded-full object-cover shrink-0"
                     />
                   )}
-                  <span className="text-sm text-gray-300 truncate">{member.name}</span>
+                  <span className="text-sm text-gray-300 whitespace-nowrap">{member.name}</span>
                 </label>
               ))}
             </div>
