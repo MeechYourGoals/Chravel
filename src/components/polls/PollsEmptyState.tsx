@@ -28,15 +28,15 @@ export const PollsEmptyState = ({ onCreatePoll }: PollsEmptyStateProps) => {
       </Button>
 
       <div className="mt-6 grid grid-cols-3 gap-3 max-w-2xl mx-auto text-left">
-        <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+        <div className="p-3 bg-white/5 rounded-xl border border-white/10">
           <h4 className="font-medium mb-1 text-white text-sm">Group Decisions</h4>
           <p className="text-xs text-gray-400">Vote on plans and activities</p>
         </div>
-        <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+        <div className="p-3 bg-white/5 rounded-xl border border-white/10">
           <h4 className="font-medium mb-1 text-white text-sm">Real-Time Results</h4>
           <p className="text-xs text-gray-400">See votes update live</p>
         </div>
-        <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+        <div className="p-3 bg-white/5 rounded-xl border border-white/10">
           <h4 className="font-medium mb-1 text-white text-sm">Multiple Options</h4>
           <p className="text-xs text-gray-400">Add as many choices as needed</p>
         </div>

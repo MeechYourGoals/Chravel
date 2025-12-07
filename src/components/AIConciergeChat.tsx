@@ -110,8 +110,8 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         });
     }
     
-    // Load cached messages for offline mode
-    const cachedMessages = conciergeCacheService.getCachedMessages(tripId);
+    // Load cached messages for offline mode (user-isolated)
+    const cachedMessages = conciergeCacheService.getCachedMessages(tripId, user?.id);
     if (cachedMessages && cachedMessages.length > 0 && isMounted.current) {
       setMessages(cachedMessages);
     }
@@ -158,8 +158,8 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
 
     // Check offline mode first
     if (isOffline) {
-      // Try to get cached response for similar query
-      const cachedResponse = conciergeCacheService.getCachedResponse(tripId, inputMessage);
+      // Try to get cached response for similar query (user-isolated)
+      const cachedResponse = conciergeCacheService.getCachedResponse(tripId, inputMessage, user?.id);
       if (cachedResponse) {
         setIsUsingCachedResponse(true);
         setMessages(prev => [...prev, {
@@ -340,7 +340,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         };
         
         setMessages(prev => [...prev, assistantMessage]);
-        conciergeCacheService.cacheMessage(tripId, currentInput, assistantMessage);
+        conciergeCacheService.cacheMessage(tripId, currentInput, assistantMessage, user?.id);
         setIsTyping(false);
         return;
       }
@@ -378,8 +378,8 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       
       setMessages(prev => [...prev, assistantMessage]);
       
-      // Cache the response for offline mode
-      conciergeCacheService.cacheMessage(tripId, currentInput, assistantMessage);
+      // Cache the response for offline mode (user-isolated)
+      conciergeCacheService.cacheMessage(tripId, currentInput, assistantMessage, user?.id);
 
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -397,7 +397,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
           timestamp: new Date().toISOString()
         };
         setMessages(prev => [...prev, errorMessage]);
-        conciergeCacheService.cacheMessage(tripId, currentInput, errorMessage);
+        conciergeCacheService.cacheMessage(tripId, currentInput, errorMessage, user?.id);
       } catch {
         // Ultimate fallback
         const errorMessage: ChatMessage = {
@@ -625,7 +625,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
           )}
         </div>
 
-        {/* Input */}
+        {/* Input with privacy indicator */}
         <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
           <AiChatInput
             inputMessage={inputMessage}
@@ -637,6 +637,9 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
             usageStatus={getUsageStatus()}
             onUpgradeClick={() => window.location.href = upgradeUrl}
           />
+          <div className="text-center mt-1">
+            <span className="text-xs text-gray-500">🔒 This conversation is private to you</span>
+          </div>
         </div>
       </div>
     </div>
