@@ -28,17 +28,18 @@ interface CachedMessages {
 
 const CACHE_PREFIX = 'concierge_cache_';
 const MESSAGES_PREFIX = 'concierge_messages_';
-const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours - encourages more queries, drives subscription conversion
 const SIMILARITY_THRESHOLD = 0.6; // Minimum similarity to use cached response
 
 class ConciergeCacheService {
   /**
-   * Cache an AI response for a query
+   * Cache an AI response for a query (user-isolated)
    */
-  cacheMessage(tripId: string, query: string, response: ChatMessage): void {
+  cacheMessage(tripId: string, query: string, response: ChatMessage, userId?: string): void {
     try {
-      const cacheKey = `${CACHE_PREFIX}${tripId}`;
-      const cached = this.getCachedResponses(tripId);
+      const userKey = userId || 'anonymous';
+      const cacheKey = `${CACHE_PREFIX}${tripId}_${userKey}`;
+      const cached = this.getCachedResponses(tripId, userId);
       
       // Add new response (keep last 50 queries per trip)
       cached.push({
@@ -53,8 +54,8 @@ class ConciergeCacheService {
       
       localStorage.setItem(cacheKey, JSON.stringify(recent));
       
-      // Also update messages cache
-      this.updateMessagesCache(tripId, response);
+      // Also update messages cache (user-isolated)
+      this.updateMessagesCache(tripId, response, userId);
     } catch (error) {
       console.error('Failed to cache message:', error);
       // Silently fail - caching is not critical
@@ -62,11 +63,11 @@ class ConciergeCacheService {
   }
 
   /**
-   * Get cached response for a similar query
+   * Get cached response for a similar query (user-isolated)
    */
-  getCachedResponse(tripId: string, query: string): ChatMessage | null {
+  getCachedResponse(tripId: string, query: string, userId?: string): ChatMessage | null {
     try {
-      const cached = this.getCachedResponses(tripId);
+      const cached = this.getCachedResponses(tripId, userId);
       const normalizedQuery = query.toLowerCase().trim();
       
       // Find most similar cached query
@@ -100,11 +101,12 @@ class ConciergeCacheService {
   }
 
   /**
-   * Get all cached messages for a trip
+   * Get all cached messages for a trip (user-isolated)
    */
-  getCachedMessages(tripId: string): ChatMessage[] {
+  getCachedMessages(tripId: string, userId?: string): ChatMessage[] {
     try {
-      const cacheKey = `${MESSAGES_PREFIX}${tripId}`;
+      const userKey = userId || 'anonymous';
+      const cacheKey = `${MESSAGES_PREFIX}${tripId}_${userKey}`;
       const data = localStorage.getItem(cacheKey);
       
       if (!data) return [];
@@ -125,12 +127,13 @@ class ConciergeCacheService {
   }
 
   /**
-   * Update messages cache with new message
+   * Update messages cache with new message (user-isolated)
    */
-  private updateMessagesCache(tripId: string, message: ChatMessage): void {
+  private updateMessagesCache(tripId: string, message: ChatMessage, userId?: string): void {
     try {
-      const cacheKey = `${MESSAGES_PREFIX}${tripId}`;
-      const existing = this.getCachedMessages(tripId);
+      const userKey = userId || 'anonymous';
+      const cacheKey = `${MESSAGES_PREFIX}${tripId}_${userKey}`;
+      const existing = this.getCachedMessages(tripId, userId);
       
       // Add new message (keep last 100 messages)
       const updated = [...existing, message].slice(-100);
@@ -148,11 +151,12 @@ class ConciergeCacheService {
   }
 
   /**
-   * Get all cached responses for a trip
+   * Get all cached responses for a trip (user-isolated)
    */
-  private getCachedResponses(tripId: string): CachedResponse[] {
+  private getCachedResponses(tripId: string, userId?: string): CachedResponse[] {
     try {
-      const cacheKey = `${CACHE_PREFIX}${tripId}`;
+      const userKey = userId || 'anonymous';
+      const cacheKey = `${CACHE_PREFIX}${tripId}_${userKey}`;
       const data = localStorage.getItem(cacheKey);
       
       if (!data) return [];

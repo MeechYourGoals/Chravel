@@ -96,12 +96,12 @@ describe('ConciergeCacheService', () => {
   });
 
   describe('Cache Expiration', () => {
-    it('should expire old cache entries', () => {
+    it('should expire old cache entries after 24 hours', () => {
       // This would require mocking Date/time, but structure is tested
-      const oldTimestamp = Date.now() - (8 * 24 * 60 * 60 * 1000); // 8 days ago
+      const oldTimestamp = Date.now() - (25 * 60 * 60 * 1000); // 25 hours ago
       
-      // Cache would be expired after 7 days
-      expect(oldTimestamp).toBeLessThan(Date.now() - (7 * 24 * 60 * 60 * 1000));
+      // Cache would be expired after 24 hours
+      expect(oldTimestamp).toBeLessThan(Date.now() - (24 * 60 * 60 * 1000));
     });
   });
 
