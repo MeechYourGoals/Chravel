@@ -43,11 +43,66 @@ export interface CreateEventData {
 }
 
 export const calendarService = {
+  /**
+   * Ensure user is a trip member before performing operations that require membership.
+   * If user is the trip creator but not a member, automatically add them.
+   */
+  async ensureTripMembership(tripId: string, userId: string): Promise<boolean> {
+    try {
+      // Check if user is already a trip member
+      const { data: existingMember } = await supabase
+        .from('trip_members')
+        .select('id')
+        .eq('trip_id', tripId)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (existingMember) {
+        return true; // Already a member
+      }
+
+      // Check if user is the trip creator
+      const { data: trip } = await supabase
+        .from('trips')
+        .select('created_by')
+        .eq('id', tripId)
+        .single();
+
+      if (trip?.created_by === userId) {
+        // User is the creator but not a member - add them as admin
+        const { error: insertError } = await supabase
+          .from('trip_members')
+          .insert({
+            trip_id: tripId,
+            user_id: userId,
+            role: 'admin',
+            status: 'active'
+          });
+
+        if (insertError) {
+          if (import.meta.env.DEV) {
+            console.warn('Failed to auto-add creator as member:', insertError);
+          }
+          return false;
+        }
+        return true;
+      }
+
+      // User is neither a member nor the creator
+      return false;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error ensuring trip membership:', error);
+      }
+      return false;
+    }
+  },
+
   async createEvent(eventData: CreateEventData): Promise<TripEvent | null> {
     try {
       // Check if in demo mode
       const isDemoMode = await demoModeService.isDemoModeEnabled();
-      
+
       if (isDemoMode) {
         // Use localStorage for demo mode
         return await calendarStorageService.createEvent(eventData);
@@ -56,7 +111,7 @@ export const calendarService = {
       // Check if offline - queue the operation
       if (!navigator.onLine) {
         const queueId = await calendarOfflineQueue.queueCreate(eventData.trip_id, eventData);
-        
+
         // Also queue in unified sync service
         await offlineSyncService.queueOperation(
           'calendar_event',
@@ -64,7 +119,7 @@ export const calendarService = {
           eventData.trip_id,
           eventData
         );
-        
+
         // Return optimistic event for immediate UI update
         const { data: { user } } = await supabase.auth.getUser();
         return {
@@ -80,6 +135,15 @@ export const calendarService = {
       // Use Supabase with conflict detection for authenticated users
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
+
+      // Ensure user is a trip member (auto-add if they're the creator)
+      const isMember = await this.ensureTripMembership(eventData.trip_id, user.id);
+      if (!isMember) {
+        if (import.meta.env.DEV) {
+          console.warn('User is not a member of this trip and cannot create events');
+        }
+        return null;
+      }
 
       // Use atomic function to create event with conflict detection - with retry
       // First try RPC, if it fails, fallback to direct insert
