@@ -28,7 +28,8 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
   
   const {
     mediaItems,
-    loading
+    loading,
+    refetch
   } = useMediaManagement(tripId);
 
   // Fetch URLs count
@@ -183,26 +184,32 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
         </TabsContent>
         
         <TabsContent value="photos" className="mt-6">
-          <MediaSubTabs 
-            items={filterMediaByType('photos')} 
+          <MediaSubTabs
+            items={filterMediaByType('photos')}
             type="photos"
             searchQuery={searchQuery}
+            tripId={tripId}
+            onMediaUploaded={refetch}
           />
         </TabsContent>
-        
+
         <TabsContent value="videos" className="mt-6">
-          <MediaSubTabs 
-            items={filterMediaByType('videos')} 
+          <MediaSubTabs
+            items={filterMediaByType('videos')}
             type="videos"
             searchQuery={searchQuery}
+            tripId={tripId}
+            onMediaUploaded={refetch}
           />
         </TabsContent>
-        
+
         <TabsContent value="files" className="mt-6">
-          <MediaSubTabs 
-            items={filterMediaByType('files')} 
+          <MediaSubTabs
+            items={filterMediaByType('files')}
             type="files"
             searchQuery={searchQuery}
+            tripId={tripId}
+            onMediaUploaded={refetch}
           />
         </TabsContent>
 

@@ -207,6 +207,7 @@ export async function getTripLinks(
       .from('trip_links')
       .select('*')
       .eq('trip_id', tripId)
+      .order('sort_order', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -460,9 +461,88 @@ export async function searchTripLinks(
 
   if (!query) return allLinks;
 
-  return allLinks.filter(link => 
+  return allLinks.filter(link =>
     link.title.toLowerCase().includes(query) ||
     link.description?.toLowerCase().includes(query) ||
     link.url.toLowerCase().includes(query)
   );
+}
+
+/**
+ * Reorder trip links (for drag-and-drop functionality)
+ * Updates the sort_order for all links in the new order
+ */
+export async function reorderTripLinks(
+  tripId: string,
+  orderedLinkIds: string[],
+  isDemoMode: boolean
+): Promise<boolean> {
+  console.info('[TripLinksService] Reordering trip links', {
+    tripId,
+    isDemoMode,
+    count: orderedLinkIds.length,
+  });
+
+  if (isDemoMode) {
+    // Demo mode: Reorder in localStorage
+    const demoLinks = getDemoLinks(tripId);
+    const linkMap = new Map(demoLinks.map((link) => [link.id, link]));
+
+    // Create reordered array
+    const reorderedLinks: TripLink[] = [];
+    for (const id of orderedLinkIds) {
+      const link = linkMap.get(id);
+      if (link) {
+        reorderedLinks.push(link);
+        linkMap.delete(id);
+      }
+    }
+
+    // Add any remaining links (not in orderedLinkIds) at the end
+    for (const link of linkMap.values()) {
+      reorderedLinks.push(link);
+    }
+
+    saveDemoLinks(tripId, reorderedLinks);
+    console.info('[TripLinksService] ✅ Demo links reordered');
+    return true;
+  }
+
+  // Authenticated mode: Update sort_order in Supabase
+  try {
+    // Batch update sort_order for each link
+    const updates = orderedLinkIds.map((id, index) => ({
+      id,
+      sort_order: index + 1,
+    }));
+
+    // Use Promise.all for concurrent updates
+    const results = await Promise.all(
+      updates.map(({ id, sort_order }) =>
+        supabase
+          .from('trip_links')
+          .update({ sort_order })
+          .eq('id', id)
+          .eq('trip_id', tripId)
+      )
+    );
+
+    // Check for errors
+    const hasError = results.some((r) => r.error);
+    if (hasError) {
+      console.error(
+        '[TripLinksService] ❌ Some reorder updates failed',
+        results.filter((r) => r.error)
+      );
+      toast.error('Failed to save new order');
+      return false;
+    }
+
+    console.info('[TripLinksService] ✅ Links reordered');
+    return true;
+  } catch (error) {
+    console.error('[TripLinksService] ❌ Unexpected error', error);
+    toast.error('Failed to save new order');
+    return false;
+  }
 }

@@ -17,7 +17,7 @@ export interface ChatMessageInsert extends Omit<Insert, 'attachments'> {
 }
 
 export async function sendChatMessage(msg: ChatMessageInsert) {
-  return retryWithBackoff(
+  const data = await retryWithBackoff(
     async () => {
       const { data, error } = await supabase
         .from('trip_chat_messages')
@@ -41,6 +41,41 @@ export async function sendChatMessage(msg: ChatMessageInsert) {
       }
     }
   );
+
+  // Extract URLs from message and index them (fire and forget)
+  if (data && msg.content && msg.trip_id) {
+    parseMessageForUrls(data.id, msg.content, msg.trip_id).catch((err) => {
+      console.warn('[chatService] Failed to parse message for URLs:', err);
+    });
+  }
+
+  return data;
+}
+
+/**
+ * Parse message content for URLs and index them in trip_link_index
+ * This calls the message-parser edge function
+ */
+async function parseMessageForUrls(
+  messageId: string,
+  content: string,
+  tripId: string
+): Promise<void> {
+  // Quick check for URLs before calling the edge function
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const urls = content.match(urlRegex);
+  if (!urls || urls.length === 0) return;
+
+  try {
+    const { error } = await supabase.functions.invoke('message-parser', {
+      body: { messageId, content, tripId },
+    });
+    if (error) {
+      console.error('[chatService] message-parser error:', error);
+    }
+  } catch (err) {
+    console.error('[chatService] Failed to invoke message-parser:', err);
+  }
 }
 
 export function subscribeToChatMessages(tripId: string, onInsert: (row: Row) => void) {

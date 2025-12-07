@@ -1,25 +1,39 @@
 /**
  * TripLinksDisplay Component
- * 
+ *
  * Displays trip links from database with CRUD operations
+ * Features drag-and-drop reordering using @dnd-kit
  * Redesigned to match demo mode Places tab design
  */
 
-import React, { useState, useEffect } from 'react';
-import { Link2, ExternalLink, Edit, Trash2, Plus, Globe, Calendar } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link2, ExternalLink, Edit, Trash2, Plus, Globe, GripVertical } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { AddToCalendarButton } from '../AddToCalendarButton';
-import { 
-  getTripLinks, 
-  createTripLink, 
-  updateTripLink, 
-  deleteTripLink
+import {
+  getTripLinks,
+  createTripLink,
+  updateTripLink,
+  deleteTripLink,
+  reorderTripLinks,
 } from '@/services/tripLinksService';
 import { calendarService } from '@/services/calendarService';
 import { useAuth } from '@/hooks/useAuth';
@@ -28,11 +42,136 @@ import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 import type { AddToCalendarData } from '@/types/calendar';
 
+// dnd-kit imports
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 type TripLink = Database['public']['Tables']['trip_links']['Row'];
 
 interface TripLinksDisplayProps {
   tripId: string;
 }
+
+/** Sortable Link Item Component */
+interface SortableLinkItemProps {
+  link: TripLink;
+  onEdit: (link: TripLink) => void;
+  onDelete: (linkId: string) => void;
+  onAddToCalendar: (eventData: AddToCalendarData, link: TripLink) => void;
+}
+
+const SortableLinkItem: React.FC<SortableLinkItemProps> = ({
+  link,
+  onEdit,
+  onDelete,
+  onAddToCalendar,
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: link.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`bg-gray-900/80 border border-white/10 rounded-2xl p-3 md:p-4 hover:border-sky-500/30 transition-all shadow-lg ${
+        isDragging ? 'ring-2 ring-sky-500/50' : ''
+      }`}
+    >
+      {/* Row 1: Drag Handle, Title, Category, Action Buttons */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          {/* Drag Handle */}
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing text-gray-500 hover:text-gray-300 p-1 -ml-1 touch-none"
+            title="Drag to reorder"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+          <h4 className="text-white font-semibold text-sm md:text-base truncate">{link.title}</h4>
+          {link.category && (
+            <Badge variant="secondary" className="text-xs capitalize flex-shrink-0">
+              {link.category}
+            </Badge>
+          )}
+        </div>
+
+        <div className="flex gap-1.5 flex-shrink-0">
+          <AddToCalendarButton
+            placeName={link.title}
+            placeAddress={link.url}
+            category="other"
+            onEventAdded={(eventData) => onAddToCalendar(eventData, link)}
+            variant="icon"
+          />
+
+          <button
+            onClick={() => onEdit(link)}
+            className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 transition-colors flex items-center gap-1"
+            title="Edit"
+          >
+            <Edit className="w-3 h-3" />
+            <span className="hidden md:inline">Edit</span>
+          </button>
+
+          <button
+            onClick={() => onDelete(link.id)}
+            className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors flex items-center gap-1"
+            title="Remove"
+          >
+            <Trash2 className="w-3 h-3" />
+            <span className="hidden md:inline">Remove</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Row 2: URL and Description */}
+      <div className="flex items-start gap-2 pl-6">
+        <Globe className="w-3 h-3 md:w-3.5 md:h-3.5 text-sky-400 flex-shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+          <a
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-sky-400 hover:text-sky-300 underline truncate max-w-[200px] md:max-w-xs"
+            title={link.url}
+          >
+            {link.url.replace(/^https?:\/\/(www\.)?/, '')}
+          </a>
+          {link.description && (
+            <>
+              <span className="text-gray-600 hidden md:inline">•</span>
+              <p className="text-xs text-gray-400 truncate flex-1 min-w-0">{link.description}</p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) => {
   const { user } = useAuth();
@@ -47,6 +186,18 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formCategory, setFormCategory] = useState('other');
+
+  // dnd-kit sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Generate demo user ID
   const getDemoUserId = () => {
@@ -194,10 +345,29 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
     }
   };
 
-  // Get initials from title
-  const getInitials = (title: string) => {
-    return title.charAt(0).toUpperCase();
-  };
+  // Handle drag end for reordering
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+
+      if (over && active.id !== over.id) {
+        setLinks((items) => {
+          const oldIndex = items.findIndex((item) => item.id === active.id);
+          const newIndex = items.findIndex((item) => item.id === over.id);
+          const reordered = arrayMove(items, oldIndex, newIndex);
+
+          // Persist the new order (fire and forget)
+          const orderedIds = reordered.map((link) => link.id);
+          reorderTripLinks(tripId, orderedIds, isDemoMode).catch((err) => {
+            console.error('[TripLinksDisplay] Failed to persist reorder:', err);
+          });
+
+          return reordered;
+        });
+      }
+    },
+    [tripId, isDemoMode]
+  );
 
   if (loading) {
     return (
@@ -366,81 +536,32 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
         </DialogContent>
       </Dialog>
 
-      {/* Links List - Compact 2-row design */}
-      <div className="space-y-3">
-        {links.map((link) => (
-          <div
-            key={link.id}
-            className="bg-gray-900/80 border border-white/10 rounded-2xl p-3 md:p-4 hover:border-sky-500/30 transition-all shadow-lg"
-          >
-            {/* Row 1: Title, Category, Action Buttons */}
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <h4 className="text-white font-semibold text-sm md:text-base truncate">
-                  {link.title}
-                </h4>
-                {link.category && (
-                  <Badge variant="secondary" className="text-xs capitalize flex-shrink-0">
-                    {link.category}
-                  </Badge>
-                )}
-              </div>
-              
-              <div className="flex gap-1.5 flex-shrink-0">
-                <AddToCalendarButton
-                  placeName={link.title}
-                  placeAddress={link.url}
-                  category="other"
-                  onEventAdded={(eventData) => handleAddToCalendar(eventData, link)}
-                  variant="icon"
+      {/* Links List - Drag and Drop enabled */}
+      {links.length > 0 && (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={links.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {links.map((link) => (
+                <SortableLinkItem
+                  key={link.id}
+                  link={link}
+                  onEdit={openEditModal}
+                  onDelete={handleDeleteLink}
+                  onAddToCalendar={handleAddToCalendar}
                 />
-                
-                <button
-                  onClick={() => openEditModal(link)}
-                  className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 transition-colors flex items-center gap-1"
-                  title="Edit"
-                >
-                  <Edit className="w-3 h-3" />
-                  <span className="hidden md:inline">Edit</span>
-                </button>
-
-                <button
-                  onClick={() => handleDeleteLink(link.id)}
-                  className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors flex items-center gap-1"
-                  title="Remove"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  <span className="hidden md:inline">Remove</span>
-                </button>
-              </div>
+              ))}
             </div>
+          </SortableContext>
+        </DndContext>
+      )}
 
-            {/* Row 2: URL and Description */}
-            <div className="flex items-start gap-2">
-              <Globe className="w-3 h-3 md:w-3.5 md:h-3.5 text-sky-400 flex-shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-                <a
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-sky-400 hover:text-sky-300 underline truncate max-w-[200px] md:max-w-xs"
-                  title={link.url}
-                >
-                  {link.url.replace(/^https?:\/\/(www\.)?/, '')}
-                </a>
-                {link.description && (
-                  <>
-                    <span className="text-gray-600 hidden md:inline">•</span>
-                    <p className="text-xs text-gray-400 truncate flex-1 min-w-0">
-                      {link.description}
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Empty state */}
+      {links.length === 0 && (
+        <div className="text-center py-8 text-gray-400">
+          <Link2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
+          <p className="text-sm">No links yet. Add your first link above!</p>
+        </div>
+      )}
     </div>
   );
 };

@@ -378,11 +378,11 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
 
     return (
       <div className="space-y-4">
-        {/* Hidden file input */}
+        {/* Hidden file input - accepts all file types */}
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+          accept="*/*"
           multiple
           className="hidden"
           onChange={(e) => handleFileUpload(e.target.files, 'document')}
