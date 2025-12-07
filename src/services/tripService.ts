@@ -184,23 +184,44 @@ export const tripService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      // Phase 2: Optimized query with member and link counts
-      // Uses indexed created_by column and RLS policies for access control
-      // Filters out both archived and hidden trips (they have separate sections)
-      const { data, error } = await supabase
+      // Fetch trips first (no FK-dependent joins)
+      const { data: trips, error } = await supabase
         .from('trips')
-        .select(`
-          *,
-          trip_members(count),
-          trip_links(count)
-        `)
+        .select('*')
         .eq('created_by', user.id)
         .eq('is_archived', false)
         .eq('is_hidden', false)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      if (!trips || trips.length === 0) return [];
+
+      // Batch-fetch member and link counts separately (no FK required)
+      const tripIds = trips.map(t => t.id);
+
+      const [membersResult, linksResult] = await Promise.all([
+        supabase.from('trip_members').select('trip_id').in('trip_id', tripIds),
+        supabase.from('trip_links').select('trip_id').in('trip_id', tripIds)
+      ]);
+
+      // Count occurrences per trip
+      const memberCountMap = new Map<string, number>();
+      const linkCountMap = new Map<string, number>();
+
+      membersResult.data?.forEach(m => {
+        memberCountMap.set(m.trip_id, (memberCountMap.get(m.trip_id) || 0) + 1);
+      });
+
+      linksResult.data?.forEach(l => {
+        linkCountMap.set(l.trip_id, (linkCountMap.get(l.trip_id) || 0) + 1);
+      });
+
+      // Attach counts to trips in the format expected by tripConverter
+      return trips.map(trip => ({
+        ...trip,
+        trip_members: [{ count: memberCountMap.get(trip.id) || 0 }],
+        trip_links: [{ count: linkCountMap.get(trip.id) || 0 }]
+      }));
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching trips:', error);
