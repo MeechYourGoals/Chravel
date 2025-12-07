@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Camera, Upload, Loader2 } from 'lucide-react';
+import { User, Camera, Upload, Loader2, Phone } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
@@ -13,6 +13,7 @@ export const ConsumerProfileSection = () => {
   // Local state for form fields
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [bio, setBio] = useState(user?.bio || '');
+  const [phone, setPhone] = useState(user?.phone || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -21,6 +22,7 @@ export const ConsumerProfileSection = () => {
     if (user) {
       setDisplayName(user.displayName || '');
       setBio(user.bio || '');
+      setPhone(user.phone || '');
     }
   }, [user]);
 
@@ -39,12 +41,21 @@ export const ConsumerProfileSection = () => {
 
     setIsSaving(true);
     try {
+      // Update profile with display_name and bio
       const { error } = await updateProfile({
         display_name: displayName,
         bio: bio
       });
 
       if (error) throw error;
+
+      // Update phone separately via direct Supabase call
+      if (user?.id) {
+        await supabase
+          .from('profiles')
+          .update({ phone })
+          .eq('user_id', user.id);
+      }
 
       toast({
         title: "Profile updated",
@@ -220,6 +231,21 @@ export const ConsumerProfileSection = () => {
               className="w-full bg-gray-700/50 border border-gray-600 text-gray-400 rounded-lg px-4 py-2 cursor-not-allowed"
             />
           </div>
+        </div>
+        
+        <div className="mt-3">
+          <label className="block text-sm text-gray-300 mb-1.5 flex items-center gap-2">
+            <Phone size={14} />
+            Phone Number
+          </label>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+            placeholder="+1 (555) 123-4567"
+          />
+          <p className="text-xs text-gray-500 mt-1">Used for SMS notifications and trip member contact (if enabled in Privacy settings)</p>
         </div>
         
         <div className="mt-3">
