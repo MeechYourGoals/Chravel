@@ -165,30 +165,28 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, tripMembers, onPay
                 {allParticipantsSelected ? 'Deselect All' : 'Select All'}
               </button>
             </div>
-            <div className="max-h-32 overflow-y-auto space-y-2 p-3 bg-white/5 border border-white/10 rounded-xl native-scroll">
+            <div className="max-h-32 overflow-y-auto flex flex-wrap gap-2 p-3 bg-white/5 border border-white/10 rounded-xl native-scroll">
               {tripMembers.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-2">No trip members found</p>
+                <p className="text-sm text-gray-400 text-center py-2 w-full">No trip members found</p>
               ) : (
                 tripMembers.map(member => (
                   <label 
                     key={member.id}
-                    className="flex items-center gap-3 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors"
+                    className="inline-flex items-center gap-2 cursor-pointer hover:bg-white/10 bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg transition-colors w-auto shrink-0"
                   >
                     <input
                       type="checkbox"
                       checked={selectedParticipants.includes(member.id)}
                       onChange={() => toggleParticipant(member.id)}
-                      className="w-5 h-5 rounded border-white/20 bg-white/5 text-green-600 focus:ring-2 focus:ring-green-500/50"
+                      className="w-4 h-4 rounded border-white/20 bg-white/5 text-green-600 focus:ring-2 focus:ring-green-500/50"
                     />
-                    <div className="flex items-center gap-2 flex-1">
-                      <Avatar className="w-6 h-6">
-                        <AvatarImage src={getConsistentAvatar(member.name)} alt={member.name} />
-                        <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
-                          {getInitials(member.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-white text-sm">{member.name}</span>
-                    </div>
+                    <Avatar className="w-6 h-6 shrink-0">
+                      <AvatarImage src={getConsistentAvatar(member.name)} alt={member.name} />
+                      <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
+                        {getInitials(member.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-white text-sm whitespace-nowrap">{member.name}</span>
                   </label>
                 ))
               )}
