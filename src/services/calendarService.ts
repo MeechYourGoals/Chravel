@@ -132,90 +132,43 @@ export const calendarService = {
         } as TripEvent;
       }
 
-      // Use Supabase with conflict detection for authenticated users
+      // Use Supabase for authenticated users - direct insert (skip RPC to avoid conflict issues)
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Ensure user is a trip member (auto-add if they're the creator)
-      const isMember = await this.ensureTripMembership(eventData.trip_id, user.id);
-      if (!isMember) {
-        if (import.meta.env.DEV) {
-          console.warn('User is not a member of this trip and cannot create events');
-        }
-        return null;
-      }
-
-      // Use atomic function to create event with conflict detection - with retry
-      // First try RPC, if it fails, fallback to direct insert
+      // Direct insert - simpler and more reliable than RPC
       const createdEvent = await retryWithBackoff(
         async () => {
-          try {
-            const { data: eventId, error } = await supabase
-              .rpc('create_event_with_conflict_check', {
-                p_trip_id: eventData.trip_id,
-                p_title: eventData.title,
-                p_description: eventData.description || '',
-                p_location: eventData.location || '',
-                p_start_time: eventData.start_time,
-                p_end_time: eventData.end_time || null,
-                p_created_by: user.id
-              });
+          const { data: directEvent, error: directError } = await supabase
+            .from('trip_events')
+            .insert({
+              trip_id: eventData.trip_id,
+              title: eventData.title,
+              description: eventData.description || null,
+              location: eventData.location || null,
+              start_time: eventData.start_time,
+              end_time: eventData.end_time || null,
+              created_by: user.id,
+              event_category: eventData.event_category || 'other',
+              include_in_itinerary: eventData.include_in_itinerary ?? true,
+              source_type: eventData.source_type || 'manual',
+              source_data: eventData.source_data || {}
+            })
+            .select(`
+              *,
+              creator:created_by (
+                id,
+                display_name,
+                avatar_url
+              )
+            `)
+            .single();
 
-            if (error) {
-              console.warn('[calendarService] RPC failed, falling back to direct insert:', error.message);
-              throw error;
-            }
-
-            // Fetch the created event to return complete data with creator profile
-            const { data: event, error: fetchError } = await supabase
-              .from('trip_events')
-              .select(`
-                *,
-                creator:created_by (
-                  id,
-                  display_name,
-                  avatar_url
-                )
-              `)
-              .eq('id', eventId)
-              .single();
-
-            if (fetchError) throw fetchError;
-            return event;
-          } catch (rpcError) {
-            // Fallback to direct insert if RPC fails
-            console.log('[calendarService] Attempting direct insert fallback');
-            const { data: directEvent, error: directError } = await supabase
-              .from('trip_events')
-              .insert({
-                trip_id: eventData.trip_id,
-                title: eventData.title,
-                description: eventData.description || null,
-                location: eventData.location || null,
-                start_time: eventData.start_time,
-                end_time: eventData.end_time || null,
-                created_by: user.id,
-                event_category: eventData.event_category || 'other',
-                include_in_itinerary: eventData.include_in_itinerary ?? true,
-                source_type: eventData.source_type || 'manual',
-                source_data: eventData.source_data || {}
-              })
-              .select(`
-                *,
-                creator:created_by (
-                  id,
-                  display_name,
-                  avatar_url
-                )
-              `)
-              .single();
-
-            if (directError) {
-              console.error('[calendarService] Direct insert also failed:', directError);
-              throw directError;
-            }
-            return directEvent;
+          if (directError) {
+            console.error('[calendarService] Insert failed:', directError);
+            throw directError;
           }
+          return directEvent;
         },
         {
           maxRetries: 3,
