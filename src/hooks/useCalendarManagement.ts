@@ -111,15 +111,18 @@ export const useCalendarManagement = (tripId: string) => {
       } else {
         toast({
           title: 'Unable to create event',
-          description: 'You may not have permission to add events to this trip.',
+          description: 'Something went wrong. Please try again.',
           variant: 'destructive'
         });
       }
     } catch (error) {
       console.error('Failed to create event:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: 'Unable to create event',
-        description: 'Please try again after refreshing the calendar.',
+        description: errorMessage.includes('permission') || errorMessage.includes('RLS') 
+          ? 'You may not have permission to add events to this trip.'
+          : errorMessage,
         variant: 'destructive'
       });
     } finally {
