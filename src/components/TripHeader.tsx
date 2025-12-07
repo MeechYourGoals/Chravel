@@ -129,23 +129,28 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       const fileName = `${trip.id}-${Date.now()}.${fileExt}`;
       const filePath = `trip-covers/${trip.id}/${fileName}`;
 
-      // Upload to Supabase Storage
+      // Upload to Supabase Storage - use trip-media bucket (trip-photos doesn't exist)
       const { data, error: uploadError } = await supabase.storage
-        .from('trip-photos')
+        .from('trip-media')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
         });
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
-        toast.error('Failed to upload cover photo');
+        console.error('Upload error details:', {
+          error: uploadError,
+          message: uploadError.message,
+          tripId: trip.id,
+          filePath
+        });
+        toast.error(`Failed to upload: ${uploadError.message}`);
         return;
       }
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from('trip-photos')
+        .from('trip-media')
         .getPublicUrl(filePath);
 
       if (!urlData?.publicUrl) {

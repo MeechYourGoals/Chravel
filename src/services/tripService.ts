@@ -91,26 +91,37 @@ export const tripService = {
       // Check active trip limit for free users
       const { data: profile } = await supabase
         .from('profiles')
-        .select('subscription_status, subscription_product_id')
+        .select('subscription_status, subscription_product_id, email')
         .eq('user_id', user.id)
         .single();
 
-      const tier = profile?.subscription_status === 'active' 
-        ? (profile.subscription_product_id?.includes('explorer') ? 'explorer' : 'frequent-chraveler')
-        : 'free';
+      // Super admin bypass - ccamechi@gmail.com has unlimited access
+      const SUPER_ADMIN_EMAILS = ['ccamechi@gmail.com'];
+      const isSuperAdmin = profile?.email && SUPER_ADMIN_EMAILS.includes(profile.email.toLowerCase());
+      
+      if (isSuperAdmin) {
+        console.log('[tripService] Super admin bypass for:', profile.email);
+      } else {
+        const tier = profile?.subscription_status === 'active' 
+          ? (profile.subscription_product_id?.includes('explorer') ? 'explorer' : 'frequent-chraveler')
+          : 'free';
 
-      // Count active (non-archived) trips
-      const { count, error: countError } = await supabase
-        .from('trips')
-        .select('*', { count: 'exact', head: true })
-        .eq('created_by', user.id)
-        .eq('is_archived', false);
+        // Count active (non-archived) trips OF THE SAME TYPE being created
+        const tripTypeToCheck = tripData.trip_type || 'consumer';
+        const { count, error: countError } = await supabase
+          .from('trips')
+          .select('*', { count: 'exact', head: true })
+          .eq('created_by', user.id)
+          .eq('is_archived', false)
+          .eq('trip_type', tripTypeToCheck);
 
-      if (countError) throw countError;
+        if (countError) throw countError;
 
-      const activeTripsLimit = tier === 'free' ? 3 : -1;
-      if (activeTripsLimit !== -1 && (count || 0) >= activeTripsLimit) {
-        throw new Error('TRIP_LIMIT_REACHED');
+        // 3 trips per type for free users
+        const activeTripsLimit = tier === 'free' ? 3 : -1;
+        if (activeTripsLimit !== -1 && (count || 0) >= activeTripsLimit) {
+          throw new Error('TRIP_LIMIT_REACHED');
+        }
       }
 
       // Dates already in ISO 8601 format from CreateTripModal - no normalization needed
