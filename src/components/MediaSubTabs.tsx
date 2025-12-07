@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
-import { Camera, Video, FileText, Link, Play, Download, MessageCircle, ExternalLink, DollarSign, Users } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Camera, Video, FileText, Link, Play, Download, MessageCircle, ExternalLink, DollarSign, Users, Loader2 } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { PaymentMethodIcon } from './receipts/PaymentMethodIcon';
 import { generatePaymentDeeplink } from '../utils/paymentDeeplinks';
 import { AddLinkModal } from './AddLinkModal';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useDemoMode } from '@/hooks/useDemoMode';
+import { toast } from 'sonner';
 
 interface MediaItem {
   id: string;
@@ -36,8 +40,88 @@ interface MediaSubTabsProps {
   searchQuery?: string;
 }
 
-export const MediaSubTabs = ({ items, type, searchQuery }: MediaSubTabsProps) => {
+interface MediaSubTabsExtendedProps extends MediaSubTabsProps {
+  tripId?: string;
+  onMediaUploaded?: () => void;
+}
+
+export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded }: MediaSubTabsExtendedProps) => {
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
+
+  const handleFileUpload = async (files: FileList | null, mediaType: 'image' | 'video' | 'document') => {
+    if (!files || files.length === 0) return;
+    if (!tripId) {
+      toast.error('Trip ID is required for uploads');
+      return;
+    }
+
+    // Demo mode: show toast only
+    if (isDemoMode) {
+      toast.success(`${files.length} ${mediaType}(s) uploaded (demo mode)`);
+      return;
+    }
+
+    if (!user) {
+      toast.error('Please sign in to upload files');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const fileName = `${tripId}/${user.id}/${Date.now()}-${file.name}`;
+        
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('trip-media')
+          .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast.error(`Failed to upload ${file.name}`);
+          continue;
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('trip-media')
+          .getPublicUrl(fileName);
+
+        // Insert into trip_media_index
+        const { error: dbError } = await supabase
+          .from('trip_media_index')
+          .insert({
+            trip_id: tripId,
+            media_url: urlData.publicUrl,
+            filename: file.name,
+            media_type: mediaType,
+            file_size: file.size,
+            mime_type: file.type,
+            metadata: {}
+          });
+
+        if (dbError) {
+          console.error('Database error:', dbError);
+          toast.error(`Failed to save ${file.name} metadata`);
+        }
+      }
+
+      toast.success(`${files.length} file(s) uploaded successfully!`);
+      onMediaUploaded?.();
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload files');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -151,6 +235,24 @@ export const MediaSubTabs = ({ items, type, searchQuery }: MediaSubTabsProps) =>
   if (type === 'photos' || type === 'videos') {
     return (
       <div className="space-y-4">
+        {/* Hidden file inputs */}
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => handleFileUpload(e.target.files, 'image')}
+        />
+        <input
+          ref={videoInputRef}
+          type="file"
+          accept="video/*"
+          multiple
+          className="hidden"
+          onChange={(e) => handleFileUpload(e.target.files, 'video')}
+        />
+        
         {/* Header with Add Button */}
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold text-foreground">
@@ -160,12 +262,22 @@ export const MediaSubTabs = ({ items, type, searchQuery }: MediaSubTabsProps) =>
             variant="ghost"
             size="sm"
             onClick={() => {
-              const mediaType = type === 'photos' ? 'Photo' : 'Video';
-              alert(`Add ${mediaType} functionality - would open file picker for ${type}`);
+              if (type === 'photos') {
+                photoInputRef.current?.click();
+              } else {
+                videoInputRef.current?.click();
+              }
             }}
+            disabled={isUploading}
             className="text-xs"
           >
-            {type === 'photos' ? <Camera className="w-4 h-4 mr-1" /> : <Video className="w-4 h-4 mr-1" />}
+            {isUploading ? (
+              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+            ) : type === 'photos' ? (
+              <Camera className="w-4 h-4 mr-1" />
+            ) : (
+              <Video className="w-4 h-4 mr-1" />
+            )}
             + Add {type === 'photos' ? 'Photo' : 'Video'}
           </Button>
         </div>
@@ -266,6 +378,16 @@ export const MediaSubTabs = ({ items, type, searchQuery }: MediaSubTabsProps) =>
 
     return (
       <div className="space-y-4">
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+          multiple
+          className="hidden"
+          onChange={(e) => handleFileUpload(e.target.files, 'document')}
+        />
+        
         {/* Header with Add Button */}
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold text-foreground">
@@ -274,12 +396,15 @@ export const MediaSubTabs = ({ items, type, searchQuery }: MediaSubTabsProps) =>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {
-              alert('Add File functionality - would open file picker for documents, receipts, schedules');
-            }}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
             className="text-xs"
           >
-            <FileText className="w-4 h-4 mr-1" />
+            {isUploading ? (
+              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+            ) : (
+              <FileText className="w-4 h-4 mr-1" />
+            )}
             + Add File
           </Button>
         </div>

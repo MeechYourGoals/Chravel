@@ -1,10 +1,10 @@
-
 import { useState, useEffect, createContext, useContext } from 'react';
 import { ConsumerSubscription } from '../types/consumer';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { STRIPE_PRODUCTS } from '@/constants/stripe';
 import { toast } from 'sonner';
+import { SUPER_ADMIN_EMAILS } from './useSuperAdmin';
 
 interface ConsumerSubscriptionContextType {
   subscription: ConsumerSubscription | null;
@@ -113,11 +113,14 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
     }
   };
 
-  const currentTier = subscription?.tier || 'free';
-  const isPlus = subscription?.status === 'active' && currentTier !== 'free'; // Any paid tier
-  const isSubscribed = subscription?.status === 'active' && currentTier !== 'free';
-  const canCreateProTrip = currentTier === 'frequent-chraveler';
-  const proTripQuota = currentTier === 'frequent-chraveler' ? 1 : 0;
+  // Check if user is super admin - bypass all limits
+  const isSuperAdmin = user?.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
+  
+  const currentTier = isSuperAdmin ? 'frequent-chraveler' : (subscription?.tier || 'free');
+  const isPlus = isSuperAdmin || (subscription?.status === 'active' && currentTier !== 'free');
+  const isSubscribed = isSuperAdmin || (subscription?.status === 'active' && currentTier !== 'free');
+  const canCreateProTrip = isSuperAdmin || currentTier === 'frequent-chraveler';
+  const proTripQuota = isSuperAdmin ? 999 : (currentTier === 'frequent-chraveler' ? 1 : 0);
 
   return (
     <ConsumerSubscriptionContext.Provider value={{
