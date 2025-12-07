@@ -10,6 +10,7 @@ import { usePayments } from '../../hooks/usePayments';
 import { useToast } from '../../hooks/use-toast';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
+import { useSuperAdmin } from '../../hooks/useSuperAdmin';
 import { supabase } from '../../integrations/supabase/client';
 import { getTripById } from '../../data/tripsData';
 import { demoModeService } from '../../services/demoModeService';
@@ -30,6 +31,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   const { toast } = useToast();
   const { isDemoMode, isLoading: demoLoading } = useDemoMode();
   const { tier, isLoading: tierLoading, upgradeToTier } = useConsumerSubscription();
+  const { isSuperAdmin } = useSuperAdmin();
   const [balanceSummary, setBalanceSummary] = useState<BalanceSummaryType | null>(null);
   const [loading, setLoading] = useState(true);
   const [tripMembers, setTripMembers] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
@@ -134,9 +136,10 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     return paymentMessages.filter(p => p.createdBy === user?.id).length;
   }, [paymentMessages, user]);
 
-  const paymentLimit = tier === 'free' ? 5 : -1;
+  // Super admin bypass - unlimited everything
+  const paymentLimit = isSuperAdmin ? -1 : (tier === 'free' ? 5 : -1);
   const remainingPayments = paymentLimit === -1 ? -1 : Math.max(0, paymentLimit - userPaymentCount);
-  const canCreateMorePayments = paymentLimit === -1 || userPaymentCount < paymentLimit;
+  const canCreateMorePayments = isSuperAdmin || paymentLimit === -1 || userPaymentCount < paymentLimit;
 
   // Calculate payment summary
   const paymentSummary = useMemo(() => {
