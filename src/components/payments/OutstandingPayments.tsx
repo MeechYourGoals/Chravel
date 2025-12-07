@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
@@ -10,7 +9,6 @@ import { demoModeService } from '../../services/demoModeService';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/use-toast';
-import { format } from 'date-fns';
 import { Loader2, Clock, Users } from 'lucide-react';
 
 interface PaymentSplit {
@@ -21,6 +19,12 @@ interface PaymentSplit {
   settled_at: string | null;
   debtor_name?: string;
   debtor_avatar?: string;
+}
+
+interface PaymentMethodDetail {
+  method: string;
+  displayName: string;
+  identifier: string;
 }
 
 interface OutstandingPayment {
@@ -34,12 +38,26 @@ interface OutstandingPayment {
   isSettled: boolean;
   splits: PaymentSplit[];
   settledCount: number;
+  paymentMethods: string[];
+  creatorPaymentDetails: PaymentMethodDetail[];
 }
 
 interface OutstandingPaymentsProps {
   tripId: string;
   onPaymentUpdated?: () => void;
 }
+
+// Map method types to display names
+const METHOD_DISPLAY_NAMES: Record<string, string> = {
+  venmo: 'Venmo',
+  paypal: 'PayPal',
+  zelle: 'Zelle',
+  cashapp: 'Cash App',
+  applepay: 'Apple Pay',
+  applecash: 'Apple Cash',
+  cash: 'Cash',
+  other: 'Other'
+};
 
 export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPaymentsProps) => {
   const [payments, setPayments] = useState<OutstandingPayment[]>([]);
@@ -67,9 +85,24 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
         return;
       }
 
-      // For demo mode, create mock splits
+      // Get unique creator IDs
+      const creatorIds = [...new Set(unsettledPayments.map(p => p.createdBy))];
+
+      // For demo mode, create mock splits and payment methods
       if (demoActive) {
         const mockMembers = demoModeService.getMockMembers(tripId);
+        
+        // Mock creator payment methods for demo
+        const mockCreatorMethods: Record<string, PaymentMethodDetail[]> = {};
+        creatorIds.forEach(creatorId => {
+          mockCreatorMethods[creatorId] = [
+            { method: 'venmo', displayName: 'Venmo', identifier: '@demo-user' },
+            { method: 'paypal', displayName: 'PayPal', identifier: 'demo@email.com' },
+            { method: 'zelle', displayName: 'Zelle', identifier: '555-123-4567' },
+            { method: 'cashapp', displayName: 'Cash App', identifier: '$demouser' }
+          ];
+        });
+
         const paymentsWithSplits = unsettledPayments.map(payment => {
           const splits: PaymentSplit[] = payment.splitParticipants.map((participantId, idx) => {
             const member = mockMembers.find(m => m.user_id === participantId);
@@ -84,10 +117,18 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
             };
           });
 
+          // Filter creator's methods to match selected payment methods
+          const allCreatorMethods = mockCreatorMethods[payment.createdBy] || [];
+          const selectedMethods = payment.paymentMethods || [];
+          const creatorPaymentDetails = allCreatorMethods.filter(m => 
+            selectedMethods.includes(m.method)
+          );
+
           return {
             ...payment,
             splits,
-            settledCount: 0
+            settledCount: 0,
+            creatorPaymentDetails
           };
         });
 
@@ -96,17 +137,37 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
         return;
       }
 
-      // Authenticated mode: fetch real splits
+      // Authenticated mode: fetch real splits and creator payment methods
       const paymentIds = unsettledPayments.map(p => p.id);
-      const { data: splitsData, error: splitsError } = await supabase
-        .from('payment_splits')
-        .select('*')
-        .in('payment_message_id', paymentIds);
+      
+      // Fetch splits and creator payment methods in parallel
+      const [splitsResult, creatorMethodsResult] = await Promise.all([
+        supabase
+          .from('payment_splits')
+          .select('*')
+          .in('payment_message_id', paymentIds),
+        supabase
+          .from('user_payment_methods')
+          .select('user_id, method_type, identifier, display_name')
+          .in('user_id', creatorIds)
+      ]);
 
-      if (splitsError) throw splitsError;
+      if (splitsResult.error) throw splitsResult.error;
+
+      // Build creator methods map
+      const creatorMethodsMap = new Map<string, PaymentMethodDetail[]>();
+      (creatorMethodsResult.data || []).forEach(method => {
+        const existing = creatorMethodsMap.get(method.user_id) || [];
+        existing.push({
+          method: method.method_type?.toLowerCase() || 'other',
+          displayName: method.display_name || METHOD_DISPLAY_NAMES[method.method_type?.toLowerCase() || 'other'] || method.method_type || 'Other',
+          identifier: method.identifier || ''
+        });
+        creatorMethodsMap.set(method.user_id, existing);
+      });
 
       // Get debtor profiles
-      const debtorIds = [...new Set((splitsData || []).map(s => s.debtor_user_id))];
+      const debtorIds = [...new Set((splitsResult.data || []).map(s => s.debtor_user_id))];
       const { data: profiles } = await supabase
         .from('profiles')
         .select('user_id, display_name, avatar_url')
@@ -116,7 +177,7 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
 
       // Map splits to payments
       const paymentsWithSplits = unsettledPayments.map(payment => {
-        const paymentSplits = (splitsData || [])
+        const paymentSplits = (splitsResult.data || [])
           .filter(s => s.payment_message_id === payment.id)
           .map(s => {
             const profile = profileMap.get(s.debtor_user_id);
@@ -131,10 +192,18 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
             };
           });
 
+        // Get creator's payment methods and filter to match selected methods
+        const allCreatorMethods = creatorMethodsMap.get(payment.createdBy) || [];
+        const selectedMethods = (payment.paymentMethods || []).map(m => m.toLowerCase());
+        const creatorPaymentDetails = selectedMethods.length > 0
+          ? allCreatorMethods.filter(m => selectedMethods.includes(m.method))
+          : allCreatorMethods; // Show all if none specifically selected
+
         return {
           ...payment,
           splits: paymentSplits,
-          settledCount: paymentSplits.filter(s => s.is_settled).length
+          settledCount: paymentSplits.filter(s => s.is_settled).length,
+          creatorPaymentDetails
         };
       });
 
@@ -220,8 +289,8 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
           return (
             <div key={payment.id} className="bg-card/50 rounded-lg p-3 border border-border">
               {/* Payment Header */}
-              <div className="flex items-center justify-between mb-2">
-                <div>
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1">
                   <span className="font-medium text-foreground">{payment.description}</span>
                   <div className="flex items-center gap-2 mt-0.5">
                     <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-300 border-amber-500/30">
@@ -232,8 +301,24 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
                       {payment.settledCount}/{payment.splits.length} paid
                     </span>
                   </div>
+                  
+                  {/* Payment Methods with Usernames */}
+                  {payment.creatorPaymentDetails.length > 0 && (
+                    <div className="mt-2 space-y-0.5">
+                      {payment.creatorPaymentDetails.map((method) => (
+                        <div key={method.method} className="flex items-center gap-1.5 text-sm">
+                          <span className="text-muted-foreground font-medium">
+                            {method.displayName}:
+                          </span>
+                          <span className="text-primary">
+                            {method.identifier || 'Not provided'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="text-right">
+                <div className="text-right ml-4">
                   <span className="font-semibold text-foreground">
                     {formatCurrency(payment.amount, payment.currency)}
                   </span>
