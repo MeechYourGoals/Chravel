@@ -19,8 +19,6 @@ export interface TripParticipant {
   avatar: string;
 }
 
-// TODO: When connecting to Supabase, fetch placesCount with:
-// SELECT COUNT(*) as placesCount FROM trip_links WHERE trip_id = trips.id
 export interface Trip {
   id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
   title: string;
@@ -29,7 +27,8 @@ export interface Trip {
   description: string;
   participants: TripParticipant[];
   coverPhoto?: string;
-  placesCount?: number; // Number of saved trip links
+  placesCount?: number; // Number of saved trip links (from trip_links count)
+  peopleCount?: number; // Number of trip members (from trip_members count)
   // Feature toggles for Pro/Event trips
   enabled_features?: string[];
   trip_type?: 'consumer' | 'pro' | 'event';

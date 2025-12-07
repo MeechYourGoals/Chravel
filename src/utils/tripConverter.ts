@@ -20,6 +20,10 @@ export function convertSupabaseTripToMock(supabaseTrip: SupabaseTrip): MockTrip 
     }
   }
 
+  // Extract counts from joined tables (Supabase returns [{count: N}] for count aggregates)
+  const peopleCount = (supabaseTrip as any).trip_members?.[0]?.count ?? 0;
+  const placesCount = (supabaseTrip as any).trip_links?.[0]?.count ?? 0;
+
   return {
     id: supabaseTrip.id as any, // Keep UUID string for service calls
     title: supabaseTrip.name || 'Untitled Trip',
@@ -30,6 +34,8 @@ export function convertSupabaseTripToMock(supabaseTrip: SupabaseTrip): MockTrip 
     coverPhoto: supabaseTrip.cover_image_url,
     trip_type: (supabaseTrip.trip_type || 'consumer') as 'consumer' | 'pro' | 'event',
     archived: supabaseTrip.is_archived,
+    peopleCount,
+    placesCount,
   };
 }
 
