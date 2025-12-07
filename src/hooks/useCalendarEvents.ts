@@ -101,19 +101,19 @@ export const useCalendarEvents = (tripId?: string) => {
       }
       
       // Fallback to regular creation for demo mode or if RPC fails
-      const newEvent = await calendarService.createEvent(eventData);
-      if (newEvent) {
-        setEvents(prevEvents => [...prevEvents, newEvent]);
+      const result = await calendarService.createEvent(eventData);
+      if (result.event) {
+        setEvents(prevEvents => [...prevEvents, result.event!]);
       }
-      return newEvent;
+      return result.event;
     } catch (error) {
       console.error('Error creating event:', error);
       // Fallback to regular creation
-      const newEvent = await calendarService.createEvent(eventData);
-      if (newEvent) {
-        setEvents(prevEvents => [...prevEvents, newEvent]);
+      const result = await calendarService.createEvent(eventData);
+      if (result.event) {
+        setEvents(prevEvents => [...prevEvents, result.event!]);
       }
-      return newEvent;
+      return result.event;
     }
   };
 

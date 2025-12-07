@@ -79,8 +79,8 @@ describe('calendarService - Integration Tests', () => {
       const result = await calendarService.createEvent(eventData);
 
       expect(result).not.toBeNull();
-      expect(result?.id).toBe(eventId);
-      expect(result?.title).toBe('Test Event');
+      expect(result.event?.id).toBe(eventId);
+      expect(result.event?.title).toBe('Test Event');
       expect(mockSupabase.rpc).toHaveBeenCalledWith(
         'create_event_with_conflict_check',
         expect.objectContaining({

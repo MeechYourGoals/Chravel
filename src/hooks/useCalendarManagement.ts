@@ -84,7 +84,7 @@ export const useCalendarManagement = (tripId: string) => {
       const [hours, minutes] = newEvent.time.split(':');
       startDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
 
-      const created = await calendarService.createEvent({
+      const result = await calendarService.createEvent({
         trip_id: tripId,
         title: newEvent.title,
         description: newEvent.description,
@@ -97,17 +97,26 @@ export const useCalendarManagement = (tripId: string) => {
         source_data: {}
       });
 
-      if (created) {
-        const formatted = calendarService.convertToCalendarEvent(created);
+      if (result.event) {
+        const formatted = calendarService.convertToCalendarEvent(result.event);
         setEvents(prev => [...prev, formatted].sort((a, b) =>
           a.date.getTime() - b.date.getTime()
         ));
         setShowAddEvent(false);
         resetForm();
-        toast({
-          title: 'Event added',
-          description: 'Your event has been added to the shared calendar.'
-        });
+
+        // Show conflict warning if overlapping events exist
+        if (result.conflicts.length > 0) {
+          toast({
+            title: 'Event added with overlap',
+            description: `Note: This event overlaps with "${result.conflicts[0]}"${result.conflicts.length > 1 ? ` and ${result.conflicts.length - 1} other event(s)` : ''}.`,
+          });
+        } else {
+          toast({
+            title: 'Event added',
+            description: 'Your event has been added to the shared calendar.'
+          });
+        }
       } else {
         toast({
           title: 'Unable to create event',
