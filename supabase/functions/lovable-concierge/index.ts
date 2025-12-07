@@ -37,10 +37,11 @@ interface LovableConciergeRequest {
 }
 
 // Input validation schema
+// Input validation schema - increased limits for better context handling
 const LovableConciergeSchema = z.object({
   message: z.string()
     .min(1, 'Message cannot be empty')
-    .max(2000, 'Message too long (max 2000 characters)')
+    .max(4000, 'Message too long (max 4000 characters)')
     .trim(),
   tripId: z.string()
     .regex(/^[a-zA-Z0-9_-]+$/, 'Invalid trip ID format')
@@ -49,14 +50,14 @@ const LovableConciergeSchema = z.object({
   tripContext: z.any().optional(),
   chatHistory: z.array(z.object({
     role: z.enum(['system', 'user', 'assistant']),
-    content: z.string().max(2000, 'Chat message too long')
+    content: z.string().max(20000, 'Chat message too long') // Increased from 2000 to 20000
   })).max(20, 'Chat history too long (max 20 messages)').optional(),
   isDemoMode: z.boolean().optional(),
   config: z.object({
     model: z.string().max(100).optional(),
     temperature: z.number().min(0).max(2).optional(),
     maxTokens: z.number().min(1).max(4000).optional(),
-    systemPrompt: z.string().max(1000, 'System prompt too long').optional()
+    systemPrompt: z.string().max(2000, 'System prompt too long').optional()
   }).optional()
 })
 
@@ -722,7 +723,21 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
 - Factor in their budget and group size
 - Be specific with recommendations (include names, locations)
 - Provide actionable advice they can use immediately
-- When users ask clarifying questions, give them an answer first, then ask for specifics to improve recommendations`
+- When users ask clarifying questions, give them an answer first, then ask for specifics to improve recommendations
+
+**🔍 Location Intelligence (CRITICAL):**
+- When users mention a hotel, restaurant, or landmark by name WITHOUT a full address, assume it's in the trip destination
+- Example: "Click Clack Hotel" in a Medellin trip = Click Clack Hotel Medellin, Colombia
+- ALWAYS use the trip destination as context for location queries
+- If you don't know the exact address, use web search or make reasonable assumptions based on the destination
+- NEVER ask users for neighborhood or address info if you can infer from trip context
+- For "near me" or "near my hotel" queries: Use personal basecamp coordinates if available, otherwise use trip destination
+
+**💰 Payment Intelligence (CRITICAL):**
+- When asked about payments, debts, or expenses, ALWAYS provide specific amounts and names
+- Calculate who owes money to whom based on the payment data
+- Include payment method preferences when suggesting how to settle
+- Never just say "check the payments tab" - provide the actual payment summary`
 
   if (tripContext) {
     basePrompt += `\n\n=== TRIP CONTEXT ===`
