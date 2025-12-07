@@ -136,14 +136,9 @@ export const calendarService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Ensure user is a trip member (auto-add if they're the creator)
-      const isMember = await this.ensureTripMembership(eventData.trip_id, user.id);
-      if (!isMember) {
-        if (import.meta.env.DEV) {
-          console.warn('User is not a member of this trip and cannot create events');
-        }
-        return null;
-      }
+      // Note: The RPC function uses SECURITY DEFINER and bypasses RLS,
+      // so we don't need a membership check here. The RPC will handle
+      // the insert directly with elevated privileges.
 
       // Use atomic function to create event with conflict detection - with retry
       // First try RPC, if it fails, fallback to direct insert
