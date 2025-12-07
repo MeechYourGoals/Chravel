@@ -26,7 +26,7 @@ interface Participant {
 }
 
 interface Trip {
-  id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
+  id: number | string;
   title: string;
   location: string;
   dateRange: string;
@@ -37,9 +37,11 @@ interface Trip {
 
 interface TripCardProps {
   trip: Trip;
+  onArchiveSuccess?: () => void;
+  onHideSuccess?: () => void;
 }
 
-export const TripCard = ({ trip }: TripCardProps) => {
+export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProps) => {
   const navigate = useNavigate();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -54,12 +56,22 @@ export const TripCard = ({ trip }: TripCardProps) => {
     navigate(`/trip/${trip.id}/edit-itinerary`);
   };
 
-  const handleArchiveTrip = () => {
-    archiveTrip(trip.id.toString(), 'consumer');
-    toast({
-      title: "Trip archived",
-      description: `"${trip.title}" has been archived. View it in the Archived tab.`,
-    });
+  const handleArchiveTrip = async () => {
+    try {
+      await archiveTrip(trip.id.toString(), 'consumer');
+      toast({
+        title: "Trip archived",
+        description: `"${trip.title}" has been archived. View it in the Archived tab.`,
+      });
+      setShowArchiveDialog(false);
+      onArchiveSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Failed to archive trip",
+        description: "There was an error archiving your trip. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleHideTrip = async () => {
@@ -69,6 +81,7 @@ export const TripCard = ({ trip }: TripCardProps) => {
         title: "Trip hidden",
         description: `"${trip.title}" is now hidden. Enable "Show Hidden Trips" in Settings to view it.`,
       });
+      onHideSuccess?.();
     } catch (error) {
       toast({
         title: "Failed to hide trip",

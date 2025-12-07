@@ -1,7 +1,89 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../hooks/useAuth';
+import { supabase } from '../../integrations/supabase/client';
+import { useToast } from '../../hooks/use-toast';
 
 export const ConsumerPrivacySection = () => {
+  const { user, updateProfile } = useAuth();
+  const { toast } = useToast();
+  
+  const [settings, setSettings] = useState({
+    useRealName: false,
+    useDisplayNameOnly: true,
+    sharePhoneNumber: false,
+  });
+
+  // Load settings from profile
+  useEffect(() => {
+    if (user) {
+      // show_phone from profiles table indicates sharing preference
+      setSettings(prev => ({
+        ...prev,
+        sharePhoneNumber: user.showPhone || false,
+        useDisplayNameOnly: !user.showEmail,
+        useRealName: user.showEmail || false,
+      }));
+    }
+  }, [user]);
+
+  const handleToggle = async (setting: keyof typeof settings) => {
+    const newValue = !settings[setting];
+    
+    // Handle mutually exclusive toggles for display name
+    let updatedSettings = { ...settings };
+    
+    if (setting === 'useRealName') {
+      updatedSettings = {
+        ...settings,
+        useRealName: newValue,
+        useDisplayNameOnly: !newValue,
+      };
+    } else if (setting === 'useDisplayNameOnly') {
+      updatedSettings = {
+        ...settings,
+        useDisplayNameOnly: newValue,
+        useRealName: !newValue,
+      };
+    } else {
+      updatedSettings[setting] = newValue;
+    }
+    
+    setSettings(updatedSettings);
+
+    // Persist to database
+    if (user?.id) {
+      try {
+        const updates: any = {};
+        
+        if (setting === 'useRealName' || setting === 'useDisplayNameOnly') {
+          updates.show_email = updatedSettings.useRealName;
+        }
+        if (setting === 'sharePhoneNumber') {
+          updates.show_phone = newValue;
+        }
+
+        const { error } = await updateProfile(updates);
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Settings updated",
+          description: "Your privacy settings have been saved.",
+        });
+      } catch (error) {
+        console.error('Error saving privacy settings:', error);
+        // Revert on error
+        setSettings(settings);
+        toast({
+          title: "Error",
+          description: "Failed to save privacy settings. Please try again.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
   return (
     <div className="space-y-3">
       <h3 className="text-2xl font-bold text-white">Privacy & Security</h3>
@@ -15,8 +97,15 @@ export const ConsumerPrivacySection = () => {
               <div className="text-white font-medium">Use Real Name</div>
               <div className="text-sm text-gray-400">Show your real name to other users</div>
             </div>
-            <button className="relative w-12 h-6 bg-gray-600 rounded-full transition-colors">
-              <div className="absolute w-5 h-5 bg-white rounded-full top-0.5 translate-x-0.5 transition-transform" />
+            <button 
+              onClick={() => handleToggle('useRealName')}
+              className={`relative w-12 h-6 rounded-full transition-colors ${
+                settings.useRealName ? 'bg-glass-orange' : 'bg-gray-600'
+              }`}
+            >
+              <div className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
+                settings.useRealName ? 'translate-x-6' : 'translate-x-0.5'
+              }`} />
             </button>
           </div>
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
@@ -24,8 +113,15 @@ export const ConsumerPrivacySection = () => {
               <div className="text-white font-medium">Use Display Name Only</div>
               <div className="text-sm text-gray-400">Show only your chosen display name</div>
             </div>
-            <button className="relative w-12 h-6 bg-glass-orange rounded-full transition-colors">
-              <div className="absolute w-5 h-5 bg-white rounded-full top-0.5 translate-x-6 transition-transform" />
+            <button 
+              onClick={() => handleToggle('useDisplayNameOnly')}
+              className={`relative w-12 h-6 rounded-full transition-colors ${
+                settings.useDisplayNameOnly ? 'bg-glass-orange' : 'bg-gray-600'
+              }`}
+            >
+              <div className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
+                settings.useDisplayNameOnly ? 'translate-x-6' : 'translate-x-0.5'
+              }`} />
             </button>
           </div>
         </div>
@@ -40,17 +136,15 @@ export const ConsumerPrivacySection = () => {
               <div className="text-white font-medium">Share Phone Number with Trip Members</div>
               <div className="text-sm text-gray-400">Allow trip members to see your phone number for direct contact</div>
             </div>
-            <button className="relative w-12 h-6 bg-gray-600 rounded-full transition-colors">
-              <div className="absolute w-5 h-5 bg-white rounded-full top-0.5 translate-x-0.5 transition-transform" />
-            </button>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-            <div>
-              <div className="text-white font-medium">Allow Direct Messages</div>
-              <div className="text-sm text-gray-400">Let other users send you direct messages</div>
-            </div>
-            <button className="relative w-12 h-6 bg-glass-orange rounded-full transition-colors">
-              <div className="absolute w-5 h-5 bg-white rounded-full top-0.5 translate-x-6 transition-transform" />
+            <button 
+              onClick={() => handleToggle('sharePhoneNumber')}
+              className={`relative w-12 h-6 rounded-full transition-colors ${
+                settings.sharePhoneNumber ? 'bg-glass-orange' : 'bg-gray-600'
+              }`}
+            >
+              <div className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
+                settings.sharePhoneNumber ? 'translate-x-6' : 'translate-x-0.5'
+              }`} />
             </button>
           </div>
         </div>
