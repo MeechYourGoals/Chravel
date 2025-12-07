@@ -191,6 +191,7 @@ export const tripService = {
         .select('*')
         .eq('created_by', user.id)
         .eq('is_archived', false)
+        .eq('is_hidden', false)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
