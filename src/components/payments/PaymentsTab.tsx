@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { BalanceSummary } from './BalanceSummary';
 import { PersonBalanceCard } from './PersonBalanceCard';
 import { PaymentHistory } from './PaymentHistory';
+import { OutstandingPayments } from './OutstandingPayments';
 import { PaymentInput } from './PaymentInput';
 import { paymentService } from '../../services/paymentService';
 import { paymentBalanceService, BalanceSummary as BalanceSummaryType } from '../../services/paymentBalanceService';
@@ -33,6 +34,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   const { tier, isLoading: tierLoading, upgradeToTier } = useConsumerSubscription();
   const { isSuperAdmin } = useSuperAdmin();
   const [balanceSummary, setBalanceSummary] = useState<BalanceSummaryType | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [tripMembers, setTripMembers] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
   const [paymentMessages, setPaymentMessages] = useState<any[]>([]);
@@ -264,6 +266,10 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     loadBalances();
   }, [tripId, user?.id, demoActive, demoLoading]);
 
+  const refreshPayments = useCallback(() => {
+    setRefreshKey(prev => prev + 1);
+  }, []);
+
   const handlePaymentSubmit = async (paymentData: {
     amount: number;
     currency: string;
@@ -277,18 +283,14 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       const paymentId = demoModeService.addSessionPayment(tripId, paymentData);
       
       if (paymentId) {
-        toast({
-          title: "Payment request created (Demo)",
-          description: `${paymentData.description} - $${paymentData.amount}`,
-        });
+        // Refresh immediately - no toast needed as payment appears in list
+        refreshPayments();
         
         // Refresh balances with session payments included
-        // ⚡ OPTIMIZATION: Synchronous demo data loading
         const mockPayments = demoModeService.getMockPayments(tripId, false);
         const sessionPayments = demoModeService.getSessionPayments(tripId);
         const allPayments = [...mockPayments, ...sessionPayments];
         
-        // Recompute balance summary
         const mockMembers = demoModeService.getMockMembers(tripId);
         const totalAmount = allPayments.reduce((sum, p) => sum + p.amount, 0);
         const avgPerPerson = totalAmount / Math.max(mockMembers.length, 1);
@@ -308,6 +310,22 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
             unsettledPayments: []
           }))
         });
+
+        // Also update local paymentMessages for immediate display
+        const newPayment = {
+          id: paymentId,
+          trip_id: tripId,
+          amount: paymentData.amount,
+          currency: paymentData.currency,
+          description: paymentData.description,
+          split_count: paymentData.splitCount,
+          split_participants: paymentData.splitParticipants,
+          payment_methods: paymentData.paymentMethods,
+          created_by: 'demo-user',
+          is_settled: false,
+          created_at: new Date().toISOString()
+        };
+        setPaymentMessages(prev => [newPayment, ...prev]);
       }
       return;
     }
@@ -316,10 +334,24 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     const paymentId = await createPaymentMessage(paymentData);
     
     if (paymentId) {
-      toast({
-        title: "Payment request created",
-        description: `${paymentData.description} - $${paymentData.amount}`,
-      });
+      // Refresh payment lists immediately
+      refreshPayments();
+      
+      // Also add to local state for immediate display
+      const newPayment = {
+        id: paymentId,
+        tripId: tripId,
+        amount: paymentData.amount,
+        currency: paymentData.currency,
+        description: paymentData.description,
+        splitCount: paymentData.splitCount,
+        splitParticipants: paymentData.splitParticipants,
+        paymentMethods: paymentData.paymentMethods,
+        createdBy: user?.id || '',
+        createdAt: new Date().toISOString(),
+        isSettled: false
+      };
+      setPaymentMessages(prev => [newPayment, ...prev]);
       
       // Refresh balance summary
       if (user?.id) {
@@ -328,8 +360,6 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
           setBalanceSummary(summary);
         } catch (error) {
           console.error('Error refreshing balance summary:', error);
-          // Don't show toast here - user just created a payment, don't interrupt with error
-          // The next time they visit the tab, the error will be shown
         }
       }
     } else {
@@ -392,7 +422,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           <span className="ml-2 text-sm text-muted-foreground">Loading trip members...</span>
         </div>
-      ) : !canCreateMorePayments && tier === 'free' ? (
+      ) : !canCreateMorePayments && tier === 'free' && !isSuperAdmin ? (
         <Card className="bg-gradient-to-br from-amber-900/20 to-amber-950/20 border-amber-500/30">
           <CardContent className="p-6 text-center">
             <Lock className="w-12 h-12 text-amber-400 mx-auto mb-3" />
@@ -410,7 +440,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         </Card>
       ) : (
         <>
-          {tier === 'free' && remainingPayments > 0 && remainingPayments !== -1 && (
+          {tier === 'free' && !isSuperAdmin && remainingPayments > 0 && remainingPayments !== -1 && (
             <div className="flex items-center justify-between bg-blue-900/20 border border-blue-500/30 rounded-lg px-4 py-2 mb-2">
               <span className="text-sm text-blue-300">
                 {remainingPayments} of 5 payment requests remaining
@@ -457,8 +487,19 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         </div>
       )}
 
+      {/* Outstanding Payments with Settlement Tracking */}
+      <OutstandingPayments 
+        key={`outstanding-${refreshKey}`}
+        tripId={tripId} 
+        onPaymentUpdated={refreshPayments} 
+      />
+
       {/* Payment History */}
-      <PaymentHistory tripId={tripId} />
+      <PaymentHistory 
+        key={`history-${refreshKey}`}
+        tripId={tripId} 
+        onPaymentUpdated={refreshPayments} 
+      />
 
       {/* Auth Modal */}
       <AuthModal 
