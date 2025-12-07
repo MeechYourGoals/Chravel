@@ -624,6 +624,9 @@ const Index = () => {
           </div>
         )}
 
+        {/* Mobile Top Bar for login/demo controls - shows in portrait AND landscape */}
+        {isMobile && <MobileTopBar onSettingsPress={() => setIsMobileSettingsOpen(true)} />}
+
         {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}
         <div className="w-full flex flex-col lg:flex-row gap-3 lg:gap-6 items-stretch mb-6">
           <TripViewToggle 

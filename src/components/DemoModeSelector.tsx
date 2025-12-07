@@ -60,18 +60,18 @@ export const DemoModeSelector = () => {
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
-              aria-label="Mock data mode"
+              aria-label="Demo data mode"
             >
               <Eye className="h-3 w-3 flex-shrink-0" />
-              <span>Mock</span>
+              <span>Demo</span>
             </button>
           </div>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-xs">
           <div className="space-y-2 text-xs">
-            <p><strong>OFF:</strong> Demo mode</p>
+            <p><strong>OFF:</strong> Demo mode disabled</p>
             <p><strong>Home:</strong> Unauthenticated user homepage</p>
-            <p><strong>Mock:</strong> Mock data preview</p>
+            <p><strong>Demo:</strong> Demo data preview</p>
           </div>
         </TooltipContent>
       </Tooltip>
