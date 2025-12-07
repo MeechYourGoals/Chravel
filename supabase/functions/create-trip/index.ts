@@ -44,37 +44,44 @@ serve(async (req) => {
 
     const { name, description, destination, start_date, end_date, trip_type, cover_image_url, enabled_features } = validation.data;
 
-    // Get user's subscription tier and taste test usage
+    // Get user's subscription tier, taste test usage, and email
     const { data: profile } = await supabase
       .from('profiles')
-      .select('subscription_status, subscription_product_id, free_pro_trips_used, free_events_used, free_pro_trip_limit, free_event_limit')
+      .select('subscription_status, subscription_product_id, free_pro_trips_used, free_events_used, free_pro_trip_limit, free_event_limit, email')
       .eq('user_id', user.id)
       .single();
 
-    const subscriptionStatus = profile?.subscription_status;
-    const productId = profile?.subscription_product_id;
-    const freeProTripsUsed = profile?.free_pro_trips_used || 0;
-    const freeEventsUsed = profile?.free_events_used || 0;
-    const freeProTripLimit = profile?.free_pro_trip_limit || 1;
-    const freeEventLimit = profile?.free_event_limit || 1;
+    // Super admin bypass - ccamechi@gmail.com has unlimited access
+    const SUPER_ADMIN_EMAILS = ['ccamechi@gmail.com'];
+    const isSuperAdmin = profile?.email && SUPER_ADMIN_EMAILS.includes(profile.email.toLowerCase());
 
-    const isFreeTier = !subscriptionStatus || subscriptionStatus !== 'active' || !productId;
-    const isFrequentChraveler = productId?.includes('frequent') || productId?.includes('chraveler');
+    if (isSuperAdmin) {
+      console.log(`[create-trip] Super admin bypass for: ${profile.email}`);
+    } else {
+      const subscriptionStatus = profile?.subscription_status;
+      const productId = profile?.subscription_product_id;
+      const freeProTripsUsed = profile?.free_pro_trips_used || 0;
+      const freeEventsUsed = profile?.free_events_used || 0;
+      const freeProTripLimit = profile?.free_pro_trip_limit || 1;
+      const freeEventLimit = profile?.free_event_limit || 1;
 
-    // Taste test validation for free users creating Pro trips
-    if (trip_type === 'pro' && isFreeTier && freeProTripsUsed >= freeProTripLimit) {
-      return new Response(
-        JSON.stringify({ error: 'UPGRADE_REQUIRED_PRO_TRIP', message: 'Upgrade to create more Pro trips!' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+      const isFreeTier = !subscriptionStatus || subscriptionStatus !== 'active' || !productId;
 
-    // Taste test validation for free users creating Events
-    if (trip_type === 'event' && isFreeTier && freeEventsUsed >= freeEventLimit) {
-      return new Response(
-        JSON.stringify({ error: 'UPGRADE_REQUIRED_EVENT', message: 'Upgrade to create unlimited Events!' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      // Taste test validation for free users creating Pro trips
+      if (trip_type === 'pro' && isFreeTier && freeProTripsUsed >= freeProTripLimit) {
+        return new Response(
+          JSON.stringify({ error: 'UPGRADE_REQUIRED_PRO_TRIP', message: 'Upgrade to create more Pro trips!' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Taste test validation for free users creating Events
+      if (trip_type === 'event' && isFreeTier && freeEventsUsed >= freeEventLimit) {
+        return new Response(
+          JSON.stringify({ error: 'UPGRADE_REQUIRED_EVENT', message: 'Upgrade to create unlimited Events!' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Create trip
@@ -98,11 +105,19 @@ serve(async (req) => {
 
     if (memberError) throw memberError;
 
-    // Increment taste test usage for free users
-    if (isFreeTier && trip_type === 'pro') {
-      await supabase.from('profiles').update({ free_pro_trips_used: freeProTripsUsed + 1 }).eq('user_id', user.id);
-    } else if (isFreeTier && trip_type === 'event') {
-      await supabase.from('profiles').update({ free_events_used: freeEventsUsed + 1 }).eq('user_id', user.id);
+    // Increment taste test usage for free users (skip for super admins)
+    if (!isSuperAdmin) {
+      const subscriptionStatus = profile?.subscription_status;
+      const productId = profile?.subscription_product_id;
+      const freeProTripsUsed = profile?.free_pro_trips_used || 0;
+      const freeEventsUsed = profile?.free_events_used || 0;
+      const isFreeTier = !subscriptionStatus || subscriptionStatus !== 'active' || !productId;
+      
+      if (isFreeTier && trip_type === 'pro') {
+        await supabase.from('profiles').update({ free_pro_trips_used: freeProTripsUsed + 1 }).eq('user_id', user.id);
+      } else if (isFreeTier && trip_type === 'event') {
+        await supabase.from('profiles').update({ free_events_used: freeEventsUsed + 1 }).eq('user_id', user.id);
+      }
     }
 
     console.log(`Trip created: ${trip.id} by user ${user.id}, type: ${trip_type || 'consumer'}`);

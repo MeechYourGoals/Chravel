@@ -29,6 +29,7 @@ import { Message } from '../types/messages';
 import { MobileEventDetail } from './MobileEventDetail';
 import { useEmbeddingGeneration } from '../hooks/useEmbeddingGeneration';
 import { convertSupabaseTripToEvent } from '../utils/tripConverter';
+import { useTripMembers } from '../hooks/useTripMembers';
 
 
 const EventDetail = () => {
@@ -38,6 +39,8 @@ const EventDetail = () => {
   const { user } = useAuth();
   const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
   const { trips: userTrips, loading: tripsLoading } = useTrips();
+  // 🔄 Fetch real trip members from database for authenticated events
+  const { tripMembers, loading: membersLoading } = useTripMembers(eventId);
   const [activeTab, setActiveTab] = useState('chat');
   const [showInbox, setShowInbox] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -143,17 +146,24 @@ const EventDetail = () => {
   }
 
   // Enhanced trip data with event-specific features
+  // 🔄 Merge real trip members for authenticated events
   const trip = {
     id: parseInt(eventId.replace(/\D/g, '') || '1'),
     title: eventData.title,
     location: eventData.location,
     dateRange: eventData.dateRange,
     description: tripDescription || eventData.description || `Professional ${eventData.category.toLowerCase()} event in ${eventData.location}`,
-    participants: eventData.participants.map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      avatar: p.avatar
-    }))
+    participants: isDemoMode 
+      ? eventData.participants.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          avatar: p.avatar
+        }))
+      : tripMembers.map(m => ({
+          id: m.id,
+          name: m.name,
+          avatar: m.avatar || ''
+        }))
   };
 
   // Mock basecamp data for Events
