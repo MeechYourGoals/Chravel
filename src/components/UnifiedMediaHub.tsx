@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Camera } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMediaManagement } from '@/hooks/useMediaManagement';
+import { useDemoMode } from '@/hooks/useDemoMode';
 import { MediaSubTabs } from './MediaSubTabs';
 import { MediaGrid } from './media/MediaGrid';
 import { StorageQuotaBar } from './StorageQuotaBar';
@@ -23,6 +24,7 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MediaSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const { isDemoMode } = useDemoMode();
   
   const {
     mediaItems,
@@ -33,14 +35,14 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
   useEffect(() => {
     const fetchUrlsCount = async () => {
       try {
-        const urls = await extractUrlsFromTripChat(tripId);
+        const urls = await extractUrlsFromTripChat(tripId, { isDemoMode });
         setUrlsCount(urls.length);
       } catch (error) {
         console.error('Error fetching URLs count:', error);
       }
     };
     fetchUrlsCount();
-  }, [tripId]);
+  }, [tripId, isDemoMode]);
 
   const filterMediaByType = (type: string) => {
     let filtered = mediaItems;

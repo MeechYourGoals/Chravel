@@ -36,7 +36,7 @@ export const EnhancedMediaAggregatedLinks = ({ tripId }: EnhancedMediaAggregated
   const fetchLinkItems = async () => {
     try {
       // Use chat URL extractor to get URLs from chat messages
-      const chatUrls = await extractUrlsFromTripChat(tripId);
+      const chatUrls = await extractUrlsFromTripChat(tripId, { isDemoMode });
 
       // Fetch manually added links from trip_links
       const { data: manualLinks, error: linkError } = await supabase

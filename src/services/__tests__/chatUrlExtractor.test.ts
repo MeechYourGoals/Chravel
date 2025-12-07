@@ -32,7 +32,7 @@ jest.mock('@/integrations/supabase/client', () => ({
 describe('chatUrlExtractor', () => {
   describe('extractUrlsFromTripChat', () => {
     it('should return empty array for empty trip', async () => {
-      const urls = await extractUrlsFromTripChat('trip-123', false);
+      const urls = await extractUrlsFromTripChat('trip-123', { fetchMetadata: false });
       expect(urls).toEqual([]);
     });
 

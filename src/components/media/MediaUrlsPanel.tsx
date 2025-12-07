@@ -31,13 +31,13 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
 
   useEffect(() => {
     fetchUrls();
-  }, [tripId]);
+  }, [tripId, isDemoMode]);
 
   const fetchUrls = async () => {
     try {
       setLoading(true);
       setError(null);
-      const extractedUrls = await extractUrlsFromTripChat(tripId);
+      const extractedUrls = await extractUrlsFromTripChat(tripId, { isDemoMode });
       setUrls(extractedUrls);
     } catch (err) {
       console.error('Error fetching URLs:', err);
