@@ -19,6 +19,7 @@ import { ProTripCategory } from '../../types/proCategories';
 import { isReadOnlyTab, hasTabAccess } from './ProTabsConfig';
 import { useAuth } from '../../hooks/useAuth';
 import { useDemoMode } from '../../hooks/useDemoMode';
+import { useSuperAdmin } from '../../hooks/useSuperAdmin';
 
 interface ProTabContentProps {
   activeTab: string;
@@ -45,12 +46,14 @@ export const ProTabContent = ({
 }: ProTabContentProps) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
+  const { isSuperAdmin } = useSuperAdmin();
   
   const userRole = user?.proRole || 'staff';
   const userPermissions = user?.permissions || ['read'];
   
+  // Super admins always have full access
   // Check if user has access to the current tab
-  if (!hasTabAccess(activeTab, userRole, userPermissions)) {
+  if (!isSuperAdmin && !hasTabAccess(activeTab, userRole, userPermissions)) {
     return (
       <div className="space-y-6">
         <div className="bg-red-500/10 backdrop-blur-sm border border-red-500/20 rounded-xl p-6">
@@ -62,7 +65,8 @@ export const ProTabContent = ({
     );
   }
 
-  const isReadOnly = isReadOnlyTab(activeTab, userRole, userPermissions, isDemoMode);
+  // Super admins bypass read-only restrictions
+  const isReadOnly = isSuperAdmin ? false : isReadOnlyTab(activeTab, userRole, userPermissions, isDemoMode);
 
   const renderTabContent = () => {
     switch (activeTab) {

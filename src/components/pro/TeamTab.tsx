@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { TripRole } from '@/types/roleChannels';
 import { Plus, UserPlus } from 'lucide-react';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useSuperAdmin } from '@/hooks/useSuperAdmin';
 
 interface TeamTabProps {
   roster: ProParticipant[];
@@ -25,10 +26,14 @@ interface TeamTabProps {
 export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId, onUpdateMemberRole, trip, tripCreatorId }: TeamTabProps) => {
   const { isAdmin, hasPermission, isLoading: adminLoading } = useProTripAdmin(tripId || '');
   const { isDemoMode } = useDemoMode();
+  const { isSuperAdmin } = useSuperAdmin();
   const [roles, setRoles] = useState<TripRole[]>([]);
   const [isLoadingRoles, setIsLoadingRoles] = useState(true);
   const [createRoleOpen, setCreateRoleOpen] = useState(false);
   const [assignRoleOpen, setAssignRoleOpen] = useState(false);
+
+  // Super admins never have read-only restrictions
+  const effectiveIsReadOnly = isSuperAdmin ? false : isReadOnly;
 
   const loadRoles = async () => {
     if (!tripId) return;
@@ -77,15 +82,16 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
     // Optionally refresh roster data
   };
 
-  const canManageRoles = (isAdmin && hasPermission('can_manage_roles')) || isDemoMode;
+  // Super admins always have full role management capabilities
+  const canManageRoles = isSuperAdmin || (isAdmin && hasPermission('can_manage_roles')) || isDemoMode;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Roles View */}
       <RolesView
         roster={roster}
-        userRole={userRole}
-        isReadOnly={isReadOnly}
+        userRole={isSuperAdmin ? 'admin' : userRole}
+        isReadOnly={effectiveIsReadOnly}
         category={category}
         onUpdateMemberRole={onUpdateMemberRole}
         canManageRoles={canManageRoles}

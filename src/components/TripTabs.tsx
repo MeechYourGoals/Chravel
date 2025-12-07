@@ -15,6 +15,7 @@ const AddLinkModal = lazy(() => import('./AddLinkModal').then(m => ({ default: m
 import { FeatureErrorBoundary } from './FeatureErrorBoundary';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { useFeatureToggle } from '../hooks/useFeatureToggle';
+import { useSuperAdmin } from '../hooks/useSuperAdmin';
 import { TripPreferences as TripPreferencesType } from '../types/consumer';
 import type { NormalizedUrl } from '@/services/chatUrlExtractor';
 
@@ -57,6 +58,7 @@ export const TripTabs = ({
   
   const { accentColors } = useTripVariant();
   const features = useFeatureToggle(tripData || {});
+  const { isSuperAdmin } = useSuperAdmin();
 
   // Handler for promoting URLs from Media to Trip Links
   const handlePromoteToTripLink = (urlData: NormalizedUrl) => {
@@ -74,15 +76,16 @@ export const TripTabs = ({
   };
 
   // 🆕 Updated tab order: Chat, Calendar, Concierge, Media, Payments, Places, Polls, Tasks
+  // Super admins always have all features enabled (no lock icons)
   const tabs = [
-    { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: features.showChat },
-    { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: features.showCalendar },
-    { id: 'concierge', label: 'Concierge', icon: Sparkles, enabled: showConcierge },
-    { id: 'media', label: 'Media', icon: Camera, enabled: features.showMedia },
+    { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: isSuperAdmin || features.showChat },
+    { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: isSuperAdmin || features.showCalendar },
+    { id: 'concierge', label: 'Concierge', icon: Sparkles, enabled: isSuperAdmin || showConcierge },
+    { id: 'media', label: 'Media', icon: Camera, enabled: isSuperAdmin || features.showMedia },
     { id: 'payments', label: 'Payments', icon: DollarSign, enabled: true },
-    { id: 'places', label: 'Places', icon: MapPin, enabled: showPlaces },
-    { id: 'polls', label: 'Polls', icon: BarChart3, enabled: features.showPolls },
-    { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: features.showTasks }
+    { id: 'places', label: 'Places', icon: MapPin, enabled: isSuperAdmin || showPlaces },
+    { id: 'polls', label: 'Polls', icon: BarChart3, enabled: isSuperAdmin || features.showPolls },
+    { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: isSuperAdmin || features.showTasks }
   ];
 
   const handleTabChange = async (tab: string, enabled: boolean) => {

@@ -5,6 +5,7 @@ import { calendarStorageService } from './calendarStorageService';
 import { calendarOfflineQueue } from './calendarOfflineQueue';
 import { offlineSyncService } from './offlineSyncService';
 import { retryWithBackoff } from '@/utils/retry';
+import { SUPER_ADMIN_EMAILS } from '@/hooks/useSuperAdmin';
 
 export interface TripEvent {
   id: string;
@@ -46,6 +47,7 @@ export const calendarService = {
   /**
    * Ensure user is a trip member before performing operations that require membership.
    * If user is the trip creator but not a member, automatically add them.
+   * Super admins are always added as admin members.
    */
   async ensureTripMembership(tripId: string, userId: string): Promise<boolean> {
     try {
@@ -61,6 +63,10 @@ export const calendarService = {
         return true; // Already a member
       }
 
+      // Get user email to check for super admin
+      const { data: { user } } = await supabase.auth.getUser();
+      const isSuperAdmin = user?.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
+
       // Check if user is the trip creator
       const { data: trip } = await supabase
         .from('trips')
@@ -68,8 +74,8 @@ export const calendarService = {
         .eq('id', tripId)
         .single();
 
-      if (trip?.created_by === userId) {
-        // User is the creator but not a member - add them as admin
+      if (trip?.created_by === userId || isSuperAdmin) {
+        // User is the creator OR a super admin - add them as admin
         const { error: insertError } = await supabase
           .from('trip_members')
           .insert({
@@ -80,8 +86,12 @@ export const calendarService = {
           });
 
         if (insertError) {
+          // Check if it's a duplicate error (user was added by another process)
+          if (insertError.code === '23505') {
+            return true; // Already a member (race condition)
+          }
           if (import.meta.env.DEV) {
-            console.warn('Failed to auto-add creator as member:', insertError);
+            console.warn('Failed to auto-add user as member:', insertError);
           }
           return false;
         }
@@ -181,6 +191,23 @@ export const calendarService = {
       // Use Supabase for authenticated users - direct insert
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
+
+      // Check if user is super admin
+      const isSuperAdmin = user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
+
+      // Ensure trip membership for RLS policies (unless super admin)
+      if (!isSuperAdmin) {
+        const hasMembership = await this.ensureTripMembership(eventData.trip_id, user.id);
+        if (!hasMembership) {
+          // Try to add user as member if they created the trip
+          if (import.meta.env.DEV) {
+            console.warn('[calendarService] User not a trip member, attempting to add...');
+          }
+        }
+      } else {
+        // Super admin: ensure they're a trip member with admin role
+        await this.ensureTripMembership(eventData.trip_id, user.id);
+      }
 
       // Direct insert - simpler and more reliable than RPC
       const createdEvent = await retryWithBackoff(
