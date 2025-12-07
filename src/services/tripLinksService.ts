@@ -466,3 +466,55 @@ export async function searchTripLinks(
     link.url.toLowerCase().includes(query)
   );
 }
+
+/**
+ * Update the order of trip links
+ */
+export async function updateTripLinksOrder(
+  tripId: string,
+  orderedIds: string[],
+  isDemoMode: boolean
+): Promise<boolean> {
+  console.info('[TripLinksService] Updating links order', { tripId, isDemoMode, count: orderedIds.length });
+
+  if (isDemoMode) {
+    // Demo mode: Reorder in localStorage
+    const demoLinks = getDemoLinks(tripId);
+    const orderedLinks: TripLink[] = [];
+    
+    for (const id of orderedIds) {
+      const link = demoLinks.find(l => l.id === id);
+      if (link) orderedLinks.push(link);
+    }
+    
+    // Add any links not in orderedIds at the end
+    const remainingLinks = demoLinks.filter(l => !orderedIds.includes(l.id));
+    orderedLinks.push(...remainingLinks);
+    
+    saveDemoLinks(tripId, orderedLinks);
+    console.info('[TripLinksService] ✅ Demo links reordered');
+    return true;
+  }
+
+  // Authenticated mode: Update order in Supabase
+  // Note: trip_links table doesn't have an order column, so we'll use updated_at as proxy
+  try {
+    for (let i = 0; i < orderedIds.length; i++) {
+      const { error } = await supabase
+        .from('trip_links')
+        .update({ updated_at: new Date(Date.now() - i * 1000).toISOString() })
+        .eq('id', orderedIds[i]);
+      
+      if (error) {
+        console.error('[TripLinksService] ❌ Order update error', error);
+        return false;
+      }
+    }
+    
+    console.info('[TripLinksService] ✅ Links reordered');
+    return true;
+  } catch (error) {
+    console.error('[TripLinksService] ❌ Unexpected error', error);
+    return false;
+  }
+}

@@ -187,6 +187,7 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
             items={filterMediaByType('photos')} 
             type="photos"
             searchQuery={searchQuery}
+            tripId={tripId}
           />
         </TabsContent>
         
@@ -195,6 +196,7 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
             items={filterMediaByType('videos')} 
             type="videos"
             searchQuery={searchQuery}
+            tripId={tripId}
           />
         </TabsContent>
         
@@ -203,6 +205,7 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
             items={filterMediaByType('files')} 
             type="files"
             searchQuery={searchQuery}
+            tripId={tripId}
           />
         </TabsContent>
 
