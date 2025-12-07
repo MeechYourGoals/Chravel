@@ -52,9 +52,6 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
     navigate(`/trip/${trip.id}`);
   };
 
-  const handleEditItinerary = () => {
-    navigate(`/trip/${trip.id}/edit-itinerary`);
-  };
 
   const handleArchiveTrip = async () => {
     try {
@@ -253,20 +250,12 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
             View Trip Details
           </button>
 
-          <div className="grid grid-cols-2 gap-2 md:gap-3">
-            <button
-              onClick={handleEditItinerary}
-              className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-3 px-4 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-sm md:text-base"
-            >
-              Edit Itinerary
-            </button>
-            <button
-              onClick={() => setShowShareModal(true)}
-              className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-3 px-4 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-sm md:text-base"
-            >
-              Share Trip
-            </button>
-          </div>
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="w-full bg-gray-800/50 hover:bg-gray-700/50 text-white py-3 px-4 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-sm md:text-base"
+          >
+            Share Trip
+          </button>
         </div>
       </div>
 

@@ -56,7 +56,7 @@ const retryImport = <T,>(importFn: () => Promise<T>, retries = 3, delay = 1000):
 
 const Index = lazy(() => retryImport(() => import("./pages/Index")));
 const TripDetail = lazy(() => retryImport(() => import("./pages/TripDetail")));
-const ItineraryAssignmentPage = lazy(() => retryImport(() => import("./pages/ItineraryAssignmentPage")));
+
 const ProTripDetail = lazy(() => retryImport(() => import("./pages/ProTripDetail")));
 const EventDetail = lazy(() => retryImport(() => import("./pages/EventDetail")));
 const NotFound = lazy(() => retryImport(() => import("./pages/NotFound")));
@@ -265,11 +265,6 @@ const App = () => {
                     <Route path="/trip/:tripId" element={
                       <LazyRoute>
                         <TripDetail />
-                      </LazyRoute>
-                    } />
-                    <Route path="/trip/:tripId/edit-itinerary" element={
-                      <LazyRoute>
-                        <ItineraryAssignmentPage />
                       </LazyRoute>
                     } />
                     <Route path="/join/:token" element={
