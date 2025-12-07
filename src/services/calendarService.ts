@@ -98,14 +98,57 @@ export const calendarService = {
     }
   },
 
-  async createEvent(eventData: CreateEventData): Promise<TripEvent | null> {
+  /**
+   * Check if the new event overlaps with any existing events.
+   * Returns an array of conflicting event titles (empty if no conflicts).
+   */
+  async checkForConflicts(tripId: string, startTime: string, endTime?: string): Promise<string[]> {
+    try {
+      const events = await this.getTripEvents(tripId);
+      const newStart = new Date(startTime).getTime();
+      const newEnd = endTime ? new Date(endTime).getTime() : newStart + 3600000; // Default 1 hour if no end time
+
+      const conflicts: string[] = [];
+      
+      for (const event of events) {
+        const eventStart = new Date(event.start_time).getTime();
+        const eventEnd = event.end_time 
+          ? new Date(event.end_time).getTime() 
+          : eventStart + 3600000; // Default 1 hour if no end time
+
+        // Check if times overlap
+        const overlaps = (newStart < eventEnd) && (newEnd > eventStart);
+        if (overlaps) {
+          conflicts.push(event.title);
+        }
+      }
+      
+      return conflicts;
+    } catch (error) {
+      console.warn('Could not check for conflicts:', error);
+      return []; // Don't block on conflict check failure
+    }
+  },
+
+  async createEvent(eventData: CreateEventData): Promise<{ event: TripEvent | null; conflicts: string[] }> {
+    const conflicts: string[] = [];
+    
     try {
       // Check if in demo mode
       const isDemoMode = await demoModeService.isDemoModeEnabled();
 
+      // Check for conflicts first (non-blocking - just for notification)
+      const existingConflicts = await this.checkForConflicts(
+        eventData.trip_id, 
+        eventData.start_time, 
+        eventData.end_time
+      );
+      conflicts.push(...existingConflicts);
+
       if (isDemoMode) {
         // Use localStorage for demo mode
-        return await calendarStorageService.createEvent(eventData);
+        const event = await calendarStorageService.createEvent(eventData);
+        return { event, conflicts };
       }
 
       // Check if offline - queue the operation
@@ -123,16 +166,19 @@ export const calendarService = {
         // Return optimistic event for immediate UI update
         const { data: { user } } = await supabase.auth.getUser();
         return {
-          id: queueId,
-          ...eventData,
-          created_by: user?.id || (eventData as any).created_by || user?.id || '',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          version: 1,
-        } as TripEvent;
+          event: {
+            id: queueId,
+            ...eventData,
+            created_by: user?.id || (eventData as any).created_by || user?.id || '',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            version: 1,
+          } as TripEvent,
+          conflicts
+        };
       }
 
-      // Use Supabase for authenticated users - direct insert (skip RPC to avoid conflict issues)
+      // Use Supabase for authenticated users - direct insert
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
@@ -189,7 +235,7 @@ export const calendarService = {
         createdEvent.version || 1
       );
       
-      return createdEvent;
+      return { event: createdEvent, conflicts };
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error creating event:', error);
@@ -197,10 +243,10 @@ export const calendarService = {
 
       // If offline, the operation was already queued above
       if (!navigator.onLine) {
-        return null; // Return null, optimistic update already handled
+        return { event: null, conflicts };
       }
 
-      return null;
+      throw error; // Re-throw so the hook can catch and display the actual error
     }
   },
 

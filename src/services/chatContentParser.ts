@@ -470,8 +470,8 @@ export async function applySuggestion(
           source_data: suggestion.data,
         };
 
-        const event = await calendarService.createEvent(eventData);
-        return event?.id || null;
+        const result = await calendarService.createEvent(eventData);
+        return result.event?.id || null;
       }
       
       case 'create_todo':
