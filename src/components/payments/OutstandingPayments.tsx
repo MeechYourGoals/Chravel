@@ -220,32 +220,51 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
     loadPayments();
   }, [tripId, isDemoMode]);
 
-  const handleSettleSplit = async (splitId: string, paymentId: string) => {
+  const handleToggleSplit = async (splitId: string, paymentId: string, currentlySettled: boolean) => {
     if (demoActive) {
       // Demo mode: just update local state
-      setPayments(prev => prev.map(payment => {
-        if (payment.id === paymentId) {
-          const updatedSplits = payment.splits.map(s => 
-            s.id === splitId ? { ...s, is_settled: true, settled_at: new Date().toISOString() } : s
-          );
-          const newSettledCount = updatedSplits.filter(s => s.is_settled).length;
-          return {
-            ...payment,
-            splits: updatedSplits,
-            settledCount: newSettledCount,
-            isSettled: newSettledCount === updatedSplits.length
-          };
-        }
-        return payment;
-      }));
-      toast({ title: "Marked as paid", description: "Payment status updated" });
+      setPayments(prev => {
+        const updated = prev.map(payment => {
+          if (payment.id === paymentId) {
+            const updatedSplits = payment.splits.map(s => 
+              s.id === splitId 
+                ? { ...s, is_settled: !currentlySettled, settled_at: !currentlySettled ? new Date().toISOString() : null } 
+                : s
+            );
+            const newSettledCount = updatedSplits.filter(s => s.is_settled).length;
+            const allSettled = newSettledCount === updatedSplits.length;
+            return {
+              ...payment,
+              splits: updatedSplits,
+              settledCount: newSettledCount,
+              isSettled: allSettled
+            };
+          }
+          return payment;
+        });
+        // Filter out fully settled payments (they move to history)
+        return updated.filter(p => !p.isSettled);
+      });
+      toast({ 
+        title: currentlySettled ? "Marked as unpaid" : "Marked as paid", 
+        description: "Payment status updated" 
+      });
       return;
     }
 
     // Authenticated mode: update database
-    const success = await paymentService.settlePayment(splitId, 'manual');
+    let success: boolean;
+    if (currentlySettled) {
+      success = await paymentService.unsettlePayment(splitId);
+    } else {
+      success = await paymentService.settlePayment(splitId, 'manual');
+    }
+    
     if (success) {
-      toast({ title: "Marked as paid", description: "Payment status updated" });
+      toast({ 
+        title: currentlySettled ? "Marked as unpaid" : "Marked as paid", 
+        description: "Payment status updated" 
+      });
       await loadPayments();
       onPaymentUpdated?.();
     } else {
@@ -332,12 +351,7 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
                       <div className="flex items-center gap-2">
                         <Checkbox
                           checked={split.is_settled}
-                          onCheckedChange={() => {
-                            if (!split.is_settled) {
-                              handleSettleSplit(split.id, payment.id);
-                            }
-                          }}
-                          disabled={split.is_settled}
+                          onCheckedChange={() => handleToggleSplit(split.id, payment.id, split.is_settled)}
                         />
                         <Avatar className="w-5 h-5">
                           <AvatarImage src={split.debtor_avatar} />

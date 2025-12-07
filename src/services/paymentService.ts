@@ -201,9 +201,10 @@ export const paymentService = {
   // Payment Settlement
   async settlePayment(splitId: string, settlementMethod: string): Promise<boolean> {
     try {
+      // Get the split and its parent payment info
       const { data: currentSplit, error: fetchError } = await supabase
         .from('payment_splits')
-        .select('is_settled')
+        .select('is_settled, payment_message_id')
         .eq('id', splitId)
         .single();
 
@@ -213,6 +214,7 @@ export const paymentService = {
         throw new Error('Payment has already been settled by another user.');
       }
 
+      // Mark split as settled
       const { error } = await supabase
         .from('payment_splits')
         .update({
@@ -223,10 +225,76 @@ export const paymentService = {
         .eq('id', splitId)
         .eq('is_settled', false);
 
-      return !error;
+      if (error) return false;
+
+      // Check if all splits for this payment are now settled
+      await this.updateParentPaymentSettledStatus(currentSplit.payment_message_id);
+
+      return true;
     } catch (error) {
       console.error('Error settling payment:', error);
       return false;
+    }
+  },
+
+  // Unsettle a payment split (toggle back to unpaid)
+  async unsettlePayment(splitId: string): Promise<boolean> {
+    try {
+      const { data: currentSplit, error: fetchError } = await supabase
+        .from('payment_splits')
+        .select('is_settled, payment_message_id')
+        .eq('id', splitId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      
+      if (!currentSplit.is_settled) {
+        return true; // Already unsettled
+      }
+
+      // Mark split as unsettled
+      const { error } = await supabase
+        .from('payment_splits')
+        .update({
+          is_settled: false,
+          settled_at: null,
+          settlement_method: null,
+        })
+        .eq('id', splitId);
+
+      if (error) return false;
+
+      // Update parent payment settled status
+      await this.updateParentPaymentSettledStatus(currentSplit.payment_message_id);
+
+      return true;
+    } catch (error) {
+      console.error('Error unsettling payment:', error);
+      return false;
+    }
+  },
+
+  // Helper: Update parent payment's is_settled based on all splits
+  async updateParentPaymentSettledStatus(paymentMessageId: string): Promise<void> {
+    try {
+      // Get all splits for this payment
+      const { data: allSplits, error: splitsError } = await supabase
+        .from('payment_splits')
+        .select('is_settled')
+        .eq('payment_message_id', paymentMessageId);
+
+      if (splitsError || !allSplits) return;
+
+      // Check if ALL splits are settled
+      const allSettled = allSplits.length > 0 && allSplits.every(s => s.is_settled);
+
+      // Update parent payment's is_settled flag
+      await supabase
+        .from('trip_payment_messages')
+        .update({ is_settled: allSettled })
+        .eq('id', paymentMessageId);
+    } catch (error) {
+      console.error('Error updating parent payment settled status:', error);
     }
   },
 
