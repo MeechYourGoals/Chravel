@@ -310,7 +310,7 @@ const Index = () => {
           {/* Mobile Top Bar for login/demo controls */}
           {isMobile && <MobileTopBar onSettingsPress={() => setIsMobileSettingsOpen(true)} />}
 
-          <div className="max-w-[1500px] mx-auto" style={{ paddingTop: isMobile ? '60px' : '0' }}>
+          <div className="max-w-[1500px] mx-auto" style={{ paddingTop: isMobile ? '64px' : '0' }}>
             {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}
             <div className="w-full flex flex-col lg:flex-row gap-3 lg:gap-6 items-stretch mb-6">
               <TripViewToggle 
@@ -462,7 +462,7 @@ const Index = () => {
           {/* Mobile Top Bar for login/demo controls */}
           {isMobile && <MobileTopBar onSettingsPress={() => setIsMobileSettingsOpen(true)} />}
 
-          <div className="max-w-[1500px] mx-auto" style={{ paddingTop: isMobile ? '60px' : '0' }}>
+          <div className="max-w-[1500px] mx-auto" style={{ paddingTop: isMobile ? '64px' : '0' }}>
                 {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}
                 <div className="w-full flex flex-col lg:flex-row gap-3 lg:gap-6 items-stretch mb-6">
                   <TripViewToggle 
@@ -628,7 +628,8 @@ const Index = () => {
         {isMobile && <MobileTopBar onSettingsPress={() => setIsMobileSettingsOpen(true)} />}
 
         {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}
-        <div className="w-full flex flex-col lg:flex-row gap-3 lg:gap-6 items-stretch mb-6">
+        {/* pt-16 on mobile accounts for fixed MobileTopBar height */}
+        <div className={`w-full flex flex-col lg:flex-row gap-3 lg:gap-6 items-stretch mb-6 ${isMobile ? 'pt-16' : ''}`}>
           <TripViewToggle 
             viewMode={viewMode} 
             onViewModeChange={handleViewModeChange}
