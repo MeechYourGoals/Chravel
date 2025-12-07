@@ -9,9 +9,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
-import { findUrls, normalizeUrl, getDomain } from './urlUtils';
+import { normalizeUrl, getDomain } from './urlUtils';
 import { fetchOGMetadata, categorizeUrl, type OGMetadata } from './ogMetadataService';
-import MockDataService from './mockDataService';
 
 type ChatRow = Pick<
   Database['public']['Tables']['trip_chat_messages']['Row'],
@@ -62,16 +61,20 @@ function extractTitleFromLinkPreview(preview: ChatRow['link_preview']): string |
  * - Deduplicates normalized URLs
  * 
  * @param tripId - Trip ID to extract URLs from
- * @param fetchMetadata - Whether to fetch OG metadata for URLs (default: true)
+ * @param options - Configuration options
+ * @param options.fetchMetadata - Whether to fetch OG metadata for URLs (default: true)
+ * @param options.isDemoMode - Whether to show demo/mock data (default: false)
  * @returns Array of normalized URLs with metadata
  */
 export async function extractUrlsFromTripChat(
   tripId: string,
-  fetchMetadata: boolean = true
+  options: { fetchMetadata?: boolean; isDemoMode?: boolean } = {}
 ): Promise<NormalizedUrl[]> {
+  const { fetchMetadata = true, isDemoMode = false } = options;
+  
   try {
-    // Demo / mock mode
-    if (MockDataService.isUsingMockData()) return getMockUrls(tripId);
+    // Only show mock data when explicitly in demo mode
+    if (isDemoMode) return getMockUrls(tripId);
 
     const { data, error } = await supabase
       .from('trip_link_index')
