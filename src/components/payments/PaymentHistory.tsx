@@ -267,42 +267,42 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated }: PaymentHistoryProps
                 const isCreator = user?.id === payment.createdBy;
                 
                 return (
-                  <div key={payment.id} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2">
-                    {/* Left: Title, status badge, and metadata */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-foreground">{payment.description}</span>
-                        {payment.isSettled ? (
-                          <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-300 border-emerald-500/30">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Settled
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-300 border-amber-500/30">
-                            <Clock className="w-3 h-3 mr-1" />
-                            Pending
-                          </Badge>
-                        )}
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {payment.createdByName || 'Trip member'} • Split {payment.splitCount} ways • {format(new Date(payment.createdAt), 'MMM d, yyyy')}
-                      </span>
+                  <div key={payment.id} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2 flex-wrap">
+                    {/* Single row: all info inline with bullet separators */}
+                    <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                      <span className="font-semibold text-foreground">{payment.description}</span>
+                      <span className="text-muted-foreground hidden sm:inline">•</span>
+                      {payment.isSettled ? (
+                        <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-300 border-emerald-500/30">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Settled
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-300 border-amber-500/30">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Pending
+                        </Badge>
+                      )}
+                      <span className="text-muted-foreground hidden sm:inline">•</span>
+                      <span className="text-sm text-muted-foreground">{payment.createdByName || 'Trip member'}</span>
+                      <span className="text-muted-foreground hidden sm:inline">•</span>
+                      <span className="text-sm text-muted-foreground">Split {payment.splitCount} ways</span>
+                      <span className="text-muted-foreground hidden sm:inline">•</span>
+                      <span className="text-sm text-muted-foreground">{format(new Date(payment.createdAt), 'MMM d')}</span>
                     </div>
                     
-                    {/* Right: Amount and actions */}
+                    {/* Amount and actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <div className="text-right">
-                        <span className="font-semibold text-foreground">
-                          {formatCurrency(payment.amount, payment.currency)}
-                        </span>
-                        <p className="text-xs text-muted-foreground">
-                          {formatCurrency(payment.amount / payment.splitCount, payment.currency)}/person
-                        </p>
-                      </div>
+                      <span className="font-bold text-foreground">
+                        {formatCurrency(payment.amount, payment.currency)}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        ({formatCurrency(payment.amount / payment.splitCount, payment.currency)}/ea)
+                      </span>
                       
                       {/* Edit/Delete buttons - only for creator */}
                       {isCreator && (
-                        <div className="flex items-center gap-1 ml-2">
+                        <div className="flex items-center gap-1">
                           <Button
                             variant="ghost"
                             size="icon"

@@ -288,52 +288,47 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
           
           return (
             <div key={payment.id} className="bg-card/50 rounded-lg p-3 border border-border">
-              {/* Payment Header */}
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <span className="font-medium text-foreground">{payment.description}</span>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-300 border-amber-500/30">
-                      <Clock className="w-3 h-3 mr-1" />
-                      Pending
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {payment.settledCount}/{payment.splits.length} paid
-                    </span>
-                  </div>
+              {/* Payment Header - Compact single row */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                  <span className="font-semibold text-base text-foreground">{payment.description}</span>
+                  <span className="text-muted-foreground hidden sm:inline">•</span>
+                  <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-300 border-amber-500/30">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Pending
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {payment.settledCount}/{payment.splits.length} paid
+                  </span>
                   
-                  {/* Payment Methods with Usernames */}
-                  {payment.creatorPaymentDetails.length > 0 && (
-                    <div className="mt-2 space-y-0.5">
-                      {payment.creatorPaymentDetails.map((method) => (
-                        <div key={method.method} className="flex items-center gap-1.5 text-sm">
-                          <span className="text-muted-foreground font-medium">
-                            {method.displayName}:
-                          </span>
-                          <span className="text-primary">
-                            {method.identifier || 'Not provided'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {/* Payment Methods inline with separators */}
+                  {payment.creatorPaymentDetails.map((method) => (
+                    <React.Fragment key={method.method}>
+                      <span className="text-muted-foreground hidden sm:inline">•</span>
+                      <span className="text-sm">
+                        <span className="text-muted-foreground">{method.displayName}:</span>{' '}
+                        <span className="text-primary">{method.identifier || '—'}</span>
+                      </span>
+                    </React.Fragment>
+                  ))}
                 </div>
-                <div className="text-right ml-4">
-                  <span className="font-semibold text-foreground">
+                
+                {/* Amount on far right */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="font-bold text-lg text-foreground">
                     {formatCurrency(payment.amount, payment.currency)}
                   </span>
-                  <p className="text-xs text-muted-foreground">
-                    {formatCurrency(payment.amount / payment.splitCount, payment.currency)}/person
-                  </p>
+                  <span className="text-sm text-muted-foreground">
+                    ({formatCurrency(payment.amount / payment.splitCount, payment.currency)}/ea)
+                  </span>
                 </div>
               </div>
 
-              {/* Splits List - only show to creator */}
-              {isCreator && (
-                <div className="space-y-1 mt-2 pt-2 border-t border-border">
-                  <p className="text-xs text-muted-foreground mb-1">Mark who has paid:</p>
+              {/* Splits List - compact, no header label */}
+              {isCreator && payment.splits.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-border space-y-0.5">
                   {payment.splits.map(split => (
-                    <div key={split.id} className="flex items-center justify-between py-1">
+                    <div key={split.id} className="flex items-center justify-between py-0.5">
                       <div className="flex items-center gap-2">
                         <Checkbox
                           checked={split.is_settled}
@@ -344,13 +339,13 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
                           }}
                           disabled={split.is_settled}
                         />
-                        <Avatar className="w-6 h-6">
+                        <Avatar className="w-5 h-5">
                           <AvatarImage src={split.debtor_avatar} />
                           <AvatarFallback className="text-xs">
                             {split.debtor_name?.charAt(0) || '?'}
                           </AvatarFallback>
                         </Avatar>
-                        <span className={`text-sm ${split.is_settled ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                        <span className={`text-sm ${split.is_settled ? 'text-muted-foreground' : 'text-foreground'}`}>
                           {split.debtor_name}
                         </span>
                       </div>
@@ -369,9 +364,9 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
                 </div>
               )}
 
-              {/* Non-creator view */}
+              {/* Non-creator view - inline */}
               {!isCreator && (
-                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                   <Users className="w-3 h-3" />
                   <span>Split among {payment.splitCount} people</span>
                 </div>
