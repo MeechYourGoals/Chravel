@@ -104,11 +104,14 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated }: PaymentHistoryProps
         paymentMessages = [...paymentMessages, ...sessionMessages];
       }
 
-      paymentMessages.sort((a, b) => 
+      // Filter to only COMPLETED payments (is_settled = true)
+      const completedPayments = paymentMessages.filter(p => p.isSettled);
+      
+      completedPayments.sort((a, b) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
-      const authorIds = [...new Set(paymentMessages
+      const authorIds = [...new Set(completedPayments
         .filter(p => p.createdBy !== 'demo-user')
         .map(p => p.createdBy))];
       
@@ -125,7 +128,7 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated }: PaymentHistoryProps
         });
       }
 
-      const formattedPayments = paymentMessages.map(payment => ({
+      const formattedPayments = completedPayments.map(payment => ({
         id: payment.id,
         description: payment.description,
         amount: payment.amount,
@@ -255,9 +258,9 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated }: PaymentHistoryProps
     <>
       <Card className="rounded-lg">
         <CardHeader className="py-3 px-4">
-          <CardTitle className="text-base">Payment History</CardTitle>
+          <CardTitle className="text-base">Completed Payments</CardTitle>
           <p className="text-xs text-muted-foreground mt-0.5">
-            All payment requests created for this trip
+            Fully settled payment requests
           </p>
         </CardHeader>
         <CardContent className="py-3 px-4">
