@@ -114,14 +114,38 @@ class DemoModeService {
   }
 
   async isDemoModeEnabled(userId?: string): Promise<boolean> {
+    // First check the localStorage TRIPS_DEMO_VIEW key (used by demoModeStore)
+    // This ensures consistent demo mode detection across the app
+    try {
+      const demoView = localStorage.getItem('TRIPS_DEMO_VIEW');
+      if (demoView === 'app-preview') {
+        return true;
+      }
+    } catch {
+      // localStorage not available, fall through to secureStorageService
+    }
+
+    // Fallback to secureStorageService for user-specific demo mode
     return await secureStorageService.isDemoModeEnabled(userId);
   }
 
   async enableDemoMode(userId?: string): Promise<void> {
+    // Set both TRIPS_DEMO_VIEW (for demoModeStore) and secureStorage (for user prefs)
+    try {
+      localStorage.setItem('TRIPS_DEMO_VIEW', 'app-preview');
+    } catch {
+      // localStorage not available
+    }
     await secureStorageService.setDemoMode(true, userId);
   }
 
   async disableDemoMode(userId?: string): Promise<void> {
+    // Clear both TRIPS_DEMO_VIEW (for demoModeStore) and secureStorage (for user prefs)
+    try {
+      localStorage.setItem('TRIPS_DEMO_VIEW', 'off');
+    } catch {
+      // localStorage not available
+    }
     await secureStorageService.setDemoMode(false, userId);
   }
 
