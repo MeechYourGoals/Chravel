@@ -33,6 +33,7 @@ interface Trip {
   participants: Participant[];
   coverPhoto?: string;
   placesCount?: number;
+  peopleCount?: number;
 }
 
 interface TripCardProps {
@@ -186,7 +187,9 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
         {/* Quick Stats - Responsive sizing */}
         <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
           <div className="text-center">
-            <div className="text-xl md:text-2xl font-bold text-white">{trip.id === 3 ? '200' : participantsWithAvatars.length}</div>
+            <div className="text-xl md:text-2xl font-bold text-white">
+              {trip.peopleCount ?? (trip.id === 3 ? 200 : participantsWithAvatars.length)}
+            </div>
             <div className="text-xs md:text-sm text-gray-400">People</div>
           </div>
           <div className="text-center">
@@ -194,7 +197,7 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
             <div className="text-xs md:text-sm text-gray-400">Days</div>
           </div>
           <div className="text-center">
-            <div className="text-xl md:text-2xl font-bold text-white">{trip.placesCount || 0}</div>
+            <div className="text-xl md:text-2xl font-bold text-white">{trip.placesCount ?? 0}</div>
             <div className="text-xs md:text-sm text-gray-400">Places</div>
           </div>
         </div>

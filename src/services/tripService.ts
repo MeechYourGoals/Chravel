@@ -184,12 +184,16 @@ export const tripService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      // Phase 2: Optimized query - direct lookup without JOIN
+      // Phase 2: Optimized query with member and link counts
       // Uses indexed created_by column and RLS policies for access control
       // Filters out both archived and hidden trips (they have separate sections)
       const { data, error } = await supabase
         .from('trips')
-        .select('*')
+        .select(`
+          *,
+          trip_members(count),
+          trip_links(count)
+        `)
         .eq('created_by', user.id)
         .eq('is_archived', false)
         .eq('is_hidden', false)
