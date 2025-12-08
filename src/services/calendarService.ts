@@ -142,8 +142,22 @@ export const calendarService = {
 
   async createEvent(eventData: CreateEventData): Promise<{ event: TripEvent | null; conflicts: string[] }> {
     const conflicts: string[] = [];
-    
+
     try {
+      // Validate required fields
+      if (!eventData.trip_id) {
+        console.error('[calendarService] Missing trip_id in event data');
+        throw new Error('Trip ID is required to create an event');
+      }
+      if (!eventData.title?.trim()) {
+        console.error('[calendarService] Missing title in event data');
+        throw new Error('Event title is required');
+      }
+      if (!eventData.start_time) {
+        console.error('[calendarService] Missing start_time in event data');
+        throw new Error('Event start time is required');
+      }
+
       // Check if in demo mode
       const isDemoMode = await demoModeService.isDemoModeEnabled();
 
@@ -190,7 +204,12 @@ export const calendarService = {
 
       // Use Supabase for authenticated users - direct insert
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      if (!user) {
+        console.error('[calendarService] User not authenticated');
+        throw new Error('You must be logged in to create events. Please sign in and try again.');
+      }
+
+      console.log('[calendarService] Creating event for trip:', eventData.trip_id, 'by user:', user.id);
 
       // Check if user is super admin
       const isSuperAdmin = user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
@@ -199,13 +218,13 @@ export const calendarService = {
       if (!isSuperAdmin) {
         const hasMembership = await this.ensureTripMembership(eventData.trip_id, user.id);
         if (!hasMembership) {
-          // Try to add user as member if they created the trip
-          if (import.meta.env.DEV) {
-            console.warn('[calendarService] User not a trip member, attempting to add...');
-          }
+          console.warn('[calendarService] User not a trip member and could not be added. Trip ID:', eventData.trip_id);
+          // Don't throw here - let the insert fail with a more descriptive RLS error
+          // The insert will fail if the user truly doesn't have access
         }
       } else {
         // Super admin: ensure they're a trip member with admin role
+        console.log('[calendarService] Super admin detected, ensuring membership');
         await this.ensureTripMembership(eventData.trip_id, user.id);
       }
 
@@ -239,7 +258,17 @@ export const calendarService = {
 
           if (directError) {
             console.error('[calendarService] Insert failed:', directError);
-            throw directError;
+            // Provide more specific error messages based on error type
+            if (directError.code === '42501' || directError.message?.includes('RLS') || directError.message?.includes('policy')) {
+              throw new Error('You do not have permission to add events to this trip. Please contact the trip admin.');
+            }
+            if (directError.code === '23503' || directError.message?.includes('foreign key')) {
+              throw new Error('This trip no longer exists or is invalid.');
+            }
+            if (directError.code === '23505') {
+              throw new Error('An event with this information already exists.');
+            }
+            throw new Error(directError.message || 'Failed to create event. Please try again.');
           }
           return directEvent;
         },

@@ -25,12 +25,25 @@ export const MobileProTripDetail = () => {
   // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
   const { trips: userTrips, loading: tripsLoading } = useTrips();
 
-  const [activeTab, setActiveTab] = useState('chat');
+  // Persist activeTab in sessionStorage to survive orientation changes
+  const getInitialTab = () => {
+    if (typeof window === 'undefined') return 'chat';
+    const storedTab = sessionStorage.getItem(`protrip_${proTripId}_activeTab`);
+    return storedTab || 'chat';
+  };
+  const [activeTab, setActiveTab] = useState(getInitialTab);
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
   const [fetchedParticipants, setFetchedParticipants] = useState<ProParticipant[]>([]);
 
   const headerRef = React.useRef<HTMLDivElement>(null);
+
+  // Persist activeTab changes to sessionStorage
+  React.useEffect(() => {
+    if (proTripId) {
+      sessionStorage.setItem(`protrip_${proTripId}_activeTab`, activeTab);
+    }
+  }, [activeTab, proTripId]);
  
   // Keyboard handling for mobile inputs
   useKeyboardHandler({

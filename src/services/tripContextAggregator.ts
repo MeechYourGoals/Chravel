@@ -186,10 +186,9 @@ export class TripContextAggregator {
         email: m.user_id === 'user1' ? 'sarah@example.com' : undefined
       })),
       messages: allMessages,
-      calendar: [
-        { id: '1', title: 'Airport Pickup', startTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(), endTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(), location: 'Aspen Airport' },
-        { id: '2', title: 'Welcome Dinner', startTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000 + 8 * 60 * 60 * 1000).toISOString(), endTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000 + 10 * 60 * 60 * 1000).toISOString(), location: 'The Little Nell Restaurant', description: 'Group dinner at 7 PM' }
-      ],
+      // Calendar events are fetched dynamically from calendarService/calendarStorageService
+      // Empty array here - actual events should be fetched from the appropriate service
+      calendar: [],
       tasks: [
         { id: '1', content: 'Pack snorkeling gear', assignee: 'Sarah Chen', isComplete: false },
         { id: '2', content: 'Confirm dinner reservations', assignee: 'Priya Patel', isComplete: false },
