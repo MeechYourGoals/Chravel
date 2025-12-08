@@ -1,5 +1,21 @@
 export const mockNotifications = [
   {
+    id: 'mock-notif-join-request',
+    type: 'join_request' as const,
+    title: 'Join Request - Spring Break Cancun',
+    message: 'Alex Johnson would like to join your trip',
+    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
+    read: false,
+    tripId: '1',
+    data: {
+      trip_id: '1',
+      trip_name: 'Spring Break Cancun',
+      requester_id: 'demo-user-123',
+      requester_name: 'Alex Johnson',
+      request_id: 'demo-request-1'
+    }
+  },
+  {
     id: 'mock-notif-1',
     type: 'message' as const,
     title: 'New message in Spring Break Cancun',

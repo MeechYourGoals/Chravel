@@ -77,10 +77,11 @@ export const NotificationBell = () => {
         title: n.title,
         description: n.message,
         tripId: n.tripId,
-        tripName: 'Spring Break Cancun',
-        timestamp: '2 minutes ago',
+        tripName: (n as any).data?.trip_name || 'Spring Break Cancun',
+        timestamp: formatDistanceToNow(new Date(n.timestamp), { addSuffix: true }),
         isRead: n.read,
-        isHighPriority: n.type === 'broadcast'
+        isHighPriority: n.type === 'broadcast',
+        data: (n as any).data
       })));
     }
   }, [isDemoMode, user]);
@@ -237,8 +238,13 @@ export const NotificationBell = () => {
                     <JoinRequestNotification
                       key={notification.id}
                       notification={notification}
+                      isDemoMode={isDemoMode}
                       onAction={() => {
-                        fetchNotifications();
+                        if (isDemoMode) {
+                          setNotifications(prev => prev.filter(n => n.id !== notification.id));
+                        } else {
+                          fetchNotifications();
+                        }
                       }}
                     />
                   ) : (
