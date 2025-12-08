@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, ChevronLeft, ChevronRight, Clock, MapPin, Users } from 'lucide-react';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
@@ -6,6 +6,7 @@ import { CalendarSkeleton } from './SkeletonLoader';
 import { hapticService } from '../../services/hapticService';
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameDay, isSameMonth } from 'date-fns';
 import { CreateEventModal } from './CreateEventModal';
+import { useCalendarEvents } from '../../hooks/useCalendarEvents';
 
 interface CalendarEvent {
   id: string;
@@ -21,43 +22,52 @@ interface MobileGroupCalendarProps {
   tripId: string;
 }
 
+// Color gradients for events
+const EVENT_COLORS = [
+  'from-blue-500 to-blue-600',
+  'from-purple-500 to-purple-600',
+  'from-pink-500 to-pink-600',
+  'from-green-500 to-green-600',
+  'from-yellow-500 to-yellow-600',
+  'from-indigo-500 to-indigo-600',
+  'from-red-500 to-red-600',
+  'from-teal-500 to-teal-600',
+];
+
 export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [events, setEvents] = useState<CalendarEvent[]>([
-    {
-      id: '1',
-      title: 'Airport Pickup',
-      date: new Date(),
-      time: '10:00 AM',
-      location: 'JFK Airport',
-      participants: 4,
-      color: 'from-blue-500 to-blue-600'
-    },
-    {
-      id: '2',
-      title: 'Hotel Check-in',
-      date: new Date(),
-      time: '2:00 PM',
-      location: 'Grand Hotel NYC',
-      participants: 4,
-      color: 'from-purple-500 to-purple-600'
-    }
-  ]);
+  
+  // Use the calendar events hook to fetch real events
+  const { events: tripEvents, loading, refreshEvents } = useCalendarEvents(tripId);
+  
+  // Convert TripEvent[] to CalendarEvent[] format for UI
+  const events = useMemo(() => {
+    const calendarEvents = tripEvents.map((event, index) => {
+      const calendarEvent = {
+        id: event.id,
+        title: event.title,
+        date: new Date(event.start_time),
+        time: new Date(event.start_time).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        }),
+        location: event.location || undefined,
+        participants: 0, // TODO: Get actual participant count
+        color: EVENT_COLORS[index % EVENT_COLORS.length]
+      };
+      return calendarEvent;
+    });
+    return calendarEvents;
+  }, [tripEvents]);
 
   const { isPulling, isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: async () => {
-      setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setIsLoading(false);
+      await refreshEvents();
     }
   });
-
-  useEffect(() => {
-    setTimeout(() => setIsLoading(false), 700);
-  }, []);
 
   const handleAddEvent = async () => {
     await hapticService.medium();
@@ -126,7 +136,7 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
         threshold={80}
       />
 
-      {isLoading ? (
+      {loading ? (
         <div className="px-4 py-4">
           <CalendarSkeleton />
         </div>
@@ -261,8 +271,9 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
         onClose={() => setIsModalOpen(false)}
         selectedDate={selectedDate}
         tripId={tripId}
-        onEventCreated={(event) => {
-          setEvents(prev => [...prev, event]);
+        onEventCreated={async (event) => {
+          // Refresh events after creation to get the latest data
+          await refreshEvents();
         }}
       />
     </div>

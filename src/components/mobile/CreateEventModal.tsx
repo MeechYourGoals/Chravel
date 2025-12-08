@@ -44,7 +44,7 @@ export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEven
       });
 
       // Race between actual creation and timeout
-      const createdEvent = await Promise.race([
+      const result = await Promise.race([
         calendarService.createEvent({
           trip_id: tripId,
           title,
@@ -58,13 +58,20 @@ export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEven
         timeoutPromise
       ]);
 
-      if (createdEvent) {
-        toast.success('Event created', {
-          description: `${title} has been added to your calendar`
-        });
+      if (result.event) {
+        // Show conflict warning if overlapping events exist
+        if (result.conflicts.length > 0) {
+          toast.success('Event created', {
+            description: `${title} has been added to your calendar. Note: This event overlaps with "${result.conflicts[0]}"${result.conflicts.length > 1 ? ` and ${result.conflicts.length - 1} other event(s)` : ''}.`
+          });
+        } else {
+          toast.success('Event created', {
+            description: `${title} has been added to your calendar`
+          });
+        }
 
         // Trigger callback for UI update
-        onEventCreated?.(createdEvent);
+        onEventCreated?.(result.event);
 
         // Reset form
         setTitle('');
