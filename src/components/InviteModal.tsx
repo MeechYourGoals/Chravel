@@ -1,11 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useInviteLink } from '../hooks/useInviteLink';
 import { InviteModalHeader } from './invite/InviteModalHeader';
 import { InviteLinkSection } from './invite/InviteLinkSection';
 import { InviteSettingsSection } from './invite/InviteSettingsSection';
 import { ShareOptionsSection } from './invite/ShareOptionsSection';
 import { InviteInstructions } from './invite/InviteInstructions';
+import { supabase } from '../integrations/supabase/client';
+import { isProTrip } from '../utils/tripTierDetector';
+import { UUID_REGEX } from '../hooks/useInviteLink';
 
 interface InviteModalProps {
   isOpen: boolean;
@@ -17,6 +20,45 @@ interface InviteModalProps {
 export const InviteModal = ({ isOpen, onClose, tripName, tripId }: InviteModalProps) => {
   const [requireApproval, setRequireApproval] = useState(false);
   const [expireIn7Days, setExpireIn7Days] = useState(false);
+  const [isProTripType, setIsProTripType] = useState(false);
+
+  // Check if trip is Pro trip and set default approval requirement
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const checkTripType = async () => {
+      // For demo trips, use tripTierDetector
+      if (!UUID_REGEX.test(tripId)) {
+        const isPro = isProTrip(tripId);
+        setIsProTripType(isPro);
+        if (isPro) {
+          setRequireApproval(true);
+        }
+        return;
+      }
+
+      // For real trips, fetch from database
+      try {
+        const { data: trip, error } = await supabase
+          .from('trips')
+          .select('trip_type')
+          .eq('id', tripId)
+          .single();
+
+        if (!error && trip) {
+          const isPro = trip.trip_type === 'pro';
+          setIsProTripType(isPro);
+          if (isPro) {
+            setRequireApproval(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking trip type:', error);
+      }
+    };
+
+    checkTripType();
+  }, [isOpen, tripId]);
 
   const {
     copied,
@@ -49,6 +91,7 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId }: InviteModalPr
         <InviteSettingsSection
           requireApproval={requireApproval}
           expireIn7Days={expireIn7Days}
+          isProTrip={isProTripType}
           onRequireApprovalChange={setRequireApproval}
           onExpireIn7DaysChange={setExpireIn7Days}
         />

@@ -1,8 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
-import { X, Copy, Share2, Check } from 'lucide-react';
+import { X, Copy, Share2, Check, MapPin, Calendar, Users } from 'lucide-react';
 import { Button } from '../ui/button';
-import { useInviteLink } from '../../hooks/useInviteLink';
 import { toast } from 'sonner';
 
 interface Participant {
@@ -12,11 +11,14 @@ interface Participant {
 }
 
 interface Trip {
-  id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
+  id: number | string;
   title: string;
   location: string;
   dateRange: string;
   participants: Participant[];
+  coverPhoto?: string;
+  placesCount?: number;
+  peopleCount?: number;
 }
 
 interface ShareTripModalProps {
@@ -27,18 +29,13 @@ interface ShareTripModalProps {
 
 export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) => {
   const [copied, setCopied] = useState(false);
-
-  const {
-    inviteLink,
-    loading,
-    handleCopyLink,
-    handleShare
-  } = useInviteLink({ 
-    isOpen, 
-    tripName: trip.title, 
-    requireApproval: false, 
-    expireIn7Days: false 
-  });
+  
+  // Generate share preview URL (read-only trip preview, not invite)
+  // This will show the trip detail page with OG tags for social media previews
+  const sharePreviewUrl = `${window.location.origin}/trip/${trip.id}`;
+  
+  // Create share text with trip details
+  const shareText = `Check out this amazing trip to ${trip.location}! ${trip.title} - ${trip.dateRange}. Join us on Chravel! ${sharePreviewUrl}`;
 
   // Handle ESC key
   useEffect(() => {
@@ -71,14 +68,37 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
   }, [isOpen]);
 
   const handleCopyLinkClick = async () => {
-    await handleCopyLink();
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setCopied(true);
+      toast.success('Trip details copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      toast.error('Failed to copy link');
+    }
   };
 
   const handleNativeShare = async () => {
-    await handleShare();
-    toast.success('Share options opened!');
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Join ${trip.title} on Chravel`,
+          text: shareText,
+          url: sharePreviewUrl
+        });
+        toast.success('Shared successfully!');
+      } catch (error) {
+        // User cancelled or error occurred
+        if (error instanceof Error && error.name !== 'AbortError') {
+          console.error('Error sharing:', error);
+          toast.error('Failed to share');
+        }
+      }
+    } else {
+      // Fallback to copy
+      handleCopyLinkClick();
+    }
   };
 
   if (!isOpen) return null;
@@ -98,48 +118,97 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
         </Button>
 
         {/* Header */}
-        <div className="mb-3 pr-10">
+        <div className="mb-4 pr-10">
           <h2 className="text-xl font-bold text-foreground">Share Trip</h2>
-          <p className="text-muted-foreground text-sm">Invite others to join "{trip.title}"</p>
+          <p className="text-muted-foreground text-sm">Share "{trip.title}" on social media</p>
         </div>
 
-        {/* Trip Preview Card */}
-        <div className="bg-gradient-to-br from-yellow-600/20 via-yellow-500/10 to-transparent rounded-2xl p-3 mb-3 border border-yellow-500/20">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop')] bg-cover bg-center opacity-10 rounded-2xl"></div>
-          <div className="relative z-10">
-            <h3 className="text-base font-bold text-white mb-1">{trip.title}</h3>
-            <p className="text-white/80 text-sm mb-1">{trip.location}</p>
-            <p className="text-white/80 text-sm mb-2">{trip.dateRange}</p>
-            <div className="flex -space-x-2">
-              {trip.participants.slice(0, 4).map((participant, index) => (
-                <img
-                  key={participant.id}
-                  src={participant.avatar}
-                  alt={participant.name}
-                  className="w-8 h-8 rounded-full border-2 border-white"
-                  style={{ zIndex: trip.participants.length - index }}
-                />
-              ))}
-              {trip.participants.length > 4 && (
-                <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white flex items-center justify-center text-xs font-medium text-white">
-                  +{trip.participants.length - 4}
+        {/* Social Preview Card - Designed for sharing */}
+        <div className="mb-4 bg-gradient-to-br from-yellow-600/20 via-yellow-500/10 to-transparent rounded-2xl overflow-hidden border border-yellow-500/20 shadow-lg">
+          {/* Cover Image */}
+          <div 
+            className="relative h-32 bg-cover bg-center"
+            style={{
+              backgroundImage: `url('${trip.coverPhoto || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop'}')`
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+            <div className="absolute bottom-3 left-3 right-3">
+              <h3 className="text-lg font-bold text-white mb-1 line-clamp-2">{trip.title}</h3>
+            </div>
+          </div>
+
+          {/* Trip Details */}
+          <div className="p-4 space-y-3">
+            <div className="flex items-center gap-2 text-white/90 text-sm">
+              <MapPin size={16} className="text-yellow-400" />
+              <span className="font-medium">{trip.location}</span>
+            </div>
+            
+            <div className="flex items-center gap-2 text-white/90 text-sm">
+              <Calendar size={16} className="text-yellow-400" />
+              <span className="font-medium">{trip.dateRange}</span>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-white/10">
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-yellow-400" />
+                <span className="text-white/80 text-sm">
+                  {trip.peopleCount ?? trip.participants.length} {trip.peopleCount === 1 ? 'person' : 'people'}
+                </span>
+              </div>
+              {trip.placesCount !== undefined && (
+                <div className="flex items-center gap-2">
+                  <MapPin size={14} className="text-yellow-400" />
+                  <span className="text-white/80 text-sm">{trip.placesCount} places</span>
                 </div>
               )}
             </div>
+
+            {/* Participant Avatars */}
+            {trip.participants.length > 0 && (
+              <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                <div className="flex -space-x-2">
+                  {trip.participants.slice(0, 5).map((participant, index) => (
+                    <div
+                      key={participant.id}
+                      className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center text-xs font-semibold text-black border-2 border-white"
+                      style={{ zIndex: trip.participants.length - index }}
+                      title={participant.name}
+                    >
+                      {participant.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                    </div>
+                  ))}
+                  {trip.participants.length > 5 && (
+                    <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white flex items-center justify-center text-xs font-medium text-white">
+                      +{trip.participants.length - 5}
+                    </div>
+                  )}
+                </div>
+                <span className="text-white/60 text-xs ml-2">Travelers</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Invite Link */}
-        <div className="mb-3">
-          <label className="block text-foreground text-sm font-medium mb-1">Invite Link</label>
+        {/* Share Actions */}
+        <div className="space-y-3">
+          <Button
+            onClick={handleNativeShare}
+            className="w-full flex items-center justify-center gap-3 h-11 text-base font-medium bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black"
+          >
+            <Share2 size={20} />
+            <span>Share via Apps</span>
+          </Button>
+
           <div className="flex gap-2">
-            <div className="flex-1 bg-muted border border-border rounded-xl px-3 py-2 text-foreground text-sm font-mono truncate">
-              {loading ? 'Generating invite link...' : inviteLink || 'Loading...'}
+            <div className="flex-1 bg-muted border border-border rounded-xl px-3 py-2 text-foreground text-xs font-mono truncate">
+              {sharePreviewUrl}
             </div>
             <Button
               onClick={handleCopyLinkClick}
-              disabled={loading || !inviteLink}
-              className="px-3 py-2"
+              className="px-4 py-2"
+              variant="outline"
             >
               {copied ? <Check size={16} /> : <Copy size={16} />}
               <span className="hidden sm:inline ml-2">{copied ? 'Copied!' : 'Copy'}</span>
@@ -147,20 +216,8 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
           </div>
         </div>
 
-        {/* Share via Apps Button */}
-        <div className="mb-3">
-          <Button
-            onClick={handleNativeShare}
-            disabled={loading || !inviteLink}
-            className="w-full flex items-center justify-center gap-3 h-10 text-base font-medium"
-          >
-            <Share2 size={20} />
-            <span>Share via Apps</span>
-          </Button>
-        </div>
-
-        <p className="text-xs text-muted-foreground text-center mt-2">
-          Anyone with this link can request to join your trip
+        <p className="text-xs text-muted-foreground text-center mt-4">
+          This creates a shareable preview of your trip. Use "Invite to Trip" to generate join links.
         </p>
       </div>
     </div>

@@ -26,7 +26,7 @@ interface InviteLinkResult {
 }
 
 // UUID validation regex
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const useInviteLink = ({ 
   isOpen, 
@@ -121,9 +121,20 @@ export const useInviteLink = ({
     }
   };
 
+  // Generate a shorter, branded invite code (8-12 characters)
+  const generateShortInviteCode = (): string => {
+    // Use base36 encoding for shorter codes (0-9, a-z)
+    // Generate 10 characters: "chravel" prefix + random suffix
+    const randomSuffix = Math.random().toString(36).substring(2, 8).toLowerCase();
+    return `chravel${randomSuffix}`;
+  };
+
   const generateTripLink = async () => {
     setLoading(true);
-    const baseUrl = window.location.origin;
+    // Use chravel.app domain if available, otherwise use current origin
+    const baseUrl = window.location.hostname.includes('chravel') 
+      ? `https://${window.location.hostname.includes('localhost') ? 'chravel.app' : window.location.hostname}`
+      : window.location.origin;
     const actualTripId = proTripId || tripId;
     
     if (!actualTripId) {
@@ -159,8 +170,34 @@ export const useInviteLink = ({
       return;
     }
 
-    // Create the invite in database
-    const inviteCode = crypto.randomUUID();
+    // Generate shorter branded invite code
+    let inviteCode = generateShortInviteCode();
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    // Ensure code is unique (check if it already exists)
+    while (attempts < maxAttempts) {
+      const { data: existing } = await supabase
+        .from('trip_invites')
+        .select('id')
+        .eq('code', inviteCode)
+        .single();
+
+      if (!existing) {
+        break; // Code is unique
+      }
+
+      // Regenerate if collision
+      inviteCode = generateShortInviteCode();
+      attempts++;
+    }
+
+    if (attempts >= maxAttempts) {
+      // Fallback to UUID if we can't generate a unique short code
+      console.warn('[InviteLink] Could not generate unique short code, using UUID');
+      inviteCode = crypto.randomUUID();
+    }
+
     const created = await createInviteInDatabase(actualTripId, inviteCode);
     
     if (!created) {
