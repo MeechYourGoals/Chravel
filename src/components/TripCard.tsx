@@ -236,19 +236,15 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
         <div className="mb-4 md:mb-6">
           <div className="flex items-center justify-between mb-2 md:mb-3">
             <span className="text-sm text-gray-400 font-medium">Travelers</span>
-            {/* Invite/User buttons - hidden on mobile to save space */}
-            <div className="hidden md:flex gap-2">
-              <button
-                onClick={() => setShowInviteModal(true)}
-                className="text-yellow-400 hover:text-yellow-300 transition-colors p-1 hover:bg-yellow-400/10 rounded-lg"
-                title="Invite people to trip"
-              >
-                <Plus size={16} />
-              </button>
-              <button className="text-gray-400 hover:text-gray-300 transition-colors p-1 hover:bg-white/10 rounded-lg">
-                <User size={16} />
-              </button>
-            </div>
+            {/* Invite button - combined pill with + and person icons */}
+            <button
+              onClick={() => setShowInviteModal(true)}
+              className="hidden md:flex items-center gap-1 text-yellow-400 hover:text-yellow-300 transition-colors px-2 py-1 hover:bg-yellow-400/10 rounded-lg border border-yellow-500/30 hover:border-yellow-500/50"
+              title="Invite people to trip"
+            >
+              <Plus size={14} />
+              <User size={14} />
+            </button>
             {/* Mobile count */}
             <span className="md:hidden text-xs text-gray-500">{participantsWithAvatars.length} people</span>
           </div>
@@ -274,20 +270,13 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
           </div>
         </div>
 
-        {/* Action Buttons - 3 columns: View | Invite | Share */}
-        <div className="grid grid-cols-3 gap-2 md:gap-3">
+        {/* Action Buttons - 2 columns: View | Share */}
+        <div className="grid grid-cols-2 gap-2 md:gap-3">
           <button
             onClick={handleViewTrip}
             className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25 text-xs md:text-sm"
           >
             View
-          </button>
-
-          <button
-            onClick={() => setShowInviteModal(true)}
-            className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-yellow-500/30 hover:border-yellow-500/50 text-xs md:text-sm"
-          >
-            Invite
           </button>
 
           <button
