@@ -265,72 +265,43 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
         </div>
       </div>
 
-      {/* Team Members with Roles */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-sm text-white/70 font-medium">Team Members:</span>
-        </div>
-        
-        <div className="flex -space-x-3 mb-2">
-          {visibleMembers.map((participant, index) => (
-            <TravelerTooltip key={participant.id} name={`${participant.name} - ${participant.role}`}>
-              <div style={{ zIndex: visibleMembers.length - index }}>
-                <Avatar className={`w-10 h-10 border-2 border-white/30 hover:scale-110 transition-transform duration-200 hover:border-${accentColors.primary}`}>
-                  <AvatarFallback className="bg-white/20 text-white font-semibold text-sm">
-                    {getInitials(participant.name)}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-            </TravelerTooltip>
-          ))}
-          {memberOverflow > 0 && (
-            <div className="w-10 h-10 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-xs font-medium text-white">
-              +{memberOverflow}
-            </div>
-          )}
-        </div>
-
-        <div className="text-xs text-white/60">
-          Roles: {visibleRoles.join(', ')}{roleOverflow > 0 && ` +${roleOverflow} more`}
-        </div>
+      {/* Export Button - Right Aligned */}
+      <div className="flex justify-end mb-3">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              onClick={handleExportTrip}
+              className="bg-white/10 backdrop-blur-sm border border-white/20 hover:border-glass-green/40 text-white hover:text-glass-green transition-all duration-300"
+              variant="ghost"
+              size="icon"
+            >
+              <FileText size={16} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Export Details</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-col gap-2">
+      {/* Action Buttons - Side by Side */}
+      <div className="flex gap-2">
         <Button
           onClick={() => setShowInviteModal(true)}
-          className={`w-full bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white transition-all duration-300 font-medium`}
+          className={`flex-1 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white transition-all duration-300 font-medium`}
         >
           <UserPlus size={16} className="mr-2" />
           Invite to Trip
         </Button>
         
-        <div className="flex gap-2">
-          <Button
-            onClick={handleViewTrip}
-            className={`flex-1 bg-gradient-to-r from-${accentColors.primary}/20 to-${accentColors.secondary}/20 backdrop-blur-sm border border-white/20 hover:border-white/40 text-white hover:text-${accentColors.secondary} transition-all duration-300 font-medium hover:shadow-lg`}
-            variant="ghost"
-          >
-            <Eye size={16} className="mr-2" />
-            View Trip
-          </Button>
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                onClick={handleExportTrip}
-                className="bg-white/10 backdrop-blur-sm border border-white/20 hover:border-glass-green/40 text-white hover:text-glass-green transition-all duration-300"
-                variant="ghost"
-                size="icon"
-              >
-                <FileText size={16} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Export Details</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
+        <Button
+          onClick={handleViewTrip}
+          className={`flex-1 bg-gradient-to-r from-${accentColors.primary}/20 to-${accentColors.secondary}/20 backdrop-blur-sm border border-white/20 hover:border-white/40 text-white hover:text-${accentColors.secondary} transition-all duration-300 font-medium hover:shadow-lg`}
+          variant="ghost"
+        >
+          <Eye size={16} className="mr-2" />
+          View Trip
+        </Button>
       </div>
 
       {/* Pro Features Highlight */}
