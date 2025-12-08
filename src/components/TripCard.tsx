@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, User, Plus, MoreHorizontal, Archive, Flame, TrendingUp, EyeOff } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import { InviteModal } from './InviteModal';
 import { ShareTripModal } from './share/ShareTripModal';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
@@ -55,12 +56,12 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
   
-  // Get added members from the demo store - use stable empty array reference
+  // Get added members from the demo store - use stable empty array reference with shallow comparison
   const tripIdStr = trip.id.toString();
-  const addedDemoMembers = useDemoTripMembersStore(state => 
-    isDemoMode && state.addedMembers[tripIdStr] 
+  const addedDemoMembers = useDemoTripMembersStore(
+    useShallow((state) => isDemoMode && state.addedMembers[tripIdStr] 
       ? state.addedMembers[tripIdStr] 
-      : EMPTY_PARTICIPANTS
+      : EMPTY_PARTICIPANTS)
   );
 
   const handleViewTrip = () => {

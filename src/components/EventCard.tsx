@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Users, Settings, MoreHorizontal, Archive, EyeOff, UserPlus } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import { EventData } from '../types/events';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
@@ -36,12 +37,12 @@ export const EventCard = ({ event }: EventCardProps) => {
   const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
   
-  // Get added members from the demo store - use stable empty array reference
+  // Get added members from the demo store - use stable empty array reference with shallow comparison
   const eventIdStr = event.id.toString();
-  const addedDemoMembers = useDemoTripMembersStore(state => 
-    isDemoMode && state.addedMembers[eventIdStr] 
+  const addedDemoMembers = useDemoTripMembersStore(
+    useShallow((state) => isDemoMode && state.addedMembers[eventIdStr] 
       ? state.addedMembers[eventIdStr] 
-      : EMPTY_PARTICIPANTS
+      : EMPTY_PARTICIPANTS)
   );
   
   // Calculate updated people count including added members
