@@ -5,6 +5,7 @@ import { getTripById } from '@/data/tripsData';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
 
 interface TripMember {
   id: string;
@@ -39,20 +40,37 @@ export const useTripMembers = (tripId?: string) => {
     const numericTripId = parseInt(tripId, 10);
     const trip = getTripById(numericTripId);
     
-    if (trip && trip.participants) {
-      return trip.participants.map((participant, index) => ({
-        id: participant.id.toString(),
-        name: participant.name,
-        avatar: participant.avatar,
-        isCreator: index === 0 // First participant is creator in demo
-      }));
+    // Get base participants from static mock data
+    const baseMembers: TripMember[] = trip && trip.participants
+      ? trip.participants.map((participant, index) => ({
+          id: participant.id.toString(),
+          name: participant.name,
+          avatar: participant.avatar,
+          isCreator: index === 0 // First participant is creator in demo
+        }))
+      : [
+          { id: 'user1', name: 'You', isCreator: true },
+          { id: 'user2', name: 'Trip Organizer' }
+        ];
+    
+    // Get any members added at runtime (from approved join requests)
+    const addedMembers = useDemoTripMembersStore.getState().getAddedMembers(tripId);
+    const addedAsTripMembers: TripMember[] = addedMembers.map(m => ({
+      id: m.id.toString(),
+      name: m.name,
+      avatar: m.avatar,
+      isCreator: false
+    }));
+    
+    // Merge base + added members (avoid duplicates)
+    const allMembers = [...baseMembers];
+    for (const added of addedAsTripMembers) {
+      if (!allMembers.some(m => m.id === added.id)) {
+        allMembers.push(added);
+      }
     }
     
-    // Default fallback if no trip found
-    return [
-      { id: 'user1', name: 'You', isCreator: true },
-      { id: 'user2', name: 'Trip Organizer' }
-    ];
+    return allMembers;
   };
 
   const loadTripMembers = async (tripId: string) => {
@@ -163,11 +181,16 @@ export const useTripMembers = (tripId?: string) => {
     }
   }, [tripId, tripCreatorId]);
 
+  // Subscribe to demo store changes to refresh when members are added
+  const demoAddedMembers = useDemoTripMembersStore(state => 
+    tripId ? state.addedMembers[tripId] : undefined
+  );
+
   useEffect(() => {
     if (tripId) {
       loadTripMembers(tripId);
     }
-  }, [tripId, isDemoMode]);
+  }, [tripId, isDemoMode, demoAddedMembers]);
 
   // Real-time subscription for trip members - only when database queries succeed
   useEffect(() => {

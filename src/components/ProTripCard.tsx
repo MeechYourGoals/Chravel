@@ -20,6 +20,8 @@ import { ExportSection } from '../types/tripExport';
 import { generateClientPDF } from '../utils/exportPdfClient';
 import { getExportData } from '../services/tripExportDataService';
 import { openOrDownloadBlob } from '../utils/download';
+import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
+import { useDemoMode } from '../hooks/useDemoMode';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +41,18 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
+  
+  // Get added members from the demo store
+  const addedDemoMembers = useDemoTripMembersStore(state => 
+    isDemoMode ? state.addedMembers[trip.id.toString()] || [] : []
+  );
+  
+  // Calculate updated people count including added members
+  const totalPeopleCount = React.useMemo(() => {
+    const baseCount = calculatePeopleCount(trip);
+    return baseCount + addedDemoMembers.length;
+  }, [trip, addedDemoMembers]);
 
   const handleViewTrip = () => {
     navigate(`/tour/pro/${trip.id}`);
@@ -266,7 +280,7 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
             <Users size={14} className={`text-${accentColors.primary}`} />
             <span className="text-xs text-white/60 uppercase tracking-wide">People</span>
           </div>
-          <div className="text-lg font-bold text-white">{calculatePeopleCount(trip)}</div>
+          <div className="text-lg font-bold text-white">{totalPeopleCount}</div>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center gap-1 mb-1">

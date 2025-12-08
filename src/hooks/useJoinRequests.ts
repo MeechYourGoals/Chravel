@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getMockPendingRequests } from '@/mockData/joinRequests';
+import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
 
 export interface JoinRequest {
   id: string;
@@ -112,10 +113,23 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
   const approveRequest = useCallback(async (requestId: string) => {
     setIsProcessing(true);
     
-    // Demo mode - just update local state
+    // Demo mode - add member to store and update local state
     if (isDemoMode) {
+      const request = requests.find(r => r.id === requestId);
+      
+      if (request) {
+        // Add the approved user to the demo trip members store
+        const { addMember } = useDemoTripMembersStore.getState();
+        addMember(tripId, {
+          id: request.user_id,
+          name: request.profile?.display_name || 'New Member',
+          avatar: request.profile?.avatar_url,
+          email: request.profile?.email
+        });
+      }
+      
       setRequests(prev => prev.filter(r => r.id !== requestId));
-      toast.success('✅ Request approved');
+      toast.success('✅ Request approved - member added to trip!');
       setIsProcessing(false);
       return;
     }
