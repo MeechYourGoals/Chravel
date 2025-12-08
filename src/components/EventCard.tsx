@@ -21,6 +21,9 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 
+// Stable empty array reference - prevents infinite re-renders from Zustand selector
+const EMPTY_PARTICIPANTS: Array<{id: number | string; name: string; avatar?: string}> = [];
+
 interface EventCardProps {
   event: EventData;
 }
@@ -33,9 +36,12 @@ export const EventCard = ({ event }: EventCardProps) => {
   const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
   
-  // Get added members from the demo store
+  // Get added members from the demo store - use stable empty array reference
+  const eventIdStr = event.id.toString();
   const addedDemoMembers = useDemoTripMembersStore(state => 
-    isDemoMode ? state.addedMembers[event.id.toString()] || [] : []
+    isDemoMode && state.addedMembers[eventIdStr] 
+      ? state.addedMembers[eventIdStr] 
+      : EMPTY_PARTICIPANTS
   );
   
   // Calculate updated people count including added members

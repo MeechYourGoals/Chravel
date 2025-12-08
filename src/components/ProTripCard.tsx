@@ -30,6 +30,9 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 
+// Stable empty array reference - prevents infinite re-renders from Zustand selector
+const EMPTY_PARTICIPANTS: Array<{id: number | string; name: string; avatar?: string}> = [];
+
 interface ProTripCardProps {
   trip: ProTripData;
 }
@@ -43,9 +46,12 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
   
-  // Get added members from the demo store
+  // Get added members from the demo store - use stable empty array reference
+  const tripIdStr = trip.id.toString();
   const addedDemoMembers = useDemoTripMembersStore(state => 
-    isDemoMode ? state.addedMembers[trip.id.toString()] || [] : []
+    isDemoMode && state.addedMembers[tripIdStr] 
+      ? state.addedMembers[tripIdStr] 
+      : EMPTY_PARTICIPANTS
   );
   
   // Calculate updated people count including added members
