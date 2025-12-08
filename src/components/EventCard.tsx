@@ -160,20 +160,6 @@ export const EventCard = ({ event }: EventCardProps) => {
           </div>
         </div>
 
-        {/* Tags */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          {event.tags.slice(0, 3).map((tag, index) => (
-            <span key={index} className="bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-sm text-white">
-              {tag}
-            </span>
-          ))}
-          {event.tags.length > 3 && (
-            <span className="bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-sm text-white">
-              +{event.tags.length - 3}
-            </span>
-          )}
-        </div>
-
         {/* Team Members */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
@@ -205,31 +191,20 @@ export const EventCard = ({ event }: EventCardProps) => {
           </div>
         </div>
 
-        {/* Group Chat Status */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Settings size={16} className="text-gray-400" />
-            <span className="text-gray-400 text-sm">Group Chat</span>
-          </div>
-          <span className={`text-sm font-medium ${event.groupChatEnabled ? 'text-green-400' : 'text-gray-500'}`}>
-            {event.groupChatEnabled ? 'Enabled' : 'Disabled'}
-          </span>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col gap-2">
+        {/* Action Buttons - Side by Side, Smaller */}
+        <div className="flex gap-2">
           <button
             onClick={() => setShowInviteModal(true)}
-            className={`w-full bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white font-semibold py-3 rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2`}
+            className={`flex-1 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white font-medium py-2 text-sm rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-1.5`}
           >
-            <UserPlus size={18} />
-            Invite to Event
+            <UserPlus size={14} />
+            Invite
           </button>
           <button
             onClick={handleViewEvent}
-            className="w-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 text-white font-medium py-3 rounded-xl transition-all duration-300"
+            className="flex-1 bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 text-white font-medium py-2 text-sm rounded-xl transition-all duration-300"
           >
-            Manage Event
+            View Event
           </button>
         </div>
       </div>
