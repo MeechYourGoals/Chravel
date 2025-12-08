@@ -30,7 +30,7 @@ export const mockPendingRequests: Record<string, JoinRequest[]> = {
       }
     }
   ],
-  '2': [ // Euro Summer Trip
+  '2': [ // Euro Summer Trip / Tokyo Adventure
     {
       id: 'demo-request-3',
       trip_id: '2',
@@ -42,6 +42,75 @@ export const mockPendingRequests: Record<string, JoinRequest[]> = {
         display_name: 'Taylor Williams',
         avatar_url: undefined,
         email: 'taylor@example.com'
+      }
+    }
+  ],
+  '3': [ // Tokyo Adventure
+    {
+      id: 'demo-request-tokyo-1',
+      trip_id: '3',
+      user_id: 'demo-user-tokyo-1',
+      invite_code: 'TOKYO2024',
+      status: 'pending',
+      requested_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(), // 45 minutes ago
+      profile: {
+        display_name: 'Kenji Watanabe',
+        avatar_url: undefined,
+        email: 'kenji@example.com'
+      }
+    },
+    {
+      id: 'demo-request-tokyo-2',
+      trip_id: '3',
+      user_id: 'demo-user-tokyo-2',
+      invite_code: 'TOKYO2024',
+      status: 'pending',
+      requested_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(), // 2 hours ago
+      profile: {
+        display_name: 'Yuki Tanaka',
+        avatar_url: undefined,
+        email: 'yuki@example.com'
+      }
+    }
+  ],
+  '4': [ // Jack and Jill's Destination Wedding
+    {
+      id: 'demo-request-wedding-1',
+      trip_id: '4',
+      user_id: 'demo-user-wedding-1',
+      invite_code: 'WEDDING2024',
+      status: 'pending',
+      requested_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
+      profile: {
+        display_name: 'Michael Chen',
+        avatar_url: undefined,
+        email: 'michael@example.com'
+      }
+    },
+    {
+      id: 'demo-request-wedding-2',
+      trip_id: '4',
+      user_id: 'demo-user-wedding-2',
+      invite_code: 'WEDDING2024',
+      status: 'pending',
+      requested_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // 1 hour ago
+      profile: {
+        display_name: 'Emma Rodriguez',
+        avatar_url: undefined,
+        email: 'emma@example.com'
+      }
+    },
+    {
+      id: 'demo-request-wedding-3',
+      trip_id: '4',
+      user_id: 'demo-user-wedding-3',
+      invite_code: 'WEDDING2024',
+      status: 'pending',
+      requested_at: new Date(Date.now() - 1000 * 60 * 180).toISOString(), // 3 hours ago
+      profile: {
+        display_name: 'David Park',
+        avatar_url: undefined,
+        email: 'david@example.com'
       }
     }
   ],
