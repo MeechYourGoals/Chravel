@@ -203,24 +203,43 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
 
       {/* Header - Removed category badges and tags */}
       <div className="mb-4 pr-12 pl-12">
-        <h3 className={`text-xl font-semibold text-white group-hover:text-${accentColors.secondary} transition-colors mb-3`}>
+        <h3 className={`text-xl font-semibold text-white group-hover:text-${accentColors.secondary} transition-colors mb-2`}>
           {trip.title}
         </h3>
 
-        {/* Status Pills - Roster and Next Load-In */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          {trip.roster && trip.roster.length > 0 && (
-            <div className="flex items-center gap-1 bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-xs border border-blue-500/30">
-              <Users size={12} />
-              <span>Team: {trip.roster.length}</span>
-            </div>
-          )}
-          {nextLoadIn && (
-            <div className="flex items-center gap-1 bg-orange-500/20 text-orange-300 px-3 py-1 rounded-full text-xs border border-orange-500/30">
-              <Clock size={12} />
-              <span>Next Load-In: {new Date(nextLoadIn.startTime).toLocaleDateString()}</span>
-            </div>
-          )}
+        {/* Status Pills and Export Button Row */}
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex flex-wrap gap-2">
+            {trip.roster && trip.roster.length > 0 && (
+              <div className="flex items-center gap-1 bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-xs border border-blue-500/30">
+                <Users size={12} />
+                <span>Team: {trip.roster.length}</span>
+              </div>
+            )}
+            {nextLoadIn && (
+              <div className="flex items-center gap-1 bg-orange-500/20 text-orange-300 px-3 py-1 rounded-full text-xs border border-orange-500/30">
+                <Clock size={12} />
+                <span>Next Load-In: {new Date(nextLoadIn.startTime).toLocaleDateString()}</span>
+              </div>
+            )}
+          </div>
+          
+          {/* Export Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleExportTrip}
+                className="bg-white/10 backdrop-blur-sm border border-white/20 hover:border-glass-green/40 text-white hover:text-glass-green transition-all duration-300"
+                variant="ghost"
+                size="icon"
+              >
+                <FileText size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Export Details</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -265,41 +284,24 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
         </div>
       </div>
 
-      {/* Export Button - Right Aligned */}
-      <div className="flex justify-end mb-3">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              onClick={handleExportTrip}
-              className="bg-white/10 backdrop-blur-sm border border-white/20 hover:border-glass-green/40 text-white hover:text-glass-green transition-all duration-300"
-              variant="ghost"
-              size="icon"
-            >
-              <FileText size={16} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Export Details</p>
-          </TooltipContent>
-        </Tooltip>
-      </div>
-
-      {/* Action Buttons - Side by Side */}
+      {/* Action Buttons - Side by Side, Smaller */}
       <div className="flex gap-2">
         <Button
           onClick={() => setShowInviteModal(true)}
-          className={`flex-1 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white transition-all duration-300 font-medium`}
+          className={`flex-1 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white transition-all duration-300 font-medium text-sm py-2 h-9`}
+          size="sm"
         >
-          <UserPlus size={16} className="mr-2" />
-          Invite to Trip
+          <UserPlus size={14} className="mr-1.5" />
+          Invite
         </Button>
         
         <Button
           onClick={handleViewTrip}
-          className={`flex-1 bg-gradient-to-r from-${accentColors.primary}/20 to-${accentColors.secondary}/20 backdrop-blur-sm border border-white/20 hover:border-white/40 text-white hover:text-${accentColors.secondary} transition-all duration-300 font-medium hover:shadow-lg`}
+          className={`flex-1 bg-gradient-to-r from-${accentColors.primary}/20 to-${accentColors.secondary}/20 backdrop-blur-sm border border-white/20 hover:border-white/40 text-white hover:text-${accentColors.secondary} transition-all duration-300 font-medium text-sm py-2 h-9`}
           variant="ghost"
+          size="sm"
         >
-          <Eye size={16} className="mr-2" />
+          <Eye size={14} className="mr-1.5" />
           View Trip
         </Button>
       </div>
