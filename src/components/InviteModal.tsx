@@ -4,7 +4,6 @@ import { useInviteLink } from '../hooks/useInviteLink';
 import { InviteModalHeader } from './invite/InviteModalHeader';
 import { InviteLinkSection } from './invite/InviteLinkSection';
 import { InviteSettingsSection } from './invite/InviteSettingsSection';
-import { ShareOptionsSection } from './invite/ShareOptionsSection';
 import { InviteInstructions } from './invite/InviteInstructions';
 
 interface InviteModalProps {
@@ -25,10 +24,7 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: In
     loading,
     isDemoMode,
     regenerateInviteToken,
-    handleCopyLink,
-    handleShare,
-    handleEmailInvite,
-    handleSMSInvite
+    handleCopyLink
   } = useInviteLink({ isOpen, tripName, requireApproval, expireIn7Days, tripId, proTripId });
 
   if (!isOpen) return null;
@@ -52,14 +48,6 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: In
           expireIn7Days={expireIn7Days}
           onRequireApprovalChange={setRequireApproval}
           onExpireIn7DaysChange={setExpireIn7Days}
-        />
-        
-        <ShareOptionsSection
-          loading={loading}
-          inviteLink={inviteLink}
-          onShare={handleShare}
-          onEmailInvite={handleEmailInvite}
-          onSMSInvite={handleSMSInvite}
         />
         
         <InviteInstructions />
