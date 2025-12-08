@@ -33,11 +33,12 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
     loading,
     handleCopyLink,
     handleShare
-  } = useInviteLink({ 
-    isOpen, 
-    tripName: trip.title, 
-    requireApproval: false, 
-    expireIn7Days: false 
+  } = useInviteLink({
+    isOpen,
+    tripName: trip.title,
+    requireApproval: false,
+    expireIn7Days: false,
+    tripId: String(trip.id)
   });
 
   // Handle ESC key

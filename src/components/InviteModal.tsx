@@ -11,10 +11,11 @@ interface InviteModalProps {
   isOpen: boolean;
   onClose: () => void;
   tripName: string;
-  tripId: string;
+  tripId?: string;
+  proTripId?: string;
 }
 
-export const InviteModal = ({ isOpen, onClose, tripName, tripId }: InviteModalProps) => {
+export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: InviteModalProps) => {
   const [requireApproval, setRequireApproval] = useState(false);
   const [expireIn7Days, setExpireIn7Days] = useState(false);
 
@@ -28,7 +29,7 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId }: InviteModalPr
     handleShare,
     handleEmailInvite,
     handleSMSInvite
-  } = useInviteLink({ isOpen, tripName, requireApproval, expireIn7Days, tripId });
+  } = useInviteLink({ isOpen, tripName, requireApproval, expireIn7Days, tripId, proTripId });
 
   if (!isOpen) return null;
 
