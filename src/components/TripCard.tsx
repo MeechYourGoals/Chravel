@@ -27,6 +27,9 @@ interface Participant {
   avatar: string;
 }
 
+// Stable empty array reference - prevents infinite re-renders from Zustand selector
+const EMPTY_PARTICIPANTS: Array<{id: number | string; name: string; avatar?: string}> = [];
+
 interface Trip {
   id: number | string;
   title: string;
@@ -52,9 +55,12 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
   
-  // Get added members from the demo store
+  // Get added members from the demo store - use stable empty array reference
+  const tripIdStr = trip.id.toString();
   const addedDemoMembers = useDemoTripMembersStore(state => 
-    isDemoMode ? state.addedMembers[trip.id.toString()] || [] : []
+    isDemoMode && state.addedMembers[tripIdStr] 
+      ? state.addedMembers[tripIdStr] 
+      : EMPTY_PARTICIPANTS
   );
 
   const handleViewTrip = () => {
