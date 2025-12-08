@@ -21,10 +21,23 @@ export const MobileEventDetail = () => {
   // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
   const { trips: userTrips, loading: tripsLoading } = useTrips();
 
-  const [activeTab, setActiveTab] = useState('chat');
+  // Persist activeTab in sessionStorage to survive orientation changes
+  const getInitialTab = () => {
+    if (typeof window === 'undefined') return 'chat';
+    const storedTab = sessionStorage.getItem(`event_${eventId}_activeTab`);
+    return storedTab || 'chat';
+  };
+  const [activeTab, setActiveTab] = useState(getInitialTab);
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
   const headerRef = React.useRef<HTMLDivElement>(null);
+
+  // Persist activeTab changes to sessionStorage
+  React.useEffect(() => {
+    if (eventId) {
+      sessionStorage.setItem(`event_${eventId}_activeTab`, activeTab);
+    }
+  }, [activeTab, eventId]);
  
   // Keyboard handling for mobile inputs
   useKeyboardHandler({

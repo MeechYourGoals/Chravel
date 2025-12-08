@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, ChevronLeft, ChevronRight, Clock, MapPin, Users } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Plus, ChevronLeft, ChevronRight, Clock, MapPin, Users, X, Pencil, Trash2 } from 'lucide-react';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { CalendarSkeleton } from './SkeletonLoader';
@@ -7,6 +7,7 @@ import { hapticService } from '../../services/hapticService';
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameDay, isSameMonth } from 'date-fns';
 import { CreateEventModal } from './CreateEventModal';
 import { useCalendarEvents } from '../../hooks/useCalendarEvents';
+import { toast } from 'sonner';
 
 interface CalendarEvent {
   id: string;
@@ -38,9 +39,11 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Use the calendar events hook to fetch real events
-  const { events: tripEvents, loading, refreshEvents } = useCalendarEvents(tripId);
+  const { events: tripEvents, loading, refreshEvents, deleteEvent } = useCalendarEvents(tripId);
   
   // Convert TripEvent[] to CalendarEvent[] format for UI
   const events = useMemo(() => {
@@ -124,9 +127,43 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
     setSelectedDate(date);
   };
 
-  const eventsForSelectedDate = events.filter(event => 
+  const eventsForSelectedDate = events.filter(event =>
     isSameDay(event.date, selectedDate)
   );
+
+  // Handle event click to show details
+  const handleEventClick = useCallback(async (event: CalendarEvent) => {
+    await hapticService.medium();
+    setSelectedEvent(event);
+  }, []);
+
+  // Handle event deletion
+  const handleDeleteEvent = useCallback(async (eventId: string) => {
+    if (!eventId) return;
+
+    setIsDeleting(true);
+    try {
+      await hapticService.medium();
+      const success = await deleteEvent(eventId);
+      if (success) {
+        toast.success('Event deleted');
+        setSelectedEvent(null);
+        await refreshEvents();
+      } else {
+        toast.error('Failed to delete event');
+      }
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      toast.error('Failed to delete event');
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteEvent, refreshEvents]);
+
+  // Close event detail drawer
+  const handleCloseEventDetail = useCallback(() => {
+    setSelectedEvent(null);
+  }, []);
 
   return (
     <div className="flex flex-col h-full bg-black relative">
@@ -236,10 +273,7 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
                 eventsForSelectedDate.map((event) => (
                   <button
                     key={event.id}
-                    onClick={async () => {
-                      await hapticService.light();
-                      // Open event details
-                    }}
+                    onClick={() => handleEventClick(event)}
                     className="w-full bg-white/10 rounded-xl p-4 active:scale-98 transition-transform relative"
                   >
                     <div className={`w-1 h-full absolute left-0 top-0 rounded-l-xl bg-gradient-to-b ${event.color}`} />
@@ -276,6 +310,91 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
           await refreshEvents();
         }}
       />
+
+      {/* Event Detail Drawer */}
+      {selectedEvent && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={handleCloseEventDetail}
+          />
+
+          {/* Drawer */}
+          <div className="relative w-full max-w-md bg-gray-900 border-t border-white/10 rounded-t-3xl shadow-2xl animate-slide-up max-h-[70vh] overflow-y-auto">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 bg-white/20 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-start justify-between px-6 pb-4">
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold text-white mb-1">{selectedEvent.title}</h2>
+                <p className="text-sm text-gray-400">
+                  {format(selectedEvent.date, 'EEEE, MMMM d, yyyy')}
+                </p>
+              </div>
+              <button
+                onClick={handleCloseEventDetail}
+                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+
+            {/* Event Details */}
+            <div className="px-6 pb-6 space-y-4">
+              {/* Time */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Time</p>
+                  <p className="text-white font-medium">{selectedEvent.time}</p>
+                </div>
+              </div>
+
+              {/* Location */}
+              {selectedEvent.location && (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+                    <MapPin className="w-5 h-5 text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Location</p>
+                    <p className="text-white font-medium">{selectedEvent.location}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Participants */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Attending</p>
+                  <p className="text-white font-medium">{selectedEvent.participants} people</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 pb-8 flex gap-3">
+              <button
+                onClick={() => handleDeleteEvent(selectedEvent.id)}
+                disabled={isDeleting}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl transition-colors disabled:opacity-50"
+              >
+                <Trash2 size={18} />
+                <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

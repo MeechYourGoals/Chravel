@@ -22,10 +22,23 @@ export const MobileTripDetail = () => {
   // The hook handles demo mode internally, returning empty arrays when in demo mode
   const { trips: userTrips, loading: tripsLoading } = useTrips();
 
-  const [activeTab, setActiveTab] = useState('chat');
+  // Persist activeTab in sessionStorage to survive orientation changes
+  const getInitialTab = () => {
+    if (typeof window === 'undefined') return 'chat';
+    const storedTab = sessionStorage.getItem(`trip_${tripId}_activeTab`);
+    return storedTab || 'chat';
+  };
+  const [activeTab, setActiveTab] = useState(getInitialTab);
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
   const headerRef = React.useRef<HTMLDivElement>(null);
+
+  // Persist activeTab changes to sessionStorage
+  React.useEffect(() => {
+    if (tripId) {
+      sessionStorage.setItem(`trip_${tripId}_activeTab`, activeTab);
+    }
+  }, [activeTab, tripId]);
  
   // Keyboard handling for mobile inputs
   useKeyboardHandler({
