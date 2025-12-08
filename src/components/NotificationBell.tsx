@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Bell, MessageCircle, Calendar, Radio, X, FilePlus, Image, BarChart2 } from 'lucide-react';
+import { Bell, MessageCircle, Calendar, Radio, X, FilePlus, Image, BarChart2, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { mockNotifications } from '@/mockData/notifications';
 import { formatDistanceToNow } from 'date-fns';
+import { JoinRequestNotification } from './notifications/JoinRequestNotification';
 
 interface Notification {
   id: string;
@@ -165,6 +166,8 @@ export const NotificationBell = () => {
         return <FilePlus size={16} className={iconClass} />;
       case 'photos':
         return <Image size={16} className={iconClass} />;
+      case 'join_request':
+        return <UserPlus size={16} className="text-blue-400" />;
       default:
         return <Bell size={16} className={iconClass} />;
     }
@@ -230,39 +233,49 @@ export const NotificationBell = () => {
                 </div>
               ) : (
                 notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    onClick={() => handleNotificationClick(notification)}
-                    className={`p-4 border-b border-gray-700/50 hover:bg-gray-800/50 cursor-pointer transition-colors ${
-                      !notification.isRead ? 'bg-gray-800/30' : ''
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1">
-                        {getNotificationIcon(notification.type, notification.isHighPriority)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className={`text-sm font-medium ${!notification.isRead ? 'text-white' : 'text-gray-300'}`}>
-                            {notification.title}
-                          </p>
-                          {notification.isHighPriority && (
-                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                          )}
-                          {!notification.isRead && (
-                            <div className="w-2 h-2 bg-glass-orange rounded-full"></div>
-                          )}
+                  notification.type === 'join_request' ? (
+                    <JoinRequestNotification
+                      key={notification.id}
+                      notification={notification}
+                      onAction={() => {
+                        fetchNotifications();
+                      }}
+                    />
+                  ) : (
+                    <div
+                      key={notification.id}
+                      onClick={() => handleNotificationClick(notification)}
+                      className={`p-4 border-b border-gray-700/50 hover:bg-gray-800/50 cursor-pointer transition-colors ${
+                        !notification.isRead ? 'bg-gray-800/30' : ''
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1">
+                          {getNotificationIcon(notification.type, notification.isHighPriority)}
                         </div>
-                        <p className="text-xs text-gray-400 mb-1 truncate">
-                          {notification.description}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-gray-500">{notification.tripName}</p>
-                          <p className="text-xs text-gray-500">{notification.timestamp}</p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className={`text-sm font-medium ${!notification.isRead ? 'text-white' : 'text-gray-300'}`}>
+                              {notification.title}
+                            </p>
+                            {notification.isHighPriority && (
+                              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                            )}
+                            {!notification.isRead && (
+                              <div className="w-2 h-2 bg-glass-orange rounded-full"></div>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-400 mb-1 truncate">
+                            {notification.description}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-gray-500">{notification.tripName}</p>
+                            <p className="text-xs text-gray-500">{notification.timestamp}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )
                 ))
               )}
             </div>

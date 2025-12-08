@@ -1,13 +1,14 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Crown, FileText, Eye, Users, Clock, MoreHorizontal, Archive, EyeOff } from 'lucide-react';
+import { Calendar, MapPin, Crown, FileText, Eye, Users, Clock, MoreHorizontal, Archive, EyeOff, UserPlus } from 'lucide-react';
 import { Button } from './ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { TravelerTooltip } from './ui/traveler-tooltip';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { TripExportModal } from './trip/TripExportModal';
+import { InviteModal } from './InviteModal';
 import { ProTripData } from '../types/pro';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { archiveTrip, hideTrip } from '../services/archiveService';
@@ -36,6 +37,7 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
   const { accentColors } = useTripVariant();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const { toast } = useToast();
 
   const handleViewTrip = () => {
@@ -294,31 +296,41 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2">
         <Button
-          onClick={handleViewTrip}
-          className={`flex-1 bg-gradient-to-r from-${accentColors.primary}/20 to-${accentColors.secondary}/20 backdrop-blur-sm border border-white/20 hover:border-white/40 text-white hover:text-${accentColors.secondary} transition-all duration-300 font-medium hover:shadow-lg`}
-          variant="ghost"
+          onClick={() => setShowInviteModal(true)}
+          className={`w-full bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white transition-all duration-300 font-medium`}
         >
-          <Eye size={16} className="mr-2" />
-          View Trip
+          <UserPlus size={16} className="mr-2" />
+          Invite to Trip
         </Button>
         
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              onClick={handleExportTrip}
-              className="bg-white/10 backdrop-blur-sm border border-white/20 hover:border-glass-green/40 text-white hover:text-glass-green transition-all duration-300"
-              variant="ghost"
-              size="icon"
-            >
-              <FileText size={16} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Export Details</p>
-          </TooltipContent>
-        </Tooltip>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleViewTrip}
+            className={`flex-1 bg-gradient-to-r from-${accentColors.primary}/20 to-${accentColors.secondary}/20 backdrop-blur-sm border border-white/20 hover:border-white/40 text-white hover:text-${accentColors.secondary} transition-all duration-300 font-medium hover:shadow-lg`}
+            variant="ghost"
+          >
+            <Eye size={16} className="mr-2" />
+            View Trip
+          </Button>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleExportTrip}
+                className="bg-white/10 backdrop-blur-sm border border-white/20 hover:border-glass-green/40 text-white hover:text-glass-green transition-all duration-300"
+                variant="ghost"
+                size="icon"
+              >
+                <FileText size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Export Details</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </div>
 
       {/* Pro Features Highlight */}
@@ -341,6 +353,13 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
         onExport={handleExport}
+        tripName={trip.title}
+        tripId={trip.id}
+      />
+
+      <InviteModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
         tripName={trip.title}
         tripId={trip.id}
       />

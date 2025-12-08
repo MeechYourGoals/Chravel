@@ -174,14 +174,16 @@ serve(async (req) => {
 
     if (requiresApproval) {
       // Create join request instead of auto-joining
-      const { error: requestError } = await supabaseClient
+      const { data: joinRequest, error: requestError } = await supabaseClient
         .from("trip_join_requests")
         .insert({
           trip_id: invite.trip_id,
           user_id: user.id,
           invite_code: inviteCode,
           status: 'pending'
-        });
+        })
+        .select('id')
+        .single();
 
       if (requestError) {
         // Check if request already exists
@@ -210,7 +212,41 @@ serve(async (req) => {
         );
       }
 
-      logStep("Join request created successfully");
+      logStep("Join request created successfully", { requestId: joinRequest?.id });
+
+      // Get requester profile for notification
+      const { data: requesterProfile } = await supabaseClient
+        .from("profiles")
+        .select("display_name, email")
+        .eq("user_id", user.id)
+        .single();
+
+      const requesterName = requesterProfile?.display_name || requesterProfile?.email || user.email || "Someone";
+
+      // Create notification for trip creator
+      const { error: notificationError } = await supabaseClient
+        .from("notifications")
+        .insert({
+          user_id: trip.created_by,
+          title: `${requesterName} wants to join ${trip.name}`,
+          message: "Tap to approve or reject their request",
+          type: "join_request",
+          trip_id: invite.trip_id,
+          metadata: {
+            trip_id: invite.trip_id,
+            trip_name: trip.name,
+            requester_id: user.id,
+            requester_name: requesterName,
+            request_id: joinRequest?.id
+          }
+        });
+
+      if (notificationError) {
+        logStep("WARNING: Failed to create notification", { error: notificationError.message });
+        // Non-critical error, don't fail the request
+      } else {
+        logStep("Notification created for trip creator");
+      }
 
       return new Response(
         JSON.stringify({

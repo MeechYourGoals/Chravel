@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, Settings, MoreHorizontal, Archive, EyeOff } from 'lucide-react';
+import { Calendar, MapPin, Users, Settings, MoreHorizontal, Archive, EyeOff, UserPlus } from 'lucide-react';
 import { EventData } from '../types/events';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
+import { InviteModal } from './InviteModal';
 import { archiveTrip, hideTrip } from '../services/archiveService';
 import { useToast } from '../hooks/use-toast';
 import { calculatePeopleCount, calculateDaysCount, calculateEventPlacesCount } from '../utils/tripStatsUtils';
@@ -25,6 +26,7 @@ interface EventCardProps {
 export const EventCard = ({ event }: EventCardProps) => {
   const navigate = useNavigate();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const { toast } = useToast();
   const { accentColors } = useTripVariant();
 
@@ -214,13 +216,22 @@ export const EventCard = ({ event }: EventCardProps) => {
           </span>
         </div>
 
-        {/* Action Button */}
-        <button
-          onClick={handleViewEvent}
-          className={`w-full bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white font-semibold py-4 rounded-xl transition-all duration-300 shadow-lg`}
-        >
-          Manage Event
-        </button>
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={() => setShowInviteModal(true)}
+            className={`w-full bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white font-semibold py-3 rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2`}
+          >
+            <UserPlus size={18} />
+            Invite to Event
+          </button>
+          <button
+            onClick={handleViewEvent}
+            className="w-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 text-white font-medium py-3 rounded-xl transition-all duration-300"
+          >
+            Manage Event
+          </button>
+        </div>
       </div>
 
       <ArchiveConfirmDialog
@@ -229,6 +240,13 @@ export const EventCard = ({ event }: EventCardProps) => {
         onConfirm={handleArchiveEvent}
         tripTitle={event.title}
         isArchiving={true}
+      />
+
+      <InviteModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        tripName={event.title}
+        tripId={event.id}
       />
     </div>
   );
