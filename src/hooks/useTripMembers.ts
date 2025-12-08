@@ -181,16 +181,16 @@ export const useTripMembers = (tripId?: string) => {
     }
   }, [tripId, tripCreatorId]);
 
-  // Subscribe to demo store changes to refresh when members are added
-  const demoAddedMembers = useDemoTripMembersStore(state => 
-    tripId ? state.addedMembers[tripId] : undefined
+  // Subscribe to demo store changes - use length as stable dependency to avoid infinite loops
+  const demoAddedMembersCount = useDemoTripMembersStore(state => 
+    tripId ? (state.addedMembers[tripId]?.length || 0) : 0
   );
 
   useEffect(() => {
     if (tripId) {
       loadTripMembers(tripId);
     }
-  }, [tripId, isDemoMode, demoAddedMembers]);
+  }, [tripId, isDemoMode, demoAddedMembersCount]);
 
   // Real-time subscription for trip members - only when database queries succeed
   useEffect(() => {
