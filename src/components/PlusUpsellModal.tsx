@@ -153,7 +153,6 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
                   <li>• Calendar sync & PDF export</li>
                   <li>• 1 Chravel Pro trip/month</li>
                   <li>• Role-based channels</li>
-                  <li>• Route optimization</li>
                   <li>• Early feature access</li>
                 </ul>
               )}

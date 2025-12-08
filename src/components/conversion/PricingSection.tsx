@@ -115,7 +115,6 @@ const consumerTiers: PricingTier[] = [
       'Role-based channels & pro features on your Pro trip',
       'Custom trip categories - tag by type (work/leisure/family/etc.)',
       'Early feature access - shape the future of Chravel',
-      'Multi-stop route optimization',
       '🎉 Unlimited Events included (up to 200 guests each)',
       '🎁 Your first Pro Trip + Event included free'
     ],

@@ -91,7 +91,6 @@ export const ConsumerBillingSection = () => {
         'Create 1 Chravel Pro trip per month (50-seat limit)',
         'Role-based channels on Pro trips',
         'Custom trip categories & tagging',
-        'Multi-stop route optimization',
         'Early feature access'
       ]
     }
