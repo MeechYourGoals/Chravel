@@ -21,14 +21,26 @@ interface JoinRequestNotificationProps {
     };
   };
   onAction: () => void;
+  isDemoMode?: boolean;
 }
 
-export const JoinRequestNotification = ({ notification, onAction }: JoinRequestNotificationProps) => {
+export const JoinRequestNotification = ({ notification, onAction, isDemoMode }: JoinRequestNotificationProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
   const handleApprove = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Demo mode - just show toast and remove notification
+    if (isDemoMode) {
+      toast({
+        title: "Request Approved",
+        description: `${notification.data?.requester_name || 'User'} has been added to ${notification.data?.trip_name || 'the trip'}.`,
+      });
+      onAction();
+      return;
+    }
+    
     if (!notification.data?.request_id) return;
 
     setIsProcessing(true);
@@ -65,6 +77,17 @@ export const JoinRequestNotification = ({ notification, onAction }: JoinRequestN
 
   const handleReject = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Demo mode - just show toast and remove notification
+    if (isDemoMode) {
+      toast({
+        title: "Request Rejected",
+        description: "Join request has been declined.",
+      });
+      onAction();
+      return;
+    }
+    
     if (!notification.data?.request_id) return;
 
     setIsProcessing(true);

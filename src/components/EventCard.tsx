@@ -77,13 +77,8 @@ export const EventCard = ({ event }: EventCardProps) => {
 
   return (
     <div className={`bg-gradient-to-br ${getCategoryColor(event.category)} backdrop-blur-xl border rounded-3xl overflow-hidden transition-all duration-300 shadow-lg hover:scale-[1.02] relative group`}>
-      {/* Events Badge and Menu */}
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-        <div className={`bg-gradient-to-r ${accentColors.gradient} px-3 py-1 rounded-full flex items-center gap-1`}>
-          <Calendar size={14} className="text-white" />
-          <span className="text-sm font-bold text-white">EVENTS</span>
-        </div>
-        
+      {/* Menu */}
+      <div className="absolute top-4 right-4 z-10">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="text-white/60 hover:text-white transition-colors opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-xl">
