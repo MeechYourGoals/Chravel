@@ -59,7 +59,6 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const { tripCreatorId, canRemoveMembers, removeMember } = useTripMembers(trip.id.toString());
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   
   // Fetch pending join requests
@@ -74,14 +73,21 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
     isDemoMode 
   });
   
-  // Check if current user can remove members
+  // In demo mode, always treat as admin so the Requests tab shows
+  // In authenticated mode, check if user can remove members
+  const [isAdmin, setIsAdmin] = useState(isDemoMode);
+  
   useEffect(() => {
+    if (isDemoMode) {
+      setIsAdmin(true);
+      return;
+    }
     const checkAdmin = async () => {
       const canRemove = await canRemoveMembers();
       setIsAdmin(canRemove);
     };
     checkAdmin();
-  }, [canRemoveMembers]);
+  }, [canRemoveMembers, isDemoMode]);
   
   const isPro = variant === 'pro';
   // Export is now available to everyone
