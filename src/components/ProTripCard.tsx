@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Crown, FileText, Eye, Users, Clock, MoreHorizontal, Archive, EyeOff, UserPlus } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import { Button } from './ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
@@ -46,12 +47,12 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
   
-  // Get added members from the demo store - use stable empty array reference
+  // Get added members from the demo store - use stable empty array reference with shallow comparison
   const tripIdStr = trip.id.toString();
-  const addedDemoMembers = useDemoTripMembersStore(state => 
-    isDemoMode && state.addedMembers[tripIdStr] 
+  const addedDemoMembers = useDemoTripMembersStore(
+    useShallow((state) => isDemoMode && state.addedMembers[tripIdStr] 
       ? state.addedMembers[tripIdStr] 
-      : EMPTY_PARTICIPANTS
+      : EMPTY_PARTICIPANTS)
   );
   
   // Calculate updated people count including added members
