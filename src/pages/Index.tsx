@@ -77,9 +77,18 @@ const Index = () => {
 
   // Use centralized trip data - demo data or real user data converted to mock format
   // ✅ FILTER: Only consumer trips in allTrips (Pro/Event filtered separately below)
-  const allTrips = isDemoMode 
-    ? tripsData 
-    : convertSupabaseTripsToMock(userTripsRaw.filter(t => t.trip_type === 'consumer' || !t.trip_type));
+  // ✅ FILTER: Exclude archived trips from main list (they have their own section)
+  const allTrips = useMemo(() => {
+    if (isDemoMode) {
+      return tripsData.filter(t => !t.archived);
+    }
+    return convertSupabaseTripsToMock(
+      userTripsRaw.filter(t => 
+        (t.trip_type === 'consumer' || !t.trip_type) && !t.is_archived
+      )
+    );
+  }, [isDemoMode, userTripsRaw]);
+  
   // Unified semantic search + date facet filtering
   const trips = useMemo(() => {
     return filterTrips(allTrips, searchQuery, activeFilter as DateFacet | '');
@@ -123,19 +132,52 @@ const Index = () => {
 
   // Development diagnostics available via console when needed
 
-  // Calculate stats for each view mode - use filtered data
-  const tripStats = calculateTripStats(trips);
+  // Calculate stats for each view mode - use UNFILTERED data for accurate counts
+  // Stats should reflect total counts, not filtered counts
+  const tripStats = useMemo(() => {
+    return calculateTripStats(allTrips);
+  }, [allTrips]);
+
   const proTripStats = useMemo(() => {
-    if (!isDemoMode) return calculateProTripStats({});
-    const filteredPro = filterProTrips(proTripMockData, searchQuery, activeFilter as DateFacet | '');
-    return calculateProTripStats(filteredPro);
-  }, [isDemoMode, searchQuery, activeFilter]);
+    // Get unfiltered pro trips data (excluding archived)
+    let safeProTrips = isDemoMode 
+      ? Object.fromEntries(Object.entries(proTripMockData || {}).filter(([_, trip]) => !trip.archived))
+      : {};
+    
+    if (!isDemoMode && userTripsRaw) {
+      const proTripsFromDB = userTripsRaw.filter(t => t.trip_type === 'pro' && !t.is_archived);
+      if (proTripsFromDB.length > 0) {
+        safeProTrips = proTripsFromDB.reduce((acc, trip) => {
+          acc[trip.id] = convertSupabaseTripToProTrip(trip);
+          return acc;
+        }, {} as Record<string, any>);
+      }
+    }
+    
+    // Stats should show total counts, not filtered counts
+    // Only apply date filter when calculating stats for that specific filter
+    return calculateProTripStats(safeProTrips);
+  }, [isDemoMode, userTripsRaw]);
   
   const eventStats = useMemo(() => {
-    if (!isDemoMode) return calculateEventStats({});
-    const filteredEvents = filterEvents(eventsMockData, searchQuery, activeFilter as DateFacet | '');
-    return calculateEventStats(filteredEvents);
-  }, [isDemoMode, searchQuery, activeFilter]);
+    // Get unfiltered events data (excluding archived)
+    let safeEvents = isDemoMode 
+      ? Object.fromEntries(Object.entries(eventsMockData || {}).filter(([_, event]) => !event.archived))
+      : {};
+    
+    if (!isDemoMode && userTripsRaw) {
+      const eventsFromDB = userTripsRaw.filter(t => t.trip_type === 'event' && !t.is_archived);
+      if (eventsFromDB.length > 0) {
+        safeEvents = eventsFromDB.reduce((acc, trip) => {
+          acc[trip.id] = convertSupabaseTripToEvent(trip);
+          return acc;
+        }, {} as Record<string, any>);
+      }
+    }
+    
+    // Stats should show total counts, not filtered counts
+    return calculateEventStats(safeEvents);
+  }, [isDemoMode, userTripsRaw]);
 
   const getCurrentStats = () => {
     switch (viewMode) {
@@ -156,9 +198,10 @@ const Index = () => {
     let safeEvents = isDemoMode ? (eventsMockData || {}) : {};
 
     // For authenticated users, populate proTrips and events from userTripsRaw
+    // ✅ FILTER: Exclude archived trips from main list
     if (!isDemoMode && userTripsRaw) {
-      const proTripsFromDB = userTripsRaw.filter(t => t.trip_type === 'pro');
-      const eventsFromDB = userTripsRaw.filter(t => t.trip_type === 'event');
+      const proTripsFromDB = userTripsRaw.filter(t => t.trip_type === 'pro' && !t.is_archived);
+      const eventsFromDB = userTripsRaw.filter(t => t.trip_type === 'event' && !t.is_archived);
       
       if (proTripsFromDB.length > 0) {
         safeProTrips = proTripsFromDB.reduce((acc, trip) => {

@@ -21,8 +21,34 @@ const normalize = (s?: string): string =>
 // Parse date range to get start and end dates
 const getDateRange = (dateRange: string): { start: Date | null, end: Date | null } => {
   try {
-    // Handle formats like "Dec 15-22, 2024"
-    if (dateRange.includes('-') && dateRange.includes(',')) {
+    // Handle formats like "Mar 12 - Mar 31, 2025" (from tripConverter)
+    // Pattern: "MMM d - MMM d, yyyy"
+    if (dateRange.includes(' - ') && dateRange.includes(',')) {
+      const parts = dateRange.split(',');
+      const year = parseInt(parts[1].trim());
+      const datePart = parts[0].trim();
+      const [startPart, endPart] = datePart.split(' - ');
+      
+      if (startPart && endPart) {
+        const startMatch = startPart.trim().match(/(\w+)\s+(\d+)/);
+        const endMatch = endPart.trim().match(/(\w+)\s+(\d+)/);
+        
+        if (startMatch && endMatch) {
+          const startMonth = new Date(`${startMatch[1]} 1, ${year}`).getMonth();
+          const endMonth = new Date(`${endMatch[1]} 1, ${year}`).getMonth();
+          const startDay = parseInt(startMatch[2]);
+          const endDay = parseInt(endMatch[2]);
+          
+          return {
+            start: new Date(year, startMonth, startDay),
+            end: new Date(year, endMonth, endDay)
+          };
+        }
+      }
+    }
+    
+    // Handle formats like "Dec 15-22, 2024" (single month, day range)
+    if (dateRange.includes('-') && dateRange.includes(',') && !dateRange.includes(' - ')) {
       const parts = dateRange.split(',');
       const year = parseInt(parts[1].trim());
       const monthDay = parts[0].trim();
