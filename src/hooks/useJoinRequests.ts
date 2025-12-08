@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getMockPendingRequests } from '@/mockData/joinRequests';
 
 export interface JoinRequest {
   id: string;
@@ -21,15 +22,23 @@ export interface JoinRequest {
 interface UseJoinRequestsProps {
   tripId: string;
   enabled?: boolean;
+  isDemoMode?: boolean;
 }
 
-export const useJoinRequests = ({ tripId, enabled = true }: UseJoinRequestsProps) => {
+export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: UseJoinRequestsProps) => {
   const [requests, setRequests] = useState<JoinRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const fetchRequests = useCallback(async () => {
     if (!enabled || !tripId) {
+      setIsLoading(false);
+      return;
+    }
+
+    // Demo mode - return mock data
+    if (isDemoMode) {
+      setRequests(getMockPendingRequests(tripId));
       setIsLoading(false);
       return;
     }
@@ -69,15 +78,15 @@ export const useJoinRequests = ({ tripId, enabled = true }: UseJoinRequestsProps
     } finally {
       setIsLoading(false);
     }
-  }, [tripId, enabled]);
+  }, [tripId, enabled, isDemoMode]);
 
   useEffect(() => {
     fetchRequests();
   }, [fetchRequests]);
 
-  // Subscribe to realtime updates
+  // Subscribe to realtime updates (only in authenticated mode)
   useEffect(() => {
-    if (!enabled || !tripId) return;
+    if (!enabled || !tripId || isDemoMode) return;
 
     const channel = supabase
       .channel(`trip_join_requests:${tripId}`)
@@ -98,10 +107,18 @@ export const useJoinRequests = ({ tripId, enabled = true }: UseJoinRequestsProps
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tripId, enabled, fetchRequests]);
+  }, [tripId, enabled, isDemoMode, fetchRequests]);
 
   const approveRequest = useCallback(async (requestId: string) => {
     setIsProcessing(true);
+    
+    // Demo mode - just update local state
+    if (isDemoMode) {
+      setRequests(prev => prev.filter(r => r.id !== requestId));
+      toast.success('✅ Request approved');
+      setIsProcessing(false);
+      return;
+    }
     
     try {
       const { error } = await supabase.rpc('approve_join_request' as any, {
@@ -119,10 +136,18 @@ export const useJoinRequests = ({ tripId, enabled = true }: UseJoinRequestsProps
     } finally {
       setIsProcessing(false);
     }
-  }, [fetchRequests]);
+  }, [fetchRequests, isDemoMode]);
 
   const rejectRequest = useCallback(async (requestId: string) => {
     setIsProcessing(true);
+    
+    // Demo mode - just update local state
+    if (isDemoMode) {
+      setRequests(prev => prev.filter(r => r.id !== requestId));
+      toast.success('Request rejected');
+      setIsProcessing(false);
+      return;
+    }
     
     try {
       const { error } = await supabase.rpc('reject_join_request' as any, {
@@ -140,7 +165,7 @@ export const useJoinRequests = ({ tripId, enabled = true }: UseJoinRequestsProps
     } finally {
       setIsProcessing(false);
     }
-  }, [fetchRequests]);
+  }, [fetchRequests, isDemoMode]);
 
   return {
     requests,

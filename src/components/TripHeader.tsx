@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { useTripMembers } from '../hooks/useTripMembers';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { useJoinRequests } from '../hooks/useJoinRequests';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -60,6 +61,18 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
   const { tripCreatorId, canRemoveMembers, removeMember } = useTripMembers(trip.id.toString());
   const [isAdmin, setIsAdmin] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  
+  // Fetch pending join requests
+  const { 
+    requests: pendingRequests, 
+    approveRequest, 
+    rejectRequest, 
+    isProcessing: isProcessingRequest 
+  } = useJoinRequests({ 
+    tripId: trip.id.toString(), 
+    enabled: true,
+    isDemoMode 
+  });
   
   // Check if current user can remove members
   useEffect(() => {
@@ -458,6 +471,10 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
         tripCreatorId={tripCreatorId}
         isAdmin={isAdmin}
         onRemoveMember={removeMember}
+        pendingRequests={pendingRequests}
+        onApproveRequest={approveRequest}
+        onRejectRequest={rejectRequest}
+        isProcessingRequest={isProcessingRequest}
       />
 
       <EditTripModal
