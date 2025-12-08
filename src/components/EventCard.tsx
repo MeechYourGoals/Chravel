@@ -115,9 +115,6 @@ export const EventCard = ({ event }: EventCardProps) => {
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=600&h=300&fit=crop')] bg-cover bg-center opacity-20"></div>
         <div className="relative z-10 h-full flex flex-col justify-between">
           <div>
-            <div className="inline-block bg-black/20 backdrop-blur-sm px-3 py-1 rounded-lg mb-3">
-              <span className="text-sm font-medium text-white">{event.category}</span>
-            </div>
             <h3 className="text-2xl font-bold text-white mb-2 line-clamp-2">
               {event.title}
             </h3>
@@ -191,18 +188,18 @@ export const EventCard = ({ event }: EventCardProps) => {
           </div>
         </div>
 
-        {/* Action Buttons - Side by Side, Smaller */}
-        <div className="flex gap-2">
+        {/* Action Buttons - Side by Side */}
+        <div className="grid grid-cols-2 gap-2 md:gap-3">
           <button
             onClick={() => setShowInviteModal(true)}
-            className={`flex-1 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white font-medium py-2 text-sm rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-1.5`}
+            className={`bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white font-semibold py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-300 shadow-lg hover:shadow-lg flex items-center justify-center gap-2 text-xs md:text-sm`}
           >
-            <UserPlus size={14} />
+            <UserPlus size={16} />
             Invite
           </button>
           <button
             onClick={handleViewEvent}
-            className="flex-1 bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 text-white font-medium py-2 text-sm rounded-xl transition-all duration-300"
+            className="bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 text-white font-medium py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 text-xs md:text-sm"
           >
             View Event
           </button>

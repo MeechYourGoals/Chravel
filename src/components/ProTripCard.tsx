@@ -284,34 +284,24 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
         </div>
       </div>
 
-      {/* Action Buttons - Side by Side, Smaller */}
-      <div className="flex gap-2">
+      {/* Action Buttons - Side by Side */}
+      <div className="grid grid-cols-2 gap-2 md:gap-3">
         <Button
           onClick={() => setShowInviteModal(true)}
-          className={`flex-1 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white transition-all duration-300 font-medium text-sm py-2 h-9`}
-          size="sm"
+          className={`bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white transition-all duration-300 font-semibold py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl text-xs md:text-sm h-auto`}
         >
-          <UserPlus size={14} className="mr-1.5" />
+          <UserPlus size={16} className="mr-2" />
           Invite
         </Button>
         
         <Button
           onClick={handleViewTrip}
-          className={`flex-1 bg-gradient-to-r from-${accentColors.primary}/20 to-${accentColors.secondary}/20 backdrop-blur-sm border border-white/20 hover:border-white/40 text-white hover:text-${accentColors.secondary} transition-all duration-300 font-medium text-sm py-2 h-9`}
+          className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm h-auto"
           variant="ghost"
-          size="sm"
         >
-          <Eye size={14} className="mr-1.5" />
+          <Eye size={16} className="mr-2" />
           View Trip
         </Button>
-      </div>
-
-      {/* Pro Features Highlight */}
-      <div className="mt-4 pt-4 border-t border-white/10">
-        <div className={`text-xs text-${accentColors.secondary}/80 flex items-center gap-1`}>
-          <Crown size={12} />
-          <span>Pro: Team roles, broadcasts, permissions</span>
-        </div>
       </div>
 
       <ArchiveConfirmDialog
