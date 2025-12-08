@@ -27,10 +27,10 @@ interface ShareTripModalProps {
 export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) => {
   const [copied, setCopied] = useState(false);
 
-  // Generate preview link (read-only, no join functionality)
+  // Generate preview link pointing to edge function for proper OG meta tags
   const previewLink = useMemo(() => {
-    const baseUrl = window.location.origin;
-    return `${baseUrl}/trip/${trip.id}/preview`;
+    // Use edge function URL for server-side rendered OG tags
+    return `https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/generate-trip-preview?tripId=${trip.id}`;
   }, [trip.id]);
 
   // Generate share text for social media

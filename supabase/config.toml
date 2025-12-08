@@ -68,3 +68,6 @@ verify_jwt = true
 
 [functions.fetch-invoices]
 verify_jwt = true
+
+[functions.generate-trip-preview]
+verify_jwt = false
