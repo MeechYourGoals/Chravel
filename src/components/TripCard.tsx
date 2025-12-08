@@ -11,6 +11,8 @@ import { useToast } from '../hooks/use-toast';
 import { Badge } from './ui/badge';
 import { gamificationService } from '../services/gamificationService';
 import { isConsumerTrip } from '../utils/tripTierDetector';
+import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
+import { useDemoMode } from '../hooks/useDemoMode';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +50,12 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
   const [showShareModal, setShowShareModal] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
+  
+  // Get added members from the demo store
+  const addedDemoMembers = useDemoTripMembersStore(state => 
+    isDemoMode ? state.addedMembers[trip.id.toString()] || [] : []
+  );
 
   const handleViewTrip = () => {
     navigate(`/trip/${trip.id}`);
@@ -89,8 +97,24 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
     }
   };
 
+  // Merge base participants with added demo members
+  const allParticipants = React.useMemo(() => {
+    if (!isDemoMode || addedDemoMembers.length === 0) {
+      return trip.participants;
+    }
+    const existingIds = new Set(trip.participants.map(p => p.id.toString()));
+    const newMembers = addedDemoMembers
+      .filter(m => !existingIds.has(m.id.toString()))
+      .map(m => ({
+        id: typeof m.id === 'string' ? parseInt(m.id, 10) || 0 : m.id as number,
+        name: m.name,
+        avatar: m.avatar || ''
+      }));
+    return [...trip.participants, ...newMembers];
+  }, [trip.participants, addedDemoMembers, isDemoMode]);
+
   // Ensure all participants have proper avatar URLs
-  const participantsWithAvatars = trip.participants.map((participant, index) => ({
+  const participantsWithAvatars = allParticipants.map((participant, index) => ({
     ...participant,
     avatar: participant.avatar || `https://images.unsplash.com/photo-${1649972904349 + index}-6e44c42644a7?w=40&h=40&fit=crop&crop=face`
   }));

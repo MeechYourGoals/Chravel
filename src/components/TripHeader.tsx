@@ -15,6 +15,7 @@ import { useTripMembers } from '../hooks/useTripMembers';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useJoinRequests } from '../hooks/useJoinRequests';
+import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -88,6 +89,32 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
     };
     checkAdmin();
   }, [canRemoveMembers, isDemoMode]);
+  
+  // Get added members from the demo store and merge with base participants
+  const addedDemoMembers = useDemoTripMembersStore(state => 
+    isDemoMode ? state.addedMembers[trip.id.toString()] || [] : []
+  );
+  
+  // Merge base participants with any dynamically added members (from approved join requests)
+  const mergedParticipants = React.useMemo(() => {
+    if (!isDemoMode || addedDemoMembers.length === 0) {
+      return trip.participants;
+    }
+    
+    // Add new members that aren't already in participants
+    const existingIds = new Set(trip.participants.map(p => p.id.toString()));
+    const newMembers = addedDemoMembers
+      .filter(m => !existingIds.has(m.id.toString()))
+      .map(m => ({
+        id: m.id,
+        name: m.name,
+        avatar: m.avatar || '',
+        role: m.role,
+        email: m.email
+      }));
+    
+    return [...trip.participants, ...newMembers];
+  }, [trip.participants, addedDemoMembers, isDemoMode]);
   
   const isPro = variant === 'pro';
   // Export is now available to everyone
@@ -366,7 +393,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 </h3>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-gray-400 text-sm">{trip.participants.length}</span>
+                <span className="text-gray-400 text-sm">{mergedParticipants.length}</span>
                 {onManageUsers && (
                   <button
                     onClick={onManageUsers}
@@ -390,8 +417,8 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
             )}
 
             <CollaboratorsGrid
-              participants={trip.participants}
-              countLabel={`${trip.participants.length} collaborators`}
+              participants={mergedParticipants}
+              countLabel={`${mergedParticipants.length} collaborators`}
               onShowAll={() => setShowAllCollaborators(true)}
               maxRows={1}
               minColWidth={140}
@@ -471,7 +498,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       <CollaboratorsModal
         open={showAllCollaborators}
         onOpenChange={setShowAllCollaborators}
-        participants={trip.participants}
+        participants={mergedParticipants}
         tripType={trip.trip_type || 'consumer'}
         currentUserId={user?.id}
         tripCreatorId={tripCreatorId}
