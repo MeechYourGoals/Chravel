@@ -28,6 +28,39 @@ interface InviteLinkResult {
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Generate a short branded invite code (e.g., "chravel7x9k2m")
+const generateBrandedCode = (): string => {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let randomPart = '';
+  for (let i = 0; i < 8; i++) {
+    randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `chravel${randomPart}`;
+};
+
+// Check if a code already exists in the database
+const checkCodeExists = async (code: string): Promise<boolean> => {
+  const { data } = await supabase
+    .from('trip_invites')
+    .select('id')
+    .eq('code', code)
+    .single();
+  return !!data;
+};
+
+// Generate a unique branded code with collision detection
+const generateUniqueCode = async (maxAttempts = 5): Promise<string> => {
+  for (let i = 0; i < maxAttempts; i++) {
+    const code = generateBrandedCode();
+    const exists = await checkCodeExists(code);
+    if (!exists) {
+      return code;
+    }
+  }
+  // Fallback to UUID if we can't generate a unique short code
+  return crypto.randomUUID();
+};
+
 export const useInviteLink = ({ 
   isOpen, 
   tripName, 
@@ -159,8 +192,8 @@ export const useInviteLink = ({
       return;
     }
 
-    // Create the invite in database
-    const inviteCode = crypto.randomUUID();
+    // Generate a unique branded invite code (e.g., "chravel7x9k2m")
+    const inviteCode = await generateUniqueCode();
     const created = await createInviteInDatabase(actualTripId, inviteCode);
     
     if (!created) {
