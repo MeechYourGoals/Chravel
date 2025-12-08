@@ -274,20 +274,27 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
           </div>
         </div>
 
-        {/* Action Buttons - Side by side */}
-        <div className="grid grid-cols-2 gap-2 md:gap-3">
+        {/* Action Buttons - 3 columns: View | Invite | Share */}
+        <div className="grid grid-cols-3 gap-2 md:gap-3">
           <button
             onClick={handleViewTrip}
-            className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25 text-xs md:text-sm"
+            className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25 text-xs md:text-sm"
           >
-            View Details
+            View
+          </button>
+
+          <button
+            onClick={() => setShowInviteModal(true)}
+            className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-yellow-500/30 hover:border-yellow-500/50 text-xs md:text-sm"
+          >
+            Invite
           </button>
 
           <button
             onClick={() => setShowShareModal(true)}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm"
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm"
           >
-            Share Trip
+            Share
           </button>
         </div>
       </div>

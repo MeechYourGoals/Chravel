@@ -344,7 +344,7 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
         tripName={trip.title}
-        tripId={trip.id}
+        proTripId={trip.id}
       />
     </div>
   );
