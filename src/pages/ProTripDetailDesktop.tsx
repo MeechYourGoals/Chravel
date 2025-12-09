@@ -131,6 +131,10 @@ export const ProTripDetailDesktop = () => {
   const tripContext = React.useMemo(() => {
     if (!tripData) return null;
     
+    // Get actual creator ID from Supabase trip data in authenticated mode
+    const supabaseTrip = userTrips.find(t => t.id === tripData.id);
+    const actualCreatorId = isDemoMode ? 'demo-user' : (supabaseTrip?.created_by || user?.id || '');
+    
     const trip = {
       id: tripData.id,
       name: tripData.title,
@@ -138,7 +142,7 @@ export const ProTripDetailDesktop = () => {
       destination: tripData.location,
       start_date: tripData.dateRange?.split(' - ')[0] || '',
       end_date: tripData.dateRange?.split(' - ')[1] || '',
-      created_by: 'demo-user',
+      created_by: actualCreatorId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       is_archived: false,
@@ -222,6 +226,10 @@ export const ProTripDetailDesktop = () => {
 
   // Derived data for rendering
   const participants = tripData.participants || [];
+  // Get actual creator ID from Supabase trip data in authenticated mode
+  const supabaseTrip = userTrips.find(t => t.id === tripData.id);
+  const actualCreatorId = isDemoMode ? 'demo-user' : (supabaseTrip?.created_by || user?.id || '');
+  
   const trip = {
     id: tripData.id,
     name: tripData.title,
@@ -229,7 +237,7 @@ export const ProTripDetailDesktop = () => {
     destination: tripData.location,
     start_date: tripData.dateRange?.split(' - ')[0] || '',
     end_date: tripData.dateRange?.split(' - ')[1] || '',
-    created_by: 'demo-user',
+    created_by: actualCreatorId,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_archived: false,

@@ -147,12 +147,17 @@ const EventDetail = () => {
 
   // Enhanced trip data with event-specific features
   // 🔄 Merge real trip members for authenticated events
+  // Get actual creator ID from Supabase trip data in authenticated mode
+  const eventTrip = userTrips?.find(t => t.id === eventId);
+  const actualCreatorId = isDemoMode ? 'demo-user' : (eventTrip?.created_by || user?.id || '');
+  
   const trip = {
     id: parseInt(eventId.replace(/\D/g, '') || '1'),
     title: eventData.title,
     location: eventData.location,
     dateRange: eventData.dateRange,
     description: tripDescription || eventData.description || `Professional ${eventData.category.toLowerCase()} event in ${eventData.location}`,
+    created_by: actualCreatorId,
     participants: isDemoMode 
       ? eventData.participants.map((p: any) => ({
           id: p.id,

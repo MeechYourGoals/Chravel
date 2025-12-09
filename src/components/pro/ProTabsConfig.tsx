@@ -22,11 +22,7 @@ export const proTabs: ProTab[] = [
   { id: 'places', label: 'Places', icon: MapPin },
   { id: 'polls', label: 'Polls', icon: BarChart3 },
   { id: 'tasks', label: 'Tasks', icon: ClipboardList },
-  { id: 'team', label: 'Team', icon: Users, proOnly: true, requiredPermissions: ['read'] },
-  { id: 'finance', label: 'Finance', icon: DollarSign, proOnly: true, restrictedRoles: ['talent', 'cast', 'student'], requiredPermissions: ['finance'] },
-  { id: 'medical', label: 'Medical', icon: Shield, proOnly: true, requiredPermissions: ['medical', 'admin'] },
-  { id: 'compliance', label: 'Compliance', icon: FileCheck, proOnly: true, restrictedRoles: ['talent', 'cast', 'student'], requiredPermissions: ['compliance', 'admin'] },
-  { id: 'sponsors', label: 'Sponsors', icon: Award, proOnly: true, requiredPermissions: ['admin'] }
+  { id: 'team', label: 'Team', icon: Users, proOnly: true, requiredPermissions: ['read'] }
 ];
 
 export const getVisibleTabs = (userRole: string, userPermissions: string[], category?: ProTripCategory): ProTab[] => {

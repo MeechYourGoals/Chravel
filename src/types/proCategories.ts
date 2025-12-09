@@ -29,8 +29,8 @@ export const PRO_CATEGORY_CONFIGS: Record<ProTripCategory, ProCategoryConfig> = 
     name: 'Sports – Pro, Collegiate, Youth',
     description: 'Professional, collegiate, and youth sports teams, tournaments, and athletic events',
     roles: ['Player', 'Coach', 'Crew', 'Medical', 'Security'], // MVP: Capped at 5 roles
-    availableTabs: ['chat', 'calendar', 'tasks', 'polls', 'places', 'team', 'finance', 'medical', 'compliance', 'ai-chat'],
-    requiredTabs: ['team', 'medical'],
+    availableTabs: ['chat', 'calendar', 'ai-chat', 'media', 'payments', 'places', 'polls', 'tasks', 'team'],
+    requiredTabs: ['team'],
     terminology: {
       teamLabel: 'Team Roster',
       memberLabel: 'Team Member',
@@ -42,7 +42,7 @@ export const PRO_CATEGORY_CONFIGS: Record<ProTripCategory, ProCategoryConfig> = 
     name: 'Tour – Music, Comedy, etc.',
     description: 'Music tours, comedy shows, podcast tours, creator events, and entertainment productions',
     roles: ['Artist Team', 'Tour Manager', 'Crew', 'VIP', 'Security'],
-    availableTabs: ['chat', 'calendar', 'tasks', 'polls', 'places', 'team', 'finance', 'sponsors', 'ai-chat'],
+    availableTabs: ['chat', 'calendar', 'ai-chat', 'media', 'payments', 'places', 'polls', 'tasks', 'team'],
     requiredTabs: ['team'],
     terminology: {
       teamLabel: 'Tour Crew',
@@ -55,7 +55,7 @@ export const PRO_CATEGORY_CONFIGS: Record<ProTripCategory, ProCategoryConfig> = 
     name: 'Business Travel',
     description: 'Corporate retreats, executive meetings, sales trips, recruiting events, and business travel',
     roles: [],
-    availableTabs: ['chat', 'calendar', 'tasks', 'polls', 'places', 'team', 'finance', 'compliance', 'ai-chat'],
+    availableTabs: ['chat', 'calendar', 'ai-chat', 'media', 'payments', 'places', 'polls', 'tasks', 'team'],
     requiredTabs: ['team'],
     terminology: {
       teamLabel: 'Attendees',
@@ -68,8 +68,8 @@ export const PRO_CATEGORY_CONFIGS: Record<ProTripCategory, ProCategoryConfig> = 
     name: 'School Trip',
     description: 'Educational trips, academic competitions, and school-related events',
     roles: ['Student', 'Chaperone', 'Teacher'],
-    availableTabs: ['chat', 'calendar', 'tasks', 'polls', 'places', 'team', 'compliance', 'medical', 'ai-chat'],
-    requiredTabs: ['team', 'compliance'],
+    availableTabs: ['chat', 'calendar', 'ai-chat', 'media', 'payments', 'places', 'polls', 'tasks', 'team'],
+    requiredTabs: ['team'],
     terminology: {
       teamLabel: 'Group',
       memberLabel: 'Participant',
@@ -81,7 +81,7 @@ export const PRO_CATEGORY_CONFIGS: Record<ProTripCategory, ProCategoryConfig> = 
     name: 'Content',
     description: 'Television shows, film productions, creator content, and media shoots',
     roles: ['Talent', 'Crew', 'Security'],
-    availableTabs: ['chat', 'calendar', 'tasks', 'polls', 'places', 'team', 'sponsors', 'compliance', 'ai-chat'],
+    availableTabs: ['chat', 'calendar', 'ai-chat', 'media', 'payments', 'places', 'polls', 'tasks', 'team'],
     requiredTabs: ['team'],
     terminology: {
       teamLabel: 'Cast & Crew',
@@ -94,7 +94,7 @@ export const PRO_CATEGORY_CONFIGS: Record<ProTripCategory, ProCategoryConfig> = 
     name: 'Other',
     description: 'All other types of professional trips and events not covered by the above categories',
     roles: [],
-    availableTabs: ['chat', 'calendar', 'tasks', 'polls', 'places', 'team', 'finance', 'ai-chat'],
+    availableTabs: ['chat', 'calendar', 'ai-chat', 'media', 'payments', 'places', 'polls', 'tasks', 'team'],
     requiredTabs: ['team'],
     terminology: {
       teamLabel: 'Team',
