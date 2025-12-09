@@ -102,24 +102,30 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-background/95 backdrop-blur-md border border-border rounded-3xl p-4 max-w-lg w-full max-h-[600px] overflow-y-auto animate-scale-in relative">
-        {/* Close Button - Clearly visible */}
-        <Button
-          onClick={onClose}
-          variant="ghost"
-          size="icon"
-          title="Close"
-          className="absolute top-3 right-3 z-10 bg-muted/80 hover:bg-destructive/20 hover:text-destructive text-foreground w-9 h-9 rounded-full border border-border"
-        >
-          <X size={18} />
-        </Button>
-
-        {/* Header */}
-        <div className="mb-4 pr-10">
-          <h2 className="text-xl font-bold text-foreground">Share Trip</h2>
-          <p className="text-muted-foreground text-sm">Share this trip preview with friends</p>
+    <div 
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-12 overflow-y-auto animate-fade-in"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-background/95 backdrop-blur-md border border-border rounded-3xl max-w-lg w-full animate-scale-in relative mb-8">
+        {/* Sticky Header with Close Button */}
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md rounded-t-3xl border-b border-border p-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-foreground">Share Trip</h2>
+            <p className="text-muted-foreground text-sm">Share this trip preview with friends</p>
+          </div>
+          <Button
+            onClick={onClose}
+            variant="ghost"
+            size="icon"
+            title="Close"
+            className="bg-muted hover:bg-destructive/20 hover:text-destructive text-foreground w-10 h-10 rounded-full border border-border flex-shrink-0"
+          >
+            <X size={20} />
+          </Button>
         </div>
+
+        {/* Scrollable Content */}
+        <div className="p-4">
 
         {/* Trip Preview Card - Social Media Style */}
         <div className="relative rounded-2xl overflow-hidden mb-4 border border-white/10">
@@ -197,6 +203,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
         <p className="text-xs text-muted-foreground text-center mt-2">
           This link shows a preview of your trip. Use "Invite" to let people join.
         </p>
+        </div>
       </div>
     </div>
   );
