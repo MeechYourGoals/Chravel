@@ -11,11 +11,14 @@ import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
 import { AddToCalendarData, CalendarEvent } from '../types/calendar';
+import { calendarService } from '@/services/calendarService';
+import { toast } from 'sonner';
 
 interface CalendarEventModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onEventAdded: (eventData: AddToCalendarData, eventId?: string) => void;
+  tripId: string; // Required: needed to create/update events
+  onEventAdded?: (eventData: AddToCalendarData, eventId?: string) => void; // Optional: for parent components that want to know
   prefilledData?: Partial<AddToCalendarData>;
   editEvent?: CalendarEvent;
 }
@@ -23,10 +26,12 @@ interface CalendarEventModalProps {
 export const CalendarEventModal = ({
   isOpen,
   onClose,
+  tripId,
   onEventAdded,
   prefilledData,
   editEvent
 }: CalendarEventModalProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<AddToCalendarData>({
     title: prefilledData?.title || editEvent?.title || '',
     date: prefilledData?.date || editEvent?.date || new Date(),
@@ -62,13 +67,82 @@ export const CalendarEventModal = ({
     }
   }, [editEvent, prefilledData]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.time) return;
 
-    // Pass event ID if editing, otherwise undefined for new event
-    onEventAdded(formData, editEvent?.id);
-    handleClose();
+    setIsSubmitting(true);
+    try {
+      // Combine date and time into ISO string for start_time
+      const [hours, minutes] = formData.time.split(':');
+      const startTime = new Date(formData.date);
+      startTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+
+      let endTime: string | undefined;
+      if (formData.end_time) {
+        endTime = formData.end_time.toISOString();
+      }
+
+      if (editEvent) {
+        // Update existing event
+        const success = await calendarService.updateEvent(editEvent.id, {
+          title: formData.title,
+          description: formData.description || undefined,
+          start_time: startTime.toISOString(),
+          end_time: endTime,
+          location: formData.location || undefined,
+          event_category: formData.category || 'other',
+          include_in_itinerary: formData.include_in_itinerary ?? true
+        });
+
+        if (success) {
+          toast.success('Event updated');
+          onEventAdded?.(formData, editEvent.id);
+          handleClose();
+        } else {
+          toast.error('Failed to update event');
+        }
+      } else {
+        // Create new event
+        const result = await calendarService.createEvent({
+          trip_id: tripId,
+          title: formData.title,
+          description: formData.description || undefined,
+          start_time: startTime.toISOString(),
+          end_time: endTime,
+          location: formData.location || undefined,
+          event_category: formData.category || 'other',
+          include_in_itinerary: formData.include_in_itinerary ?? true,
+          source_type: 'manual',
+          source_data: {}
+        });
+
+        if (result.event) {
+          // Show conflict warning if overlapping events exist
+          if (result.conflicts.length > 0) {
+            toast.success('Event created', {
+              description: `Note: This event overlaps with "${result.conflicts[0]}"${result.conflicts.length > 1 ? ` and ${result.conflicts.length - 1} other event(s)` : ''}.`
+            });
+          } else {
+            toast.success('Event created');
+          }
+          onEventAdded?.(formData, result.event.id);
+          handleClose();
+        } else {
+          toast.error('Failed to create event');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving event:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Failed to save event', {
+        description: errorMessage.includes('permission') || errorMessage.includes('RLS') 
+          ? 'You may not have permission to modify events on this trip.'
+          : errorMessage
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
@@ -180,10 +254,10 @@ export const CalendarEventModal = ({
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="submit" className="flex-1">
-              {editEvent ? 'Update Event' : 'Add Event'}
+            <Button type="submit" className="flex-1" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : editEvent ? 'Update Event' : 'Add Event'}
             </Button>
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
               Cancel
             </Button>
           </div>

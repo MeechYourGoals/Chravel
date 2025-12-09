@@ -66,41 +66,8 @@ export const useCalendarEvents = (tripId?: string) => {
 
   const createEvent = async (eventData: CreateEventData): Promise<TripEvent | null> => {
     try {
-      // Use conflict-checking RPC if authenticated
-      if (!isDemoMode && eventData.trip_id) {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        const { data, error } = await supabase.rpc('create_event_with_conflict_check', {
-          p_trip_id: eventData.trip_id,
-          p_title: eventData.title,
-          p_description: eventData.description || '',
-          p_location: eventData.location || '',
-          p_start_time: eventData.start_time,
-          p_end_time: eventData.end_time || eventData.start_time,
-          p_created_by: user?.id || ''
-        });
-
-        if (error) {
-          // Check if it's a conflict error
-          if (error.message?.toLowerCase().includes('conflict')) {
-            console.warn('Calendar conflict detected:', error.message);
-            // Continue anyway - we'll allow overlapping events
-          } else {
-            throw error;
-          }
-        }
-
-        if (data) {
-          const newEvent = {
-            ...eventData,
-            id: data
-          } as TripEvent;
-          setEvents(prevEvents => [...prevEvents, newEvent]);
-          return newEvent;
-        }
-      }
-      
-      // Fallback to regular creation for demo mode or if RPC fails
+      // Use calendarService.createEvent as the single source of truth
+      // This handles demo mode, offline mode, RLS, and error handling
       const result = await calendarService.createEvent(eventData);
       if (result.event) {
         setEvents(prevEvents => [...prevEvents, result.event!]);
@@ -108,12 +75,8 @@ export const useCalendarEvents = (tripId?: string) => {
       return result.event;
     } catch (error) {
       console.error('Error creating event:', error);
-      // Fallback to regular creation
-      const result = await calendarService.createEvent(eventData);
-      if (result.event) {
-        setEvents(prevEvents => [...prevEvents, result.event!]);
-      }
-      return result.event;
+      // Re-throw so calling code can handle the error (show toast, etc.)
+      throw error;
     }
   };
 

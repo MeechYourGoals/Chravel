@@ -5,6 +5,7 @@ import { CalendarEventModal } from './CalendarEventModal';
 import { AddToCalendarData } from '../types/calendar';
 
 interface AddToCalendarButtonProps {
+  tripId: string; // Required: needed to create events
   placeName: string;
   placeAddress?: string;
   category?: AddToCalendarData['category'];
@@ -13,6 +14,7 @@ interface AddToCalendarButtonProps {
 }
 
 export const AddToCalendarButton = ({
+  tripId,
   placeName,
   placeAddress,
   category = 'other',
@@ -47,6 +49,7 @@ export const AddToCalendarButton = ({
         <CalendarEventModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
+          tripId={tripId}
           onEventAdded={handleEventAdded}
           prefilledData={prefilledData}
         />
@@ -69,6 +72,7 @@ export const AddToCalendarButton = ({
         <CalendarEventModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
+          tripId={tripId}
           onEventAdded={handleEventAdded}
           prefilledData={prefilledData}
         />

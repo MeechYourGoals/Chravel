@@ -7,6 +7,7 @@ import { AddToCalendarData } from '../types/calendar';
 import { Badge } from './ui/badge';
 
 interface TripPinsCardProps {
+  tripId: string; // Required: needed for calendar event creation
   places: PlaceWithDistance[];
   basecamp?: BasecampLocation;
   onPlaceAdded: (place: PlaceWithDistance) => void;
@@ -17,6 +18,7 @@ interface TripPinsCardProps {
 }
 
 export const TripPinsCard = ({ 
+  tripId,
   places, 
   basecamp, 
   onPlaceAdded, 
@@ -118,6 +120,7 @@ export const TripPinsCard = ({
                     
                     <div className="flex gap-2">
                       <AddToCalendarButton
+                        tripId={tripId}
                         placeName={place.name}
                         placeAddress={place.address}
                         category="activity"
