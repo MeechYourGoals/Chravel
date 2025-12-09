@@ -103,106 +103,80 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
 
   return (
     <div 
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-12 overflow-y-auto animate-fade-in"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-background/95 backdrop-blur-md border border-border rounded-3xl max-w-lg w-full animate-scale-in relative mb-8">
-        {/* Sticky Header with Close Button */}
-        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md rounded-t-3xl border-b border-border p-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-foreground">Share Trip</h2>
-            <p className="text-muted-foreground text-sm">Share this trip preview with friends</p>
-          </div>
+      <div className="bg-background/95 backdrop-blur-md border border-border rounded-2xl max-w-md w-full animate-scale-in">
+        {/* Compact Header with X */}
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+          <span className="text-sm font-medium text-foreground">Share Trip</span>
           <Button
             onClick={onClose}
             variant="ghost"
             size="icon"
             title="Close"
-            className="bg-muted hover:bg-destructive/20 hover:text-destructive text-foreground w-10 h-10 rounded-full border border-border flex-shrink-0"
+            className="hover:bg-destructive/20 hover:text-destructive text-muted-foreground w-7 h-7 rounded-full"
           >
-            <X size={20} />
+            <X size={16} />
           </Button>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="p-4">
+        {/* Content - Compact */}
+        <div className="p-3">
+          {/* Trip Preview Card */}
+          <div className="relative rounded-xl overflow-hidden mb-3 border border-border">
+            {/* Cover Image - Reduced height */}
+            <div
+              className="h-24 bg-cover bg-center"
+              style={{
+                backgroundImage: `url('${trip.coverPhoto || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=300&fit=crop'}')`
+              }}
+            />
+            <div className="absolute inset-0 h-24 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-        {/* Trip Preview Card - Social Media Style */}
-        <div className="relative rounded-2xl overflow-hidden mb-4 border border-white/10">
-          {/* Cover Image */}
-          <div
-            className="h-32 bg-cover bg-center"
-            style={{
-              backgroundImage: `url('${trip.coverPhoto || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=300&fit=crop'}')`
-            }}
-          />
-          <div className="absolute inset-0 h-32 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-          {/* Chravel Badge */}
-          <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full">
-            <span className="text-yellow-400 text-xs font-bold">Chravel</span>
-          </div>
-
-          {/* Trip Details */}
-          <div className="p-4 bg-gradient-to-br from-gray-900/95 to-gray-800/95">
-            <h3 className="text-lg font-bold text-white mb-3">{trip.title}</h3>
-
-            <div className="space-y-2 mb-3">
-              <div className="flex items-center gap-2 text-white/80 text-sm">
-                <MapPin size={14} className="text-yellow-400" />
-                <span>{trip.location}</span>
-              </div>
-              <div className="flex items-center gap-2 text-white/80 text-sm">
-                <Calendar size={14} className="text-yellow-400" />
-                <span>{trip.dateRange}</span>
-              </div>
-              <div className="flex items-center gap-2 text-white/80 text-sm">
-                <Users size={14} className="text-yellow-400" />
-                <span>{trip.participants.length} {trip.participants.length === 1 ? 'traveler' : 'travelers'}</span>
-              </div>
+            {/* Chravel Badge */}
+            <div className="absolute top-1.5 left-1.5 bg-black/50 backdrop-blur-sm px-1.5 py-0.5 rounded-full">
+              <span className="text-yellow-400 text-[10px] font-bold">Chravel</span>
             </div>
 
-            {/* Participant Avatars */}
-            <div className="flex items-center">
-              <div className="flex -space-x-2">
-                {trip.participants.slice(0, 5).map((participant, index) => (
-                  <div
-                    key={participant.id}
-                    className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center text-xs font-semibold text-black border-2 border-gray-900"
-                    style={{ zIndex: trip.participants.length - index }}
-                    title={participant.name}
-                  >
-                    {participant.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                  </div>
-                ))}
+            {/* Trip Details - Compact */}
+            <div className="p-3 bg-gradient-to-br from-gray-900/95 to-gray-800/95">
+              <h3 className="text-base font-bold text-white mb-2">{trip.title}</h3>
+
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-white/80 text-xs">
+                <div className="flex items-center gap-1">
+                  <MapPin size={12} className="text-yellow-400" />
+                  <span>{trip.location}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Calendar size={12} className="text-yellow-400" />
+                  <span>{trip.dateRange}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Users size={12} className="text-yellow-400" />
+                  <span>{trip.participants.length} travelers</span>
+                </div>
               </div>
-              {trip.participants.length > 5 && (
-                <span className="text-white/60 text-xs ml-2">+{trip.participants.length - 5} more</span>
-              )}
             </div>
           </div>
-        </div>
 
-        {/* Preview Link */}
-        <div className="mb-4">
-          <label className="block text-foreground text-sm font-medium mb-1">Preview Link</label>
-          <div className="flex gap-2">
-            <div className="flex-1 bg-muted border border-border rounded-xl px-3 py-2 text-foreground text-sm font-mono truncate">
-              {previewLink}
+          {/* Preview Link */}
+          <div>
+            <label className="block text-foreground text-xs font-medium mb-1">Preview Link</label>
+            <div className="flex gap-2">
+              <div className="flex-1 bg-muted border border-border rounded-lg px-2 py-1.5 text-foreground text-xs font-mono truncate">
+                {previewLink}
+              </div>
+              <Button
+                onClick={handleCopyLink}
+                size="sm"
+                className="px-3 h-8"
+              >
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                <span className="ml-1.5">{copied ? 'Copied!' : 'Copy'}</span>
+              </Button>
             </div>
-            <Button
-              onClick={handleCopyLink}
-              className="px-3 py-2"
-            >
-              {copied ? <Check size={16} /> : <Copy size={16} />}
-              <span className="hidden sm:inline ml-2">{copied ? 'Copied!' : 'Copy'}</span>
-            </Button>
           </div>
-        </div>
-
-        <p className="text-xs text-muted-foreground text-center mt-2">
-          This link shows a preview of your trip. Use "Invite" to let people join.
-        </p>
         </div>
       </div>
     </div>
