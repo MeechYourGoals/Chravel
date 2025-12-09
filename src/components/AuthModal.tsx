@@ -9,7 +9,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
-  const { signIn, signInWithGoogle, signUp, resetPassword, isLoading } = useAuth();
+  const { signIn, signUp, resetPassword, isLoading } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,19 +51,6 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
     }
   };
 
-  const handleGoogleAuth = async () => {
-    setError('');
-    try {
-      const result = await signInWithGoogle();
-      if (result.error) {
-        setError(result.error);
-      }
-      // Note: OAuth will redirect, so no need to close modal here
-    } catch (error) {
-      console.error('Google auth error:', error);
-      setError('An unexpected error occurred');
-    }
-  };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -242,23 +229,6 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
         {isLoading ? 'Loading...' : mode === 'signup' ? 'Create Account' : 'Sign In'}
       </button>
 
-      {/* Google Authentication */}
-      <div className="relative my-4">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-white/20"></div>
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white/10 px-2 text-gray-400">Or continue with</span>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={handleGoogleAuth}
-        className="w-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium py-3 rounded-xl transition-colors active:scale-95 min-h-[44px]"
-      >
-        Sign in with Google
-      </button>
     </form>
   );
 
