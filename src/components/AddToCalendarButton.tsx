@@ -93,6 +93,7 @@ export const AddToCalendarButton = ({
       <CalendarEventModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        tripId={tripId}
         onEventAdded={handleEventAdded}
         prefilledData={prefilledData}
       />

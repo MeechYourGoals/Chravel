@@ -62,10 +62,12 @@ function mapSourceToCategory(source: string): string {
 function getDemoLinks(tripId: string): TripLink[] {
   try {
     const tripIdNum = parseInt(tripId, 10);
+    console.debug('[TripLinksService] getDemoLinks called', { tripId, tripIdNum, isNaN: Number.isNaN(tripIdNum) });
     
     // For trips 1-12, ALWAYS load mock data first (ignoring stale localStorage cache)
     if (tripIdNum >= 1 && tripIdNum <= 12) {
       const tripLinks = TripSpecificMockDataService.getTripLinkItems(tripIdNum);
+      console.debug('[TripLinksService] Mock links from TripSpecificMockDataService', { tripIdNum, count: tripLinks.length, links: tripLinks });
       
       if (tripLinks.length > 0) {
         // Transform trip-specific mock data to TripLink format
@@ -195,9 +197,9 @@ export async function getTripLinks(
   console.debug('[TripLinksService] Fetching trip links', { tripId, isDemoMode });
 
   if (isDemoMode) {
-    // Demo mode: Load from localStorage
+    // Demo mode: Load from localStorage merged with mock data
     const demoLinks = getDemoLinks(tripId);
-    console.info('[TripLinksService] ✅ Loaded demo links', { count: demoLinks.length });
+    console.info('[TripLinksService] ✅ Loaded demo links', { tripId, count: demoLinks.length, firstTitle: demoLinks[0]?.title });
     return demoLinks;
   }
 

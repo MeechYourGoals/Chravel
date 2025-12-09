@@ -79,8 +79,12 @@ export const CalendarEventModal = ({
       startTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
 
       let endTime: string | undefined;
-      if (formData.end_time) {
-        endTime = formData.end_time.toISOString();
+      if (formData.endTime) {
+        // endTime is already a time string like "HH:mm" - combine with date
+        const [endHours, endMins] = formData.endTime.split(':');
+        const endDateTime = new Date(formData.date);
+        endDateTime.setHours(parseInt(endHours, 10), parseInt(endMins, 10), 0, 0);
+        endTime = endDateTime.toISOString();
       }
 
       if (editEvent) {
