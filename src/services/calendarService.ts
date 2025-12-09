@@ -246,14 +246,7 @@ export const calendarService = {
               source_type: eventData.source_type || 'manual',
               source_data: eventData.source_data || {}
             })
-            .select(`
-              *,
-              creator:created_by (
-                id,
-                display_name,
-                avatar_url
-              )
-            `)
+            .select('*')
             .single();
 
           if (directError) {
@@ -328,14 +321,7 @@ export const calendarService = {
         // Fallback to direct query if no user
         const { data, error } = await supabase
           .from('trip_events')
-          .select(`
-            *,
-            creator:created_by (
-              id,
-              display_name,
-              avatar_url
-            )
-          `)
+          .select('*')
           .eq('trip_id', tripId)
           .order('start_time', { ascending: true });
         
@@ -357,14 +343,7 @@ export const calendarService = {
         }
         const { data, error } = await supabase
           .from('trip_events')
-          .select(`
-            *,
-            creator:created_by (
-              id,
-              display_name,
-              avatar_url
-            )
-          `)
+          .select('*')
           .eq('trip_id', tripId)
           .order('start_time', { ascending: true });
         
@@ -380,14 +359,7 @@ export const calendarService = {
       const eventIds = timezoneData.map((e: any) => e.id);
       const { data: fullEvents, error: fetchError } = await supabase
         .from('trip_events')
-        .select(`
-          *,
-          creator:created_by (
-            id,
-            display_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .in('id', eventIds)
         .order('start_time', { ascending: true });
 
