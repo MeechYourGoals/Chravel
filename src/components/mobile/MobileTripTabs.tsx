@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { MessageCircle, Calendar, ClipboardList, BarChart3, Camera, MapPin, Sparkles, CreditCard, Lock, Users, CheckCircle2 } from 'lucide-react';
+import { MessageCircle, Calendar, ClipboardList, BarChart3, Camera, MapPin, Sparkles, CreditCard, Lock, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFeatureToggle } from '../../hooks/useFeatureToggle';
 import { TripChat } from '../TripChat';
@@ -16,8 +16,9 @@ import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { EnhancedAgendaTab } from '../events/EnhancedAgendaTab';
-import { SpeakerDirectory } from '../events/SpeakerDirectory';
-import { EventRSVPManager } from '../events/EventRSVPManager';
+import { LineupTab } from '../events/LineupTab';
+import { EventTasksTab } from '../events/EventTasksTab';
+import { useEventPermissions } from '@/hooks/useEventPermissions';
 import type { EventData } from '../../types/events';
 
 interface MobileTripTabsProps {
@@ -58,18 +59,21 @@ export const MobileTripTabs = ({
     setErrorBoundaryKey(prev => prev + 1);
   }, []);
 
+  // Get event admin status for event variant
+  const { isAdmin: isEventAdmin } = useEventPermissions(variant === 'event' ? tripId : '');
+
   // Tab configuration based on variant
   const getTabsForVariant = () => {
-    // Event-specific tabs - matches EventDetailContent.tsx
+    // Event-specific tabs: Agenda, Calendar, Chat, Media, Line-up, Polls, Tasks
     if (variant === 'event') {
       return [
         { id: 'agenda', label: 'Agenda', icon: Calendar, enabled: true },
         { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: true },
         { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: features.showChat },
         { id: 'media', label: 'Media', icon: Camera, enabled: features.showMedia },
-        { id: 'performers', label: 'Performers', icon: Users, enabled: true },
+        { id: 'lineup', label: 'Line-up', icon: Users, enabled: true },
         { id: 'polls', label: 'Polls', icon: BarChart3, enabled: features.showPolls },
-        { id: 'rsvp', label: 'RSVP', icon: CheckCircle2, enabled: true }
+        { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: true }
       ];
     }
 
@@ -137,18 +141,15 @@ export const MobileTripTabs = ({
     switch (activeTab) {
       // Event-specific tabs
       case 'agenda':
-        return <EnhancedAgendaTab eventId={tripId} userRole="attendee" />;
-      case 'performers':
-        return <SpeakerDirectory speakers={eventData?.speakers || []} userRole="attendee" />;
-      case 'rsvp':
-        return (
-          <EventRSVPManager 
-            eventId={tripId} 
-            eventTitle={eventData?.title || ''} 
-            eventCapacity={eventData?.capacity || 100} 
-            registrationStatus="open" 
-          />
-        );
+        return <EnhancedAgendaTab eventId={tripId} userRole={isEventAdmin ? 'organizer' : 'attendee'} />;
+      case 'lineup':
+        return <LineupTab speakers={eventData?.speakers || []} userRole="attendee" />;
+      case 'tasks':
+        // For events, use EventTasksTab; for other trips, use MobileTripTasks
+        if (variant === 'event') {
+          return <EventTasksTab eventId={tripId} isAdmin={isEventAdmin} />;
+        }
+        return <MobileTripTasks tripId={tripId} />;
       // Common tabs
       case 'chat':
         return <TripChat 
@@ -159,8 +160,6 @@ export const MobileTripTabs = ({
         />;
       case 'calendar':
         return <MobileGroupCalendar tripId={tripId} />;
-      case 'tasks':
-        return <MobileTripTasks tripId={tripId} />;
       case 'polls':
         return <CommentsWall tripId={tripId} />;
       case 'media':

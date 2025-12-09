@@ -1,15 +1,13 @@
 
 import React from 'react';
-import { Sparkles, Users, Calendar, MessageCircle, Camera, BarChart3, CheckCircle2, UserCheck } from 'lucide-react';
+import { Users, Calendar, MessageCircle, Camera, BarChart3, ClipboardList } from 'lucide-react';
 import { TripChat } from '../TripChat';
-import { AIConciergeChat } from '../AIConciergeChat';
 import { GroupCalendar } from '../GroupCalendar';
 import { UnifiedMediaHub } from '../UnifiedMediaHub';
 import { CommentsWall } from '../CommentsWall';
 import { EnhancedAgendaTab } from './EnhancedAgendaTab';
-import { SpeakerDirectory } from './SpeakerDirectory';
-import { EventRSVPManager } from './EventRSVPManager';
-import { EventCheckIn } from './EventCheckIn';
+import { LineupTab } from './LineupTab';
+import { EventTasksTab } from './EventTasksTab';
 import { useEventPermissions } from '@/hooks/useEventPermissions';
 
 import { EventData } from '../../types/events';
@@ -38,73 +36,55 @@ export const EventDetailContent = ({
   const { accentColors } = useTripVariant();
   const { isAdmin, isLoading: permissionsLoading } = useEventPermissions(tripId);
 
-  // 🆕 Updated Events tab order (Alphabetical): Agenda, Calendar, Chat, Check-In (organizers), Concierge, Media, Performers, Polls, RSVP
+  // Updated Event tabs: Agenda, Calendar, Chat, Media, Line-up, Polls, Tasks
   const tabs = [
-    { id: 'agenda', label: 'Agenda', icon: Calendar, enabled: true, eventOnly: true },
+    { id: 'agenda', label: 'Agenda', icon: Calendar, enabled: true },
     { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: true },
     { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: eventData.chatEnabled !== false },
-    { id: 'check-in', label: 'Check-In', icon: UserCheck, enabled: isAdmin, eventOnly: true, organizerOnly: true },
-    { id: 'ai-chat', label: 'Concierge', icon: Sparkles, enabled: eventData.conciergeEnabled === true },
     { id: 'media', label: 'Media', icon: Camera, enabled: eventData.mediaUploadEnabled !== false },
-    { id: 'performers', label: 'Performers', icon: Users, enabled: true, eventOnly: true },
+    { id: 'lineup', label: 'Line-up', icon: Users, enabled: true },
     { id: 'polls', label: 'Polls', icon: BarChart3, enabled: eventData.pollsEnabled !== false },
-    { id: 'rsvp', label: 'RSVP', icon: CheckCircle2, enabled: true, eventOnly: true }
+    { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: true }
   ];
 
-  // Filter tabs based on enabled settings and user permissions
-  const visibleTabs = tabs.filter(tab => {
-    if (!tab.enabled) return false;
-    // Hide organizer-only tabs for non-admins
-    if (tab.organizerOnly && !isAdmin) return false;
-    return true;
-  });
+  // Filter tabs based on enabled settings
+  const visibleTabs = tabs.filter(tab => tab.enabled);
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'chat':
-        return <TripChat enableGroupChat={true} showBroadcasts={true} isEvent={true} tripId={tripId} />;
+      case 'agenda':
+        return (
+          <EnhancedAgendaTab
+            eventId={tripId}
+            userRole={isAdmin ? 'organizer' : 'attendee'}
+            pdfScheduleUrl={eventData.pdfScheduleUrl}
+          />
+        );
       case 'calendar':
         return <GroupCalendar tripId={tripId} />;
+      case 'chat':
+        return <TripChat enableGroupChat={true} showBroadcasts={true} isEvent={true} tripId={tripId} />;
       case 'media':
         return <UnifiedMediaHub tripId={tripId} />;
-      case 'performers':
+      case 'lineup':
         return (
-          <SpeakerDirectory
+          <LineupTab
             speakers={eventData.speakers || []}
             userRole={eventData.userRole || 'attendee'}
           />
         );
       case 'polls':
         return <CommentsWall tripId={tripId} />;
-      case 'agenda':
+      case 'tasks':
+        return <EventTasksTab eventId={tripId} isAdmin={isAdmin} />;
+      default:
         return (
           <EnhancedAgendaTab
             eventId={tripId}
-            userRole={(eventData.userRole === 'speaker' ? 'attendee' : eventData.userRole) as 'attendee' | 'exhibitor' | 'organizer'}
+            userRole={isAdmin ? 'organizer' : 'attendee'}
             pdfScheduleUrl={eventData.pdfScheduleUrl}
           />
         );
-      case 'ai-chat':
-        return (
-          <AIConciergeChat 
-            tripId={tripId}
-            basecamp={basecamp}
-            isEvent={true}
-          />
-        );
-      case 'rsvp':
-        return (
-          <EventRSVPManager
-            eventId={tripId}
-            eventTitle={eventData.title}
-            eventCapacity={eventData.capacity}
-            registrationStatus={eventData.registrationStatus}
-          />
-        );
-      case 'check-in':
-        return <EventCheckIn eventId={tripId} />;
-      default:
-        return <TripChat enableGroupChat={true} showBroadcasts={true} isEvent={true} tripId={tripId} />;
     }
   };
 
@@ -126,9 +106,6 @@ export const EventDetailContent = ({
             >
               {Icon && <Icon size={16} />}
               {tab.label}
-              {tab.eventOnly && (
-                <Sparkles size={14} className={`text-${accentColors.primary}`} />
-              )}
             </button>
           );
         })}

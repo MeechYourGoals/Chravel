@@ -490,6 +490,66 @@ export type Database = {
         }
         Relationships: []
       }
+      event_agenda_items: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_time: string | null
+          event_id: string
+          id: string
+          location: string | null
+          speakers: string[] | null
+          start_time: string | null
+          title: string
+          track: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_time?: string | null
+          event_id: string
+          id?: string
+          location?: string | null
+          speakers?: string[] | null
+          start_time?: string | null
+          title: string
+          track?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_time?: string | null
+          event_id?: string
+          id?: string
+          location?: string | null
+          speakers?: string[] | null
+          start_time?: string | null
+          title?: string
+          track?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_agenda_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "event_agenda_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_qa_questions: {
         Row: {
           answer: string | null
@@ -627,6 +687,51 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "event_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_tasks: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          event_id: string
+          id: string
+          sort_order: number | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          event_id: string
+          id?: string
+          sort_order?: number | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          event_id?: string
+          id?: string
+          sort_order?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "event_tasks_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "trips"
@@ -1939,6 +2044,7 @@ export type Database = {
           error_message: string | null
           extracted_entities: Json | null
           extracted_events: number
+          file_category: string | null
           file_structure: Json | null
           file_type: string
           id: string
@@ -1957,6 +2063,7 @@ export type Database = {
           error_message?: string | null
           extracted_entities?: Json | null
           extracted_events?: number
+          file_category?: string | null
           file_structure?: Json | null
           file_type: string
           id?: string
@@ -1975,6 +2082,7 @@ export type Database = {
           error_message?: string | null
           extracted_entities?: Json | null
           extracted_events?: number
+          file_category?: string | null
           file_structure?: Json | null
           file_type?: string
           id?: string
