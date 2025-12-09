@@ -276,7 +276,7 @@ const TripPreview = () => {
 
             <div className="flex items-center gap-3 text-white/80">
               <Users className="h-5 w-5 text-yellow-400 flex-shrink-0" />
-              <span>{tripData.member_count} {tripData.member_count === 1 ? 'traveler' : 'travelers'}</span>
+              <span>{tripData.member_count} {tripData.member_count === 1 ? 'Chraveler' : 'Chravelers'}</span>
             </div>
           </div>
 

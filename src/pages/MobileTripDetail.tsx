@@ -179,7 +179,7 @@ export const MobileTripDetail = () => {
               {trip.title}
             </h1>
             <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
-              <span>{trip.location} • {trip.participants.length} travelers</span>
+              <span>{trip.location} • {trip.participants.length} Chravelers</span>
               <button
                 onClick={() => {
                   hapticService.light();

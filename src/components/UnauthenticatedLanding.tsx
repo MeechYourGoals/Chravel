@@ -55,7 +55,7 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
 
         {/* Trust Badge */}
         <p className="text-sm sm:text-base md:text-lg text-foreground pt-3 text-center">
-          Join thousands of travelers coordinating trips worldwide
+          Join thousands of Chravelers coordinating trips worldwide
         </p>
       </div>
 
