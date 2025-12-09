@@ -54,11 +54,13 @@ interface TripLinksDisplayProps {
 
 // Sortable link item component
 const SortableLinkItem = ({ 
+  tripId,
   link, 
   onEdit, 
   onDelete, 
   onAddToCalendar 
 }: { 
+  tripId: string;
   link: TripLink;
   onEdit: (link: TripLink) => void;
   onDelete: (linkId: string) => void;
@@ -110,6 +112,7 @@ const SortableLinkItem = ({
         
         <div className="flex gap-1.5 flex-shrink-0">
           <AddToCalendarButton
+            tripId={tripId}
             placeName={link.title}
             placeAddress={link.url}
             category="other"
@@ -530,6 +533,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
             {links.map((link) => (
               <SortableLinkItem
                 key={link.id}
+                tripId={tripId}
                 link={link}
                 onEdit={openEditModal}
                 onDelete={handleDeleteLink}

@@ -20,6 +20,7 @@ interface DetectedEvent {
 }
 
 interface AICalendarDetectorProps {
+  tripId: string; // Required: needed to create events
   messageText?: string;
   fileContent?: string;
   onEventAdded?: (eventData: AddToCalendarData) => void;
@@ -27,6 +28,7 @@ interface AICalendarDetectorProps {
 }
 
 export const AICalendarDetector = ({
+  tripId,
   messageText,
   fileContent,
   onEventAdded,
@@ -221,6 +223,7 @@ export const AICalendarDetector = ({
         <CalendarEventModal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
+          tripId={tripId}
           onEventAdded={handleEventAdded}
           prefilledData={{
             title: selectedEvent.title,

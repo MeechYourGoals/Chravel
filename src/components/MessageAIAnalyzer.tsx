@@ -3,11 +3,12 @@ import { AICalendarDetector } from './AICalendarDetector';
 import { AddToCalendarData } from '../types/calendar';
 
 interface MessageAIAnalyzerProps {
+  tripId: string; // Required: needed for calendar event creation
   messageText: string;
   onEventAdded?: (eventData: AddToCalendarData) => void;
 }
 
-export const MessageAIAnalyzer = ({ messageText, onEventAdded }: MessageAIAnalyzerProps) => {
+export const MessageAIAnalyzer = ({ tripId, messageText, onEventAdded }: MessageAIAnalyzerProps) => {
   const [shouldAnalyze, setShouldAnalyze] = useState(false);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export const MessageAIAnalyzer = ({ messageText, onEventAdded }: MessageAIAnalyz
   return (
     <div className="mt-3">
       <AICalendarDetector
+        tripId={tripId}
         messageText={messageText}
         onEventAdded={onEventAdded}
         onDismiss={() => setShouldAnalyze(false)}
