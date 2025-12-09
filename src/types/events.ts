@@ -58,6 +58,26 @@ export interface Exhibitor {
   }[];
 }
 
+// Agenda item for event schedule
+export interface EventAgendaItem {
+  id: string;
+  title: string;
+  description?: string;
+  start_time?: string;
+  end_time?: string;
+  location?: string;
+  track?: string;
+  speakers?: string[];
+}
+
+// Task for attendees
+export interface EventTask {
+  id: string;
+  title: string;
+  description?: string;
+  sort_order: number;
+}
+
 export type EventUserRole = 'organizer' | 'speaker' | 'exhibitor' | 'attendee';
 
 export type RSVPStatus = 'going' | 'maybe' | 'not-going' | 'not-answered';
@@ -141,6 +161,10 @@ export interface EventData {
   sessions: Session[];
   sponsors: Sponsor[];
   exhibitors: Exhibitor[];
+  
+  // Agenda and Tasks (new)
+  agenda?: EventAgendaItem[];
+  tasks?: EventTask[];
   
   // User context
   userRole: EventUserRole;

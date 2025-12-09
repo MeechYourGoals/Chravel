@@ -45,7 +45,17 @@ export const eventsMockData: Record<string, EventData> = {
     speakers: [],
     sessions: [],
     sponsors: [],
-    exhibitors: []
+    exhibitors: [],
+    agenda: [
+      { id: 'a1', title: 'Registration & Welcome', start_time: '09:00', end_time: '10:00', location: 'Austin Convention Center' },
+      { id: 'a2', title: 'Opening Keynote', start_time: '10:00', end_time: '11:30', location: 'Main Stage' },
+      { id: 'a3', title: 'Interactive Showcase', start_time: '12:00', end_time: '14:00', location: 'Expo Hall' }
+    ],
+    tasks: [
+      { id: 't1', title: 'Pick up your badge at registration', sort_order: 0 },
+      { id: 't2', title: 'Download the SXSW GO app', sort_order: 1 },
+      { id: 't3', title: 'Visit the welcome lounge for orientation', sort_order: 2 }
+    ]
   },
   'wef-2025': {
     id: 'wef-2025',
@@ -258,6 +268,18 @@ export const eventsMockData: Record<string, EventData> = {
       { id: 'workshops', name: 'Workshops', color: '#3B82F6', location: 'Hall B' },
       { id: 'networking', name: 'Networking', color: '#8B5CF6', location: 'Expo Hall' },
       { id: 'panels', name: 'Expert Panels', color: '#F59E0B', location: 'Hall C' }
+    ],
+    agenda: [
+      { id: 'if-a1', title: 'Opening Ceremony', start_time: '09:00', end_time: '09:30', location: 'Hall A - Main Stage' },
+      { id: 'if-a2', title: 'The Future of Financial Education', start_time: '09:30', end_time: '10:30', location: 'Hall A - Main Stage', speakers: ['Robert Kiyosaki'] },
+      { id: 'if-a3', title: 'Women & Wealth: Breaking Barriers', start_time: '11:00', end_time: '12:00', location: 'Hall B - Workshop Area', speakers: ['Suze Orman'] },
+      { id: 'if-a4', title: 'Investing in Volatile Times', start_time: '14:00', end_time: '15:00', location: 'Hall C - Panel Stage' }
+    ],
+    tasks: [
+      { id: 'if-t1', title: 'Pick up your badge and welcome kit at registration', description: 'Located in the main lobby, opens at 7:30 AM', sort_order: 0 },
+      { id: 'if-t2', title: 'Complete the attendee survey for a chance to win prizes', sort_order: 1 },
+      { id: 'if-t3', title: 'Visit sponsor booths to collect exclusive offers', sort_order: 2 },
+      { id: 'if-t4', title: 'Download the Invest Fest app for real-time updates', sort_order: 3 }
     ],
     speakers: [
       {
