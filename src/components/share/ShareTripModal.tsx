@@ -27,10 +27,9 @@ interface ShareTripModalProps {
 export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) => {
   const [copied, setCopied] = useState(false);
 
-  // Generate preview link pointing to edge function for proper OG meta tags
+  // Generate branded preview link
   const previewLink = useMemo(() => {
-    // Use edge function URL for server-side rendered OG tags
-    return `https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/generate-trip-preview?tripId=${trip.id}`;
+    return `https://chravel.app/trip/${trip.id}/preview`;
   }, [trip.id]);
 
   // Generate share text for social media
@@ -105,15 +104,15 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
       <div className="bg-background/95 backdrop-blur-md border border-border rounded-3xl p-4 max-w-lg w-full max-h-[600px] overflow-y-auto animate-scale-in relative">
-        {/* Close Button */}
+        {/* Close Button - Clearly visible */}
         <Button
           onClick={onClose}
           variant="ghost"
           size="icon"
           title="Close"
-          className="absolute top-4 right-4 z-10 hover:bg-destructive/20 hover:text-destructive text-foreground w-10 h-10 rounded-full"
+          className="absolute top-3 right-3 z-10 bg-muted/80 hover:bg-destructive/20 hover:text-destructive text-foreground w-9 h-9 rounded-full border border-border"
         >
-          <X size={20} />
+          <X size={18} />
         </Button>
 
         {/* Header */}
@@ -195,18 +194,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
           </div>
         </div>
 
-        {/* Share Buttons */}
-        <div className="space-y-2">
-          <Button
-            onClick={handleNativeShare}
-            className="w-full flex items-center justify-center gap-3 h-11 text-base font-medium bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black"
-          >
-            <Share2 size={20} />
-            <span>Share via Apps</span>
-          </Button>
-        </div>
-
-        <p className="text-xs text-muted-foreground text-center mt-4">
+        <p className="text-xs text-muted-foreground text-center mt-2">
           This link shows a preview of your trip. Use "Invite" to let people join.
         </p>
       </div>
