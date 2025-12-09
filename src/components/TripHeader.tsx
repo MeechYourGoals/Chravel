@@ -19,6 +19,9 @@ import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// Stable empty array to prevent Zustand selector reference changes causing infinite re-renders
+const EMPTY_MEMBERS_ARRAY: Array<{ id: number | string; name: string; avatar?: string; role?: string; email?: string }> = [];
+
 
 interface TripHeaderProps {
   trip: {
@@ -90,9 +93,9 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
     checkAdmin();
   }, [canRemoveMembers, isDemoMode]);
   
-  // Get added members from the demo store and merge with base participants
+  // Get added members from the demo store - use stable empty array to prevent infinite re-renders
   const addedDemoMembers = useDemoTripMembersStore(state => 
-    isDemoMode ? state.addedMembers[trip.id.toString()] || [] : []
+    isDemoMode ? (state.addedMembers[trip.id.toString()] ?? EMPTY_MEMBERS_ARRAY) : EMPTY_MEMBERS_ARRAY
   );
   
   // Merge base participants with any dynamically added members (from approved join requests)
