@@ -34,7 +34,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
 
   // Generate share text for social media
   const shareText = useMemo(() => {
-    return `Check out ${trip.title} - a trip to ${trip.location}! ${trip.participants.length} travelers are going.`;
+    return `Check out ${trip.title} - a trip to ${trip.location}! ${trip.participants.length} Chravelers are going.`;
   }, [trip.title, trip.location, trip.participants.length]);
 
   // Handle ESC key
@@ -154,7 +154,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
                 </div>
                 <div className="flex items-center gap-1">
                   <Users size={12} className="text-yellow-400" />
-                  <span>{trip.participants.length} travelers</span>
+                  <span>{trip.participants.length} Chravelers</span>
                 </div>
               </div>
             </div>

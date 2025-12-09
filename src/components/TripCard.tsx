@@ -236,7 +236,7 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
         {/* Participants - Responsive sizing */}
         <div className="mb-4 md:mb-6">
           <div className="flex items-center justify-between mb-2 md:mb-3">
-            <span className="text-sm text-gray-400 font-medium">Travelers</span>
+            <span className="text-sm text-gray-400 font-medium">Chravelers</span>
             {/* Invite button - combined pill with + and person icons */}
             <button
               onClick={() => setShowInviteModal(true)}
