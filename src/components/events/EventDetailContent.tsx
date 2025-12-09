@@ -1,14 +1,14 @@
-
 import React from 'react';
 import { Users, Calendar, MessageCircle, Camera, BarChart3, ClipboardList } from 'lucide-react';
 import { TripChat } from '../TripChat';
 import { GroupCalendar } from '../GroupCalendar';
 import { UnifiedMediaHub } from '../UnifiedMediaHub';
 import { CommentsWall } from '../CommentsWall';
-import { EnhancedAgendaTab } from './EnhancedAgendaTab';
+import { AgendaModal } from './AgendaModal';
 import { LineupTab } from './LineupTab';
 import { EventTasksTab } from './EventTasksTab';
 import { useEventPermissions } from '@/hooks/useEventPermissions';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 import { EventData } from '../../types/events';
 import { TripContext } from '@/types';
@@ -35,6 +35,10 @@ export const EventDetailContent = ({
 }: EventDetailContentProps) => {
   const { accentColors } = useTripVariant();
   const { isAdmin, isLoading: permissionsLoading } = useEventPermissions(tripId);
+  const { isDemoMode } = useDemoMode();
+
+  // In demo mode, always show admin controls
+  const showAsAdmin = isDemoMode || isAdmin;
 
   // Updated Event tabs: Agenda, Calendar, Chat, Media, Line-up, Polls, Tasks
   const tabs = [
@@ -54,10 +58,11 @@ export const EventDetailContent = ({
     switch (activeTab) {
       case 'agenda':
         return (
-          <EnhancedAgendaTab
+          <AgendaModal
             eventId={tripId}
-            userRole={isAdmin ? 'organizer' : 'attendee'}
-            pdfScheduleUrl={eventData.pdfScheduleUrl}
+            isAdmin={showAsAdmin}
+            initialSessions={eventData.agenda}
+            initialPdfUrl={eventData.pdfScheduleUrl}
           />
         );
       case 'calendar':
@@ -70,19 +75,20 @@ export const EventDetailContent = ({
         return (
           <LineupTab
             speakers={eventData.speakers || []}
-            userRole={eventData.userRole || 'attendee'}
+            userRole={showAsAdmin ? 'organizer' : (eventData.userRole || 'attendee')}
           />
         );
       case 'polls':
         return <CommentsWall tripId={tripId} />;
       case 'tasks':
-        return <EventTasksTab eventId={tripId} isAdmin={isAdmin} />;
+        return <EventTasksTab eventId={tripId} isAdmin={showAsAdmin} />;
       default:
         return (
-          <EnhancedAgendaTab
+          <AgendaModal
             eventId={tripId}
-            userRole={isAdmin ? 'organizer' : 'attendee'}
-            pdfScheduleUrl={eventData.pdfScheduleUrl}
+            isAdmin={showAsAdmin}
+            initialSessions={eventData.agenda}
+            initialPdfUrl={eventData.pdfScheduleUrl}
           />
         );
     }

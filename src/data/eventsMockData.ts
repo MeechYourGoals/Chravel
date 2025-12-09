@@ -98,7 +98,17 @@ export const eventsMockData: Record<string, EventData> = {
     speakers: [],
     sessions: [],
     sponsors: [],
-    exhibitors: []
+    exhibitors: [],
+    agenda: [
+      { id: 'wef-a1', title: 'Opening Ceremony', start_time: '09:00', end_time: '10:00', location: 'Congress Centre', speakers: ['Klaus Schwab'] },
+      { id: 'wef-a2', title: 'Global Economic Outlook', start_time: '10:30', end_time: '12:00', location: 'Main Hall' },
+      { id: 'wef-a3', title: 'Climate and Economy Panel', start_time: '14:00', end_time: '15:30', location: 'Forum Hall', speakers: ['Al Gore', 'Christine Lagarde'] }
+    ],
+    tasks: [
+      { id: 'wef-t1', title: 'Complete security clearance check-in', sort_order: 0 },
+      { id: 'wef-t2', title: 'Collect your delegate badge', sort_order: 1 },
+      { id: 'wef-t3', title: 'Review the session schedule in your app', sort_order: 2 }
+    ]
   },
   'money2020-2025': {
     id: 'money2020-2025',
@@ -141,7 +151,17 @@ export const eventsMockData: Record<string, EventData> = {
     speakers: [],
     sessions: [],
     sponsors: [],
-    exhibitors: []
+    exhibitors: [],
+    agenda: [
+      { id: 'm20-a1', title: 'Registration & Networking', start_time: '08:00', end_time: '09:30', location: 'Venetian Expo' },
+      { id: 'm20-a2', title: 'Future of Payments Keynote', start_time: '09:30', end_time: '11:00', location: 'Palazzo Ballroom' },
+      { id: 'm20-a3', title: 'Open Banking Workshop', start_time: '13:00', end_time: '14:30', location: 'Workshop Room B' }
+    ],
+    tasks: [
+      { id: 'm20-t1', title: 'Register at the check-in desk', sort_order: 0 },
+      { id: 'm20-t2', title: 'Download the Money20/20 app', sort_order: 1 },
+      { id: 'm20-t3', title: 'Visit the expo floor for demo booths', sort_order: 2 }
+    ]
   },
   'bloomberg-screentime-2025': {
     id: 'bloomberg-screentime-2025',
@@ -183,7 +203,16 @@ export const eventsMockData: Record<string, EventData> = {
     speakers: [],
     sessions: [],
     sponsors: [],
-    exhibitors: []
+    exhibitors: [],
+    agenda: [
+      { id: 'bst-a1', title: 'Industry Welcome Reception', start_time: '18:00', end_time: '21:00', location: 'Beverly Hills Hotel' },
+      { id: 'bst-a2', title: 'Streaming Wars Panel', start_time: '09:00', end_time: '10:30', location: 'Conference Center' },
+      { id: 'bst-a3', title: 'Content Monetization Masterclass', start_time: '11:00', end_time: '12:30', location: 'Workshop Room' }
+    ],
+    tasks: [
+      { id: 'bst-t1', title: 'Check in at the registration desk', sort_order: 0 },
+      { id: 'bst-t2', title: 'Pick up your media credentials', sort_order: 1 }
+    ]
   },
   'inbound-2025': {
     id: 'inbound-2025',
@@ -225,7 +254,16 @@ export const eventsMockData: Record<string, EventData> = {
     speakers: [],
     sessions: [],
     sponsors: [],
-    exhibitors: []
+    exhibitors: [],
+    agenda: [
+      { id: 'inb-a1', title: 'Welcome & Networking', start_time: '08:30', end_time: '10:00', location: 'Moscone Center' },
+      { id: 'inb-a2', title: 'Future of Marketing Keynote', start_time: '10:00', end_time: '11:30', location: 'Main Stage' },
+      { id: 'inb-a3', title: 'Sales Enablement Workshop', start_time: '14:00', end_time: '16:00', location: 'Workshop Hall' }
+    ],
+    tasks: [
+      { id: 'inb-t1', title: 'Register at the welcome desk', sort_order: 0 },
+      { id: 'inb-t2', title: 'Download HubSpot event app', sort_order: 1 }
+    ]
   },
   'invest-fest-2025': {
     id: 'invest-fest-2025',
@@ -416,7 +454,16 @@ export const eventsMockData: Record<string, EventData> = {
     speakers: [],
     sessions: [],
     sponsors: [],
-    exhibitors: []
+    exhibitors: [],
+    agenda: [
+      { id: 'gr-a1', title: 'Red Carpet Arrivals', start_time: '17:00', end_time: '19:30', location: 'Crypto.com Arena Entrance' },
+      { id: 'gr-a2', title: 'Grammy Awards Ceremony', start_time: '20:00', end_time: '23:30', location: 'Main Arena' },
+      { id: 'gr-a3', title: 'After Party', start_time: '23:30', end_time: '02:00', location: 'Grammy Museum' }
+    ],
+    tasks: [
+      { id: 'gr-t1', title: 'Present your invitation at security', sort_order: 0 },
+      { id: 'gr-t2', title: 'Collect your seating assignment', sort_order: 1 }
+    ]
   },
   'yc-demo-day-2025': {
     id: 'yc-demo-day-2025',
