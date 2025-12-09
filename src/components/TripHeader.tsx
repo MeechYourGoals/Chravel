@@ -78,7 +78,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
   });
   
   // In demo mode, always treat as admin so the Requests tab shows
-  // In authenticated mode, check if user can remove members
+  // In authenticated mode, check if user is creator or can remove members
   const [isAdmin, setIsAdmin] = useState(isDemoMode);
   
   useEffect(() => {
@@ -86,12 +86,31 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       setIsAdmin(true);
       return;
     }
+    
+    // If we don't have user, can't be admin
+    if (!user?.id) {
+      setIsAdmin(false);
+      return;
+    }
+    
+    // Direct creator check (fast path) - if tripCreatorId is loaded and matches user
+    if (tripCreatorId && user.id === tripCreatorId) {
+      setIsAdmin(true);
+      return;
+    }
+    
+    // If tripCreatorId is still loading (undefined), wait for it
+    if (tripCreatorId === undefined) {
+      return;
+    }
+    
+    // Full async check including trip_admins table
     const checkAdmin = async () => {
       const canRemove = await canRemoveMembers();
       setIsAdmin(canRemove);
     };
     checkAdmin();
-  }, [canRemoveMembers, isDemoMode]);
+  }, [canRemoveMembers, isDemoMode, user?.id, tripCreatorId]);
   
   // Get added members from the demo store - use stable empty array to prevent infinite re-renders
   const addedDemoMembers = useDemoTripMembersStore(state => 
