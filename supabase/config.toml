@@ -71,3 +71,9 @@ verify_jwt = true
 
 [functions.generate-trip-preview]
 verify_jwt = false
+
+[functions.generate-invite-preview]
+verify_jwt = false
+
+[functions.get-invite-preview]
+verify_jwt = false
