@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { PendingTripsSection } from '../components/home/PendingTripsSection';
 import { AuthPromptBanner } from '../components/mobile/AuthPromptBanner';
 import { CreateTripModal } from '../components/CreateTripModal';
 import { UpgradeModal } from '../components/UpgradeModal';
@@ -738,6 +739,11 @@ const Index = () => {
               Clear
             </button>
           </div>
+        )}
+
+        {/* Pending Trips Section - Only for authenticated users with pending join requests */}
+        {user && !isDemoMode && viewMode === 'myTrips' && (
+          <PendingTripsSection />
         )}
 
         {/* Main Content - Trip Cards with enhanced loading and empty states */}

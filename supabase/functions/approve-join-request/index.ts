@@ -135,6 +135,33 @@ serve(async (req) => {
       logStep("Member added successfully");
     }
 
+    // Create notification for the requester
+    const notificationMessage = action === 'approve'
+      ? `Your request to join "${joinRequest.trips.name}" has been approved! You can now access the trip.`
+      : `Your request to join "${joinRequest.trips.name}" was declined.`;
+
+    const { error: notifError } = await supabaseClient
+      .from("notifications")
+      .insert({
+        user_id: joinRequest.user_id,
+        title: action === 'approve' ? 'Join Request Approved' : 'Join Request Declined',
+        message: notificationMessage,
+        type: action === 'approve' ? 'join_approved' : 'join_rejected',
+        trip_id: joinRequest.trip_id,
+        metadata: {
+          trip_name: joinRequest.trips.name,
+          action: action,
+          resolved_by: user.id
+        }
+      });
+
+    if (notifError) {
+      // Log but don't fail the request - notification is non-critical
+      logStep("WARNING: Failed to create notification", { error: notifError.message });
+    } else {
+      logStep("Notification created for requester");
+    }
+
     logStep("Request processed successfully", { action, requestId });
 
     return new Response(
