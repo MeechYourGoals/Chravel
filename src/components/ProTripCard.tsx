@@ -308,20 +308,20 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
       {/* Action Buttons - Side by Side */}
       <div className="grid grid-cols-2 gap-2 md:gap-3">
         <Button
-          onClick={() => setShowInviteModal(true)}
-          className={`bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white transition-all duration-300 font-semibold py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl text-xs md:text-sm h-auto`}
-        >
-          <UserPlus size={16} className="mr-2" />
-          Invite
-        </Button>
-        
-        <Button
           onClick={handleViewTrip}
           className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm h-auto"
           variant="ghost"
         >
           <Eye size={16} className="mr-2" />
           View Trip
+        </Button>
+        
+        <Button
+          onClick={() => setShowInviteModal(true)}
+          className={`bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white transition-all duration-300 font-semibold py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl text-xs md:text-sm h-auto`}
+        >
+          <UserPlus size={16} className="mr-2" />
+          Invite
         </Button>
       </div>
 
