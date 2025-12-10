@@ -41,12 +41,12 @@ export const HowItWorksSection = () => {
 
       {/* Steps - Horizontal on desktop, vertical on mobile */}
       <div className="w-full max-w-6xl">
-        {/* Desktop View (Hidden on mobile) */}
-        <div className="hidden md:flex items-center justify-between gap-4 relative">
+        {/* Desktop View (Hidden on mobile/tablet) */}
+        <div className="hidden lg:flex items-center justify-between gap-4 relative">
           {steps.map((step, index) => (
             <React.Fragment key={step.number}>
               {/* Step Card */}
-              <div className="flex-1 bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 text-center hover:border-primary/50 transition-all duration-300 relative z-10">
+              <div className="flex-1 min-w-0 overflow-hidden bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 text-center hover:border-primary/50 transition-all duration-300 relative z-10">
                 {/* Number Badge */}
                 <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground font-bold text-xl flex items-center justify-center mx-auto mb-4">
                   {step.number}
@@ -58,13 +58,13 @@ export const HowItWorksSection = () => {
                 </div>
                 
                 {/* Content */}
-                <h3 className="font-bold text-xl md:text-2xl mb-2 text-foreground">
+                <h3 className="font-bold text-xl md:text-2xl mb-2 text-foreground break-words">
                   {step.title}
                 </h3>
-                <p className="text-lg text-accent font-medium mb-2">
+                <p className="text-lg text-accent font-medium mb-2 break-words">
                   {step.description}
                 </p>
-                <p className="text-base text-foreground">
+                <p className="text-base text-foreground break-words">
                   {step.detail}
                 </p>
               </div>
@@ -80,10 +80,10 @@ export const HowItWorksSection = () => {
           ))}
         </div>
 
-        {/* Mobile View (Hidden on desktop) */}
-        <div className="md:hidden space-y-8">
+        {/* Mobile/Tablet View (Hidden on desktop) */}
+        <div className="lg:hidden space-y-6">
           {steps.map((step) => (
-            <div key={step.number} className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 text-center">
+            <div key={step.number} className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 text-center w-full overflow-hidden">
               {/* Number Badge */}
               <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground font-bold text-xl flex items-center justify-center mx-auto mb-4">
                 {step.number}
@@ -95,13 +95,13 @@ export const HowItWorksSection = () => {
               </div>
               
               {/* Content */}
-              <h3 className="font-bold text-xl mb-2 text-foreground">
+              <h3 className="font-bold text-xl mb-2 text-foreground break-words">
                 {step.title}
               </h3>
-              <p className="text-lg text-accent font-medium mb-2">
+              <p className="text-lg text-accent font-medium mb-2 break-words">
                 {step.description}
               </p>
-              <p className="text-base text-foreground">
+              <p className="text-base text-foreground break-words">
                 {step.detail}
               </p>
             </div>
