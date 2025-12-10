@@ -9,6 +9,7 @@ import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useTrips } from '../hooks/useTrips';
+import { useTripMembers } from '../hooks/useTripMembers';
 import { convertSupabaseTripToEvent } from '../utils/tripConverter';
 import { eventsMockData } from '../data/eventsMockData';
 
@@ -20,6 +21,9 @@ export const MobileEventDetail = () => {
 
   // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
   const { trips: userTrips, loading: tripsLoading } = useTrips();
+
+  // 🔄 CRITICAL FIX: Fetch real trip members from database for authenticated trips
+  const { tripMembers, loading: membersLoading } = useTripMembers(eventId);
 
   // Persist activeTab in sessionStorage to survive orientation changes
   const getInitialTab = () => {
@@ -158,17 +162,26 @@ export const MobileEventDetail = () => {
     );
   }
   
+  // 🔄 MOBILE FIX: Merge real trip members for authenticated trips (matching desktop behavior)
   const trip = {
     id: parseInt(eventId.replace(/\D/g, '') || '1'),
     title: eventData.title,
     location: eventData.location,
     dateRange: eventData.dateRange,
     description: tripDescription || eventData.description || '',
-    participants: eventData.participants.map(p => ({
-      id: p.id,
-      name: p.name,
-      avatar: p.avatar
-    }))
+    // Merge real trip members for authenticated trips instead of empty array
+    participants: isDemoMode
+      ? eventData.participants.map(p => ({
+          id: p.id,
+          name: p.name,
+          avatar: p.avatar
+        }))
+      : tripMembers.map(m => ({
+          id: m.id as any, // UUID strings for authenticated trips
+          name: m.name,
+          avatar: m.avatar || '',
+          role: 'member'
+        })) as any
   };
 
   const basecamp = {

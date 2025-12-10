@@ -11,6 +11,7 @@ import { proTripMockData } from '../data/proTripMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useTrips } from '../hooks/useTrips';
+import { useTripMembers } from '../hooks/useTripMembers';
 import { convertSupabaseTripsToMock, convertSupabaseTripToProTrip } from '../utils/tripConverter';
 import { MockRolesService } from '../services/mockRolesService';
 import { tripService } from '../services/tripService';
@@ -25,6 +26,9 @@ export const MobileProTripDetail = () => {
   // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
   const { trips: userTrips, loading: tripsLoading } = useTrips();
 
+  // 🔄 CRITICAL FIX: Fetch real trip members from database for authenticated trips
+  const { tripMembers, loading: membersLoading } = useTripMembers(proTripId);
+
   // Persist activeTab in sessionStorage to survive orientation changes
   const getInitialTab = () => {
     if (typeof window === 'undefined') return 'chat';
@@ -34,7 +38,6 @@ export const MobileProTripDetail = () => {
   const [activeTab, setActiveTab] = useState(getInitialTab);
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
-  const [fetchedParticipants, setFetchedParticipants] = useState<ProParticipant[]>([]);
 
   const headerRef = React.useRef<HTMLDivElement>(null);
 
@@ -52,37 +55,48 @@ export const MobileProTripDetail = () => {
   });
 
   // Calculate tripData with useMemo - MUST be before any conditional returns
+  // 🔄 MOBILE FIX: Use tripMembers from hook instead of manual fetching
   const tripData = useMemo(() => {
     if (!proTripId) return null;
-    
+
     if (isDemoMode) {
       return proTripId in proTripMockData ? proTripMockData[proTripId] : null;
     }
 
     // Find Pro trip from Supabase data
     const supabaseTrip = userTrips.find(t => String(t.id) === proTripId && t.trip_type === 'pro');
-    
+
     if (!supabaseTrip) return null;
-    
+
     // Convert to ProTripData format
     const convertedTrip = convertSupabaseTripToProTrip(supabaseTrip);
 
-    // Populate with fetched participants and default values
+    // Populate with real trip members from hook
+    const proParticipants: ProParticipant[] = tripMembers.map(m => ({
+      id: m.id,
+      name: m.name,
+      avatar: m.avatar,
+      role: 'member',
+      email: '',
+      credentialLevel: 'Guest',
+      permissions: []
+    } as ProParticipant));
+
     return {
       ...convertedTrip,
-      participants: fetchedParticipants.length > 0 ? fetchedParticipants : [],
-      roster: fetchedParticipants.length > 0 ? fetchedParticipants : [],
+      participants: proParticipants,
+      roster: proParticipants,
       proTripCategory: 'Sports – Pro, Collegiate, Youth',
       enabled_features: supabaseTrip.enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks'],
     } as ProTripData;
-  }, [isDemoMode, proTripId, userTrips, fetchedParticipants]);
+  }, [isDemoMode, proTripId, userTrips, tripMembers]);
 
   // Initialize mock roles and channels ONLY in demo mode
   React.useEffect(() => {
     if (isDemoMode && proTripId && proTripId in proTripMockData) {
       const mockTripData = proTripMockData[proTripId];
       const existingRoles = MockRolesService.getRolesForTrip(proTripId);
-      
+
       if (!existingRoles) {
         const roles = MockRolesService.seedRolesForTrip(
           proTripId,
@@ -93,29 +107,6 @@ export const MobileProTripDetail = () => {
       }
     }
   }, [isDemoMode, proTripId, user?.id]);
-
-  // Fetch participants for authenticated users
-  React.useEffect(() => {
-    if (!isDemoMode && proTripId) {
-      const fetchMembers = async () => {
-        try {
-          const members = await tripService.getTripMembers(proTripId);
-          setFetchedParticipants(members.map(m => ({
-            id: m.user_id,
-            name: m.profiles?.display_name || 'Unknown',
-            avatar: m.profiles?.avatar_url,
-            role: m.role || 'member',
-            email: m.profiles?.email || '',
-            credentialLevel: 'Guest',
-            permissions: []
-          } as ProParticipant)));
-        } catch (error) {
-          console.error("Failed to fetch trip members:", error);
-        }
-      };
-      fetchMembers();
-    }
-  }, [isDemoMode, proTripId]);
 
   // Set trip description when tripData loads
   React.useEffect(() => {
