@@ -9,6 +9,7 @@ import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
 import { useTrips } from '../hooks/useTrips';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { useTripMembers } from '../hooks/useTripMembers';
 import { convertSupabaseTripsToMock } from '../utils/tripConverter';
 import { tripsData, generateTripMockData } from '../data/tripsData';
 
@@ -21,6 +22,9 @@ export const MobileTripDetail = () => {
   // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
   // The hook handles demo mode internally, returning empty arrays when in demo mode
   const { trips: userTrips, loading: tripsLoading } = useTrips();
+
+  // 🔄 CRITICAL FIX: Fetch real trip members from database for authenticated trips
+  const { tripMembers, loading: membersLoading } = useTripMembers(tripId);
 
   // Persist activeTab in sessionStorage to survive orientation changes
   const getInitialTab = () => {
@@ -81,13 +85,23 @@ export const MobileTripDetail = () => {
   }, []);
   
   // ✅ CRITICAL FIX: ALL useMemo hooks MUST be called before any early returns
+  // 🔄 MOBILE FIX: Merge real trip members for authenticated trips (matching desktop behavior)
   const tripWithUpdatedDescription = React.useMemo(() => {
     if (!trip) return null;
     return {
       ...trip,
-      description: tripDescription || trip.description
+      description: tripDescription || trip.description,
+      // Merge real trip members for authenticated trips instead of empty array
+      participants: isDemoMode
+        ? trip.participants
+        : tripMembers.map(m => ({
+            id: m.id as any, // UUID strings for authenticated trips
+            name: m.name,
+            avatar: m.avatar || '',
+            role: 'member'
+          })) as any
     };
-  }, [trip, tripDescription]);
+  }, [trip, tripDescription, isDemoMode, tripMembers]);
 
   const mockData = React.useMemo(() => {
     if (!trip) return null;
