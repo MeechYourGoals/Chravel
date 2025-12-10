@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { PermissionLevel } from '@/types/roleChannels';
 import { Shield, Users, Eye } from 'lucide-react';
@@ -19,6 +20,46 @@ interface CreateRoleDialogProps {
   onRoleCreated: () => void;
 }
 
+const getFeaturePermissions = (level: PermissionLevel, hasChannel: boolean) => {
+  const isViewOnly = level === 'view';
+  const isAdmin = level === 'admin';
+
+  return {
+    media: {
+      can_view: true,
+      can_upload: !isViewOnly,
+      can_delete_own: !isViewOnly,
+      can_delete_any: isAdmin
+    },
+    tasks: {
+      can_view: true,
+      can_create: !isViewOnly,
+      can_assign: isAdmin,
+      can_complete: !isViewOnly,
+      can_delete: isAdmin
+    },
+    calendar: {
+      can_view: true,
+      can_create_events: !isViewOnly,
+      can_edit_events: isAdmin,
+      can_delete_events: isAdmin
+    },
+    channels: {
+      can_view: true,
+      can_post: !isViewOnly,
+      can_edit_messages: isAdmin,
+      can_delete_messages: isAdmin,
+      can_manage_members: isAdmin,
+      has_channel: hasChannel
+    },
+    payments: {
+      can_view: true,
+      can_create: isAdmin,
+      can_approve: isAdmin
+    }
+  };
+};
+
 export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
   open,
   onOpenChange,
@@ -31,6 +72,7 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
   const [roleName, setRoleName] = useState('');
   const [description, setDescription] = useState('');
   const [permissionLevel, setPermissionLevel] = useState<PermissionLevel>('edit');
+  const [createChannel, setCreateChannel] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +101,8 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
     }
 
     try {
-      await createRole(normalized, permissionLevel);
+      const featurePermissions = getFeaturePermissions(permissionLevel, createChannel);
+      await createRole(normalized, permissionLevel, featurePermissions);
 
       toast({
         title: 'Role Created',
@@ -70,6 +113,7 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
       setRoleName('');
       setDescription('');
       setPermissionLevel('edit');
+      setCreateChannel(true);
       onOpenChange(false);
       onRoleCreated();
     } catch (error) {
@@ -158,6 +202,17 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
                 </SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex items-center space-x-2 pt-2">
+            <Checkbox
+              id="createChannel"
+              checked={createChannel}
+              onCheckedChange={(checked) => setCreateChannel(checked as boolean)}
+            />
+            <Label htmlFor="createChannel" className="text-sm font-normal cursor-pointer">
+              Create a dedicated channel for this role
+            </Label>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
