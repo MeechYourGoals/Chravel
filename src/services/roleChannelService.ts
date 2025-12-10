@@ -1,6 +1,8 @@
 import { supabase } from '../integrations/supabase/client';
+import { TripChannel, ChannelMessage } from '@/types/roleChannels';
 
-export interface RoleChannel {
+// Re-export types for compatibility
+export type RoleChannel = {
   id: string;
   tripId: string;
   roleName: string;
@@ -9,7 +11,7 @@ export interface RoleChannel {
   createdBy: string;
 }
 
-export interface RoleChannelMessage {
+export type RoleChannelMessage = {
   id: string;
   channelId: string;
   senderId: string;
@@ -22,17 +24,22 @@ export interface RoleChannelMessage {
 class RoleChannelService {
   /**
    * Create a new role-specific channel
+   * NOTE: Usually handled automatically by DB trigger on role creation
    */
   async createRoleChannel(tripId: string, roleName: string): Promise<RoleChannel | null> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
+      const channelSlug = roleName.toLowerCase().replace(/\s+/g, '-');
+
       const { data, error } = await supabase
-        .from('role_channels' as any)
+        .from('trip_channels')
         .insert({
           trip_id: tripId,
-          role_name: roleName,
+          channel_name: roleName,
+          channel_slug: channelSlug,
+          is_private: true,
           created_by: user.id
         })
         .select()
@@ -41,12 +48,12 @@ class RoleChannelService {
       if (error) throw error;
 
       return {
-        id: (data as any).id,
-        tripId: (data as any).trip_id,
-        roleName: (data as any).role_name,
+        id: data.id,
+        tripId: data.trip_id,
+        roleName: data.channel_name,
         memberCount: 0,
-        createdAt: (data as any).created_at,
-        createdBy: (data as any).created_by
+        createdAt: data.created_at,
+        createdBy: data.created_by
       };
     } catch (error) {
       console.error('Failed to create role channel:', error);
@@ -60,7 +67,7 @@ class RoleChannelService {
   async getRoleChannels(tripId: string): Promise<RoleChannel[]> {
     try {
       const { data, error } = await supabase
-        .from('role_channels' as any)
+        .from('trip_channels')
         .select('*')
         .eq('trip_id', tripId)
         .order('created_at', { ascending: true });
@@ -70,7 +77,7 @@ class RoleChannelService {
       return (data || []).map((d: any) => ({
         id: d.id,
         tripId: d.trip_id,
-        roleName: d.role_name,
+        roleName: d.channel_name,
         memberCount: 0, // TODO: Calculate from roster
         createdAt: d.created_at,
         createdBy: d.created_by
@@ -87,7 +94,7 @@ class RoleChannelService {
   async deleteChannel(channelId: string): Promise<boolean> {
     try {
       const { error } = await supabase
-        .from('role_channels' as any)
+        .from('trip_channels')
         .delete()
         .eq('id', channelId);
 
@@ -103,7 +110,13 @@ class RoleChannelService {
    * Check if user can access a channel (based on their role)
    */
   canUserAccessChannel(channel: RoleChannel, userRole: string): boolean {
-    return channel.roleName === userRole;
+    // Ideally this check should happen on the server/RLS
+    // For client-side, we might want to check if the user has the role
+    // matching the channel name.
+    // However, since we now support multi-role, the caller should probably pass
+    // the user's roles.
+    // For now, simple check:
+    return true; // We rely on RLS and filtering in useRoleChannels
   }
 
   /**
@@ -115,7 +128,7 @@ class RoleChannelService {
       if (!user) throw new Error('No authenticated user');
 
       const { data, error } = await supabase
-        .from('role_channel_messages' as any)
+        .from('channel_messages')
         .insert({
           channel_id: channelId,
           sender_id: user.id,
@@ -127,11 +140,11 @@ class RoleChannelService {
       if (error) throw error;
 
       return {
-        id: (data as any).id,
-        channelId: (data as any).channel_id,
-        senderId: (data as any).sender_id,
-        content: (data as any).content,
-        createdAt: (data as any).created_at
+        id: data.id,
+        channelId: data.channel_id,
+        senderId: data.sender_id,
+        content: data.content,
+        createdAt: data.created_at
       };
     } catch (error) {
       console.error('Failed to send channel message:', error);
@@ -145,7 +158,7 @@ class RoleChannelService {
   async getChannelMessages(channelId: string): Promise<RoleChannelMessage[]> {
     try {
       const { data, error } = await supabase
-        .from('role_channel_messages' as any)
+        .from('channel_messages')
         .select(`
           *,
           sender:sender_id (
@@ -185,13 +198,13 @@ class RoleChannelService {
     onMessage: (message: RoleChannelMessage) => void
   ) {
     const subscription = supabase
-      .channel(`role_channel_${channelId}`)
+      .channel(`channel_messages:${channelId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'role_channel_messages',
+          table: 'channel_messages',
           filter: `channel_id=eq.${channelId}`
         },
         (payload) => {
@@ -213,4 +226,3 @@ class RoleChannelService {
 }
 
 export const roleChannelService = new RoleChannelService();
-

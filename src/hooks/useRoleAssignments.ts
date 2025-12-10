@@ -156,10 +156,11 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
         return { success: true, message: 'Role assigned' };
       }
 
-      const { data, error } = await supabase.rpc('assign_user_to_role' as any, {
+      const { data, error } = await supabase.rpc('assign_trip_role' as any, {
         _trip_id: tripId,
         _user_id: userId,
-        _role_id: roleId
+        _role_id: roleId,
+        _set_as_primary: false
       });
 
       if (error) throw error;
