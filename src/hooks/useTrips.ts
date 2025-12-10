@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tripService, Trip, CreateTripData } from '@/services/tripService';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
+import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const TRIPS_QUERY_KEY = 'trips';
 
@@ -27,6 +29,44 @@ export const useTrips = () => {
     enabled: isDemoMode || !!user,
     staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
+
+  // Subscribe to realtime updates for join request status changes
+  useEffect(() => {
+    if (isDemoMode || !user) return;
+
+    const channel = supabase
+      .channel(`trip_join_requests:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'trip_join_requests',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          // When join request status changes (pending → approved/rejected), refetch trips
+          const newStatus = payload.new.status;
+          const oldStatus = payload.old?.status;
+
+          // Only refetch if status actually changed from pending
+          if (oldStatus === 'pending' && (newStatus === 'approved' || newStatus === 'rejected')) {
+            console.log('[useTrips] Join request status changed, refetching trips', {
+              requestId: payload.new.id,
+              oldStatus,
+              newStatus
+            });
+            // Invalidate and refetch trips to update UI
+            queryClient.invalidateQueries({ queryKey: [TRIPS_QUERY_KEY] });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, isDemoMode, queryClient]);
 
   const createTripMutation = useMutation({
     mutationFn: (tripData: CreateTripData) => {
