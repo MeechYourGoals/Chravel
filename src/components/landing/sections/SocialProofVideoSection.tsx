@@ -43,17 +43,17 @@ export const SocialProofVideoSection = () => {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5 md:gap-6 max-w-6xl w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6 max-w-6xl w-full px-2">
         {metrics.map((metric, index) => (
-          <Card key={index} className="bg-card/50 backdrop-blur-sm border border-border/50 hover:border-primary/50 transition-all duration-300 max-w-md mx-auto sm:max-w-none">
-            <CardContent className="p-6 md:p-8 text-center space-y-3">
+          <Card key={index} className="bg-card/50 backdrop-blur-sm border border-border/50 hover:border-primary/50 transition-all duration-300 w-full overflow-hidden">
+            <CardContent className="p-5 sm:p-6 lg:p-8 text-center space-y-3">
               <div className="flex items-center justify-center text-primary">
                 {React.cloneElement(metric.icon as React.ReactElement, { size: 28 })}
               </div>
-              <div className="text-3xl md:text-4xl font-bold text-foreground leading-tight">
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground leading-tight break-words">
                 {metric.value}
               </div>
-              <div className="text-base md:text-lg text-foreground leading-tight break-words">
+              <div className="text-base lg:text-lg text-foreground leading-tight break-words">
                 {metric.label}
               </div>
               <div className="text-sm text-accent leading-normal break-words">

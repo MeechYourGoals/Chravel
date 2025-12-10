@@ -339,7 +339,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
         {activeTab === 'consumer' && (
           <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-5 md:p-8 max-w-5xl mx-auto">
             <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-4 md:mb-6">Why Upgrade?</h3>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {valuePropItems.map((item, index) => (
                 <div key={index} className="text-left">
                   <div className="flex items-start gap-2 md:gap-3">
@@ -411,10 +411,10 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
       </div>
 
       {/* Pricing Cards */}
-      <div className={`grid gap-4 md:gap-6 max-w-7xl mx-auto ${
+      <div className={`grid gap-4 md:gap-6 max-w-7xl mx-auto px-2 ${
         activeTab === 'consumer' 
-          ? 'md:grid-cols-3' 
-          : 'md:grid-cols-2 lg:grid-cols-3'
+          ? 'grid-cols-1 lg:grid-cols-3' 
+          : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
       }`}>
         {getCurrentTiers().map((tier) => (
           <div key={tier.id}>
