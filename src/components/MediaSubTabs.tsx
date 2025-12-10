@@ -434,7 +434,7 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
           accept="*/*"
           multiple
           className="hidden"
-          onChange={(e) => handleFileUpload(e.target.files, 'document')}
+          onChange={(e) => handleFileUpload(e.target.files, 'files')}
         />
         
         {/* Header with Add Button */}
