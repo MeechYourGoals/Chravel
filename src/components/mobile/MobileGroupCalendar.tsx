@@ -41,9 +41,10 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any>(null);
 
   // Use the calendar events hook to fetch real events
-  const { events: tripEvents, loading, refreshEvents, deleteEvent } = useCalendarEvents(tripId);
+  const { events: tripEvents, loading, refreshEvents, deleteEvent, updateEvent } = useCalendarEvents(tripId);
   
   // Convert TripEvent[] to CalendarEvent[] format for UI
   const events = useMemo(() => {
@@ -59,7 +60,9 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
         }),
         location: event.location || undefined,
         participants: 0, // TODO: Get actual participant count
-        color: EVENT_COLORS[index % EVENT_COLORS.length]
+        color: EVENT_COLORS[index % EVENT_COLORS.length],
+        // Keep original event data for editing
+        originalEvent: event
       };
       return calendarEvent;
     });
@@ -74,6 +77,7 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
 
   const handleAddEvent = async () => {
     await hapticService.medium();
+    setEditingEvent(null);
     setIsModalOpen(true);
   };
 
@@ -132,7 +136,7 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
   );
 
   // Handle event click to show details
-  const handleEventClick = useCallback(async (event: CalendarEvent) => {
+  const handleEventClick = useCallback(async (event: CalendarEvent & { originalEvent?: any }) => {
     await hapticService.medium();
     setSelectedEvent(event);
   }, []);
@@ -159,6 +163,22 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
       setIsDeleting(false);
     }
   }, [deleteEvent, refreshEvents]);
+
+  // Handle event edit
+  const handleEditEvent = useCallback(async (event: CalendarEvent & { originalEvent?: any }) => {
+    await hapticService.medium();
+    setSelectedEvent(null);
+    // Use originalEvent if available, otherwise construct from CalendarEvent
+    const eventToEdit = event.originalEvent || {
+      id: event.id,
+      title: event.title,
+      start_time: event.date.toISOString(),
+      location: event.location,
+      trip_id: tripId,
+    };
+    setEditingEvent(eventToEdit);
+    setIsModalOpen(true);
+  }, [tripId]);
 
   // Close event detail drawer
   const handleCloseEventDetail = useCallback(() => {
@@ -299,14 +319,22 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
         </>
       )}
 
-      {/* Create Event Modal */}
+      {/* Create/Edit Event Modal */}
       <CreateEventModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingEvent(null);
+        }}
         selectedDate={selectedDate}
         tripId={tripId}
+        editEvent={editingEvent}
         onEventCreated={async (event) => {
           // Refresh events after creation to get the latest data
+          await refreshEvents();
+        }}
+        onEventUpdated={async (event) => {
+          // Refresh events after update to get the latest data
           await refreshEvents();
         }}
       />
@@ -383,6 +411,13 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
 
             {/* Actions */}
             <div className="px-6 pb-8 flex gap-3">
+              <button
+                onClick={() => handleEditEvent(selectedEvent as CalendarEvent & { originalEvent?: any })}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-xl transition-colors"
+              >
+                <Pencil size={18} />
+                <span>Edit</span>
+              </button>
               <button
                 onClick={() => handleDeleteEvent(selectedEvent.id)}
                 disabled={isDeleting}
