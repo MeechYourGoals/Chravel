@@ -78,15 +78,26 @@ const Index = () => {
   // Use centralized trip data - demo data or real user data converted to mock format
   // ✅ FILTER: Only consumer trips in allTrips (Pro/Event filtered separately below)
   // ✅ FILTER: Exclude archived trips from main list (they have their own section)
-  const allTrips = useMemo(() => {
+  // ✅ SEPARATE: Pending trips from active trips
+  const { activeTrips: allTrips, pendingTrips } = useMemo(() => {
     if (isDemoMode) {
-      return tripsData.filter(t => !t.archived);
+      return {
+        activeTrips: tripsData.filter(t => !t.archived),
+        pendingTrips: []
+      };
     }
-    return convertSupabaseTripsToMock(
+    const converted = convertSupabaseTripsToMock(
       userTripsRaw.filter(t => 
         (t.trip_type === 'consumer' || !t.trip_type) && !t.is_archived
       )
     );
+    // Separate pending trips from active trips
+    const active = converted.filter(t => (t as any).membership_status !== 'pending');
+    const pending = converted.filter(t => (t as any).membership_status === 'pending');
+    return {
+      activeTrips: active,
+      pendingTrips: pending
+    };
   }, [isDemoMode, userTripsRaw]);
   
   // Unified semantic search + date facet filtering
@@ -192,6 +203,7 @@ const Index = () => {
   const filteredData = useMemo(() => {
     // Always ensure safe values
     const safeTrips = Array.isArray(trips) ? trips : [];
+    const safePendingTrips = Array.isArray(pendingTrips) ? pendingTrips : [];
     
     // Initialize with demo data or empty objects
     let safeProTrips = isDemoMode ? (proTripMockData || {}) : {};
@@ -222,13 +234,16 @@ const Index = () => {
     // trips are already filtered above, now filter pro trips and events
     const filteredProTrips = filterProTrips(safeProTrips, searchQuery, activeFilter as DateFacet | '');
     const filteredEvents = filterEvents(safeEvents, searchQuery, activeFilter as DateFacet | '');
+    // Filter pending trips by search query
+    const filteredPendingTrips = filterTrips(safePendingTrips, searchQuery, activeFilter as DateFacet | '');
 
     return {
       trips: safeTrips,
+      pendingTrips: filteredPendingTrips,
       proTrips: filteredProTrips,
       events: filteredEvents
     };
-  }, [trips, isDemoMode, userTripsRaw, searchQuery, activeFilter]);
+  }, [trips, pendingTrips, isDemoMode, userTripsRaw, searchQuery, activeFilter]);
 
   // Handle view mode changes without artificial delays
   const handleViewModeChange = (newMode: string) => {
@@ -551,6 +566,7 @@ const Index = () => {
                   <TripGrid
                     viewMode={viewMode}
                     trips={filteredData.trips}
+                    pendingTrips={filteredData.pendingTrips}
                     proTrips={filteredData.proTrips}
                     events={filteredData.events}
                     loading={isLoading}
@@ -745,6 +761,7 @@ const Index = () => {
           <TripGrid
             viewMode={viewMode}
             trips={filteredData.trips}
+            pendingTrips={filteredData.pendingTrips}
             proTrips={filteredData.proTrips}
             events={filteredData.events}
             loading={isLoading}

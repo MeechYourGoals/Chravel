@@ -36,6 +36,8 @@ export interface Trip {
   // Privacy settings
   privacy_mode?: 'standard' | 'high';
   ai_access_enabled?: boolean;
+  // Membership status for current user
+  membership_status?: 'owner' | 'member' | 'pending' | 'rejected';
 }
 
 export const tripsData: Trip[] = [

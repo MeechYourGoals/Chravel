@@ -208,9 +208,13 @@ const JoinTrip = () => {
       }
 
       if (data.requires_approval) {
-        toast.success(data.message || 'Join request submitted!');
+        toast.success(data.message || 'Join request submitted! You\'ll see the trip on your home page once approved.');
         setJoinSuccess(true);
         setJoining(false);
+        // Redirect to home page after 2 seconds to show pending trip card
+        setTimeout(() => {
+          navigate('/', { replace: true });
+        }, 2000);
         return;
       }
 

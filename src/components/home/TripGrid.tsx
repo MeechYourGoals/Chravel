@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { TripCard } from '../TripCard';
+import { PendingTripCard } from '../PendingTripCard';
 import { ProTripCard } from '../ProTripCard';
 import { EventCard } from '../EventCard';
 import { MobileEventCard } from '../MobileEventCard';
@@ -37,6 +38,7 @@ interface Trip {
 interface TripGridProps {
   viewMode: string;
   trips: Trip[];
+  pendingTrips?: Trip[];
   proTrips: Record<string, ProTripData>;
   events: Record<string, EventData>;
   loading?: boolean;
@@ -47,6 +49,7 @@ interface TripGridProps {
 export const TripGrid = React.memo(({ 
   viewMode, 
   trips, 
+  pendingTrips = [],
   proTrips, 
   events, 
   loading = false,
@@ -64,6 +67,7 @@ export const TripGrid = React.memo(({
 
   // Filter out archived trips - use synchronous version since we don't have async user context
   const activeTrips = useMemo(() => trips, [trips]);
+  const activePendingTrips = useMemo(() => pendingTrips, [pendingTrips]);
   const activeProTrips = useMemo(() => proTrips, [proTrips]);
   const activeEvents = useMemo(() => events, [events]);
 
@@ -164,7 +168,7 @@ export const TripGrid = React.memo(({
   const hasContent = activeFilter === 'archived'
     ? archivedTrips.length > 0
     : viewMode === 'myTrips' 
-    ? activeTrips.length > 0 
+    ? activeTrips.length > 0 || activePendingTrips.length > 0
     : viewMode === 'tripsPro' 
     ? Object.keys(activeProTrips).length > 0
     : viewMode === 'events'
@@ -287,9 +291,16 @@ export const TripGrid = React.memo(({
             />
           ))
         ) : viewMode === 'myTrips' ? (
-          activeTrips.map((trip) => (
-            <TripCard key={trip.id} trip={trip} />
-          ))
+          <>
+            {/* Render active trips first */}
+            {activeTrips.map((trip) => (
+              <TripCard key={trip.id} trip={trip} />
+            ))}
+            {/* Render pending trips after active trips */}
+            {activePendingTrips.map((trip) => (
+              <PendingTripCard key={trip.id} trip={trip} />
+            ))}
+          </>
         ) : viewMode === 'tripsPro' ? (
           Object.values(activeProTrips).map((trip) => (
             <ProTripCard key={trip.id} trip={trip} />

@@ -52,6 +52,7 @@ export interface Trip {
   basecamp_name?: string;
   basecamp_address?: string;
   enabled_features?: string[];  // ✅ Phase 2: Feature toggles for Pro/Event trips
+  membership_status?: 'owner' | 'member' | 'pending' | 'rejected'; // Membership status for current user
 }
 
 export interface CreateTripData {
@@ -184,8 +185,8 @@ export const tripService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      // Fetch trips first (no FK-dependent joins)
-      const { data: trips, error } = await supabase
+      // Fetch trips where user is creator
+      const { data: createdTrips, error: createdError } = await supabase
         .from('trips')
         .select('*')
         .eq('created_by', user.id)
@@ -193,11 +194,81 @@ export const tripService = {
         .eq('is_hidden', false)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      if (!trips || trips.length === 0) return [];
+      if (createdError) throw createdError;
+
+      // Fetch trips where user has pending join requests
+      const { data: pendingRequests, error: pendingError } = await supabase
+        .from('trip_join_requests')
+        .select('trip_id, status')
+        .eq('user_id', user.id)
+        .eq('status', 'pending');
+
+      if (pendingError) {
+        console.error('Error fetching pending requests:', pendingError);
+        // Continue without pending trips rather than failing completely
+      }
+
+      // Fetch trip details for pending requests
+      const pendingTripIds = pendingRequests?.map(r => r.trip_id) || [];
+      let pendingTrips: Trip[] = [];
+      
+      if (pendingTripIds.length > 0) {
+        const { data: pendingTripsData, error: pendingTripsError } = await supabase
+          .from('trips')
+          .select('*')
+          .in('id', pendingTripIds)
+          .eq('is_archived', false)
+          .eq('is_hidden', false);
+
+        if (!pendingTripsError && pendingTripsData) {
+          pendingTrips = pendingTripsData.map(trip => ({
+            ...trip,
+            membership_status: 'pending' as const
+          }));
+        }
+      }
+
+      // Combine created trips and pending trips
+      const allTrips = [
+        ...(createdTrips || []).map(trip => ({
+          ...trip,
+          membership_status: 'owner' as const
+        })),
+        ...pendingTrips
+      ];
+
+      // Also fetch trips where user is a member (not creator)
+      const { data: memberTrips, error: memberError } = await supabase
+        .from('trip_members')
+        .select('trip_id')
+        .eq('user_id', user.id);
+
+      if (!memberError && memberTrips && memberTrips.length > 0) {
+        const memberTripIds = memberTrips
+          .map(m => m.trip_id)
+          .filter(id => !allTrips.some(t => t.id === id)); // Exclude already fetched trips
+
+        if (memberTripIds.length > 0) {
+          const { data: memberTripsData, error: memberTripsError } = await supabase
+            .from('trips')
+            .select('*')
+            .in('id', memberTripIds)
+            .eq('is_archived', false)
+            .eq('is_hidden', false);
+
+          if (!memberTripsError && memberTripsData) {
+            allTrips.push(...memberTripsData.map(trip => ({
+              ...trip,
+              membership_status: 'member' as const
+            })));
+          }
+        }
+      }
+
+      if (allTrips.length === 0) return [];
 
       // Batch-fetch member and link counts separately (no FK required)
-      const tripIds = trips.map(t => t.id);
+      const tripIds = allTrips.map(t => t.id);
 
       const [membersResult, linksResult] = await Promise.all([
         supabase.from('trip_members').select('trip_id').in('trip_id', tripIds),
@@ -217,7 +288,7 @@ export const tripService = {
       });
 
       // Attach counts to trips in the format expected by tripConverter
-      return trips.map(trip => ({
+      return allTrips.map(trip => ({
         ...trip,
         trip_members: [{ count: memberCountMap.get(trip.id) || 0 }],
         trip_links: [{ count: linkCountMap.get(trip.id) || 0 }]
