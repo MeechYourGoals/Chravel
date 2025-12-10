@@ -13,12 +13,14 @@ export const useRolePermissions = (tripId: string) => {
   const { isDemoMode } = useDemoMode();
   const [permissionLevel, setPermissionLevel] = useState<PermissionLevel>('view');
   const [featurePermissions, setFeaturePermissions] = useState<FeaturePermissions | null>(null);
+  const [isTripMember, setIsTripMember] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadPermissions = useCallback(async () => {
     // In Demo Mode, grant full permissions
     if (isDemoMode) {
       setPermissionLevel('admin');
+      setIsTripMember(true);
       setFeaturePermissions({
         channels: { can_view: true, can_post: true, can_edit_messages: true, can_delete_messages: true, can_manage_members: true },
         calendar: { can_view: true, can_create_events: true, can_edit_events: true, can_delete_events: true },
@@ -36,7 +38,18 @@ export const useRolePermissions = (tripId: string) => {
     }
 
     try {
-      // Get user's primary role for this trip
+      // First, check if user is a trip member (for consumer trips)
+      const { data: memberData } = await supabase
+        .from('trip_members')
+        .select('id, role')
+        .eq('trip_id', tripId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const isUserTripMember = !!memberData;
+      setIsTripMember(isUserTripMember);
+
+      // Get user's primary role for this trip (Pro trips)
       const { data: roleData, error } = await supabase
         .from('user_trip_roles')
         .select(`
@@ -49,11 +62,24 @@ export const useRolePermissions = (tripId: string) => {
         .eq('trip_id', tripId)
         .eq('user_id', user.id)
         .eq('is_primary', true)
-        .single();
+        .maybeSingle();
 
       if (error || !roleData?.trip_roles) {
-        setPermissionLevel('view');
-        setFeaturePermissions(null);
+        // No Pro trip role - but if user is a trip member, grant default edit permissions
+        if (isUserTripMember) {
+          setPermissionLevel('edit');
+          // Grant default permissions for consumer trip members
+          setFeaturePermissions({
+            channels: { can_view: true, can_post: true, can_edit_messages: true, can_delete_messages: false, can_manage_members: false },
+            calendar: { can_view: true, can_create_events: true, can_edit_events: true, can_delete_events: true },
+            tasks: { can_view: true, can_create: true, can_assign: true, can_complete: true, can_delete: true },
+            media: { can_view: true, can_upload: true, can_delete_own: true, can_delete_any: false },
+            payments: { can_view: true, can_create: true, can_approve: false },
+          });
+        } else {
+          setPermissionLevel('view');
+          setFeaturePermissions(null);
+        }
         return;
       }
 
@@ -86,10 +112,21 @@ export const useRolePermissions = (tripId: string) => {
     // In Demo Mode, always allow actions
     if (isDemoMode) return true;
     
+    // If user is a trip member but no explicit permissions, allow basic actions
+    if (isTripMember && !featurePermissions) {
+      // Default consumer trip permissions - allow most actions for members
+      const defaultAllowedActions = [
+        'can_view', 'can_create', 'can_edit', 
+        'can_create_events', 'can_edit_events', 'can_delete_events',
+        'can_post', 'can_upload', 'can_complete', 'can_assign', 'can_delete'
+      ];
+      return defaultAllowedActions.includes(action);
+    }
+    
     if (!featurePermissions) return false;
     const featurePerm = featurePermissions[feature] as any;
     return featurePerm?.[action] === true;
-  }, [featurePermissions, isDemoMode]);
+  }, [featurePermissions, isDemoMode, isTripMember]);
 
   /**
    * Check if user has admin-level permissions
@@ -104,6 +141,7 @@ export const useRolePermissions = (tripId: string) => {
   return {
     permissionLevel,
     featurePermissions,
+    isTripMember,
     isLoading,
     canPerformAction,
     isAdmin,

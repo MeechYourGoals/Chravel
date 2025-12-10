@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { X, Calendar as CalendarIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Calendar as CalendarIcon, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { calendarService } from '@/services/calendarService';
+import { calendarService, TripEvent } from '@/services/calendarService';
 import { toast } from 'sonner';
 
 interface CreateEventModalProps {
@@ -11,9 +11,20 @@ interface CreateEventModalProps {
   selectedDate: Date;
   tripId: string;
   onEventCreated?: (event: any) => void;
+  // Edit mode props
+  editEvent?: TripEvent | null;
+  onEventUpdated?: (event: TripEvent) => void;
 }
 
-export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEventCreated }: CreateEventModalProps) => {
+export const CreateEventModal = ({ 
+  isOpen, 
+  onClose, 
+  selectedDate, 
+  tripId, 
+  onEventCreated,
+  editEvent,
+  onEventUpdated
+}: CreateEventModalProps) => {
   const [title, setTitle] = useState('');
   const [eventDate, setEventDate] = useState(selectedDate);
   const [time, setTime] = useState('12:00');
@@ -21,10 +32,33 @@ export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEven
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Update eventDate when selectedDate prop changes
-  React.useEffect(() => {
-    setEventDate(selectedDate);
-  }, [selectedDate]);
+  const isEditMode = !!editEvent;
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editEvent) {
+      setTitle(editEvent.title || '');
+      const startDate = new Date(editEvent.start_time);
+      setEventDate(startDate);
+      setTime(format(startDate, 'HH:mm'));
+      setLocation(editEvent.location || '');
+      setDescription(editEvent.description || '');
+    } else {
+      // Reset form for new event
+      setTitle('');
+      setEventDate(selectedDate);
+      setTime('12:00');
+      setLocation('');
+      setDescription('');
+    }
+  }, [editEvent, selectedDate, isOpen]);
+
+  // Update eventDate when selectedDate prop changes (only for new events)
+  useEffect(() => {
+    if (!editEvent) {
+      setEventDate(selectedDate);
+    }
+  }, [selectedDate, editEvent]);
 
   if (!isOpen) return null;
 
@@ -38,54 +72,85 @@ export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEven
       const startTime = new Date(eventDate);
       startTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
-      // Create timeout promise (10 seconds)
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Event creation timed out. Please try again.')), 10000);
-      });
-
-      // Race between actual creation and timeout
-      const result = await Promise.race([
-        calendarService.createEvent({
-          trip_id: tripId,
+      if (isEditMode && editEvent) {
+        // Update existing event
+        const success = await calendarService.updateEvent(editEvent.id, {
           title,
           description: description || undefined,
           start_time: startTime.toISOString(),
           location: location || undefined,
-          include_in_itinerary: true,
-          source_type: 'manual',
-          source_data: { created_from: 'mobile' }
-        }),
-        timeoutPromise
-      ]);
+          trip_id: tripId,
+        });
 
-      if (result.event) {
-        // Show conflict warning if overlapping events exist
-        if (result.conflicts.length > 0) {
-          toast.success('Event created', {
-            description: `${title} has been added to your calendar. Note: This event overlaps with "${result.conflicts[0]}"${result.conflicts.length > 1 ? ` and ${result.conflicts.length - 1} other event(s)` : ''}.`
+        if (success) {
+          toast.success('Event updated', {
+            description: `${title} has been updated`
           });
+
+          // Trigger callback for UI update
+          onEventUpdated?.({
+            ...editEvent,
+            title,
+            description: description || undefined,
+            start_time: startTime.toISOString(),
+            location: location || undefined,
+          });
+
+          onClose();
         } else {
-          toast.success('Event created', {
-            description: `${title} has been added to your calendar`
-          });
+          throw new Error('Failed to update event');
         }
-
-        // Trigger callback for UI update
-        onEventCreated?.(result.event);
-
-        // Reset form
-        setTitle('');
-        setTime('12:00');
-        setLocation('');
-        setDescription('');
-        onClose();
       } else {
-        throw new Error('Failed to create event');
+        // Create new event
+        // Create timeout promise (10 seconds)
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Event creation timed out. Please try again.')), 10000);
+        });
+
+        // Race between actual creation and timeout
+        const result = await Promise.race([
+          calendarService.createEvent({
+            trip_id: tripId,
+            title,
+            description: description || undefined,
+            start_time: startTime.toISOString(),
+            location: location || undefined,
+            include_in_itinerary: true,
+            source_type: 'manual',
+            source_data: { created_from: 'mobile' }
+          }),
+          timeoutPromise
+        ]);
+
+        if (result.event) {
+          // Show conflict warning if overlapping events exist
+          if (result.conflicts.length > 0) {
+            toast.success('Event created', {
+              description: `${title} has been added to your calendar. Note: This event overlaps with "${result.conflicts[0]}"${result.conflicts.length > 1 ? ` and ${result.conflicts.length - 1} other event(s)` : ''}.`
+            });
+          } else {
+            toast.success('Event created', {
+              description: `${title} has been added to your calendar`
+            });
+          }
+
+          // Trigger callback for UI update
+          onEventCreated?.(result.event);
+
+          // Reset form
+          setTitle('');
+          setTime('12:00');
+          setLocation('');
+          setDescription('');
+          onClose();
+        } else {
+          throw new Error('Failed to create event');
+        }
       }
     } catch (error) {
-      console.error('Failed to create event:', error);
+      console.error('Failed to save event:', error);
       const errorMessage = error instanceof Error ? error.message : 'Please try again or contact support';
-      toast.error('Failed to create event', {
+      toast.error(isEditMode ? 'Failed to update event' : 'Failed to create event', {
         description: errorMessage
       });
     } finally {
@@ -106,12 +171,18 @@ export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEven
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-              <CalendarIcon className="w-5 h-5 text-blue-400" />
+            <div className={`w-10 h-10 rounded-xl ${isEditMode ? 'bg-amber-500/20' : 'bg-blue-500/20'} flex items-center justify-center`}>
+              {isEditMode ? (
+                <Pencil className="w-5 h-5 text-amber-400" />
+              ) : (
+                <CalendarIcon className="w-5 h-5 text-blue-400" />
+              )}
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">Add Event</h2>
-              <p className="text-sm text-gray-400">{format(selectedDate, 'MMM d, yyyy')}</p>
+              <h2 className="text-xl font-semibold text-white">
+                {isEditMode ? 'Edit Event' : 'Add Event'}
+              </h2>
+              <p className="text-sm text-gray-400">{format(eventDate, 'MMM d, yyyy')}</p>
             </div>
           </div>
           <button
@@ -203,9 +274,15 @@ export const CreateEventModal = ({ isOpen, onClose, selectedDate, tripId, onEven
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              className={`flex-1 ${isEditMode 
+                ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700' 
+                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+              } text-white`}
             >
-              {isSubmitting ? 'Creating...' : 'Create Event'}
+              {isSubmitting 
+                ? (isEditMode ? 'Updating...' : 'Creating...') 
+                : (isEditMode ? 'Save Changes' : 'Create Event')
+              }
             </Button>
           </div>
         </form>
