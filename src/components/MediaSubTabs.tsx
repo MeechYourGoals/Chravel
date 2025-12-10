@@ -54,16 +54,21 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
 
-  const handleFileUpload = async (files: FileList | null, mediaType: 'image' | 'video' | 'document') => {
+  const getMediaTypeFromMime = (mimeType: string): 'image' | 'video' | 'document' => {
+    if (mimeType.startsWith('image/')) return 'image';
+    if (mimeType.startsWith('video/')) return 'video';
+    return 'document';
+  };
+
+  const handleFileUpload = async (files: FileList | null, activeTabType: 'photos' | 'videos' | 'files') => {
     if (!files || files.length === 0) return;
     if (!tripId) {
       toast.error('Trip ID is required for uploads');
       return;
     }
 
-    // Demo mode: show toast only
     if (isDemoMode) {
-      toast.success(`${files.length} ${mediaType}(s) uploaded (demo mode)`);
+      toast.success(`${files.length} file(s) uploaded (demo mode)`);
       return;
     }
 
@@ -74,7 +79,47 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
 
     setIsUploading(true);
     try {
+      let uploadedCount = 0;
+      
       for (const file of Array.from(files)) {
+        const detectedType = getMediaTypeFromMime(file.type);
+        
+        // Validation & Routing Logic
+        let finalMediaType: 'image' | 'video' | 'document' = detectedType;
+        
+        if (activeTabType === 'photos') {
+          if (detectedType !== 'image') {
+            if (detectedType === 'video') {
+              // Auto-route video to videos tab (allow but warn)
+              toast.info(`Video "${file.name}" will be saved to Videos tab`);
+              finalMediaType = 'video';
+            } else {
+              toast.error(`"${file.name}" is not a photo`);
+              continue;
+            }
+          }
+        } else if (activeTabType === 'videos') {
+          if (detectedType !== 'video') {
+            if (detectedType === 'image') {
+               // Auto-route photo to photos tab (allow but warn)
+               toast.info(`Photo "${file.name}" will be saved to Photos tab`);
+               finalMediaType = 'image';
+            } else {
+              toast.error(`"${file.name}" is not a video`);
+              continue;
+            }
+          }
+        } else if (activeTabType === 'files') {
+          // Files tab logic: reject standard media to keep it organized, unless it's a specific "document" intent
+          // But technically users might want to upload a "chart" image as a file.
+          // However, sticking to the plan: "rejects or warns on pure images/videos"
+          if (detectedType === 'image' || detectedType === 'video') {
+             toast.error(`Please upload photos/videos in the ${detectedType === 'image' ? 'Photos' : 'Videos'} tab`);
+             continue;
+          }
+          finalMediaType = 'document';
+        }
+
         const fileName = `${tripId}/${user.id}/${Date.now()}-${file.name}`;
         
         // Upload to Supabase Storage
@@ -100,7 +145,7 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
             trip_id: tripId,
             media_url: urlData.publicUrl,
             filename: file.name,
-            media_type: mediaType,
+            media_type: finalMediaType, // Use the detected/validated type
             file_size: file.size,
             mime_type: file.type,
             metadata: {}
@@ -109,11 +154,15 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
         if (dbError) {
           console.error('Database error:', dbError);
           toast.error(`Failed to save ${file.name} metadata`);
+        } else {
+          uploadedCount++;
         }
       }
 
-      toast.success(`${files.length} file(s) uploaded successfully!`);
-      onMediaUploaded?.();
+      if (uploadedCount > 0) {
+        toast.success(`${uploadedCount} file(s) uploaded successfully!`);
+        onMediaUploaded?.();
+      }
     } catch (error) {
       console.error('Upload error:', error);
       toast.error('Failed to upload files');
@@ -242,7 +291,7 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
           accept="image/*"
           multiple
           className="hidden"
-          onChange={(e) => handleFileUpload(e.target.files, 'image')}
+          onChange={(e) => handleFileUpload(e.target.files, 'photos')}
         />
         <input
           ref={videoInputRef}
@@ -250,7 +299,7 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
           accept="video/*"
           multiple
           className="hidden"
-          onChange={(e) => handleFileUpload(e.target.files, 'video')}
+          onChange={(e) => handleFileUpload(e.target.files, 'videos')}
         />
         
         {/* Header with Add Button */}
