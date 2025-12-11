@@ -811,7 +811,7 @@ const Index = () => {
             loading={isLoading}
             onCreateTrip={handleCreateTrip}
             activeFilter={activeFilter}
-            myPendingRequests={myPendingRequests}
+            myPendingRequests={isDemoMode ? mockMyPendingRequests : myPendingRequests}
           />
         </div>
 
