@@ -14,7 +14,7 @@ import { ProTripData } from '../types/pro';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { archiveTrip, hideTrip } from '../services/archiveService';
 import { useToast } from '../hooks/use-toast';
-import { calculatePeopleCount, calculateDaysCount, calculateProTripPlacesCount } from '../utils/tripStatsUtils';
+import { getPeopleCountValue, formatPeopleCount, calculateDaysCount, calculateProTripPlacesCount } from '../utils/tripStatsUtils';
 import { processTeamMembers, processRoles } from '../utils/teamDisplayUtils';
 import { getInitials } from '../utils/avatarUtils';
 import { ExportSection } from '../types/tripExport';
@@ -57,8 +57,11 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
   
   // Calculate updated people count including added members
   const totalPeopleCount = React.useMemo(() => {
-    const baseCount = calculatePeopleCount(trip);
-    return baseCount + addedDemoMembers.length;
+    let baseCount = getPeopleCountValue(trip);
+    // Ensure at least 1 person (creator) is counted
+    if (baseCount === 0) baseCount = 1;
+    
+    return formatPeopleCount(baseCount + addedDemoMembers.length);
   }, [trip, addedDemoMembers]);
 
   const handleViewTrip = () => {
