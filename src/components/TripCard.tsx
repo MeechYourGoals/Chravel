@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, User, Plus, MoreHorizontal, Archive, Flame, TrendingUp, EyeOff } from 'lucide-react';
+import { Calendar, MapPin, User, MoreHorizontal, Archive, Flame, TrendingUp, EyeOff, FileDown } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { InviteModal } from './InviteModal';
 import { ShareTripModal } from './share/ShareTripModal';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
+import { TripExportModal } from './trip/TripExportModal';
 import { TravelerTooltip } from './ui/traveler-tooltip';
 import { archiveTrip, hideTrip } from '../services/archiveService';
 import { useToast } from '../hooks/use-toast';
@@ -53,6 +54,7 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
   
@@ -233,46 +235,28 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
           </div>
         </div>
 
-        {/* Participants - Responsive sizing */}
-        <div className="mb-4 md:mb-6">
-          <div className="flex items-center justify-between mb-2 md:mb-3">
-            <span className="text-sm text-gray-400 font-medium">Chravelers</span>
-            {/* Invite button - combined pill with + and person icons */}
-            <button
-              onClick={() => setShowInviteModal(true)}
-              className="hidden md:flex items-center gap-1 text-yellow-400 hover:text-yellow-300 transition-colors px-2 py-1 hover:bg-yellow-400/10 rounded-lg border border-yellow-500/30 hover:border-yellow-500/50"
-              title="Invite people to trip"
-            >
-              <Plus size={14} />
-              <User size={14} />
-            </button>
-            {/* Mobile count */}
-            <span className="md:hidden text-xs text-gray-500">{participantsWithAvatars.length} people</span>
-          </div>
-
-          <div className="flex items-center">
-            <div className="flex -space-x-2">
-              {participantsWithAvatars.slice(0, 5).map((participant, index) => (
-                <TravelerTooltip key={participant.id} name={participant.name}>
-                  <div
-                    className="relative w-8 md:w-10 h-8 md:h-10 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center text-xs md:text-sm font-semibold text-black border-2 border-gray-900 hover:scale-110 transition-transform duration-200 hover:border-yellow-400 cursor-pointer"
-                    style={{ zIndex: participantsWithAvatars.length - index }}
-                  >
-                    {participant.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                  </div>
-                </TravelerTooltip>
-              ))}
-            </div>
-            {participantsWithAvatars.length > 5 && (
-              <div className="w-8 md:w-10 h-8 md:h-10 rounded-full bg-gray-700 border-2 border-gray-900 flex items-center justify-center text-xs md:text-sm font-medium text-white ml-1 md:-ml-2">
-                +{participantsWithAvatars.length - 5}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Action Buttons - 2 columns: View | Share */}
+        {/* Action Buttons - 2x2 grid: Export/Invite top, View/Share bottom */}
         <div className="grid grid-cols-2 gap-2 md:gap-3">
+          {/* Top Row */}
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm flex items-center justify-center gap-1.5"
+          >
+            <FileDown size={14} className="md:hidden" />
+            <FileDown size={16} className="hidden md:block" />
+            Export
+          </button>
+
+          <button
+            onClick={() => setShowInviteModal(true)}
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm flex items-center justify-center gap-1.5"
+          >
+            <User size={14} className="md:hidden" />
+            <User size={16} className="hidden md:block" />
+            Invite
+          </button>
+
+          {/* Bottom Row */}
           <button
             onClick={handleViewTrip}
             className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25 text-xs md:text-sm"
@@ -308,6 +292,19 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
         onConfirm={handleArchiveTrip}
         tripTitle={trip.title}
         isArchiving={true}
+      />
+
+      <TripExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={async () => {
+          toast({
+            title: "Export started",
+            description: `Generating PDF for "${trip.title}"`,
+          });
+        }}
+        tripName={trip.title}
+        tripId={trip.id.toString()}
       />
     </div>
   );
