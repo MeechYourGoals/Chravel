@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Crown, FileText, Eye, Users, Clock, MoreHorizontal, Archive, EyeOff, UserPlus } from 'lucide-react';
+import { Calendar, MapPin, FileText, Eye, Users, Clock, MoreHorizontal, Archive, EyeOff, UserPlus } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from './ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
@@ -164,34 +164,8 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
 
   return (
     <div className={`bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md border border-white/20 rounded-3xl p-6 hover:bg-white/15 transition-all duration-300 hover:scale-105 hover:shadow-xl group hover:border-${accentColors.primary}/50 relative overflow-hidden`}>
-      {/* Crown Badge - Only show if roster exists and has members */}
-      {trip.roster && trip.roster.length > 0 && (
-        <div className="absolute top-4 left-4">
-          <Tooltip>
-            <TooltipTrigger>
-              <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 p-2 rounded-lg shadow-lg">
-                <Crown size={14} className="text-white" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Professional Trip</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      )}
-
-      {/* Pro Badge and Menu */}
+      {/* Menu */}
       <div className="absolute top-4 right-4 flex items-center gap-2">
-        <Tooltip>
-          <TooltipTrigger>
-            <div className={`bg-gradient-to-r ${accentColors.gradient} p-2 rounded-lg`}>
-              <Crown size={16} className="text-white" />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Pro Feature Demo</p>
-          </TooltipContent>
-        </Tooltip>
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

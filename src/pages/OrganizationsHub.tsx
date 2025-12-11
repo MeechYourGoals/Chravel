@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building, Plus, Users, Crown, ChevronRight } from 'lucide-react';
+import { Building, Plus, Users, ChevronRight } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -104,7 +104,7 @@ export const OrganizationsHub = () => {
                         <div className="font-semibold text-white flex items-center gap-2">
                           {tierInfo.name}
                           {org.subscription_tier === 'enterprise-plus' && (
-                            <Crown size={16} className="text-yellow-400" />
+                            <span className="sr-only">Enterprise Plus</span>
                           )}
                         </div>
                       </div>

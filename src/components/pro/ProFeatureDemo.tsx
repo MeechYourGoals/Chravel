@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { CheckCircle, XCircle, AlertTriangle, Crown, Users, Shield } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Users, Shield } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { hasTabAccess, isReadOnlyTab } from './ProTabsConfig';
 import { Button } from '../ui/button';
@@ -37,7 +37,6 @@ export const ProFeatureDemo = () => {
   return (
     <div className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-xl p-6 mb-6">
       <div className="flex items-center gap-3 mb-4">
-        <Crown className="text-yellow-400" size={20} />
         <h3 className="text-lg font-bold text-white">Pro Features Demo</h3>
       </div>
       

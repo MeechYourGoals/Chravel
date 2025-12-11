@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Settings, Crown, MessageCircle, UserPlus } from 'lucide-react';
+import { ArrowLeft, Settings, MessageCircle, UserPlus } from 'lucide-react';
 
 import { useAuth } from '../../hooks/useAuth';
 import { useTripVariant } from '../../contexts/TripVariantContext';
@@ -42,7 +42,6 @@ export const ProTripDetailHeader = ({
       <div className="flex items-center gap-3">
         {/* Pro Badge */}
         <div className={`bg-gradient-to-r ${accentColors.gradient} backdrop-blur-sm border border-yellow-500/30 rounded-xl px-4 py-2 flex items-center gap-2`}>
-          <Crown size={16} className="text-white" />
           <span className="text-white font-medium">PRO</span>
         </div>
 
