@@ -134,7 +134,7 @@ function generateHTML(trip: {
   <meta property="og:type" content="website">
   <meta property="og:url" content="${previewUrl}">
   <meta property="og:title" content="${trip.title}">
-  <meta property="og:description" content="${trip.description} 📍 ${trip.location} • 📅 ${trip.dateRange} • 👥 ${trip.participantCount} travelers">
+  <meta property="og:description" content="${trip.location} • ${trip.dateRange} • ${trip.participantCount} Chravelers">
   <meta property="og:image" content="${trip.coverPhoto}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -143,7 +143,7 @@ function generateHTML(trip: {
   <!-- Twitter Card Meta Tags -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${trip.title}">
-  <meta name="twitter:description" content="${trip.description} 📍 ${trip.location} • 📅 ${trip.dateRange}">
+  <meta name="twitter:description" content="${trip.location} • ${trip.dateRange} • ${trip.participantCount} Chravelers">
   <meta name="twitter:image" content="${trip.coverPhoto}">
   
   <!-- Additional Meta Tags -->
