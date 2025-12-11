@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Camera, X, Check } from 'lucide-react';
+import { Upload, Camera, Check, Crop } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { supabase } from '../integrations/supabase/client';
@@ -23,11 +23,9 @@ export const TripCoverPhotoUpload = ({
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [showCropModal, setShowCropModal] = useState(false);
   const [selectedImageSrc, setSelectedImageSrc] = useState<string>('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -35,18 +33,23 @@ export const TripCoverPhotoUpload = ({
     const file = acceptedFiles[0];
     const previewUrl = URL.createObjectURL(file);
     
-    setSelectedFile(file);
     setSelectedImageSrc(previewUrl);
     setShowCropModal(true);
   }, []);
 
+  const handleAdjustPosition = useCallback(() => {
+    if (currentPhoto) {
+      setSelectedImageSrc(currentPhoto);
+      setShowCropModal(true);
+    }
+  }, [currentPhoto]);
+
   const handleCropComplete = useCallback(async (croppedBlob: Blob) => {
     setShowCropModal(false);
     setIsUploading(true);
-    setUploadProgress(0);
 
-    // Clean up the original preview URL
-    if (selectedImageSrc) {
+    // Clean up the original preview URL if it was a blob
+    if (selectedImageSrc && selectedImageSrc.startsWith('blob:')) {
       URL.revokeObjectURL(selectedImageSrc);
     }
 
@@ -79,7 +82,9 @@ export const TripCoverPhotoUpload = ({
         throw new Error('No URL returned from upload');
       }
 
-      const success = await onPhotoUploaded(data.url);
+      // Add cache-busting param for re-crops
+      const finalUrl = `${data.url}?t=${Date.now()}`;
+      const success = await onPhotoUploaded(finalUrl);
       if (success) {
         setUploadSuccess(true);
         setTimeout(() => setUploadSuccess(false), 2000);
@@ -89,18 +94,15 @@ export const TripCoverPhotoUpload = ({
       toast.error('Failed to upload photo. Please try again.');
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
-      setSelectedFile(null);
       setSelectedImageSrc('');
     }
   }, [user, isDemoMode, tripId, onPhotoUploaded, selectedImageSrc]);
 
   const handleCropCancel = useCallback(() => {
     setShowCropModal(false);
-    if (selectedImageSrc) {
+    if (selectedImageSrc && selectedImageSrc.startsWith('blob:')) {
       URL.revokeObjectURL(selectedImageSrc);
     }
-    setSelectedFile(null);
     setSelectedImageSrc('');
   }, [selectedImageSrc]);
 
@@ -122,7 +124,15 @@ export const TripCoverPhotoUpload = ({
             alt={`Cover photo for trip ${tripId}`}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center gap-3">
+            <button
+              onClick={handleAdjustPosition}
+              disabled={isUploading}
+              className="cursor-pointer bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2 flex items-center gap-2 text-white hover:bg-white/30 transition-colors disabled:opacity-50"
+            >
+              <Crop size={16} />
+              <span className="text-sm font-medium">Adjust Position</span>
+            </button>
             <div
               {...getRootProps()}
               className="cursor-pointer bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2 flex items-center gap-2 text-white hover:bg-white/30 transition-colors"
@@ -183,12 +193,14 @@ export const TripCoverPhotoUpload = ({
       )}
 
       {/* Crop Modal */}
-      <CoverPhotoCropModal
-        isOpen={showCropModal}
-        onClose={handleCropCancel}
-        imageSrc={selectedImageSrc}
-        onCropComplete={handleCropComplete}
-      />
+      {selectedImageSrc && (
+        <CoverPhotoCropModal
+          isOpen={showCropModal}
+          onClose={handleCropCancel}
+          imageSrc={selectedImageSrc}
+          onCropComplete={handleCropComplete}
+        />
+      )}
     </>
   );
 };

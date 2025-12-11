@@ -1,7 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Calendar, MapPin, Users, Plus, Settings, Edit, FileDown, Camera, Loader2 } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, Settings, Edit, FileDown, Camera, Loader2, Crop } from 'lucide-react';
 import { InviteModal } from './InviteModal';
+import { CoverPhotoCropModal } from './CoverPhotoCropModal';
 import { EditableDescription } from './EditableDescription';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { useTripCoverPhoto } from '../hooks/useTripCoverPhoto';
@@ -64,6 +65,8 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
   const { isDemoMode } = useDemoMode();
   const { tripCreatorId, canRemoveMembers, removeMember } = useTripMembers(trip.id.toString());
   const [isUploading, setIsUploading] = useState(false);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   
   // Fetch pending join requests
   const { 
@@ -158,6 +161,13 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
     fileInputRef.current?.click();
   };
 
+  const handleAdjustCoverPhoto = () => {
+    if (coverPhoto) {
+      setCropImageSrc(coverPhoto);
+      setShowCropModal(true);
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -174,13 +184,29 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       return;
     }
 
-    // Demo mode: use blob URL (it's fine for demo)
+    // Open crop modal instead of direct upload
+    const objectUrl = URL.createObjectURL(file);
+    setCropImageSrc(objectUrl);
+    setShowCropModal(true);
+    
+    // Clear the input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setShowCropModal(false);
+    
+    // Demo mode: use blob URL
     if (isDemoMode) {
-      const objectUrl = URL.createObjectURL(file);
-      const success = await updateCoverPhoto(objectUrl);
-      if (success && fileInputRef.current) {
-        fileInputRef.current.value = '';
+      const objectUrl = URL.createObjectURL(croppedBlob);
+      await updateCoverPhoto(objectUrl);
+      // Clean up crop source if it was a blob
+      if (cropImageSrc?.startsWith('blob:')) {
+        URL.revokeObjectURL(cropImageSrc);
       }
+      setCropImageSrc(null);
       return;
     }
 
@@ -192,31 +218,23 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
 
     setIsUploading(true);
     try {
-      // Generate unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${trip.id}-${Date.now()}.${fileExt}`;
+      const fileName = `${trip.id}-${Date.now()}.jpg`;
       const filePath = `trip-covers/${trip.id}/${fileName}`;
 
-      // Upload to Supabase Storage - use trip-media bucket (trip-photos doesn't exist)
-      const { data, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('trip-media')
-        .upload(filePath, file, {
+        .upload(filePath, croppedBlob, {
           cacheControl: '3600',
-          upsert: true
+          upsert: true,
+          contentType: 'image/jpeg'
         });
 
       if (uploadError) {
-        console.error('Upload error details:', {
-          error: uploadError,
-          message: uploadError.message,
-          tripId: trip.id,
-          filePath
-        });
+        console.error('Upload error:', uploadError);
         toast.error(`Failed to upload: ${uploadError.message}`);
         return;
       }
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from('trip-media')
         .getPublicUrl(filePath);
@@ -226,18 +244,28 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
         return;
       }
 
-      // Update cover photo with real URL
-      const success = await updateCoverPhoto(urlData.publicUrl);
-      
-      if (success && fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      // Add cache-busting param for re-crops
+      const finalUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      await updateCoverPhoto(finalUrl);
     } catch (error) {
       console.error('Cover photo upload error:', error);
       toast.error('Failed to upload cover photo');
     } finally {
       setIsUploading(false);
+      // Clean up crop source if it was a blob
+      if (cropImageSrc?.startsWith('blob:')) {
+        URL.revokeObjectURL(cropImageSrc);
+      }
+      setCropImageSrc(null);
     }
+  };
+
+  const handleCropCancel = () => {
+    setShowCropModal(false);
+    if (cropImageSrc?.startsWith('blob:')) {
+      URL.revokeObjectURL(cropImageSrc);
+    }
+    setCropImageSrc(null);
   };
 
   return (
@@ -308,8 +336,19 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
               </div>
             )}
             
-            {/* Edit Trip Button - Bottom right */}
-            <div className="absolute bottom-2 right-2 z-10">
+            {/* Action Buttons - Bottom right */}
+            <div className="absolute bottom-2 right-2 z-10 flex items-center gap-2">
+              {/* Adjust Position Button - only show when cover photo exists */}
+              {coverPhoto && (
+                <button
+                  onClick={handleAdjustCoverPhoto}
+                  disabled={isUpdating || isUploading}
+                  className="p-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/20 rounded-lg transition-all text-white/80 hover:text-white shadow-lg disabled:opacity-50"
+                  title="Adjust cover photo position"
+                >
+                  <Crop size={14} />
+                </button>
+              )}
               <button
                 onClick={() => setShowEditModal(true)}
                 className="p-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/20 rounded-lg transition-all text-white/80 hover:text-white shadow-lg"
@@ -538,6 +577,16 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
         trip={trip}
         onUpdate={handleTripUpdate}
       />
+
+      {/* Cover Photo Crop Modal */}
+      {cropImageSrc && (
+        <CoverPhotoCropModal
+          isOpen={showCropModal}
+          onClose={handleCropCancel}
+          imageSrc={cropImageSrc}
+          onCropComplete={handleCropComplete}
+        />
+      )}
     </>
   );
 };
