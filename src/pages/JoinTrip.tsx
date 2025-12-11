@@ -345,8 +345,30 @@ const JoinTrip = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
           <p className="text-muted-foreground">Loading invite details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback for when loading is done but no data and no error
+  if (!inviteData && !error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center max-w-md bg-card/50 backdrop-blur-md border border-border rounded-3xl p-8 shadow-xl">
+          <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-foreground mb-4">Something went wrong</h1>
+          <p className="text-muted-foreground mb-6">We couldn't load the invite details. Please try again.</p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              fetchInvitePreview();
+            }}
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-colors"
+          >
+            Reload
+          </button>
         </div>
       </div>
     );
