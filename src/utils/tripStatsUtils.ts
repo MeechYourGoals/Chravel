@@ -10,24 +10,36 @@ interface GenericTrip {
   itinerary?: Array<{ location?: string; venue?: string; place?: string }>;
 }
 
-// Calculate number of people
-export const calculatePeopleCount = (
+// Get raw people count number
+export const getPeopleCountValue = (
   trip: GenericTrip | ProTripData | EventData
-): string => {
+): number => {
   // For EventData, prioritize attendanceExpected over participants count
   if ('attendanceExpected' in trip && trip.attendanceExpected && trip.attendanceExpected > 0) {
-    const count = trip.attendanceExpected;
-    if (count >= 10000) return `${Math.floor(count / 1000)}K+`;
-    if (count >= 1000) return `${Math.floor(count / 1000)}K+`;
-    if (count > 99) return "99+";
-    return count.toString();
+    return trip.attendanceExpected;
   }
   
   // Fallback to participants count for ProTripData or when attendanceExpected is not available
-  const count = trip.participants?.length || 0;
+  return trip.participants?.length || 0;
+};
+
+// Format people count for display
+export const formatPeopleCount = (count: number): string => {
   if (count === 0) return "—";
+  if (count >= 10000) return `${Math.floor(count / 1000)}K+`;
+  if (count >= 1000) return `${Math.floor(count / 1000)}K+`;
   if (count > 99) return "99+";
   return count.toString();
+};
+
+// Calculate number of people (Legacy wrapper)
+export const calculatePeopleCount = (
+  trip: GenericTrip | ProTripData | EventData
+): string => {
+  let count = getPeopleCountValue(trip);
+  // Ensure at least 1 person (creator) is counted
+  if (count === 0) count = 1;
+  return formatPeopleCount(count);
 };
 
 // Calculate number of days

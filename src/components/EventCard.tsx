@@ -9,7 +9,7 @@ import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { InviteModal } from './InviteModal';
 import { archiveTrip, hideTrip } from '../services/archiveService';
 import { useToast } from '../hooks/use-toast';
-import { calculatePeopleCount, calculateDaysCount, calculateEventPlacesCount } from '../utils/tripStatsUtils';
+import { getPeopleCountValue, formatPeopleCount, calculateDaysCount, calculateEventPlacesCount } from '../utils/tripStatsUtils';
 import { getInitials } from '../utils/avatarUtils';
 import { TravelerTooltip } from './ui/traveler-tooltip';
 import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
@@ -47,8 +47,11 @@ export const EventCard = ({ event }: EventCardProps) => {
   
   // Calculate updated people count including added members
   const totalPeopleCount = React.useMemo(() => {
-    const baseCount = calculatePeopleCount(event);
-    return baseCount + addedDemoMembers.length;
+    let baseCount = getPeopleCountValue(event);
+    // Ensure at least 1 person (creator) is counted
+    if (baseCount === 0) baseCount = 1;
+
+    return formatPeopleCount(baseCount + addedDemoMembers.length);
   }, [event, addedDemoMembers]);
 
   const handleViewEvent = () => {
