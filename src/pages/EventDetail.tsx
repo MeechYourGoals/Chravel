@@ -152,7 +152,7 @@ const EventDetail = () => {
   const actualCreatorId = isDemoMode ? 'demo-user' : (eventTrip?.created_by || user?.id || '');
   
   const trip = {
-    id: parseInt(eventId.replace(/\D/g, '') || '1'),
+    id: eventId,
     title: eventData.title,
     location: eventData.location,
     dateRange: eventData.dateRange,
@@ -267,8 +267,8 @@ const EventDetail = () => {
               <div className="h-32 bg-white/5 rounded"></div>
             </div>
           }>
-            <TripHeader 
-              trip={trip} 
+          <TripHeader 
+              trip={{...trip, created_by: actualCreatorId}} 
               onDescriptionUpdate={setTripDescription}
             />
           </Suspense>

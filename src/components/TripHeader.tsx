@@ -40,6 +40,7 @@ interface TripHeaderProps {
     }>;
     coverPhoto?: string;
     trip_type?: 'consumer' | 'pro' | 'event';
+    created_by?: string;
   };
   onManageUsers?: () => void;
   onDescriptionUpdate?: (description: string) => void;
@@ -96,6 +97,12 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       return;
     }
     
+    // Fast path: check trip.created_by prop first (passed from parent)
+    if (trip.created_by && user.id === trip.created_by) {
+      setIsAdmin(true);
+      return;
+    }
+    
     // Direct creator check (fast path) - if tripCreatorId is loaded and matches user
     if (tripCreatorId && user.id === tripCreatorId) {
       setIsAdmin(true);
@@ -113,7 +120,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       setIsAdmin(canRemove);
     };
     checkAdmin();
-  }, [canRemoveMembers, isDemoMode, user?.id, tripCreatorId]);
+  }, [canRemoveMembers, isDemoMode, user?.id, tripCreatorId, trip.created_by]);
   
   // Get added members from the demo store - use stable empty array to prevent infinite re-renders
   const addedDemoMembers = useDemoTripMembersStore(state => 
