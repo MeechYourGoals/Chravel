@@ -45,6 +45,34 @@ const JoinTrip = () => {
   const [error, setError] = useState<InviteError | null>(null);
   const [joinSuccess, setJoinSuccess] = useState(false);
 
+  // Debug logging on mount
+  useEffect(() => {
+    console.log('[JoinTrip] Component mounted', { 
+      token, 
+      authLoading, 
+      loading, 
+      hasUser: !!user,
+      pathname: location.pathname 
+    });
+  }, []);
+
+  // Safety timeout - prevent infinite loading states
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.error('[JoinTrip] Loading timeout after 5s - forcing completion');
+        setLoading(false);
+        if (!inviteData && !error) {
+          setError({ 
+            message: 'Failed to load invite details. Please refresh and try again.', 
+            code: 'NETWORK' 
+          });
+        }
+      }
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, [loading, inviteData, error]);
+
   // Set document head for rich link previews
   useEffect(() => {
     const tripName = inviteData?.trip.name || 'an Amazing Trip';
@@ -111,10 +139,17 @@ const JoinTrip = () => {
   };
 
   const fetchInvitePreview = async () => {
-    if (!token) return;
+    console.log('[JoinTrip] fetchInvitePreview called', { token });
+    
+    if (!token) {
+      console.warn('[JoinTrip] No token provided');
+      setLoading(false);
+      return;
+    }
 
     // Handle demo invite codes gracefully
     if (token.startsWith('demo-')) {
+      console.log('[JoinTrip] Demo invite code detected');
       setError({
         message: 'This is a demonstration invite link. Create a real trip to generate shareable invite links that others can use to join!',
         code: 'INVALID'
@@ -123,44 +158,59 @@ const JoinTrip = () => {
       return;
     }
 
+    // Validate Supabase client
+    if (!supabase) {
+      console.error('[JoinTrip] Supabase client not initialized');
+      setError({
+        message: 'App initialization error. Please refresh the page.',
+        code: 'NETWORK'
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
+      console.log('[JoinTrip] Invoking get-invite-preview edge function');
 
       // Use edge function to get invite preview (works without auth)
       const { data, error: funcError } = await supabase.functions.invoke('get-invite-preview', {
         body: { code: token }
       });
 
+      console.log('[JoinTrip] Edge function response:', { data, error: funcError });
+
       if (funcError) {
-        console.error('Error fetching invite preview:', funcError);
+        console.error('[JoinTrip] Edge function error:', funcError);
         setError({
           message: 'Failed to load invite details. Please check your connection and try again.',
           code: 'NETWORK'
         });
-        setLoading(false);
         return;
       }
 
-      if (!data.success) {
-        console.error('Invite preview error:', data.error);
+      if (!data?.success) {
+        console.error('[JoinTrip] Invite preview error:', data?.error);
         setError({
-          message: data.error || 'Invalid invite link',
-          code: data.error_code || 'INVALID'
+          message: data?.error || 'Invalid invite link',
+          code: data?.error_code || 'INVALID'
         });
-        setLoading(false);
         return;
       }
 
+      console.log('[JoinTrip] Successfully loaded invite data');
       setInviteData(data);
-      setLoading(false);
 
     } catch (err) {
-      console.error('Error fetching invite preview:', err);
+      console.error('[JoinTrip] Critical error fetching invite preview:', err);
       setError({
         message: 'An unexpected error occurred. Please try again.',
         code: 'NETWORK'
       });
+    } finally {
+      // ALWAYS stop loading regardless of success/failure
       setLoading(false);
+      console.log('[JoinTrip] fetchInvitePreview completed, loading set to false');
     }
   };
 
@@ -288,8 +338,10 @@ const JoinTrip = () => {
     }
   };
 
-  // Show loading while auth is initializing or fetching invite
-  if (loading || authLoading) {
+  // Show loading ONLY while fetching invite data
+  // DO NOT block on authLoading - unauthenticated users should see preview immediately
+  if (loading) {
+    console.log('[JoinTrip] Rendering loading state');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
