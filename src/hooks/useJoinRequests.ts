@@ -135,11 +135,17 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
     }
     
     try {
-      const { error } = await supabase.rpc('approve_join_request' as any, {
+      const { data, error } = await supabase.rpc('approve_join_request', {
         _request_id: requestId
       });
 
       if (error) throw error;
+
+      // Check the response for success/failure
+      const result = data as { success: boolean; message: string } | null;
+      if (result && !result.success) {
+        throw new Error(result.message || 'Failed to approve request');
+      }
 
       toast.success('✅ Request approved');
       await fetchRequests();
@@ -150,7 +156,7 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
     } finally {
       setIsProcessing(false);
     }
-  }, [fetchRequests, isDemoMode]);
+  }, [fetchRequests, isDemoMode, requests, tripId]);
 
   const rejectRequest = useCallback(async (requestId: string) => {
     setIsProcessing(true);
@@ -164,11 +170,17 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
     }
     
     try {
-      const { error } = await supabase.rpc('reject_join_request' as any, {
+      const { data, error } = await supabase.rpc('reject_join_request', {
         _request_id: requestId
       });
 
       if (error) throw error;
+
+      // Check the response for success/failure
+      const result = data as { success: boolean; message: string } | null;
+      if (result && !result.success) {
+        throw new Error(result.message || 'Failed to reject request');
+      }
 
       toast.success('Request rejected');
       await fetchRequests();
