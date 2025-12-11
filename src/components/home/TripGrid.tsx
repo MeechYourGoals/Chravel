@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { TripCard } from '../TripCard';
 import { PendingTripCard } from '../PendingTripCard';
+import { PendingTripCard as RequestTripCard } from '../trip/PendingTripCard';
 import { ProTripCard } from '../ProTripCard';
 import { EventCard } from '../EventCard';
 import { MobileEventCard } from '../MobileEventCard';
@@ -15,12 +16,13 @@ import { TripCardSkeleton } from '../ui/loading-skeleton';
 import { EnhancedEmptyState } from '../ui/enhanced-empty-state';
 import { getArchivedTrips, restoreTrip, unhideTrip } from '../../services/archiveService';
 import { useLocationFilteredRecommendations } from '../../hooks/useLocationFilteredRecommendations';
-import { MapPin, Calendar, Briefcase, Compass, Info, Archive } from 'lucide-react';
+import { MapPin, Calendar, Briefcase, Compass, Info, Archive, Clock } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
 import { useSavedRecommendations } from '@/hooks/useSavedRecommendations';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { PendingTripRequest } from '@/hooks/useMyPendingTrips';
 
 interface Trip {
   id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
@@ -44,6 +46,7 @@ interface TripGridProps {
   loading?: boolean;
   onCreateTrip?: () => void;
   activeFilter?: string;
+  myPendingRequests?: PendingTripRequest[];
 }
 
 export const TripGrid = React.memo(({ 
@@ -54,7 +57,8 @@ export const TripGrid = React.memo(({
   events, 
   loading = false,
   onCreateTrip,
-  activeFilter = 'all'
+  activeFilter = 'all',
+  myPendingRequests = []
 }: TripGridProps) => {
   const isMobile = useIsMobile();
   const [manualLocation, setManualLocation] = useState<string>('');
@@ -165,7 +169,9 @@ export const TripGrid = React.memo(({
   }
 
   // Check if we have content for the current view mode (using filtered data)
-  const hasContent = activeFilter === 'archived'
+  const hasContent = activeFilter === 'requests'
+    ? myPendingRequests.length > 0
+    : activeFilter === 'archived'
     ? archivedTrips.length > 0
     : viewMode === 'myTrips' 
     ? activeTrips.length > 0 || activePendingTrips.length > 0
@@ -180,6 +186,15 @@ export const TripGrid = React.memo(({
   // Show enhanced empty state if no content
   if (!hasContent) {
     const getEmptyStateProps = () => {
+      if (activeFilter === 'requests') {
+        return {
+          icon: Clock,
+          title: 'No pending requests',
+          description: 'Trips you\'ve requested to join will appear here until approved by the trip admin.',
+          actionLabel: undefined,
+          onAction: undefined
+        };
+      }
       if (activeFilter === 'archived') {
         return {
           icon: Archive,
@@ -280,7 +295,19 @@ export const TripGrid = React.memo(({
       )}
 
       <div className={`grid gap-6 w-full ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
-        {activeFilter === 'archived' ? (
+        {activeFilter === 'requests' ? (
+          myPendingRequests.map((request) => (
+            <RequestTripCard 
+              key={request.id} 
+              tripId={request.trip_id}
+              tripName={request.trip?.name || 'Trip'}
+              destination={request.trip?.destination}
+              startDate={request.trip?.start_date}
+              coverImage={request.trip?.cover_image_url}
+              requestedAt={request.requested_at}
+            />
+          ))
+        ) : activeFilter === 'archived' ? (
           archivedTrips.map((trip) => (
             <ArchivedTripCard 
               key={trip.id} 
