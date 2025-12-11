@@ -174,7 +174,7 @@ export const useTripMembers = (tripId?: string) => {
     return !!adminData;
   }, [tripId, user?.id, tripCreatorId]);
 
-  // Remove a member from the trip
+  // Remove a member from the trip (admin action)
   const removeMember = useCallback(async (userId: string): Promise<boolean> => {
     if (!tripId) {
       toast.error('No trip selected');
@@ -210,6 +210,78 @@ export const useTripMembers = (tripId?: string) => {
       return false;
     }
   }, [tripId, tripCreatorId]);
+
+  // Leave trip (self-removal with notification to organizer)
+  const leaveTrip = useCallback(async (tripName: string): Promise<boolean> => {
+    if (!tripId || !user?.id) {
+      toast.error('You must be logged in to leave a trip');
+      return false;
+    }
+
+    // Prevent creator from leaving
+    if (user.id === tripCreatorId) {
+      toast.error('As the trip creator, you cannot leave. Archive or delete the trip instead.');
+      return false;
+    }
+
+    // Demo mode: just show toast
+    if (isDemoMode) {
+      toast.success('You have left the trip');
+      return true;
+    }
+
+    try {
+      // Get user's display name for the notification
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('display_name, first_name, last_name')
+        .eq('user_id', user.id)
+        .single();
+      
+      const userName = profileData?.display_name || 
+        `${profileData?.first_name || ''} ${profileData?.last_name || ''}`.trim() || 
+        'A member';
+
+      // Delete trip membership
+      const { error: deleteError } = await supabase
+        .from('trip_members')
+        .delete()
+        .eq('trip_id', tripId)
+        .eq('user_id', user.id);
+
+      if (deleteError) {
+        console.error('Error leaving trip:', deleteError);
+        toast.error('Failed to leave trip');
+        return false;
+      }
+
+      // Create notification for trip organizer
+      if (tripCreatorId) {
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: tripCreatorId,
+            title: `${userName} left ${tripName}`,
+            message: `${userName} has left the trip "${tripName}"`,
+            type: 'member_left',
+            metadata: {
+              trip_id: tripId,
+              trip_name: tripName,
+              left_user_id: user.id,
+              left_user_name: userName
+            }
+          });
+      }
+
+      // Update local state
+      setTripMembers(prev => prev.filter(m => m.id !== user.id));
+      return true;
+    } catch (error) {
+      console.error('Error leaving trip:', error);
+      toast.error('Failed to leave trip');
+      return false;
+    }
+  }, [tripId, user?.id, tripCreatorId, isDemoMode]);
 
   // Subscribe to demo store changes - use length as stable dependency to avoid infinite loops
   const demoAddedMembersCount = useDemoTripMembersStore(state => 
@@ -272,6 +344,7 @@ export const useTripMembers = (tripId?: string) => {
     tripCreatorId,
     canRemoveMembers,
     removeMember,
+    leaveTrip,
     refreshMembers: () => tripId && loadTripMembers(tripId)
   };
 };
