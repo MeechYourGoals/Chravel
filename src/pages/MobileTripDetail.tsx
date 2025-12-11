@@ -190,10 +190,10 @@ export const MobileTripDetail = () => {
           
           <div className="text-center px-2">
             <h1 className="text-lg font-semibold text-white leading-tight mb-1.5 break-words">
-              {trip.title}
+              {tripWithUpdatedDescription.title}
             </h1>
             <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
-              <span>{trip.location} • {trip.participants.length} Chravelers</span>
+              <span>{tripWithUpdatedDescription.location} • {tripWithUpdatedDescription.participants.length} Chravelers</span>
               <button
                 onClick={() => {
                   hapticService.light();
