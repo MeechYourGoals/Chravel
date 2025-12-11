@@ -101,6 +101,7 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
         tripId={tripId}
         tripCreatorId={tripCreatorId}
         trip={trip}
+        availableRoles={roles}
       />
 
       {/* Dialogs */}

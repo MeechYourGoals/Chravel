@@ -14,6 +14,7 @@ import { useDemoMode } from '../../../hooks/useDemoMode';
 import { useSuperAdmin } from '../../../hooks/useSuperAdmin';
 import { AdminManagerDialog } from '../admin/AdminManagerDialog';
 import { JoinRequestsDialog } from '../admin/JoinRequestsDialog';
+import { TripRole } from '../../../types/roleChannels';
 
 interface RolesViewProps {
   roster: ProParticipant[];
@@ -28,6 +29,7 @@ interface RolesViewProps {
   tripId?: string;
   tripCreatorId?: string;
   trip?: any;
+  availableRoles?: TripRole[];
 }
 
 export const RolesView = ({ 
@@ -42,7 +44,8 @@ export const RolesView = ({
   adminLoading = false,
   tripId,
   tripCreatorId,
-  trip
+  trip,
+  availableRoles = []
 }: RolesViewProps) => {
   const { isDemoMode } = useDemoMode();
   const { isSuperAdmin } = useSuperAdmin();
@@ -59,10 +62,13 @@ export const RolesView = ({
   // Super admins are never in read-only mode
   const effectiveIsReadOnly = isSuperAdmin ? false : isReadOnly;
 
-  const { terminology: { teamLabel }, roles: categoryRoles } = getCategoryConfig(category);
+  const { terminology: { teamLabel } } = getCategoryConfig(category);
 
-  // Use category-specific roles or allow all for manual input
-  const roles = categoryRoles.length > 0 ? ['all', ...categoryRoles] : ['all'];
+  // Use dynamic roles if available, otherwise fallback to existing behavior
+  const roles = availableRoles.length > 0 
+    ? ['all', ...availableRoles.map(r => r.roleName)]
+    : ['all', ...extractUniqueRoles(roster)];
+  
   const existingRoles = extractUniqueRoles(roster);
   
   // Check if there are unassigned roles (members with default/empty roles)
@@ -230,12 +236,15 @@ export const RolesView = ({
         )}
 
         {/* Row 3: Centered Role Filter Pills */}
-        {categoryRoles.length > 0 && (
+        {(availableRoles.length > 0 || existingRoles.length > 0) && (
           <div className="flex justify-center">
             <div className="flex flex-wrap gap-2 justify-center items-center max-w-5xl">
               {roles.map((role) => {
                 const roleMembers = roster.filter(m => m.role === role);
-                const hasMembers = role !== 'all' && roleMembers.length > 0;
+                // Always show 'all', and for other roles show if they exist in availableRoles or have members
+                const shouldShow = role === 'all' || availableRoles.some(r => r.roleName === role) || roleMembers.length > 0;
+                
+                if (!shouldShow) return null;
                 
                 return (
                   <button
@@ -261,7 +270,7 @@ export const RolesView = ({
         )}
         
         {/* Manual Role Input Notice for Corporate & Business */}
-        {categoryRoles.length === 0 && (
+        {availableRoles.length === 0 && (
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
             <p className="text-blue-400 text-sm">
               Team members can have custom titles entered manually. {isAdmin && 'Use the "Create Role" button above to add new roles.'}
