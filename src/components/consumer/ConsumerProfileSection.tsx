@@ -100,13 +100,16 @@ export const ConsumerProfileSection = () => {
     setIsUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      // Path must start with user.id for RLS policies to work correctly
+      const filePath = `${user.id}/${Date.now()}.${fileExt}`;
 
-      // Upload to Supabase Storage
+      // Upload to Supabase Storage with upsert to allow overwriting
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+        });
 
       if (uploadError) throw uploadError;
 
