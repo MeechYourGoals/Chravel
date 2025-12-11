@@ -493,12 +493,14 @@ export const ProTripDetailDesktop = () => {
           }>
             <TripHeader
               trip={{
-                id: parseInt(tripData.id) || 0,
+                id: tripData.id,
                 title: tripData.title,
                 location: tripData.location,
                 dateRange: tripData.dateRange,
                 description: tripData.description || '',
-                participants: tripData.participants
+                participants: tripData.participants,
+                created_by: actualCreatorId,
+                trip_type: 'pro'
               }}
               category={tripData.proTripCategory as ProTripCategory}
               tags={tripData.tags}
