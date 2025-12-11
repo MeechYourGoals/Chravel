@@ -10,8 +10,39 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ArchiveRestore, Calendar, MapPin, Users, Archive, Eye, EyeOff } from 'lucide-react';
 import { EnhancedEmptyState } from './ui/enhanced-empty-state';
 import { format } from 'date-fns';
+import { useDemoMode } from '../hooks/useDemoMode';
 
 type TabType = 'archived' | 'hidden';
+
+// Mock data for demo mode
+const mockArchivedTrips = {
+  consumer: [
+    {
+      id: 'demo-archived-1',
+      name: 'Phoenix Golf Outing 2024',
+      destination: 'Phoenix, Arizona',
+      start_date: '2024-02-20',
+      end_date: '2024-02-23',
+      description: "Annual guys' golf trip with tournaments and poker nights",
+      participants: [{ id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }]
+    }
+  ],
+  pro: [],
+  events: [],
+  total: 1
+};
+
+const mockHiddenTrips = [
+  {
+    id: 'demo-hidden-1',
+    name: "Kristen's Bachelorette Party",
+    destination: 'Nashville, TN',
+    start_date: '2025-11-08',
+    end_date: '2025-11-10',
+    description: 'Epic bachelorette celebration - keeping this one private!',
+    is_hidden: true
+  }
+];
 
 export const ArchivedTripsSection = () => {
   const [activeTab, setActiveTab] = useState<TabType>('archived');
@@ -29,12 +60,22 @@ export const ArchivedTripsSection = () => {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isDemoMode } = useDemoMode();
   const [archivedTrips, setArchivedTrips] = useState<{ consumer: any[]; pro: any[]; events: any[]; total: number }>({ consumer: [], pro: [], events: [], total: 0 });
   const [hiddenTrips, setHiddenTrips] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadTrips = async () => {
     setIsLoading(true);
+    
+    // Demo mode: use mock data
+    if (isDemoMode) {
+      setArchivedTrips(mockArchivedTrips);
+      setHiddenTrips(mockHiddenTrips);
+      setIsLoading(false);
+      return;
+    }
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -58,7 +99,7 @@ export const ArchivedTripsSection = () => {
 
   useEffect(() => {
     loadTrips();
-  }, [confirmDialog.isOpen]);
+  }, [confirmDialog.isOpen, isDemoMode]);
 
   const handleRestoreClick = async (tripId: string, tripTitle: string, tripType: 'consumer' | 'pro' | 'event') => {
     try {
