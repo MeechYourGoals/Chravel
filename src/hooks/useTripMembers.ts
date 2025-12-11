@@ -99,7 +99,37 @@ export const useTripMembers = (tripId?: string) => {
       }
 
       // Always try database first for authenticated trips
-      const dbMembers = await tripService.getTripMembers(tripId);
+      let dbMembers = await tripService.getTripMembers(tripId);
+
+      // SAFETY CHECK: Ensure creator is always a member
+      if (tripData?.created_by && !isDemoMode) {
+        const creatorInList = dbMembers?.some((m: any) => m.user_id === tripData.created_by);
+        if (!creatorInList) {
+          console.warn(`[useTripMembers] Creator ${tripData.created_by} missing from trip ${tripId}. Auto-fixing...`);
+          
+          // 1. Attempt to add to DB (background operation)
+          tripService.addTripMember(tripId, tripData.created_by, 'admin').catch(console.error);
+          
+          // 2. Fetch profile for local display
+          const { data: creatorProfile } = await supabase
+            .from('profiles')
+            .select('user_id, display_name, avatar_url, email')
+            .eq('user_id', tripData.created_by)
+            .single();
+
+          // 3. Add to local list if profile found
+          if (creatorProfile) {
+            const tempMember = {
+              user_id: tripData.created_by,
+              role: 'admin',
+              created_at: new Date().toISOString(),
+              profiles: creatorProfile,
+              id: 'temp-fix-' + Date.now()
+            };
+            dbMembers = [...(dbMembers || []), tempMember] as any;
+          }
+        }
+      }
       
       if (dbMembers && dbMembers.length > 0) {
         // Database has members - use them
