@@ -1,11 +1,18 @@
 import React from 'react';
 import { PendingTripCard } from '@/components/trip/PendingTripCard';
 import { useMyPendingTrips } from '@/hooks/useMyPendingTrips';
+import { useDemoMode } from '@/hooks/useDemoMode';
+import { mockMyPendingRequests } from '@/mockData/pendingRequestsMock';
 import { Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const PendingTripsSection: React.FC = () => {
-  const { pendingTrips, isLoading } = useMyPendingTrips();
+  const { pendingTrips: authPendingTrips, isLoading: authLoading } = useMyPendingTrips();
+  const { isDemoMode } = useDemoMode();
+
+  // Use mock data in demo mode, real data in authenticated mode
+  const pendingTrips = isDemoMode ? mockMyPendingRequests : authPendingTrips;
+  const isLoading = isDemoMode ? false : authLoading;
 
   // Don't render anything if no pending trips
   if (!isLoading && pendingTrips.length === 0) {

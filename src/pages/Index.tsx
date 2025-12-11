@@ -36,6 +36,7 @@ import { useMyPendingTrips } from '../hooks/useMyPendingTrips';
 import { proTripMockData } from '../data/proTripMockData';
 import { eventsMockData } from '../data/eventsMockData';
 import { tripsData } from '../data/tripsData';
+import { mockMyPendingRequests } from '../mockData/pendingRequestsMock';
 import { calculateTripStats, calculateProTripStats, calculateEventStats, filterItemsByStatus } from '../utils/tripStatsCalculator';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useMobilePortrait } from '../hooks/useMobilePortrait';
@@ -150,7 +151,12 @@ const Index = () => {
 
   // Calculate requests count per view mode (scoped by trip_type)
   const requestsCounts = useMemo(() => {
-    if (isDemoMode || !myPendingRequests) {
+    // Demo mode: show mock pending requests count (all consumer for demo)
+    if (isDemoMode) {
+      return { consumer: mockMyPendingRequests.length, pro: 0, event: 0 };
+    }
+    
+    if (!myPendingRequests) {
       return { consumer: 0, pro: 0, event: 0 };
     }
     // Group pending requests by trip type
