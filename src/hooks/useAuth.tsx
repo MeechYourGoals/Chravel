@@ -121,26 +121,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return null;
     }
 
-    // ⚡ PERFORMANCE: Fast-track demo mode - return minimal user without any DB queries
-    const { isDemoMode } = (await import('@/store/demoModeStore')).useDemoModeStore.getState();
-    if (isDemoMode) {
-      return {
-        id: 'demo-user',
-        displayName: 'Demo User',
-        hasCompletedProfileSetup: true,
-        isPro: false,
-        showEmail: false,
-        showPhone: false,
-        permissions: ['read'],
-        notificationSettings: {
-          messages: true,
-          broadcasts: true,
-          tripUpdates: true,
-          email: false,
-          push: false
-        }
-      };
-    }
+    // NOTE: Demo mode check REMOVED here - authenticated users should ALWAYS get their real data
+    // Demo mode is for unauthenticated users browsing the app-preview, not for overriding real user data
     
     // ⚡ PERFORMANCE: Parallelize all database queries (was 2-3s sequential, now <1s parallel)
     const [userProfile, userRolesResult, orgMemberResult, notifPrefs] = await Promise.all([

@@ -68,7 +68,7 @@ export const HeaderAuthButton = () => {
           </DropdownMenuItem>
           <DropdownMenuItem 
             onClick={() => {
-              setSettingsSection('subscription');
+              setSettingsSection('billing');
               setShowSettings(true);
             }}
             className="cursor-pointer"
