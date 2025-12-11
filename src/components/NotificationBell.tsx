@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { mockNotifications } from '@/mockData/notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { JoinRequestNotification } from './notifications/JoinRequestNotification';
+import { useInboundJoinRequests } from '@/hooks/useInboundJoinRequests';
 
 interface Notification {
   id: string;
@@ -27,6 +28,7 @@ export const NotificationBell = () => {
   const navigate = useNavigate();
   const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
+  const { pendingCount: inboundRequestsCount } = useInboundJoinRequests();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
@@ -197,8 +199,15 @@ export const NotificationBell = () => {
         className="bg-gray-900/80 backdrop-blur-md border border-gray-700 hover:bg-gray-800/80 hover:border-gray-600 text-white p-3 rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl relative"
       >
         <Bell size={20} />
+        {/* Yellow badge for pending join requests (top-left) */}
+        {inboundRequestsCount > 0 && (
+          <div className="absolute -top-2 -left-2 bg-yellow-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">
+            {inboundRequestsCount > 9 ? '9+' : inboundRequestsCount}
+          </div>
+        )}
+        {/* Red badge for unread notifications (top-right) */}
         {unreadCount > 0 && (
-          <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">
+          <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
             {unreadCount > 9 ? '9+' : unreadCount}
           </div>
         )}
