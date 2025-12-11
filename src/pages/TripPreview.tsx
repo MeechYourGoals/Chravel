@@ -27,6 +27,20 @@ const TripPreview = () => {
   const [tripData, setTripData] = useState<TripPreviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Safety timeout - prevent infinite loading states
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.error('[TripPreview] Loading timeout after 5s - forcing completion');
+        setLoading(false);
+        if (!tripData && !error) {
+          setError('Failed to load trip details. Please refresh.');
+        }
+      }
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, [loading, tripData, error]);
+
   // Set document head for rich link previews (social media cards)
   useEffect(() => {
     const tripName = tripData?.name || 'an Amazing Trip';
