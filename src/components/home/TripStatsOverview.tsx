@@ -1,7 +1,6 @@
 import React from 'react';
-import { Lock } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { StatsData } from '../../utils/tripStatsCalculator';
-import { useSubscription } from '@/hooks/useSubscription';
 
 interface TripStatsOverviewProps {
   stats: StatsData;
@@ -11,19 +10,6 @@ interface TripStatsOverviewProps {
 }
 
 export const TripStatsOverview = ({ stats, viewMode, activeFilter, onFilterClick }: TripStatsOverviewProps) => {
-  const { isPro } = useSubscription();
-
-  const getLabel = () => {
-    switch (viewMode) {
-      case 'myTrips': return 'Trips';
-      case 'tripsPro': return 'Pro Trips';
-      case 'events': return 'Events';
-      default: return 'Items';
-    }
-  };
-
-  const label = getLabel();
-
   const getStatButtonClass = (filterType: string) => {
     const baseClass = "inline-flex items-center gap-1.5 cursor-pointer transition-all duration-200 px-3 py-2 rounded-full hover:bg-secondary/50";
     return activeFilter === filterType 
@@ -71,18 +57,18 @@ export const TripStatsOverview = ({ stats, viewMode, activeFilter, onFilterClick
           <span className="text-sm text-muted-foreground">Active</span>
         </button>
 
-        {/* Archived Tab */}
+        {/* Requests Tab */}
         <button 
-          onClick={() => onFilterClick('archived')}
-          className={getStatButtonClass('archived')}
+          onClick={() => onFilterClick('requests')}
+          className={getStatButtonClass('requests')}
         >
-          <span className="text-base font-bold text-amber-500 flex items-center gap-1">
-            {stats.archived}
-            {!isPro && stats.archived > 0 && (
-              <Lock size={12} className="text-amber-400" />
+          <span className="text-base font-bold text-yellow-500 flex items-center gap-1">
+            {stats.requests}
+            {stats.requests > 0 && (
+              <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
             )}
           </span>
-          <span className="text-sm text-muted-foreground">Archived</span>
+          <span className="text-sm text-muted-foreground">Requests</span>
         </button>
       </div>
     </div>

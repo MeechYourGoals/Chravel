@@ -32,6 +32,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useTrips } from '../hooks/useTrips';
+import { useMyPendingTrips } from '../hooks/useMyPendingTrips';
 import { proTripMockData } from '../data/proTripMockData';
 import { eventsMockData } from '../data/eventsMockData';
 import { tripsData } from '../data/tripsData';
@@ -72,6 +73,9 @@ const Index = () => {
   // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
   // The hook handles demo mode internally, returning empty arrays when in demo mode
   const { trips: userTripsRaw, loading: tripsLoading } = useTrips();
+
+  // Fetch pending join requests for the current user (for "Requests" counter)
+  const { pendingTrips: myPendingRequests } = useMyPendingTrips();
 
   // Marketing content should always show to unauthenticated users
   const showMarketingContent = !user;
@@ -144,11 +148,39 @@ const Index = () => {
 
   // Development diagnostics available via console when needed
 
+  // Calculate requests count per view mode (scoped by trip_type)
+  const requestsCounts = useMemo(() => {
+    if (isDemoMode || !myPendingRequests) {
+      return { consumer: 0, pro: 0, event: 0 };
+    }
+    // Group pending requests by trip type
+    // Note: myPendingRequests contains trip_join_requests with trip info
+    // We need to determine trip_type from the trip data
+    let consumer = 0;
+    let pro = 0;
+    let event = 0;
+    
+    myPendingRequests.forEach(req => {
+      // Look up the trip in userTripsRaw to get trip_type
+      const tripData = userTripsRaw.find(t => t.id === req.trip_id);
+      if (tripData) {
+        if (tripData.trip_type === 'pro') pro++;
+        else if (tripData.trip_type === 'event') event++;
+        else consumer++;
+      } else {
+        // Default to consumer if trip data not found
+        consumer++;
+      }
+    });
+    
+    return { consumer, pro, event };
+  }, [isDemoMode, myPendingRequests, userTripsRaw]);
+
   // Calculate stats for each view mode - use UNFILTERED data for accurate counts
   // Stats should reflect total counts, not filtered counts
   const tripStats = useMemo(() => {
-    return calculateTripStats(allTrips);
-  }, [allTrips]);
+    return calculateTripStats(allTrips, requestsCounts.consumer);
+  }, [allTrips, requestsCounts.consumer]);
 
   const proTripStats = useMemo(() => {
     // Get unfiltered pro trips data (excluding archived)
@@ -168,8 +200,8 @@ const Index = () => {
     
     // Stats should show total counts, not filtered counts
     // Only apply date filter when calculating stats for that specific filter
-    return calculateProTripStats(safeProTrips);
-  }, [isDemoMode, userTripsRaw]);
+    return calculateProTripStats(safeProTrips, requestsCounts.pro);
+  }, [isDemoMode, userTripsRaw, requestsCounts.pro]);
   
   const eventStats = useMemo(() => {
     // Get unfiltered events data (excluding archived)
@@ -188,8 +220,8 @@ const Index = () => {
     }
     
     // Stats should show total counts, not filtered counts
-    return calculateEventStats(safeEvents);
-  }, [isDemoMode, userTripsRaw]);
+    return calculateEventStats(safeEvents, requestsCounts.event);
+  }, [isDemoMode, userTripsRaw, requestsCounts.event]);
 
   const getCurrentStats = () => {
     switch (viewMode) {
@@ -772,7 +804,8 @@ const Index = () => {
             events={filteredData.events}
             loading={isLoading}
             onCreateTrip={handleCreateTrip}
-            activeFilter={recsFilter}
+            activeFilter={activeFilter}
+            myPendingRequests={myPendingRequests}
           />
         </div>
 
