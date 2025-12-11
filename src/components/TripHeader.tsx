@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Calendar, MapPin, Users, Plus, Settings, Edit, FileDown, Camera, Loader2, Crop } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, Settings, Edit, FileDown, Camera, Loader2, Crop, LogOut, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { InviteModal } from './InviteModal';
 import { CoverPhotoCropModal } from './CoverPhotoCropModal';
 import { EditableDescription } from './EditableDescription';
@@ -53,9 +54,12 @@ interface TripHeaderProps {
 }
 
 export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpdate, onShowExport, category, tags = [], onCategoryChange: _onCategoryChange }: TripHeaderProps) => {
+  const navigate = useNavigate();
   const [showInvite, setShowInvite] = useState(false);
   const [showAllCollaborators, setShowAllCollaborators] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
   const [descEditTick, setDescEditTick] = useState(0);
   const { variant, accentColors } = useTripVariant();
   const { coverPhoto, updateCoverPhoto, isUpdating } = useTripCoverPhoto(
@@ -64,7 +68,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
   );
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
-  const { tripCreatorId, canRemoveMembers, removeMember } = useTripMembers(trip.id.toString());
+  const { tripCreatorId, canRemoveMembers, removeMember, leaveTrip } = useTripMembers(trip.id.toString());
   const [isUploading, setIsUploading] = useState(false);
   const [showCropModal, setShowCropModal] = useState(false);
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
@@ -158,6 +162,35 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       onTripUpdate(updates);
     }
   };
+
+  // Handle user leaving the trip
+  const handleExitTrip = async () => {
+    if (!user?.id) {
+      toast.error('You must be logged in to leave a trip');
+      return;
+    }
+    
+    // Trip creators cannot leave - they should archive/delete instead
+    const creatorId = tripCreatorId || trip.created_by;
+    if (user.id === creatorId) {
+      toast.error('As the trip creator, you cannot leave. Archive or delete the trip instead.');
+      setShowExitConfirm(false);
+      return;
+    }
+    
+    setIsExiting(true);
+    const success = await leaveTrip(trip.title);
+    setIsExiting(false);
+    
+    if (success) {
+      setShowExitConfirm(false);
+      toast.success(`You have left "${trip.title}"`);
+      navigate('/');
+    }
+  };
+
+  // Check if current user is the trip creator
+  const isCurrentUserCreator = user?.id && (user.id === tripCreatorId || user.id === trip.created_by);
 
   const isProOrEvent = trip.trip_type === 'pro' || trip.trip_type === 'event';
   const isEvent = trip.trip_type === 'event';
@@ -493,20 +526,33 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
               tripType={trip.trip_type || 'consumer'}
             />
 
-            <div className="mt-3 flex gap-3">
+            <div className="mt-3 flex flex-wrap gap-2">
               <button
                 onClick={() => setShowInvite(true)}
-                className={`flex-1 flex items-center justify-center gap-2 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white text-sm font-medium py-2.5 px-4 rounded-xl transition-all duration-200 hover:scale-105`}
+                className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white text-sm font-medium py-2.5 px-3 rounded-xl transition-all duration-200 hover:scale-105`}
                 title="Invite people to this trip"
               >
                 <Plus size={16} />
                 <span>Invite to Trip</span>
               </button>
+              
+              {/* Exit Trip - Only show if NOT the trip creator */}
+              {user?.id && !isCurrentUserCreator && (
+                <button
+                  onClick={() => setShowExitConfirm(true)}
+                  className="flex-1 min-w-[100px] flex items-center justify-center gap-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-sm font-medium py-2.5 px-3 rounded-xl transition-all duration-200"
+                  title="Leave this trip"
+                >
+                  <LogOut size={16} />
+                  <span>Exit Trip</span>
+                </button>
+              )}
+              
               <button
                 onClick={() => canExport && onShowExport?.()}
                 disabled={!canExport}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2 text-sm font-medium py-2.5 px-4 rounded-xl transition-all duration-200",
+                  "flex-1 min-w-[120px] flex items-center justify-center gap-2 text-sm font-medium py-2.5 px-3 rounded-xl transition-all duration-200",
                   canExport
                     ? `bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white hover:scale-105`
                     : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/50'
@@ -593,6 +639,45 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
           imageSrc={cropImageSrc}
           onCropComplete={handleCropComplete}
         />
+      )}
+
+      {/* Exit Trip Confirmation Modal */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900/90 backdrop-blur-md border border-white/20 rounded-3xl p-6 max-w-md w-full">
+            <div className="flex items-center gap-3 text-red-400 mb-4">
+              <AlertTriangle size={24} />
+              <h3 className="text-xl font-bold text-white">Leave Trip?</h3>
+            </div>
+            
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to leave "{trip.title}"? You'll lose access to all trip information, chat history, and won't receive updates.
+              {isProOrEvent && (
+                <span className="block mt-2 text-amber-400 text-sm">
+                  Note: This is a {trip.trip_type === 'event' ? 'event' : 'Pro trip'}. You'll need approval to rejoin even with the same invite link.
+                </span>
+              )}
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowExitConfirm(false)}
+                disabled={isExiting}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExitTrip}
+                disabled={isExiting}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isExiting ? <Loader2 className="animate-spin" size={18} /> : <LogOut size={18} />}
+                Leave Trip
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
