@@ -104,21 +104,10 @@ const JoinTrip = () => {
 
   const checkDeepLinkAndFetchInvite = async () => {
     if (!token) return;
-
-    const deepLinkUrl = `chravel://join-trip/${token}`;
-
-    if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-      const startTime = Date.now();
-      window.location.href = deepLinkUrl;
-
-      setTimeout(() => {
-        if (Date.now() - startTime < 2000) {
-          fetchInvitePreview();
-        }
-      }, 1500);
-    } else {
-      fetchInvitePreview();
-    }
+    
+    // ALWAYS fetch invite preview first - show the user the trip details
+    // regardless of platform. Deep linking via button click is optional.
+    await fetchInvitePreview();
   };
 
   const fetchInvitePreview = async () => {
