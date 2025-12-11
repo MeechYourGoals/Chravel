@@ -18,7 +18,8 @@ export interface PendingTripRequest {
 export const useMyPendingTrips = () => {
   const { user } = useAuth();
   const [pendingTrips, setPendingTrips] = useState<PendingTripRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Only start in loading state if there's a user to fetch for
+  const [isLoading, setIsLoading] = useState(!!user?.id);
 
   const fetchPendingTrips = useCallback(async () => {
     if (!user?.id) {
