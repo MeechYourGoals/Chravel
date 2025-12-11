@@ -1,4 +1,4 @@
-import { Crown, Shield, User, MoreVertical, Trash2 } from 'lucide-react';
+import { Shield, User, MoreVertical, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +30,7 @@ export const MobileTeamMemberCard = ({
 }: MobileTeamMemberCardProps) => {
   const getRoleIcon = (role: string) => {
     const lowerRole = role.toLowerCase();
-    if (lowerRole === 'owner') return <Crown size={16} className="text-yellow-400" />;
+    if (lowerRole === 'owner') return <Shield size={16} className="text-yellow-400" />;
     if (lowerRole === 'admin') return <Shield size={16} className="text-blue-400" />;
     return <User size={16} className="text-gray-400" />;
   };

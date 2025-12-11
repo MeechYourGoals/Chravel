@@ -3,7 +3,7 @@ import { useOrganization } from '@/hooks/useOrganization';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { InviteMemberModal } from './InviteMemberModal';
-import { UserPlus, Users, Crown, Shield, User as UserIcon } from 'lucide-react';
+import { UserPlus, Users, Shield, User as UserIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -66,7 +66,7 @@ export const SeatManagement = () => {
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'owner': return <Crown size={14} className="text-yellow-500" />;
+      case 'owner': return <Shield size={14} className="text-yellow-500" />;
       case 'admin': return <Shield size={14} className="text-blue-500" />;
       default: return <UserIcon size={14} className="text-gray-400" />;
     }
