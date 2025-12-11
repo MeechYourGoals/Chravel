@@ -156,6 +156,7 @@ export const CoverPhotoCropModal = ({
                 src={imageSrc}
                 alt="Crop preview"
                 onLoad={onImageLoad}
+                crossOrigin="anonymous"
                 style={{ transform: `scale(${scale})`, transformOrigin: 'center' }}
                 className="max-w-full max-h-[400px] object-contain"
               />
