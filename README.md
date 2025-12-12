@@ -187,3 +187,4 @@ Chravel now supports the Render Model Context Protocol (MCP) server, enabling yo
 For complete documentation, see: [docs/RENDER_MCP_INTEGRATION.md](docs/RENDER_MCP_INTEGRATION.md)
 
 <!-- Trigger deployment -->
+ - Updated
