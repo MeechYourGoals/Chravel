@@ -16,6 +16,7 @@ interface Trip {
   dateRange: string;
   participants: Participant[];
   coverPhoto?: string;
+  peopleCount?: number;
 }
 
 interface ShareTripModalProps {
@@ -32,10 +33,11 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
     return `https://chravel.app/trip/${trip.id}/preview`;
   }, [trip.id]);
 
-  // Generate share text for social media
+  // Generate share text for social media - ensure minimum of 1 Chraveler (creator always exists)
+  const chravelerCount = Math.max(trip.peopleCount ?? trip.participants.length, 1);
   const shareText = useMemo(() => {
-    return `Check out ${trip.title} - a trip to ${trip.location}! ${trip.participants.length} Chravelers are going.`;
-  }, [trip.title, trip.location, trip.participants.length]);
+    return `Check out ${trip.title} - a trip to ${trip.location}! ${chravelerCount} Chravelers are going.`;
+  }, [trip.title, trip.location, chravelerCount]);
 
   // Handle ESC key
   useEffect(() => {
@@ -154,7 +156,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
                 </div>
                 <div className="flex items-center gap-1">
                   <Users size={12} className="text-yellow-400" />
-                  <span>{trip.participants.length} Chravelers</span>
+                  <span>{chravelerCount} Chravelers</span>
                 </div>
               </div>
             </div>
