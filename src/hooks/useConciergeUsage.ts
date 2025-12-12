@@ -87,16 +87,12 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
       }
 
       // Query per-trip usage (context_id = tripId)
-      // @ts-ignore - Supabase type instantiation issue
-      const result = await supabase
-        // @ts-ignore - Supabase type instantiation issue
+      // Table may not exist in generated types yet, so use an explicit any-cast.
+      const { data, error } = await (supabase as any)
         .from('concierge_usage')
         .select('id')
         .eq('user_id', targetUserId)
         .eq('context_id', tripId);
-
-      // @ts-ignore - Supabase type instantiation issue
-      const { data, error } = result;
 
       if (error) {
         console.error('Failed to fetch usage data:', error);

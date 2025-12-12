@@ -604,7 +604,6 @@ export const useTripTasks = (tripId: string, options?: {
       const currentVersion = taskData?.version || 1;
 
       // Use atomic function to toggle task status
-      // @ts-ignore - p_completed param not yet in generated types
       const { error } = await supabase
         .rpc('toggle_task_status', {
           p_task_id: taskId,

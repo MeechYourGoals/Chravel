@@ -1,33 +1,22 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, FileText, Eye, Users, Clock, MoreHorizontal, Archive, EyeOff, UserPlus } from 'lucide-react';
+import { Calendar, MapPin, Eye, Users, Clock, MoreHorizontal, Archive, EyeOff, UserPlus } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from './ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { TravelerTooltip } from './ui/traveler-tooltip';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
-import { TripExportModal } from './trip/TripExportModal';
 import { InviteModal } from './InviteModal';
 import { ProTripData } from '../types/pro';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { archiveTrip, hideTrip } from '../services/archiveService';
 import { useToast } from '../hooks/use-toast';
 import { getPeopleCountValue, formatPeopleCount, calculateDaysCount, calculateProTripPlacesCount } from '../utils/tripStatsUtils';
-import { processTeamMembers, processRoles } from '../utils/teamDisplayUtils';
-import { getInitials } from '../utils/avatarUtils';
-import { ExportSection } from '../types/tripExport';
-import { generateClientPDF } from '../utils/exportPdfClient';
-import { getExportData } from '../services/tripExportDataService';
-import { openOrDownloadBlob } from '../utils/download';
 import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
 import { useDemoMode } from '../hooks/useDemoMode';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 
@@ -42,7 +31,6 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
   const navigate = useNavigate();
   const { accentColors } = useTripVariant();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
@@ -66,57 +54,6 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
 
   const handleViewTrip = () => {
     navigate(`/tour/pro/${trip.id}`);
-  };
-
-  const handleExportTrip = () => {
-    setShowExportModal(true);
-  };
-
-  const handleExport = async (sections: ExportSection[]) => {
-    try {
-      toast({
-        title: "Generating PDF...",
-        description: "Please wait while we create your export.",
-      });
-
-      const exportData = await getExportData(trip.id, sections);
-      
-      // Capture the blob returned from generateClientPDF
-      const blob = await generateClientPDF(
-        {
-          tripId: trip.id,
-          tripTitle: trip.title,
-          destination: trip.location,
-          dateRange: trip.dateRange,
-          description: trip.description,
-          ...exportData,
-        },
-        sections,
-        {
-          customization: {
-            compress: true,
-            maxItemsPerSection: 100,
-          }
-        }
-      );
-      
-      // Generate filename and trigger download
-      const filename = `ProTrip_${trip.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
-      await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
-      
-      toast({
-        title: "Export successful",
-        description: "Your trip summary has been downloaded as a PDF.",
-      });
-      setShowExportModal(false);
-    } catch (error) {
-      console.error('Export error:', error);
-      toast({
-        title: "Export failed",
-        description: error instanceof Error ? error.message : "There was an error generating your PDF. Please try again.",
-        variant: "destructive",
-      });
-    }
   };
 
   const handleArchiveTrip = () => {
@@ -158,13 +95,6 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
 
   const nextLoadIn = getNextLoadIn();
 
-  // Process participants for display
-  const participantsWithAvatars = trip.participants;
-
-  // Process team members and roles for display
-  const { visible: visibleMembers, overflow: memberOverflow } = processTeamMembers(participantsWithAvatars, 5);
-  const { visible: visibleRoles, overflow: roleOverflow } = processRoles(participantsWithAvatars, 5);
-
   return (
     <div className={`bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md border border-white/20 rounded-3xl p-6 hover:bg-white/15 transition-all duration-300 hover:scale-105 hover:shadow-xl group hover:border-${accentColors.primary}/50 relative overflow-hidden`}>
       {/* Menu */}
@@ -205,8 +135,8 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
           {trip.title}
         </h3>
 
-        {/* Status Pills and Export Button Row */}
-        <div className="flex items-center justify-between gap-2 mb-3">
+        {/* Status Pills */}
+        <div className="flex flex-wrap gap-2 mb-3">
           <div className="flex flex-wrap gap-2">
             {trip.roster && trip.roster.length > 0 && (
               <div className="flex items-center gap-1 bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-xs border border-blue-500/30">
@@ -221,23 +151,6 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
               </div>
             )}
           </div>
-          
-          {/* Export Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                onClick={handleExportTrip}
-                className="bg-white/10 backdrop-blur-sm border border-white/20 hover:border-glass-green/40 text-white hover:text-glass-green transition-all duration-300"
-                variant="ghost"
-                size="icon"
-              >
-                <FileText size={16} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Export Details</p>
-            </TooltipContent>
-          </Tooltip>
         </div>
       </div>
 
@@ -308,14 +221,6 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
         onConfirm={handleArchiveTrip}
         tripTitle={trip.title}
         isArchiving={true}
-      />
-
-      <TripExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        onExport={handleExport}
-        tripName={trip.title}
-        tripId={trip.id}
       />
 
       <InviteModal

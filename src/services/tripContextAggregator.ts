@@ -417,21 +417,17 @@ export class TripContextAggregator {
 
   private static async fetchPlaces(tripId: string) {
     try {
-      // @ts-ignore - Supabase type instantiation issue
-      const tripResult = await supabase
+      const tripResult = await (supabase as any)
         .from('trips')
         .select('basecamp_name, basecamp_address, basecamp_latitude, basecamp_longitude')
         .eq('id', tripId)
         .single();
       const trip = tripResult.data;
 
-      // @ts-ignore - Supabase type instantiation issue
-      const placesResult = await supabase
-        // @ts-ignore - Supabase type instantiation issue
+      const placesResult = await (supabase as any)
         .from('trip_places')
         .select('name, address, category, lat, lng')
         .eq('trip_id', tripId);
-      // @ts-ignore - Supabase type instantiation issue
       const places = placesResult.data;
 
       // Get user's personal accommodation
@@ -459,9 +455,7 @@ export class TripContextAggregator {
         basecamp: trip?.basecamp_name ? {
           name: trip.basecamp_name,
           address: trip.basecamp_address,
-          // @ts-ignore - Type already any
           lat: places?.find((p: any) => p.name === trip.basecamp_name)?.lat,
-          // @ts-ignore - Type already any
           lng: places?.find((p: any) => p.name === trip.basecamp_name)?.lng
         } : undefined,
         savedPlaces: places?.map((p: any) => ({
