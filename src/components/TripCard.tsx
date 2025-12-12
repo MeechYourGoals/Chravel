@@ -283,7 +283,11 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
       <ShareTripModal 
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
-        trip={trip}
+        trip={{
+          ...trip,
+          participants: participantsWithAvatars,
+          peopleCount: trip.peopleCount ?? participantsWithAvatars.length
+        }}
       />
 
       <ArchiveConfirmDialog
