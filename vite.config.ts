@@ -16,8 +16,11 @@ const buildVersionPlugin = (): Plugin => ({
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // Base path - use relative paths for better compatibility
-  base: './',
+  /**
+   * P0 fix: using a relative base (`./`) breaks deep links like `/join/:code`
+   * because bundles are requested from `/join/assets/...` and 404, causing a blank screen.
+   */
+  base: '/',
   server: {
     host: "localhost",
     port: 8080,
