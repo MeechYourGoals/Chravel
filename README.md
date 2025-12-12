@@ -185,3 +185,5 @@ Chravel now supports the Render Model Context Protocol (MCP) server, enabling yo
 3. Use natural language prompts like "Show me my Render services" or "What's the CPU usage?"
 
 For complete documentation, see: [docs/RENDER_MCP_INTEGRATION.md](docs/RENDER_MCP_INTEGRATION.md)
+
+<!-- Trigger deployment -->
