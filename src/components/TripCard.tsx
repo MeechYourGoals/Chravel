@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, User, MoreHorizontal, Archive, Flame, TrendingUp, EyeOff, FileDown } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
@@ -15,6 +15,9 @@ import { gamificationService } from '../services/gamificationService';
 import { isConsumerTrip } from '../utils/tripTierDetector';
 import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { ExportSection } from '@/types/tripExport';
+import { demoModeService } from '../services/demoModeService';
+import { openOrDownloadBlob } from '../utils/download';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,6 +108,111 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
       });
     }
   };
+
+  // Complete PDF export handler - same logic as in-trip export
+  const handleExportPdf = useCallback(async (sections: ExportSection[]) => {
+    const tripIdStr = trip.id.toString();
+    const isNumericId = !tripIdStr.includes('-'); // UUIDs have dashes, demo IDs don't
+    
+    if (import.meta.env.DEV) {
+      console.log('[TripCard Export] Starting export', { tripId: tripIdStr, isNumericId, isDemoMode, sections });
+    }
+
+    toast({
+      title: "Generating PDF",
+      description: `Creating summary for "${trip.title}"...`,
+    });
+
+    try {
+      let blob: Blob;
+
+      if (isDemoMode || isNumericId) {
+        // Demo mode - use mock data from services
+        if (import.meta.env.DEV) console.log('[TripCard Export] Using demo mode data');
+        
+        const mockPayments = demoModeService.getMockPayments(tripIdStr);
+        const mockPolls = demoModeService.getMockPolls(tripIdStr);
+        const mockTasks = demoModeService.getMockTasks(tripIdStr);
+        const mockPlaces = demoModeService.getMockPlaces(tripIdStr);
+        
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
+        blob = await generateClientPDF(
+          {
+            tripId: tripIdStr,
+            tripTitle: trip.title,
+            destination: trip.location,
+            dateRange: trip.dateRange,
+            calendar: sections.includes('calendar') ? [] : undefined, // Demo trips use in-trip calendar view
+            payments: sections.includes('payments') && mockPayments.length > 0 ? {
+              items: mockPayments,
+              total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
+              currency: mockPayments[0]?.currency || 'USD'
+            } : undefined,
+            polls: sections.includes('polls') ? mockPolls : undefined,
+            tasks: sections.includes('tasks') ? mockTasks.map(task => ({
+              title: task.title,
+              description: task.description,
+              completed: task.completed
+            })) : undefined,
+            places: sections.includes('places') ? mockPlaces : undefined,
+          },
+          sections,
+          { customization: { compress: true, maxItemsPerSection: 100 } }
+        );
+      } else {
+        // Authenticated mode - fetch real data from Supabase
+        if (import.meta.env.DEV) console.log('[TripCard Export] Fetching real data from Supabase');
+        
+        const { getExportData } = await import('../services/tripExportDataService');
+        const realData = await getExportData(tripIdStr, sections);
+        
+        if (!realData) {
+          throw new Error('Could not fetch trip data for export');
+        }
+        
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
+        blob = await generateClientPDF(
+          {
+            tripId: tripIdStr,
+            tripTitle: realData.trip.title,
+            destination: realData.trip.destination,
+            dateRange: realData.trip.dateRange,
+            description: realData.trip.description,
+            calendar: realData.calendar,
+            payments: realData.payments,
+            polls: realData.polls,
+            tasks: realData.tasks,
+            places: realData.places,
+            roster: realData.roster,
+          },
+          sections,
+          { customization: { compress: true, maxItemsPerSection: 100 } }
+        );
+      }
+
+      if (import.meta.env.DEV) console.log('[TripCard Export] PDF generated, blob size:', blob.size);
+
+      // Generate filename
+      const sanitizedTitle = trip.title.replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `Trip_${sanitizedTitle}_${Date.now()}.pdf`;
+
+      // Download the blob
+      await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
+
+      toast({
+        title: "Export complete",
+        description: `PDF downloaded: ${filename}`,
+      });
+    } catch (error) {
+      console.error('[TripCard Export] Error:', error);
+      toast({
+        title: "Export failed",
+        description: error instanceof Error ? error.message : "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+      throw error; // Re-throw so TripExportModal can show error state
+    }
+  }, [trip, isDemoMode, toast]);
 
   // Merge base participants with added demo members
   const allParticipants = React.useMemo(() => {
@@ -301,12 +409,7 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
       <TripExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
-        onExport={async () => {
-          toast({
-            title: "Export started",
-            description: `Generating PDF for "${trip.title}"`,
-          });
-        }}
+        onExport={handleExportPdf}
         tripName={trip.title}
         tripId={trip.id.toString()}
       />

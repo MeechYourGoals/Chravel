@@ -504,9 +504,22 @@ export async function generateClientPDF(
             yPos += 20;
           }
 
+          // Helper to shorten URLs for display
+          const shortenUrl = (url: string, maxLen: number = 45): string => {
+            if (!url || url.length <= maxLen) return url;
+            try {
+              const parsed = new URL(url);
+              const domain = parsed.hostname.replace('www.', '');
+              const path = parsed.pathname.slice(0, 15);
+              return `${domain}${path}${path.length < parsed.pathname.length ? '...' : ''}`;
+            } catch {
+              return url.slice(0, maxLen) + '...';
+            }
+          };
+
           const placeRows = chunk.map((place: any) => [
             place.name || 'N/A',
-            place.url || 'N/A',
+            shortenUrl(place.url || 'N/A'),
             place.votes?.toString() || '0'
           ]);
 
@@ -517,7 +530,16 @@ export async function generateClientPDF(
             theme: 'striped',
             headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
             margin: { left: margin, right: margin },
-            styles: { fontSize: 9 }
+            styles: { 
+              fontSize: 9, 
+              cellPadding: 4,
+              overflow: 'linebreak',
+            },
+            columnStyles: {
+              0: { cellWidth: contentWidth * 0.40 },  // Name - 40%
+              1: { cellWidth: contentWidth * 0.48 },  // URL - 48%
+              2: { cellWidth: contentWidth * 0.12, halign: 'center' }  // Votes - 12%
+            }
           });
 
           yPos = getFinalY(doc, yPos) + 10;
