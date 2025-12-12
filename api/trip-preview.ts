@@ -1,52 +1,71 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-
 /**
- * Proxy `/trip/:tripId/preview` to Supabase `generate-trip-preview` edge function.
+ * Vercel Edge Function: Proxy `/trip/:tripId/preview` to Supabase `generate-trip-preview`.
  *
- * Why: iMessage/OG scrapers do not execute SPA JS, so we must serve OG tags at the URL itself.
- * We avoid needing service-role secrets in Vercel by proxying to Supabase (which already uses
- * service-role internally and is configured as public).
+ * Why Edge Function: iMessage/OG scrapers do not execute SPA JS, so we must serve OG tags
+ * at the URL itself. Edge Functions use Web Standards API (no @vercel/node dependency).
  */
-export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+
+export const config = {
+  runtime: 'edge',
+};
+
+export default async function handler(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  const tripId = url.searchParams.get('tripId');
+
+  // DEV logging
+  console.log('[trip-preview] Received request for tripId:', tripId);
+
+  if (!tripId) {
+    return new Response('Missing tripId', {
+      status: 400,
+      headers: { 'Content-Type': 'text/plain' },
+    });
+  }
+
   try {
-    const tripIdRaw = (req.query.tripId ?? req.query.tripID ?? req.query.id) as string | string[] | undefined;
-    const tripId = Array.isArray(tripIdRaw) ? tripIdRaw[0] : tripIdRaw;
-
-    if (!tripId) {
-      res.status(400).setHeader('Content-Type', 'text/plain').send('Missing tripId');
-      return;
-    }
-
-    const supabaseProjectRef =
-      process.env.VITE_SUPABASE_URL?.match(/https?:\/\/([a-z0-9]+)\.supabase\.co/i)?.[1] ??
-      'jmjiyekmxwsxkfnqwyaa';
+    // Proxy to Supabase generate-trip-preview edge function
+    const supabaseProjectRef = 'jmjiyekmxwsxkfnqwyaa';
     const supabaseUrl = `https://${supabaseProjectRef}.supabase.co/functions/v1/generate-trip-preview?tripId=${encodeURIComponent(tripId)}`;
+
+    console.log('[trip-preview] Fetching from:', supabaseUrl);
 
     const upstream = await fetch(supabaseUrl, {
       method: 'GET',
       headers: {
-        // Preserve UA for bot debugging; also prevents some caches from treating all responses equal.
-        'User-Agent': req.headers['user-agent'] ?? 'chravel-preview-proxy',
-        Accept: 'text/html,application/xhtml+xml',
+        'User-Agent': request.headers.get('user-agent') ?? 'chravel-preview-proxy',
+        'Accept': 'text/html,application/xhtml+xml',
       },
     });
 
     const body = await upstream.text();
-    res.status(upstream.status);
 
-    // Copy key headers (avoid hop-by-hop headers).
-    const contentType = upstream.headers.get('content-type') ?? 'text/html; charset=utf-8';
-    res.setHeader('Content-Type', contentType);
+    console.log('[trip-preview] Upstream status:', upstream.status, 'Body length:', body.length);
+
+    // Build response with proper headers
+    const responseHeaders: Record<string, string> = {
+      'Content-Type': upstream.headers.get('content-type') ?? 'text/html; charset=utf-8',
+    };
 
     const cacheControl = upstream.headers.get('cache-control');
     if (cacheControl) {
-      res.setHeader('Cache-Control', cacheControl);
+      responseHeaders['Cache-Control'] = cacheControl;
+    } else {
+      // Default 5-minute cache for OG previews
+      responseHeaders['Cache-Control'] = 'public, max-age=300, s-maxage=300';
     }
 
-    res.send(body);
+    return new Response(body, {
+      status: upstream.status,
+      headers: responseHeaders,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    res.status(500).setHeader('Content-Type', 'text/plain').send(`Preview proxy error: ${message}`);
+    console.error('[trip-preview] Error:', message);
+    
+    return new Response(`Preview proxy error: ${message}`, {
+      status: 500,
+      headers: { 'Content-Type': 'text/plain' },
+    });
   }
 }
-
