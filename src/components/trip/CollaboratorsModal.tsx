@@ -98,8 +98,8 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
     return false;
   };
 
-  // Only show requests tab if admin and there are request handlers
-  const showRequestsTab = isAdmin && onApproveRequest && onRejectRequest;
+  // Admin can manage requests if handlers are provided
+  const canManageRequests = isAdmin && onApproveRequest && onRejectRequest;
   const pendingCount = pendingRequests.length;
 
   return (
@@ -109,40 +109,38 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
           <DialogTitle>All Collaborators</DialogTitle>
         </DialogHeader>
 
-        {/* Tab Navigation - Only show if admin can see requests */}
-        {showRequestsTab && (
-          <div className="flex gap-1 p-1 bg-white/5 rounded-xl mt-2">
-            <button
-              onClick={() => setActiveTab('members')}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all",
-                activeTab === 'members'
-                  ? "bg-white/10 text-white"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
-              )}
-            >
-              <Users size={16} />
-              <span>Members ({participants.length})</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('requests')}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all relative",
-                activeTab === 'requests'
-                  ? "bg-white/10 text-white"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
-              )}
-            >
-              <UserPlus size={16} />
-              <span>Requests</span>
-              {pendingCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full px-1">
-                  {pendingCount}
-                </span>
-              )}
-            </button>
-          </div>
-        )}
+        {/* Tab Navigation - Always visible for consistent UX across all viewports */}
+        <div className="flex gap-1 p-1 bg-white/5 rounded-xl mt-2">
+          <button
+            onClick={() => setActiveTab('members')}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all",
+              activeTab === 'members'
+                ? "bg-white/10 text-white"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+            )}
+          >
+            <Users size={16} />
+            <span>Members ({participants.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('requests')}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all relative",
+              activeTab === 'requests'
+                ? "bg-white/10 text-white"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+            )}
+          >
+            <UserPlus size={16} />
+            <span>Requests</span>
+            {pendingCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full px-1">
+                {pendingCount}
+              </span>
+            )}
+          </button>
+        </div>
 
         {/* Tab Content */}
         <div className="mt-4 max-h-[60vh] overflow-auto pr-1">
@@ -216,78 +214,92 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
               )}
             </div>
           ) : (
-            // Pending Requests List
+            // Pending Requests List - Show different content for admins vs non-admins
             <div role="list" aria-label="Pending join requests">
-              {pendingRequests.length > 0 ? (
-                pendingRequests.map((request) => {
-                  const isProcessing = processingRequestId === request.id;
-                  const displayName = request.profile?.display_name || request.profile?.email || 'Unknown User';
-                  const timeAgo = formatDistanceToNow(new Date(request.requested_at), { addSuffix: true });
+              {canManageRequests ? (
+                // Admin view: can approve/reject requests
+                pendingRequests.length > 0 ? (
+                  pendingRequests.map((request) => {
+                    const isProcessing = processingRequestId === request.id;
+                    const displayName = request.profile?.display_name || request.profile?.email || 'Unknown User';
+                    const timeAgo = formatDistanceToNow(new Date(request.requested_at), { addSuffix: true });
 
-                  return (
-                    <div
-                      key={request.id}
-                      role="listitem"
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-3 mb-2",
-                        isProcessing && "opacity-50"
-                      )}
-                    >
-                      {/* Avatar */}
-                      {isValidAvatarUrl(request.profile?.avatar_url) ? (
-                        <img
-                          src={request.profile?.avatar_url}
-                          alt={displayName}
-                          className="h-10 w-10 rounded-full object-cover border border-white/20"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white grid place-items-center text-sm font-semibold border border-white/20">
-                          {getInitials(displayName)}
-                        </div>
-                      )}
+                    return (
+                      <div
+                        key={request.id}
+                        role="listitem"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-3 mb-2",
+                          isProcessing && "opacity-50"
+                        )}
+                      >
+                        {/* Avatar */}
+                        {isValidAvatarUrl(request.profile?.avatar_url) ? (
+                          <img
+                            src={request.profile?.avatar_url}
+                            alt={displayName}
+                            className="h-10 w-10 rounded-full object-cover border border-white/20"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white grid place-items-center text-sm font-semibold border border-white/20">
+                            {getInitials(displayName)}
+                          </div>
+                        )}
 
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-white truncate">
-                          {displayName}
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-white truncate">
+                            {displayName}
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-gray-400">
+                            <Clock size={12} />
+                            <span>Requested {timeAgo}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-gray-400">
-                          <Clock size={12} />
-                          <span>Requested {timeAgo}</span>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleApprove(request.id)}
+                            disabled={isProcessing}
+                            className="p-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 hover:text-green-300 rounded-lg transition-colors disabled:opacity-50"
+                            title="Approve request"
+                          >
+                            <Check size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleReject(request.id)}
+                            disabled={isProcessing}
+                            className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 rounded-lg transition-colors disabled:opacity-50"
+                            title="Reject request"
+                          >
+                            <X size={18} />
+                          </button>
                         </div>
                       </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleApprove(request.id)}
-                          disabled={isProcessing}
-                          className="p-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 hover:text-green-300 rounded-lg transition-colors disabled:opacity-50"
-                          title="Approve request"
-                        >
-                          <Check size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleReject(request.id)}
-                          disabled={isProcessing}
-                          className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 rounded-lg transition-colors disabled:opacity-50"
-                          title="Reject request"
-                        >
-                          <X size={18} />
-                        </button>
-                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+                      <UserPlus size={24} className="text-gray-500" />
                     </div>
-                  );
-                })
+                    <p className="text-gray-400 text-sm">No pending requests</p>
+                    <p className="text-gray-500 text-xs mt-1">
+                      When someone requests to join, they'll appear here
+                    </p>
+                  </div>
+                )
               ) : (
+                // Non-admin view: informational message
                 <div className="text-center py-12">
                   <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
                     <UserPlus size={24} className="text-gray-500" />
                   </div>
-                  <p className="text-gray-400 text-sm">No pending requests</p>
+                  <p className="text-gray-400 text-sm">Join Requests</p>
                   <p className="text-gray-500 text-xs mt-1">
-                    When someone requests to join, they'll appear here
+                    Only trip organizers can manage join requests
                   </p>
                 </div>
               )}
