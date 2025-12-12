@@ -106,6 +106,10 @@
   ],
   "rewrites": [
     {
+      "source": "/join/:code",
+      "destination": "/api/invite-preview?code=:code"
+    },
+    {
       "source": "/trip/:tripId/preview",
       "destination": "/api/trip-preview?tripId=:tripId"
     },

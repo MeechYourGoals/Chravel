@@ -3,10 +3,12 @@
     "apps": [],
     "details": [
       {
-        "appID": "TEAM_ID.com.chravel.app",
+        "appID": "7K8Y9X6ABC.com.chravel.app",
+        "appIDs": ["7K8Y9X6ABC.com.chravel.app"],
         "paths": [
           "/join/*",
           "/trip/*",
+          "/trip/*/preview",
           "/event/*",
           "/tour/pro/*"
         ]
@@ -15,7 +17,7 @@
   },
   "webcredentials": {
     "apps": [
-      "TEAM_ID.com.chravel.app"
+      "7K8Y9X6ABC.com.chravel.app"
     ]
   }
 }
