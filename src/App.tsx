@@ -75,6 +75,7 @@ const Healthz = lazy(() => retryImport(() => import("./pages/Healthz")));
 const PrivacyPolicy = lazy(() => retryImport(() => import("./pages/PrivacyPolicy")));
 const TermsOfService = lazy(() => retryImport(() => import("./pages/TermsOfService")));
 const TripPreview = lazy(() => retryImport(() => import("./pages/TripPreview")));
+const AuthPage = lazy(() => retryImport(() => import("./pages/AuthPage")));
 
 // Note: Large components are already optimized with code splitting
 
@@ -271,6 +272,11 @@ const App = () => {
                     <Route path="/trip/:tripId/preview" element={
                       <LazyRoute>
                         <TripPreview />
+                      </LazyRoute>
+                    } />
+                    <Route path="/auth" element={
+                      <LazyRoute>
+                        <AuthPage />
                       </LazyRoute>
                     } />
                     <Route path="/join/:token" element={

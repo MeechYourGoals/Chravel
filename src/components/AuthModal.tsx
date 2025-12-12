@@ -6,11 +6,16 @@ import { useAuth } from '../hooks/useAuth';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /**
+   * Optional initial mode. Useful for deep links that want to land on Sign Up directly.
+   * Defaults to 'signin' to preserve existing behavior.
+   */
+  initialMode?: 'signin' | 'signup';
 }
 
-export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
+export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
   const { signIn, signUp, resetPassword, isLoading } = useAuth();
-  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>(initialMode ?? 'signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
