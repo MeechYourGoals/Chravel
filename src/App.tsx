@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import { ConsumerSubscriptionProvider } from "./hooks/useConsumerSubscription";
 import { MobileAppLayout } from "./components/mobile/MobileAppLayout";
@@ -18,7 +18,7 @@ import { AppInitializer } from "./components/app/AppInitializer";
 import BuildBadge from "./components/BuildBadge";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { Navigate, useParams } from "react-router-dom";
-import { isLovablePreview } from "./utils/env";
+
 import { toast } from "@/hooks/use-toast";
 import { setupGlobalSyncProcessor } from "./services/globalSyncProcessor";
 
@@ -87,8 +87,8 @@ const LegacyProTripRedirect = () => {
 
 const queryClient = new QueryClient();
 
-// Use HashRouter in preview to avoid hosting fallback issues
-const Router = isLovablePreview() ? HashRouter : BrowserRouter;
+// Always use BrowserRouter - Lovable preview now supports SPA routing
+const Router = BrowserRouter;
 
 // ⚡ PERFORMANCE: Initialize demo mode synchronously at module load
 useDemoModeStore.getState().init();
