@@ -34,9 +34,13 @@ export const DesktopHeader = ({ viewMode }: DesktopHeaderProps) => {
           <span className="text-xs text-muted-foreground">The Group Chat Travel App</span>
         </div>
         
-        {/* Right: Demo Selector + Auth Button */}
-        <div className="flex items-center gap-2">
+        {/* Center: Demo Selector */}
+        <div className="flex-1 flex justify-center">
           <DemoModeSelector />
+        </div>
+        
+        {/* Right: Auth Button */}
+        <div className="flex items-center">
           <HeaderAuthButton />
         </div>
       </div>

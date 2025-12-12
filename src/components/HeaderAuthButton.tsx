@@ -99,12 +99,12 @@ export const HeaderAuthButton = () => {
         onClick={() => setShowAuthModal(true)}
         variant="outline"
         size="sm"
-        className="flex items-center justify-center gap-1.5 transition-all duration-200 rounded-xl
+        className="flex items-center justify-center gap-1.5 transition-all duration-200 rounded-lg
           bg-primary/30 border-primary/70 border-2 text-primary hover:bg-primary/40 
-          shadow-lg shadow-primary/20 backdrop-blur-md h-14 px-3 whitespace-nowrap"
+          shadow-lg shadow-primary/20 backdrop-blur-md h-9 px-3 whitespace-nowrap"
       >
-        <LogIn className="h-4 w-4" />
-        <span className="text-xs font-semibold">Log In</span>
+        <LogIn className="h-3.5 w-3.5" />
+        <span className="text-[11px] font-semibold">Log In</span>
       </Button>
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
