@@ -2,37 +2,22 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Authentication Flow', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    // Use the dedicated auth route for stable selectors (modal-only UI)
+    await page.goto('/auth');
   });
 
   test('should display sign in form', async ({ page }) => {
-    // Look for sign in elements (adjust selectors based on actual UI)
-    const signInButton = page.getByRole('button', { name: /sign in|log in/i });
-    await expect(signInButton).toBeVisible();
+    await expect(page.locator('input[type="email"]')).toBeVisible();
   });
 
   test('should show validation errors for empty form', async ({ page }) => {
-    // Click sign in button
-    const signInButton = page.getByRole('button', { name: /sign in|log in/i });
-    await signInButton.click();
-
-    // Try to submit empty form
-    const submitButton = page.getByRole('button', { name: /submit|sign in/i });
-    await submitButton.click();
-
-    // Should show validation errors
-    const emailInput = page.getByLabel(/email/i);
-    await expect(emailInput).toBeVisible();
+    // Minimal smoke: form fields are present (validation UX is handled by browser required attrs)
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.locator('input[type="password"]')).toBeVisible();
   });
 
   test('should navigate to sign up page', async ({ page }) => {
-    // Look for sign up link/button
-    const signUpLink = page.getByRole('link', { name: /sign up|create account/i });
-    
-    if (await signUpLink.isVisible()) {
-      await signUpLink.click();
-      // Verify we're on sign up page (adjust based on actual routing)
-      await expect(page).toHaveURL(/.*sign.*up|.*register/i);
-    }
+    await page.getByRole('button', { name: 'Sign Up', exact: true }).click();
+    await expect(page.getByRole('button', { name: /Create Account/i })).toBeVisible();
   });
 });

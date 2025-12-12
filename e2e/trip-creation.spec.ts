@@ -16,7 +16,7 @@ test.describe('Trip Creation Flow', () => {
     await expect(page).toHaveURL('/');
   });
 
-  test('should validate trip form fields', async ({ _page }) => {
+  test('should validate trip form fields', async () => {
     // Navigate to trip creation (requires auth)
     // Fill in form fields
     // Submit empty form

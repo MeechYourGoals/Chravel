@@ -16,8 +16,15 @@ const buildVersionPlugin = (): Plugin => ({
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // Base path - use relative paths for better compatibility
-  base: './',
+  /**
+   * IMPORTANT (P0 deep-link fix):
+   * Using a relative base (`./`) breaks BrowserRouter deep links like `/join/:code`
+   * because the browser requests bundles from `/join/assets/...` instead of `/assets/...`,
+   * causing a blank screen (no JS loaded).
+   *
+   * For web production (chravel.app), we must use an absolute base.
+   */
+  base: '/',
   server: {
     host: "localhost",
     port: 8080,
