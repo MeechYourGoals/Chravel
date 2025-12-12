@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'sonner';
@@ -44,16 +44,20 @@ const JoinTrip = () => {
   const [inviteData, setInviteData] = useState<InvitePreviewData | null>(null);
   const [error, setError] = useState<InviteError | null>(null);
   const [joinSuccess, setJoinSuccess] = useState(false);
+  const autoJoinAttemptedRef = useRef(false);
 
   // Debug logging on mount
   useEffect(() => {
-    console.log('[JoinTrip] Component mounted', { 
-      token, 
-      authLoading, 
-      loading, 
-      hasUser: !!user,
-      pathname: location.pathname 
-    });
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.log('[JoinTrip] Component mounted', {
+        token,
+        authLoading,
+        loading,
+        hasUser: !!user,
+        pathname: location.pathname,
+      });
+    }
   }, []);
 
   // Safety timeout - prevent infinite loading states
@@ -139,17 +143,26 @@ const JoinTrip = () => {
   };
 
   const fetchInvitePreview = async () => {
-    console.log('[JoinTrip] fetchInvitePreview called', { token });
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.log('[JoinTrip] fetchInvitePreview called', { token });
+    }
     
     if (!token) {
-      console.warn('[JoinTrip] No token provided');
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.warn('[JoinTrip] No token provided');
+      }
       setLoading(false);
       return;
     }
 
     // Handle demo invite codes gracefully
     if (token.startsWith('demo-')) {
-      console.log('[JoinTrip] Demo invite code detected');
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log('[JoinTrip] Demo invite code detected');
+      }
       setError({
         message: 'This is a demonstration invite link. Create a real trip to generate shareable invite links that others can use to join!',
         code: 'INVALID'
@@ -171,17 +184,26 @@ const JoinTrip = () => {
 
     try {
       setLoading(true);
-      console.log('[JoinTrip] Invoking get-invite-preview edge function');
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log('[JoinTrip] Invoking get-invite-preview edge function');
+      }
 
       // Use edge function to get invite preview (works without auth)
       const { data, error: funcError } = await supabase.functions.invoke('get-invite-preview', {
         body: { code: token }
       });
 
-      console.log('[JoinTrip] Edge function response:', { data, error: funcError });
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log('[JoinTrip] Edge function response:', { data, error: funcError });
+      }
 
       if (funcError) {
-        console.error('[JoinTrip] Edge function error:', funcError);
+        if (import.meta.env.DEV) {
+          // eslint-disable-next-line no-console
+          console.error('[JoinTrip] Edge function error:', funcError);
+        }
         setError({
           message: 'Failed to load invite details. Please check your connection and try again.',
           code: 'NETWORK'
@@ -190,7 +212,10 @@ const JoinTrip = () => {
       }
 
       if (!data?.success) {
-        console.error('[JoinTrip] Invite preview error:', data?.error);
+        if (import.meta.env.DEV) {
+          // eslint-disable-next-line no-console
+          console.error('[JoinTrip] Invite preview error:', data?.error);
+        }
         setError({
           message: data?.error || 'Invalid invite link',
           code: data?.error_code || 'INVALID'
@@ -198,11 +223,17 @@ const JoinTrip = () => {
         return;
       }
 
-      console.log('[JoinTrip] Successfully loaded invite data');
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log('[JoinTrip] Successfully loaded invite data');
+      }
       setInviteData(data);
 
     } catch (err) {
-      console.error('[JoinTrip] Critical error fetching invite preview:', err);
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.error('[JoinTrip] Critical error fetching invite preview:', err);
+      }
       setError({
         message: 'An unexpected error occurred. Please try again.',
         code: 'NETWORK'
@@ -210,9 +241,27 @@ const JoinTrip = () => {
     } finally {
       // ALWAYS stop loading regardless of success/failure
       setLoading(false);
-      console.log('[JoinTrip] fetchInvitePreview completed, loading set to false');
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log('[JoinTrip] fetchInvitePreview completed, loading set to false');
+      }
     }
   };
+
+  // Auto-join after auth completes (P0 conversion path)
+  useEffect(() => {
+    if (!user) return;
+    if (!token) return;
+    if (!inviteData) return;
+    if (loading) return;
+    if (joining) return;
+    if (joinSuccess) return;
+    if (autoJoinAttemptedRef.current) return;
+
+    autoJoinAttemptedRef.current = true;
+    void handleJoinTrip();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, token, inviteData, loading, joining, joinSuccess]);
 
   const handleJoinTrip = async () => {
     if (!user) {
@@ -220,8 +269,7 @@ const JoinTrip = () => {
       if (token) {
         sessionStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
       }
-      toast.info('Please log in to join this trip');
-      navigate('/');
+      navigate(`/auth?mode=signin&returnTo=${encodeURIComponent(location.pathname)}`, { replace: true });
       return;
     }
 
@@ -287,14 +335,14 @@ const JoinTrip = () => {
     if (token) {
       sessionStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
     }
-    navigate('/');
+    navigate(`/auth?mode=signin&returnTo=${encodeURIComponent(location.pathname)}`, { replace: true });
   };
 
   const handleSignupRedirect = () => {
     if (token) {
       sessionStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
     }
-    navigate('/');
+    navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(location.pathname)}`, { replace: true });
   };
 
   const formatDateRange = () => {
@@ -341,7 +389,10 @@ const JoinTrip = () => {
   // Show loading ONLY while fetching invite data
   // DO NOT block on authLoading - unauthenticated users should see preview immediately
   if (loading) {
-    console.log('[JoinTrip] Rendering loading state');
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.log('[JoinTrip] Rendering loading state');
+    }
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

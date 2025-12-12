@@ -107,7 +107,7 @@
   "rewrites": [
     {
       "source": "/trip/:tripId/preview",
-      "destination": "https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/generate-trip-preview?tripId=:tripId"
+      "destination": "/api/trip-preview?tripId=:tripId"
     },
     {
       "source": "/(.*)",

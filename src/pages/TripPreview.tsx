@@ -94,7 +94,7 @@ const TripPreview = () => {
 
     // Check if this is a demo trip ID (numeric)
     const numericId = parseInt(tripId, 10);
-    if (!isNaN(numericId) && numericId > 0 && numericId <= 10) {
+    if (!isNaN(numericId) && numericId > 0 && numericId <= 12) {
       // Demo trip - use mock data
       const demoTrip = tripsData.find(t => t.id === numericId);
       if (demoTrip) {
@@ -114,39 +114,18 @@ const TripPreview = () => {
       }
     }
 
-    // Real trip - fetch from database
+    // Real trip (UUID) - fetch via public edge function to avoid RLS blank/404 for unauthenticated users
     try {
-      const { data: trip, error: tripError } = await supabase
-        .from('trips')
-        .select(`
-          id,
-          name,
-          destination,
-          start_date,
-          end_date,
-          cover_image_url,
-          trip_type,
-          description
-        `)
-        .eq('id', tripId)
-        .single();
+      const { data, error: funcError } = await supabase.functions.invoke('get-trip-preview', {
+        body: { tripId }
+      });
 
-      if (tripError || !trip) {
-        setError('Trip not found');
-        setLoading(false);
+      if (funcError || !data?.success || !data?.trip) {
+        setError(data?.error || funcError?.message || 'Trip not found');
         return;
       }
 
-      // Get member count
-      const { count } = await supabase
-        .from('trip_members')
-        .select('*', { count: 'exact', head: true })
-        .eq('trip_id', tripId);
-
-      setTripData({
-        ...trip,
-        member_count: count || 1
-      });
+      setTripData(data.trip as TripPreviewData);
     } catch (err) {
       console.error('Error fetching trip preview:', err);
       setError('Failed to load trip details');
@@ -187,7 +166,7 @@ const TripPreview = () => {
       navigate(`/trip/${tripId}`);
     } else {
       // Prompt to sign up/login
-      navigate('/auth', { state: { redirectTo: `/trip/${tripId}` } });
+      navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(`/trip/${tripId}`)}`, { replace: true });
     }
   };
 
