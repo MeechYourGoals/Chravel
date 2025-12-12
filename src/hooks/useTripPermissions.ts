@@ -185,7 +185,6 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
       const currentPerms = typedMember?.permissions || {};
       const updatedPerms = { ...currentPerms, ...newPermissions };
 
-      // @ts-ignore - permissions column not yet in generated types
       const { error } = await supabase
         .from('trip_members')
         .update({ permissions: updatedPerms } as any)
@@ -218,7 +217,6 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
     try {
       const defaultPerms = defaultPermissions[newRole] || defaultPermissions.member;
 
-      // @ts-ignore - permissions column not yet in generated types
       const { error } = await supabase
         .from('trip_members')
         .update({

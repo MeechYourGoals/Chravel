@@ -245,8 +245,7 @@ class BasecampService {
       // Log to history (if not skipped)
       if (!options?.skipHistory) {
         try {
-          // @ts-ignore - Edge function not in generated types yet
-          await supabase.rpc('log_basecamp_change', {
+          await (supabase as any).rpc('log_basecamp_change', {
             p_trip_id: payload.trip_id,
             p_user_id: user.id,
             p_scope: 'personal',
@@ -309,8 +308,7 @@ class BasecampService {
       // Log to history (if not skipped)
       if (!options?.skipHistory && basecamp) {
         try {
-          // @ts-ignore - Edge function not in generated types yet
-          await supabase.rpc('log_basecamp_change', {
+          await (supabase as any).rpc('log_basecamp_change', {
             p_trip_id: basecamp.trip_id,
             p_user_id: user.id,
             p_scope: 'personal',

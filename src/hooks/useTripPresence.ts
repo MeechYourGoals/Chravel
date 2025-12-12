@@ -35,7 +35,6 @@ export const useTripPresence = (tripId: string, userId?: string, currentPage?: s
 
     const sendHeartbeat = async () => {
       try {
-        // @ts-ignore - trip_presence table not yet in generated types
         const { error } = await (supabase as any)
           .from('trip_presence')
           .upsert({
@@ -69,7 +68,6 @@ export const useTripPresence = (tripId: string, userId?: string, currentPage?: s
       }
       // Mark as inactive
       if (tripId && userId) {
-        // @ts-ignore - trip_presence table not yet in generated types
         (supabase as any)
           .from('trip_presence')
           .update({ is_active: false })
@@ -87,7 +85,6 @@ export const useTripPresence = (tripId: string, userId?: string, currentPage?: s
     // Fetch initial presence
     const fetchPresence = async () => {
       try {
-        // @ts-ignore - trip_presence table not yet in generated types
         const { data, error } = await (supabase as any)
           .from('trip_presence')
           .select(`

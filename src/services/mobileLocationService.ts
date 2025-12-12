@@ -217,10 +217,9 @@ export class MobileLocationService {
 
   private async getBatteryLevel(): Promise<number | undefined> {
     try {
-      // @ts-ignore - Battery API is experimental
-      if ('getBattery' in navigator) {
-        // @ts-ignore
-        const battery = await navigator.getBattery();
+      const navigatorAny = navigator as unknown as { getBattery?: () => Promise<{ level: number }> };
+      if (typeof navigatorAny.getBattery === 'function') {
+        const battery = await navigatorAny.getBattery();
         return Math.round(battery.level * 100);
       }
     } catch (error) {

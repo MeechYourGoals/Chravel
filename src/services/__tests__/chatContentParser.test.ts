@@ -52,7 +52,7 @@ describe('chatContentParser', () => {
 
   describe('parseReceipt', () => {
     it('should parse receipt image and extract structured data', async () => {
-      const { supabase } = require('@/integrations/supabase/client');
+      const { supabase } = await import('@/integrations/supabase/client');
       
       supabase.functions.invoke.mockResolvedValue({
         data: {
@@ -79,7 +79,7 @@ describe('chatContentParser', () => {
     });
 
     it('should handle parsing errors gracefully', async () => {
-      const { supabase } = require('@/integrations/supabase/client');
+      const { supabase } = await import('@/integrations/supabase/client');
       supabase.functions.invoke.mockRejectedValue(new Error('API error'));
 
       await expect(parseReceipt('https://example.com/receipt.jpg', 'trip-123'))
@@ -89,7 +89,7 @@ describe('chatContentParser', () => {
 
   describe('parseItinerary', () => {
     it('should parse itinerary and extract calendar events', async () => {
-      const { supabase } = require('@/integrations/supabase/client');
+      const { supabase } = await import('@/integrations/supabase/client');
       
       supabase.functions.invoke.mockResolvedValue({
         data: {
@@ -125,8 +125,8 @@ describe('chatContentParser', () => {
 
   describe('parseLink', () => {
     it('should fetch OG metadata and store link', async () => {
-      const { fetchOGMetadata } = require('../ogMetadataService');
-      const { insertLinkIndex } = require('../linkService');
+      const { fetchOGMetadata } = await import('../ogMetadataService');
+      const { insertLinkIndex } = await import('../linkService');
       
       fetchOGMetadata.mockResolvedValue({
         title: 'Example Page',
@@ -145,7 +145,7 @@ describe('chatContentParser', () => {
     });
 
     it('should handle invalid URLs gracefully', async () => {
-      const { fetchOGMetadata } = require('../ogMetadataService');
+      const { fetchOGMetadata } = await import('../ogMetadataService');
       fetchOGMetadata.mockRejectedValue(new Error('Invalid URL'));
 
       const result = await parseLink('invalid-url', 'trip-123');
@@ -156,7 +156,7 @@ describe('chatContentParser', () => {
 
   describe('parseMessage', () => {
     it('should extract entities from natural language message', async () => {
-      const { supabase } = require('@/integrations/supabase/client');
+      const { supabase } = await import('@/integrations/supabase/client');
       
       supabase.functions.invoke
         .mockResolvedValueOnce({
@@ -194,7 +194,7 @@ describe('chatContentParser', () => {
 
   describe('autoParseContent', () => {
     it('should auto-detect content type and parse accordingly', async () => {
-      const { supabase } = require('@/integrations/supabase/client');
+      const { supabase } = await import('@/integrations/supabase/client');
       supabase.functions.invoke.mockResolvedValue({
         data: {
           parsed_data: {
@@ -220,7 +220,7 @@ describe('chatContentParser', () => {
 
   describe('applySuggestion', () => {
     it('should create calendar event from suggestion', async () => {
-      const { calendarService } = require('../calendarService');
+      const { calendarService } = await import('../calendarService');
       calendarService.createEvent.mockResolvedValue({ id: 'event-123' });
 
       const suggestion: ParsedContent['suggestions'][0] = {
