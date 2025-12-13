@@ -48,8 +48,8 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
   const [role, setRole] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
-  // Default permission sets by role
-  const defaultPermissions: Record<string, PermissionMatrix> = {
+  // Default permission sets by role for PRO/EVENT trips (Strict)
+  const proDefaultPermissions: Record<string, PermissionMatrix> = {
     admin: {
       view_trip: 'admin',
       edit_calendar: 'admin',
@@ -65,15 +65,15 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
     },
     member: {
       view_trip: 'view',
-      edit_calendar: 'edit',
-      edit_payments: 'edit',
+      edit_calendar: 'none', // Changed to none per requirements
+      edit_payments: 'none', // Changed to none per requirements
       manage_members: 'none',
-      send_broadcasts: 'edit',
+      send_broadcasts: 'none',
       view_media: 'view',
-      upload_media: 'edit',
+      upload_media: 'view', // Upload might be allowed? Prompt says "Only admins... Upload or delete media". Wait, "Upload or delete media" -> Restricted.
       delete_media: 'none',
       view_chat: 'view',
-      send_messages: 'edit',
+      send_messages: 'edit', // Chat is usually open
       manage_settings: 'none'
     },
     viewer: {
@@ -91,6 +91,22 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
     }
   };
 
+  // Permission set for CONSUMER trips (Open)
+  // Effective 'admin' or 'edit' rights for content features to ALL members.
+  const consumerMemberPermissions: PermissionMatrix = {
+    view_trip: 'view',
+    edit_calendar: 'edit',
+    edit_payments: 'edit',
+    manage_members: 'edit',
+    send_broadcasts: 'edit',
+    view_media: 'view',
+    upload_media: 'edit',
+    delete_media: 'edit',
+    view_chat: 'view',
+    send_messages: 'edit',
+    manage_settings: 'edit'
+  };
+
   useEffect(() => {
     if (!tripId || !userId) {
       setLoading(false);
@@ -105,18 +121,29 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
 
     setLoading(true);
     try {
-      // Get member role with type assertion for missing permissions column
-      const { data: member, error } = await supabase
-        .from('trip_members')
-        .select('role, permissions')
-        .eq('trip_id', tripId)
-        .eq('user_id', userId)
-        .single();
+      // 1. Fetch member role and permissions
+      // 2. Fetch trip type
+      const [memberResult, tripResult] = await Promise.all([
+        supabase
+          .from('trip_members')
+          .select('role, permissions')
+          .eq('trip_id', tripId)
+          .eq('user_id', userId)
+          .single(),
+        supabase
+          .from('trips')
+          .select('trip_type')
+          .eq('id', tripId)
+          .single()
+      ]);
+
+      const member = memberResult.data;
+      const trip = tripResult.data;
 
       // Cast to expected type since permissions column is missing from generated types
       const typedMember = (member || null) as unknown as { role: string; permissions?: PermissionMatrix } | null;
 
-      if (error || !typedMember) {
+      if (!typedMember) {
         // Not a member - no permissions
         setPermissions({});
         setRole('');
@@ -126,16 +153,36 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
 
       setRole(typedMember.role || 'member');
 
-      // Check if custom permissions exist (stored as JSONB)
-      if (typedMember.permissions && typeof typedMember.permissions === 'object') {
-        // Custom permissions override defaults
-        const customPerms = typedMember.permissions as PermissionMatrix;
-        setPermissions(customPerms);
+      // Fail Closed: If trip type is missing, assume strict Pro rules to be safe.
+      const tripType = trip?.trip_type || 'pro';
+
+      if (tripType === 'consumer') {
+        // CONSUMER TRIPS (MY TRIPS) LOGIC
+        // "Any authenticated trip member may Create, edit, or delete... No admin-only restrictions exist... No per-object ownership checks..."
+
+        // Custom permissions could still theoretically override if explicitly set to 'none' in DB
+        if (typedMember.permissions && typeof typedMember.permissions === 'object') {
+           setPermissions({ ...consumerMemberPermissions, ...(typedMember.permissions as PermissionMatrix) });
+        } else {
+           setPermissions(consumerMemberPermissions);
+        }
+
       } else {
-        // Use default permissions for role
-        const defaultPerms = defaultPermissions[typedMember.role] || defaultPermissions.member;
-        setPermissions(defaultPerms);
+        // PRO / EVENT TRIPS LOGIC
+        // Strict Role-Based Access Control
+
+        // Check if custom permissions exist (stored as JSONB)
+        if (typedMember.permissions && typeof typedMember.permissions === 'object') {
+          // Custom permissions override defaults
+          const customPerms = typedMember.permissions as PermissionMatrix;
+          setPermissions(customPerms);
+        } else {
+          // Use default permissions for role
+          const defaultPerms = proDefaultPermissions[typedMember.role] || proDefaultPermissions.member;
+          setPermissions(defaultPerms);
+        }
       }
+
     } catch (error) {
       console.error('Error loading permissions:', error);
       setPermissions({});
@@ -215,7 +262,10 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
     }
 
     try {
-      const defaultPerms = defaultPermissions[newRole] || defaultPermissions.member;
+      // Logic for Consumer vs Pro here?
+      // Ideally we shouldn't be updating roles in consumer trips if they are flat, but the UI might allow it.
+      // We'll stick to Pro defaults for role updates as that's where structure matters.
+      const defaultPerms = proDefaultPermissions[newRole] || proDefaultPermissions.member;
 
       const { error } = await supabase
         .from('trip_members')
