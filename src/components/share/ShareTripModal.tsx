@@ -30,7 +30,26 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
 
   // Generate branded preview link
   const previewLink = useMemo(() => {
-    return `https://chravel.app/trip/${trip.id}/preview`;
+    /**
+     * IMPORTANT (unfurling): iMessage/Slack/WhatsApp/Teams do NOT execute JS.
+     * This link must resolve to server-rendered HTML with OG tags at request time.
+     *
+     * To avoid coupling preview unfurling to the SPA host (e.g., Vercel rewrites),
+     * we default to the Supabase Edge Function that renders the OG HTML.
+     *
+     * You can override via `VITE_TRIP_PREVIEW_BASE_URL` to point at a custom
+     * preview service/domain (recommended long-term).
+     *
+     * Expected formats:
+     * - Supabase REST edge functions: https://<project-ref>.supabase.co/functions/v1/generate-trip-preview
+     * - Custom preview service:       https://preview.chravel.app/trip-preview
+     */
+    const base =
+      import.meta.env.VITE_TRIP_PREVIEW_BASE_URL ??
+      'https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/generate-trip-preview';
+
+    const tripId = encodeURIComponent(String(trip.id));
+    return `${base}?tripId=${tripId}`;
   }, [trip.id]);
 
   // Generate share text for social media - ensure minimum of 1 Chraveler (creator always exists)

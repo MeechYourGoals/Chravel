@@ -49,7 +49,7 @@ const JoinTrip = () => {
   // Debug logging on mount
   useEffect(() => {
     if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
+       
       console.log('[JoinTrip] Component mounted', {
         token,
         authLoading,
@@ -144,13 +144,13 @@ const JoinTrip = () => {
 
   const fetchInvitePreview = async () => {
     if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
+       
       console.log('[JoinTrip] fetchInvitePreview called', { token });
     }
     
     if (!token) {
       if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
+         
         console.warn('[JoinTrip] No token provided');
       }
       setLoading(false);
@@ -160,7 +160,7 @@ const JoinTrip = () => {
     // Handle demo invite codes gracefully
     if (token.startsWith('demo-')) {
       if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
+         
         console.log('[JoinTrip] Demo invite code detected');
       }
       setError({
@@ -185,7 +185,7 @@ const JoinTrip = () => {
     try {
       setLoading(true);
       if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
+         
         console.log('[JoinTrip] Invoking get-invite-preview edge function');
       }
 
@@ -195,13 +195,13 @@ const JoinTrip = () => {
       });
 
       if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
+         
         console.log('[JoinTrip] Edge function response:', { data, error: funcError });
       }
 
       if (funcError) {
         if (import.meta.env.DEV) {
-          // eslint-disable-next-line no-console
+           
           console.error('[JoinTrip] Edge function error:', funcError);
         }
         setError({
@@ -213,7 +213,7 @@ const JoinTrip = () => {
 
       if (!data?.success) {
         if (import.meta.env.DEV) {
-          // eslint-disable-next-line no-console
+           
           console.error('[JoinTrip] Invite preview error:', data?.error);
         }
         setError({
@@ -224,14 +224,14 @@ const JoinTrip = () => {
       }
 
       if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
+         
         console.log('[JoinTrip] Successfully loaded invite data');
       }
       setInviteData(data);
 
     } catch (err) {
       if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
+         
         console.error('[JoinTrip] Critical error fetching invite preview:', err);
       }
       setError({
@@ -242,7 +242,7 @@ const JoinTrip = () => {
       // ALWAYS stop loading regardless of success/failure
       setLoading(false);
       if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
+         
         console.log('[JoinTrip] fetchInvitePreview completed, loading set to false');
       }
     }
@@ -390,7 +390,7 @@ const JoinTrip = () => {
   // DO NOT block on authLoading - unauthenticated users should see preview immediately
   if (loading) {
     if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
+       
       console.log('[JoinTrip] Rendering loading state');
     }
     return (
