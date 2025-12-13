@@ -272,9 +272,14 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
         const safeName = file.name.replace(/\//g, '-');
         const storagePath = `${tripId}/${pre.userId}/${Date.now()}-${safeName}`;
 
+        // CRITICAL: iOS Safari requires correct Content-Type headers to decode video
         const { error: uploadError } = await supabase.storage
           .from('trip-media')
-          .upload(storagePath, file, { cacheControl: '3600', upsert: false });
+          .upload(storagePath, file, {
+            cacheControl: '3600',
+            upsert: false,
+            contentType: file.type || 'application/octet-stream',
+          });
 
         if (uploadError) {
           console.error('[MobileUnifiedMediaHub] Upload error:', uploadError);
@@ -770,12 +775,13 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           >
             <X size={24} />
           </button>
+          {/* iOS CRITICAL: muted required for autoplay, user can unmute via controls */}
           <video
             src={activeVideo}
             controls
             autoPlay
             playsInline
-            webkit-playsinline="true"
+            muted
             controlsList="nodownload"
             preload="metadata"
             className="max-w-full max-h-full"

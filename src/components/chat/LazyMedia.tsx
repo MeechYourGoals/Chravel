@@ -45,8 +45,11 @@ export function LazyMedia({ src, type, alt = '', className = '' }: LazyMediaProp
         <div className="bg-muted animate-pulse rounded-md h-[200px] w-full" />
       )}
       {type === 'video' ? (
+        // iOS CRITICAL: playsInline + muted required for inline playback
         <video
           controls
+          playsInline
+          muted
           src={src}
           className={`rounded-lg max-w-full ${isLoaded ? 'block' : 'hidden'}`}
           preload="metadata"

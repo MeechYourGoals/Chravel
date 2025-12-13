@@ -40,10 +40,12 @@ export const MediaItem = ({ item }: MediaItemProps) => {
     return (
       <div className="group relative aspect-square rounded-lg overflow-hidden bg-muted">
         <div className="relative w-full h-full bg-black flex items-center justify-center">
+          {/* iOS CRITICAL: playsInline prevents fullscreen takeover */}
           <video
             src={item.media_url}
             className="w-full h-full object-cover"
             muted
+            playsInline
             preload="metadata"
             poster={item?.metadata?.poster}
           />
