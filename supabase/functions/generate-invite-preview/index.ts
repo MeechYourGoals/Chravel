@@ -29,6 +29,8 @@ const demoTrips: Record<string, {
   description: string;
   coverPhoto: string;
   participantCount: number;
+  tripType?: 'consumer' | 'pro' | 'event';
+  themeColor?: string; // For events only
 }> = {
   // Consumer Trips (1-12)
   '1': {
@@ -127,14 +129,15 @@ const demoTrips: Record<string, {
     coverPhoto: 'https://images.unsplash.com/photo-1533167649158-6d508895b680?w=1200&h=630&fit=crop',
     participantCount: 5
   },
-  // Pro Trips
+  // Pro Trips - grayscale backgrounds
   'lakers-road-trip': {
     title: 'Lakers Road Trip – Phoenix Away Game',
     location: 'Phoenix, AZ',
     dateRange: 'Mar 5 - Mar 7, 2026',
     description: 'Road game logistics for players, coaches, and support staff with coordinated travel and accommodations',
     coverPhoto: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1200&h=630&fit=crop',
-    participantCount: 45
+    participantCount: 45,
+    tripType: 'pro'
   },
   'beyonce-cowboy-carter-tour': {
     title: 'Beyoncé Cowboy Carter Tour',
@@ -142,7 +145,8 @@ const demoTrips: Record<string, {
     dateRange: 'Jun 15 - Jul 30, 2026',
     description: 'Multi-city stadium tour with crew coordination, venue logistics, and production schedules',
     coverPhoto: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&h=630&fit=crop',
-    participantCount: 150
+    participantCount: 150,
+    tripType: 'pro'
   },
   'duke-basketball-acc-tournament': {
     title: 'Duke Basketball – ACC Tournament',
@@ -150,7 +154,8 @@ const demoTrips: Record<string, {
     dateRange: 'Mar 11 - Mar 15, 2026',
     description: 'Tournament travel for the Blue Devils with game prep, team meals, and media sessions',
     coverPhoto: 'https://images.unsplash.com/photo-1504450758481-7338bbe75c8e?w=1200&h=630&fit=crop',
-    participantCount: 35
+    participantCount: 35,
+    tripType: 'pro'
   },
   'morgan-wallen-one-night-tour': {
     title: 'Morgan Wallen – One Night At A Time Tour',
@@ -158,7 +163,8 @@ const demoTrips: Record<string, {
     dateRange: 'May 1 - Aug 30, 2026',
     description: 'National stadium tour with band coordination, production crew, and merchandise logistics',
     coverPhoto: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&h=630&fit=crop',
-    participantCount: 85
+    participantCount: 85,
+    tripType: 'pro'
   },
   'tech-sales-kickoff': {
     title: 'Q1 Sales Kickoff – Las Vegas',
@@ -166,7 +172,8 @@ const demoTrips: Record<string, {
     dateRange: 'Jan 15 - Jan 18, 2026',
     description: 'Annual sales team alignment with training sessions, team building, and strategy planning',
     coverPhoto: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&h=630&fit=crop',
-    participantCount: 200
+    participantCount: 200,
+    tripType: 'pro'
   },
   'stanford-study-abroad': {
     title: 'Stanford Florence Study Abroad',
@@ -174,7 +181,8 @@ const demoTrips: Record<string, {
     dateRange: 'Sep 1 - Dec 15, 2025',
     description: 'Semester abroad program with class schedules, cultural excursions, and student housing',
     coverPhoto: 'https://images.unsplash.com/photo-1476362555312-ab9e108a0b7e?w=1200&h=630&fit=crop',
-    participantCount: 45
+    participantCount: 45,
+    tripType: 'pro'
   },
   'youtube-creator-retreat': {
     title: 'YouTube Creator Summit – Malibu',
@@ -182,7 +190,8 @@ const demoTrips: Record<string, {
     dateRange: 'Apr 20 - Apr 25, 2026',
     description: 'Content creator collaboration retreat with workshops, brand meetings, and content shoots',
     coverPhoto: 'https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=1200&h=630&fit=crop',
-    participantCount: 30
+    participantCount: 30,
+    tripType: 'pro'
   },
   'pharma-conference': {
     title: 'BioTech Annual Conference',
@@ -190,7 +199,8 @@ const demoTrips: Record<string, {
     dateRange: 'Oct 8 - Oct 12, 2025',
     description: 'Industry conference with keynotes, networking events, and partnership meetings',
     coverPhoto: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200&h=630&fit=crop',
-    participantCount: 500
+    participantCount: 500,
+    tripType: 'pro'
   },
   'high-school-band-competition': {
     title: 'State Marching Band Championship',
@@ -198,7 +208,8 @@ const demoTrips: Record<string, {
     dateRange: 'Nov 1 - Nov 3, 2025',
     description: 'State championship competition with performance schedules, equipment logistics, and parent coordination',
     coverPhoto: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=1200&h=630&fit=crop',
-    participantCount: 120
+    participantCount: 120,
+    tripType: 'pro'
   },
   'film-production-shoot': {
     title: 'Indie Film Production – Desert Shoot',
@@ -206,7 +217,8 @@ const demoTrips: Record<string, {
     dateRange: 'Mar 1 - Mar 20, 2026',
     description: 'On-location film production with cast, crew schedules, equipment rentals, and catering',
     coverPhoto: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=1200&h=630&fit=crop',
-    participantCount: 60
+    participantCount: 60,
+    tripType: 'pro'
   },
   'real-estate-investor-tour': {
     title: 'Multi-Family Property Tour – Atlanta',
@@ -214,7 +226,8 @@ const demoTrips: Record<string, {
     dateRange: 'Feb 10 - Feb 14, 2026',
     description: 'Investment property tour with site visits, due diligence meetings, and networking dinners',
     coverPhoto: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&h=630&fit=crop',
-    participantCount: 25
+    participantCount: 25,
+    tripType: 'pro'
   },
   'esports-tournament': {
     title: 'League of Legends Championship Finals',
@@ -222,16 +235,19 @@ const demoTrips: Record<string, {
     dateRange: 'Aug 20 - Aug 25, 2026',
     description: 'Championship tournament with team practice schedules, media appearances, and fan events',
     coverPhoto: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&h=630&fit=crop',
-    participantCount: 40
+    participantCount: 40,
+    tripType: 'pro'
   },
-  // Events
+  // Events - themed color backgrounds
   'sxsw-2025': {
     title: 'SXSW 2025',
     location: 'Austin, TX',
     dateRange: 'Mar 7 - Mar 16, 2025',
     description: 'Annual tech, film, and music festival with panels, showcases, and networking events',
     coverPhoto: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&h=630&fit=crop',
-    participantCount: 500
+    participantCount: 500,
+    tripType: 'event',
+    themeColor: '#8B5CF6' // Purple
   },
   'wef-2025': {
     title: 'World Economic Forum 2025',
@@ -239,7 +255,19 @@ const demoTrips: Record<string, {
     dateRange: 'Jan 20 - Jan 24, 2025',
     description: 'Global leaders summit discussing economic challenges, climate action, and international cooperation',
     coverPhoto: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&h=630&fit=crop',
-    participantCount: 3000
+    participantCount: 3000,
+    tripType: 'event',
+    themeColor: '#10B981' // Green
+  },
+  'money-2020-2025': {
+    title: 'Money 20/20 Las Vegas 2025',
+    location: 'Las Vegas, NV',
+    dateRange: 'Oct 26 - Oct 29, 2025',
+    description: 'The world\'s largest fintech event with payments innovation and financial services networking',
+    coverPhoto: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=1200&h=630&fit=crop',
+    participantCount: 10000,
+    tripType: 'event',
+    themeColor: '#92400E' // Brown/amber
   },
   'coachella-2026': {
     title: 'Coachella Valley Music and Arts Festival 2026',
@@ -247,7 +275,9 @@ const demoTrips: Record<string, {
     dateRange: 'Apr 10 - Apr 19, 2026',
     description: 'Premier music and arts festival featuring top artists, art installations, and immersive experiences',
     coverPhoto: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&h=630&fit=crop',
-    participantCount: 125000
+    participantCount: 125000,
+    tripType: 'event',
+    themeColor: '#F59E0B' // Orange
   },
   'art-basel-miami-2025': {
     title: 'Art Basel Miami Beach 2025',
@@ -255,7 +285,9 @@ const demoTrips: Record<string, {
     dateRange: 'Dec 5 - Dec 8, 2025',
     description: 'International art fair showcasing modern and contemporary works from leading galleries worldwide',
     coverPhoto: 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=1200&h=630&fit=crop',
-    participantCount: 83000
+    participantCount: 83000,
+    tripType: 'event',
+    themeColor: '#EC4899' // Pink
   },
   'ted-2026': {
     title: 'TED 2026: The Future of Everything',
@@ -263,7 +295,9 @@ const demoTrips: Record<string, {
     dateRange: 'Apr 14 - Apr 18, 2026',
     description: 'Annual TED conference featuring breakthrough ideas in technology, entertainment, and design',
     coverPhoto: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&h=630&fit=crop',
-    participantCount: 2000
+    participantCount: 2000,
+    tripType: 'event',
+    themeColor: '#DC2626' // Red
   },
   'super-bowl-2026': {
     title: 'Super Bowl LX Watch Party',
@@ -271,9 +305,20 @@ const demoTrips: Record<string, {
     dateRange: 'Feb 8, 2026',
     description: 'Ultimate Super Bowl experience with premium viewing, tailgate parties, and championship atmosphere',
     coverPhoto: 'https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?w=1200&h=630&fit=crop',
-    participantCount: 70000
+    participantCount: 70000,
+    tripType: 'event',
+    themeColor: '#1D4ED8' // Blue
   }
 };
+
+// Helper to darken a hex color for gradients
+function darkenColor(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const darken = (c: number) => Math.max(0, Math.floor(c * 0.6));
+  return `#${darken(r).toString(16).padStart(2, '0')}${darken(g).toString(16).padStart(2, '0')}${darken(b).toString(16).padStart(2, '0')}`;
+}
 
 function generateInviteHTML(trip: {
   title: string;
@@ -282,6 +327,8 @@ function generateInviteHTML(trip: {
   description: string;
   coverPhoto: string;
   participantCount: number;
+  tripType?: 'consumer' | 'pro' | 'event';
+  themeColor?: string;
 }, inviteCode: string, baseUrl: string): string {
   const joinUrl = `${baseUrl}/join/${inviteCode}`;
   
@@ -294,6 +341,32 @@ function generateInviteHTML(trip: {
   // Format OG tags to match share trip format
   const ogTitle = `You're Invited: ${safeTitle} • ${safeDateRange}`;
   const ogDescription = `${safeLocation} • ${trip.participantCount} Chravelers`;
+  
+  // Determine header style based on trip type
+  const isEvent = trip.tripType === 'event' && trip.themeColor;
+  const isPro = trip.tripType === 'pro';
+  
+  // For events with theme colors, use gradient background instead of cover photo
+  // For pro trips, use grayscale gradient
+  // For consumer trips, use cover photo
+  const headerContent = isEvent
+    ? `<div class="cover-gradient" style="background: linear-gradient(135deg, ${trip.themeColor} 0%, ${darkenColor(trip.themeColor!)} 100%); height: 200px; display: flex; align-items: center; justify-content: center;">
+        <span style="font-size: 48px;">🎪</span>
+       </div>`
+    : isPro
+    ? `<div class="cover-gradient" style="background: linear-gradient(135deg, #374151 0%, #1f2937 100%); height: 200px; display: flex; align-items: center; justify-content: center;">
+        <span style="font-size: 48px;">🏢</span>
+       </div>`
+    : `<img src="${escapeHtml(trip.coverPhoto)}" alt="${safeTitle}" class="cover">`;
+
+  // Badge styling based on trip type
+  const badgeStyle = isEvent && trip.themeColor
+    ? `background: ${trip.themeColor};`
+    : isPro
+    ? `background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);`
+    : `background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);`;
+  
+  const badgeText = isEvent ? '🎪 Event Invitation' : isPro ? '🏢 Pro Trip Invitation' : '✨ You\'re Invited!';
   
   return `<!DOCTYPE html>
 <html lang="en">
@@ -345,8 +418,8 @@ function generateInviteHTML(trip: {
       backdrop-filter: blur(10px);
     }
     .badge {
-      background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
-      color: #000;
+      ${badgeStyle}
+      color: ${isEvent || isPro ? '#fff' : '#000'};
       text-align: center;
       padding: 8px;
       font-weight: 600;
@@ -369,7 +442,7 @@ function generateInviteHTML(trip: {
       margin-bottom: 8px;
     }
     .dates {
-      color: #a855f7;
+      color: ${isEvent && trip.themeColor ? trip.themeColor : '#a855f7'};
       font-size: 14px;
       margin-bottom: 8px;
     }
@@ -392,8 +465,8 @@ function generateInviteHTML(trip: {
     }
     .cta {
       display: block;
-      background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
-      color: #000;
+      ${badgeStyle}
+      color: ${isEvent || isPro ? '#fff' : '#000'};
       text-align: center;
       padding: 14px;
       font-weight: 600;
@@ -417,8 +490,8 @@ function generateInviteHTML(trip: {
 </head>
 <body>
   <div class="card">
-    <div class="badge">✨ You're Invited!</div>
-    <img src="${escapeHtml(trip.coverPhoto)}" alt="${safeTitle}" class="cover">
+    <div class="badge">${badgeText}</div>
+    ${headerContent}
     <div class="content">
       <h1 class="title">${safeTitle}</h1>
       <div class="dates">📅 ${safeDateRange}</div>
