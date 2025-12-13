@@ -105,7 +105,7 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
 
     return (
       <div className="space-y-4">
-        {displayItems.length > 0 && <MediaGrid items={displayItems} />}
+        {displayItems.length > 0 && <MediaGrid items={displayItems} onDeleteItem={() => {}} />}
         {filteredItems.length > 8 && (
           <p className="text-center text-gray-400 text-sm">
             Showing 8 of {filteredItems.length} items
