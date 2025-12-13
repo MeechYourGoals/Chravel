@@ -10,17 +10,16 @@ interface MediaItemData {
   filename: string;
   media_type: 'image' | 'video' | 'document';
   mime_type?: string | null;
-  metadata: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
   created_at: string;
-  source: 'chat' | 'upload';
+  source?: 'chat' | 'upload';
 }
 
 interface MediaGridProps {
   items: MediaItemData[];
   maxItems?: number;
   uploadQueue?: UploadProgress[];
-  onDeleteItem?: (id: string) => void;
-  isDeleting?: boolean;
+  onDeleteItem: (id: string) => void;
 }
 
 export const MediaGrid = ({
@@ -28,9 +27,22 @@ export const MediaGrid = ({
   maxItems,
   uploadQueue = [],
   onDeleteItem,
-  isDeleting = false,
 }: MediaGridProps) => {
   const displayItems = maxItems ? items.slice(0, maxItems) : items;
+
+  // Derive MIME type from media_type if not provided
+  const getMimeType = (item: MediaItemData): string => {
+    if (item.mime_type) return item.mime_type;
+    // Fallback based on media_type
+    switch (item.media_type) {
+      case 'image':
+        return 'image/jpeg';
+      case 'video':
+        return 'video/mp4';
+      default:
+        return 'application/octet-stream';
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -50,9 +62,7 @@ export const MediaGrid = ({
                       {upload.fileName}
                     </p>
                     <Progress value={upload.progress} className="w-full h-2" />
-                    <p className="text-xs text-foreground/60 mt-1">
-                      {upload.progress}%
-                    </p>
+                    <p className="text-xs text-foreground/60 mt-1">{upload.progress}%</p>
                   </>
                 ) : upload.status === 'complete' ? (
                   <>
@@ -85,11 +95,9 @@ export const MediaGrid = ({
             key={item.id}
             id={item.id}
             url={item.media_url}
-            mimeType={item.mime_type ?? null}
-            mediaType={item.media_type}
+            mimeType={getMimeType(item)}
             fileName={item.filename}
             onDelete={onDeleteItem}
-            isDeleting={isDeleting}
           />
         ))}
       </div>

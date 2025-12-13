@@ -4,6 +4,7 @@ import { useMediaSync } from '@/hooks/useMediaSync';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { MediaGrid } from './MediaGrid';
+import { FileRow } from './FileRow';
 import { MediaFilters } from './MediaFilters';
 import { Button } from '@/components/ui/button';
 
@@ -20,21 +21,22 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
     links,
     mediaCounts,
     isLoading,
-    isDeleting,
     error,
     refreshMedia,
     deleteMedia,
     deleteFile,
     deleteLink,
   } = useMediaSync(tripId);
-  const [activeTab, setActiveTab] = React.useState<'all' | 'photos' | 'videos' | 'files' | 'links'>('all');
+  const [activeTab, setActiveTab] = React.useState<
+    'all' | 'photos' | 'videos' | 'files' | 'links'
+  >('all');
   const [filterQuery, setFilterQuery] = React.useState('');
 
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">
         <p className="text-red-500 mb-4">Failed to load media: {error}</p>
-        <button 
+        <button
           onClick={refreshMedia}
           className="text-blue-500 hover:text-blue-400 underline"
         >
@@ -53,15 +55,20 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
   }
 
   // Filter items based on search query
-  const filterItems = (items: any[]) => {
+  const filterItems = <T extends Record<string, unknown>>(items: T[]): T[] => {
     if (!filterQuery) return items;
     const query = filterQuery.toLowerCase();
-    return items.filter(item => {
-      const filename = item.filename?.toLowerCase() || '';
-      const name = item.name?.toLowerCase() || '';
-      const title = item.title?.toLowerCase() || '';
-      const url = item.url?.toLowerCase() || '';
-      return filename.includes(query) || name.includes(query) || title.includes(query) || url.includes(query);
+    return items.filter((item) => {
+      const filename = (item.filename as string)?.toLowerCase() || '';
+      const name = (item.name as string)?.toLowerCase() || '';
+      const title = (item.title as string)?.toLowerCase() || '';
+      const url = (item.url as string)?.toLowerCase() || '';
+      return (
+        filename.includes(query) ||
+        name.includes(query) ||
+        title.includes(query) ||
+        url.includes(query)
+      );
     });
   };
 
@@ -75,44 +82,63 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
       {/* Header with filters */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <h2 className="text-2xl font-semibold">Media Gallery</h2>
-        <MediaFilters activeFilter={activeTab} onFilterChange={(filter) => setActiveTab(filter)} />
+        <MediaFilters
+          activeFilter={activeTab}
+          onFilterChange={(filter) => setActiveTab(filter)}
+        />
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) =>
+          setActiveTab(v as 'all' | 'photos' | 'videos' | 'files' | 'links')
+        }
+        className="w-full"
+      >
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="all" className="flex items-center gap-2">
             All
             {mediaCounts.all > 0 && (
-              <Badge variant="secondary" className="ml-1">{mediaCounts.all}</Badge>
+              <Badge variant="secondary" className="ml-1">
+                {mediaCounts.all}
+              </Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="photos" className="flex items-center gap-2">
             <Camera size={16} />
             Photos
             {mediaCounts.photos > 0 && (
-              <Badge variant="secondary" className="ml-1">{mediaCounts.photos}</Badge>
+              <Badge variant="secondary" className="ml-1">
+                {mediaCounts.photos}
+              </Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="videos" className="flex items-center gap-2">
             <Video size={16} />
             Videos
             {mediaCounts.videos > 0 && (
-              <Badge variant="secondary" className="ml-1">{mediaCounts.videos}</Badge>
+              <Badge variant="secondary" className="ml-1">
+                {mediaCounts.videos}
+              </Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="files" className="flex items-center gap-2">
             <FileText size={16} />
             Files
             {mediaCounts.files > 0 && (
-              <Badge variant="secondary" className="ml-1">{mediaCounts.files}</Badge>
+              <Badge variant="secondary" className="ml-1">
+                {mediaCounts.files}
+              </Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="links" className="flex items-center gap-2">
             <Link size={16} />
             Links
             {mediaCounts.links > 0 && (
-              <Badge variant="secondary" className="ml-1">{mediaCounts.links}</Badge>
+              <Badge variant="secondary" className="ml-1">
+                {mediaCounts.links}
+              </Badge>
             )}
           </TabsTrigger>
         </TabsList>
@@ -126,11 +152,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
                   <Camera size={20} />
                   Photos ({filteredImages.length})
                 </h3>
-                <MediaGrid
-                  items={filteredImages}
-                  onDeleteItem={deleteMedia}
-                  isDeleting={isDeleting}
-                />
+                <MediaGrid items={filteredImages} onDeleteItem={deleteMedia} />
               </section>
             )}
 
@@ -140,14 +162,10 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
                   <Video size={20} />
                   Videos ({filteredVideos.length})
                 </h3>
-                <MediaGrid
-                  items={filteredVideos}
-                  onDeleteItem={deleteMedia}
-                  isDeleting={isDeleting}
-                />
+                <MediaGrid items={filteredVideos} onDeleteItem={deleteMedia} />
               </section>
             )}
-            
+
             {filteredFiles.length > 0 && (
               <section>
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -156,11 +174,12 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
                 </h3>
                 <div className="space-y-2">
                   {filteredFiles.map((file) => (
-                    <FileItem
+                    <FileRow
                       key={file.id}
-                      file={file}
+                      id={file.id}
+                      name={file.name ?? 'File'}
+                      url={`/api/files/${file.id}`}
                       onDelete={deleteFile}
-                      isDeleting={isDeleting}
                     />
                   ))}
                 </div>
@@ -175,31 +194,20 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
                 </h3>
                 <div className="space-y-2">
                   {filteredLinks.map((link) => (
-                    <LinkItem
-                      key={link.id}
-                      link={link}
-                      onDelete={deleteLink}
-                      isDeleting={isDeleting}
-                    />
+                    <LinkItem key={link.id} link={link} onDelete={deleteLink} />
                   ))}
                 </div>
               </section>
             )}
-            
-            {mediaCounts.all === 0 && (
-              <EmptyState onAddMedia={onAddMedia} />
-            )}
+
+            {mediaCounts.all === 0 && <EmptyState onAddMedia={onAddMedia} />}
           </div>
         </TabsContent>
 
         {/* Photos only */}
         <TabsContent value="photos" className="mt-6">
           {filteredImages.length > 0 ? (
-            <MediaGrid
-              items={filteredImages}
-              onDeleteItem={deleteMedia}
-              isDeleting={isDeleting}
-            />
+            <MediaGrid items={filteredImages} onDeleteItem={deleteMedia} />
           ) : (
             <EmptyState type="photos" onAddMedia={onAddMedia} />
           )}
@@ -208,26 +216,23 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
         {/* Videos only */}
         <TabsContent value="videos" className="mt-6">
           {filteredVideos.length > 0 ? (
-            <MediaGrid
-              items={filteredVideos}
-              onDeleteItem={deleteMedia}
-              isDeleting={isDeleting}
-            />
+            <MediaGrid items={filteredVideos} onDeleteItem={deleteMedia} />
           ) : (
             <EmptyState type="videos" onAddMedia={onAddMedia} />
           )}
         </TabsContent>
 
-        {/* Files only */}
+        {/* Files only - Using FileRow with swipe-to-delete */}
         <TabsContent value="files" className="mt-6">
           {filteredFiles.length > 0 ? (
             <div className="space-y-2">
               {filteredFiles.map((file) => (
-                <FileItem
+                <FileRow
                   key={file.id}
-                  file={file}
+                  id={file.id}
+                  name={file.name ?? 'File'}
+                  url={`/api/files/${file.id}`}
                   onDelete={deleteFile}
-                  isDeleting={isDeleting}
                 />
               ))}
             </div>
@@ -241,12 +246,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
           {filteredLinks.length > 0 ? (
             <div className="space-y-3">
               {filteredLinks.map((link) => (
-                <LinkItem
-                  key={link.id}
-                  link={link}
-                  onDelete={deleteLink}
-                  isDeleting={isDeleting}
-                />
+                <LinkItem key={link.id} link={link} onDelete={deleteLink} />
               ))}
             </div>
           ) : (
@@ -258,95 +258,10 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
   );
 }
 
-// File item component with delete button
-function FileItem({
-  file,
-  onDelete,
-  isDeleting,
-}: {
-  file: { id: string; name?: string; created_at: string };
-  onDelete?: (id: string) => void;
-  isDeleting?: boolean;
-}) {
-  const [showConfirm, setShowConfirm] = React.useState(false);
-
-  return (
-    <>
-      <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors group">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <FileText className="text-gray-400 flex-shrink-0" size={20} />
-          <div className="min-w-0">
-            <p className="font-medium truncate">{file.name || 'File'}</p>
-            <p className="text-sm text-gray-400">
-              {new Date(file.created_at).toLocaleDateString()}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <a
-            href={`/api/files/${file.id}`}
-            download
-            className="text-blue-400 hover:text-blue-300"
-          >
-            Download
-          </a>
-          {onDelete && (
-            <button
-              onClick={() => setShowConfirm(true)}
-              disabled={isDeleting}
-              className="p-2 text-gray-400 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-              aria-label="Delete file"
-            >
-              <Trash2 size={18} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Delete confirmation modal */}
-      {showConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-white/10 rounded-2xl p-4 max-w-sm w-full">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
-                <Trash2 size={20} className="text-red-400" />
-              </div>
-              <h3 className="text-white font-semibold">Delete file?</h3>
-            </div>
-            <p className="text-gray-400 text-sm mb-4">
-              This will permanently remove &quot;{file.name || 'this file'}&quot; from the trip.
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setShowConfirm(false)}
-                className="bg-white/10 text-white py-3 rounded-xl font-medium hover:bg-white/20"
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowConfirm(false);
-                  onDelete?.(file.id);
-                }}
-                className="bg-red-600 text-white py-3 rounded-xl font-medium hover:bg-red-700 flex items-center justify-center gap-2"
-                disabled={isDeleting}
-              >
-                {isDeleting ? <Loader2 size={18} className="animate-spin" /> : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-// Link item component with delete button
+// Link item component with visible delete button (no modal, direct delete)
 function LinkItem({
   link,
   onDelete,
-  isDeleting,
 }: {
   link: {
     id: string;
@@ -356,15 +271,13 @@ function LinkItem({
     og_description?: string;
     created_at: string;
   };
-  onDelete?: (id: string) => void;
-  isDeleting?: boolean;
+  onDelete: (id: string) => void;
 }) {
-  const [showConfirm, setShowConfirm] = React.useState(false);
-
   const getDomainIcon = (domain: string) => {
     if (domain?.includes('youtube')) return '🎬';
     if (domain?.includes('instagram')) return '📸';
-    if (domain?.includes('maps.google') || domain?.includes('googlemaps')) return '📍';
+    if (domain?.includes('maps.google') || domain?.includes('googlemaps'))
+      return '📍';
     if (domain?.includes('booking') || domain?.includes('airbnb')) return '🏨';
     return null;
   };
@@ -373,104 +286,70 @@ function LinkItem({
   const displayTitle = link.og_title || link.domain || 'Link';
 
   return (
-    <>
-      <div className="flex items-start justify-between p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors group">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-            {domainIcon ? (
-              <span className="text-lg">{domainIcon}</span>
-            ) : (
-              <Globe className="text-gray-400" size={18} />
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium truncate">{displayTitle}</p>
-            {link.og_description && (
-              <p className="text-sm text-gray-400 line-clamp-2 mt-1">
-                {link.og_description}
-              </p>
-            )}
-            <p className="text-xs text-gray-500 mt-1 truncate">
-              {link.domain} • {new Date(link.created_at).toLocaleDateString()}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1 ml-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => window.open(link.url, '_blank')}
-            className="text-blue-400 hover:text-blue-300"
-          >
-            <ExternalLink size={16} />
-          </Button>
-          {onDelete && (
-            <button
-              onClick={() => setShowConfirm(true)}
-              disabled={isDeleting}
-              className="p-2 text-gray-400 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-              aria-label="Delete link"
-            >
-              <Trash2 size={18} />
-            </button>
+    <div className="flex items-start justify-between p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors group relative">
+      {/* Delete button - visible */}
+      <button
+        onClick={() => onDelete(link.id)}
+        className="absolute top-2 right-2 rounded-full bg-black/70 p-2 text-white hover:bg-red-600 transition-colors"
+        aria-label="Delete link"
+      >
+        <Trash2 size={14} />
+      </button>
+
+      <div className="flex items-start gap-3 flex-1 min-w-0 pr-10">
+        <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+          {domainIcon ? (
+            <span className="text-lg">{domainIcon}</span>
+          ) : (
+            <Globe className="text-gray-400" size={18} />
           )}
         </div>
-      </div>
-
-      {/* Delete confirmation modal */}
-      {showConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-white/10 rounded-2xl p-4 max-w-sm w-full">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
-                <Trash2 size={20} className="text-red-400" />
-              </div>
-              <h3 className="text-white font-semibold">Delete link?</h3>
-            </div>
-            <p className="text-gray-400 text-sm mb-4">
-              This will permanently remove &quot;{displayTitle}&quot; from the trip.
+        <div className="flex-1 min-w-0">
+          <p className="font-medium truncate">{displayTitle}</p>
+          {link.og_description && (
+            <p className="text-sm text-gray-400 line-clamp-2 mt-1">
+              {link.og_description}
             </p>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setShowConfirm(false)}
-                className="bg-white/10 text-white py-3 rounded-xl font-medium hover:bg-white/20"
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowConfirm(false);
-                  onDelete?.(link.id);
-                }}
-                className="bg-red-600 text-white py-3 rounded-xl font-medium hover:bg-red-700 flex items-center justify-center gap-2"
-                disabled={isDeleting}
-              >
-                {isDeleting ? <Loader2 size={18} className="animate-spin" /> : 'Delete'}
-              </button>
-            </div>
-          </div>
+          )}
+          <p className="text-xs text-gray-500 mt-1 truncate">
+            {link.domain} • {new Date(link.created_at).toLocaleDateString()}
+          </p>
         </div>
-      )}
-    </>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => window.open(link.url, '_blank')}
+        className="text-blue-400 hover:text-blue-300 mt-1"
+      >
+        <ExternalLink size={16} />
+      </Button>
+    </div>
   );
 }
 
 // Empty state component
-function EmptyState({ type, onAddMedia }: { type?: string; onAddMedia?: any }) {
+function EmptyState({
+  type,
+  onAddMedia,
+}: {
+  type?: string;
+  onAddMedia?: (type: 'image' | 'video' | 'file') => void;
+}) {
   const icons = {
     photos: Camera,
     videos: Video,
     files: FileText,
     links: Link,
   };
-  
+
   const Icon = type ? icons[type as keyof typeof icons] || Link : Camera;
-  const message = type === 'links'
-    ? 'No links yet. Share URLs in the chat and they\'ll appear here!'
-    : type 
-      ? `No ${type} yet. Share some in the chat!`
-      : 'No media yet. Start sharing photos, videos, and files in the chat!';
+  const message =
+    type === 'links'
+      ? "No links yet. Share URLs in the chat and they'll appear here!"
+      : type
+        ? `No ${type} yet. Share some in the chat!`
+        : 'No media yet. Start sharing photos, videos, and files in the chat!';
 
   return (
     <div className="text-center py-12">
@@ -478,7 +357,7 @@ function EmptyState({ type, onAddMedia }: { type?: string; onAddMedia?: any }) {
       <p className="text-gray-400">{message}</p>
       {onAddMedia && type && type !== 'links' && (
         <button
-          onClick={() => onAddMedia(type as any)}
+          onClick={() => onAddMedia(type as 'image' | 'video' | 'file')}
           className="mt-4 text-blue-400 hover:text-blue-300"
         >
           Add {type}
