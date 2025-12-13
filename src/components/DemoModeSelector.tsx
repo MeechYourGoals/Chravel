@@ -32,10 +32,10 @@ export const DemoModeSelector = () => {
                   ? 'bg-muted text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
-              aria-label="Demo mode off"
+              aria-label="Marketing landing page"
             >
               <EyeOff className="h-3 w-3 flex-shrink-0" />
-              <span>OFF</span>
+              <span>Mrkting</span>
             </button>
             <button
               onClick={() => handleViewChange('marketing')}
@@ -69,8 +69,8 @@ export const DemoModeSelector = () => {
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-xs">
           <div className="space-y-2 text-xs">
-            <p><strong>OFF:</strong> Demo mode disabled</p>
-            <p><strong>Home:</strong> Unauthenticated user homepage</p>
+            <p><strong>Mrkting:</strong> Marketing landing page</p>
+            <p><strong>Home:</strong> Authenticated user dashboard</p>
             <p><strong>Demo:</strong> Demo data preview</p>
           </div>
         </TooltipContent>
