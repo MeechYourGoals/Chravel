@@ -360,23 +360,24 @@ const Index = () => {
     }
   }, [user, navigate]);
 
-  // Show marketing landing when logged out, allow demo mode selector to control view
+  // MRKTING toggle: Always show marketing page regardless of auth state
+  if (demoView === 'off') {
+    return (
+      <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
+        <FullPageLanding 
+          onSignUp={() => setIsAuthModalOpen(true)}
+        />
+        
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+        />
+      </div>
+    );
+  }
+
+  // Show marketing landing when logged out (for Home/Demo views)
   if (!user) {
-    // OFF: Show marketing page only
-    if (demoView === 'off') {
-      return (
-        <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
-          <FullPageLanding 
-            onSignUp={() => setIsAuthModalOpen(true)}
-          />
-          
-          <AuthModal
-            isOpen={isAuthModalOpen}
-            onClose={() => setIsAuthModalOpen(false)}
-          />
-        </div>
-      );
-    }
 
     // HOME (marketing state): Show authenticated user experience WITHOUT mock data
     // This renders the app interface as if logged in, but with empty/default state
