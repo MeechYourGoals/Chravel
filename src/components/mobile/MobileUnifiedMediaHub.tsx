@@ -7,6 +7,7 @@ import { StorageQuotaBar } from '../StorageQuotaBar';
 import { useMediaManagement } from '../../hooks/useMediaManagement';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { MediaGridItem } from './MediaGridItem';
+import { SwipeableListItem } from './SwipeableListItem';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { createTripLink } from '@/services/tripLinksService';
@@ -106,6 +107,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
   >([]);
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<MediaItem | null>(null);
+  const [linkToDelete, setLinkToDelete] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const photoCaptureInputRef = useRef<HTMLInputElement>(null);
@@ -406,6 +408,40 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
     }
   };
 
+  const handleDeleteLink = async (linkId: string) => {
+    if (!user?.id && !isDemoMode) {
+      toast.error('Please sign in to delete');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      if (isDemoMode) {
+        setDemoLocalLinks(prev => prev.filter(l => l.id !== linkId));
+        toast.success('Link deleted (demo)');
+        setLinkToDelete(null);
+        setIsDeleting(false);
+        return;
+      }
+
+      // Delete from database
+      const { error } = await supabase
+        .from('trip_links')
+        .delete()
+        .eq('id', linkId);
+
+      if (error) throw error;
+      toast.success('Link deleted successfully');
+      await refetch();
+    } catch (e) {
+      console.error('[MobileUnifiedMediaHub] Delete link error:', e);
+      toast.error('Failed to delete link');
+    } finally {
+      setIsDeleting(false);
+      setLinkToDelete(null);
+    }
+  };
+
   const handleAddLink = async () => {
     const normalized = normalizeUrl(newLinkUrl);
     if (!normalized) {
@@ -644,27 +680,32 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                 {filteredMedia
                   .filter((item): item is MediaItem & { type: 'file' } => item.type === 'file')
                   .map((item, index) => (
-                    <a
+                    <SwipeableListItem
                       key={item.id}
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors active:scale-98"
-                      style={{
-                        animationDelay: `${index * 30}ms`,
-                        animation: 'fade-in 0.3s ease-out both',
-                      }}
+                      onDelete={() => setItemToDelete(item)}
+                      className="rounded-xl"
                     >
-                      <div className="flex items-center gap-3">
-                        <FileText size={18} className="text-blue-400 flex-shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-white text-sm font-medium truncate">
-                            {item.filename || 'File'}
-                          </p>
-                          <p className="text-gray-500 text-xs truncate">{item.url}</p>
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors active:scale-98"
+                        style={{
+                          animationDelay: `${index * 30}ms`,
+                          animation: 'fade-in 0.3s ease-out both',
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <FileText size={18} className="text-blue-400 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-white text-sm font-medium truncate">
+                              {item.filename || 'File'}
+                            </p>
+                            <p className="text-gray-500 text-xs truncate">{item.url}</p>
+                          </div>
                         </div>
-                      </div>
-                    </a>
+                      </a>
+                    </SwipeableListItem>
                   ))}
               </div>
             )}
@@ -673,38 +714,43 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
             {(selectedTab === 'urls' || selectedTab === 'all') && filteredLinks.length > 0 && (
               <div className="space-y-3 px-2 animate-fade-in">
                 {filteredLinks.map((link, index) => (
-                  <a
+                  <SwipeableListItem
                     key={link.id}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors active:scale-98"
-                    style={{ 
-                      animationDelay: `${index * 30}ms`,
-                      animation: 'fade-in 0.3s ease-out both'
-                    }}
+                    onDelete={() => setLinkToDelete({ id: link.id, title: link.title })}
+                    className="rounded-xl"
                   >
-                    <div className="flex items-start gap-3">
-                      {link.image_url && (
-                        <img 
-                          src={link.image_url} 
-                          alt=""
-                          className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-white font-medium text-sm mb-1 line-clamp-2">
-                          {link.title}
-                        </h4>
-                        <p className="text-gray-400 text-xs mb-2 line-clamp-2">
-                          {link.description}
-                        </p>
-                        <p className="text-blue-400 text-xs truncate">
-                          {link.domain}
-                        </p>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors active:scale-98"
+                      style={{
+                        animationDelay: `${index * 30}ms`,
+                        animation: 'fade-in 0.3s ease-out both'
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        {link.image_url && (
+                          <img
+                            src={link.image_url}
+                            alt=""
+                            className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-white font-medium text-sm mb-1 line-clamp-2">
+                            {link.title}
+                          </h4>
+                          <p className="text-gray-400 text-xs mb-2 line-clamp-2">
+                            {link.description}
+                          </p>
+                          <p className="text-blue-400 text-xs truncate">
+                            {link.domain}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </a>
+                    </a>
+                  </SwipeableListItem>
                 ))}
               </div>
             )}
@@ -714,11 +760,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
 
       {/* Video Player Modal */}
       {activeVideo && (
-        <div 
+        <div
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
           onClick={() => setActiveVideo(null)}
         >
-          <button 
+          <button
             className="absolute top-4 right-4 z-10 text-white bg-white/20 rounded-full p-2"
             onClick={() => setActiveVideo(null)}
           >
@@ -729,7 +775,16 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
             controls
             autoPlay
             playsInline
+            webkit-playsinline="true"
+            controlsList="nodownload"
+            preload="metadata"
             className="max-w-full max-h-full"
+            style={{
+              maxWidth: '100vw',
+              maxHeight: '100vh',
+              width: 'auto',
+              height: 'auto',
+            }}
             onClick={(e) => e.stopPropagation()}
           />
         </div>
@@ -758,6 +813,39 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
               </button>
               <button 
                 onClick={() => handleDeleteMedia(itemToDelete)} 
+                className="native-button bg-red-600 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2"
+                disabled={isDeleting}
+              >
+                {isDeleting ? <Loader2 size={18} className="animate-spin" /> : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Link Confirmation Modal */}
+      {linkToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-4 max-w-sm w-full">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                <Trash2 size={20} className="text-red-400" />
+              </div>
+              <h3 className="text-white font-semibold">Delete link?</h3>
+            </div>
+            <p className="text-gray-400 text-sm mb-4">
+              This will permanently remove "{linkToDelete.title}" from the trip.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setLinkToDelete(null)}
+                className="native-button bg-white/10 text-white py-3 rounded-xl font-medium"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteLink(linkToDelete.id)}
                 className="native-button bg-red-600 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2"
                 disabled={isDeleting}
               >
