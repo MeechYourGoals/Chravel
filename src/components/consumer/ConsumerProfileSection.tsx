@@ -75,7 +75,16 @@ export const ConsumerProfileSection = () => {
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
+
+    if (!user) {
+      toast({
+        title: "Not authenticated",
+        description: "Please sign in to upload a profile photo.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -103,6 +112,8 @@ export const ConsumerProfileSection = () => {
       // Path must start with user.id for RLS policies to work correctly
       const filePath = `${user.id}/${Date.now()}.${fileExt}`;
 
+      console.log('[Avatar Upload] Starting upload:', { filePath, fileSize: file.size, fileType: file.type });
+
       // Upload to Supabase Storage with upsert to allow overwriting
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -111,19 +122,31 @@ export const ConsumerProfileSection = () => {
           upsert: true,
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('[Avatar Upload] Storage upload failed:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('[Avatar Upload] Storage upload successful');
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
+      console.log('[Avatar Upload] Got public URL:', publicUrl);
+
       // Update profile with new avatar URL immediately
       const { error: profileError } = await updateProfile({
         avatar_url: publicUrl
       });
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('[Avatar Upload] Profile update failed:', profileError);
+        throw profileError;
+      }
+
+      console.log('[Avatar Upload] Profile updated successfully');
 
       toast({
         title: "Photo uploaded",
@@ -131,9 +154,30 @@ export const ConsumerProfileSection = () => {
       });
     } catch (error) {
       console.error('Error uploading photo:', error);
+
+      // Extract detailed error message
+      let errorMessage = "Failed to upload profile photo. Please try again.";
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null && 'message' in error) {
+        errorMessage = String((error as { message: unknown }).message);
+      }
+
+      // Provide user-friendly error messages for common issues
+      if (errorMessage.includes('not found') || errorMessage.includes('does not exist')) {
+        errorMessage = "Storage bucket not found. Please contact support.";
+      } else if (errorMessage.includes('permission') || errorMessage.includes('policy') || errorMessage.includes('row-level security')) {
+        errorMessage = "Permission denied. Please sign out and sign back in, then try again.";
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('Failed to fetch')) {
+        errorMessage = "Network error. Please check your connection and try again.";
+      } else if (errorMessage.includes('size') || errorMessage.includes('too large')) {
+        errorMessage = "Image file is too large. Please use an image smaller than 5MB.";
+      }
+
       toast({
         title: "Upload failed",
-        description: "Failed to upload profile photo. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
