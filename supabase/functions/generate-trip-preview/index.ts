@@ -126,6 +126,152 @@ const demoTrips: Record<string, {
     description: 'Outdoor adventure exploring geysers, wildlife, and backcountry hiking trails',
     coverPhoto: 'https://images.unsplash.com/photo-1533167649158-6d508895b680?w=1200&h=630&fit=crop',
     participantCount: 5
+  },
+  // Pro Trips (12)
+  'lakers-road-trip': {
+    title: 'LA Lakers Road Trip to Denver',
+    location: 'Denver, CO',
+    dateRange: 'Mar 8 - Mar 10, 2026',
+    description: 'Lakers vs Nuggets playoff game with VIP tailgate and team hotel',
+    coverPhoto: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1200&h=630&fit=crop',
+    participantCount: 24
+  },
+  'beyonce-cowboy-carter-tour': {
+    title: 'Beyoncé Cowboy Carter World Tour',
+    location: 'Houston, TX → Atlanta, GA → Chicago, IL',
+    dateRange: 'Jun 15 - Jun 28, 2026',
+    description: 'Multi-city tour following Queen Bey with VIP packages and meet & greets',
+    coverPhoto: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&h=630&fit=crop',
+    participantCount: 18
+  },
+  'eli-lilly-c-suite-retreat-2026': {
+    title: 'Eli Lilly C-Suite Retreat 2026',
+    location: 'Scottsdale, AZ',
+    dateRange: 'Sep 12 - Sep 15, 2026',
+    description: 'Executive leadership offsite with strategy sessions and team building',
+    coverPhoto: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&h=630&fit=crop',
+    participantCount: 45
+  },
+  'paul-george-elite-aau-nationals-2025': {
+    title: 'Paul George Elite AAU Nationals 2025',
+    location: 'Las Vegas, NV',
+    dateRange: 'Jul 20 - Jul 27, 2025',
+    description: 'Elite AAU basketball nationals with 17U team competing for championship',
+    coverPhoto: 'https://images.unsplash.com/photo-1574623452334-1e0ac2b3ccb4?w=1200&h=630&fit=crop',
+    participantCount: 32
+  },
+  'osu-notredame-2025': {
+    title: 'Ohio State vs Notre Dame 2025',
+    location: 'South Bend, IN',
+    dateRange: 'Sep 6 - Sep 7, 2025',
+    description: 'Historic rivalry game with tailgate, alumni gathering, and game day experience',
+    coverPhoto: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&h=630&fit=crop',
+    participantCount: 28
+  },
+  'unc-lax-2025': {
+    title: 'UNC Women\'s Lacrosse ACC Tournament',
+    location: 'Durham, NC',
+    dateRange: 'May 1 - May 4, 2025',
+    description: 'ACC Championship tournament with team travel and family spectator coordination',
+    coverPhoto: 'https://images.unsplash.com/photo-1471295253337-3ceaaedca402?w=1200&h=630&fit=crop',
+    participantCount: 38
+  },
+  'a16z-speedrun-2026': {
+    title: 'a16z Speedrun Demo Day 2026',
+    location: 'San Francisco, CA',
+    dateRange: 'Mar 20 - Mar 22, 2026',
+    description: 'Accelerator demo day with pitch prep, investor meetings, and networking',
+    coverPhoto: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=1200&h=630&fit=crop',
+    participantCount: 12
+  },
+  'kai-druski-jake-adin-24hr-atl': {
+    title: 'Druski x Adin Ross 24HR Stream ATL',
+    location: 'Atlanta, GA',
+    dateRange: 'Apr 5 - Apr 6, 2026',
+    description: '24-hour livestream collab with production crew, guest appearances, and content',
+    coverPhoto: 'https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=1200&h=630&fit=crop',
+    participantCount: 15
+  },
+  'tesla-cybertruck-roadshow-2025': {
+    title: 'Tesla Cybertruck Roadshow 2025',
+    location: 'Austin, TX → Phoenix, AZ → LA, CA',
+    dateRange: 'Oct 1 - Oct 15, 2025',
+    description: 'Multi-city product showcase with demo drives, media events, and launches',
+    coverPhoto: 'https://images.unsplash.com/photo-1620891549027-942fdc95d3f5?w=1200&h=630&fit=crop',
+    participantCount: 22
+  },
+  'postmalone-jellyroll-tour-2026': {
+    title: 'Post Malone x Jelly Roll Tour 2026',
+    location: 'Nashville, TN → Memphis, TN → New Orleans, LA',
+    dateRange: 'Aug 10 - Aug 20, 2026',
+    description: 'Southern leg of the tour with crew travel, venue coordination, and afterparties',
+    coverPhoto: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1200&h=630&fit=crop',
+    participantCount: 35
+  },
+  'gs-campus-gt-2025': {
+    title: 'Goldman Sachs Georgia Tech Recruiting',
+    location: 'Atlanta, GA',
+    dateRange: 'Oct 15 - Oct 17, 2025',
+    description: 'Campus recruiting visit with info sessions, interviews, and networking dinners',
+    coverPhoto: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&h=630&fit=crop',
+    participantCount: 8
+  },
+  'nvidia-bowling-2025': {
+    title: 'NVIDIA Employee Bowling Night',
+    location: 'Santa Clara, CA',
+    dateRange: 'Nov 8, 2025',
+    description: 'Team building event with bowling tournament, prizes, and company celebration',
+    coverPhoto: 'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?w=1200&h=630&fit=crop',
+    participantCount: 120
+  },
+  // Demo Events (6)
+  'sxsw-2025': {
+    title: 'South by Southwest 2025',
+    location: 'Austin, TX',
+    dateRange: 'Mar 7 - Mar 16, 2025',
+    description: 'Annual tech, film, and music festival with panels, showcases, and networking',
+    coverPhoto: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&h=630&fit=crop',
+    participantCount: 500
+  },
+  'wef-2025': {
+    title: 'World Economic Forum 2025',
+    location: 'Davos, Switzerland',
+    dateRange: 'Jan 20 - Jan 24, 2025',
+    description: 'Global leaders summit discussing economic policy, climate, and innovation',
+    coverPhoto: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=1200&h=630&fit=crop',
+    participantCount: 250
+  },
+  'grammys-2025': {
+    title: 'Grammy Awards 2025',
+    location: 'Los Angeles, CA',
+    dateRange: 'Feb 2, 2025',
+    description: 'Music\'s biggest night with red carpet, performances, and afterparties',
+    coverPhoto: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=1200&h=630&fit=crop',
+    participantCount: 180
+  },
+  'google-io-2026-event': {
+    title: 'Google I/O 2026',
+    location: 'Mountain View, CA',
+    dateRange: 'May 12 - May 14, 2026',
+    description: 'Annual developer conference with keynotes, workshops, and product launches',
+    coverPhoto: 'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=1200&h=630&fit=crop',
+    participantCount: 400
+  },
+  'essence-festival-2026': {
+    title: 'Essence Festival 2026',
+    location: 'New Orleans, LA',
+    dateRange: 'Jul 3 - Jul 6, 2026',
+    description: 'Celebration of Black culture with concerts, empowerment seminars, and cuisine',
+    coverPhoto: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&h=630&fit=crop',
+    participantCount: 350
+  },
+  'coachella-2026-event': {
+    title: 'Coachella 2026',
+    location: 'Indio, CA',
+    dateRange: 'Apr 10 - Apr 19, 2026',
+    description: 'Premier music and arts festival with headliners, art installations, and camping',
+    coverPhoto: 'https://images.unsplash.com/photo-1478147427282-58a87a120781?w=1200&h=630&fit=crop',
+    participantCount: 600
   }
 };
 
