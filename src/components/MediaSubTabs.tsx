@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Video, FileText, Link, Play, Download, MessageCircle, ExternalLink, DollarSign, Users, Loader2 } from 'lucide-react';
+import { Camera, Video, FileText, Link, Play, Download, MessageCircle, ExternalLink, DollarSign, Users, Loader2, X } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { PaymentMethodIcon } from './receipts/PaymentMethodIcon';
@@ -48,6 +48,7 @@ interface MediaSubTabsExtendedProps extends MediaSubTabsProps {
 export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded }: MediaSubTabsExtendedProps) => {
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -272,10 +273,42 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
           </div>
         ))}
         
-        <AddLinkModal 
+        <AddLinkModal
           isOpen={isAddLinkModalOpen}
           onClose={() => setIsAddLinkModalOpen(false)}
         />
+
+        {/* Video Player Modal */}
+        {activeVideoUrl && (
+          <div
+            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+            onClick={() => setActiveVideoUrl(null)}
+          >
+            <button
+              className="absolute top-4 right-4 z-10 text-white bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors"
+              onClick={() => setActiveVideoUrl(null)}
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <video
+              src={activeVideoUrl}
+              controls
+              autoPlay
+              playsInline
+              webkit-playsinline="true"
+              controlsList="nodownload"
+              preload="metadata"
+              className="max-w-full max-h-full"
+              style={{
+                maxWidth: '90vw',
+                maxHeight: '90vh',
+                width: 'auto',
+                height: 'auto',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -347,24 +380,12 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {mediaItems.map((item) => (
-            <div 
-              key={item.id} 
+            <div
+              key={item.id}
               className="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer"
               onClick={() => {
                 if (item.media_type === 'video') {
-                  // Create a modal or overlay for video playback
-                  const video = document.createElement('video');
-                  video.src = item.media_url;
-                  video.controls = true;
-                  video.autoplay = true;
-                  video.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;max-width:90vw;max-height:90vh;background:black;';
-                  
-                  const overlay = document.createElement('div');
-                  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.8);z-index:9998;display:flex;align-items:center;justify-content:center;';
-                  overlay.onclick = () => document.body.removeChild(overlay);
-                  
-                  overlay.appendChild(video);
-                  document.body.appendChild(overlay);
+                  setActiveVideoUrl(item.media_url);
                 }
               }}
             >
@@ -413,6 +434,38 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
               </div>
             </div>
             ))}
+          </div>
+        )}
+
+        {/* Video Player Modal */}
+        {activeVideoUrl && (
+          <div
+            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+            onClick={() => setActiveVideoUrl(null)}
+          >
+            <button
+              className="absolute top-4 right-4 z-10 text-white bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors"
+              onClick={() => setActiveVideoUrl(null)}
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <video
+              src={activeVideoUrl}
+              controls
+              autoPlay
+              playsInline
+              webkit-playsinline="true"
+              controlsList="nodownload"
+              preload="metadata"
+              className="max-w-full max-h-full"
+              style={{
+                maxWidth: '90vw',
+                maxHeight: '90vh',
+                width: 'auto',
+                height: 'auto',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         )}
       </div>
