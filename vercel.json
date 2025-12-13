@@ -6,18 +6,7 @@
   "installCommand": "npm install --no-audit --no-fund",
   "framework": "vite",
   "outputDirectory": "dist",
-  "env": {
-    "VITE_SUPABASE_URL": "@vite_supabase_url",
-    "VITE_SUPABASE_ANON_KEY": "@vite_supabase_anon_key",
-    "VITE_BUILD_ID": "$VERCEL_GIT_COMMIT_SHA"
-  },
   "build": {
-    "env": {
-      "VITE_SUPABASE_URL": "@vite_supabase_url",
-      "VITE_SUPABASE_ANON_KEY": "@vite_supabase_anon_key",
-      "VITE_BUILD_ID": "$VERCEL_GIT_COMMIT_SHA",
-      "NODE_VERSION": "18"
-    }
   },
   "headers": [
     {
