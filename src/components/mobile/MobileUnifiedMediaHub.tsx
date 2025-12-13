@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Camera, FileText, Image as ImageIcon, Link2, Loader2, Upload, Video } from 'lucide-react';
+import { Camera, FileText, Image as ImageIcon, Link2, Loader2, Trash2, Upload, Video, X } from 'lucide-react';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { hapticService } from '../../services/hapticService';
@@ -104,6 +104,9 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       tags?: string[];
     }>
   >([]);
+  const [activeVideo, setActiveVideo] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<MediaItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const photoCaptureInputRef = useRef<HTMLInputElement>(null);
   const photoLibraryInputRef = useRef<HTMLInputElement>(null);
@@ -244,8 +247,12 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
 
       for (const file of Array.from(files)) {
         const mime = file.type || '';
+        // Check extension for video detection (Files app may not set MIME type correctly)
+        const isVideoByExtension = /\.(mp4|mov|m4v|avi|webm|mkv)$/i.test(file.name);
         const detected: 'image' | 'video' | 'document' =
-          mime.startsWith('image/') ? 'image' : mime.startsWith('video/') ? 'video' : 'document';
+          mime.startsWith('image/') ? 'image' : 
+          (mime.startsWith('video/') || isVideoByExtension) ? 'video' : 
+          'document';
 
         const finalType: 'image' | 'video' | 'document' =
           target === 'photos' ? 'image' : target === 'videos' ? 'video' : 'document';
@@ -260,7 +267,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           continue;
         }
 
-        const safeName = file.name.replaceAll('/', '-');
+        const safeName = file.name.replace(/\//g, '-');
         const storagePath = `${tripId}/${pre.userId}/${Date.now()}-${safeName}`;
 
         const { error: uploadError } = await supabase.storage
@@ -295,6 +302,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
 
       if (uploadedUrls.length > 0) {
         toast.success(`${uploadedUrls.length} file(s) uploaded`);
+        // Small delay to ensure DB write propagates before refetch
+        await new Promise(resolve => setTimeout(resolve, 600));
         await refetch();
       }
     } catch (error) {
@@ -355,6 +364,47 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
     if (selectedTab === 'urls') return { label: 'Add Link', Icon: Link2 };
     return { label: 'Upload', Icon: Upload };
   }, [selectedTab]);
+
+  const handleDeleteMedia = async (item: MediaItem) => {
+    if (!user?.id && !isDemoMode) {
+      toast.error('Please sign in to delete');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      if (isDemoMode) {
+        setDemoLocalMedia(prev => prev.filter(m => m.id !== item.id));
+        toast.success('Deleted (demo)');
+        setItemToDelete(null);
+        setIsDeleting(false);
+        return;
+      }
+
+      // Extract storage path from URL
+      const urlParts = item.url.split('/trip-media/');
+      if (urlParts.length > 1) {
+        const storagePath = decodeURIComponent(urlParts[1]);
+        await supabase.storage.from('trip-media').remove([storagePath]);
+      }
+
+      // Delete from database
+      const { error } = await supabase
+        .from('trip_media_index')
+        .delete()
+        .eq('id', item.id);
+
+      if (error) throw error;
+      toast.success('Deleted successfully');
+      await refetch();
+    } catch (e) {
+      console.error('[MobileUnifiedMediaHub] Delete error:', e);
+      toast.error('Failed to delete');
+    } finally {
+      setIsDeleting(false);
+      setItemToDelete(null);
+    }
+  };
 
   const handleAddLink = async () => {
     const normalized = normalizeUrl(newLinkUrl);
@@ -575,8 +625,12 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                     <MediaGridItem
                       item={item}
                       onPress={() => {
+                        if (item.type === 'video') {
+                          setActiveVideo(item.url);
+                        }
                       }}
                       onLongPress={() => {
+                        setItemToDelete(item);
                       }}
                     />
                   </div>
@@ -657,6 +711,62 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           </>
         )}
       </div>
+
+      {/* Video Player Modal */}
+      {activeVideo && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+          onClick={() => setActiveVideo(null)}
+        >
+          <button 
+            className="absolute top-4 right-4 z-10 text-white bg-white/20 rounded-full p-2"
+            onClick={() => setActiveVideo(null)}
+          >
+            <X size={24} />
+          </button>
+          <video
+            src={activeVideo}
+            controls
+            autoPlay
+            playsInline
+            className="max-w-full max-h-full"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-4 max-w-sm w-full">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                <Trash2 size={20} className="text-red-400" />
+              </div>
+              <h3 className="text-white font-semibold">Delete {itemToDelete.type}?</h3>
+            </div>
+            <p className="text-gray-400 text-sm mb-4">
+              This will permanently remove "{itemToDelete.filename || 'this item'}" from the trip.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                onClick={() => setItemToDelete(null)} 
+                className="native-button bg-white/10 text-white py-3 rounded-xl font-medium"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => handleDeleteMedia(itemToDelete)} 
+                className="native-button bg-red-600 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2"
+                disabled={isDeleting}
+              >
+                {isDeleting ? <Loader2 size={18} className="animate-spin" /> : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Link Modal (mobile, quiet share) */}
       {isAddLinkOpen && (

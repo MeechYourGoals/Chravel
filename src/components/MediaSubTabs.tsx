@@ -161,6 +161,8 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
 
       if (uploadedCount > 0) {
         toast.success(`${uploadedCount} file(s) uploaded successfully!`);
+        // Small delay to ensure DB write propagates before callback
+        await new Promise(resolve => setTimeout(resolve, 600));
         onMediaUploaded?.();
       }
     } catch (error) {
