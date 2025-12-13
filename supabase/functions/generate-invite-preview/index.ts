@@ -11,6 +11,16 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[generate-invite-preview] ${step}${detailsStr}`);
 };
 
+// Helper to escape HTML entities
+const escapeHtml = (str: string): string => {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 // Demo trip data with public Unsplash images for OG tags
 const demoTrips: Record<string, {
   title: string;
@@ -20,6 +30,7 @@ const demoTrips: Record<string, {
   coverPhoto: string;
   participantCount: number;
 }> = {
+  // Consumer Trips (1-12)
   '1': {
     title: 'Spring Break Cancun 2026 Kappa Alpha Psi Trip',
     location: 'Cancun, Mexico',
@@ -115,6 +126,152 @@ const demoTrips: Record<string, {
     description: 'Outdoor adventure exploring geysers, wildlife, and backcountry hiking trails',
     coverPhoto: 'https://images.unsplash.com/photo-1533167649158-6d508895b680?w=1200&h=630&fit=crop',
     participantCount: 5
+  },
+  // Pro Trips
+  'lakers-road-trip': {
+    title: 'Lakers Road Trip – Phoenix Away Game',
+    location: 'Phoenix, AZ',
+    dateRange: 'Mar 5 - Mar 7, 2026',
+    description: 'Road game logistics for players, coaches, and support staff with coordinated travel and accommodations',
+    coverPhoto: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1200&h=630&fit=crop',
+    participantCount: 45
+  },
+  'beyonce-cowboy-carter-tour': {
+    title: 'Beyoncé Cowboy Carter Tour',
+    location: 'Houston TX → Dallas TX → Atlanta GA',
+    dateRange: 'Jun 15 - Jul 30, 2026',
+    description: 'Multi-city stadium tour with crew coordination, venue logistics, and production schedules',
+    coverPhoto: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&h=630&fit=crop',
+    participantCount: 150
+  },
+  'duke-basketball-acc-tournament': {
+    title: 'Duke Basketball – ACC Tournament',
+    location: 'Charlotte, NC',
+    dateRange: 'Mar 11 - Mar 15, 2026',
+    description: 'Tournament travel for the Blue Devils with game prep, team meals, and media sessions',
+    coverPhoto: 'https://images.unsplash.com/photo-1504450758481-7338bbe75c8e?w=1200&h=630&fit=crop',
+    participantCount: 35
+  },
+  'morgan-wallen-one-night-tour': {
+    title: 'Morgan Wallen – One Night At A Time Tour',
+    location: 'Nashville TN → Chicago IL → Denver CO',
+    dateRange: 'May 1 - Aug 30, 2026',
+    description: 'National stadium tour with band coordination, production crew, and merchandise logistics',
+    coverPhoto: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&h=630&fit=crop',
+    participantCount: 85
+  },
+  'tech-sales-kickoff': {
+    title: 'Q1 Sales Kickoff – Las Vegas',
+    location: 'Las Vegas, NV',
+    dateRange: 'Jan 15 - Jan 18, 2026',
+    description: 'Annual sales team alignment with training sessions, team building, and strategy planning',
+    coverPhoto: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&h=630&fit=crop',
+    participantCount: 200
+  },
+  'stanford-study-abroad': {
+    title: 'Stanford Florence Study Abroad',
+    location: 'Florence, Italy',
+    dateRange: 'Sep 1 - Dec 15, 2025',
+    description: 'Semester abroad program with class schedules, cultural excursions, and student housing',
+    coverPhoto: 'https://images.unsplash.com/photo-1476362555312-ab9e108a0b7e?w=1200&h=630&fit=crop',
+    participantCount: 45
+  },
+  'youtube-creator-retreat': {
+    title: 'YouTube Creator Summit – Malibu',
+    location: 'Malibu, CA',
+    dateRange: 'Apr 20 - Apr 25, 2026',
+    description: 'Content creator collaboration retreat with workshops, brand meetings, and content shoots',
+    coverPhoto: 'https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=1200&h=630&fit=crop',
+    participantCount: 30
+  },
+  'pharma-conference': {
+    title: 'BioTech Annual Conference',
+    location: 'San Diego, CA',
+    dateRange: 'Oct 8 - Oct 12, 2025',
+    description: 'Industry conference with keynotes, networking events, and partnership meetings',
+    coverPhoto: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200&h=630&fit=crop',
+    participantCount: 500
+  },
+  'high-school-band-competition': {
+    title: 'State Marching Band Championship',
+    location: 'Austin, TX',
+    dateRange: 'Nov 1 - Nov 3, 2025',
+    description: 'State championship competition with performance schedules, equipment logistics, and parent coordination',
+    coverPhoto: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=1200&h=630&fit=crop',
+    participantCount: 120
+  },
+  'film-production-shoot': {
+    title: 'Indie Film Production – Desert Shoot',
+    location: 'Joshua Tree, CA',
+    dateRange: 'Mar 1 - Mar 20, 2026',
+    description: 'On-location film production with cast, crew schedules, equipment rentals, and catering',
+    coverPhoto: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=1200&h=630&fit=crop',
+    participantCount: 60
+  },
+  'real-estate-investor-tour': {
+    title: 'Multi-Family Property Tour – Atlanta',
+    location: 'Atlanta, GA',
+    dateRange: 'Feb 10 - Feb 14, 2026',
+    description: 'Investment property tour with site visits, due diligence meetings, and networking dinners',
+    coverPhoto: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&h=630&fit=crop',
+    participantCount: 25
+  },
+  'esports-tournament': {
+    title: 'League of Legends Championship Finals',
+    location: 'Los Angeles, CA',
+    dateRange: 'Aug 20 - Aug 25, 2026',
+    description: 'Championship tournament with team practice schedules, media appearances, and fan events',
+    coverPhoto: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&h=630&fit=crop',
+    participantCount: 40
+  },
+  // Events
+  'sxsw-2025': {
+    title: 'SXSW 2025',
+    location: 'Austin, TX',
+    dateRange: 'Mar 7 - Mar 16, 2025',
+    description: 'Annual tech, film, and music festival with panels, showcases, and networking events',
+    coverPhoto: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&h=630&fit=crop',
+    participantCount: 500
+  },
+  'wef-2025': {
+    title: 'World Economic Forum 2025',
+    location: 'Davos, Switzerland',
+    dateRange: 'Jan 20 - Jan 24, 2025',
+    description: 'Global leaders summit discussing economic challenges, climate action, and international cooperation',
+    coverPhoto: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&h=630&fit=crop',
+    participantCount: 3000
+  },
+  'coachella-2026': {
+    title: 'Coachella Valley Music and Arts Festival 2026',
+    location: 'Indio, CA',
+    dateRange: 'Apr 10 - Apr 19, 2026',
+    description: 'Premier music and arts festival featuring top artists, art installations, and immersive experiences',
+    coverPhoto: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&h=630&fit=crop',
+    participantCount: 125000
+  },
+  'art-basel-miami-2025': {
+    title: 'Art Basel Miami Beach 2025',
+    location: 'Miami Beach, FL',
+    dateRange: 'Dec 5 - Dec 8, 2025',
+    description: 'International art fair showcasing modern and contemporary works from leading galleries worldwide',
+    coverPhoto: 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=1200&h=630&fit=crop',
+    participantCount: 83000
+  },
+  'ted-2026': {
+    title: 'TED 2026: The Future of Everything',
+    location: 'Vancouver, BC',
+    dateRange: 'Apr 14 - Apr 18, 2026',
+    description: 'Annual TED conference featuring breakthrough ideas in technology, entertainment, and design',
+    coverPhoto: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&h=630&fit=crop',
+    participantCount: 2000
+  },
+  'super-bowl-2026': {
+    title: 'Super Bowl LX Watch Party',
+    location: 'Santa Clara, CA',
+    dateRange: 'Feb 8, 2026',
+    description: 'Ultimate Super Bowl experience with premium viewing, tailgate parties, and championship atmosphere',
+    coverPhoto: 'https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?w=1200&h=630&fit=crop',
+    participantCount: 70000
   }
 };
 
@@ -128,34 +285,44 @@ function generateInviteHTML(trip: {
 }, inviteCode: string, baseUrl: string): string {
   const joinUrl = `${baseUrl}/join/${inviteCode}`;
   
+  // Safe values for OG tags
+  const safeTitle = escapeHtml(trip.title);
+  const safeDateRange = escapeHtml(trip.dateRange);
+  const safeLocation = escapeHtml(trip.location);
+  const safeDescription = escapeHtml(trip.description);
+  
+  // Format OG tags to match share trip format
+  const ogTitle = `You're Invited: ${safeTitle} • ${safeDateRange}`;
+  const ogDescription = `${safeLocation} • ${trip.participantCount} Chravelers`;
+  
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>You're Invited: ${trip.title} | Chravel</title>
+  <title>${ogTitle} | Chravel</title>
   
   <!-- Open Graph Meta Tags -->
   <meta property="og:type" content="website">
-  <meta property="og:url" content="${joinUrl}">
-  <meta property="og:title" content="You're Invited: ${trip.title}">
-  <meta property="og:description" content="Join this trip on Chravel! 📍 ${trip.location} • 📅 ${trip.dateRange} • 👥 ${trip.participantCount} travelers">
-  <meta property="og:image" content="${trip.coverPhoto}">
+  <meta property="og:url" content="${escapeHtml(joinUrl)}">
+  <meta property="og:title" content="${ogTitle}">
+  <meta property="og:description" content="${ogDescription}">
+  <meta property="og:image" content="${escapeHtml(trip.coverPhoto)}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:site_name" content="Chravel">
   
   <!-- Twitter Card Meta Tags -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="You're Invited: ${trip.title}">
-  <meta name="twitter:description" content="Join this trip on Chravel! 📍 ${trip.location} • 📅 ${trip.dateRange}">
-  <meta name="twitter:image" content="${trip.coverPhoto}">
+  <meta name="twitter:title" content="${ogTitle}">
+  <meta name="twitter:description" content="${ogDescription}">
+  <meta name="twitter:image" content="${escapeHtml(trip.coverPhoto)}">
   
   <!-- Additional Meta Tags -->
-  <meta name="description" content="You've been invited to join ${trip.title} on Chravel - the AI-powered travel companion.">
+  <meta name="description" content="${safeDescription}">
   
-  <!-- Redirect to actual join page after a short delay -->
-  <meta http-equiv="refresh" content="0;url=${joinUrl}">
+  <!-- Human redirect with 5s delay (bots ignore; humans see card briefly then redirect) -->
+  <meta http-equiv="refresh" content="5;url=${escapeHtml(joinUrl)}">
   
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -199,6 +366,11 @@ function generateInviteHTML(trip: {
       color: #fff;
       font-size: 22px;
       font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .dates {
+      color: #a855f7;
+      font-size: 14px;
       margin-bottom: 8px;
     }
     .location {
@@ -246,17 +418,17 @@ function generateInviteHTML(trip: {
 <body>
   <div class="card">
     <div class="badge">✨ You're Invited!</div>
-    <img src="${trip.coverPhoto}" alt="${trip.title}" class="cover">
+    <img src="${escapeHtml(trip.coverPhoto)}" alt="${safeTitle}" class="cover">
     <div class="content">
-      <h1 class="title">${trip.title}</h1>
-      <div class="location">📍 ${trip.location}</div>
-      <p class="description">${trip.description}</p>
+      <h1 class="title">${safeTitle}</h1>
+      <div class="dates">📅 ${safeDateRange}</div>
+      <div class="location">📍 ${safeLocation}</div>
+      <p class="description">${safeDescription}</p>
       <div class="meta">
-        <span>📅 ${trip.dateRange}</span>
-        <span>👥 ${trip.participantCount} travelers</span>
+        <span>👥 ${trip.participantCount} Chravelers</span>
       </div>
-      <a href="${joinUrl}" class="cta">Join This Trip</a>
-      <p class="loading">Redirecting you to Chravel...</p>
+      <a href="${escapeHtml(joinUrl)}" class="cta">Join This Trip</a>
+      <p class="loading">Redirecting you to Chravel in 5 seconds...</p>
     </div>
     <div class="logo">Powered by Chravel</div>
   </div>
@@ -273,6 +445,7 @@ serve(async (req: Request): Promise<Response> => {
   try {
     const url = new URL(req.url);
     const inviteCode = url.searchParams.get('code');
+    const appBaseUrl = url.searchParams.get('appBaseUrl') || Deno.env.get('SITE_URL') || 'https://chravel.app';
     
     logStep('Request received', { code: inviteCode?.substring(0, 12) + '...' });
 
@@ -284,17 +457,33 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Determine base URL for links
-    const baseUrl = Deno.env.get('SITE_URL') || 'https://chravel.app';
+    const baseUrl = appBaseUrl;
     
     // Check if it's a demo invite code (starts with "demo-")
     if (inviteCode.startsWith('demo-')) {
       // Extract trip ID from demo code (format: demo-{tripId}-{timestamp})
       const parts = inviteCode.split('-');
-      const tripId = parts[1];
+      // Handle multi-part trip IDs like "lakers-road-trip"
+      const tripId = parts.slice(1, -1).join('-') || parts[1];
       
+      // Check for direct trip ID match first
       if (demoTrips[tripId]) {
         logStep('Serving demo invite', { tripId });
         const html = generateInviteHTML(demoTrips[tripId], inviteCode, baseUrl);
+        return new Response(html, {
+          status: 200,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'public, max-age=3600'
+          }
+        });
+      }
+      
+      // Fallback: try just the second part for simple numeric IDs
+      if (parts[1] && demoTrips[parts[1]]) {
+        logStep('Serving demo invite (numeric)', { tripId: parts[1] });
+        const html = generateInviteHTML(demoTrips[parts[1]], inviteCode, baseUrl);
         return new Response(html, {
           status: 200,
           headers: { 
@@ -335,11 +524,12 @@ serve(async (req: Request): Promise<Response> => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Trip Invite | Chravel</title>
-  <meta property="og:title" content="Trip Invite | Chravel">
-  <meta property="og:description" content="You've been invited to join a trip on Chravel - the AI-powered travel companion.">
+  <meta property="og:title" content="You're Invited! | Chravel">
+  <meta property="og:description" content="Join a trip on Chravel - The Group Chat Travel App">
   <meta property="og:image" content="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=630&fit=crop">
   <meta property="og:site_name" content="Chravel">
-  <meta http-equiv="refresh" content="0;url=${baseUrl}/join/${inviteCode}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta http-equiv="refresh" content="5;url=${baseUrl}/join/${escapeHtml(inviteCode)}">
 </head>
 <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #1a1a2e; color: white;">
   <p>Redirecting to Chravel...</p>
