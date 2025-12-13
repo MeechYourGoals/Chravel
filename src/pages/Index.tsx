@@ -805,7 +805,7 @@ const Index = () => {
             pendingTrips={filteredData.pendingTrips}
             proTrips={filteredData.proTrips}
             events={filteredData.events}
-            loading={isLoading}
+            loading={tripsLoading}
             onCreateTrip={handleCreateTrip}
             activeFilter={activeFilter}
             myPendingRequests={isDemoMode ? mockMyPendingRequests : myPendingRequests}
