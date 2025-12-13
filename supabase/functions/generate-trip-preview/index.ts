@@ -289,8 +289,8 @@ function generateHTML(trip: {
   const safeDescription = escapeHtml(trip.description);
   const safeCoverPhoto = escapeHtml(trip.coverPhoto);
 
-  // Where humans should land after unfurling (web or deep-link handler).
-  const appTripUrl = `${appBaseUrl}/trip/${encodeURIComponent(tripId)}`;
+  // Where humans should land after unfurling (public preview page with auth handling).
+  const appTripUrl = `${appBaseUrl}/trip/${encodeURIComponent(tripId)}/preview`;
   
   return `<!DOCTYPE html>
 <html lang="en">
@@ -303,8 +303,8 @@ function generateHTML(trip: {
   <meta property="og:type" content="website">
   <!-- IMPORTANT: og:url should match the URL being scraped -->
   <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
-  <meta property="og:title" content="${safeTitle}">
-  <meta property="og:description" content="${safeLocation} • ${safeDateRange} • ${trip.participantCount} Chravelers">
+  <meta property="og:title" content="${safeTitle} • ${safeDateRange}">
+  <meta property="og:description" content="${safeLocation} • ${trip.participantCount} Chravelers">
   <meta property="og:image" content="${safeCoverPhoto}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -312,15 +312,15 @@ function generateHTML(trip: {
   
   <!-- Twitter Card Meta Tags -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${safeTitle}">
-  <meta name="twitter:description" content="${safeLocation} • ${safeDateRange} • ${trip.participantCount} Chravelers">
+  <meta name="twitter:title" content="${safeTitle} • ${safeDateRange}">
+  <meta name="twitter:description" content="${safeLocation} • ${trip.participantCount} Chravelers">
   <meta name="twitter:image" content="${safeCoverPhoto}">
   
   <!-- Additional Meta Tags -->
   <meta name="description" content="${safeDescription}">
 
-  <!-- Human redirect (bots ignore; humans open your actual app/web route) -->
-  <meta http-equiv="refresh" content="0;url=${escapeHtml(appTripUrl)}">
+  <!-- Human redirect with 2s delay (bots ignore; humans see card briefly then redirect) -->
+  <meta http-equiv="refresh" content="2;url=${escapeHtml(appTripUrl)}">
   
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
