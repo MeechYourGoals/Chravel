@@ -69,7 +69,7 @@ export const DemoModeSelector = () => {
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-xs">
           <div className="space-y-2 text-xs">
-            <p><strong>Mrkting:</strong> Marketing landing page</p>
+            <p><strong>info:</strong> marketing landing page</p>
             <p><strong>Home:</strong> Authenticated user dashboard</p>
             <p><strong>Demo:</strong> Demo data preview</p>
           </div>
