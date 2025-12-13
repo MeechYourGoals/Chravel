@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, Video, FileText, Loader2, Link, ExternalLink, Globe } from 'lucide-react';
+import { Camera, Video, FileText, Loader2, Link, ExternalLink, Globe, Trash2 } from 'lucide-react';
 import { useMediaSync } from '@/hooks/useMediaSync';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +13,20 @@ interface MediaTabsProps {
 }
 
 export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
-  const { images, videos, files, links, mediaCounts, isLoading, error, refreshMedia } = useMediaSync(tripId);
+  const {
+    images,
+    videos,
+    files,
+    links,
+    mediaCounts,
+    isLoading,
+    isDeleting,
+    error,
+    refreshMedia,
+    deleteMedia,
+    deleteFile,
+    deleteLink,
+  } = useMediaSync(tripId);
   const [activeTab, setActiveTab] = React.useState<'all' | 'photos' | 'videos' | 'files' | 'links'>('all');
   const [filterQuery, setFilterQuery] = React.useState('');
 
@@ -113,17 +126,25 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
                   <Camera size={20} />
                   Photos ({filteredImages.length})
                 </h3>
-                <MediaGrid items={filteredImages} />
+                <MediaGrid
+                  items={filteredImages}
+                  onDeleteItem={deleteMedia}
+                  isDeleting={isDeleting}
+                />
               </section>
             )}
-            
+
             {filteredVideos.length > 0 && (
               <section>
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Video size={20} />
                   Videos ({filteredVideos.length})
                 </h3>
-                <MediaGrid items={filteredVideos} />
+                <MediaGrid
+                  items={filteredVideos}
+                  onDeleteItem={deleteMedia}
+                  isDeleting={isDeleting}
+                />
               </section>
             )}
             
@@ -134,8 +155,13 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
                   Files ({filteredFiles.length})
                 </h3>
                 <div className="space-y-2">
-                  {filteredFiles.map(file => (
-                    <FileItem key={file.id} file={file} />
+                  {filteredFiles.map((file) => (
+                    <FileItem
+                      key={file.id}
+                      file={file}
+                      onDelete={deleteFile}
+                      isDeleting={isDeleting}
+                    />
                   ))}
                 </div>
               </section>
@@ -148,8 +174,13 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
                   Links ({filteredLinks.length})
                 </h3>
                 <div className="space-y-2">
-                  {filteredLinks.map(link => (
-                    <LinkItem key={link.id} link={link} />
+                  {filteredLinks.map((link) => (
+                    <LinkItem
+                      key={link.id}
+                      link={link}
+                      onDelete={deleteLink}
+                      isDeleting={isDeleting}
+                    />
                   ))}
                 </div>
               </section>
@@ -164,7 +195,11 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
         {/* Photos only */}
         <TabsContent value="photos" className="mt-6">
           {filteredImages.length > 0 ? (
-            <MediaGrid items={filteredImages} />
+            <MediaGrid
+              items={filteredImages}
+              onDeleteItem={deleteMedia}
+              isDeleting={isDeleting}
+            />
           ) : (
             <EmptyState type="photos" onAddMedia={onAddMedia} />
           )}
@@ -173,7 +208,11 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
         {/* Videos only */}
         <TabsContent value="videos" className="mt-6">
           {filteredVideos.length > 0 ? (
-            <MediaGrid items={filteredVideos} />
+            <MediaGrid
+              items={filteredVideos}
+              onDeleteItem={deleteMedia}
+              isDeleting={isDeleting}
+            />
           ) : (
             <EmptyState type="videos" onAddMedia={onAddMedia} />
           )}
@@ -183,8 +222,13 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
         <TabsContent value="files" className="mt-6">
           {filteredFiles.length > 0 ? (
             <div className="space-y-2">
-              {filteredFiles.map(file => (
-                <FileItem key={file.id} file={file} />
+              {filteredFiles.map((file) => (
+                <FileItem
+                  key={file.id}
+                  file={file}
+                  onDelete={deleteFile}
+                  isDeleting={isDeleting}
+                />
               ))}
             </div>
           ) : (
@@ -196,8 +240,13 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
         <TabsContent value="links" className="mt-6">
           {filteredLinks.length > 0 ? (
             <div className="space-y-3">
-              {filteredLinks.map(link => (
-                <LinkItem key={link.id} link={link} />
+              {filteredLinks.map((link) => (
+                <LinkItem
+                  key={link.id}
+                  link={link}
+                  onDelete={deleteLink}
+                  isDeleting={isDeleting}
+                />
               ))}
             </div>
           ) : (
@@ -209,32 +258,109 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
   );
 }
 
-// File item component
-function FileItem({ file }: { file: any }) {
+// File item component with delete button
+function FileItem({
+  file,
+  onDelete,
+  isDeleting,
+}: {
+  file: { id: string; name?: string; created_at: string };
+  onDelete?: (id: string) => void;
+  isDeleting?: boolean;
+}) {
+  const [showConfirm, setShowConfirm] = React.useState(false);
+
   return (
-    <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors">
-      <div className="flex items-center gap-3">
-        <FileText className="text-gray-400" size={20} />
-        <div>
-          <p className="font-medium">{file.name}</p>
-          <p className="text-sm text-gray-400">
-            {new Date(file.created_at).toLocaleDateString()}
-          </p>
+    <>
+      <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors group">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <FileText className="text-gray-400 flex-shrink-0" size={20} />
+          <div className="min-w-0">
+            <p className="font-medium truncate">{file.name || 'File'}</p>
+            <p className="text-sm text-gray-400">
+              {new Date(file.created_at).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <a
+            href={`/api/files/${file.id}`}
+            download
+            className="text-blue-400 hover:text-blue-300"
+          >
+            Download
+          </a>
+          {onDelete && (
+            <button
+              onClick={() => setShowConfirm(true)}
+              disabled={isDeleting}
+              className="p-2 text-gray-400 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+              aria-label="Delete file"
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
         </div>
       </div>
-      <a
-        href={`/api/files/${file.id}`}
-        download
-        className="text-blue-400 hover:text-blue-300"
-      >
-        Download
-      </a>
-    </div>
+
+      {/* Delete confirmation modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-4 max-w-sm w-full">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                <Trash2 size={20} className="text-red-400" />
+              </div>
+              <h3 className="text-white font-semibold">Delete file?</h3>
+            </div>
+            <p className="text-gray-400 text-sm mb-4">
+              This will permanently remove &quot;{file.name || 'this file'}&quot; from the trip.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="bg-white/10 text-white py-3 rounded-xl font-medium hover:bg-white/20"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowConfirm(false);
+                  onDelete?.(file.id);
+                }}
+                className="bg-red-600 text-white py-3 rounded-xl font-medium hover:bg-red-700 flex items-center justify-center gap-2"
+                disabled={isDeleting}
+              >
+                {isDeleting ? <Loader2 size={18} className="animate-spin" /> : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
-// Link item component
-function LinkItem({ link }: { link: any }) {
+// Link item component with delete button
+function LinkItem({
+  link,
+  onDelete,
+  isDeleting,
+}: {
+  link: {
+    id: string;
+    url?: string;
+    domain?: string;
+    og_title?: string;
+    og_description?: string;
+    created_at: string;
+  };
+  onDelete?: (id: string) => void;
+  isDeleting?: boolean;
+}) {
+  const [showConfirm, setShowConfirm] = React.useState(false);
+
   const getDomainIcon = (domain: string) => {
     if (domain?.includes('youtube')) return '🎬';
     if (domain?.includes('instagram')) return '📸';
@@ -243,41 +369,90 @@ function LinkItem({ link }: { link: any }) {
     return null;
   };
 
-  const domainIcon = getDomainIcon(link.domain);
+  const domainIcon = getDomainIcon(link.domain ?? '');
+  const displayTitle = link.og_title || link.domain || 'Link';
 
   return (
-    <div className="flex items-start justify-between p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors">
-      <div className="flex items-start gap-3 flex-1 min-w-0">
-        <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-          {domainIcon ? (
-            <span className="text-lg">{domainIcon}</span>
-          ) : (
-            <Globe className="text-gray-400" size={18} />
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-medium truncate">
-            {link.og_title || link.domain || 'Link'}
-          </p>
-          {link.og_description && (
-            <p className="text-sm text-gray-400 line-clamp-2 mt-1">
-              {link.og_description}
+    <>
+      <div className="flex items-start justify-between p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors group">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+            {domainIcon ? (
+              <span className="text-lg">{domainIcon}</span>
+            ) : (
+              <Globe className="text-gray-400" size={18} />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium truncate">{displayTitle}</p>
+            {link.og_description && (
+              <p className="text-sm text-gray-400 line-clamp-2 mt-1">
+                {link.og_description}
+              </p>
+            )}
+            <p className="text-xs text-gray-500 mt-1 truncate">
+              {link.domain} • {new Date(link.created_at).toLocaleDateString()}
             </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 ml-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.open(link.url, '_blank')}
+            className="text-blue-400 hover:text-blue-300"
+          >
+            <ExternalLink size={16} />
+          </Button>
+          {onDelete && (
+            <button
+              onClick={() => setShowConfirm(true)}
+              disabled={isDeleting}
+              className="p-2 text-gray-400 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+              aria-label="Delete link"
+            >
+              <Trash2 size={18} />
+            </button>
           )}
-          <p className="text-xs text-gray-500 mt-1 truncate">
-            {link.domain} • {new Date(link.created_at).toLocaleDateString()}
-          </p>
         </div>
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => window.open(link.url, '_blank')}
-        className="text-blue-400 hover:text-blue-300 ml-2"
-      >
-        <ExternalLink size={16} />
-      </Button>
-    </div>
+
+      {/* Delete confirmation modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-4 max-w-sm w-full">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                <Trash2 size={20} className="text-red-400" />
+              </div>
+              <h3 className="text-white font-semibold">Delete link?</h3>
+            </div>
+            <p className="text-gray-400 text-sm mb-4">
+              This will permanently remove &quot;{displayTitle}&quot; from the trip.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="bg-white/10 text-white py-3 rounded-xl font-medium hover:bg-white/20"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowConfirm(false);
+                  onDelete?.(link.id);
+                }}
+                className="bg-red-600 text-white py-3 rounded-xl font-medium hover:bg-red-700 flex items-center justify-center gap-2"
+                disabled={isDeleting}
+              >
+                {isDeleting ? <Loader2 size={18} className="animate-spin" /> : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

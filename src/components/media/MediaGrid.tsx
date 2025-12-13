@@ -1,5 +1,5 @@
 import React from 'react';
-import { MediaItem } from './MediaItem';
+import { MediaTile } from './MediaTile';
 import { Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import type { UploadProgress } from '@/hooks/useMediaUpload';
@@ -9,7 +9,8 @@ interface MediaItemData {
   media_url: string;
   filename: string;
   media_type: 'image' | 'video' | 'document';
-  metadata: any;
+  mime_type?: string | null;
+  metadata: Record<string, unknown>;
   created_at: string;
   source: 'chat' | 'upload';
 }
@@ -18,9 +19,17 @@ interface MediaGridProps {
   items: MediaItemData[];
   maxItems?: number;
   uploadQueue?: UploadProgress[];
+  onDeleteItem?: (id: string) => void;
+  isDeleting?: boolean;
 }
 
-export const MediaGrid = ({ items, maxItems, uploadQueue = [] }: MediaGridProps) => {
+export const MediaGrid = ({
+  items,
+  maxItems,
+  uploadQueue = [],
+  onDeleteItem,
+  isDeleting = false,
+}: MediaGridProps) => {
   const displayItems = maxItems ? items.slice(0, maxItems) : items;
 
   return (
@@ -29,7 +38,7 @@ export const MediaGrid = ({ items, maxItems, uploadQueue = [] }: MediaGridProps)
       {uploadQueue.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {uploadQueue.map((upload) => (
-            <div 
+            <div
               key={upload.fileId}
               className="relative aspect-square rounded-lg bg-background/50 border border-white/10 overflow-hidden"
             >
@@ -69,13 +78,22 @@ export const MediaGrid = ({ items, maxItems, uploadQueue = [] }: MediaGridProps)
         </div>
       )}
 
-      {/* Actual Media Items */}
+      {/* Actual Media Items - Using canonical MediaTile */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {displayItems.map((item) => (
-          <MediaItem key={item.id} item={item} />
+          <MediaTile
+            key={item.id}
+            id={item.id}
+            url={item.media_url}
+            mimeType={item.mime_type ?? null}
+            mediaType={item.media_type}
+            fileName={item.filename}
+            onDelete={onDeleteItem}
+            isDeleting={isDeleting}
+          />
         ))}
       </div>
-      
+
       {maxItems && items.length > maxItems && (
         <p className="text-center text-gray-400 text-sm">
           Showing {maxItems} of {items.length} items
