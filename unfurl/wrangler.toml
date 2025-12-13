@@ -1,0 +1,13 @@
+[wrangler]
+name = "chravel-unfurl"
+main = "worker.ts"
+compatibility_date = "2025-12-01"
+
+[vars]
+# You can keep these defaults, or override in Cloudflare dashboard
+SUPABASE_PROJECT_REF = "jmjiyekmxwsxkfnqwyaa"
+APP_BASE_URL = "https://chravel.app"
+
+# After deploying, bind a custom domain like:
+# p.chravel.app  -> this Worker
+

@@ -48,8 +48,21 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
       import.meta.env.VITE_TRIP_PREVIEW_BASE_URL ??
       'https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/generate-trip-preview';
 
-    const tripId = encodeURIComponent(String(trip.id));
-    return `${base}?tripId=${tripId}`;
+    const normalizedBase = String(base).replace(/\/+$/, '');
+    const encodedTripId = encodeURIComponent(String(trip.id));
+
+    // If configured with a branded path prefix (recommended), append /:tripId
+    // Example: VITE_TRIP_PREVIEW_BASE_URL="https://p.chravel.app/t"
+    const looksLikePathPrefix =
+      !normalizedBase.includes('/functions/v1/') && !normalizedBase.includes('generate-trip-preview');
+
+    if (looksLikePathPrefix) {
+      return `${normalizedBase}/${encodedTripId}`;
+    }
+
+    // Otherwise assume an endpoint that accepts ?tripId=
+    // Example: https://<project-ref>.supabase.co/functions/v1/generate-trip-preview?tripId=...
+    return `${normalizedBase}?tripId=${encodedTripId}`;
   }, [trip.id]);
 
   // Generate share text for social media - ensure minimum of 1 Chraveler (creator always exists)

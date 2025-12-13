@@ -285,6 +285,8 @@ serve(async (req: Request): Promise<Response> => {
   try {
     const url = new URL(req.url);
     const tripId = url.searchParams.get('tripId');
+    const canonicalUrlParam = url.searchParams.get('canonicalUrl');
+    const appBaseUrlParam = url.searchParams.get('appBaseUrl');
     
     console.log('[generate-trip-preview] Request for tripId:', tripId);
 
@@ -295,11 +297,19 @@ serve(async (req: Request): Promise<Response> => {
       });
     }
 
-    // Canonical URL should be the URL the scraper fetched (important for unfurl caching).
-    const canonicalUrl = new URL(req.url).toString();
+    /**
+     * Canonical URL should match the URL being scraped (important for unfurl caching).
+     * If you're proxying through a branded domain (e.g., a Worker at `p.chravel.app`),
+     * pass `canonicalUrl` so OG tags match the branded URL (not the supabase.co URL).
+     */
+    const canonicalUrl = canonicalUrlParam && canonicalUrlParam.startsWith('http')
+      ? canonicalUrlParam
+      : new URL(req.url).toString();
 
     // Determine app base URL for human redirect / CTAs.
-    const appBaseUrl = Deno.env.get('SITE_URL') || 'https://chravel.app';
+    const appBaseUrl = appBaseUrlParam && appBaseUrlParam.startsWith('http')
+      ? appBaseUrlParam
+      : (Deno.env.get('SITE_URL') || 'https://chravel.app');
     
     // Check if it's a demo trip (numeric ID 1-12)
     if (demoTrips[tripId]) {
