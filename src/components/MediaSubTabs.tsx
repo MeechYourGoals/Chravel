@@ -123,10 +123,15 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
 
         const fileName = `${tripId}/${user.id}/${Date.now()}-${file.name}`;
         
-        // Upload to Supabase Storage
+        // Upload to Supabase Storage with explicit contentType
+        // CRITICAL: iOS Safari requires correct Content-Type headers to decode video
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('trip-media')
-          .upload(fileName, file, { cacheControl: '3600', upsert: false });
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false,
+            contentType: file.type || 'application/octet-stream',
+          });
 
         if (uploadError) {
           console.error('Upload error:', uploadError);
@@ -290,12 +295,13 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
             >
               <X className="w-6 h-6" />
             </button>
+            {/* iOS CRITICAL: muted required for autoplay, user can unmute via controls */}
             <video
               src={activeVideoUrl}
               controls
               autoPlay
               playsInline
-              webkit-playsinline="true"
+              muted
               controlsList="nodownload"
               preload="metadata"
               className="max-w-full max-h-full"
@@ -401,6 +407,7 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
                     src={item.media_url}
                     className="w-full h-full object-cover"
                     muted
+                    playsInline
                     preload="metadata"
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20">
@@ -449,12 +456,13 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
             >
               <X className="w-6 h-6" />
             </button>
+            {/* iOS CRITICAL: muted required for autoplay, user can unmute via controls */}
             <video
               src={activeVideoUrl}
               controls
               autoPlay
               playsInline
-              webkit-playsinline="true"
+              muted
               controlsList="nodownload"
               preload="metadata"
               className="max-w-full max-h-full"

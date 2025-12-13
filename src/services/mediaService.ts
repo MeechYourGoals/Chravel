@@ -43,12 +43,14 @@ export const mediaService = {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const storagePath = `trip-media/${tripId}/${fileName}`;
 
-      // Upload file to Supabase Storage
+      // Upload file to Supabase Storage with explicit contentType
+      // CRITICAL: iOS Safari requires correct Content-Type headers to decode video
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('trip-media')
         .upload(storagePath, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: file.type || 'application/octet-stream',
         });
 
       if (uploadError) throw uploadError;
