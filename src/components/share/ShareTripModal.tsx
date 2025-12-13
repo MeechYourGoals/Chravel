@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { X, Copy, Share2, Check, MapPin, Calendar, Users } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Copy, Check, MapPin, Calendar, Users } from 'lucide-react';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
-
 interface Participant {
   id: number;
   name: string;
@@ -135,7 +135,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <div 
       className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -215,4 +215,6 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

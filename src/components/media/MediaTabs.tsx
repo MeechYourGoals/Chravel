@@ -152,7 +152,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
                   <Camera size={20} />
                   Photos ({filteredImages.length})
                 </h3>
-                <MediaGrid items={filteredImages} onDeleteItem={deleteMedia} />
+                <MediaGrid items={filteredImages.map(item => ({ ...item, media_type: item.media_type as "document" | "image" | "video", metadata: (item.metadata ?? {}) as Record<string, unknown> }))} onDeleteItem={deleteMedia} />
               </section>
             )}
 
@@ -162,7 +162,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
                   <Video size={20} />
                   Videos ({filteredVideos.length})
                 </h3>
-                <MediaGrid items={filteredVideos} onDeleteItem={deleteMedia} />
+                <MediaGrid items={filteredVideos.map(item => ({ ...item, media_type: item.media_type as "document" | "image" | "video", metadata: (item.metadata ?? {}) as Record<string, unknown> }))} onDeleteItem={deleteMedia} />
               </section>
             )}
 
@@ -207,7 +207,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
         {/* Photos only */}
         <TabsContent value="photos" className="mt-6">
           {filteredImages.length > 0 ? (
-            <MediaGrid items={filteredImages} onDeleteItem={deleteMedia} />
+            <MediaGrid items={filteredImages.map(item => ({ ...item, media_type: item.media_type as "document" | "image" | "video", metadata: (item.metadata ?? {}) as Record<string, unknown> }))} onDeleteItem={deleteMedia} />
           ) : (
             <EmptyState type="photos" onAddMedia={onAddMedia} />
           )}
@@ -216,7 +216,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
         {/* Videos only */}
         <TabsContent value="videos" className="mt-6">
           {filteredVideos.length > 0 ? (
-            <MediaGrid items={filteredVideos} onDeleteItem={deleteMedia} />
+            <MediaGrid items={filteredVideos.map(item => ({ ...item, media_type: item.media_type as "document" | "image" | "video", metadata: (item.metadata ?? {}) as Record<string, unknown> }))} onDeleteItem={deleteMedia} />
           ) : (
             <EmptyState type="videos" onAddMedia={onAddMedia} />
           )}
