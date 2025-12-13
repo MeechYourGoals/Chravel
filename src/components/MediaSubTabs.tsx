@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Video, FileText, Link, Play, Download, MessageCircle, ExternalLink, DollarSign, Users, Loader2, X } from 'lucide-react';
+import { Camera, Video, FileText, Link, Play, Download, MessageCircle, ExternalLink, DollarSign, Users, Loader2, X, Trash2 } from 'lucide-react';
+import { mediaService } from '@/services/mediaService';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { PaymentMethodIcon } from './receipts/PaymentMethodIcon';
@@ -43,17 +44,48 @@ interface MediaSubTabsProps {
 interface MediaSubTabsExtendedProps extends MediaSubTabsProps {
   tripId?: string;
   onMediaUploaded?: () => void;
+  onDeleteItem?: (id: string) => void;
 }
 
-export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded }: MediaSubTabsExtendedProps) => {
+export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded, onDeleteItem }: MediaSubTabsExtendedProps) => {
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (deletingIds.has(id)) return;
+    
+    setDeletingIds(prev => new Set(prev).add(id));
+    
+    try {
+      if (isDemoMode) {
+        toast.success('Item deleted (demo mode)');
+        onDeleteItem?.(id);
+      } else {
+        await mediaService.deleteMedia(id);
+        toast.success('Item deleted');
+        onDeleteItem?.(id);
+        onMediaUploaded?.(); // Trigger refetch
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete item');
+    } finally {
+      setDeletingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
 
   const getMediaTypeFromMime = (mimeType: string): 'image' | 'video' | 'document' => {
     if (mimeType.startsWith('image/')) return 'image';
@@ -389,7 +421,8 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
             <div
               key={item.id}
               className="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 if (item.media_type === 'video') {
                   setActiveVideoUrl(item.media_url);
                 }
@@ -410,19 +443,32 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
                     playsInline
                     preload="metadata"
                   />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
                     <Play className="w-12 h-12 text-white" />
                   </div>
                   {item.metadata?.duration && (
-                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded pointer-events-none">
                       {Math.floor(item.metadata.duration / 60)}:{(item.metadata.duration % 60).toString().padStart(2, '0')}
                     </div>
                   )}
                 </div>
               )}
               
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors">
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Delete button - always visible */}
+              <button
+                onClick={(e) => handleDelete(item.id, e)}
+                disabled={deletingIds.has(item.id)}
+                className="absolute top-2 right-2 z-10 rounded-full bg-black/70 p-2 text-white hover:bg-destructive transition-colors"
+              >
+                {deletingIds.has(item.id) ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+              </button>
+              
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors pointer-events-none">
+                <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="flex items-center gap-1">
                     {item.source === 'chat' ? (
                       <MessageCircle className="w-4 h-4 text-white bg-black/50 rounded p-0.5" />
@@ -642,6 +688,21 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
                     className="text-muted-foreground hover:text-foreground"
                   >
                     <Download size={16} />
+                  </Button>
+                  
+                  {/* Delete button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => handleDelete(item.id, e)}
+                    disabled={deletingIds.has(item.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    {deletingIds.has(item.id) ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Trash2 size={16} />
+                    )}
                   </Button>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Camera } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMediaManagement } from '@/hooks/useMediaManagement';
@@ -9,6 +9,8 @@ import { StorageQuotaBar } from './StorageQuotaBar';
 import { MediaUrlsPanel } from './media/MediaUrlsPanel';
 import { MediaSearchBar } from './media/MediaSearchBar';
 import { extractUrlsFromTripChat } from '@/services/chatUrlExtractor';
+import { mediaService } from '@/services/mediaService';
+import { toast } from 'sonner';
 import type { NormalizedUrl } from '@/services/chatUrlExtractor';
 import type { MediaSearchResult } from '@/services/mediaSearchService';
 import { filterMediaByAITags } from '@/services/mediaAITagging';
@@ -24,12 +26,34 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MediaSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const { isDemoMode } = useDemoMode();
   
   const {
     mediaItems,
-    loading
+    loading,
+    refetch
   } = useMediaManagement(tripId);
+
+  // Filter out deleted items for demo mode
+  const filteredMediaItems = mediaItems.filter(item => !deletedIds.has(item.id));
+
+  const handleDeleteItem = useCallback(async (id: string) => {
+    try {
+      if (isDemoMode) {
+        // In demo mode, just remove from local state
+        setDeletedIds(prev => new Set(prev).add(id));
+        toast.success('Item deleted (demo mode)');
+      } else {
+        await mediaService.deleteMedia(id);
+        toast.success('Item deleted');
+        refetch?.();
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete item');
+    }
+  }, [isDemoMode, refetch]);
 
   // Fetch URLs count
   useEffect(() => {
@@ -45,7 +69,7 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
   }, [tripId, isDemoMode]);
 
   const filterMediaByType = (type: string) => {
-    let filtered = mediaItems;
+    let filtered = filteredMediaItems;
     
     // Apply type filter
     if (type === 'photos') {
@@ -76,7 +100,7 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
   const renderAllItems = () => {
     const filteredItems = filterMediaByType('all');
     
-    if (mediaItems.length === 0) {
+    if (filteredMediaItems.length === 0) {
       return (
         <div className="text-center py-12">
           <Camera className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -105,7 +129,7 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
 
     return (
       <div className="space-y-4">
-        {displayItems.length > 0 && <MediaGrid items={displayItems} onDeleteItem={() => {}} />}
+        {displayItems.length > 0 && <MediaGrid items={displayItems} onDeleteItem={handleDeleteItem} />}
         {filteredItems.length > 8 && (
           <p className="text-center text-gray-400 text-sm">
             Showing 8 of {filteredItems.length} items
@@ -148,25 +172,25 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
           <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
           <TabsTrigger value="photos" className="text-xs">
             Photos
-            {mediaItems.filter(item => item.media_type === 'image').length > 0 && (
+            {filteredMediaItems.filter(item => item.media_type === 'image').length > 0 && (
               <span className="ml-1 text-[10px] opacity-70">
-                ({mediaItems.filter(item => item.media_type === 'image').length})
+                ({filteredMediaItems.filter(item => item.media_type === 'image').length})
               </span>
             )}
           </TabsTrigger>
           <TabsTrigger value="videos" className="text-xs">
             Videos
-            {mediaItems.filter(item => item.media_type === 'video').length > 0 && (
+            {filteredMediaItems.filter(item => item.media_type === 'video').length > 0 && (
               <span className="ml-1 text-[10px] opacity-70">
-                ({mediaItems.filter(item => item.media_type === 'video').length})
+                ({filteredMediaItems.filter(item => item.media_type === 'video').length})
               </span>
             )}
           </TabsTrigger>
           <TabsTrigger value="files" className="text-xs">
             Files
-            {mediaItems.filter(item => item.media_type === 'document').length > 0 && (
+            {filteredMediaItems.filter(item => item.media_type === 'document').length > 0 && (
               <span className="ml-1 text-[10px] opacity-70">
-                ({mediaItems.filter(item => item.media_type === 'document').length})
+                ({filteredMediaItems.filter(item => item.media_type === 'document').length})
               </span>
             )}
           </TabsTrigger>
@@ -188,6 +212,8 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
             type="photos"
             searchQuery={searchQuery}
             tripId={tripId}
+            onMediaUploaded={refetch}
+            onDeleteItem={handleDeleteItem}
           />
         </TabsContent>
         
@@ -197,6 +223,8 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
             type="videos"
             searchQuery={searchQuery}
             tripId={tripId}
+            onMediaUploaded={refetch}
+            onDeleteItem={handleDeleteItem}
           />
         </TabsContent>
         
@@ -206,6 +234,8 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
             type="files"
             searchQuery={searchQuery}
             tripId={tripId}
+            onMediaUploaded={refetch}
+            onDeleteItem={handleDeleteItem}
           />
         </TabsContent>
 
