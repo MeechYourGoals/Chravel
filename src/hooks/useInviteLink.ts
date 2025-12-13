@@ -167,9 +167,10 @@ export const useInviteLink = ({
     }
 
     // DEMO MODE: Generate demonstration link without database
+    // Use branded unfurl domain for rich OG previews
     if (isDemoMode) {
       const demoInviteCode = `demo-${actualTripId}-${Date.now().toString(36)}`;
-      setInviteLink(`${baseUrl}/join/${demoInviteCode}`);
+      setInviteLink(`https://p.chravel.app/j/${demoInviteCode}`);
       setLoading(false);
       toast.success('Demo invite link created!');
       return;
@@ -202,7 +203,8 @@ export const useInviteLink = ({
       return;
     }
 
-    setInviteLink(`${baseUrl}/join/${inviteCode}`);
+    // Use branded unfurl domain for rich OG previews
+    setInviteLink(`https://p.chravel.app/j/${inviteCode}`);
     setLoading(false);
     toast.success('Invite link created!');
   };
