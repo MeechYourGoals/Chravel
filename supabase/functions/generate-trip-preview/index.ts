@@ -38,7 +38,7 @@ const demoTrips: Record<string, {
     location: 'Cancun, Mexico',
     dateRange: 'Mar 15 - Mar 22, 2026',
     description: 'Brotherhood spring break getaway with beach activities, nightlife, and bonding experiences',
-    coverPhoto: 'https://images.unsplash.com/photo-1552074284-5e88ef1aef18?w=1200&h=630&fit=crop',
+    coverPhoto: 'https://chravel.app/demo-covers/cancun-spring-break.webp',
     participantCount: 5
   },
   '2': {
@@ -46,7 +46,7 @@ const demoTrips: Record<string, {
     location: 'Tokyo, Japan',
     dateRange: 'Oct 5 - Oct 15, 2025',
     description: "Cultural exploration of Japan's capital with temples, modern tech districts, and amazing cuisine",
-    coverPhoto: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200&h=630&fit=crop',
+    coverPhoto: 'https://chravel.app/demo-covers/tokyo-adventure.webp',
     participantCount: 3
   },
   '3': {
@@ -54,7 +54,7 @@ const demoTrips: Record<string, {
     location: 'Bali, Indonesia',
     dateRange: 'Dec 10 - Dec 20, 2025',
     description: 'Romantic destination wedding celebration with family and friends in paradise',
-    coverPhoto: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=1200&h=630&fit=crop',
+    coverPhoto: 'https://chravel.app/demo-covers/bali-destination-wedding.webp',
     participantCount: 4
   },
   '4': {
@@ -62,7 +62,7 @@ const demoTrips: Record<string, {
     location: 'Nashville, TN',
     dateRange: 'Nov 8 - Nov 10, 2025',
     description: 'Epic bachelorette celebration with honky-tonk bars, live music, and unforgettable memories',
-    coverPhoto: 'https://images.unsplash.com/photo-1545579133-99bb5ab189bd?w=1200&h=630&fit=crop',
+    coverPhoto: 'https://chravel.app/demo-covers/nashville-bachelorette.webp',
     participantCount: 6
   },
   '5': {
@@ -70,7 +70,7 @@ const demoTrips: Record<string, {
     location: 'Indio, CA',
     dateRange: 'Apr 10 - Apr 13, 2026',
     description: 'Music festival adventure with top artists, desert vibes, and group camping',
-    coverPhoto: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&h=630&fit=crop',
+    coverPhoto: 'https://chravel.app/demo-covers/coachella-festival-new.webp',
     participantCount: 5
   },
   '6': {
@@ -78,7 +78,7 @@ const demoTrips: Record<string, {
     location: 'Saratoga Springs, NY',
     dateRange: 'Jul 20 - Jul 28, 2025',
     description: 'Multi-generational family retreat with horse racing, spa time, and quality family bonding',
-    coverPhoto: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1200&h=630&fit=crop',
+    coverPhoto: 'https://chravel.app/demo-covers/aspen-family-summer.webp',
     participantCount: 5
   },
   '7': {
@@ -86,7 +86,7 @@ const demoTrips: Record<string, {
     location: 'Phoenix, Arizona',
     dateRange: 'Feb 20 - Feb 23, 2025',
     description: "Annual guys' golf trip with tournaments, poker nights, and fantasy football draft",
-    coverPhoto: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=1200&h=630&fit=crop',
+    coverPhoto: 'https://chravel.app/demo-covers/phoenix-golf-outing.webp',
     participantCount: 6
   },
   '8': {
@@ -94,7 +94,7 @@ const demoTrips: Record<string, {
     location: 'Tulum, Mexico',
     dateRange: 'Nov 10 - Nov 16, 2025',
     description: 'Yoga and wellness focused retreat with breathwork, meditation, and spa treatments',
-    coverPhoto: 'https://images.unsplash.com/photo-1545205597-3d9d02c29597?w=1200&h=630&fit=crop',
+    coverPhoto: 'https://chravel.app/demo-covers/tulum-yoga-wellness.webp',
     participantCount: 8
   },
   '9': {
@@ -102,7 +102,7 @@ const demoTrips: Record<string, {
     location: 'Napa Valley, CA',
     dateRange: 'May 2 - May 5, 2025',
     description: 'Celebratory wine country escape with tastings, spa treatments, and new beginnings',
-    coverPhoto: 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=1200&h=630&fit=crop',
+    coverPhoto: 'https://chravel.app/demo-covers/napa-wine-getaway.webp',
     participantCount: 6
   },
   '10': {
@@ -110,7 +110,7 @@ const demoTrips: Record<string, {
     location: 'Aspen, CO',
     dateRange: 'Dec 12 - Dec 17, 2025',
     description: 'Company holiday celebration with skiing, team building, and winter activities',
-    coverPhoto: 'https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&h=630&fit=crop',
+    coverPhoto: 'https://chravel.app/demo-covers/aspen-corporate-ski.webp',
     participantCount: 10
   },
   '11': {
@@ -118,7 +118,7 @@ const demoTrips: Record<string, {
     location: 'Port Canaveral, FL',
     dateRange: 'Jun 15 - Jun 22, 2025',
     description: 'Magical family cruise with Disney characters, activities, and island adventures',
-    coverPhoto: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1200&h=630&fit=crop',
+    coverPhoto: 'https://chravel.app/demo-covers/disney-family-cruise.webp',
     participantCount: 7
   },
   '12': {
@@ -126,7 +126,7 @@ const demoTrips: Record<string, {
     location: 'Yellowstone, WY',
     dateRange: 'Jul 10 - Jul 17, 2025',
     description: 'Outdoor adventure exploring geysers, wildlife, and backcountry hiking trails',
-    coverPhoto: 'https://images.unsplash.com/photo-1533167649158-6d508895b680?w=1200&h=630&fit=crop',
+    coverPhoto: 'https://chravel.app/demo-covers/yellowstone-hiking-group.webp',
     participantCount: 5
   },
   // Pro Trips (12) - grayscale backgrounds
