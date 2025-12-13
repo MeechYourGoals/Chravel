@@ -13,6 +13,9 @@ services:
         value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI
       - key: VITE_BUILD_ID
         value: $RENDER_GIT_COMMIT
+      # Branded unfurl base (served by chravel-unfurl below)
+      - key: VITE_TRIP_PREVIEW_BASE_URL
+        value: https://p.chravel.app/t
     headers:
       - path: /*
         name: Cache-Control
@@ -36,3 +39,16 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+
+  # Provider-agnostic unfurl service for OG previews.
+  # This should be bound to `p.chravel.app` as a custom domain in Render.
+  - type: web
+    name: chravel-unfurl
+    runtime: docker
+    dockerfilePath: ./unfurl/Dockerfile
+    envVars:
+      - key: SUPABASE_PROJECT_REF
+        value: jmjiyekmxwsxkfnqwyaa
+      - key: APP_BASE_URL
+        value: https://chravel.app
+    healthCheckPath: /healthz

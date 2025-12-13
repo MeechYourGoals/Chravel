@@ -6,6 +6,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Minimal HTML escaping to prevent user-provided strings (trip name/description)
+ * from breaking meta tags or HTML structure.
+ *
+ * Note: OG scrapers do not execute JS, but they do parse HTML. Broken head tags
+ * can result in "no preview" even when the endpoint is reachable.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 // Demo trip data with public Unsplash images for OG tags - matches tripsData.ts
 const demoTrips: Record<string, {
   title: string;
@@ -120,34 +136,45 @@ function generateHTML(trip: {
   description: string;
   coverPhoto: string;
   participantCount: number;
-}, tripId: string, baseUrl: string): string {
-  const previewUrl = `${baseUrl}/trip/${tripId}/preview`;
+}, tripId: string, canonicalUrl: string, appBaseUrl: string): string {
+  const safeTitle = escapeHtml(trip.title);
+  const safeLocation = escapeHtml(trip.location);
+  const safeDateRange = escapeHtml(trip.dateRange);
+  const safeDescription = escapeHtml(trip.description);
+  const safeCoverPhoto = escapeHtml(trip.coverPhoto);
+
+  // Where humans should land after unfurling (web or deep-link handler).
+  const appTripUrl = `${appBaseUrl}/trip/${encodeURIComponent(tripId)}`;
   
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${trip.title} | Chravel</title>
+  <title>${safeTitle} | Chravel</title>
   
   <!-- Open Graph Meta Tags -->
   <meta property="og:type" content="website">
-  <meta property="og:url" content="${previewUrl}">
-  <meta property="og:title" content="${trip.title}">
-  <meta property="og:description" content="${trip.location} • ${trip.dateRange} • ${trip.participantCount} Chravelers">
-  <meta property="og:image" content="${trip.coverPhoto}">
+  <!-- IMPORTANT: og:url should match the URL being scraped -->
+  <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
+  <meta property="og:title" content="${safeTitle}">
+  <meta property="og:description" content="${safeLocation} • ${safeDateRange} • ${trip.participantCount} Chravelers">
+  <meta property="og:image" content="${safeCoverPhoto}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:site_name" content="Chravel">
   
   <!-- Twitter Card Meta Tags -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${trip.title}">
-  <meta name="twitter:description" content="${trip.location} • ${trip.dateRange} • ${trip.participantCount} Chravelers">
-  <meta name="twitter:image" content="${trip.coverPhoto}">
+  <meta name="twitter:title" content="${safeTitle}">
+  <meta name="twitter:description" content="${safeLocation} • ${safeDateRange} • ${trip.participantCount} Chravelers">
+  <meta name="twitter:image" content="${safeCoverPhoto}">
   
   <!-- Additional Meta Tags -->
-  <meta name="description" content="${trip.description}">
+  <meta name="description" content="${safeDescription}">
+
+  <!-- Human redirect (bots ignore; humans open your actual app/web route) -->
+  <meta http-equiv="refresh" content="0;url=${escapeHtml(appTripUrl)}">
   
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -232,16 +259,16 @@ function generateHTML(trip: {
 </head>
 <body>
   <div class="card">
-    <img src="${trip.coverPhoto}" alt="${trip.title}" class="cover">
+    <img src="${safeCoverPhoto}" alt="${safeTitle}" class="cover">
     <div class="content">
-      <h1 class="title">${trip.title}</h1>
-      <div class="location">📍 ${trip.location}</div>
-      <p class="description">${trip.description}</p>
+      <h1 class="title">${safeTitle}</h1>
+      <div class="location">📍 ${safeLocation}</div>
+      <p class="description">${safeDescription}</p>
       <div class="meta">
-        <div class="meta-item">📅 ${trip.dateRange}</div>
+        <div class="meta-item">📅 ${safeDateRange}</div>
         <div class="meta-item">👥 ${trip.participantCount} travelers</div>
       </div>
-      <a href="${baseUrl}" class="cta">View Trip on Chravel</a>
+      <a href="${escapeHtml(appTripUrl)}" class="cta">View Trip on Chravel</a>
     </div>
     <div class="logo">Powered by Chravel</div>
   </div>
@@ -258,6 +285,8 @@ serve(async (req: Request): Promise<Response> => {
   try {
     const url = new URL(req.url);
     const tripId = url.searchParams.get('tripId');
+    const canonicalUrlParam = url.searchParams.get('canonicalUrl');
+    const appBaseUrlParam = url.searchParams.get('appBaseUrl');
     
     console.log('[generate-trip-preview] Request for tripId:', tripId);
 
@@ -268,13 +297,24 @@ serve(async (req: Request): Promise<Response> => {
       });
     }
 
-    // Determine base URL for links
-    const baseUrl = Deno.env.get('SITE_URL') || 'https://chravel.app';
+    /**
+     * Canonical URL should match the URL being scraped (important for unfurl caching).
+     * If you're proxying through a branded domain (e.g., a Worker at `p.chravel.app`),
+     * pass `canonicalUrl` so OG tags match the branded URL (not the supabase.co URL).
+     */
+    const canonicalUrl = canonicalUrlParam && canonicalUrlParam.startsWith('http')
+      ? canonicalUrlParam
+      : new URL(req.url).toString();
+
+    // Determine app base URL for human redirect / CTAs.
+    const appBaseUrl = appBaseUrlParam && appBaseUrlParam.startsWith('http')
+      ? appBaseUrlParam
+      : (Deno.env.get('SITE_URL') || 'https://chravel.app');
     
     // Check if it's a demo trip (numeric ID 1-12)
     if (demoTrips[tripId]) {
       console.log('[generate-trip-preview] Serving demo trip:', tripId);
-      const html = generateHTML(demoTrips[tripId], tripId, baseUrl);
+      const html = generateHTML(demoTrips[tripId], tripId, canonicalUrl, appBaseUrl);
       return new Response(html, {
         status: 200,
         headers: { 
@@ -333,7 +373,7 @@ serve(async (req: Request): Promise<Response> => {
     };
 
     console.log('[generate-trip-preview] Serving real trip:', tripId, tripData.title);
-    const html = generateHTML(tripData, tripId, baseUrl);
+    const html = generateHTML(tripData, tripId, canonicalUrl, appBaseUrl);
     
     return new Response(html, {
       status: 200,

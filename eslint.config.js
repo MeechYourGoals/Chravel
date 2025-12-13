@@ -12,6 +12,7 @@ export default tseslint.config(
       "ios/**",
       "android/**",
       "supabase/**",
+      "unfurl/**",
       "scripts/**",
       "node_modules/**",
       ".ai/**",
