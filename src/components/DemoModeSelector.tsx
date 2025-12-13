@@ -35,7 +35,7 @@ export const DemoModeSelector = () => {
               aria-label="Marketing landing page"
             >
               <EyeOff className="h-3 w-3 flex-shrink-0" />
-              <span>Mrkting</span>
+              <span>Info</span>
             </button>
             <button
               onClick={() => handleViewChange('marketing')}
