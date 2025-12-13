@@ -1,13 +1,14 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, Settings } from 'lucide-react';
+import { Calendar, MapPin, Users, Settings, UserPlus } from 'lucide-react';
 import { useIsMobile } from '../hooks/use-mobile';
 import { EventData } from '../types/events';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { calculatePeopleCount, calculateDaysCount, calculateEventPlacesCount } from '../utils/tripStatsUtils';
 import { getInitials } from '../utils/avatarUtils';
 import { TravelerTooltip } from './ui/traveler-tooltip';
+import { InviteModal } from './InviteModal';
 
 interface MobileEventCardProps {
   event: EventData;
@@ -17,6 +18,7 @@ export const MobileEventCard = ({ event }: MobileEventCardProps) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { accentColors } = useTripVariant();
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   const handleViewEvent = () => {
     navigate(`/event/${event.id}`);
@@ -155,14 +157,30 @@ export const MobileEventCard = ({ event }: MobileEventCardProps) => {
           </span>
         </div>
 
-        {/* Action Button */}
-        <button
-          onClick={handleViewEvent}
-          className={`w-full bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white font-semibold py-4 rounded-xl transition-all duration-300 shadow-lg`}
-        >
-          Manage Event
-        </button>
+        {/* Action Buttons */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={handleViewEvent}
+            className="bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 text-sm"
+          >
+            View Event
+          </button>
+          <button
+            onClick={() => setShowInviteModal(true)}
+            className={`bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white font-semibold py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-sm`}
+          >
+            <UserPlus size={16} />
+            Invite
+          </button>
+        </div>
       </div>
+
+      <InviteModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        tripName={event.title}
+        tripId={event.id}
+      />
     </div>
   );
 };
