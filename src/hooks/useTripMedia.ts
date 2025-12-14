@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
 import { useEffect } from 'react';
 import imageCompression from 'browser-image-compression';
+import { mediaService } from '@/services/mediaService';
 
 interface TripMedia {
   id: string;
@@ -174,30 +175,7 @@ export const useTripMedia = (tripId: string) => {
   // Delete media mutation
   const deleteMediaMutation = useMutation({
     mutationFn: async (mediaId: string) => {
-      // Get media info first
-      const { data: mediaItem } = await supabase
-        .from('trip_media_index')
-        .select('*')
-        .eq('id', mediaId)
-        .single();
-
-      if (mediaItem?.metadata && typeof mediaItem.metadata === 'object') {
-        const metadata = mediaItem.metadata as any;
-        if (metadata.upload_path) {
-          // Delete from storage
-          await supabase.storage
-            .from('trip-media')
-            .remove([metadata.upload_path]);
-        }
-      }
-
-      // Delete from database
-      const { error } = await supabase
-        .from('trip_media_index')
-        .delete()
-        .eq('id', mediaId);
-
-      if (error) throw error;
+      await mediaService.deleteMedia(mediaId);
       return mediaId;
     },
     onSuccess: () => {

@@ -44,7 +44,7 @@ interface MediaSubTabsProps {
 interface MediaSubTabsExtendedProps extends MediaSubTabsProps {
   tripId?: string;
   onMediaUploaded?: () => void;
-  onDeleteItem?: (id: string) => void;
+  onDeleteItem?: (id: string) => Promise<void> | void;
 }
 
 export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded, onDeleteItem }: MediaSubTabsExtendedProps) => {
@@ -66,15 +66,22 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
     setDeletingIds(prev => new Set(prev).add(id));
     
     try {
+      // Prefer the parent-provided delete handler (single source of truth).
+      if (onDeleteItem) {
+        await onDeleteItem(id);
+        onMediaUploaded?.(); // Trigger refetch if provided
+        return;
+      }
+
+      // Fallback (should be rare): local delete implementation.
       if (isDemoMode) {
         toast.success('Item deleted (demo mode)');
-        onDeleteItem?.(id);
-      } else {
-        await mediaService.deleteMedia(id);
-        toast.success('Item deleted');
-        onDeleteItem?.(id);
-        onMediaUploaded?.(); // Trigger refetch
+        return;
       }
+
+      await mediaService.deleteMedia(id);
+      toast.success('Item deleted');
+      onMediaUploaded?.(); // Trigger refetch
     } catch (error) {
       console.error('Delete error:', error);
       toast.error('Failed to delete item');

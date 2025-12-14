@@ -38,7 +38,7 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
   // Filter out deleted items for demo mode
   const filteredMediaItems = mediaItems.filter(item => !deletedIds.has(item.id));
 
-  const handleDeleteItem = useCallback(async (id: string) => {
+  const handleDeleteItem = useCallback(async (id: string): Promise<void> => {
     try {
       if (isDemoMode) {
         // In demo mode, just remove from local state
