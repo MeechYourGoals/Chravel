@@ -198,15 +198,12 @@ export function useMediaSync(tripId: string) {
 
       setIsDeleting(true);
       try {
-        const { data: deleted, error: deleteError } = await supabase
+        const { error: deleteError } = await supabase
           .from('trip_link_index')
           .delete()
           .eq('id', linkId);
 
         if (deleteError) throw deleteError;
-        if (!deleted || deleted.length !== 1) {
-          throw new Error('Delete failed (not authorized, not found, or already deleted).');
-        }
 
         // Optimistically remove from local state
         setLinks((prev) => prev.filter((item) => item.id !== linkId));
