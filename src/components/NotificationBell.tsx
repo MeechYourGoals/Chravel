@@ -305,19 +305,19 @@ export const NotificationBell = () => {
                           <p className="text-xs text-gray-400 mb-1 truncate">
                             {notification.description}
                           </p>
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs text-gray-500">{notification.tripName}</p>
-                            <p className="text-xs text-gray-500">{notification.timestamp}</p>
-                          </div>
+                          <p className="text-xs text-muted-foreground">{notification.tripName}</p>
                         </div>
-                        {/* Delete button - visible on hover for desktop */}
-                        <button
-                          onClick={(e) => deleteNotification(notification.id, e)}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-all"
-                          title="Delete notification"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {/* Delete button and timestamp - always visible */}
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <button
+                            onClick={(e) => deleteNotification(notification.id, e)}
+                            className="p-1.5 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
+                            title="Delete notification"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                          <p className="text-xs text-muted-foreground">{notification.timestamp}</p>
+                        </div>
                       </div>
                     </div>
                   )
