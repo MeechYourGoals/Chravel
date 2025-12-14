@@ -31,7 +31,9 @@ export const DesktopHeader = ({ viewMode }: DesktopHeaderProps) => {
           <h1 className="text-2xl font-bold text-foreground tracking-tight transition-all duration-300 hover:brightness-110 hover:scale-105" aria-label="ChravelApp Home">
             ChravelApp
           </h1>
-          <span className="text-xs text-muted-foreground">The Group Chat Travel App</span>
+          <span className="text-xs text-muted-foreground">
+            The Group <span className="font-semibold">Ch</span>at T<span className="font-semibold">ravel</span> <span className="font-semibold">App</span>
+          </span>
         </div>
         
         {/* Center: Demo Selector */}
