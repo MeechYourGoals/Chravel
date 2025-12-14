@@ -32,9 +32,12 @@ export interface NotificationPreferences {
   broadcasts: boolean;
   tasks: boolean;
   payments: boolean;
-  calendar_reminders: boolean;
+  calendar_events: boolean;
+  calendar_reminders: boolean; // Alias for calendar_events for backward compatibility
+  polls: boolean;
   trip_invites: boolean;
   join_requests: boolean;
+  basecamp_updates: boolean;
   quiet_hours_enabled: boolean;
   quiet_start: string;
   quiet_end: string;
@@ -52,9 +55,12 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   broadcasts: true,
   tasks: true,
   payments: true,
+  calendar_events: true,
   calendar_reminders: true,
+  polls: true,
   trip_invites: true,
   join_requests: true,
+  basecamp_updates: true,
   quiet_hours_enabled: false,
   quiet_start: '22:00',
   quiet_end: '08:00',
@@ -101,7 +107,6 @@ export const userPreferencesService = {
 
   async getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
     try {
-      // Temporary type assertion until notification_preferences table is added to database types
       const { data, error } = await (supabase as any)
         .from('notification_preferences')
         .select('*')
@@ -119,7 +124,8 @@ export const userPreferencesService = {
         return DEFAULT_NOTIFICATION_PREFERENCES;
       }
 
-      return data as NotificationPreferences;
+      // Merge with defaults to ensure all fields exist
+      return { ...DEFAULT_NOTIFICATION_PREFERENCES, ...data } as NotificationPreferences;
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Failed to get notification preferences:', error);
@@ -133,11 +139,14 @@ export const userPreferencesService = {
     preferences: Partial<NotificationPreferences>
   ): Promise<NotificationPreferences | null> {
     try {
-      // Temporary type assertion until notification_preferences table is added to database types
       const { data, error } = await (supabase as any)
         .from('notification_preferences')
         .upsert(
-          { user_id: userId, ...preferences },
+          { 
+            user_id: userId, 
+            ...preferences,
+            updated_at: new Date().toISOString()
+          },
           { onConflict: 'user_id' }
         )
         .select()

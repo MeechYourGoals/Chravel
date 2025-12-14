@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Bell, MessageCircle, Calendar, Radio, X, FilePlus, Image, BarChart2, UserPlus } from 'lucide-react';
+import { Bell, MessageCircle, Calendar, Radio, X, FilePlus, Image, BarChart2, UserPlus, Trash2, CheckSquare, DollarSign, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useAuth } from '@/hooks/useAuth';
@@ -158,21 +158,43 @@ export const NotificationBell = () => {
     
     switch (type) {
       case 'message':
-        return <MessageCircle size={16} className={iconClass} />;
+      case 'chat':
+        return <MessageCircle size={16} className="text-blue-400" />;
       case 'broadcast':
-        return <Radio size={16} className={iconClass} />;
+        return <Radio size={16} className="text-red-400" />;
       case 'calendar':
-        return <Calendar size={16} className={iconClass} />;
+        return <Calendar size={16} className="text-purple-400" />;
       case 'poll':
-        return <BarChart2 size={16} className={iconClass} />;
+        return <BarChart2 size={16} className="text-cyan-400" />;
+      case 'task':
+        return <CheckSquare size={16} className="text-yellow-400" />;
+      case 'payment':
+        return <DollarSign size={16} className="text-green-400" />;
       case 'files':
         return <FilePlus size={16} className={iconClass} />;
       case 'photos':
         return <Image size={16} className={iconClass} />;
       case 'join_request':
-        return <UserPlus size={16} className="text-blue-400" />;
+        return <UserPlus size={16} className="text-orange-400" />;
+      case 'system':
+        return <MapPin size={16} className="text-pink-400" />;
       default:
         return <Bell size={16} className={iconClass} />;
+    }
+  };
+
+  const deleteNotification = async (notificationId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Remove locally
+    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+    
+    // Delete from database (if not demo mode)
+    if (!isDemoMode && user) {
+      await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
     }
   };
 
@@ -260,7 +282,7 @@ export const NotificationBell = () => {
                     <div
                       key={notification.id}
                       onClick={() => handleNotificationClick(notification)}
-                      className={`p-4 border-b border-gray-700/50 hover:bg-gray-800/50 cursor-pointer transition-colors ${
+                      className={`p-4 border-b border-gray-700/50 hover:bg-gray-800/50 cursor-pointer transition-colors group ${
                         !notification.isRead ? 'bg-gray-800/30' : ''
                       }`}
                     >
@@ -288,6 +310,14 @@ export const NotificationBell = () => {
                             <p className="text-xs text-gray-500">{notification.timestamp}</p>
                           </div>
                         </div>
+                        {/* Delete button - visible on hover for desktop */}
+                        <button
+                          onClick={(e) => deleteNotification(notification.id, e)}
+                          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-all"
+                          title="Delete notification"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </div>
                   )
