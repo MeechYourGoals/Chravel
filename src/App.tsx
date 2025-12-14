@@ -56,6 +56,7 @@ const retryImport = <T,>(importFn: () => Promise<T>, retries = 3, delay = 1000):
 
 const Index = lazy(() => retryImport(() => import("./pages/Index")));
 const TripDetail = lazy(() => retryImport(() => import("./pages/TripDetail")));
+const DemoTripGate = lazy(() => retryImport(() => import("./pages/DemoTripGate")));
 
 const ProTripDetail = lazy(() => retryImport(() => import("./pages/ProTripDetail")));
 const EventDetail = lazy(() => retryImport(() => import("./pages/EventDetail")));
@@ -272,6 +273,11 @@ const App = () => {
                     <Route path="/trip/:tripId/preview" element={
                       <LazyRoute>
                         <TripPreview />
+                      </LazyRoute>
+                    } />
+                    <Route path="/demo/trip/:demoTripId" element={
+                      <LazyRoute>
+                        <DemoTripGate />
                       </LazyRoute>
                     } />
                     <Route path="/auth" element={
