@@ -528,8 +528,8 @@ export const TripChat = ({
 
       {/* Persistent Chat Input - Fixed at Bottom (Hidden when in Channels mode) */}
       {messageFilter !== 'channels' && (
-        <div className="chat-input-persistent">
-          <div className="px-3">
+        <div className="chat-input-persistent w-full">
+          <div className="w-full">
             <ChatInput
               inputMessage={inputMessage}
               onInputChange={setInputMessage}
