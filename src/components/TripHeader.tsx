@@ -526,13 +526,13 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
               tripType={trip.trip_type || 'consumer'}
             />
 
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-1.5">
               <button
                 onClick={() => setShowInvite(true)}
-                className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white text-sm font-medium py-2.5 px-3 rounded-xl transition-all duration-200 hover:scale-105`}
+                className={`flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200 hover:scale-105`}
                 title="Invite people to this trip"
               >
-                <Plus size={16} />
+                <Plus size={14} />
                 <span>Invite to Trip</span>
               </button>
               
@@ -540,10 +540,10 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
               {user?.id && !isCurrentUserCreator && (
                 <button
                   onClick={() => setShowExitConfirm(true)}
-                  className="flex-1 min-w-[100px] flex items-center justify-center gap-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-sm font-medium py-2.5 px-3 rounded-xl transition-all duration-200"
+                  className="flex items-center justify-center gap-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200"
                   title="Leave this trip"
                 >
-                  <LogOut size={16} />
+                  <LogOut size={14} />
                   <span>Exit Trip</span>
                 </button>
               )}
@@ -552,7 +552,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 onClick={() => canExport && onShowExport?.()}
                 disabled={!canExport}
                 className={cn(
-                  "flex-1 min-w-[120px] flex items-center justify-center gap-2 text-sm font-medium py-2.5 px-3 rounded-xl transition-all duration-200",
+                  "flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200",
                   canExport
                     ? `bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white hover:scale-105`
                     : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/50'
@@ -560,7 +560,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 title={canExport ? 'Export Trip to PDF' : 'Upgrade for PDF export'}
                 aria-label="Export Trip to PDF"
               >
-                <FileDown size={16} />
+                <FileDown size={14} />
                 <span>Export to PDF</span>
               </button>
             </div>
