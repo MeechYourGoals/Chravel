@@ -157,17 +157,13 @@ const JoinTrip = () => {
       return;
     }
 
-    // Handle demo invite codes gracefully
+    // Handle demo invite codes - redirect to auth instead of showing error
     if (token.startsWith('demo-')) {
       if (import.meta.env.DEV) {
-         
-        console.log('[JoinTrip] Demo invite code detected');
+        console.log('[JoinTrip] Demo invite code detected, redirecting to auth');
       }
-      setError({
-        message: 'This is a demonstration invite link. Create a real trip to generate shareable invite links that others can use to join!',
-        code: 'INVALID'
-      });
-      setLoading(false);
+      // Demo invites should redirect to sign up - they're not real invites
+      navigate(`/auth?mode=signup&returnTo=${encodeURIComponent('/')}`, { replace: true });
       return;
     }
 

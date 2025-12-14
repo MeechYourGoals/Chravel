@@ -163,6 +163,16 @@ const TripPreview = () => {
   };
 
   const handleViewTrip = () => {
+    // Check if this is a demo trip (numeric ID 1-12)
+    const numericId = tripId ? parseInt(tripId, 10) : NaN;
+    const isDemoTrip = !isNaN(numericId) && numericId > 0 && numericId <= 12;
+
+    if (isDemoTrip) {
+      // Demo trips should redirect to auth - they're not real trips in the database
+      navigate(`/auth?mode=signup&returnTo=${encodeURIComponent('/')}`, { replace: true });
+      return;
+    }
+
     if (user) {
       // User is logged in, go to full trip detail
       navigate(`/trip/${tripId}`);
@@ -288,7 +298,12 @@ const TripPreview = () => {
               onClick={handleViewTrip}
               className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold py-3 text-base"
             >
-              {user ? 'View Full Trip' : 'Sign Up to View'}
+              {(() => {
+                const numericId = tripId ? parseInt(tripId, 10) : NaN;
+                const isDemoTrip = !isNaN(numericId) && numericId > 0 && numericId <= 12;
+                if (isDemoTrip) return 'Sign Up to View';
+                return user ? 'View Full Trip' : 'Sign Up to View';
+              })()}
             </Button>
 
             <Button
