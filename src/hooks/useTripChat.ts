@@ -59,6 +59,7 @@ export const useTripChat = (tripId: string | undefined) => {
           .from('trip_chat_messages')
           .select('*')
           .eq('trip_id', tripId)
+          .eq('is_deleted', false)
           .order('created_at', { ascending: false })
           .limit(10);
 
@@ -152,10 +153,20 @@ export const useTripChat = (tripId: string | undefined) => {
           filter: `trip_id=eq.${tripId}`
         },
         (payload) => {
+          const updatedMessage = payload.new as TripChatMessage & { is_deleted?: boolean };
+
+          // If message was deleted, remove it completely from the list
+          if (updatedMessage.is_deleted) {
+            queryClient.setQueryData(['tripChat', tripId], (old: TripChatMessage[] = []) => {
+              return old.filter(msg => msg.id !== updatedMessage.id);
+            });
+            return;
+          }
+
           // Handle message edits in real-time
           queryClient.setQueryData(['tripChat', tripId], (old: TripChatMessage[] = []) => {
-            return old.map(msg => 
-              msg.id === payload.new.id 
+            return old.map(msg =>
+              msg.id === payload.new.id
                 ? { ...msg, ...payload.new as TripChatMessage }
                 : msg
             );
@@ -313,6 +324,7 @@ export const useTripChat = (tripId: string | undefined) => {
         .from('trip_chat_messages')
         .select('*')
         .eq('trip_id', tripId)
+        .eq('is_deleted', false)
         .lt('created_at', oldestMessage.created_at)
         .order('created_at', { ascending: false })
         .limit(20);
