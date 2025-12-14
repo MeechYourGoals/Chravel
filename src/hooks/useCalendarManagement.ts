@@ -164,8 +164,15 @@ export const useCalendarManagement = (tripId: string) => {
     }
   };
 
-  const updateEvent = async (eventId: string, eventData: AddToCalendarData) => {
-    if (!tripId) return;
+  const updateEvent = async (eventId: string, eventData: AddToCalendarData): Promise<boolean> => {
+    if (!tripId) {
+      toast({
+        title: 'Unable to update event',
+        description: 'Trip ID is missing.',
+        variant: 'destructive'
+      });
+      return false;
+    }
 
     try {
       setIsSaving(true);
@@ -188,18 +195,33 @@ export const useCalendarManagement = (tripId: string) => {
         const formatted = tripEvents.map(calendarService.convertToCalendarEvent);
         setEvents(formatted);
         setEditingEvent(null);
+        setShowAddEvent(false);
         toast({
           title: 'Event updated',
           description: 'Your changes have been saved.'
         });
+        return true;
+      } else {
+        // This shouldn't happen anymore since calendarService now throws on failure
+        // But handle it just in case for defensive programming
+        toast({
+          title: 'Unable to update event',
+          description: 'The update did not complete. Please try again.',
+          variant: 'destructive'
+        });
+        return false;
       }
     } catch (error) {
       console.error('Failed to update event:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: 'Unable to update event',
-        description: 'Please try again later.',
+        description: errorMessage.includes('permission') || errorMessage.includes('RLS')
+          ? 'You may not have permission to edit this event.'
+          : errorMessage,
         variant: 'destructive'
       });
+      return false;
     } finally {
       setIsSaving(false);
     }

@@ -67,10 +67,13 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
 
   const handleFormSubmit = async () => {
     if (editingEvent) {
-      // Update existing event
-      await updateEvent(editingEvent.id, newEvent);
-      setEditingEvent(null);
-      resetForm();
+      // Update existing event - updateEvent handles success/error toasts and state cleanup
+      const success = await updateEvent(editingEvent.id, newEvent);
+      // Only reset form on success - updateEvent already handles setEditingEvent and setShowAddEvent
+      if (success) {
+        resetForm();
+      }
+      // On failure, modal stays open so user can retry
     } else {
       // Create new event
       await handleAddEvent();

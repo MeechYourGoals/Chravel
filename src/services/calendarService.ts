@@ -397,62 +397,95 @@ export const calendarService = {
   },
 
   async updateEvent(eventId: string, updates: Partial<TripEvent>): Promise<boolean> {
-    try {
-      // Check if in demo mode
-      const isDemoMode = await demoModeService.isDemoModeEnabled();
-      
-      if (isDemoMode) {
-        // Extract trip_id from the eventId or use updates
-        const tripId = updates.trip_id || eventId.split('-')[0]; // Fallback logic
-        const updatedEvent = await calendarStorageService.updateEvent(tripId, eventId, updates);
-        return updatedEvent !== null;
-      }
-
-      // Check if offline - queue the operation
-      if (!navigator.onLine) {
-        const tripId = updates.trip_id || '';
-        const version = (updates as any).version;
-        
-        await calendarOfflineQueue.queueUpdate(tripId, eventId, updates, version);
-        await offlineSyncService.queueOperation(
-          'calendar_event',
-          'update',
-          tripId,
-          updates,
-          eventId,
-          version
-        );
-        
-        return true; // Optimistic success
-      }
-
-      // Use Supabase for authenticated users
-      const { error } = await supabase
-        .from('trip_events')
-        .update(updates)
-        .eq('id', eventId);
-
-      if (!error) {
-        // Update cache
-        const cached = await offlineSyncService.getCachedEntity('calendar_event', eventId);
-        if (cached) {
-          await offlineSyncService.cacheEntity(
-            'calendar_event',
-            eventId,
-            cached.tripId,
-            { ...cached.data, ...updates },
-            ((updates as any).version as number) || cached.version || 1
-          );
-        }
-      }
-
-      return !error;
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error updating event:', error);
-      }
-      return false;
+    // Validate required parameter
+    if (!eventId) {
+      console.error('[calendarService] Missing eventId for update');
+      throw new Error('Event ID is required to update an event');
     }
+
+    // Check if in demo mode
+    const isDemoMode = await demoModeService.isDemoModeEnabled();
+    
+    if (isDemoMode) {
+      // Extract trip_id from the eventId or use updates
+      const tripId = updates.trip_id || eventId.split('-')[0]; // Fallback logic
+      const updatedEvent = await calendarStorageService.updateEvent(tripId, eventId, updates);
+      if (!updatedEvent) {
+        throw new Error('Failed to update event in demo mode');
+      }
+      return true;
+    }
+
+    // Check if offline - queue the operation
+    if (!navigator.onLine) {
+      const tripId = updates.trip_id || '';
+      const version = (updates as any).version;
+      
+      await calendarOfflineQueue.queueUpdate(tripId, eventId, updates, version);
+      await offlineSyncService.queueOperation(
+        'calendar_event',
+        'update',
+        tripId,
+        updates,
+        eventId,
+        version
+      );
+      
+      return true; // Optimistic success
+    }
+
+    // Get current user for logging
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('You must be logged in to update events. Please sign in and try again.');
+    }
+
+    console.log('[calendarService] Updating event:', eventId, 'by user:', user.id);
+
+    // Use Supabase for authenticated users - use .select() to verify update happened
+    const { data, error } = await supabase
+      .from('trip_events')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', eventId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[calendarService] Update failed:', error);
+      // Provide more specific error messages based on error type
+      if (error.code === '42501' || error.message?.includes('RLS') || error.message?.includes('policy')) {
+        throw new Error('You do not have permission to update this event. Only the event creator or trip admin can edit it.');
+      }
+      if (error.code === 'PGRST116' || error.message?.includes('0 rows')) {
+        throw new Error('Event update failed — no matching event found or you do not have permission to edit it.');
+      }
+      throw new Error(error.message || 'Failed to update event. Please try again.');
+    }
+
+    // Verify we got data back (confirms update happened)
+    if (!data) {
+      console.error('[calendarService] Update returned no data - likely RLS blocked or event not found');
+      throw new Error('Event update failed — no rows updated. You may not have permission to edit this event.');
+    }
+
+    console.log('[calendarService] Event updated successfully:', data.id);
+
+    // Update cache with the returned data
+    const cached = await offlineSyncService.getCachedEntity('calendar_event', eventId);
+    if (cached) {
+      await offlineSyncService.cacheEntity(
+        'calendar_event',
+        eventId,
+        cached.tripId,
+        data,
+        data.version || cached.version || 1
+      );
+    }
+
+    return true;
   },
 
   async deleteEvent(eventId: string, tripId?: string): Promise<boolean> {
