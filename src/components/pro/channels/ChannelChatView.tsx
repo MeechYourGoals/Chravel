@@ -48,7 +48,7 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
 
   useEffect(() => {
     loadMessages();
-    
+
     // Subscribe to real-time updates (skip for demo channels)
     const DEMO_TRIP_IDS = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026'];
     if (!DEMO_TRIP_IDS.includes(channel.tripId)) {
@@ -56,6 +56,10 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
         channel.id,
         (newMsg) => {
           setMessages(prev => [...prev, newMsg]);
+        },
+        (deletedMessageId) => {
+          // Remove deleted message completely from the list
+          setMessages(prev => prev.filter(msg => msg.id !== deletedMessageId));
         }
       );
       return unsubscribe;

@@ -377,10 +377,22 @@ class ChannelService {
     }
   }
 
-  subscribeToChannel(channelId: string, onMessage: (msg: ChannelMessage) => void): () => void {
-    const ch = supabase.channel(`chan_${channelId}`).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'channel_messages', filter: `channel_id=eq.${channelId}` }, (p) => {
-      onMessage({ id: p.new.id, channelId: p.new.channel_id, senderId: p.new.sender_id, content: p.new.content, messageType: p.new.message_type, metadata: p.new.metadata, createdAt: p.new.created_at });
-    }).subscribe();
+  subscribeToChannel(
+    channelId: string,
+    onMessage: (msg: ChannelMessage) => void,
+    onMessageDeleted?: (messageId: string) => void
+  ): () => void {
+    const ch = supabase.channel(`chan_${channelId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'channel_messages', filter: `channel_id=eq.${channelId}` }, (p) => {
+        onMessage({ id: p.new.id, channelId: p.new.channel_id, senderId: p.new.sender_id, content: p.new.content, messageType: p.new.message_type, metadata: p.new.metadata, createdAt: p.new.created_at });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'channel_messages', filter: `channel_id=eq.${channelId}` }, (p) => {
+        // If message was deleted, notify the callback
+        if (p.new.deleted_at && onMessageDeleted) {
+          onMessageDeleted(p.new.id as string);
+        }
+      })
+      .subscribe();
     return () => ch.unsubscribe();
   }
 
