@@ -13,6 +13,7 @@ interface TripPreviewData {
   destination: string | null;
   start_date: string | null;
   end_date: string | null;
+  dateRange?: string; // Pre-formatted date string for demo trips
   cover_image_url: string | null;
   trip_type: string | null;
   member_count: number;
@@ -104,6 +105,7 @@ const TripPreview = () => {
           destination: demoTrip.location,
           start_date: null,
           end_date: null,
+          dateRange: demoTrip.dateRange, // Use pre-formatted date from mock data
           cover_image_url: demoTrip.coverPhoto || null,
           trip_type: 'consumer',
           member_count: demoTrip.participants.length,
@@ -170,7 +172,9 @@ const TripPreview = () => {
     }
   };
 
-  const formatDateRange = (startDate: string | null, endDate: string | null): string => {
+  const formatDateRange = (startDate: string | null, endDate: string | null, dateRange?: string): string => {
+    // Prefer pre-formatted dateRange if available (for demo trips)
+    if (dateRange) return dateRange;
     if (!startDate) return 'Dates TBD';
 
     const start = new Date(startDate);
@@ -264,7 +268,7 @@ const TripPreview = () => {
 
             <div className="flex items-center gap-3 text-white/80">
               <Calendar className="h-5 w-5 text-yellow-400 flex-shrink-0" />
-              <span>{formatDateRange(tripData.start_date, tripData.end_date)}</span>
+              <span>{formatDateRange(tripData.start_date, tripData.end_date, tripData.dateRange)}</span>
             </div>
 
             <div className="flex items-center gap-3 text-white/80">
