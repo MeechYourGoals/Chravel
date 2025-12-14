@@ -182,14 +182,6 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       return;
     }
 
-    // Trip creators cannot leave - they should archive/delete instead
-    const creatorId = tripCreatorId || trip.created_by;
-    if (user.id === creatorId) {
-      toast.error('As the trip creator, you cannot leave. Archive or delete the trip instead.');
-      setShowExitConfirm(false);
-      return;
-    }
-
     setIsExiting(true);
     const success = await leaveTrip(trip.title);
     setIsExiting(false);
@@ -548,8 +540,8 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 <span>Invite to Trip</span>
               </button>
               
-              {/* Exit Trip - Show for authenticated non-creators and demo mode users */}
-              {(user?.id || isDemoMode) && !isCurrentUserCreator && (
+              {/* Exit Trip - Show for all authenticated users and demo mode users */}
+              {(user?.id || isDemoMode) && (
                 <button
                   onClick={() => setShowExitConfirm(true)}
                   className="flex items-center justify-center gap-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200"
