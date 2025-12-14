@@ -171,6 +171,7 @@ class RoleChannelService {
           )
         `)
         .eq('channel_id', channelId)
+        .is('deleted_at', null)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
