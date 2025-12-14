@@ -58,6 +58,8 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
         .from('user_trip_roles')
         .select('*')
         .eq('trip_id', tripId)
+        // ✅ Ensure primary role is treated as current role in UI
+        .order('is_primary', { ascending: false })
         .order('assigned_at', { ascending: true });
 
       if (error) throw error;
@@ -128,7 +130,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
     };
   }, [tripId, enabled, isDemoMode, fetchAssignments]);
 
-  const assignRole = useCallback(async (userId: string, roleId: string) => {
+  const assignRole = useCallback(async (userId: string, roleId: string, setAsPrimary: boolean = true) => {
     setIsProcessing(true);
     
     try {
@@ -160,7 +162,8 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
         _trip_id: tripId,
         _user_id: userId,
         _role_id: roleId,
-        _set_as_primary: false
+        // ✅ MVP: role assignment replaces primary role by default (roster + channels stay consistent)
+        _set_as_primary: setAsPrimary
       });
 
       if (error) throw error;
