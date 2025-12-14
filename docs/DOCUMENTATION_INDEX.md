@@ -74,12 +74,8 @@ npm run docs:generate
 
 ## 🧩 Component Library
 
-- **[STORYBOOK_SETUP.md](STORYBOOK_SETUP.md)** - Storybook setup and usage guide
-
-**Run Storybook:**
-```bash
-npm run storybook
-```
+---
+Storybook was previously scaffolded but is currently not part of the active toolchain.
 
 ---
 
@@ -150,7 +146,6 @@ npm run storybook
 - ✅ **ANDROID_DEPLOY_QUICKSTART.md** - Android deployment guide
 - ✅ **PRODUCTION_DEPLOYMENT_CHECKLIST.md** - Deployment checklist
 - ✅ **ADRs/** - Architecture Decision Records
-- ✅ **STORYBOOK_SETUP.md** - Storybook guide
 - ✅ **API_INTEGRATION_STATUS.md** - API status tracking
 
 ---

@@ -25,8 +25,6 @@
     "ios:build": "npm run build && npx cap sync ios",
     "ios:open": "npx cap open ios",
     "ios:run": "npm run build && npx cap sync ios && npx cap run ios",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
     "docs:generate": "typedoc"
   },
   "dependencies": {
@@ -138,7 +136,6 @@
     "lovable-tagger": "^1.1.7",
     "postcss": "^8.4.47",
     "prettier": "^3.1.0",
-    "storybook": "^8.3.0",
     "tailwindcss": "^3.4.11",
     "typedoc": "^0.28.0",
     "typedoc-plugin-markdown": "^4.2.0",

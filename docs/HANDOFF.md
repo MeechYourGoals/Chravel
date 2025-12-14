@@ -105,7 +105,7 @@ Chravel MVP is **94% production-ready** with all critical backend infrastructure
 - Feature-level boundaries for chat, media, itinerary
 
 ✅ **Loading States**
-- `LoadingSkeleton` component with 5 variants (card, list, grid, chat, media)
+- Loading skeleton primitives in `src/components/loading/FeatureSkeletons.tsx` (feature-specific skeletons)
 - Consistent loading UX patterns
 
 ---
@@ -138,7 +138,7 @@ Chravel MVP is **94% production-ready** with all critical backend infrastructure
    - Type event handlers more strictly
 
 5. **Loading Skeleton Implementation** (2-3 hrs)
-   - Replace `isLoading &&` conditionals with `<LoadingSkeleton />`
+   - Standardize on `src/components/loading/FeatureSkeletons.tsx` (and `LoadingSpinner` where appropriate)
    - Apply to: trip lists, org dashboard, chat, media gallery
 
 6. **Optimistic UI Rollout** (2-3 hrs)

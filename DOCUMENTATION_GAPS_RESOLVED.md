@@ -111,16 +111,9 @@ This document summarizes the resolution of all identified documentation gaps.
 
 **Status:** ✅ Complete
 
-**Created:**
-- **[docs/STORYBOOK_SETUP.md](docs/STORYBOOK_SETUP.md)** - Storybook setup guide
-  - Installation instructions
-  - Configuration examples
-  - Story creation patterns
-  - Best practices
-  - Deployment options
-
-- **[.storybook/main.ts](.storybook/main.ts)** - Storybook main config
-- **[.storybook/preview.tsx](.storybook/preview.tsx)** - Storybook preview config
+**Update (2025-12-14):**
+- Storybook scaffolding was removed during codebase hygiene cleanup because it had no stories and was not part of the active toolchain.
+- If Storybook is desired later, it should be reintroduced intentionally alongside actual `*.stories.tsx` files and a maintained config.
 
 **Package.json Updated:**
 - Added `storybook` script
