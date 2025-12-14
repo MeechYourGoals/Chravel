@@ -36,7 +36,7 @@ export const FAQSection = () => {
           Frequently Asked Questions
         </h2>
         <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-          Everything you need to know about Chravel
+          Everything you need to know about ChravelApp
         </p>
       </div>
 

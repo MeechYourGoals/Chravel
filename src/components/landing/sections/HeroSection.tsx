@@ -29,7 +29,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
 
       {/* Subheadline */}
       <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-foreground max-w-3xl animate-fade-in" style={{ animationDelay: '0.1s' }}>
-        The Social Storage Platform for your group's Shared Calendars, Messages, Media, Payments, and more
+        The Group Chat Travel App for Shared Calendars, Messages, Media, Payments, and more
       </p>
 
       {/* Feature Pills */}

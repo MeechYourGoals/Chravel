@@ -363,8 +363,8 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
         <div className="flex justify-center">
           <div className="bg-card/50 rounded-lg p-1 flex gap-1">
             {[
-              { id: 'consumer', label: 'Chravel Plus', icon: <Users size={16} /> },
-              { id: 'pro', label: 'Chravel Pro', icon: <Building size={16} /> }
+              { id: 'consumer', label: 'ChravelApp Plus', icon: <Users size={16} /> },
+              { id: 'pro', label: 'ChravelApp Pro', icon: <Building size={16} /> }
             ].map((tab) => (
               <button
                 key={tab.id}
