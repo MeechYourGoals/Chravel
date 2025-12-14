@@ -1,6 +1,9 @@
-// AI-generated universal avatars for consistent mock user display
+// Mock avatars for demo mode only - real users get generic silhouette
 const maleAvatarPath = '/avatars/avatar-male-ai.png';
 const femaleAvatarPath = '/avatars/avatar-female-ai.png';
+
+// Generic silhouette for real authenticated users without uploaded photos
+export const defaultAvatar = '/avatars/avatar-default.svg';
 
 // Gender classification by first name
 const maleNames = [
@@ -53,3 +56,25 @@ export const getMockAvatar = (name: string): string => {
 
 // Current user avatar (for "You" messages)
 export const currentUserAvatar = '/avatars/avatar-male-ai.png';
+
+/**
+ * Get avatar URL with proper fallback logic
+ * @param profileAvatarUrl - User's uploaded avatar from profile
+ * @param userName - User's name for demo mode mock avatar
+ * @param isDemoMode - Whether we're in demo mode
+ * @returns Avatar URL to use
+ */
+export const getAvatarUrl = (
+  profileAvatarUrl: string | null | undefined,
+  userName: string,
+  isDemoMode: boolean
+): string => {
+  // If user has uploaded an avatar, always use it
+  if (profileAvatarUrl) return profileAvatarUrl;
+  
+  // Demo mode: use mock avatars for demo trips
+  if (isDemoMode) return getMockAvatar(userName);
+  
+  // Default: generic silhouette for real users without photos
+  return defaultAvatar;
+};

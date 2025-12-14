@@ -11,7 +11,7 @@ import { InlineReplyComponent } from './chat/InlineReplyComponent';
 import { VirtualizedMessageContainer } from './chat/VirtualizedMessageContainer';
 import { MessageItem } from './chat/MessageItem';
 import { MessageSkeleton } from './mobile/SkeletonLoader';
-import { getMockAvatar } from '../utils/mockAvatars';
+import { getMockAvatar, defaultAvatar } from '../utils/mockAvatars';
 import { useTripMembers } from '../hooks/useTripMembers';
 import { useTripChat } from '@/hooks/useTripChat';
 import { useAuth } from '@/hooks/useAuth';
@@ -230,8 +230,8 @@ export const TripChat = ({
           message.author_name ||
           'Unknown',
         // Canonical avatar comes from `profiles.avatar_url` via `useTripMembers`.
-        // Do NOT fall back to stock/AI-generated avatars in authenticated mode.
-        avatar: tripMembers.find(m => m.id === (message.user_id || ''))?.avatar,
+        // Real users without photos get generic silhouette, NOT mock AI avatars.
+        avatar: tripMembers.find(m => m.id === (message.user_id || ''))?.avatar || defaultAvatar,
         // Store original user_id separately for ownership checks
         userId: message.user_id
       },
@@ -448,7 +448,7 @@ export const TripChat = ({
 
       {/* Chat Container - Messages with Integrated Filter Tabs */}
       <div className="flex-1 flex flex-col min-h-0" data-chat-container>
-        <div ref={messagesContainerRef} className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col relative" style={{ maxHeight: 'calc(100vh - 240px)', minHeight: '300px' }}>
+        <div ref={messagesContainerRef} className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col relative min-h-0">
           
           {/* Filter Tabs */}
           <MessageTypeBar
@@ -528,8 +528,8 @@ export const TripChat = ({
 
       {/* Persistent Chat Input - Fixed at Bottom (Hidden when in Channels mode) */}
       {messageFilter !== 'channels' && (
-        <div className="chat-input-persistent pb-[env(safe-area-inset-bottom)]">
-          <div className="px-4 py-1">
+        <div className="chat-input-persistent">
+          <div className="px-3">
             <ChatInput
               inputMessage={inputMessage}
               onInputChange={setInputMessage}
