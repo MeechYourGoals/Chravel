@@ -4,15 +4,16 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { 
-  Users, Check, X, Search, Filter, ChevronRight, CheckCircle2, AlertCircle 
+import {
+  Users, Check, X, Search, Filter, ChevronRight, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
-import { ProTripCategory, getCategoryConfig } from '../../types/proCategories';
+import { ProTripCategory } from '../../types/proCategories';
 import { useBulkRoleAssignment } from '../../hooks/useBulkRoleAssignment';
 import { getRoleColorClass } from '../../utils/roleUtils';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getInitials } from '../../utils/avatarUtils';
+import { TripRole } from '../../types/roleChannels';
 
 interface BulkRoleAssignmentModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ interface BulkRoleAssignmentModalProps {
   roster: ProParticipant[];
   category: ProTripCategory;
   existingRoles: string[];
+  availableRoles?: TripRole[];
   onUpdateMemberRole: (memberId: string, newRole: string) => Promise<void>;
 }
 
@@ -31,6 +33,7 @@ export const BulkRoleAssignmentModal = ({
   roster,
   category,
   existingRoles,
+  availableRoles = [],
   onUpdateMemberRole
 }: BulkRoleAssignmentModalProps) => {
   const [step, setStep] = useState<Step>('select');
@@ -50,7 +53,9 @@ export const BulkRoleAssignmentModal = ({
     isAssigning
   } = useBulkRoleAssignment();
 
-  const categoryConfig = getCategoryConfig(category);
+  // Get actual trip roles - these are the only roles that can be assigned
+  // "Predefined" now means "existing trip roles", not category-based defaults
+  const tripRoleNames = availableRoles.map(r => r.roleName);
 
   // Filter roster based on search and role filter
   const filteredRoster = useMemo(() => {
@@ -278,9 +283,9 @@ export const BulkRoleAssignmentModal = ({
                   size="sm"
                   onClick={() => {
                     setIsCustomRole(false);
-                    setSelectedRole(categoryConfig.roles[0] || '');
+                    setSelectedRole(tripRoleNames[0] || '');
                   }}
-                  disabled={categoryConfig.roles.length === 0}
+                  disabled={tripRoleNames.length === 0}
                   className="flex-1"
                 >
                   Predefined
@@ -300,27 +305,26 @@ export const BulkRoleAssignmentModal = ({
               </div>
             </div>
 
-            {/* Role Selection */}
-            {!isCustomRole && categoryConfig.roles.length > 0 ? (
+            {/* Role Selection - Only shows actual trip roles, not category-based defaults */}
+            {!isCustomRole && tripRoleNames.length > 0 ? (
               <Select value={selectedRole} onValueChange={setSelectedRole}>
                 <SelectTrigger className="bg-gray-800 border-gray-600">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
-                  {categoryConfig.roles.map(role => (
+                  {tripRoleNames.map(role => (
                     <SelectItem key={role} value={role} className="text-white hover:bg-gray-700">
                       {role}
                     </SelectItem>
                   ))}
-                  {existingRoles
-                    .filter(role => !categoryConfig.roles.includes(role))
-                    .map(role => (
-                      <SelectItem key={role} value={role} className="text-white hover:bg-gray-700">
-                        {role} <span className="text-xs text-gray-400">(Custom)</span>
-                      </SelectItem>
-                    ))}
                 </SelectContent>
               </Select>
+            ) : !isCustomRole && tripRoleNames.length === 0 ? (
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                <p className="text-yellow-400 text-sm">
+                  No roles exist yet. Use the "Custom" option to create a new role, or create roles first using the "Create Role" button.
+                </p>
+              </div>
             ) : (
               <Input
                 value={selectedRole}

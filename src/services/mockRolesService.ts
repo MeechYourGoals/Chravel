@@ -7,63 +7,32 @@ export class MockRolesService {
   private static readonly MOCK_CHANNELS_KEY = 'demo_pro_trip_channels';
   private static readonly MOCK_ASSIGNMENTS_KEY = 'demo_pro_trip_assignments';
 
-  // Default roles for Sports Pro trips
-  private static readonly SPORTS_ROLES = [
-    { name: 'Head Coach', permissionLevel: 'admin', description: 'Team leadership and strategy' },
-    { name: 'Assistant Coach', permissionLevel: 'edit', description: 'Coaching support staff' },
-    { name: 'Players', permissionLevel: 'edit', description: 'Team roster' },
-    { name: 'Medical Staff', permissionLevel: 'view', description: 'Trainers and doctors' },
-    { name: 'Team Operations', permissionLevel: 'view', description: 'Logistics and coordination' },
-  ];
+  // NOTE: Predetermined/default roles have been removed per global design decision.
+  // For Pro Trips (and Demo Trips that simulate Pro behavior):
+  // - There should be no predetermined role sets
+  // - No role creation based on trip category or trip type
+  // - Roles are user-created, trip-scoped, and fully custom
+  // Users create roles manually using "Create Role" button.
 
-  // Default roles for Entertainment Tour trips
-  private static readonly TOUR_ROLES = [
-    { name: 'Tour Manager', permissionLevel: 'admin', description: 'Overall tour coordination' },
-    { name: 'Production Manager', permissionLevel: 'edit', description: 'Technical production' },
-    { name: 'Crew', permissionLevel: 'view', description: 'Stage and technical crew' },
-    { name: 'Security', permissionLevel: 'view', description: 'Security personnel' },
-    { name: 'VIP Liaison', permissionLevel: 'view', description: 'Guest coordination' },
-  ];
+  /**
+   * Gets existing roles for a trip from localStorage.
+   * No longer seeds predetermined roles - trips start with no roles.
+   * @deprecated Use getRolesForTrip instead. This method now returns existing roles only.
+   */
+  static seedRolesForTrip(tripId: string, _category: string, _currentUserId: string): TripRole[] {
+    // Return existing roles if any, otherwise return empty array
+    // No automatic role seeding based on category
+    const existingRoles = this.getRolesForTrip(tripId);
+    if (existingRoles) {
+      return existingRoles;
+    }
 
-  // Default roles for Corporate Retreats
-  private static readonly CORPORATE_ROLES = [
-    { name: 'Event Coordinator', permissionLevel: 'admin', description: 'Event planning and execution' },
-    { name: 'Team Lead', permissionLevel: 'edit', description: 'Department heads' },
-    { name: 'Attendees', permissionLevel: 'view', description: 'Event participants' },
-    { name: 'Facilitators', permissionLevel: 'edit', description: 'Workshop leaders' },
-    { name: 'Support Staff', permissionLevel: 'view', description: 'Administrative support' },
-  ];
-
-  static getRolesForCategory(category: string): typeof this.SPORTS_ROLES {
-    const cat = category.toLowerCase();
-    if (cat.includes('sport') || cat.includes('team') || cat.includes('athlet')) return this.SPORTS_ROLES;
-    if (cat.includes('tour') || cat.includes('music') || cat.includes('concert')) return this.TOUR_ROLES;
-    if (cat.includes('corporate') || cat.includes('retreat') || cat.includes('conference')) return this.CORPORATE_ROLES;
-    return this.SPORTS_ROLES; // Default fallback
-  }
-
-  static seedRolesForTrip(tripId: string, category: string, currentUserId: string): TripRole[] {
-    const roleTemplates = this.getRolesForCategory(category);
-    
-    const roles: TripRole[] = roleTemplates.map((template, index) => ({
-      id: `mock-role-${tripId}-${index}`,
-      tripId,
-      roleName: template.name,
-      description: template.description,
-      permissionLevel: template.permissionLevel as any,
-      featurePermissions: this.getDefaultFeaturePermissions(template.permissionLevel as any),
-      createdBy: currentUserId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      memberCount: 0,
-    }));
-
-    // Store in localStorage for persistence
+    // Initialize empty roles array for this trip
     const allRoles = this.getAllRoles();
-    allRoles[tripId] = roles;
+    allRoles[tripId] = [];
     localStorage.setItem(this.MOCK_ROLES_KEY, JSON.stringify(allRoles));
 
-    return roles;
+    return [];
   }
 
   static seedChannelsForRoles(tripId: string, roles: TripRole[], currentUserId: string): TripChannel[] {
@@ -94,6 +63,57 @@ export class MockRolesService {
   static getRolesForTrip(tripId: string): TripRole[] | null {
     const allRoles = this.getAllRoles();
     return allRoles[tripId] || null;
+  }
+
+  /**
+   * Creates a new role for a trip in demo mode.
+   * This is the proper way to add roles - users create them manually.
+   */
+  static createRole(
+    tripId: string,
+    roleName: string,
+    description: string,
+    permissionLevel: 'admin' | 'edit' | 'view',
+    currentUserId: string
+  ): TripRole {
+    const allRoles = this.getAllRoles();
+    const tripRoles = allRoles[tripId] || [];
+
+    const newRole: TripRole = {
+      id: `mock-role-${tripId}-${Date.now()}`,
+      tripId,
+      roleName,
+      description,
+      permissionLevel,
+      featurePermissions: this.getDefaultFeaturePermissions(permissionLevel),
+      createdBy: currentUserId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      memberCount: 0,
+    };
+
+    tripRoles.push(newRole);
+    allRoles[tripId] = tripRoles;
+    localStorage.setItem(this.MOCK_ROLES_KEY, JSON.stringify(allRoles));
+
+    return newRole;
+  }
+
+  /**
+   * Deletes a role from a trip in demo mode.
+   */
+  static deleteRole(tripId: string, roleId: string): boolean {
+    const allRoles = this.getAllRoles();
+    const tripRoles = allRoles[tripId] || [];
+
+    const filteredRoles = tripRoles.filter(r => r.id !== roleId);
+    if (filteredRoles.length === tripRoles.length) {
+      return false; // Role not found
+    }
+
+    allRoles[tripId] = filteredRoles;
+    localStorage.setItem(this.MOCK_ROLES_KEY, JSON.stringify(allRoles));
+    return true;
   }
 
   static getChannelsForTrip(tripId: string): TripChannel[] | null {
