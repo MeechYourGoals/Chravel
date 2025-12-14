@@ -12,6 +12,7 @@ import { useLongPress } from '@/hooks/useLongPress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/utils/avatarUtils';
 import { defaultAvatar } from '@/utils/mockAvatars';
+import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 
 export interface MessageBubbleProps {
   id: string;
@@ -93,6 +94,8 @@ export const MessageBubble = memo(({
   const hasLinkPreview = linkPreview && typeof linkPreview === 'object';
   const hasAttachments = attachments && Array.isArray(attachments) && attachments.length > 0;
 
+  const resolvedMediaUrl = useResolvedTripMediaUrl({ url: mediaUrl ?? null });
+
   // Handle image click - open lightbox
   const handleImageClick = (imageUrl: string) => {
     // Find the index of this image in the chat images array
@@ -110,14 +113,14 @@ export const MessageBubble = memo(({
         return (
           <div className="mt-2 relative group">
             <img
-              src={mediaUrl}
+              src={resolvedMediaUrl ?? mediaUrl}
               alt="Shared image"
               className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-95 transition-opacity"
               style={{ maxHeight: '300px' }}
-              onClick={() => handleImageClick(mediaUrl!)}
+              onClick={() => handleImageClick((resolvedMediaUrl ?? mediaUrl) as string)}
             />
             <button
-              onClick={() => handleImageClick(mediaUrl!)}
+              onClick={() => handleImageClick((resolvedMediaUrl ?? mediaUrl) as string)}
               className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
               aria-label="View full size"
             >
@@ -130,8 +133,9 @@ export const MessageBubble = memo(({
         return (
           <div className="mt-2 relative">
             <video
-              src={mediaUrl}
+              src={resolvedMediaUrl ?? mediaUrl}
               controls
+              playsInline
               className="rounded-lg max-w-full h-auto"
               style={{ maxHeight: '300px' }}
             >

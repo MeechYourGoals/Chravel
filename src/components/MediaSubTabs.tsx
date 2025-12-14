@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { toast } from 'sonner';
+import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 
 interface MediaItem {
   id: string;
@@ -47,16 +48,94 @@ interface MediaSubTabsExtendedProps extends MediaSubTabsProps {
   onDeleteItem?: (id: string) => Promise<void> | void;
 }
 
+const MediaGridTile: React.FC<{
+  item: MediaItem;
+  onOpenVideo: (item: MediaItem) => void;
+  onDelete: (id: string, e: React.MouseEvent) => void;
+  isDeleting: boolean;
+}> = ({ item, onOpenVideo, onDelete, isDeleting }) => {
+  const resolvedUrl = useResolvedTripMediaUrl({ url: item.media_url, metadata: item.metadata });
+
+  return (
+    <div
+      className="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer"
+      onClick={(e) => {
+        e.stopPropagation();
+        if (item.media_type === 'video') onOpenVideo(item);
+      }}
+    >
+      {item.media_type === 'image' ? (
+        <img
+          src={resolvedUrl ?? item.media_url}
+          alt={item.filename}
+          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+        />
+      ) : (
+        <div className="relative w-full h-full bg-black flex items-center justify-center">
+          <video
+            src={resolvedUrl ?? item.media_url}
+            className="w-full h-full object-cover"
+            muted
+            playsInline
+            preload="metadata"
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+            <Play className="w-12 h-12 text-white" />
+          </div>
+          {item.metadata?.duration && (
+            <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded pointer-events-none">
+              {Math.floor(item.metadata.duration / 60)}:
+              {(item.metadata.duration % 60).toString().padStart(2, '0')}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Delete button - always visible */}
+      <button
+        onClick={(e) => onDelete(item.id, e)}
+        disabled={isDeleting}
+        className="absolute top-2 right-2 z-10 rounded-full bg-black/70 p-2 text-white hover:bg-destructive transition-colors"
+      >
+        {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+      </button>
+
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors pointer-events-none">
+        <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1">
+            {item.source === 'chat' ? (
+              <MessageCircle className="w-4 h-4 text-white bg-black/50 rounded p-0.5" />
+            ) : (
+              <ExternalLink className="w-4 h-4 text-white bg-black/50 rounded p-0.5" />
+            )}
+          </div>
+        </div>
+
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+          <p className="text-white text-sm font-medium truncate">{item.filename}</p>
+          <p className="text-white/80 text-xs">
+            {item.source === 'chat' ? 'From chat' : 'Uploaded'}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded, onDeleteItem }: MediaSubTabsExtendedProps) => {
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
+  const [activeVideoItem, setActiveVideoItem] = useState<MediaItem | null>(null);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
+  const resolvedActiveVideoUrl = useResolvedTripMediaUrl({
+    url: activeVideoItem?.media_url ?? null,
+    metadata: activeVideoItem?.metadata,
+  });
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -193,7 +272,10 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
             media_type: finalMediaType, // Use the detected/validated type
             file_size: file.size,
             mime_type: file.type,
-            metadata: {}
+            metadata: {
+              upload_path: fileName,
+              uploaded_by: user.id
+            }
           });
 
         if (dbError) {
@@ -323,20 +405,20 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
         />
 
         {/* Video Player Modal */}
-        {activeVideoUrl && (
+        {activeVideoItem && (
           <div
             className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-            onClick={() => setActiveVideoUrl(null)}
+            onClick={() => setActiveVideoItem(null)}
           >
             <button
               className="absolute top-4 right-4 z-10 text-white bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors"
-              onClick={() => setActiveVideoUrl(null)}
+              onClick={() => setActiveVideoItem(null)}
             >
               <X className="w-6 h-6" />
             </button>
             {/* iOS CRITICAL: muted required for autoplay, user can unmute via controls */}
             <video
-              src={activeVideoUrl}
+              src={resolvedActiveVideoUrl ?? activeVideoItem.media_url}
               controls
               autoPlay
               playsInline
@@ -425,93 +507,32 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {mediaItems.map((item) => (
-            <div
-              key={item.id}
-              className="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (item.media_type === 'video') {
-                  setActiveVideoUrl(item.media_url);
-                }
-              }}
-            >
-              {item.media_type === 'image' ? (
-                <img
-                  src={item.media_url}
-                  alt={item.filename}
-                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                />
-              ) : (
-                <div className="relative w-full h-full bg-black flex items-center justify-center">
-                  <video
-                    src={item.media_url}
-                    className="w-full h-full object-cover"
-                    muted
-                    playsInline
-                    preload="metadata"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
-                    <Play className="w-12 h-12 text-white" />
-                  </div>
-                  {item.metadata?.duration && (
-                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded pointer-events-none">
-                      {Math.floor(item.metadata.duration / 60)}:{(item.metadata.duration % 60).toString().padStart(2, '0')}
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {/* Delete button - always visible */}
-              <button
-                onClick={(e) => handleDelete(item.id, e)}
-                disabled={deletingIds.has(item.id)}
-                className="absolute top-2 right-2 z-10 rounded-full bg-black/70 p-2 text-white hover:bg-destructive transition-colors"
-              >
-                {deletingIds.has(item.id) ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
-              </button>
-              
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors pointer-events-none">
-                <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="flex items-center gap-1">
-                    {item.source === 'chat' ? (
-                      <MessageCircle className="w-4 h-4 text-white bg-black/50 rounded p-0.5" />
-                    ) : (
-                      <ExternalLink className="w-4 h-4 text-white bg-black/50 rounded p-0.5" />
-                    )}
-                  </div>
-                </div>
-                
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <p className="text-white text-sm font-medium truncate">{item.filename}</p>
-                  <p className="text-white/80 text-xs">
-                    {item.source === 'chat' ? 'From chat' : 'Uploaded'} • {formatDate(item.created_at)}
-                  </p>
-                </div>
-              </div>
-            </div>
+              <MediaGridTile
+                key={item.id}
+                item={item}
+                onOpenVideo={(it) => setActiveVideoItem(it)}
+                onDelete={handleDelete}
+                isDeleting={deletingIds.has(item.id)}
+              />
             ))}
           </div>
         )}
 
         {/* Video Player Modal */}
-        {activeVideoUrl && (
+        {activeVideoItem && (
           <div
             className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-            onClick={() => setActiveVideoUrl(null)}
+            onClick={() => setActiveVideoItem(null)}
           >
             <button
               className="absolute top-4 right-4 z-10 text-white bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors"
-              onClick={() => setActiveVideoUrl(null)}
+              onClick={() => setActiveVideoItem(null)}
             >
               <X className="w-6 h-6" />
             </button>
             {/* iOS CRITICAL: muted required for autoplay, user can unmute via controls */}
             <video
-              src={activeVideoUrl}
+              src={resolvedActiveVideoUrl ?? activeVideoItem.media_url}
               controls
               autoPlay
               playsInline

@@ -58,7 +58,7 @@ export function useShareAsset(tripId: string) {
     try {
       // 1) Upload to storage
       const subdir = kind === 'image' ? 'images' : kind === 'video' ? 'videos' : 'files';
-      const { publicUrl } = await uploadToStorage(file, tripId, subdir);
+      const { publicUrl, key } = await uploadToStorage(file, tripId, subdir);
       
       // Mark as completed
       clearInterval(progressInterval);
@@ -79,6 +79,7 @@ export function useShareAsset(tripId: string) {
           tripId,
           mediaType: kind,
           url: publicUrl,
+          uploadPath: key,
           filename: file.name,
           fileSize: file.size,
           mimeType: file.type,

@@ -57,6 +57,7 @@ export async function insertMediaIndex(params: {
   tripId: string;
   mediaType: MediaType;
   url: string;
+  uploadPath?: string;
   filename?: string;
   fileSize?: number;
   mimeType?: string;
@@ -73,7 +74,13 @@ export async function insertMediaIndex(params: {
       file_size: params.fileSize ?? null,
       mime_type: params.mimeType ?? null,
       message_id: params.messageId ?? null,
-      metadata: params.uploadedBy ? { uploaded_by: params.uploadedBy } : null,
+      metadata:
+        params.uploadedBy || params.uploadPath
+          ? {
+              ...(params.uploadedBy ? { uploaded_by: params.uploadedBy } : {}),
+              ...(params.uploadPath ? { upload_path: params.uploadPath } : {}),
+            }
+          : null,
       caption: null,
       tags: [],
     })
