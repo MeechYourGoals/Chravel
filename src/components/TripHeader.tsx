@@ -165,11 +165,23 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
 
   // Handle user leaving the trip
   const handleExitTrip = async () => {
+    // Demo mode: simulate leaving the trip
+    if (isDemoMode) {
+      setIsExiting(true);
+      // Simulate a brief delay for UX
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setIsExiting(false);
+      setShowExitConfirm(false);
+      toast.success(`You have left "${trip.title}"`);
+      navigate('/');
+      return;
+    }
+
     if (!user?.id) {
       toast.error('You must be logged in to leave a trip');
       return;
     }
-    
+
     // Trip creators cannot leave - they should archive/delete instead
     const creatorId = tripCreatorId || trip.created_by;
     if (user.id === creatorId) {
@@ -177,11 +189,11 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       setShowExitConfirm(false);
       return;
     }
-    
+
     setIsExiting(true);
     const success = await leaveTrip(trip.title);
     setIsExiting(false);
-    
+
     if (success) {
       setShowExitConfirm(false);
       toast.success(`You have left "${trip.title}"`);
@@ -536,8 +548,8 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 <span>Invite to Trip</span>
               </button>
               
-              {/* Exit Trip - Only show if NOT the trip creator */}
-              {user?.id && !isCurrentUserCreator && (
+              {/* Exit Trip - Show for authenticated non-creators and demo mode users */}
+              {(user?.id || isDemoMode) && !isCurrentUserCreator && (
                 <button
                   onClick={() => setShowExitConfirm(true)}
                   className="flex items-center justify-center gap-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200"

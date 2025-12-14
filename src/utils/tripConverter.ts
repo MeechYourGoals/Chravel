@@ -37,6 +37,7 @@ export function convertSupabaseTripToMock(supabaseTrip: SupabaseTrip): MockTrip 
     peopleCount,
     placesCount,
     membership_status: supabaseTrip.membership_status, // Preserve membership status (pending, owner, member)
+    created_by: supabaseTrip.created_by, // Preserve creator ID for Exit Trip button visibility
   };
 }
 
