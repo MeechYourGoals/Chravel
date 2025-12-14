@@ -540,17 +540,15 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 <span>Invite to Trip</span>
               </button>
               
-              {/* Exit Trip - Show for all authenticated users and demo mode users */}
-              {(user?.id || isDemoMode) && (
-                <button
-                  onClick={() => setShowExitConfirm(true)}
-                  className="flex items-center justify-center gap-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200"
-                  title="Leave this trip"
-                >
-                  <LogOut size={14} />
-                  <span>Exit Trip</span>
-                </button>
-              )}
+              {/* Exit Trip - Always show, handler validates authentication */}
+              <button
+                onClick={() => setShowExitConfirm(true)}
+                className="flex items-center justify-center gap-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200"
+                title="Leave this trip"
+              >
+                <LogOut size={14} />
+                <span>Exit Trip</span>
+              </button>
               
               <button
                 onClick={() => canExport && onShowExport?.()}
