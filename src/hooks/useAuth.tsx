@@ -340,22 +340,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     getSessionAndUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        // CRITICAL: Only synchronous state updates in callback to prevent deadlock
         setSession(session);
+        
         if (session?.user) {
-          try {
-            const transformedUser = await transformUser(session.user);
-            setUser(transformedUser);
-          } catch (err) {
-            if (import.meta.env.DEV) {
-              console.error('[Auth] Error transforming user:', err);
-            }
-            setUser(null);
-          }
+          // Defer async work with setTimeout(0) to avoid Supabase auth deadlock
+          setTimeout(() => {
+            transformUser(session.user)
+              .then((transformedUser) => {
+                setUser(transformedUser);
+                setIsLoading(false);
+              })
+              .catch((err) => {
+                if (import.meta.env.DEV) {
+                  console.error('[Auth] Error transforming user:', err);
+                }
+                setUser(null);
+                setIsLoading(false);
+              });
+          }, 0);
         } else {
           setUser(null);
+          setIsLoading(false);
         }
-        setIsLoading(false);
       }
     );
 
