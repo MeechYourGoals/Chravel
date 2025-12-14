@@ -17,7 +17,7 @@ import { hapticService } from '../../services/hapticService';
 import { ChatFilterTabs } from '../chat/ChatFilterTabs';
 import { ChatSearchOverlay } from '../chat/ChatSearchOverlay';
 import { supabase } from '@/integrations/supabase/client';
-import { markMessageAsRead } from '@/services/readReceiptService';
+import { markMessagesAsRead } from '@/services/readReceiptService';
 
 interface MobileTripChatProps {
   tripId: string;
@@ -112,15 +112,16 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
     if (!userId || rawMessages.length === 0) return;
 
     const markVisibleMessagesAsRead = async () => {
-      // Mark the latest messages as read
-      const latestMessages = rawMessages.slice(-10);
-      for (const msg of latestMessages) {
-        if (msg.user_id !== userId) {
-          try {
-            await markMessageAsRead(msg.id, tripId, userId);
-          } catch (error) {
-            console.error('Failed to mark message as read:', error);
-          }
+      // Get all message IDs from other users that need to be marked as read
+      const messageIdsToMark = rawMessages
+        .filter(msg => msg.user_id !== userId)
+        .map(msg => msg.id);
+
+      if (messageIdsToMark.length > 0) {
+        try {
+          await markMessagesAsRead(messageIdsToMark, tripId, userId);
+        } catch (error) {
+          console.error('Failed to mark messages as read:', error);
         }
       }
     };

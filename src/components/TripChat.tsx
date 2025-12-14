@@ -22,7 +22,7 @@ import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from './pro/channels/ChannelChatView';
 import { TypingIndicator } from './chat/TypingIndicator';
 import { TypingIndicatorService } from '@/services/typingIndicatorService';
-import { markMessageAsRead, subscribeToReadReceipts } from '@/services/readReceiptService';
+import { markMessagesAsRead, subscribeToReadReceipts } from '@/services/readReceiptService';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { supabase } from '@/integrations/supabase/client';
 import { parseMessage } from '@/services/chatContentParser';
@@ -192,17 +192,19 @@ export const TripChat = ({
       // Read receipt updates handled via realtime
     });
 
-    // Mark visible messages as read
+    // Mark all messages from other users as read
     const markVisibleAsRead = async () => {
-      const visibleMessages = liveMessages.slice(-10); // Last 10 messages
-      for (const msg of visibleMessages) {
-        if (msg.user_id !== user.id) {
-          await markMessageAsRead(msg.id, resolvedTripId, user.id).catch(error => {
-            if (import.meta.env.DEV) {
-              console.error(error);
-            }
-          });
-        }
+      // Get all message IDs from other users that need to be marked as read
+      const messageIdsToMark = liveMessages
+        .filter(msg => msg.user_id !== user.id)
+        .map(msg => msg.id);
+
+      if (messageIdsToMark.length > 0) {
+        await markMessagesAsRead(messageIdsToMark, resolvedTripId, user.id).catch(error => {
+          if (import.meta.env.DEV) {
+            console.error(error);
+          }
+        });
       }
     };
 
