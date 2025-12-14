@@ -38,6 +38,8 @@ export interface Trip {
   ai_access_enabled?: boolean;
   // Membership status for current user
   membership_status?: 'owner' | 'member' | 'pending' | 'rejected';
+  // Creator ID for determining if current user can leave the trip
+  created_by?: string;
 }
 
 export const tripsData: Trip[] = [
