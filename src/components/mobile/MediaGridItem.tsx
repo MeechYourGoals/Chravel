@@ -4,18 +4,23 @@ import { useLongPress } from '../../hooks/useLongPress';
 import { useSwipeToDelete } from '../../hooks/useSwipeToDelete';
 import { OptimizedImage } from './OptimizedImage';
 import { hapticService } from '../../services/hapticService';
+import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 
 interface MediaGridItemProps {
   item: {
     id: string;
     type: 'image' | 'video';
     url: string;
+    metadata?: unknown;
   };
   onPress: () => void;
   onLongPress: () => void;
 }
 
 export const MediaGridItem: React.FC<MediaGridItemProps> = ({ item, onPress, onLongPress }) => {
+  const resolvedUrl = useResolvedTripMediaUrl({ url: item.url, metadata: item.metadata });
+  const effectiveUrl = resolvedUrl ?? item.url;
+
   const longPressHandlers = useLongPress({
     onLongPress: async () => {
       await hapticService.medium();
@@ -68,7 +73,7 @@ export const MediaGridItem: React.FC<MediaGridItemProps> = ({ item, onPress, onL
         }}
       >
         <OptimizedImage
-          src={item.url}
+          src={effectiveUrl}
           alt="Trip media"
           className="w-full h-full object-cover"
           width={300}

@@ -1,10 +1,12 @@
 import { Trash2 } from 'lucide-react';
+import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 
 interface MediaTileProps {
   id: string;
   url: string;
   mimeType: string;
   fileName?: string | null;
+  metadata?: unknown;
   onDelete: (id: string) => void;
 }
 
@@ -21,10 +23,13 @@ export function MediaTile({
   url,
   mimeType,
   fileName,
+  metadata,
   onDelete,
 }: MediaTileProps) {
   const isVideo = mimeType.startsWith('video/');
   const isImage = mimeType.startsWith('image/');
+  const resolvedUrl = useResolvedTripMediaUrl({ url, metadata });
+  const effectiveUrl = resolvedUrl ?? url;
 
   return (
     <div className="relative rounded-xl overflow-hidden bg-neutral-900">
@@ -40,20 +45,22 @@ export function MediaTile({
       {/* VIDEO - iOS CRITICAL: controls, playsInline, muted, preload */}
       {isVideo && (
         <video
-          src={url}
           controls
           playsInline
           muted
           preload="metadata"
           className="w-full max-h-[70vh] bg-black object-contain"
           onError={(e) => console.error('[MediaTile] Video failed to play', e)}
-        />
+        >
+          <source src={effectiveUrl} type={mimeType} />
+          Your browser does not support the video tag.
+        </video>
       )}
 
       {/* IMAGE */}
       {isImage && (
         <img
-          src={url}
+          src={effectiveUrl}
           alt={fileName ?? 'Trip media'}
           loading="lazy"
           className="w-full h-auto object-cover"
@@ -65,7 +72,7 @@ export function MediaTile({
         <div className="flex items-center justify-between p-4">
           <div className="truncate text-sm text-white">{fileName ?? 'File'}</div>
           <a
-            href={url}
+            href={effectiveUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-400 text-sm hover:text-blue-300"

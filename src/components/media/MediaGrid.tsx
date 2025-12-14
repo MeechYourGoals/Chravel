@@ -97,6 +97,7 @@ export const MediaGrid = ({
             url={item.media_url}
             mimeType={getMimeType(item)}
             fileName={item.filename}
+            metadata={item.metadata}
             onDelete={onDeleteItem}
           />
         ))}

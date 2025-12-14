@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { createTripLink } from '@/services/tripLinksService';
 import { toast } from 'sonner';
+import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 
 interface MediaItem {
   id: string;
@@ -22,6 +23,8 @@ interface MediaItem {
   uploadedAt: Date;
   filename?: string;
   fileSize?: string;
+  metadata?: unknown;
+  mimeType?: string | null;
 }
 
 interface MobileUnifiedMediaHubProps {
@@ -105,7 +108,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       tags?: string[];
     }>
   >([]);
-  const [activeVideo, setActiveVideo] = useState<string | null>(null);
+  const [activeVideo, setActiveVideo] = useState<{ url: string; metadata?: unknown; mimeType?: string | null } | null>(null);
   const [itemToDelete, setItemToDelete] = useState<MediaItem | null>(null);
   const [linkToDelete, setLinkToDelete] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -149,6 +152,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
         uploadedAt: new Date(item.created_at),
         filename: item.filename,
         fileSize: undefined,
+        metadata: item.metadata,
+        mimeType: item.mime_type ?? null,
       }));
 
     // In demo mode, allow the user to “upload” and see items immediately without server persistence.
@@ -175,6 +180,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
   });
 
   const filteredLinks = selectedTab === 'urls' || selectedTab === 'all' ? combinedLinks : [];
+
+  const resolvedActiveVideoUrl = useResolvedTripMediaUrl({
+    url: activeVideo?.url ?? null,
+    metadata: activeVideo?.metadata,
+  });
 
   const normalizeUrl = (raw: string): string | null => {
     const trimmed = raw.trim();
@@ -670,7 +680,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                       item={item}
                       onPress={() => {
                         if (item.type === 'video') {
-                          setActiveVideo(item.url);
+                          setActiveVideo({ url: item.url, metadata: item.metadata, mimeType: item.mimeType });
                         }
                       }}
                       onLongPress={() => {
@@ -780,7 +790,6 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           </button>
           {/* iOS CRITICAL: muted required for autoplay, user can unmute via controls */}
           <video
-            src={activeVideo}
             controls
             autoPlay
             playsInline
@@ -795,7 +804,10 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
               height: 'auto',
             }}
             onClick={(e) => e.stopPropagation()}
-          />
+          >
+            <source src={resolvedActiveVideoUrl ?? activeVideo.url} type={activeVideo.mimeType ?? 'video/mp4'} />
+            Your browser does not support the video tag.
+          </video>
         </div>
       )}
 
