@@ -35,7 +35,7 @@ export const ReplacesGrid = () => {
           Your group's "Travel 365" — for when you're Out of Office 365.
         </p>
         <p className="text-white/90 font-medium text-sm sm:text-base md:text-lg mt-4 text-center max-w-4xl mx-auto">
-          Spend less time logging in, signing up, and switching between the multiple apps below — Chravel brings your files, photos, docs, and more into Tabs instead of separate Apps.
+          Spend less time logging in, signing up, and switching between the multiple apps below — ChravelApp brings your files, photos, docs, and more into Tabs instead of separate Apps.
         </p>
       </div>
 

@@ -21,7 +21,7 @@ const faqItems = [
   },
   {
     question: "Do all trip members need to pay?",
-    answer: "Trips are free with limited features. Or upgrade to Explorer or Pro to keep unlimited trips and more features. For Chravel Pro, only the admin pays and can assign a set number of seats to team members — ideal for organizations, sports teams, and tour management."
+    answer: "Trips are free with limited features. Or upgrade to Explorer or Pro to keep unlimited trips and more features. For ChravelApp Pro, only the admin pays and can assign a set number of seats to team members — ideal for organizations, sports teams, and tour management."
   }
 ];
 

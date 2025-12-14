@@ -17,10 +17,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       <div className="absolute top-4 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-6 z-20">
         <DemoModeToggle />
       </div>
-      {/* Eyebrow Label */}
-      <p className="text-sm sm:text-base md:text-lg uppercase tracking-wide text-white font-semibold animate-fade-in">
-        For trips, teams, and events — near or far
-      </p>
       
       {/* Headline */}
       <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight animate-fade-in">
@@ -64,14 +60,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
 
       {/* Trust Badge */}
       <p className="text-base md:text-lg text-foreground pt-2 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-        Join families, teams, touring artists, and corporate crews who've already eliminated group-chat chaos.
+        Join friends, family, teams, and tours and consolidating the chaos.
       </p>
 
       {/* Product Preview */}
       <div className="mt-8 w-full max-w-5xl mx-auto animate-fade-in" style={{ animationDelay: '0.5s' }}>
         <img 
           src={tripsDashboard} 
-          alt="Chravel trips dashboard showing organized group travel" 
+          alt="ChravelApp trips dashboard showing organized group travel" 
           className="rounded-xl shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300"
         />
       </div>

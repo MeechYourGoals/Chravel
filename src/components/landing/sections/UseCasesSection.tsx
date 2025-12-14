@@ -60,7 +60,7 @@ export const UseCasesSection = () => {
           Built for Every Journey — Even When You're Not Traveling
         </h2>
         <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-          From family vacations to local leagues and weddings, ChravelApp is your Social Storage home for plans, messages, and memories.
+          From family vacations to sports travel, tours, and weddings, ChravelApp is your Social Storage Platform
         </p>
       </div>
 
@@ -83,12 +83,12 @@ export const UseCasesSection = () => {
             {/* Before/After */}
             <div className="space-y-3 sm:space-y-4">
               <div>
-                <div className="text-xs sm:text-sm font-bold text-red-400 mb-1 uppercase">BEFORE CHRAVEL</div>
+                <div className="text-xs sm:text-sm font-bold text-red-400 mb-1 uppercase">BEFORE CHRAVELAPP</div>
                 <p className="text-sm sm:text-base md:text-lg text-foreground leading-relaxed break-words">{scenario.before}</p>
               </div>
               
               <div>
-                <div className="text-xs sm:text-sm font-bold text-green-400 mb-1 uppercase">WITH CHRAVEL</div>
+                <div className="text-xs sm:text-sm font-bold text-green-400 mb-1 uppercase">WITH CHRAVELAPP</div>
                 <p className="text-sm sm:text-base md:text-lg text-foreground leading-relaxed break-words">{scenario.after}</p>
               </div>
 

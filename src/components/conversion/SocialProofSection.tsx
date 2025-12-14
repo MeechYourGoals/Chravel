@@ -44,7 +44,7 @@ const testimonials: Testimonial[] = [
     role: "Mom, family trip planner",
     company: "Family Vacation",
     avatar: "CS",
-    quote: "As a mom, planning and organizing the family trips is draining and often overwhelming. I have needed something like Chravel for years and can't wait for the launch.",
+    quote: "As a mom, planning and organizing the family trips is draining and often overwhelming. I have needed something like ChravelApp for years and can't wait for the launch.",
     rating: 5,
     useCase: "Group Travel"
   }

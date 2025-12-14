@@ -54,7 +54,7 @@ const consumerTiers: PricingTier[] = [
     id: 'free',
     name: 'Free Plan',
     price: '$0',
-    description: 'Perfect for trying Chravel with your crew',
+    description: 'Perfect for trying ChravelApp with your crew',
     icon: <Users size={24} />,
     features: [
       'Create unlimited trip participants',
@@ -66,7 +66,7 @@ const consumerTiers: PricingTier[] = [
       'Polls & decision making',
       'AI Trip Assistant (5 queries per user per trip)',
       'Save up to 3 active trips',
-      '🎁 1 Free Chravel Pro trip to try',
+      '🎁 1 Free ChravelApp Pro trip to try',
       '🎁 1 Free Event to try'
     ],
     cta: 'Get Started Free · Log In or Sign Up',
@@ -111,10 +111,10 @@ const consumerTiers: PricingTier[] = [
       'Unlimited AI queries - your 24/7 concierge with no limits',
       'Calendar sync - Google, Apple, Outlook integration',
       'PDF trip export - one-click beautiful itineraries',
-      'Create 1 Chravel Pro trip per month - invite up to 50 people',
+      'Create 1 ChravelApp Pro trip per month - invite up to 50 people',
       'Role-based channels & pro features on your Pro trip',
       'Custom trip categories - tag by type (work/leisure/family/etc.)',
-      'Early feature access - shape the future of Chravel',
+      'Early feature access - shape the future of ChravelApp',
       '🎉 Unlimited Events included (up to 200 guests each)',
       '🎁 Your first Pro Trip + Event included free'
     ],
@@ -250,11 +250,11 @@ const faqItems = [
   },
   {
     question: "Do all trip members need to pay?",
-    answer: "No! Only the trip creator or organization admin pays. All invited members join for free. For Chravel Pro, the admin pays and can assign seats to team members — ideal for organizations, sports teams, and tour management."
+    answer: "No! Only the trip creator or organization admin pays. All invited members join for free. For ChravelApp Pro, the admin pays and can assign seats to team members — ideal for organizations, sports teams, and tour management."
   },
   {
     question: "What's included with the free Pro Trip and Event?",
-    answer: "Every account gets 1 free Chravel Pro trip and 1 free Event to experience all premium features. It's our way of letting you try before you buy — no commitment required!"
+    answer: "Every account gets 1 free ChravelApp Pro trip and 1 free Event to experience all premium features. It's our way of letting you try before you buy — no commitment required!"
   },
   {
     question: "Are Events included in my subscription?",
@@ -264,7 +264,7 @@ const faqItems = [
 
 const testimonials = [
   {
-    quote: "Chravel replaced 8 different apps we were using. Our team coordination improved by 300% and we save 15 hours per tour.",
+    quote: "ChravelApp replaced 8 different apps we were using. Our team coordination improved by 300% and we save 15 hours per tour.",
     author: "Sarah Chen",
     role: "Tour Manager, Rising Stars Band",
     avatar: "SC"

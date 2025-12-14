@@ -35,7 +35,7 @@ export const HowItWorksSection = () => {
           How It Works
         </h2>
         <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-          Get your group organized in minutes — no complexity, no chaos
+          Get your group organized in minutes
         </p>
       </div>
 
@@ -121,9 +121,6 @@ export const HowItWorksSection = () => {
             className="w-full h-auto"
           />
         </div>
-        <p className="text-center text-foreground text-lg sm:text-xl">
-          Your trip, organized in seconds
-        </p>
       </div>
 
       {/* Bottom tagline */}
