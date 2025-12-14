@@ -218,12 +218,6 @@ export const useTripMembers = (tripId?: string) => {
       return false;
     }
 
-    // Prevent creator from leaving
-    if (user.id === tripCreatorId) {
-      toast.error('As the trip creator, you cannot leave. Archive or delete the trip instead.');
-      return false;
-    }
-
     // Demo mode: just show toast
     if (isDemoMode) {
       toast.success('You have left the trip');
