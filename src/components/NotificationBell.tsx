@@ -311,10 +311,10 @@ export const NotificationBell = () => {
                         <div className="flex flex-col items-end gap-1 shrink-0">
                           <button
                             onClick={(e) => deleteNotification(notification.id, e)}
-                            className="p-1.5 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
+                            className="p-1.5 rounded-lg text-destructive hover:bg-destructive/20 transition-all"
                             title="Delete notification"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={16} />
                           </button>
                           <p className="text-xs text-muted-foreground">{notification.timestamp}</p>
                         </div>
