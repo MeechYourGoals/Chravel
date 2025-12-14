@@ -263,6 +263,42 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     fetchData();
   }, [tripId, user, demoActive, demoLoading, toast]);
 
+  // Subscribe to profile updates so avatar/name changes propagate into payments UI immediately.
+  useEffect(() => {
+    if (!tripId || demoActive) return;
+
+    const channel = supabase
+      .channel(`mobile-payments-profiles-${tripId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        payload => {
+          const next = payload.new as { user_id?: string; display_name?: string | null; avatar_url?: string | null } | null;
+          const userId = next?.user_id;
+          if (!userId) return;
+
+          setTripMembers(prev =>
+            prev.map(m =>
+              m.id === userId
+                ? {
+                    ...m,
+                    name: next.display_name ?? m.name,
+                    avatar: next.avatar_url ?? m.avatar,
+                  }
+                : m,
+            ),
+          );
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel).catch(() => {
+        // ignore
+      });
+    };
+  }, [tripId, demoActive]);
+
   const handleAddPayment = async () => {
     await hapticService.medium();
     setIsModalOpen(true);

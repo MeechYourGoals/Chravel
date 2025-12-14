@@ -8,6 +8,8 @@ import {
 import { ProParticipant } from '../../types/pro';
 import { getRoleColorClass } from '../../utils/roleUtils';
 import { ProTripCategory } from '../../types/proCategories';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { getInitials } from '../../utils/avatarUtils';
 
 interface RoleContactSheetProps {
   isOpen: boolean;
@@ -177,11 +179,12 @@ export const RoleContactSheet = ({
                 className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-gray-700"
               >
                 <div className="flex items-center gap-3">
-                  <img
-                    src={member.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'}
-                    alt={member.name}
-                    className="w-10 h-10 rounded-full"
-                  />
+                  <Avatar className="w-10 h-10 flex-shrink-0">
+                    <AvatarImage src={member.avatar} alt={member.name} />
+                    <AvatarFallback className="bg-muted text-muted-foreground text-xs font-semibold">
+                      {getInitials(member.name)}
+                    </AvatarFallback>
+                  </Avatar>
                   <div>
                     <p className="font-medium">{member.name}</p>
                     <p className="text-sm text-gray-400">{member.email}</p>

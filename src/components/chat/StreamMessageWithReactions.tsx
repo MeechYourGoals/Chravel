@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { MessageReactionBar } from './MessageReactionBar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getInitials } from '@/utils/avatarUtils';
 
 interface StreamMessageWithReactionsProps {
   messageId: string;
@@ -41,11 +43,12 @@ export const StreamMessageWithReactions: React.FC<StreamMessageWithReactionsProp
   return (
     <div className={`group relative ${className}`}>
       <div className="flex items-start gap-3">
-        <img
-          src={senderAvatar || `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face`}
-          alt={senderName}
-          className="w-8 h-8 rounded-full object-cover border border-gray-600/50"
-        />
+        <Avatar className="w-8 h-8 border border-gray-600/50 flex-shrink-0">
+          <AvatarImage src={senderAvatar} alt={senderName} />
+          <AvatarFallback className="bg-muted text-muted-foreground text-xs font-semibold">
+            {getInitials(senderName)}
+          </AvatarFallback>
+        </Avatar>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-white font-medium text-sm">{senderName}</span>

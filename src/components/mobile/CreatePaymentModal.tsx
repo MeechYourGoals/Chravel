@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { demoModeService } from '@/services/demoModeService';
 import { usePaymentSplits } from '@/hooks/usePaymentSplits';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { getConsistentAvatar, getInitials } from '@/utils/avatarUtils';
+import { getInitials } from '@/utils/avatarUtils';
 
 interface CreatePaymentModalProps {
   isOpen: boolean;
@@ -181,7 +181,7 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, tripMembers, onPay
                       className="w-4 h-4 rounded border-white/20 bg-white/5 text-green-600 focus:ring-2 focus:ring-green-500/50"
                     />
                     <Avatar className="w-6 h-6 shrink-0">
-                      <AvatarImage src={getConsistentAvatar(member.name)} alt={member.name} />
+                      <AvatarImage src={member.avatar} alt={member.name} />
                       <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
                         {getInitials(member.name)}
                       </AvatarFallback>

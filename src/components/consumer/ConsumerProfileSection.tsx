@@ -4,6 +4,7 @@ import { User, Camera, Upload, Loader2, Phone } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
+import { getConsistentAvatar } from '../../utils/avatarUtils';
 
 export const ConsumerProfileSection = () => {
   const { user, updateProfile } = useAuth();
@@ -31,7 +32,7 @@ export const ConsumerProfileSection = () => {
     id: 'demo-user-123',
     email: 'demo@example.com',
     displayName: 'Demo User',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'
+    avatar: getConsistentAvatar('Demo User')
   };
 
   const currentUser = user || mockUser;
@@ -41,21 +42,14 @@ export const ConsumerProfileSection = () => {
 
     setIsSaving(true);
     try {
-      // Update profile with display_name and bio
+      // Canonical identity lives in `profiles` (via useAuth.updateProfile upsert).
       const { error } = await updateProfile({
         display_name: displayName,
-        bio: bio
+        bio: bio,
+        phone: phone,
       });
 
       if (error) throw error;
-
-      // Update phone separately via direct Supabase call
-      if (user?.id) {
-        await supabase
-          .from('profiles')
-          .update({ phone })
-          .eq('user_id', user.id);
-      }
 
       toast({
         title: "Profile updated",
@@ -99,7 +93,8 @@ export const ConsumerProfileSection = () => {
 
     setIsUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt =
+        file.name.includes('.') ? file.name.split('.').pop() : file.type.split('/')[1] || 'jpg';
       // Path must start with user.id for RLS policies to work correctly
       const filePath = `${user.id}/${Date.now()}.${fileExt}`;
 
@@ -108,6 +103,7 @@ export const ConsumerProfileSection = () => {
         .from('avatars')
         .upload(filePath, file, {
           cacheControl: '3600',
+          contentType: file.type,
           upsert: true,
         });
 

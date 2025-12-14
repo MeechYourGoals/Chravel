@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Search, MessageCircle, Clock, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getInitials } from '@/utils/avatarUtils';
 
 export const MessageInbox = () => {
   const navigate = useNavigate();
@@ -110,11 +112,12 @@ export const MessageInbox = () => {
               }`}
             >
               <div className="flex items-start gap-3">
-                <img
-                  src={message.senderAvatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'}
-                  alt={message.senderName}
-                  className="w-10 h-10 rounded-full"
-                />
+                <Avatar className="w-10 h-10 flex-shrink-0">
+                  <AvatarImage src={message.senderAvatar} alt={message.senderName} />
+                  <AvatarFallback className="bg-muted text-muted-foreground text-sm font-semibold">
+                    {getInitials(message.senderName)}
+                  </AvatarFallback>
+                </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">

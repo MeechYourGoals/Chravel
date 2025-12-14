@@ -331,10 +331,41 @@ export const useTripMembers = (tripId?: string) => {
 
     createSubscription();
 
+    // Also subscribe to profile updates so avatar/name changes propagate across the app
+    // (payments, chat, collaborator lists should never maintain their own avatar logic).
+    const profilesChannel = supabase
+      .channel(`profiles-updates-${tripId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+        },
+        payload => {
+          const next = payload.new as { user_id?: string; display_name?: string | null; avatar_url?: string | null } | null;
+          const userId = next?.user_id;
+          if (!userId) return;
+
+          setTripMembers(prev =>
+            prev.map(member => {
+              if (member.id !== userId) return member;
+              return {
+                ...member,
+                name: next?.display_name ?? member.name,
+                avatar: next?.avatar_url ?? member.avatar,
+              };
+            }),
+          );
+        },
+      )
+      .subscribe();
+
     return () => {
       if (channel) {
         supabase.removeChannel(channel);
       }
+      supabase.removeChannel(profilesChannel);
     };
   }, [tripId]);
 

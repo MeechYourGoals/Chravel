@@ -225,8 +225,13 @@ export const TripChat = ({
       sender: {
         // Prefer user_id for accurate ownership detection, fallback to author_name for display
         id: message.user_id || message.author_name || 'unknown',
-        name: message.author_name || 'Unknown',
-        avatar: getMockAvatar(message.author_name || 'Unknown'),
+        name:
+          tripMembers.find(m => m.id === (message.user_id || ''))?.name ||
+          message.author_name ||
+          'Unknown',
+        // Canonical avatar comes from `profiles.avatar_url` via `useTripMembers`.
+        // Do NOT fall back to stock/AI-generated avatars in authenticated mode.
+        avatar: tripMembers.find(m => m.id === (message.user_id || ''))?.avatar,
         // Store original user_id separately for ownership checks
         userId: message.user_id
       },
@@ -237,7 +242,7 @@ export const TripChat = ({
       editedAt: message.edited_at,
       tags: [] as string[]
     }));
-  }, [liveMessages, demoMode.isDemoMode, user?.id]);
+  }, [liveMessages, demoMode.isDemoMode, tripMembers]);
 
   const handleSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: any) => {
     // Transform paymentData if needed to match useChatComposer expectations

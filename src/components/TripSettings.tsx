@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Settings, Users, Shield, Trash2, X } from 'lucide-react';
 import { TripUserManagement } from './TripUserManagement';
+import { getConsistentAvatar } from '../utils/avatarUtils';
 
 interface TripUser {
   id: string;
@@ -39,28 +40,28 @@ export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId 
     {
       id: '1',
       name: 'Emma Wilson',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=40&h=40&fit=crop&crop=face',
+      avatar: getConsistentAvatar('Emma Wilson'),
       role: 'owner',
       joinedAt: '2024-01-15'
     },
     {
       id: '2',
       name: 'Jake Thompson',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face',
+      avatar: getConsistentAvatar('Jake Thompson'),
       role: 'admin',
       joinedAt: '2024-01-16'
     },
     {
       id: '3',
       name: 'Sarah Chen',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face',
+      avatar: getConsistentAvatar('Sarah Chen'),
       role: 'member',
       joinedAt: '2024-01-18'
     },
     {
       id: '4',
       name: 'You',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
+      avatar: getConsistentAvatar('You'),
       role: 'member',
       joinedAt: '2024-01-20'
     }

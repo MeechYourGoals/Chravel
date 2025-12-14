@@ -11,6 +11,8 @@ import { ProParticipant } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 import { roleBroadcastService } from '../../services/roleBroadcastService';
 import { getRoleColorClass } from '../../utils/roleUtils';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { getInitials } from '../../utils/avatarUtils';
 
 interface RoleBroadcastModalProps {
   isOpen: boolean;
@@ -241,11 +243,12 @@ export const RoleBroadcastModal = ({
                       key={member.id}
                       className="flex items-center gap-2 bg-white/5 border border-gray-700 rounded px-2 py-1"
                     >
-                      <img
-                        src={member.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=24&h=24&fit=crop&crop=face'}
-                        alt={member.name}
-                        className="w-5 h-5 rounded-full"
-                      />
+                      <Avatar className="w-5 h-5 flex-shrink-0">
+                        <AvatarImage src={member.avatar} alt={member.name} />
+                        <AvatarFallback className="bg-muted text-muted-foreground text-[10px] font-semibold">
+                          {getInitials(member.name)}
+                        </AvatarFallback>
+                      </Avatar>
                       <span className="text-xs">{member.name}</span>
                     </div>
                   ))}

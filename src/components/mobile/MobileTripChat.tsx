@@ -32,6 +32,7 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
   const [messageFilter, setMessageFilter] = useState<'all' | 'broadcasts' | 'channels'>('all');
   const [userId, setUserId] = useState<string | null>(null);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
+  const [profileByUserId, setProfileByUserId] = useState<Record<string, { display_name: string | null; avatar_url: string | null }>>({});
 
   // Get current user
   useEffect(() => {
@@ -50,14 +51,49 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
     isLoadingMore
   } = useUnifiedMessages({ tripId, enabled: true });
 
+  // Load canonical profiles for message senders (display name + avatar)
+  useEffect(() => {
+    const loadProfiles = async () => {
+      const senderIds = Array.from(
+        new Set(rawMessages.map(m => m.user_id).filter((id): id is string => !!id)),
+      );
+
+      if (senderIds.length === 0) {
+        setProfileByUserId({});
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, avatar_url')
+        .in('user_id', senderIds);
+
+      if (error) {
+        // Don't block chat rendering if profiles fail to load.
+        return;
+      }
+
+      const nextMap: Record<string, { display_name: string | null; avatar_url: string | null }> = {};
+      for (const row of data ?? []) {
+        nextMap[row.user_id] = { display_name: row.display_name, avatar_url: row.avatar_url };
+      }
+      setProfileByUserId(nextMap);
+    };
+
+    loadProfiles().catch(() => {
+      // ignore
+    });
+  }, [rawMessages]);
+
   // Convert unified messages to chat messages format
   const messages: ChatMessage[] = rawMessages.map(msg => ({
     id: msg.id,
     text: msg.content,
     sender: {
       id: msg.user_id || 'unknown',
-      name: msg.author_name,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.author_name}`
+      name: profileByUserId[msg.user_id || '']?.display_name || msg.author_name,
+      // Canonical avatar: profiles.avatar_url. No silent AI/stock avatar assignment.
+      avatar: profileByUserId[msg.user_id || '']?.avatar_url || undefined
     },
     createdAt: new Date(msg.created_at).toISOString(),
     isBroadcast: msg.privacy_mode === 'broadcast'

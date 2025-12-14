@@ -70,6 +70,9 @@ export const useChatComposer = ({ tripId, demoMode = false, isEvent = false }: U
   ): ChatMessage => {
     const messageId = `msg_${Date.now()}`;
     const { isBroadcast = false, isPayment = false, paymentData } = options;
+    // Do NOT silently assign stock/AI avatars in authenticated mode.
+    // In demo mode we still use mock avatars for visual richness.
+    const avatar = user?.avatar || (demoMode ? getMockAvatar('You') : undefined);
 
     if (isPayment && paymentData) {
       const perPersonAmount = (paymentData.amount / paymentData.splitCount).toFixed(2);
@@ -78,7 +81,7 @@ export const useChatComposer = ({ tripId, demoMode = false, isEvent = false }: U
       return {
         id: messageId,
         text: `${paymentData.description} - ${paymentData.currency} ${paymentData.amount.toFixed(2)} (split ${paymentData.splitCount} ways) • Pay me $${perPersonAmount} via ${preferredPaymentMethod}`,
-        sender: { id: user?.id || 'demo-user', name: 'You', avatar: user?.avatar || getMockAvatar('You') },
+        sender: { id: user?.id || 'demo-user', name: 'You', avatar },
         createdAt: new Date().toISOString(),
         isBroadcast: false,
         isPayment: true,
@@ -95,7 +98,7 @@ export const useChatComposer = ({ tripId, demoMode = false, isEvent = false }: U
     return {
       id: messageId,
       text: content,
-      sender: { id: user?.id || 'demo-user', name: 'You', avatar: user?.avatar || getMockAvatar('You') },
+      sender: { id: user?.id || 'demo-user', name: 'You', avatar },
       createdAt: new Date().toISOString(),
       isBroadcast,
       reactions: {},
@@ -105,7 +108,7 @@ export const useChatComposer = ({ tripId, demoMode = false, isEvent = false }: U
         sender: replyingTo.senderName
       } : undefined
     };
-  }, [replyingTo]);
+  }, [replyingTo, user?.avatar, user?.id, demoMode]);
 
   const sendMessage = useCallback(async (
     options: {
