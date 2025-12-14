@@ -43,7 +43,17 @@ export interface UploadMediaRequest {
   media_type: 'image' | 'video' | 'document';
 }
 
-function extractTripMediaStoragePath(mediaUrl: string): string | null {
+/**
+ * Extract the Storage object path from a `trip-media` URL.
+ *
+ * Supports:
+ * - .../storage/v1/object/public/trip-media/<path>
+ * - .../storage/v1/object/sign/trip-media/<path>?token=...
+ *
+ * This is intentionally exported so UI code can generate signed URLs
+ * even if we historically stored a "public" URL in DB.
+ */
+export function extractTripMediaStoragePath(mediaUrl: string): string | null {
   // Expected patterns:
   // - .../storage/v1/object/public/trip-media/<path>
   // - .../storage/v1/object/sign/trip-media/<path>?token=...
@@ -68,7 +78,10 @@ function extractTripMediaStoragePath(mediaUrl: string): string | null {
   return null;
 }
 
-function extractUploadPathFromMetadata(metadata: unknown): string | null {
+/**
+ * Extract `metadata.upload_path` from a `trip_media_index` row's metadata.
+ */
+export function extractUploadPathFromMetadata(metadata: unknown): string | null {
   if (typeof metadata !== 'object' || metadata === null) return null;
   if (!('upload_path' in metadata)) return null;
   const value = (metadata as Record<string, unknown>).upload_path;

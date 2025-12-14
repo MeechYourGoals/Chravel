@@ -2,6 +2,7 @@ import React from 'react';
 import { FileText, Link, Download, Play, Maximize2 } from 'lucide-react';
 import { ChatMessage } from './types';
 import { cn } from '@/lib/utils';
+import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 
 interface MessageRendererProps {
   message: ChatMessage & {
@@ -17,6 +18,7 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
   const hasMedia = message.media_type && message.media_url;
   const hasLinkPreview = message.link_preview;
   const hasAttachments = message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0;
+  const resolvedMediaUrl = useResolvedTripMediaUrl({ url: message.media_url ?? null });
 
   // Render media content based on type
   const renderMediaContent = () => {
@@ -27,14 +29,14 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
         return (
           <div className="mt-2 relative group">
             <img
-              src={message.media_url}
+              src={resolvedMediaUrl ?? message.media_url}
               alt="Shared image"
               className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-95 transition-opacity"
               style={{ maxHeight: '400px' }}
-              onClick={() => window.open(message.media_url!, '_blank')}
+              onClick={() => window.open((resolvedMediaUrl ?? message.media_url) as string, '_blank')}
             />
             <button
-              onClick={() => window.open(message.media_url!, '_blank')}
+              onClick={() => window.open((resolvedMediaUrl ?? message.media_url) as string, '_blank')}
               className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
               aria-label="View full size"
             >
@@ -47,8 +49,9 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
         return (
           <div className="mt-2 relative">
             <video
-              src={message.media_url}
+              src={resolvedMediaUrl ?? message.media_url}
               controls
+              playsInline
               className="rounded-lg max-w-full h-auto"
               style={{ maxHeight: '400px' }}
             >

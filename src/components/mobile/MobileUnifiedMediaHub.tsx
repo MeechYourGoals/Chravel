@@ -298,7 +298,10 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           media_type: finalType,
           file_size: file.size,
           mime_type: file.type,
-          metadata: {},
+          metadata: {
+            upload_path: storagePath,
+            uploaded_by: pre.userId,
+          },
         });
 
         if (dbError) {

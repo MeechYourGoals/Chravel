@@ -15,6 +15,7 @@ export interface MediaItem {
   metadata: any;
   created_at: string;
   source: 'chat' | 'upload';
+  mime_type?: string | null;
 }
 
 export interface LinkItem {
@@ -88,7 +89,8 @@ export const useMediaManagement = (tripId: string) => {
             media_type: item.media_type as MediaItem['media_type'],
             metadata: item.metadata || {},
             created_at: item.created_at,
-            source: 'chat' as const
+            source: 'chat' as const,
+            mime_type: item.mime_type,
           })),
           ...(filesResponse.data || []).map(item => ({
             id: item.id,
