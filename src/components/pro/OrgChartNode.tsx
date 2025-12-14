@@ -3,6 +3,8 @@ import { Users, ChevronDown, ChevronRight } from 'lucide-react';
 import { OrgChartNode as OrgChartNodeType } from '../../hooks/useOrgChartData';
 import { getRoleColorClass } from '../../utils/roleUtils';
 import { ProTripCategory } from '../../types/proCategories';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { getInitials } from '../../utils/avatarUtils';
 
 interface OrgChartNodeProps {
   node: OrgChartNodeType;
@@ -29,11 +31,12 @@ export const OrgChartNodeComponent = ({
         onClick={() => onNodeClick?.(node.id)}
       >
         <div className="flex items-center gap-3">
-          <img
-            src={node.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'}
-            alt={node.name}
-            className="w-10 h-10 rounded-full border-2 border-gray-600"
-          />
+          <Avatar className="w-10 h-10 border-2 border-gray-600 flex-shrink-0">
+            <AvatarImage src={node.avatar} alt={node.name} />
+            <AvatarFallback className="bg-muted text-muted-foreground text-xs font-semibold">
+              {getInitials(node.name)}
+            </AvatarFallback>
+          </Avatar>
           <div className="flex-1 min-w-0">
             <h3 className="font-medium text-white text-sm truncate">{node.name}</h3>
             <span className={`${getRoleColorClass(node.role, category)} px-2 py-0.5 rounded text-xs font-medium inline-block mt-1`}>

@@ -86,6 +86,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  /**
+   * Canonical identity model:
+   * - `public.profiles` row keyed by `user_id` is the source of truth for display name + avatar.
+   * - We defensively "self-heal" by creating the profile row if the DB trigger didn't run.
+   */
+  const ensureProfileExists = useCallback(
+    async (supabaseUser: SupabaseUser): Promise<void> => {
+      try {
+        const displayName =
+          (supabaseUser.user_metadata?.display_name as string | undefined) ||
+          (supabaseUser.user_metadata?.full_name as string | undefined) ||
+          (supabaseUser.user_metadata?.name as string | undefined) ||
+          supabaseUser.email?.split('@')[0] ||
+          'User';
+
+        await supabase
+          .from('profiles')
+          .upsert(
+            {
+              user_id: supabaseUser.id,
+              display_name: displayName,
+              email: supabaseUser.email ?? null,
+              phone: supabaseUser.phone ?? null,
+            },
+            { onConflict: 'user_id' },
+          );
+      } catch (error) {
+        // Never block auth on profile creation failures.
+        if (import.meta.env.DEV) {
+          console.warn('[Auth] Failed to ensure profile exists:', error);
+        }
+      }
+    },
+    [],
+  );
+
   // Helper function to fetch user profile
   const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
@@ -207,6 +243,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       })()
     ]);
+
+    // Self-heal missing profiles row (trigger can fail in some Supabase projects/environments).
+    if (!userProfile) {
+      await ensureProfileExists(supabaseUser);
+    }
     
     const roles = userRolesResult.data?.map((r: any) => r.role) || [];
     const isPro = roles.includes('pro');
@@ -255,7 +296,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         push: notifPrefs.push_enabled
       }
     };
-  }, []);
+  }, [ensureProfileExists]);
 
   // Initialize auth state
   useEffect(() => {
@@ -541,10 +582,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) return { error: 'No user logged in' };
 
     try {
-      const { error } = await supabase
+      // Use UPSERT so profile updates persist even if the profiles row was never created.
+      // This is critical for avatar uploads + identity propagation.
+      const { data, error } = await supabase
         .from('profiles')
-        .update(updates)
-        .eq('user_id', user.id);
+        .upsert(
+          {
+            ...updates,
+            user_id: user.id,
+          },
+          { onConflict: 'user_id' },
+        )
+        .select('*')
+        .single();
 
       if (error) {
         if (import.meta.env.DEV) {
@@ -555,13 +605,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       // Update local user state
       const updatedUser = { ...user };
-      if (updates.display_name) updatedUser.displayName = updates.display_name;
-      if (updates.first_name) updatedUser.firstName = updates.first_name;
-      if (updates.last_name) updatedUser.lastName = updates.last_name;
-      if (updates.avatar_url) updatedUser.avatar = updates.avatar_url;
-      if (updates.bio !== undefined) updatedUser.bio = updates.bio || undefined;
-      if (updates.show_email !== undefined) updatedUser.showEmail = updates.show_email;
-      if (updates.show_phone !== undefined) updatedUser.showPhone = updates.show_phone;
+      // Prefer returned row to avoid local/remote drift.
+      if (data) {
+        updatedUser.displayName = data.display_name ?? updatedUser.displayName;
+        updatedUser.firstName = data.first_name ?? updatedUser.firstName;
+        updatedUser.lastName = data.last_name ?? updatedUser.lastName;
+        updatedUser.avatar = data.avatar_url ?? updatedUser.avatar;
+        updatedUser.bio = data.bio ?? updatedUser.bio;
+        updatedUser.showEmail = data.show_email ?? updatedUser.showEmail;
+        updatedUser.showPhone = data.show_phone ?? updatedUser.showPhone;
+      } else {
+        if (updates.display_name) updatedUser.displayName = updates.display_name;
+        if (updates.first_name) updatedUser.firstName = updates.first_name;
+        if (updates.last_name) updatedUser.lastName = updates.last_name;
+        if (updates.avatar_url) updatedUser.avatar = updates.avatar_url;
+        if (updates.bio !== undefined) updatedUser.bio = updates.bio ?? undefined;
+        if (updates.show_email !== undefined) updatedUser.showEmail = updates.show_email;
+        if (updates.show_phone !== undefined) updatedUser.showPhone = updates.show_phone;
+      }
 
       setUser(updatedUser);
       return {};

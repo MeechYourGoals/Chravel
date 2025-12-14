@@ -10,6 +10,8 @@ import { RoleContactSheet } from '../RoleContactSheet';
 import { extractUniqueRoles, getRoleColorClass } from '../../../utils/roleUtils';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '../../ui/avatar';
+import { getInitials } from '../../../utils/avatarUtils';
 import { useDemoMode } from '../../../hooks/useDemoMode';
 import { useSuperAdmin } from '../../../hooks/useSuperAdmin';
 import { AdminManagerDialog } from '../admin/AdminManagerDialog';
@@ -284,11 +286,12 @@ export const RolesView = ({
         {filteredRoster.map((member) => (
           <div key={member.id} className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-lg p-3">
             <div className="flex items-start gap-2.5">
-              <img
-                src={member.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'}
-                alt={member.name}
-                className="w-10 h-10 rounded-full border-2 border-gray-600 flex-shrink-0"
-              />
+              <Avatar className="w-10 h-10 border-2 border-gray-600 flex-shrink-0">
+                <AvatarImage src={member.avatar} alt={member.name} />
+                <AvatarFallback className="bg-muted text-muted-foreground text-xs font-semibold">
+                  {getInitials(member.name)}
+                </AvatarFallback>
+              </Avatar>
               <div className="flex-1 min-w-0">
                 <QuickContactMenu
                   member={member}

@@ -1,5 +1,4 @@
 import React, { useState, memo } from 'react';
-import { getMockAvatar } from '@/utils/mockAvatars';
 import { MessageReactionBar } from './MessageReactionBar';
 import { MessageActions } from './MessageActions';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
@@ -10,6 +9,8 @@ import { MapPin, Maximize2, FileText, Download, Link, ExternalLink, AlertCircle,
 import { cn } from '@/lib/utils';
 import { useMobilePortrait } from '@/hooks/useMobilePortrait';
 import { useLongPress } from '@/hooks/useLongPress';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getInitials } from '@/utils/avatarUtils';
 
 export interface MessageBubbleProps {
   id: string;
@@ -268,11 +269,12 @@ export const MessageBubble = memo(({
     <>
       <div className={cn('flex gap-2 group', isOwnMessage ? 'justify-end' : 'justify-start')}>
         {!isOwnMessage && showSenderInfo && (
-          <img
-            src={senderAvatar || getMockAvatar(senderName)}
-            alt={senderName}
-            className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-2 border-border/50 flex-shrink-0"
-          />
+          <Avatar className="w-8 h-8 md:w-10 md:h-10 border-2 border-border/50 flex-shrink-0">
+            <AvatarImage src={senderAvatar} alt={senderName} />
+            <AvatarFallback className="bg-muted text-muted-foreground text-xs md:text-sm font-semibold">
+              {getInitials(senderName)}
+            </AvatarFallback>
+          </Avatar>
         )}
         {!isOwnMessage && !showSenderInfo && <div className="w-8 md:w-10 flex-shrink-0" />}
 

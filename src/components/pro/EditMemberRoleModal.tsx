@@ -9,6 +9,8 @@ import { User, Save, X, ChevronDown } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
 import { ProTripCategory, getCategoryConfig } from '../../types/proCategories';
 import { getRoleOptions } from '../../utils/roleUtils';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { getInitials } from '../../utils/avatarUtils';
 
 interface EditMemberRoleModalProps {
   isOpen: boolean;
@@ -85,11 +87,12 @@ export const EditMemberRoleModal = ({
           {/* Member Info */}
           <div className="bg-white/5 rounded-lg p-4">
             <div className="flex items-center gap-3">
-              <img
-                src={member.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'}
-                alt={member.name}
-                className="w-10 h-10 rounded-full"
-              />
+              <Avatar className="w-10 h-10 flex-shrink-0">
+                <AvatarImage src={member.avatar} alt={member.name} />
+                <AvatarFallback className="bg-muted text-muted-foreground text-xs font-semibold">
+                  {getInitials(member.name)}
+                </AvatarFallback>
+              </Avatar>
               <div>
                 <h3 className="font-medium">{member.name}</h3>
                 <p className="text-sm text-gray-400">{member.email}</p>

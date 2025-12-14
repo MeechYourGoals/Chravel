@@ -133,6 +133,42 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     fetchData();
   }, [tripId, user, demoActive]);
 
+  // Subscribe to profile updates so avatar/name changes propagate into payments UI immediately.
+  useEffect(() => {
+    if (!tripId || demoActive) return;
+
+    const channel = supabase
+      .channel(`payments-profiles-${tripId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        payload => {
+          const next = payload.new as { user_id?: string; display_name?: string | null; avatar_url?: string | null } | null;
+          const userId = next?.user_id;
+          if (!userId) return;
+
+          setTripMembers(prev =>
+            prev.map(m =>
+              m.id === userId
+                ? {
+                    ...m,
+                    name: next.display_name ?? m.name,
+                    avatar: next.avatar_url ?? m.avatar,
+                  }
+                : m,
+            ),
+          );
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel).catch(() => {
+        // ignore
+      });
+    };
+  }, [tripId, demoActive]);
+
   // Count user's payment requests for this trip
   const userPaymentCount = useMemo(() => {
     return paymentMessages.filter(p => p.createdBy === user?.id).length;
