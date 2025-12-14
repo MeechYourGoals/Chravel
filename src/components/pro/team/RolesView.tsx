@@ -355,6 +355,7 @@ export const RolesView = ({
         member={editingMember}
         category={category}
         existingRoles={existingRoles}
+        availableRoles={availableRoles}
         onUpdateRole={handleUpdateRole}
       />
 
@@ -366,6 +367,7 @@ export const RolesView = ({
           roster={roster}
           category={category}
           existingRoles={existingRoles}
+          availableRoles={availableRoles}
           onUpdateMemberRole={onUpdateMemberRole}
         />
       )}
