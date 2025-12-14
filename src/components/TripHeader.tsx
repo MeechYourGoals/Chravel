@@ -443,9 +443,9 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
           </>
         )}
 
-        <div className={cn("flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4", hasCoverPhoto && isProOrEvent && "relative z-10")}>
+        <div className={cn("grid grid-cols-1 lg:grid-cols-2 gap-6", hasCoverPhoto && isProOrEvent && "relative z-10")}>
           {/* Left: Trip Details */}
-          <div className="flex-1 space-y-4">
+          <div className="space-y-4">
             {/* Show title/location/dates here only for Pro/Event trips (consumer trips show in hero section) */}
             {isProOrEvent && (
               <>
@@ -492,7 +492,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
           {/* Right: Collaborators Panel - Full width on mobile, constrained on desktop */}
           <div 
             className={cn(
-              "rounded-2xl p-3 pb-2 w-full lg:min-w-[280px] lg:w-[40%] border border-white/10 max-h-[240px]",
+              "rounded-2xl p-3 pb-2 w-full border border-white/10 max-h-[240px]",
               hasCoverPhoto && isProOrEvent 
                 ? "bg-black/50 backdrop-blur-md" 
                 : "bg-white/5 backdrop-blur-sm"
