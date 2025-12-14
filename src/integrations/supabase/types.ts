@@ -1056,6 +1056,78 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          basecamp_updates: boolean | null
+          broadcasts: boolean | null
+          calendar_events: boolean | null
+          chat_messages: boolean | null
+          created_at: string | null
+          email_enabled: boolean | null
+          id: string
+          join_requests: boolean | null
+          mentions_only: boolean | null
+          payments: boolean | null
+          polls: boolean | null
+          push_enabled: boolean | null
+          quiet_end: string | null
+          quiet_hours_enabled: boolean | null
+          quiet_start: string | null
+          sms_enabled: boolean | null
+          tasks: boolean | null
+          timezone: string | null
+          trip_invites: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          basecamp_updates?: boolean | null
+          broadcasts?: boolean | null
+          calendar_events?: boolean | null
+          chat_messages?: boolean | null
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          join_requests?: boolean | null
+          mentions_only?: boolean | null
+          payments?: boolean | null
+          polls?: boolean | null
+          push_enabled?: boolean | null
+          quiet_end?: string | null
+          quiet_hours_enabled?: boolean | null
+          quiet_start?: string | null
+          sms_enabled?: boolean | null
+          tasks?: boolean | null
+          timezone?: string | null
+          trip_invites?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          basecamp_updates?: boolean | null
+          broadcasts?: boolean | null
+          calendar_events?: boolean | null
+          chat_messages?: boolean | null
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          join_requests?: boolean | null
+          mentions_only?: boolean | null
+          payments?: boolean | null
+          polls?: boolean | null
+          push_enabled?: boolean | null
+          quiet_end?: string | null
+          quiet_hours_enabled?: boolean | null
+          quiet_start?: string | null
+          sms_enabled?: boolean | null
+          tasks?: boolean | null
+          timezone?: string | null
+          trip_invites?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null
