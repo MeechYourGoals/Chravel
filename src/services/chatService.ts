@@ -120,8 +120,7 @@ export async function deleteChatMessage(messageId: string): Promise<boolean> {
       .from('trip_chat_messages')
       .update({
         deleted_at: new Date().toISOString(),
-        is_deleted: true,
-        content: '[Message deleted]'
+        is_deleted: true
       })
       .eq('id', messageId);
 
@@ -145,8 +144,7 @@ export async function deleteChannelMessage(messageId: string): Promise<boolean> 
     const { error } = await supabase
       .from('channel_messages')
       .update({
-        deleted_at: new Date().toISOString(),
-        content: '[Message deleted]'
+        deleted_at: new Date().toISOString()
       })
       .eq('id', messageId);
 
