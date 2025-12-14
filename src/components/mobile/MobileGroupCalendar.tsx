@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, ChevronLeft, ChevronRight, Clock, MapPin, Users, X, Pencil, Trash2 } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Clock, MapPin, Users, X, Pencil, Trash2, BarChart3, ClipboardList } from 'lucide-react';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { CalendarSkeleton } from './SkeletonLoader';
@@ -21,6 +21,7 @@ interface CalendarEvent {
 
 interface MobileGroupCalendarProps {
   tripId: string;
+  onTabChange?: (tab: string) => void;
 }
 
 // Color gradients for events
@@ -35,7 +36,7 @@ const EVENT_COLORS = [
   'from-teal-500 to-teal-600',
 ];
 
-export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
+export const MobileGroupCalendar = ({ tripId, onTabChange }: MobileGroupCalendarProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -261,6 +262,40 @@ export const MobileGroupCalendar = ({ tripId }: MobileGroupCalendarProps) => {
                 );
               })}
             </div>
+          </div>
+
+          {/* Quick Tab Navigation - Places, Polls, Tasks */}
+          <div className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide border-b border-white/10">
+            <button 
+              onClick={async () => {
+                await hapticService.light();
+                onTabChange?.('places');
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm text-gray-300 flex-shrink-0 transition-colors active:scale-95"
+            >
+              <MapPin size={16} />
+              <span>Places</span>
+            </button>
+            <button 
+              onClick={async () => {
+                await hapticService.light();
+                onTabChange?.('polls');
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm text-gray-300 flex-shrink-0 transition-colors active:scale-95"
+            >
+              <BarChart3 size={16} />
+              <span>Polls</span>
+            </button>
+            <button 
+              onClick={async () => {
+                await hapticService.light();
+                onTabChange?.('tasks');
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm text-gray-300 flex-shrink-0 transition-colors active:scale-95"
+            >
+              <ClipboardList size={16} />
+              <span>Tasks</span>
+            </button>
           </div>
 
           {/* Events List for Selected Date */}

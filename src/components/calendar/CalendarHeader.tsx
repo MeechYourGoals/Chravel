@@ -11,58 +11,69 @@ interface CalendarHeaderProps {
 }
 
 export const CalendarHeader = ({ viewMode, onToggleView, onAddEvent, onExport }: CalendarHeaderProps) => {
-  const getViewButtonContent = () => {
+  const getViewButtonLabel = () => {
     switch (viewMode) {
       case 'grid':
-        return (
-          <>
-            <List className="mr-2 h-4 w-4" />
-            Itinerary View
-          </>
-        );
+        return 'Itinerary';
       case 'itinerary':
-        return (
-          <>
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            Day View
-          </>
-        );
+        return 'Day View';
       case 'calendar':
       default:
-        return (
-          <>
-            <Grid3x3 className="mr-2 h-4 w-4" />
-            Month Grid
-          </>
-        );
+        return 'Month Grid';
+    }
+  };
+
+  const getViewButtonIcon = () => {
+    switch (viewMode) {
+      case 'grid':
+        return <List className="h-4 w-4" />;
+      case 'itinerary':
+        return <CalendarIcon className="h-4 w-4" />;
+      case 'calendar':
+      default:
+        return <Grid3x3 className="h-4 w-4" />;
     }
   };
 
   return (
-    <div className="flex items-center justify-between mb-6">
-      {/* Left: Group Calendar Title */}
-      <h2 className="text-2xl font-bold text-foreground">Group Calendar</h2>
+    <div className="grid grid-cols-8 gap-2 mb-6 items-center">
+      {/* Left: Group Calendar Title - spans first 5 columns */}
+      <h2 className="col-span-5 text-2xl font-bold text-foreground">Group Calendar</h2>
 
-      {/* Right: Control Buttons */}
-      <div className="flex items-center gap-2">
-        {onExport && (
-          <Button variant="outline" onClick={onExport} size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-        )}
+      {/* Export button - column 6 (under Places) */}
+      <Button 
+        variant="outline" 
+        onClick={onExport} 
+        size="sm"
+        className="col-span-1 w-full flex items-center justify-center gap-1.5"
+        disabled={!onExport}
+      >
+        <Download className="h-4 w-4" />
+        <span className="hidden lg:inline">Export</span>
+      </Button>
 
-        <Button variant="outline" onClick={onToggleView} size="sm">
-          {getViewButtonContent()}
-        </Button>
+      {/* View toggle button - column 7 (under Polls) */}
+      <Button 
+        variant="outline" 
+        onClick={onToggleView} 
+        size="sm"
+        className="col-span-1 w-full flex items-center justify-center gap-1.5"
+      >
+        {getViewButtonIcon()}
+        <span className="hidden lg:inline">{getViewButtonLabel()}</span>
+      </Button>
 
-        {onAddEvent && (
-          <Button variant="outline" onClick={onAddEvent} size="sm">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Event
-          </Button>
-        )}
-      </div>
+      {/* Add Event button - column 8 (under Tasks) */}
+      <Button 
+        variant="outline" 
+        onClick={onAddEvent} 
+        size="sm"
+        className="col-span-1 w-full flex items-center justify-center gap-1.5"
+        disabled={!onAddEvent}
+      >
+        <Plus className="h-4 w-4" />
+        <span className="hidden lg:inline">Add Event</span>
+      </Button>
     </div>
   );
 };
