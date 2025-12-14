@@ -18,13 +18,17 @@ import { ChatFilterTabs } from '../chat/ChatFilterTabs';
 import { ChatSearchOverlay } from '../chat/ChatSearchOverlay';
 import { supabase } from '@/integrations/supabase/client';
 import { markMessagesAsRead } from '@/services/readReceiptService';
+import { useRoleChannels } from '@/hooks/useRoleChannels';
+import { TripChannel } from '@/types/roleChannels';
 
 interface MobileTripChatProps {
   tripId: string;
   isEvent?: boolean;
+  isPro?: boolean;
+  userRole?: string;
 }
 
-export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps) => {
+export const MobileTripChat = ({ tripId, isEvent = false, isPro = false, userRole = 'member' }: MobileTripChatProps) => {
   const orientation = useOrientation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -33,6 +37,13 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
   const [userId, setUserId] = useState<string | null>(null);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
   const [profileByUserId, setProfileByUserId] = useState<Record<string, { display_name: string | null; avatar_url: string | null }>>({});
+
+  // Initialize role channels hook for Pro/Enterprise trips
+  const {
+    availableChannels,
+    activeChannel,
+    setActiveChannel,
+  } = useRoleChannels(tripId, userRole, []);
 
   // Get current user
   useEffect(() => {
@@ -231,11 +242,19 @@ export const MobileTripChat = ({ tripId, isEvent = false }: MobileTripChatProps)
           <ChatFilterTabs
             activeFilter={messageFilter}
             onFilterChange={setMessageFilter}
-            hasChannels={false}
-            isPro={false}
+            hasChannels={availableChannels.length > 0}
+            isPro={isPro}
             broadcastCount={broadcastCount}
             unreadCount={unreadCount}
             onSearchClick={() => setShowSearchOverlay(true)}
+            availableChannels={availableChannels}
+            activeChannel={activeChannel}
+            onChannelSelect={(channel: TripChannel | null) => {
+              setActiveChannel(channel);
+              if (channel) {
+                setMessageFilter('channels');
+              }
+            }}
           />
           
           {/* Message List - flex-1 with overflow for scrolling */}

@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { MessageCircle, Megaphone, Hash, Search } from 'lucide-react';
+import { MessageCircle, Megaphone, Hash, Search, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { TripChannel } from '@/types/roleChannels';
@@ -144,7 +144,14 @@ export const MessageTypeBar = ({
                   title={!hasChannels ? "No role-based channels for this trip" : undefined}
                 >
                   <Hash className="w-4 h-4" />
-                  <span>Channels</span>
+                  <span>
+                    {activeChannel 
+                      ? activeChannel.channelName.toLowerCase().replace(/\s+/g, '-')
+                      : 'Channels'}
+                  </span>
+                  {activeChannel && hasChannels && (
+                    <ChevronDown className="w-3 h-3 opacity-70" />
+                  )}
                 </button>
               </PopoverTrigger>
 
@@ -157,6 +164,26 @@ export const MessageTypeBar = ({
                   sideOffset={4}
                 >
                   <div className="flex flex-col gap-1 min-w-[200px]">
+                    {/* All Messages option */}
+                    <button
+                      onClick={() => {
+                        onChannelSelect?.(null as any);
+                        onFilterChange('all');
+                        setChannelPopoverOpen(false);
+                      }}
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
+                        !activeChannel
+                          ? "bg-blue-500 text-white shadow-md"
+                          : "text-white/70 hover:text-white hover:bg-white/10"
+                      )}
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="whitespace-nowrap">All Messages</span>
+                    </button>
+                    
+                    <div className="h-px bg-white/10 my-1" />
+                    
                     {availableChannels
                       .sort((a, b) => a.channelName.localeCompare(b.channelName))
                       .map(channel => (
