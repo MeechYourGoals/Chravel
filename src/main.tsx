@@ -6,19 +6,6 @@ import { registerServiceWorker } from "./utils/serviceWorkerRegistration";
 import App from "./App.tsx";
 import "./index.css";
 
-// TEMPORARY: Kill stale service workers once (remove after one release cycle)
-// if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-//   navigator.serviceWorker.getRegistrations?.().then(regs => {
-//     regs.forEach(r => r.unregister());
-//   }).catch(err => console.warn('[SW] Could not clear service workers:', err));
-  
-//   if ('caches' in window) {
-//     caches.keys?.().then(keys => {
-//       keys.forEach(k => caches.delete(k));
-//     }).catch(err => console.warn('[SW] Could not clear caches:', err));
-//   }
-// }
-
 // Register service worker for offline support
 if (import.meta.env.PROD) {
   registerServiceWorker();
