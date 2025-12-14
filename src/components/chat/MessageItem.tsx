@@ -6,13 +6,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCallback } from 'react';
 
 interface MessageItemProps {
-  message: ChatMessage;
+  message: ChatMessage & { status?: 'sending' | 'sent' | 'failed' };
   reactions?: Record<string, { count: number; userReacted: boolean }>;
   onReaction: (messageId: string, reactionType: string) => void;
   showSenderInfo?: boolean;
+  onRetry?: (messageId: string) => void;
 }
 
-export const MessageItem = memo(({ message, reactions, onReaction, showSenderInfo }: MessageItemProps) => {
+export const MessageItem = memo(({ message, reactions, onReaction, showSenderInfo, onRetry }: MessageItemProps) => {
   const { user } = useAuth();
   const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
   
@@ -63,6 +64,8 @@ export const MessageItem = memo(({ message, reactions, onReaction, showSenderInf
       mediaUrl={messageWithMedia.mediaUrl}
       linkPreview={messageWithMedia.linkPreview}
       attachments={messageWithMedia.attachments}
+      status={message.status}
+      onRetry={onRetry}
     />
   );
 });
