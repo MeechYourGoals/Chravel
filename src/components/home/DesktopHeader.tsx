@@ -32,7 +32,7 @@ export const DesktopHeader = ({ viewMode }: DesktopHeaderProps) => {
             ChravelApp
           </h1>
           <span className="text-xs text-muted-foreground">
-            The Group <span className="font-semibold">Ch</span>at T<span className="font-semibold">ravel</span> <span className="font-semibold">App</span>
+            The Group <span className="font-bold">Ch</span>at T<span className="font-bold">ravel</span> <span className="font-bold">App</span>
           </span>
         </div>
         

@@ -26,7 +26,7 @@ export const ReplacesGrid = () => {
           The Operating System for Group Trips & Events
         </h2>
         <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white font-medium max-w-3xl mx-auto leading-relaxed break-words">
-          Bring your most-used travel and event needs into one shared planning space. Chravel keeps every plan, person, and payment in sync — less app-switching, less confusion.
+          Your most-used workflows in one shared planning space. ChravelApp keeps every plan, person, and payment in sync — less app-switching, less confusion.
         </p>
         <p className="text-white font-semibold text-base sm:text-lg md:text-xl mt-4 md:mt-6 text-center max-w-3xl mx-auto">
           Use it for: family trips, youth sports, wedding weekends, group retreats, tours, and corporate events.

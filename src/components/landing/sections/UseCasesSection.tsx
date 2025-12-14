@@ -60,7 +60,7 @@ export const UseCasesSection = () => {
           Built for Every Journey — Even When You're Not Traveling
         </h2>
         <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-          From family vacations to local leagues and weddings, Chravel is your group's shared home for plans, messages, and memories.
+          From family vacations to local leagues and weddings, ChravelApp is your Social Storage home for plans, messages, and memories.
         </p>
       </div>
 
