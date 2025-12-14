@@ -15,7 +15,7 @@ interface InviteModalProps {
 }
 
 export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: InviteModalProps) => {
-  const [requireApproval, setRequireApproval] = useState(false);
+  const [requireApproval, setRequireApproval] = useState(true);
   const [expireIn7Days, setExpireIn7Days] = useState(false);
 
   const {

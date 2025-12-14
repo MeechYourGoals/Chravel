@@ -223,11 +223,43 @@ serve(async (req) => {
 
       const requesterName = requesterProfile?.display_name || requesterProfile?.email || user.email || "Someone";
 
-      // Create notification for trip creator
-      const { error: notificationError } = await supabaseClient
-        .from("notifications")
-        .insert({
-          user_id: trip.created_by,
+      // Determine notification recipients based on trip type
+      let recipientIds: string[] = [];
+      
+      if (trip.trip_type === 'pro' || trip.trip_type === 'event') {
+        // Pro/Event trips: Notify trip creator + all admins
+        recipientIds = [trip.created_by];
+        
+        const { data: admins } = await supabaseClient
+          .from('trip_admins')
+          .select('user_id')
+          .eq('trip_id', invite.trip_id);
+        
+        if (admins && admins.length > 0) {
+          const adminUserIds = admins.map(a => a.user_id);
+          recipientIds = [...new Set([...recipientIds, ...adminUserIds])];
+        }
+        logStep("Pro/Event trip: Notifying creator + admins", { count: recipientIds.length });
+      } else {
+        // Consumer trips (My Trips): Notify ALL current trip members
+        const { data: members } = await supabaseClient
+          .from('trip_members')
+          .select('user_id')
+          .eq('trip_id', invite.trip_id);
+        
+        if (members && members.length > 0) {
+          recipientIds = members.map(m => m.user_id);
+        } else {
+          // Fallback to just creator if no members found
+          recipientIds = [trip.created_by];
+        }
+        logStep("Consumer trip: Notifying all members", { count: recipientIds.length });
+      }
+
+      // Create notifications for all recipients
+      const notificationPromises = recipientIds.map(recipientId => 
+        supabaseClient.from("notifications").insert({
+          user_id: recipientId,
           title: `${requesterName} wants to join ${trip.name}`,
           message: "Tap to approve or reject their request",
           type: "join_request",
@@ -239,14 +271,12 @@ serve(async (req) => {
             requester_name: requesterName,
             request_id: joinRequest?.id
           }
-        });
+        })
+      );
 
-      if (notificationError) {
-        logStep("WARNING: Failed to create notification", { error: notificationError.message });
-        // Non-critical error, don't fail the request
-      } else {
-        logStep("Notification created for trip creator");
-      }
+      const notificationResults = await Promise.allSettled(notificationPromises);
+      const successCount = notificationResults.filter(r => r.status === 'fulfilled').length;
+      logStep("Notifications created", { total: recipientIds.length, success: successCount });
 
       return new Response(
         JSON.stringify({

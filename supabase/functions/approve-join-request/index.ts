@@ -78,14 +78,45 @@ serve(async (req) => {
 
     logStep("Join request found", { tripId: joinRequest.trip_id, userId: joinRequest.user_id });
 
-    // Verify user is trip creator
-    if (joinRequest.trips.created_by !== user.id) {
-      logStep("ERROR: User is not trip creator");
-      return new Response(
-        JSON.stringify({ success: false, message: "Only trip creators can approve join requests" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Check authorization based on trip type
+    const isCreator = joinRequest.trips.created_by === user.id;
+    const tripType = joinRequest.trips.trip_type;
+
+    if (tripType === 'pro' || tripType === 'event') {
+      // Pro/Event trips: Only creator or admins can approve
+      const { data: adminCheck } = await supabaseClient
+        .from('trip_admins')
+        .select('id')
+        .eq('trip_id', joinRequest.trip_id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!isCreator && !adminCheck) {
+        logStep("ERROR: User is not admin for Pro/Event trip");
+        return new Response(
+          JSON.stringify({ success: false, message: "Only trip admins can approve join requests for Pro/Event trips" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      // Consumer trips (My Trips): Any trip member can approve
+      const { data: memberCheck } = await supabaseClient
+        .from('trip_members')
+        .select('id')
+        .eq('trip_id', joinRequest.trip_id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!memberCheck) {
+        logStep("ERROR: User is not a trip member");
+        return new Response(
+          JSON.stringify({ success: false, message: "Only trip members can approve join requests" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
+
+    logStep("Authorization verified", { tripType, isCreator });
 
     // Check if already resolved
     if (joinRequest.status !== 'pending') {
