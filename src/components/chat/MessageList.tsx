@@ -4,11 +4,12 @@ import { MessageItem } from './MessageItem';
 import { ChatMessage } from '@/hooks/useChatComposer';
 
 interface MessageListProps {
-  messages: ChatMessage[];
+  messages: (ChatMessage & { status?: 'sending' | 'sent' | 'failed' })[];
   reactions: Record<string, Record<string, { count: number; userReacted: boolean }>>;
   onReaction: (messageId: string, reactionType: string) => void;
   emptyStateTitle?: string;
   emptyStateDescription?: string;
+  onRetryMessage?: (messageId: string) => void;
 }
 
 export const MessageList = memo(({
@@ -17,6 +18,7 @@ export const MessageList = memo(({
   onReaction,
   emptyStateTitle = 'Start the conversation',
   emptyStateDescription = 'Messages here are visible to everyone in the trip',
+  onRetryMessage,
 }: MessageListProps) => {
   // Memoize message grouping for performance
   const messageGroups = useMemo(() => {
@@ -54,6 +56,7 @@ export const MessageList = memo(({
             reactions={reactions[message.id]}
             onReaction={onReaction}
             showSenderInfo={showSenderInfo}
+            onRetry={onRetryMessage}
           />
         </div>
       ))}

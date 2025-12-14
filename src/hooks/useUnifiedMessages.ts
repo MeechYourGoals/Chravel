@@ -86,7 +86,7 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
     };
   }, [enabled, user, tripId, toast]);
 
-  // Send message
+  // Send message with enhanced error handling
   const sendMessage = useCallback(async (content: string, privacyMode?: string) => {
     if (!user) {
       toast({
@@ -100,9 +100,9 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
     setIsSending(true);
     const userName = user.email?.split('@')[0] || 'Unknown User';
     
-    // Create optimistic message
+    // Create optimistic message with status tracking
     const optimisticId = `optimistic-${Date.now()}`;
-    const optimisticMessage: Message = {
+    const optimisticMessage: Message & { status?: 'sending' | 'sent' | 'failed'; originalContent?: string } = {
       id: optimisticId,
       trip_id: tripId,
       content,
@@ -121,7 +121,9 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
       link_preview: null,
       privacy_encrypted: false,
       edited_at: undefined,
-      deleted_at: undefined
+      deleted_at: undefined,
+      status: 'sending',
+      originalContent: content
     };
     
     // Add to UI immediately
@@ -136,33 +138,66 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
         privacyMode: privacyMode || 'standard'
       });
       
-      // Replace optimistic with server response
+      // Replace optimistic with server response (mark as sent)
       setMessages(prev => 
-        prev.map(m => m.id === optimisticId ? message : m)
+        prev.map(m => m.id === optimisticId ? { ...message, status: 'sent' as const } : m)
       );
       
       // Update cache with new message
       await saveMessagesToCache(tripId, [message as any]);
     } catch (error) {
+      const errorCode = (error as any)?.code;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
       console.error('Failed to send message:', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
+        errorCode,
+        errorDetails: (error as any)?.details,
         tripId,
         userId: user.id
       });
       
-      // Remove optimistic message on error
-      setMessages(prev => prev.filter(m => m.id !== optimisticId));
+      // Mark message as failed instead of removing it (allows retry)
+      setMessages(prev => 
+        prev.map(m => m.id === optimisticId 
+          ? { ...m, status: 'failed' as const } 
+          : m
+        )
+      );
+      
+      // Specific error handling with actionable messages
+      let userErrorMessage = 'Failed to send message. Tap to retry.';
+      if (errorCode === '42501') {
+        userErrorMessage = 'You may not have permission to send messages in this trip.';
+      } else if (errorCode === 'PGRST301') {
+        userErrorMessage = 'Connection lost. Please refresh the page.';
+      } else if (error instanceof TypeError && errorMessage.includes('fetch')) {
+        userErrorMessage = 'Network error. Please check your connection and try again.';
+      } else if (errorCode === '23503') {
+        userErrorMessage = 'You must be a trip member to send messages.';
+      }
       
       toast({
         title: 'Send Failed',
-        description: 'Failed to send message',
+        description: userErrorMessage,
         variant: 'destructive'
       });
-      throw error;
     } finally {
       setIsSending(false);
     }
   }, [user, tripId, toast]);
+
+  // Retry failed message
+  const retrySendMessage = useCallback(async (failedMessageId: string) => {
+    const failedMessage = messages.find(m => m.id === failedMessageId && (m as any).status === 'failed');
+    if (!failedMessage || !user) return;
+
+    // Remove the failed message and resend
+    setMessages(prev => prev.filter(m => m.id !== failedMessageId));
+    
+    // Resend with original content
+    await sendMessage(failedMessage.content, failedMessage.privacy_mode);
+  }, [messages, user, sendMessage]);
 
   // Load more messages
   const loadMore = useCallback(async () => {
@@ -211,6 +246,7 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
     sendMessage,
     loadMore,
     deleteMessage,
+    retrySendMessage,
     isConnected: true,
     hasMore,
     isLoadingMore,

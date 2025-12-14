@@ -6,7 +6,7 @@ import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { GroundingCitationCard } from './GroundingCitationCard';
 import { ImageLightbox } from './ImageLightbox';
 import { GroundingCitation } from '@/types/grounding';
-import { MapPin, Maximize2, FileText, Download, Link, ExternalLink } from 'lucide-react';
+import { MapPin, Maximize2, FileText, Download, Link, ExternalLink, AlertCircle, RotateCcw, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMobilePortrait } from '@/hooks/useMobilePortrait';
 import { useLongPress } from '@/hooks/useLongPress';
@@ -50,6 +50,9 @@ export interface MessageBubbleProps {
   }>;
   // 🆕 Gallery support - all images in chat for navigation
   allChatImages?: { url: string; caption?: string }[];
+  // 🆕 Message status for retry UI
+  status?: 'sending' | 'sent' | 'failed';
+  onRetry?: (messageId: string) => void;
 }
 
 export const MessageBubble = memo(({
@@ -75,6 +78,8 @@ export const MessageBubble = memo(({
   linkPreview,
   attachments,
   allChatImages = [],
+  status,
+  onRetry,
 }: MessageBubbleProps) => {
   const [showReactions, setShowReactions] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -297,13 +302,15 @@ export const MessageBubble = memo(({
           <div
             className={cn(
               'px-3 py-2 md:px-4 md:py-2.5 rounded-2xl break-words',
-              'text-sm md:text-base',
-              isOwnMessage
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted/80 text-white',
-              isBroadcast && 'border-2 border-red-500/50 bg-gray-800',
-              isPayment && 'border-2 border-green-500/50',
-              // Adjust styling for media-only messages
+            'text-sm md:text-base',
+            isOwnMessage
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted/80 text-white',
+            isBroadcast && 'border-2 border-red-500/50 bg-gray-800',
+            isPayment && 'border-2 border-green-500/50',
+            status === 'failed' && 'opacity-70 border-2 border-destructive/50',
+            status === 'sending' && 'opacity-80',
+            // Adjust styling for media-only messages
               (hasMedia || hasLinkPreview) && !text && 'p-1 bg-transparent',
             )}
           >
@@ -320,6 +327,26 @@ export const MessageBubble = memo(({
             
             {/* Link preview */}
             {renderLinkPreview()}
+            
+            {/* Message status indicator */}
+            {status === 'sending' && (
+              <div className="flex items-center gap-1 mt-1 text-xs opacity-70">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span>Sending...</span>
+              </div>
+            )}
+            
+            {status === 'failed' && (
+              <button 
+                onClick={() => onRetry?.(id)}
+                className="flex items-center gap-1.5 mt-1 text-xs text-destructive hover:text-destructive/80 transition-colors"
+              >
+                <AlertCircle className="h-3 w-3" />
+                <span>Failed to send</span>
+                <RotateCcw className="h-3 w-3 ml-1" />
+                <span className="underline">Retry</span>
+              </button>
+            )}
           </div>
           
           {/* Google Maps Widget */}

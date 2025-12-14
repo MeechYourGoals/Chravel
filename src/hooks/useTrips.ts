@@ -68,6 +68,37 @@ export const useTrips = () => {
     };
   }, [user, isDemoMode, queryClient]);
 
+  // Subscribe to realtime updates for trip_members changes (member count updates)
+  useEffect(() => {
+    if (isDemoMode || !user) return;
+
+    const channel = supabase
+      .channel('trip-members-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen for INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'trip_members'
+        },
+        (payload) => {
+          const newRecord = payload.new as Record<string, unknown> | null;
+          const oldRecord = payload.old as Record<string, unknown> | null;
+          console.log('[useTrips] trip_members changed, refetching trips', {
+            event: payload.eventType,
+            tripId: newRecord?.trip_id || oldRecord?.trip_id
+          });
+          // Invalidate and refetch trips to update member counts
+          queryClient.invalidateQueries({ queryKey: [TRIPS_QUERY_KEY] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, isDemoMode, queryClient]);
+
   const createTripMutation = useMutation({
     mutationFn: (tripData: CreateTripData) => {
       // CRITICAL: Validate user authentication state before mutation
