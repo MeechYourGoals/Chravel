@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { subscribeToMediaUpdates } from '@/services/chatService';
 import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
+import { mediaService } from '@/services/mediaService';
 
 type Tables = Database['public']['Tables'];
 type MediaRow = Tables['trip_media_index']['Row'];
@@ -147,38 +148,7 @@ export function useMediaSync(tripId: string) {
 
       setIsDeleting(true);
       try {
-        // Get media item to find storage path
-        const { data: mediaItem, error: fetchError } = await supabase
-          .from('trip_media_index')
-          .select('*')
-          .eq('id', mediaId)
-          .single();
-
-        if (fetchError) {
-          console.error('[useMediaSync] Error fetching media:', fetchError);
-          throw fetchError;
-        }
-
-        // Delete from storage if we have the upload path
-        if (mediaItem?.metadata && typeof mediaItem.metadata === 'object') {
-          const metadata = mediaItem.metadata as Record<string, unknown>;
-          if (metadata.upload_path && typeof metadata.upload_path === 'string') {
-            const { error: storageError } = await supabase.storage
-              .from('trip-media')
-              .remove([metadata.upload_path]);
-            if (storageError) {
-              console.warn('[useMediaSync] Storage delete warning:', storageError);
-            }
-          }
-        }
-
-        // Delete from database
-        const { error: deleteError } = await supabase
-          .from('trip_media_index')
-          .delete()
-          .eq('id', mediaId);
-
-        if (deleteError) throw deleteError;
+        await mediaService.deleteMedia(mediaId);
 
         // Optimistically remove from local state
         setImages((prev) => prev.filter((item) => item.id !== mediaId));
@@ -204,12 +174,7 @@ export function useMediaSync(tripId: string) {
 
       setIsDeleting(true);
       try {
-        const { error: deleteError } = await supabase
-          .from('trip_files')
-          .delete()
-          .eq('id', fileId);
-
-        if (deleteError) throw deleteError;
+        await mediaService.deleteMedia(fileId);
 
         // Optimistically remove from local state
         setFiles((prev) => prev.filter((item) => item.id !== fileId));
@@ -233,12 +198,15 @@ export function useMediaSync(tripId: string) {
 
       setIsDeleting(true);
       try {
-        const { error: deleteError } = await supabase
+        const { data: deleted, error: deleteError } = await supabase
           .from('trip_link_index')
           .delete()
           .eq('id', linkId);
 
         if (deleteError) throw deleteError;
+        if (!deleted || deleted.length !== 1) {
+          throw new Error('Delete failed (not authorized, not found, or already deleted).');
+        }
 
         // Optimistically remove from local state
         setLinks((prev) => prev.filter((item) => item.id !== linkId));

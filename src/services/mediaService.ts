@@ -43,6 +43,38 @@ export interface UploadMediaRequest {
   media_type: 'image' | 'video' | 'document';
 }
 
+function extractTripMediaStoragePath(mediaUrl: string): string | null {
+  // Expected patterns:
+  // - .../storage/v1/object/public/trip-media/<path>
+  // - .../storage/v1/object/sign/trip-media/<path>?token=...
+  try {
+    const url = new URL(mediaUrl);
+    const path = url.pathname;
+    const publicPrefix = '/storage/v1/object/public/trip-media/';
+    const signedPrefix = '/storage/v1/object/sign/trip-media/';
+
+    if (path.includes(publicPrefix)) {
+      const idx = path.indexOf(publicPrefix);
+      return decodeURIComponent(path.slice(idx + publicPrefix.length));
+    }
+
+    if (path.includes(signedPrefix)) {
+      const idx = path.indexOf(signedPrefix);
+      return decodeURIComponent(path.slice(idx + signedPrefix.length));
+    }
+  } catch {
+    // If it's not an absolute URL, we can't reliably parse.
+  }
+  return null;
+}
+
+function extractUploadPathFromMetadata(metadata: unknown): string | null {
+  if (typeof metadata !== 'object' || metadata === null) return null;
+  if (!('upload_path' in metadata)) return null;
+  const value = (metadata as Record<string, unknown>).upload_path;
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
 /**
  * Upload media with strict MIME enforcement + guardrails
  */
@@ -125,31 +157,28 @@ export async function uploadTripMedia(
  * Delete media (DB + Storage)
  */
 export async function deleteTripMedia(media: TripMedia): Promise<void> {
-  // Get storage path from metadata
+  // Step 1: Determine storage path (metadata preferred; URL fallback)
   const storagePath =
-    typeof media.metadata === 'object' &&
-    media.metadata !== null &&
-    'upload_path' in media.metadata
-      ? (media.metadata as Record<string, unknown>).upload_path
-      : null;
+    extractUploadPathFromMetadata(media.metadata) ?? extractTripMediaStoragePath(media.media_url);
 
-  // Delete DB record first
-  const { error: dbError } = await supabase
-    .from('trip_media_index')
-    .delete()
-    .eq('id', media.id);
-
-  if (dbError) throw dbError;
-
-  // Delete storage object if we have the path
-  if (storagePath && typeof storagePath === 'string') {
+  // Step 2: Delete from storage FIRST (rule: storage must succeed before DB)
+  if (storagePath) {
     const { error: storageError } = await supabase.storage
       .from('trip-media')
       .remove([storagePath]);
+    if (storageError) throw storageError;
+  }
 
-    if (storageError) {
-      console.error('[mediaService] Storage delete failed', storageError);
-    }
+  // Step 3: Delete DB row and VERIFY it actually deleted a row (prevents false success under RLS)
+  const { data: deleted, error: dbError } = await supabase
+    .from('trip_media_index')
+    .delete()
+    .eq('id', media.id)
+    .select('id');
+
+  if (dbError) throw dbError;
+  if (!deleted || deleted.length !== 1) {
+    throw new Error('Delete failed (not authorized, not found, or already deleted).');
   }
 }
 
@@ -237,29 +266,51 @@ export const mediaService = {
    * Delete a media item by ID
    */
   async deleteMedia(mediaId: string): Promise<void> {
-    // Get media item to get storage path
-    const { data: mediaItem, error: fetchError } = await supabase
+    // Try trip_media_index first
+    const { data: mediaItem, error: fetchMediaError } = await supabase
       .from('trip_media_index')
       .select('*')
       .eq('id', mediaId)
-      .single();
+      .maybeSingle();
 
-    if (fetchError) throw fetchError;
+    if (fetchMediaError) throw fetchMediaError;
 
-    // Convert to TripMedia format and delete
-    const tripMedia: TripMedia = {
-      id: mediaItem.id,
-      trip_id: mediaItem.trip_id,
-      media_url: mediaItem.media_url,
-      mime_type: mediaItem.mime_type ?? '',
-      file_name: mediaItem.filename,
-      media_type: mediaItem.media_type as 'image' | 'video' | 'document',
-      metadata: mediaItem.metadata as Record<string, unknown>,
-      created_at: mediaItem.created_at ?? '',
-      file_size: mediaItem.file_size,
-    };
+    if (mediaItem) {
+      const tripMedia: TripMedia = {
+        id: mediaItem.id,
+        trip_id: mediaItem.trip_id,
+        media_url: mediaItem.media_url,
+        mime_type: mediaItem.mime_type ?? '',
+        file_name: mediaItem.filename,
+        media_type: mediaItem.media_type as 'image' | 'video' | 'document',
+        metadata: mediaItem.metadata as Record<string, unknown>,
+        created_at: mediaItem.created_at ?? '',
+        file_size: mediaItem.file_size,
+      };
+      await deleteTripMedia(tripMedia);
+      return;
+    }
 
-    await deleteTripMedia(tripMedia);
+    // Fallback: trip_files (DB-only; no reliable storage path in schema)
+    const { data: fileRow, error: fileFetchError } = await supabase
+      .from('trip_files')
+      .select('id')
+      .eq('id', mediaId)
+      .maybeSingle();
+
+    if (fileFetchError) throw fileFetchError;
+    if (!fileRow) throw new Error('Item not found.');
+
+    const { data: deleted, error: deleteError } = await supabase
+      .from('trip_files')
+      .delete()
+      .eq('id', mediaId)
+      .select('id');
+
+    if (deleteError) throw deleteError;
+    if (!deleted || deleted.length !== 1) {
+      throw new Error('Delete failed (not authorized, not found, or already deleted).');
+    }
   },
 
   /**
