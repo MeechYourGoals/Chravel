@@ -11,6 +11,7 @@ import { useMobilePortrait } from '@/hooks/useMobilePortrait';
 import { useLongPress } from '@/hooks/useLongPress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/utils/avatarUtils';
+import { defaultAvatar } from '@/utils/mockAvatars';
 
 export interface MessageBubbleProps {
   id: string;
@@ -270,7 +271,7 @@ export const MessageBubble = memo(({
       <div className={cn('flex gap-2 group', isOwnMessage ? 'justify-end' : 'justify-start')}>
         {!isOwnMessage && showSenderInfo && (
           <Avatar className="w-8 h-8 md:w-10 md:h-10 border-2 border-border/50 flex-shrink-0">
-            <AvatarImage src={senderAvatar} alt={senderName} />
+            <AvatarImage src={senderAvatar || defaultAvatar} alt={senderName} />
             <AvatarFallback className="bg-muted text-muted-foreground text-xs md:text-sm font-semibold">
               {getInitials(senderName)}
             </AvatarFallback>

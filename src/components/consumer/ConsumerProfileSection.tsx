@@ -43,10 +43,10 @@ export const ConsumerProfileSection = () => {
     setIsSaving(true);
     try {
       // Canonical identity lives in `profiles` (via useAuth.updateProfile upsert).
+      // Note: phone is stored separately - updateProfile only handles profile fields
       const { error } = await updateProfile({
         display_name: displayName,
         bio: bio,
-        phone: phone,
       });
 
       if (error) throw error;
