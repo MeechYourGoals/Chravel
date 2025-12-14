@@ -98,8 +98,11 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
     return false;
   };
 
-  // Admin can manage requests if handlers are provided
-  const canManageRequests = isAdmin && onApproveRequest && onRejectRequest;
+  // Determine who can manage requests:
+  // - Consumer trips: ANY trip member can approve/reject
+  // - Pro/Event trips: Only admins can approve/reject
+  const isConsumerTrip = !tripType || tripType === 'consumer';
+  const canManageRequests = (isAdmin || isConsumerTrip) && onApproveRequest && onRejectRequest;
   const pendingCount = pendingRequests.length;
 
   return (
@@ -292,14 +295,14 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                   </div>
                 )
               ) : (
-                // Non-admin view: informational message
+              // Non-admin view: informational message (Pro/Event trips only)
                 <div className="text-center py-12">
                   <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
                     <UserPlus size={24} className="text-gray-500" />
                   </div>
                   <p className="text-gray-400 text-sm">Join Requests</p>
                   <p className="text-gray-500 text-xs mt-1">
-                    Only trip organizers can manage join requests
+                    Only trip admins can manage join requests for Pro/Event trips
                   </p>
                 </div>
               )}
