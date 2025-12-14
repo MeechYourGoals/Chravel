@@ -159,7 +159,7 @@ export const MobileTripTabs = ({
           participants={participants}
         />;
       case 'calendar':
-        return <MobileGroupCalendar tripId={tripId} onTabChange={onTabChange} />;
+        return <MobileGroupCalendar tripId={tripId} />;
       case 'polls':
         return <CommentsWall tripId={tripId} />;
       case 'media':
