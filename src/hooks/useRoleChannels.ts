@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { roleChannelService, RoleChannel, RoleChannelMessage } from '../services/roleChannelService';
+import { RoleChannelMessage } from '../services/roleChannelService';
 import { getDemoChannelsForTrip } from '../data/demoChannelData';
 import { TripChannel, ChannelMessage } from '../types/roleChannels';
 import { useDemoMode } from './useDemoMode';
 import { MockRolesService } from '@/services/mockRolesService';
+import { channelService } from '@/services/channelService';
+import { supabase } from '@/integrations/supabase/client';
 
 // All demo trip IDs including Pro and Event trips
 const DEMO_TRIP_IDS = [
@@ -13,22 +15,6 @@ const DEMO_TRIP_IDS = [
   // Consumer demo trips (numeric IDs)
   '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'
 ];
-
-// Convert RoleChannel to TripChannel
-const convertToTripChannel = (channel: RoleChannel): TripChannel => ({
-  id: channel.id,
-  tripId: channel.tripId,
-  channelName: channel.roleName,
-  channelSlug: channel.roleName.toLowerCase().replace(/\s+/g, '-'),
-  requiredRoleId: 'role-' + channel.id,
-  requiredRoleName: channel.roleName,
-  isPrivate: true,
-  isArchived: false,
-  memberCount: channel.memberCount || 0,
-  createdBy: channel.createdBy,
-  createdAt: channel.createdAt,
-  updatedAt: channel.createdAt
-});
 
 // Convert ChannelMessage to RoleChannelMessage
 const convertToRoleChannelMessage = (msg: ChannelMessage): RoleChannelMessage => ({
@@ -41,7 +27,7 @@ const convertToRoleChannelMessage = (msg: ChannelMessage): RoleChannelMessage =>
   createdAt: msg.createdAt
 });
 
-export const useRoleChannels = (tripId: string, userRole: string, roles?: string[]) => {
+export const useRoleChannels = (tripId: string, _userRole: string, roles?: string[]) => {
   const { isDemoMode } = useDemoMode();
   const [availableChannels, setAvailableChannels] = useState<TripChannel[]>([]);
   const [activeChannel, setActiveChannel] = useState<TripChannel | null>(null);
@@ -53,6 +39,11 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
 
   // Load channels for this trip
   const loadChannels = useCallback(async () => {
+    if (!tripId) {
+      setAvailableChannels([]);
+      setActiveChannel(null);
+      return;
+    }
     setIsLoading(true);
 
     // DEMO MODE: Load from mock service
@@ -75,20 +66,8 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
 
     // AUTHENTICATED MODE: Fetch from database
     try {
-      const channels = await roleChannelService.getRoleChannels(tripId);
-      
-      // If no channels found, user might not have a role yet - show empty state
-      if (!channels || channels.length === 0) {
-        setAvailableChannels([]);
-        setIsLoading(false);
-        return;
-      }
-      
-      // Filter to only show channels user can access and convert to TripChannel
-      const accessibleChannels = channels
-        .filter(channel => roleChannelService.canUserAccessChannel(channel, userRole))
-        .map(convertToTripChannel);
-      
+      // ✅ Channels list must be derived from role membership (Slack-style)
+      const accessibleChannels = await channelService.getAccessibleChannels(tripId);
       setAvailableChannels(accessibleChannels);
     } catch (error) {
       console.error('Error loading channels:', error);
@@ -96,7 +75,7 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
     }
     
     setIsLoading(false);
-  }, [tripId, userRole, isDemoMode, isDemoTrip, roles]);
+  }, [tripId, isDemoMode, isDemoTrip, roles]);
 
   useEffect(() => {
     loadChannels();
@@ -118,22 +97,46 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
     }
 
     const loadMessages = async () => {
-      const channelMessages = await roleChannelService.getChannelMessages(activeChannel.id);
-      setMessages(channelMessages);
+      const channelMessages = await channelService.getMessages(activeChannel.id);
+      const roleChannelMessages = channelMessages.map(convertToRoleChannelMessage);
+      setMessages(roleChannelMessages);
     };
 
     loadMessages();
 
     // Subscribe to new messages
-    const unsubscribe = roleChannelService.subscribeToChannel(
+    const unsubscribe = channelService.subscribeToChannel(
       activeChannel.id,
       (newMessage) => {
-        setMessages(prev => [...prev, newMessage]);
+        setMessages(prev => [...prev, convertToRoleChannelMessage(newMessage)]);
       }
     );
 
     return unsubscribe;
   }, [activeChannel, isDemoTrip, demoMessages]);
+
+  // ✅ Realtime: when role assignments or channels change, recompute accessible channels
+  useEffect(() => {
+    if (!tripId || isDemoMode || isDemoTrip) return;
+
+    const ch = supabase
+      .channel(`role-channels:${tripId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_trip_roles', filter: `trip_id=eq.${tripId}` },
+        () => { loadChannels(); },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'trip_channels', filter: `trip_id=eq.${tripId}` },
+        () => { loadChannels(); },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [tripId, isDemoMode, isDemoTrip, loadChannels]);
 
   const createChannel = async (roleName: string): Promise<boolean> => {
     const channel = await roleChannelService.createRoleChannel(tripId, roleName);

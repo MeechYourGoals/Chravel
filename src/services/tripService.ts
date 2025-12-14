@@ -377,12 +377,42 @@ export const tripService = {
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
       }
+
+      // ✅ Pro trips: derive member role from trip-scoped role assignments (primary role)
+      // This keeps UI consistent with `trip_roles` + `user_trip_roles` as the source of truth.
+      let primaryRoleNameByUserId = new Map<string, string>();
+      try {
+        const { data: roleRows, error: roleError } = await supabase
+          .from('user_trip_roles')
+          .select('user_id, trip_roles(role_name)')
+          .eq('trip_id', tripId)
+          .in('user_id', userIds)
+          .eq('is_primary', true);
+
+        if (!roleError && roleRows) {
+          primaryRoleNameByUserId = new Map(
+            roleRows
+              .map(r => ({
+                userId: (r as any).user_id as string,
+                roleName: ((r as any).trip_roles as any)?.role_name as string | undefined,
+              }))
+              .filter(x => !!x.userId && !!x.roleName)
+              .map(x => [x.userId, x.roleName as string]),
+          );
+        }
+      } catch (roleJoinError) {
+        // Non-fatal fallback to legacy `trip_members.role` if role join isn't available.
+        if (import.meta.env.DEV) {
+          console.warn('[tripService] Could not load primary roles:', roleJoinError);
+        }
+      }
       
       // Merge trip_members with profiles
       const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
       
       return data.map(m => ({
         ...m,
+        role: primaryRoleNameByUserId.get(m.user_id) || m.role,
         profiles: profilesMap.get(m.user_id) || null
       }));
     } catch (error) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ProParticipant } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 import { RolesView } from './team/RolesView';
@@ -35,7 +35,7 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
   // Super admins never have read-only restrictions
   const effectiveIsReadOnly = isSuperAdmin ? false : isReadOnly;
 
-  const loadRoles = async () => {
+  const loadRoles = useCallback(async () => {
     if (!tripId) return;
 
     setIsLoadingRoles(true);
@@ -67,11 +67,29 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
     } finally {
       setIsLoadingRoles(false);
     }
-  };
+  }, [tripId]);
 
   useEffect(() => {
     loadRoles();
-  }, [tripId]);
+  }, [loadRoles]);
+
+  // ✅ Keep trip-scoped roles fresh (inline creation / multi-admin edits)
+  useEffect(() => {
+    if (!tripId || isDemoMode) return;
+
+    const ch = supabase
+      .channel(`teamtab-roles:${tripId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'trip_roles', filter: `trip_id=eq.${tripId}` },
+        () => { loadRoles(); },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [tripId, isDemoMode, loadRoles]);
 
   const handleRoleCreated = () => {
     loadRoles();

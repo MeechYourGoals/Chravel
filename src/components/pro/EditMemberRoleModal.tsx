@@ -5,10 +5,9 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
-import { User, Save, X, ChevronDown } from 'lucide-react';
+import { User, Save, X } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
-import { ProTripCategory, getCategoryConfig } from '../../types/proCategories';
-import { getRoleOptions } from '../../utils/roleUtils';
+import { ProTripCategory } from '../../types/proCategories';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getInitials } from '../../utils/avatarUtils';
 
@@ -25,7 +24,6 @@ export const EditMemberRoleModal = ({
   isOpen,
   onClose,
   member,
-  category,
   existingRoles,
   onUpdateRole
 }: EditMemberRoleModalProps) => {
@@ -34,16 +32,14 @@ export const EditMemberRoleModal = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const categoryConfig = getCategoryConfig(category);
-  const roleOptions = getRoleOptions(category, existingRoles);
-
   useEffect(() => {
     if (member && isOpen) {
       setNewRole(member.role);
-      setIsCustomRole(!categoryConfig.roles.includes(member.role));
+      // ✅ For Pro trips, predefined roles are trip-scoped (passed via existingRoles)
+      setIsCustomRole(!existingRoles.includes(member.role));
       setError('');
     }
-  }, [member, isOpen, categoryConfig.roles]);
+  }, [member, isOpen, existingRoles]);
 
   const handleSave = async () => {
     if (!member || !newRole.trim()) {
@@ -117,9 +113,9 @@ export const EditMemberRoleModal = ({
                 size="sm"
                 onClick={() => {
                   setIsCustomRole(false);
-                  setNewRole(categoryConfig.roles[0] || '');
+                  setNewRole(existingRoles[0] || '');
                 }}
-                disabled={categoryConfig.roles.length === 0}
+                disabled={existingRoles.length === 0}
                 className="flex-1"
               >
                 Predefined
@@ -139,25 +135,17 @@ export const EditMemberRoleModal = ({
             </div>
 
             {/* Role Input */}
-            {!isCustomRole && categoryConfig.roles.length > 0 ? (
+            {!isCustomRole && existingRoles.length > 0 ? (
               <Select value={newRole} onValueChange={setNewRole}>
                 <SelectTrigger className="bg-gray-800 border-gray-600">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
-                  {categoryConfig.roles.map((role) => (
+                  {existingRoles.map((role) => (
                     <SelectItem key={role} value={role} className="text-white hover:bg-gray-700">
                       {role}
                     </SelectItem>
                   ))}
-                  {/* Show existing custom roles as options */}
-                  {existingRoles
-                    .filter(role => !categoryConfig.roles.includes(role))
-                    .map((role) => (
-                      <SelectItem key={role} value={role} className="text-white hover:bg-gray-700">
-                        {role} <span className="text-xs text-gray-400">(Custom)</span>
-                      </SelectItem>
-                    ))}
                 </SelectContent>
               </Select>
             ) : (

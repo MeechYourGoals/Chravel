@@ -8,7 +8,7 @@ import {
   Users, Check, X, Search, Filter, ChevronRight, CheckCircle2, AlertCircle 
 } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
-import { ProTripCategory, getCategoryConfig } from '../../types/proCategories';
+import { ProTripCategory } from '../../types/proCategories';
 import { useBulkRoleAssignment } from '../../hooks/useBulkRoleAssignment';
 import { getRoleColorClass } from '../../utils/roleUtils';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -49,8 +49,6 @@ export const BulkRoleAssignmentModal = ({
     assignRoleToMultiple,
     isAssigning
   } = useBulkRoleAssignment();
-
-  const categoryConfig = getCategoryConfig(category);
 
   // Filter roster based on search and role filter
   const filteredRoster = useMemo(() => {
@@ -278,9 +276,9 @@ export const BulkRoleAssignmentModal = ({
                   size="sm"
                   onClick={() => {
                     setIsCustomRole(false);
-                    setSelectedRole(categoryConfig.roles[0] || '');
+                    setSelectedRole(existingRoles[0] || '');
                   }}
-                  disabled={categoryConfig.roles.length === 0}
+                  disabled={existingRoles.length === 0}
                   className="flex-1"
                 >
                   Predefined
@@ -301,24 +299,18 @@ export const BulkRoleAssignmentModal = ({
             </div>
 
             {/* Role Selection */}
-            {!isCustomRole && categoryConfig.roles.length > 0 ? (
+            {!isCustomRole && existingRoles.length > 0 ? (
               <Select value={selectedRole} onValueChange={setSelectedRole}>
                 <SelectTrigger className="bg-gray-800 border-gray-600">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
-                  {categoryConfig.roles.map(role => (
+                  {/* ✅ Trip-scoped roles only (no static defaults) */}
+                  {existingRoles.map(role => (
                     <SelectItem key={role} value={role} className="text-white hover:bg-gray-700">
                       {role}
                     </SelectItem>
                   ))}
-                  {existingRoles
-                    .filter(role => !categoryConfig.roles.includes(role))
-                    .map(role => (
-                      <SelectItem key={role} value={role} className="text-white hover:bg-gray-700">
-                        {role} <span className="text-xs text-gray-400">(Custom)</span>
-                      </SelectItem>
-                    ))}
                 </SelectContent>
               </Select>
             ) : (

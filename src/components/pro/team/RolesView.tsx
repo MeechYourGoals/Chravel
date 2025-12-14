@@ -71,7 +71,11 @@ export const RolesView = ({
     ? ['all', ...availableRoles.map(r => r.roleName)]
     : ['all', ...extractUniqueRoles(roster)];
   
-  const existingRoles = extractUniqueRoles(roster);
+  // ✅ Source of truth for assignable roles (Pro trips): trip-defined roles
+  // Fallback to roster-derived roles only if trip roles haven't loaded yet.
+  const existingRoles = availableRoles.length > 0
+    ? availableRoles.map(r => r.roleName)
+    : extractUniqueRoles(roster);
   
   // Check if there are unassigned roles (members with default/empty roles)
   const hasUnassignedRoles = roster.some(member => 

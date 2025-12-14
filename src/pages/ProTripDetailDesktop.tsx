@@ -522,6 +522,12 @@ export const ProTripDetailDesktop = () => {
                 trip_type: 'pro'
               }}
               selectedCategory={tripData.proTripCategory as ProTripCategory}
+              onUpdateTripData={(updates) => {
+                // ✅ Keep authenticated roster state in sync after role assignments
+                if (updates.roster && Array.isArray(updates.roster)) {
+                  setFetchedParticipants(updates.roster as ProParticipant[]);
+                }
+              }}
               trip={trip}
               tripCreatorId={trip.created_by}
             />

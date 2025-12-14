@@ -236,21 +236,39 @@ class ChannelService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      // Get user's PRIMARY role for the trip
-      const primaryRole = await this.getUserPrimaryRole(tripId, user.id);
-      if (!primaryRole) return [];
+      // ✅ Multi-role access: any assigned role grants access (Slack-style)
+      const { data: roleRows, error: roleError } = await supabase
+        .from('user_trip_roles')
+        .select('role_id')
+        .eq('trip_id', tripId)
+        .eq('user_id', user.id);
 
-      // Find channels where user's primary role has access via channel_role_access
+      if (roleError) return [];
+      const roleIds = (roleRows || []).map(r => r.role_id).filter(Boolean);
+      if (roleIds.length === 0) return [];
+
+      // Find channel IDs accessible via any role
+      const { data: accessRows, error: accessError } = await supabase
+        .from('channel_role_access')
+        .select('channel_id')
+        .in('role_id', roleIds);
+
+      if (accessError) return [];
+
+      const channelIds = Array.from(new Set((accessRows || []).map(r => r.channel_id).filter(Boolean)));
+      if (channelIds.length === 0) return [];
+
+      // Fetch channels (RLS still applies)
       const { data } = await supabase
         .from('trip_channels')
         .select(`
           *,
-          trip_roles!inner(role_name),
-          channel_role_access!inner(role_id)
+          trip_roles(role_name)
         `)
         .eq('trip_id', tripId)
         .eq('is_archived', false)
-        .eq('channel_role_access.role_id', primaryRole.id);
+        .in('id', channelIds)
+        .order('created_at');
 
       return (data || []).map(d => ({
         id: d.id,
