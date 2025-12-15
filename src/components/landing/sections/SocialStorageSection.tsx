@@ -41,10 +41,10 @@ export const SocialStorageSection = () => {
       {/* Headline */}
       <div className="text-center space-y-4 max-w-4xl">
         <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
-          Your Group's Social Storage Layer
+          Your Social Storage Platform
         </h2>
         <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-          ChravelApp is where your group stores everything that matters — so nobody has to dig through old emails or text chains again.
+          ChravelApp allows you to store everything that matters — so no more digging through old emails, text chains, and multiple apps
         </p>
       </div>
 

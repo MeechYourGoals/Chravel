@@ -28,7 +28,7 @@ export const ProblemSolutionSection = () => {
           Stop Juggling 15 Apps
         </h2>
         <p className="text-xl sm:text-2xl md:text-3xl text-foreground max-w-3xl mx-auto">
-          Bring your group, plans, and payments into one place — whether it's a road trip, soccer season, or wedding weekend.
+          Bring your group's photos, plans, and payments into one place
         </p>
       </div>
 

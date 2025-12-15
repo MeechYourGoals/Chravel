@@ -23,19 +23,16 @@ export const ReplacesGrid = () => {
       {/* Header */}
       <div className="text-center mb-6 sm:mb-8 md:mb-12">
         <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-3 md:mb-4 break-words">
-          The Operating System for Group Trips & Events
+          The Operating System for groups
         </h2>
         <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white font-medium max-w-3xl mx-auto leading-relaxed break-words">
           Your most-used workflows in one shared planning space. ChravelApp keeps every plan, person, and payment in sync — less app-switching, less confusion.
-        </p>
-        <p className="text-white font-semibold text-base sm:text-lg md:text-xl mt-4 md:mt-6 text-center max-w-3xl mx-auto">
-          Use it for: family trips, youth sports, wedding weekends, group retreats, tours, and corporate events.
         </p>
         <p className="text-white/90 font-semibold text-base sm:text-lg md:text-xl mt-6 md:mt-8 text-center max-w-4xl mx-auto">
           Your group's "Travel 365" — for when you're Out of Office 365.
         </p>
         <p className="text-white/90 font-medium text-sm sm:text-base md:text-lg mt-4 text-center max-w-4xl mx-auto">
-          Spend less time logging in, signing up, and switching between the multiple apps below — ChravelApp brings your files, photos, docs, and more into Tabs instead of separate Apps.
+          Spend less time logging in, signing up, and switching between the multiple apps — your files, photos, docs, and more consolidate into ChravelApp Tabs instead of separate Apps.
         </p>
       </div>
 

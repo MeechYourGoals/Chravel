@@ -90,11 +90,6 @@ export const AiFeaturesSection = () => {
           ))}
         </div>
       </div>
-
-      {/* Bottom Text */}
-      <p className="text-xl text-white font-medium max-w-2xl text-center">
-        Powered by advanced AI models with access to verified venue data, weather forecasts, and travel intelligence
-      </p>
     </div>
   );
 };

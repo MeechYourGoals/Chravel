@@ -35,10 +35,10 @@ export const SocialProofVideoSection = () => {
       {/* Headline */}
       <div className="text-center space-y-4 max-w-4xl">
         <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
-          Trusted by Groups Worldwide
+          Built for Groups Worldwide
         </h2>
         <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-          See why families, Sports teams, touring artists, and companies alike choose ChravelApp to remove the Chaos from Coordinating.
+          ChravelApp removes the Chaos from Coordinating.
         </p>
       </div>
 
@@ -63,11 +63,6 @@ export const SocialProofVideoSection = () => {
           </Card>
         ))}
       </div>
-
-      {/* Bottom CTA */}
-      <p className="text-xl text-white font-semibold max-w-2xl text-center">
-        Join families, event planners, sports teams, touring artists, and corporate groups who've eliminated coordination chaos.
-      </p>
     </div>
   );
 };
