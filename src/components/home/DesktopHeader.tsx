@@ -26,8 +26,8 @@ export const DesktopHeader = ({ viewMode }: DesktopHeaderProps) => {
   return (
     <div className="mb-6 max-w-[1200px] mx-auto">
       <div className="flex items-center justify-between gap-3">
-        {/* Left: Logo */}
-        <div className="flex flex-col">
+        {/* Left: Logo - Centered text */}
+        <div className="flex flex-col items-center text-center">
           <h1 className="text-2xl font-bold text-foreground tracking-tight transition-all duration-300 hover:brightness-110 hover:scale-105" aria-label="ChravelApp Home">
             ChravelApp
           </h1>

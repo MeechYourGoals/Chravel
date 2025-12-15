@@ -11,17 +11,25 @@ interface HeroSectionProps {
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
   return (
     <div 
-      className="relative container mx-auto px-4 flex flex-col items-center justify-center min-h-[85vh] md:min-h-[90vh] text-center space-y-6 pt-32 pb-12 md:pt-12 md:pb-0"
+      className="relative container mx-auto px-4 flex flex-col items-center justify-center min-h-[85vh] md:min-h-[90vh] text-center space-y-6 pb-12 md:pb-0"
+      style={{
+        paddingTop: 'max(8rem, calc(2rem + env(safe-area-inset-top)))'
+      }}
     >
       {/* Demo Mode Toggle - Centered on mobile, top-right on desktop */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-6 z-20">
         <DemoModeToggle />
       </div>
       
-      {/* Headline */}
-      <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight animate-fade-in">
-        Plan Together.<br />Travel Better.
+      {/* Brand Name */}
+      <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight animate-fade-in">
+        ChravelApp
       </h1>
+
+      {/* Tagline */}
+      <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight animate-fade-in">
+        Plan Together.<br />Travel Better.
+      </h2>
 
       {/* Subheadline */}
       <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-foreground max-w-3xl animate-fade-in" style={{ animationDelay: '0.1s' }}>
