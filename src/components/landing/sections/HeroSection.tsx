@@ -11,9 +11,9 @@ interface HeroSectionProps {
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
   return (
     <div 
-      className="relative container mx-auto px-4 flex flex-col items-center justify-center min-h-[85vh] md:min-h-[90vh] text-center space-y-6 pb-12 md:pb-0"
+      className="relative container mx-auto px-4 flex flex-col items-center justify-center min-h-[85vh] md:min-h-[90vh] text-center space-y-6 pt-16 pb-12 md:pt-4 md:pb-0"
       style={{
-        paddingTop: 'max(8rem, calc(2rem + env(safe-area-inset-top)))'
+        paddingTop: 'max(4rem, calc(1rem + env(safe-area-inset-top)))'
       }}
     >
       {/* Demo Mode Toggle - Centered on mobile, top-right on desktop */}
