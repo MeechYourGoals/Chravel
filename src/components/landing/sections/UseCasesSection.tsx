@@ -57,10 +57,10 @@ export const UseCasesSection = () => {
       {/* Headline */}
       <div className="text-center space-y-4 max-w-4xl">
         <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
-          Built for Every Journey — Even When You're Not Traveling
+          Built for Every Journey
         </h2>
         <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-          From family vacations to sports travel, tours, and weddings, ChravelApp is your Social Storage Platform
+          From family vacations to sports travel & tours to business trips. ChravelApp handles it all
         </p>
       </div>
 

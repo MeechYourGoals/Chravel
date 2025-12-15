@@ -58,10 +58,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         Get Started Free · Log In or Sign Up
       </Button>
 
-      {/* Trust Badge */}
-      <p className="text-base md:text-lg text-foreground pt-2 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-        Join friends, family, teams, and tours and consolidating the chaos.
-      </p>
 
       {/* Product Preview */}
       <div className="mt-8 w-full max-w-5xl mx-auto animate-fade-in" style={{ animationDelay: '0.5s' }}>
