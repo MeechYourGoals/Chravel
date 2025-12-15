@@ -17,13 +17,14 @@ const PricingLandingSection = lazy(() => import('./sections/PricingLandingSectio
 const FooterSection = lazy(() => import('./FooterSection').then(module => ({ default: module.FooterSection })));
 
 // Import cinematic hero images
-import heroImage from '@/assets/hero-images/collaboration-hero-1920.jpg';
-import chaosImage from '@/assets/hero-images/nightlife-urban-1920.jpg';
+import heroImage from '@/assets/hero-images/group-planning-terrace.png';
+import chaosImage from '@/assets/hero-images/cafe-devices-planning.png';
 import aiImage from '@/assets/hero-images/adventure-nature-1920.jpg';
 import scenariosImage from '@/assets/hero-images/sports-events-1920.jpg';
-import happyTravelersImage from '@/assets/hero-images/concerts-festivals-1920.jpg';
-import unifiedWorkspaceImage from '@/assets/hero-images/business-travel-1920.jpg';
-import pricingWorkspaceImage from '@/assets/hero-images/platform-showcase-1920.jpg';
+import happyTravelersImage from '@/assets/hero-images/concert-festival-crowd.png';
+import unifiedWorkspaceImage from '@/assets/hero-images/wedding-reception.png';
+import replacesImage from '@/assets/hero-images/tech-icons-abstract.png';
+import pricingWorkspaceImage from '@/assets/hero-images/golf-course-tropical.png';
 
 interface FullPageLandingProps {
   onSignUp: () => void;
@@ -126,7 +127,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
         {/* Section 8: Replaces */}
         <FullPageLandingSection
           id="section-replaces"
-          imageFallback={unifiedWorkspaceImage}
+          imageFallback={replacesImage}
           videoOpacity={0.6}
         >
           <Suspense fallback={<SectionLoader />}>
