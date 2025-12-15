@@ -25,6 +25,7 @@ import happyTravelersImage from '@/assets/hero-images/concert-festival-crowd.png
 import unifiedWorkspaceImage from '@/assets/hero-images/wedding-reception.png';
 import replacesImage from '@/assets/hero-images/basketball-team-bus.png';
 import pricingWorkspaceImage from '@/assets/hero-images/skiers-mountain-resort.png';
+import faqImage from '@/assets/hero-images/golf-course-tropical.png';
 import howItWorksImage from '@/assets/hero-images/family-hawaii-luggage.png';
 
 interface FullPageLandingProps {
@@ -139,7 +140,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
         {/* Section 9: FAQ (NEW) */}
         <FullPageLandingSection
           id="section-faq"
-          imageFallback={pricingWorkspaceImage}
+          imageFallback={faqImage}
           videoOpacity={0.5}
         >
           <Suspense fallback={<SectionLoader />}>
