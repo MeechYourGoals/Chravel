@@ -26,10 +26,10 @@ export const ReplacesGrid = () => {
           The Operating System for groups
         </h2>
         <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white font-medium max-w-3xl mx-auto leading-relaxed break-words">
-          Your most-used workflows in one shared planning space. ChravelApp keeps every plan, person, and payment in sync — less app-switching, less confusion.
+          Your most-used workflows in one shared planning space.
         </p>
         <p className="text-white/90 font-semibold text-base sm:text-lg md:text-xl mt-6 md:mt-8 text-center max-w-4xl mx-auto">
-          Your group's "Travel 365" — for when you're Out of Office 365.
+          Your "Travel 365" suite for when you're Out of Office 365.
         </p>
         <p className="text-white/90 font-medium text-sm sm:text-base md:text-lg mt-4 text-center max-w-4xl mx-auto">
           Spend less time logging in, signing up, and switching between the multiple apps — your files, photos, docs, and more consolidate into ChravelApp Tabs instead of separate Apps.

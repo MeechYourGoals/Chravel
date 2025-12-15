@@ -77,15 +77,7 @@ export const SocialStorageSection = () => {
             className="w-full h-auto"
           />
         </div>
-        <p className="text-center text-foreground mt-4 text-base md:text-lg">
-          Make group decisions easier with polls and voting
-        </p>
       </div>
-
-      {/* Closing Line */}
-      <p className="text-lg sm:text-xl text-foreground text-center max-w-2xl">
-        One app to store your group's life — not just your travel.
-      </p>
     </div>
   );
 };
