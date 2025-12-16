@@ -1,12 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import imageCompression from 'browser-image-compression';
-import { getUploadContentType } from '@/services/mediaService';
+import { getUploadContentType } from '@/utils/mime';
 
 // Generate UUID using crypto API
 const uuid = () => crypto.randomUUID();
-
-type Tables = Database['public']['Tables'];
 
 export type MediaType = 'image' | 'video';
 export type FileUpload = File & { mime?: string };

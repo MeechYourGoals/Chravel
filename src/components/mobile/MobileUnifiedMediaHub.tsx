@@ -14,7 +14,7 @@ import { createTripLink } from '@/services/tripLinksService';
 import { toast } from 'sonner';
 import { TripMediaRenderer } from '@/components/media/TripMediaRenderer';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
-import { getUploadContentType } from '@/services/mediaService';
+import { getUploadContentType } from '@/utils/mime';
 
 interface MediaItem {
   id: string;

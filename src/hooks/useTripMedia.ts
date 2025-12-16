@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
 import { useEffect } from 'react';
 import imageCompression from 'browser-image-compression';
-import { getUploadContentType, mediaService } from '@/services/mediaService';
+import { mediaService } from '@/services/mediaService';
+import { getUploadContentType } from '@/utils/mime';
 
 interface TripMedia {
   id: string;

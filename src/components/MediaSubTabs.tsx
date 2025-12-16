@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { toast } from 'sonner';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
-import { getUploadContentType } from '@/services/mediaService';
+import { getUploadContentType } from '@/utils/mime';
 
 interface MediaItem {
   id: string;
