@@ -1,3 +1,10 @@
+/**
+ * Stripe Checkout Session Creator
+ * 
+ * Creates Stripe checkout sessions for subscription plans.
+ * Account: christian@chravelapp.com (TEST MODE)
+ */
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
@@ -8,22 +15,21 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
-// Price ID mapping - NEW 3-TIER STRUCTURE
-const PRICE_IDS = {
-  // Consumer Plans - NEW STRUCTURE
-  'consumer-explorer-monthly': 'price_explorer_monthly_9_99',
-  'consumer-explorer-annual': 'price_explorer_annual_99',
-  'consumer-pro-monthly': 'price_pro_monthly_19_99',
-  'consumer-pro-annual': 'price_pro_annual_199',
+// ============================================================
+// PRICE IDS - UPDATE THESE AFTER CREATING PRODUCTS IN STRIPE
+// ============================================================
+const PRICE_IDS: Record<string, string> = {
+  // Consumer Plans - ChravelApp Plus
+  'explorer-monthly': 'PLACEHOLDER_EXPLORER_MONTHLY',
+  'explorer-annual': 'PLACEHOLDER_EXPLORER_ANNUAL',
+  'frequent-chraveler-monthly': 'PLACEHOLDER_FREQUENT_MONTHLY',
+  'frequent-chraveler-annual': 'PLACEHOLDER_FREQUENT_ANNUAL',
   
-  // Legacy Consumer Plus (map to explorer)
-  'consumer-plus': 'price_1SEw5402kHnoJKm0cVP4HlOh',
-  
-  // Pro Plans (unchanged)
-  'pro-starter': 'price_1SEw6t02kHnoJKm0OmIvxWW9',
-  'pro-growing': 'price_1SEw7E02kHnoJKm0HPnZzLrj',
-  'pro-enterprise': 'price_1SEw7L02kHnoJKm0o0TLldSz',
-} as const;
+  // Pro Plans - ChravelApp Pro
+  'pro-starter': 'PLACEHOLDER_PRO_STARTER_PRICE',
+  'pro-growth': 'PLACEHOLDER_PRO_GROWTH_PRICE',
+  'pro-enterprise': 'PLACEHOLDER_PRO_ENTERPRISE_PRICE',
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -42,40 +48,40 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
 
+    // Authenticate user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
-    logStep("Authorization header found");
-
+    
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Parse request
     const { tier, billing_cycle = 'monthly' } = await req.json();
-    
-    // Validate tier and construct price ID key
+    logStep("Request parsed", { tier, billing_cycle });
+
+    // Build price ID key
     let priceIdKey: string;
-    if (tier.startsWith('consumer-') && !tier.includes('plus')) {
-      // New consumer tiers: consumer-starter, consumer-explorer, consumer-unlimited
+    if (tier === 'explorer' || tier === 'frequent-chraveler') {
       priceIdKey = `${tier}-${billing_cycle}`;
-    } else if (tier === 'consumer-plus') {
-      // Legacy consumer plus
+    } else if (tier.startsWith('pro-')) {
       priceIdKey = tier;
     } else {
-      // Pro tiers don't have billing cycle in key
-      priceIdKey = tier;
+      throw new Error(`Invalid tier: ${tier}`);
     }
-    
-    if (!PRICE_IDS[priceIdKey as keyof typeof PRICE_IDS]) {
-      throw new Error(`Invalid tier/billing combination: ${tier} + ${billing_cycle}`);
-    }
-    const priceId = PRICE_IDS[priceIdKey as keyof typeof PRICE_IDS];
-    logStep("Tier selected", { tier, billing_cycle, priceIdKey, priceId });
 
+    const priceId = PRICE_IDS[priceIdKey];
+    if (!priceId || priceId.startsWith('PLACEHOLDER')) {
+      throw new Error(`Price ID not configured for: ${priceIdKey}. Please update Stripe configuration.`);
+    }
+    logStep("Price ID resolved", { priceIdKey, priceId });
+
+    // Initialize Stripe
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     
-    // Check if customer exists
+    // Check for existing customer
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId: string | undefined;
     
@@ -86,23 +92,25 @@ serve(async (req) => {
       logStep("No existing customer, will create during checkout");
     }
 
-    const origin = req.headers.get("origin") || "http://localhost:3000";
+    // Create checkout session
+    const origin = req.headers.get("origin") || "https://chravel.app";
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
-      success_url: `${origin}/settings?checkout=success`,
+      success_url: `${origin}/settings?checkout=success&tier=${tier}`,
       cancel_url: `${origin}/settings?checkout=cancelled`,
       metadata: {
         user_id: user.id,
         tier: tier,
-        billing_cycle: billing_cycle || 'monthly',
+        billing_cycle: billing_cycle,
+      },
+      subscription_data: {
+        metadata: {
+          user_id: user.id,
+          tier: tier,
+        },
       },
     });
 
