@@ -16,17 +16,21 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         paddingTop: 'max(5rem, calc(env(safe-area-inset-top) + 1rem))'
       }}
     >
-      {/* Header Row - Brand Name + Demo Toggle aligned on same row */}
-      <div className="w-full flex items-center justify-center md:justify-between px-2 md:px-4 mb-4 md:mb-6">
-        {/* Brand Name - Centered on mobile, left-aligned on desktop */}
+      {/* Demo Mode Toggle - Absolutely positioned top-right on desktop, hidden on mobile */}
+      <div 
+        className="hidden md:block absolute right-4 z-10" 
+        style={{ 
+          top: 'max(1rem, calc(env(safe-area-inset-top) + 1rem))'
+        }}
+      >
+        <DemoModeToggle />
+      </div>
+
+      {/* Brand Name - Centered on all breakpoints */}
+      <div className="w-full flex items-center justify-center px-2 md:px-4 mb-4 md:mb-6">
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight animate-fade-in">
           ChravelApp
         </h1>
-
-        {/* Demo Mode Toggle - Hidden on mobile (shown in MobileAuthHeader), visible on desktop */}
-        <div className="hidden md:block">
-          <DemoModeToggle />
-        </div>
       </div>
 
       {/* Main Content - Centered vertically in remaining space */}
