@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { DemoModeSelector } from '../DemoModeSelector';
 import { AuthModal } from '../AuthModal';
 import { useAuth } from '@/hooks/useAuth';
+import { useScrollDirection } from '@/hooks/useScrollDirection';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,12 +18,19 @@ interface MobileTopBarProps {
   onSettingsPress?: () => void;
 }
 
+// Header content height (without safe area)
+const HEADER_HEIGHT = 52;
+
 export const MobileTopBar: React.FC<MobileTopBarProps> = ({ 
   className,
   onSettingsPress 
 }) => {
   const { user, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const { scrollDirection, isAtTop } = useScrollDirection(10);
+
+  // Hide header when scrolling down, show when scrolling up or at top
+  const isHidden = scrollDirection === 'down' && !isAtTop;
 
   const handleAuthClick = () => {
     setShowAuthModal(true);
@@ -44,20 +52,28 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
 
   return (
     <>
+      {/* Header wrapper - extends through safe area with background */}
       <div 
         className={cn(
           "fixed top-0 left-0 right-0 z-50",
           "bg-background/95 backdrop-blur-md border-b border-border/50",
-          "block lg:hidden", // Show on mobile/tablet, hide on desktop (1024px+)
+          "block lg:hidden",
+          "transition-transform duration-200 ease-out",
+          isHidden ? "-translate-y-full" : "translate-y-0",
           className
         )}
         style={{
-          paddingTop: `max(8px, env(safe-area-inset-top))`,
-          paddingLeft: `max(12px, env(safe-area-inset-left))`,
-          paddingRight: `max(12px, env(safe-area-inset-right))`
+          // Extend background through entire safe area
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingLeft: 'env(safe-area-inset-left, 0px)',
+          paddingRight: 'env(safe-area-inset-right, 0px)',
         }}
       >
-        <div className="flex items-center justify-between py-2 gap-2">
+        {/* Actual header content with fixed height */}
+        <div 
+          className="flex items-center justify-between px-3 gap-2"
+          style={{ height: `${HEADER_HEIGHT}px` }}
+        >
           {/* Left: ChravelApp Pill */}
           <div className="flex items-center flex-shrink-0">
             <span className="px-3 py-1.5 bg-muted text-foreground rounded-lg text-sm font-semibold min-h-[36px] flex items-center border border-border/30">
@@ -121,3 +137,6 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
     </>
   );
 };
+
+// Export header height for use in content offset calculations
+export const MOBILE_HEADER_HEIGHT = HEADER_HEIGHT;

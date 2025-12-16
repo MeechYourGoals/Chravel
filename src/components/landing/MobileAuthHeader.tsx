@@ -3,14 +3,23 @@ import { LogIn } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DemoModeSelector } from '../DemoModeSelector';
 import { AuthModal } from '../AuthModal';
+import { useScrollDirection } from '@/hooks/useScrollDirection';
+import { cn } from '@/lib/utils';
 
 interface MobileAuthHeaderProps {
   onSignUp?: () => void;
 }
 
+// Header content height (without safe area)
+const HEADER_HEIGHT = 52;
+
 export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp }) => {
   const isMobile = useIsMobile();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const { scrollDirection, isAtTop } = useScrollDirection(10);
+
+  // Hide header when scrolling down, show when scrolling up or at top
+  const isHidden = scrollDirection === 'down' && !isAtTop;
 
   // Only render on mobile
   if (!isMobile) return null;
@@ -25,14 +34,26 @@ export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp }) 
 
   return (
     <>
-      {/* Fixed Mobile Header */}
+      {/* Fixed Mobile Header - extends through safe area */}
       <div 
-        className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50"
+        className={cn(
+          "fixed top-0 left-0 right-0 z-50",
+          "bg-background/95 backdrop-blur-md border-b border-border/50",
+          "transition-transform duration-200 ease-out",
+          isHidden ? "-translate-y-full" : "translate-y-0"
+        )}
         style={{
-          paddingTop: `max(8px, env(safe-area-inset-top))`
+          // Extend background through entire safe area
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingLeft: 'env(safe-area-inset-left, 0px)',
+          paddingRight: 'env(safe-area-inset-right, 0px)',
         }}
       >
-        <div className="flex items-center justify-between px-3 py-2 gap-2">
+        {/* Actual header content with fixed height */}
+        <div 
+          className="flex items-center justify-between px-3 gap-2"
+          style={{ height: `${HEADER_HEIGHT}px` }}
+        >
           {/* ChravelApp Pill */}
           <div className="flex items-center flex-shrink-0">
             <span className="px-3 py-1.5 bg-muted text-foreground rounded-lg text-sm font-semibold min-h-[36px] flex items-center border border-border/30">
@@ -65,3 +86,6 @@ export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp }) 
     </>
   );
 };
+
+// Export header height for use in content offset calculations
+export const MOBILE_AUTH_HEADER_HEIGHT = HEADER_HEIGHT;

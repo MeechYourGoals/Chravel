@@ -114,6 +114,17 @@
     }
   }
 
+  /* Mobile header offset utility - accounts for fixed header + safe area */
+  .mobile-header-offset {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 60px);
+  }
+
+  /* CSS custom property for mobile header height */
+  :root {
+    --mobile-header-height: 52px;
+    --mobile-header-offset: calc(env(safe-area-inset-top, 0px) + var(--mobile-header-height) + 8px);
+  }
+
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
