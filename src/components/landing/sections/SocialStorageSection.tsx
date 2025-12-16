@@ -38,12 +38,23 @@ const storageTypes = [
 export const SocialStorageSection = () => {
   return (
     <div className="container mx-auto px-4 py-12 md:py-16 flex flex-col items-center justify-center min-h-screen space-y-12">
-      {/* Headline */}
-      <div className="text-center space-y-4 max-w-4xl">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary">
+      {/* Headline - positioned at top with dark text for contrast */}
+      <div className="text-center space-y-4 max-w-4xl pt-8">
+        <h2
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold"
+          style={{ color: '#1A2332', textShadow: '0 2px 4px rgba(255,255,255,0.4)' }}
+        >
           Your Social Storage Platform
         </h2>
-        <p className="text-xl sm:text-2xl md:text-3xl text-primary">
+        <p
+          className="text-xl sm:text-2xl md:text-3xl px-4 py-3 rounded-xl"
+          style={{
+            color: '#1A2332',
+            fontWeight: 600,
+            backgroundColor: 'rgba(255,255,255,0.88)',
+            backdropFilter: 'blur(8px)'
+          }}
+        >
           ChravelApp allows you to store everything that matters — so no more digging through old emails, text chains, and multiple apps
         </p>
       </div>

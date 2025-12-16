@@ -123,10 +123,6 @@ export const HowItWorksSection = () => {
         </div>
       </div>
 
-      {/* Bottom tagline */}
-      <p className="text-lg sm:text-xl text-primary text-center max-w-2xl">
-        That's it. No training required, no spreadsheets to manage.
-      </p>
     </div>
   );
 };

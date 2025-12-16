@@ -33,12 +33,18 @@ export const AiFeaturesSection = () => {
 
   return (
     <div className="container mx-auto px-4 py-12 md:py-0 flex flex-col items-center justify-center min-h-screen space-y-12">
-      {/* Headline */}
+      {/* Headline - orange text for better contrast on nature background */}
       <div className="text-center space-y-4 max-w-4xl">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary">
+        <h2
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold"
+          style={{ color: '#FF8C42', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
+        >
           AI-Powered Intelligence
         </h2>
-        <p className="text-xl sm:text-2xl md:text-3xl text-primary">
+        <p
+          className="text-xl sm:text-2xl md:text-3xl"
+          style={{ color: '#FF8C42', textShadow: '0 2px 6px rgba(0,0,0,0.4)' }}
+        >
           Your personal travel assistant with verified data and real-world context
         </p>
       </div>

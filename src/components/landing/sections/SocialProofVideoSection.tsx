@@ -32,12 +32,23 @@ const metrics = [
 export const SocialProofVideoSection = () => {
   return (
     <div className="container mx-auto px-4 py-8 md:py-0 flex flex-col items-center justify-center min-h-screen space-y-8">
-      {/* Headline */}
-      <div className="text-center space-y-3 max-w-4xl">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary">
+      {/* Headline - positioned at top with contrast for concert/festival background */}
+      <div className="text-center space-y-3 max-w-4xl pt-8">
+        <h2
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold"
+          style={{ color: '#0A1E3D', textShadow: '0 2px 4px rgba(255,255,255,0.3)' }}
+        >
           Built for Groups Worldwide
         </h2>
-        <p className="text-lg sm:text-xl md:text-2xl text-primary">
+        <p
+          className="text-lg sm:text-xl md:text-2xl px-4 py-2 rounded-xl inline-block"
+          style={{
+            color: '#0A1E3D',
+            fontWeight: 600,
+            backgroundColor: 'rgba(156,163,175,0.85)',
+            backdropFilter: 'blur(8px)'
+          }}
+        >
           ChravelApp removes the Chaos from Coordinating.
         </p>
       </div>
