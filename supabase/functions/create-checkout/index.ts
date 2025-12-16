@@ -20,15 +20,15 @@ const logStep = (step: string, details?: unknown) => {
 // ============================================================
 const PRICE_IDS: Record<string, string> = {
   // Consumer Plans - ChravelApp Plus
-  'explorer-monthly': 'PLACEHOLDER_EXPLORER_MONTHLY',
-  'explorer-annual': 'PLACEHOLDER_EXPLORER_ANNUAL',
-  'frequent-chraveler-monthly': 'PLACEHOLDER_FREQUENT_MONTHLY',
-  'frequent-chraveler-annual': 'PLACEHOLDER_FREQUENT_ANNUAL',
+  'explorer-monthly': 'price_1SemRq3EeswiMlDC9yP0Dh5G',
+  'explorer-annual': 'price_1SemRq3EeswiMlDCi0syvI3f',
+  'frequent-chraveler-monthly': 'price_1SemV13EeswiMlDC2ykNdrif',
+  'frequent-chraveler-annual': 'price_1SemV13EeswiMlDC2P2126NY',
   
   // Pro Plans - ChravelApp Pro
-  'pro-starter': 'PLACEHOLDER_PRO_STARTER_PRICE',
-  'pro-growth': 'PLACEHOLDER_PRO_GROWTH_PRICE',
-  'pro-enterprise': 'PLACEHOLDER_PRO_ENTERPRISE_PRICE',
+  'pro-starter': 'price_1SemXF3EeswiMlDCL1Unj0Er',
+  'pro-growth': 'price_1SemYw3EeswiMlDCv27XvDMY',
+  'pro-enterprise': 'price_1Semar3EeswiMlDCmEPBAvIt',
 };
 
 serve(async (req) => {
@@ -62,12 +62,16 @@ serve(async (req) => {
     const { tier, billing_cycle = 'monthly' } = await req.json();
     logStep("Request parsed", { tier, billing_cycle });
 
+    // Normalize tier - strip 'consumer-' prefix if present
+    const normalizedTier = tier.replace('consumer-', '');
+    logStep("Normalized tier", { original: tier, normalized: normalizedTier });
+
     // Build price ID key
     let priceIdKey: string;
-    if (tier === 'explorer' || tier === 'frequent-chraveler') {
-      priceIdKey = `${tier}-${billing_cycle}`;
-    } else if (tier.startsWith('pro-')) {
-      priceIdKey = tier;
+    if (normalizedTier === 'explorer' || normalizedTier === 'frequent-chraveler') {
+      priceIdKey = `${normalizedTier}-${billing_cycle}`;
+    } else if (normalizedTier.startsWith('pro-')) {
+      priceIdKey = normalizedTier;
     } else {
       throw new Error(`Invalid tier: ${tier}`);
     }

@@ -17,14 +17,17 @@ const logStep = (step: string, details?: unknown) => {
 };
 
 // ============================================================
-// PRODUCT IDS - UPDATE THESE AFTER CREATING PRODUCTS IN STRIPE
+// PRODUCT IDS - ChravelApp Stripe Products
 // ============================================================
 const PRODUCT_TO_TIER: Record<string, string> = {
-  'PLACEHOLDER_EXPLORER_PRODUCT': 'explorer',
-  'PLACEHOLDER_FREQUENT_PRODUCT': 'frequent-chraveler',
-  'PLACEHOLDER_PRO_STARTER_PRODUCT': 'pro-starter',
-  'PLACEHOLDER_PRO_GROWTH_PRODUCT': 'pro-growth',
-  'PLACEHOLDER_PRO_ENTERPRISE_PRODUCT': 'pro-enterprise',
+  // Consumer Plans - ChravelApp Plus
+  'prod_Tc0SWNhLkoCDIi': 'explorer',
+  'prod_Tc0WEzRDTCkfPM': 'frequent-chraveler',
+  
+  // Pro Plans - ChravelApp Pro
+  'prod_Tc0YVR1N0fmtDG': 'pro-starter',
+  'prod_Tc0afc0pIUt87D': 'pro-growth',
+  'prod_Tc0cJshKNpvxV0': 'pro-enterprise',
 };
 
 serve(async (req) => {

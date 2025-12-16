@@ -27,13 +27,13 @@ export const CONSUMER_PLANS = {
   explorer: {
     name: 'Explorer',
     tier: 'explorer',
-    product_id: 'PLACEHOLDER_EXPLORER_PRODUCT', // TODO: Replace after Stripe setup
+    product_id: 'prod_Tc0SWNhLkoCDIi',
     monthly: {
-      price_id: 'PLACEHOLDER_EXPLORER_MONTHLY', // TODO: Replace after Stripe setup
+      price_id: 'price_1SemRq3EeswiMlDC9yP0Dh5G',
       amount: 999, // $9.99 in cents
     },
     annual: {
-      price_id: 'PLACEHOLDER_EXPLORER_ANNUAL', // TODO: Replace after Stripe setup
+      price_id: 'price_1SemRq3EeswiMlDCi0syvI3f',
       amount: 9900, // $99.00 in cents
     },
     features: {
@@ -45,13 +45,13 @@ export const CONSUMER_PLANS = {
   'frequent-chraveler': {
     name: 'Frequent Chraveler',
     tier: 'frequent-chraveler',
-    product_id: 'PLACEHOLDER_FREQUENT_PRODUCT', // TODO: Replace after Stripe setup
+    product_id: 'prod_Tc0WEzRDTCkfPM',
     monthly: {
-      price_id: 'PLACEHOLDER_FREQUENT_MONTHLY', // TODO: Replace after Stripe setup
+      price_id: 'price_1SemV13EeswiMlDC2ykNdrif',
       amount: 1999, // $19.99 in cents
     },
     annual: {
-      price_id: 'PLACEHOLDER_FREQUENT_ANNUAL', // TODO: Replace after Stripe setup
+      price_id: 'price_1SemV13EeswiMlDC2P2126NY',
       amount: 19900, // $199.00 in cents
     },
     features: {
@@ -72,24 +72,24 @@ export const PRO_PLANS = {
   starter: {
     name: 'Starter Pro',
     tier: 'pro-starter',
-    product_id: 'PLACEHOLDER_PRO_STARTER_PRODUCT', // TODO: Replace after Stripe setup
-    price_id: 'PLACEHOLDER_PRO_STARTER_PRICE', // TODO: Replace after Stripe setup
+    product_id: 'prod_Tc0YVR1N0fmtDG',
+    price_id: 'price_1SemXF3EeswiMlDCL1Unj0Er',
     amount: 4900, // $49/mo in cents
     memberLimit: 50,
   },
   growth: {
     name: 'Growth Pro',
     tier: 'pro-growth',
-    product_id: 'PLACEHOLDER_PRO_GROWTH_PRODUCT', // TODO: Replace after Stripe setup
-    price_id: 'PLACEHOLDER_PRO_GROWTH_PRICE', // TODO: Replace after Stripe setup
+    product_id: 'prod_Tc0afc0pIUt87D',
+    price_id: 'price_1SemYw3EeswiMlDCv27XvDMY',
     amount: 9900, // $99/mo in cents
     memberLimit: 100,
   },
   enterprise: {
     name: 'Enterprise',
     tier: 'pro-enterprise',
-    product_id: 'PLACEHOLDER_PRO_ENTERPRISE_PRODUCT', // TODO: Replace after Stripe setup
-    price_id: 'PLACEHOLDER_PRO_ENTERPRISE_PRICE', // TODO: Replace after Stripe setup
+    product_id: 'prod_Tc0cJshKNpvxV0',
+    price_id: 'price_1Semar3EeswiMlDCmEPBAvIt',
     amount: 19900, // $199/mo in cents
     memberLimit: 250,
   },
