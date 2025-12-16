@@ -220,9 +220,19 @@ const valuePropItems = [
     description: 'Your trips, automatically in your calendar'
   },
   {
+    icon: <Users size={20} />,
+    title: 'Pro Trips with Role-Based Channels',
+    description: 'Filter chat convos to just who needs to be involved'
+  },
+  {
     icon: <FileText size={20} />,
     title: 'Professional PDF exports',
     description: 'Share beautiful itineraries with one click'
+  },
+  {
+    icon: <Zap size={20} />,
+    title: 'Early Access Features',
+    description: 'Get early access to our latest features and updates before they roll wide'
   },
   {
     icon: <Users size={20} />,
@@ -332,9 +342,9 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
               Start planning better trips today
             </h2>
           </div>
-          <div className="bg-[hsl(220,70%,15%,0.85)] backdrop-blur-sm px-4 py-3 rounded-lg max-w-3xl mx-auto">
-            <p className="text-sm sm:text-base md:text-lg text-white leading-relaxed break-words">
-              Ensuring the next trip makes it out of the group chat. <span className="text-accent font-semibold">Save 23 hours per trip</span> with the world's first AI-native group collaboration platform for trips and events.
+          <div className="bg-primary backdrop-blur-sm px-4 py-3 rounded-lg max-w-3xl mx-auto">
+            <p className="text-sm sm:text-base md:text-lg text-white font-bold leading-relaxed break-words">
+              Ensuring the next trip makes it out of the group chat. <span className="text-accent font-bold">Save 23 hours per trip</span> with the world's first AI-native group collaboration platform for trips and events.
             </p>
           </div>
         </div>
