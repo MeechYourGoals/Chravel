@@ -13,7 +13,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
     <div
       className="relative container mx-auto px-4 flex flex-col items-center min-h-[85vh] md:min-h-[90vh] text-center pb-12 md:pb-0"
       style={{
-        paddingTop: 'max(5rem, calc(env(safe-area-inset-top) + 1rem))'
+        // Mobile: account for MobileAuthHeader (52px) + safe area + extra spacing
+        // Desktop: just safe area + minimal spacing
+        paddingTop: 'max(5rem, calc(env(safe-area-inset-top, 0px) + 72px))'
       }}
     >
       {/* Demo Mode Toggle - Absolutely positioned top-right on desktop, hidden on mobile */}
