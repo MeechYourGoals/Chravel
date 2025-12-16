@@ -172,6 +172,10 @@
     --on-image-title: 223 60% 25%;
     --on-image-body: 223 50% 30%;
     --on-image-muted: 223 40% 40%;
+    
+    /* Midnight blue for maximum contrast on images */
+    --midnight-blue: 220 70% 15%;
+    --dark-navy: 220 50% 20%;
   }
 
   .light {
@@ -225,6 +229,10 @@
     --on-image-title: 223 60% 20%;
     --on-image-body: 223 50% 25%;
     --on-image-muted: 223 40% 35%;
+    
+    /* Midnight blue for maximum contrast on images */
+    --midnight-blue: 220 70% 15%;
+    --dark-navy: 220 50% 20%;
   }
 }
 
