@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Camera, FileText, Image as ImageIcon, Link2, Loader2, Trash2, Upload, Video, X } from 'lucide-react';
+import { Camera, FileText, Image as ImageIcon, Link2, Loader2, Trash2, Upload, Video } from 'lucide-react';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { hapticService } from '../../services/hapticService';
@@ -7,6 +7,7 @@ import { StorageQuotaBar } from '../StorageQuotaBar';
 import { useMediaManagement } from '../../hooks/useMediaManagement';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { MediaGridItem } from './MediaGridItem';
+import { VideoPlayerModal } from '../media/TripMediaRenderer';
 import { SwipeableListItem } from './SwipeableListItem';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -768,35 +769,10 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
 
       {/* Video Player Modal */}
       {activeVideo && (
-        <div
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-          onClick={() => setActiveVideo(null)}
-        >
-          <button
-            className="absolute top-4 right-4 z-10 text-white bg-white/20 rounded-full p-2"
-            onClick={() => setActiveVideo(null)}
-          >
-            <X size={24} />
-          </button>
-          {/* iOS CRITICAL: muted required for autoplay, user can unmute via controls */}
-          <video
-            src={activeVideo}
-            controls
-            autoPlay
-            playsInline
-            muted
-            controlsList="nodownload"
-            preload="metadata"
-            className="max-w-full max-h-full"
-            style={{
-              maxWidth: '100vw',
-              maxHeight: '100vh',
-              width: 'auto',
-              height: 'auto',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
+        <VideoPlayerModal
+          url={activeVideo}
+          onClose={() => setActiveVideo(null)}
+        />
       )}
 
       {/* Delete Confirmation Modal */}
