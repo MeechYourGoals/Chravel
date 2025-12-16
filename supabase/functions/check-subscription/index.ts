@@ -21,13 +21,13 @@ const logStep = (step: string, details?: unknown) => {
 // ============================================================
 const PRODUCT_TO_TIER: Record<string, string> = {
   // Consumer Plans - ChravelApp Plus
-  'PLACEHOLDER_EXPLORER_PRODUCT': 'explorer',
-  'PLACEHOLDER_FREQUENT_PRODUCT': 'frequent-chraveler',
+  'prod_Tc0SWNhLkoCDIi': 'explorer',
+  'prod_Tc0WEzRDTCkfPM': 'frequent-chraveler',
   
   // Pro Plans - ChravelApp Pro
-  'PLACEHOLDER_PRO_STARTER_PRODUCT': 'pro-starter',
-  'PLACEHOLDER_PRO_GROWTH_PRODUCT': 'pro-growth',
-  'PLACEHOLDER_PRO_ENTERPRISE_PRODUCT': 'pro-enterprise',
+  'prod_Tc0YVR1N0fmtDG': 'pro-starter',
+  'prod_Tc0afc0pIUt87D': 'pro-growth',
+  'prod_Tc0cJshKNpvxV0': 'pro-enterprise',
 };
 
 serve(async (req) => {
