@@ -71,6 +71,49 @@
     }
   }
 
+  /* PWA Standalone Mode - Safe Area Handling */
+  @media (display-mode: standalone) {
+    /* Ensure root fills available space */
+    html, body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      /* Use background color that extends under status bar */
+      background-color: hsl(0 0% 3%);
+    }
+
+    #root {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+    }
+
+    /* Fixed elements need safe-area-aware positioning */
+    .pwa-fixed-top {
+      top: env(safe-area-inset-top);
+    }
+
+    /* Scroll containers need safe-area padding */
+    .pwa-scroll-container {
+      padding-top: env(safe-area-inset-top);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+  }
+
+  /* iOS PWA-specific fixes for notch/dynamic island */
+  @supports (-webkit-touch-callout: none) {
+    @media (display-mode: standalone) {
+      /* Ensure content clears the notch area */
+      .pwa-safe-top {
+        padding-top: max(1rem, env(safe-area-inset-top));
+      }
+
+      /* For scroll containers that start at the top */
+      .pwa-scroll-safe {
+        scroll-padding-top: env(safe-area-inset-top);
+      }
+    }
+  }
+
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
