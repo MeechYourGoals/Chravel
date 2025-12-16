@@ -49,19 +49,22 @@ export const SocialStorageSection = () => {
       </div>
 
       {/* Storage Types Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-6xl w-full">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 max-w-6xl w-full">
         {storageTypes.map((type, index) => (
           <div
             key={index}
-            className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-6 md:p-8 hover:border-primary/50 transition-all duration-300 text-left max-w-md mx-auto md:max-w-none"
+            className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-3 sm:p-4 md:p-6 hover:border-primary/50 transition-all duration-300 text-left"
           >
-            <div className="bg-primary/10 w-16 h-16 md:w-20 md:h-20 rounded-xl flex items-center justify-center mb-4 text-primary">
-              {React.cloneElement(type.icon as React.ReactElement, { size: window.innerWidth >= 768 ? 40 : 32 })}
+            {/* Inline icon + title */}
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <div className="bg-primary/10 w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-primary flex-shrink-0">
+                {React.cloneElement(type.icon as React.ReactElement, { size: 18 })}
+              </div>
+              <h3 className="font-bold text-base sm:text-lg md:text-xl text-primary leading-tight">
+                {type.label}
+              </h3>
             </div>
-            <h3 className="font-bold text-xl md:text-2xl mb-3 leading-tight">
-              {type.label}
-            </h3>
-            <p className="text-base md:text-lg text-foreground leading-relaxed break-words">
+            <p className="text-xs sm:text-sm md:text-base text-foreground leading-relaxed line-clamp-3">
               {type.description}
             </p>
           </div>
