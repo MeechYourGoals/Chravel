@@ -52,7 +52,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
 
         {/* Subheadline with background box for contrast */}
         <div 
-          className="bg-[hsl(220,70%,15%,0.85)] backdrop-blur-sm px-4 py-3 sm:px-6 sm:py-4 rounded-lg animate-fade-in max-w-4xl" 
+          className="bg-primary backdrop-blur-sm px-4 py-3 sm:px-6 sm:py-4 rounded-lg animate-fade-in max-w-4xl"
           style={{ animationDelay: '0.1s' }}
         >
           <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white font-medium">
