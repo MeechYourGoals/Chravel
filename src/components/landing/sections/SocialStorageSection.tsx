@@ -40,10 +40,10 @@ export const SocialStorageSection = () => {
     <div className="container mx-auto px-4 py-12 md:py-16 flex flex-col items-center justify-center min-h-screen space-y-12">
       {/* Headline */}
       <div className="text-center space-y-4 max-w-4xl">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary">
           Your Social Storage Platform
         </h2>
-        <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
+        <p className="text-xl sm:text-2xl md:text-3xl text-primary">
           ChravelApp allows you to store everything that matters — so no more digging through old emails, text chains, and multiple apps
         </p>
       </div>
@@ -53,7 +53,7 @@ export const SocialStorageSection = () => {
         {storageTypes.map((type, index) => (
           <div
             key={index}
-            className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 sm:p-8 md:p-10 hover:border-primary/50 transition-all duration-300 text-left max-w-md mx-auto md:max-w-none"
+            className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-6 md:p-8 hover:border-primary/50 transition-all duration-300 text-left max-w-md mx-auto md:max-w-none"
           >
             <div className="bg-primary/10 w-16 h-16 md:w-20 md:h-20 rounded-xl flex items-center justify-center mb-4 text-primary">
               {React.cloneElement(type.icon as React.ReactElement, { size: window.innerWidth >= 768 ? 40 : 32 })}

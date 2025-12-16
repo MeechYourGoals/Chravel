@@ -35,10 +35,10 @@ export const AiFeaturesSection = () => {
     <div className="container mx-auto px-4 py-12 md:py-0 flex flex-col items-center justify-center min-h-screen space-y-12">
       {/* Headline */}
       <div className="text-center space-y-4 max-w-4xl">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary">
           AI-Powered Intelligence
         </h2>
-        <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
+        <p className="text-xl sm:text-2xl md:text-3xl text-primary">
           Your personal travel assistant with verified data and real-world context
         </p>
       </div>
