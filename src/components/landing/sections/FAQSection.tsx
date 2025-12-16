@@ -30,18 +30,20 @@ export const FAQSection = () => {
 
   return (
     <div className="container mx-auto px-4 py-12 md:py-16 flex flex-col items-center justify-center min-h-screen space-y-12">
-      {/* Header with background for contrast */}
+      {/* Header with bold white text and shadow for contrast */}
       <div className="text-center space-y-4 max-w-4xl">
-        <div className="inline-block bg-primary px-6 py-4 rounded-lg">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white">
-            Frequently Asked Questions
-          </h2>
-        </div>
-        <div className="bg-primary px-4 py-3 rounded-lg inline-block">
-          <p className="text-xl sm:text-2xl md:text-3xl text-white font-medium">
-            Everything you need to know about ChravelApp
-          </p>
-        </div>
+        <h2 
+          className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
+        >
+          Frequently Asked Questions
+        </h2>
+        <p 
+          className="text-xl sm:text-2xl md:text-3xl text-white font-bold"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
+        >
+          Everything you need to know about ChravelApp
+        </p>
       </div>
 
       {/* FAQ Items */}
