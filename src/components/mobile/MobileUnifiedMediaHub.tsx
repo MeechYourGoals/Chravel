@@ -23,6 +23,7 @@ interface MediaItem {
   uploadedAt: Date;
   filename?: string;
   fileSize?: string;
+  mimeType?: string;
 }
 
 interface MobileUnifiedMediaHubProps {
@@ -106,7 +107,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       tags?: string[];
     }>
   >([]);
-  const [activeVideo, setActiveVideo] = useState<string | null>(null);
+  const [activeVideo, setActiveVideo] = useState<{ url: string; mimeType: string } | null>(null);
   const [itemToDelete, setItemToDelete] = useState<MediaItem | null>(null);
   const [linkToDelete, setLinkToDelete] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -150,6 +151,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
         uploadedAt: new Date(item.created_at),
         filename: item.filename,
         fileSize: undefined,
+        mimeType: item.mime_type || undefined,
       }));
 
     // In demo mode, allow the user to “upload” and see items immediately without server persistence.
@@ -235,6 +237,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
             uploadedAt: now,
             filename: file.name,
             fileSize: `${Math.round(file.size / 1024)} KB`,
+            mimeType: file.type,
           });
         }
 
@@ -671,7 +674,10 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                       item={item}
                       onPress={() => {
                         if (item.type === 'video') {
-                          setActiveVideo(item.url);
+                          setActiveVideo({ 
+                            url: item.url, 
+                            mimeType: item.mimeType || 'video/mp4' 
+                          });
                         }
                       }}
                       onLongPress={() => {
@@ -770,7 +776,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       {/* Video Player Modal */}
       {activeVideo && (
         <VideoPlayerModal
-          url={activeVideo}
+          url={activeVideo.url}
+          mimeType={activeVideo.mimeType}
           onClose={() => setActiveVideo(null)}
         />
       )}
