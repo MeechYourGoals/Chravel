@@ -48,8 +48,15 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
       {/* Sticky Navigation */}
       <StickyLandingNav onSignUp={onSignUp} />
 
-      {/* Full-Page Scrolling Container */}
-      <div className="snap-y snap-proximity md:snap-mandatory overflow-y-auto h-screen scroll-smooth">
+      {/* Full-Page Scrolling Container with PWA safe-area support */}
+      <div
+        className="snap-y snap-proximity md:snap-mandatory overflow-y-auto h-screen scroll-smooth"
+        style={{
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)'
+        }}
+      >
         {/* Section 1: Hero */}
         <FullPageLandingSection
           id="section-hero"
