@@ -111,8 +111,10 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       tags?: string[];
     }>
   >([]);
-  // Unified active media state for both videos and images - using shared type
-  const [activeMedia, setActiveMedia] = useState<MediaViewerItem | null>(null);
+  // Extended type for local use with metadata support
+  type ExtendedMediaViewerItem = MediaViewerItem & { metadata?: unknown };
+  // Unified active media state for both videos and images - using extended type
+  const [activeMedia, setActiveMedia] = useState<ExtendedMediaViewerItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<MediaItem | null>(null);
   const [linkToDelete, setLinkToDelete] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);

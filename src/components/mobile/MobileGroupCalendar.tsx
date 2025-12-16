@@ -8,6 +8,7 @@ import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameDay, isSa
 import { CreateEventModal } from './CreateEventModal';
 import { useCalendarEvents } from '../../hooks/useCalendarEvents';
 import { toast } from 'sonner';
+import { calendarExporter } from '../../utils/calendarExport';
 
 interface CalendarEvent {
   id: string;
@@ -19,10 +20,13 @@ interface CalendarEvent {
   color: string;
 }
 
+type CalendarViewMode = 'list' | 'grid';
+
 interface MobileGroupCalendarProps {
   tripId: string;
   onExport?: () => void;
   onToggleView?: () => void;
+  viewMode?: CalendarViewMode;
 }
 
 // Color gradients for events
@@ -37,13 +41,28 @@ const EVENT_COLORS = [
   'from-teal-500 to-teal-600',
 ];
 
-export const MobileGroupCalendar = ({ tripId, onExport, onToggleView }: MobileGroupCalendarProps) => {
+export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: externalViewMode }: MobileGroupCalendarProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
+  // Internal view mode state when no external handler provided
+  const [internalViewMode, setInternalViewMode] = useState<CalendarViewMode>('list');
+  
+  // Use external view mode if provided, otherwise use internal state
+  const currentViewMode = externalViewMode ?? internalViewMode;
+  
+  const handleToggleView = async () => {
+    await hapticService.light();
+    if (onToggleView) {
+      onToggleView();
+    } else {
+      // Toggle internal view mode if no external handler
+      setInternalViewMode(prev => prev === 'list' ? 'grid' : 'list');
+    }
+  };
 
   // Use the calendar events hook to fetch real events
   const { events: tripEvents, loading, refreshEvents, deleteEvent, updateEvent } = useCalendarEvents(tripId);
@@ -270,7 +289,20 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView }: MobileGr
             <button 
               onClick={async () => {
                 await hapticService.light();
-                onExport?.();
+                if (onExport) {
+                  onExport();
+                } else {
+                  // Direct ICS export when no external handler
+                  const exportEvents = events.map(e => ({
+                    id: e.id,
+                    title: e.title,
+                    date: e.date,
+                    location: e.location,
+                    description: ''
+                  }));
+                  calendarExporter.downloadICS(exportEvents, `Trip_${tripId}`);
+                  toast.success('Calendar exported as ICS file');
+                }
               }}
               className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm text-gray-300 transition-colors active:scale-95"
             >
@@ -278,14 +310,11 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView }: MobileGr
               <span>Export</span>
             </button>
             <button 
-              onClick={async () => {
-                await hapticService.light();
-                onToggleView?.();
-              }}
+              onClick={handleToggleView}
               className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm text-gray-300 transition-colors active:scale-95"
             >
               <Grid3x3 size={16} />
-              <span>Month Grid</span>
+              <span>{currentViewMode === 'list' ? 'Month Grid' : 'Day View'}</span>
             </button>
             <button 
               onClick={handleAddEvent}
@@ -296,59 +325,114 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView }: MobileGr
             </button>
           </div>
 
-          {/* Events List for Selected Date */}
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">
-                {format(selectedDate, 'EEEE, MMMM d')}
-              </h3>
-              <button
-                onClick={handleAddEvent}
-                className="p-2 bg-blue-600 rounded-lg active:scale-95 transition-transform"
-              >
-                <Plus size={20} className="text-white" />
-              </button>
-            </div>
+          {/* Events Content - Different views based on mode */}
+          {currentViewMode === 'list' ? (
+            /* Day View: Events List for Selected Date */
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white">
+                  {format(selectedDate, 'EEEE, MMMM d')}
+                </h3>
+                <button
+                  onClick={handleAddEvent}
+                  className="p-2 bg-blue-600 rounded-lg active:scale-95 transition-transform"
+                >
+                  <Plus size={20} className="text-white" />
+                </button>
+              </div>
 
-            <div className="space-y-3">
-              {eventsForSelectedDate.length === 0 ? (
-                <div className="text-center py-12">
-                  <Clock size={48} className="text-gray-600 mx-auto mb-3" />
-                  <p className="text-gray-400">No events scheduled</p>
-                  <button
-                    onClick={handleAddEvent}
-                    className="mt-4 text-sm text-blue-400 hover:text-blue-300"
-                  >
-                    Add an event
-                  </button>
-                </div>
-              ) : (
-                eventsForSelectedDate.map((event) => (
-                  <button
-                    key={event.id}
-                    onClick={() => handleEventClick(event)}
-                    className="w-full bg-white/10 rounded-xl p-4 active:scale-98 transition-transform relative"
-                  >
-                    <div className={`w-1 h-full absolute left-0 top-0 rounded-l-xl bg-gradient-to-b ${event.color}`} />
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="text-white font-semibold text-left">{event.title}</h4>
-                      <span className="text-sm text-gray-400">{event.time}</span>
-                    </div>
-                    {event.location && (
-                      <div className="flex items-center gap-2 text-sm text-gray-300 mb-2">
-                        <MapPin size={14} />
-                        <span>{event.location}</span>
+              <div className="space-y-3">
+                {eventsForSelectedDate.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Clock size={48} className="text-gray-600 mx-auto mb-3" />
+                    <p className="text-gray-400">No events scheduled</p>
+                    <button
+                      onClick={handleAddEvent}
+                      className="mt-4 text-sm text-blue-400 hover:text-blue-300"
+                    >
+                      Add an event
+                    </button>
+                  </div>
+                ) : (
+                  eventsForSelectedDate.map((event) => (
+                    <button
+                      key={event.id}
+                      onClick={() => handleEventClick(event)}
+                      className="w-full bg-white/10 rounded-xl p-4 active:scale-98 transition-transform relative"
+                    >
+                      <div className={`w-1 h-full absolute left-0 top-0 rounded-l-xl bg-gradient-to-b ${event.color}`} />
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="text-white font-semibold text-left">{event.title}</h4>
+                        <span className="text-sm text-gray-400">{event.time}</span>
                       </div>
-                    )}
-                    <div className="flex items-center gap-2 text-sm text-gray-400">
-                      <Users size={14} />
-                      <span>{event.participants} attending</span>
-                    </div>
-                  </button>
-                ))
-              )}
+                      {event.location && (
+                        <div className="flex items-center gap-2 text-sm text-gray-300 mb-2">
+                          <MapPin size={14} />
+                          <span>{event.location}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <Users size={14} />
+                        <span>{event.participants} attending</span>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Month Grid View: Expanded grid with events inline */
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <div className="grid grid-cols-7 gap-1">
+                {/* Weekday Headers */}
+                {weekDays.map(day => (
+                  <div key={`grid-${day}`} className="text-center text-xs font-medium text-gray-500 py-2 border-b border-white/10">
+                    {day}
+                  </div>
+                ))}
+                
+                {/* Calendar Days with Events */}
+                {calendarDays.map((date, index) => {
+                  const isCurrentMonth = isSameMonth(date, currentMonth);
+                  const isToday = isSameDay(date, new Date());
+                  const dayEvents = events.filter(e => isSameDay(e.date, date));
+                  
+                  return (
+                    <div
+                      key={`grid-day-${index}`}
+                      className={`
+                        min-h-[80px] p-1 border-b border-r border-white/5 
+                        ${isCurrentMonth ? 'bg-black' : 'bg-black/50'}
+                      `}
+                    >
+                      <div className={`
+                        text-xs font-medium mb-1 px-1
+                        ${isToday ? 'text-blue-400' : isCurrentMonth ? 'text-white' : 'text-gray-600'}
+                      `}>
+                        {format(date, 'd')}
+                      </div>
+                      <div className="space-y-0.5">
+                        {dayEvents.slice(0, 3).map((event) => (
+                          <button
+                            key={event.id}
+                            onClick={() => handleEventClick(event)}
+                            className={`w-full text-left truncate text-[10px] px-1 py-0.5 rounded bg-gradient-to-r ${event.color} text-white`}
+                          >
+                            {event.title}
+                          </button>
+                        ))}
+                        {dayEvents.length > 3 && (
+                          <div className="text-[10px] text-gray-400 px-1">
+                            +{dayEvents.length - 3} more
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </>
       )}
 
