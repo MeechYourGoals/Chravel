@@ -12,6 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { createTripLink } from '@/services/tripLinksService';
 import { toast } from 'sonner';
+import { TripMediaRenderer } from '@/components/media/TripMediaRenderer';
+import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 
 interface MediaItem {
   id: string;
@@ -22,6 +24,8 @@ interface MediaItem {
   uploadedAt: Date;
   filename?: string;
   fileSize?: string;
+  mimeType?: string | null;
+  metadata?: unknown;
 }
 
 interface MobileUnifiedMediaHubProps {
@@ -105,7 +109,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       tags?: string[];
     }>
   >([]);
-  const [activeVideo, setActiveVideo] = useState<string | null>(null);
+  const [activeMedia, setActiveMedia] = useState<MediaItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<MediaItem | null>(null);
   const [linkToDelete, setLinkToDelete] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -149,6 +153,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
         uploadedAt: new Date(item.created_at),
         filename: item.filename,
         fileSize: undefined,
+        mimeType: item.mime_type ?? null,
+        metadata: item.metadata ?? undefined,
       }));
 
     // In demo mode, allow the user to “upload” and see items immediately without server persistence.
@@ -158,6 +164,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
   const combinedLinks = useMemo(() => {
     return isDemoMode ? [...demoLocalLinks, ...linkItems] : linkItems;
   }, [demoLocalLinks, isDemoMode, linkItems]);
+
+  const resolvedActiveMediaUrl = useResolvedTripMediaUrl({
+    url: activeMedia?.url ?? null,
+    metadata: activeMedia?.metadata,
+  });
 
   // Calculate counts for each tab
   const photosCount = mediaItems.filter(item => item.type === 'image').length;
@@ -669,9 +680,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                     <MediaGridItem
                       item={item}
                       onPress={() => {
-                        if (item.type === 'video') {
-                          setActiveVideo(item.url);
-                        }
+                        if (item.type === 'image' || item.type === 'video') setActiveMedia(item);
                       }}
                       onLongPress={() => {
                         setItemToDelete(item);
@@ -766,36 +775,39 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
         )}
       </div>
 
-      {/* Video Player Modal */}
-      {activeVideo && (
+      {/* Unified Media Viewer Modal (Image + Video) */}
+      {activeMedia && (activeMedia.type === 'image' || activeMedia.type === 'video') && (
         <div
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-          onClick={() => setActiveVideo(null)}
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
+          onClick={() => setActiveMedia(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={activeMedia.type === 'video' ? 'Video viewer' : 'Image viewer'}
         >
           <button
             className="absolute top-4 right-4 z-10 text-white bg-white/20 rounded-full p-2"
-            onClick={() => setActiveVideo(null)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveMedia(null);
+            }}
+            aria-label="Close"
           >
             <X size={24} />
           </button>
-          {/* iOS CRITICAL: muted required for autoplay, user can unmute via controls */}
-          <video
-            src={activeVideo}
-            controls
-            autoPlay
-            playsInline
-            muted
-            controlsList="nodownload"
-            preload="metadata"
-            className="max-w-full max-h-full"
-            style={{
-              maxWidth: '100vw',
-              maxHeight: '100vh',
-              width: 'auto',
-              height: 'auto',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          />
+
+          <div className="w-full max-w-5xl" onClick={e => e.stopPropagation()}>
+            <TripMediaRenderer
+              url={resolvedActiveMediaUrl ?? activeMedia.url}
+              mimeType={
+                activeMedia.mimeType ??
+                (activeMedia.type === 'video' ? 'video/mp4' : 'image/jpeg')
+              }
+              alt={activeMedia.filename ?? 'Trip media'}
+              mode="full"
+              autoPlay={activeMedia.type === 'video'}
+              className="max-w-full max-h-[85vh]"
+            />
+          </div>
         </div>
       )}
 
