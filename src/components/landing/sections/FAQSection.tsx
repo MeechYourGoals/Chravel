@@ -33,11 +33,11 @@ export const FAQSection = () => {
       {/* Header with background for contrast */}
       <div className="text-center space-y-4 max-w-4xl">
         <div className="inline-block bg-primary px-6 py-4 rounded-lg">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white">
             Frequently Asked Questions
           </h2>
         </div>
-        <div className="bg-[hsl(220,70%,15%,0.85)] backdrop-blur-sm px-4 py-3 rounded-lg inline-block">
+        <div className="bg-primary px-4 py-3 rounded-lg inline-block">
           <p className="text-xl sm:text-2xl md:text-3xl text-white font-medium">
             Everything you need to know about ChravelApp
           </p>

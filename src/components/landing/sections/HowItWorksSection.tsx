@@ -31,10 +31,16 @@ export const HowItWorksSection = () => {
     <div className="container mx-auto px-4 py-12 md:py-16 flex flex-col items-center justify-center min-h-screen space-y-12">
       {/* Headline */}
       <div className="text-center space-y-4 max-w-4xl">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary">
+        <h2 
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold"
+          style={{ color: '#FF8C42', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
+        >
           How It Works
         </h2>
-        <p className="text-xl sm:text-2xl md:text-3xl text-primary">
+        <p 
+          className="text-xl sm:text-2xl md:text-3xl font-medium"
+          style={{ color: '#FF8C42', textShadow: '0 2px 6px rgba(0,0,0,0.4)' }}
+        >
           Get your group organized in minutes
         </p>
       </div>
@@ -111,7 +117,10 @@ export const HowItWorksSection = () => {
 
       {/* Here's What You Get */}
       <div className="w-full max-w-5xl space-y-6">
-        <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-primary">
+        <h3 
+          className="text-2xl sm:text-3xl md:text-4xl font-bold text-center"
+          style={{ color: '#FF8C42', textShadow: '0 2px 6px rgba(0,0,0,0.4)' }}
+        >
           Here's What You Get
         </h3>
         <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300">
