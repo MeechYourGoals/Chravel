@@ -324,15 +324,19 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
 
   return (
     <div className="w-full space-y-16">
-      {/* Header with Value Prop */}
+      {/* Header with Value Prop - High contrast with background */}
       <div className="text-center space-y-6">
         <div className="space-y-4">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
-            Start planning better trips today
-          </h2>
-          <p className="text-sm sm:text-base md:text-lg text-foreground max-w-3xl mx-auto leading-relaxed break-words">
-            Ensuring the next trip makes it out of the group chat. <span className="text-accent font-semibold">Save 23 hours per trip</span> with the world's first AI-native group collaboration platform for trips and events.
-          </p>
+          <div className="inline-block bg-primary px-6 py-3 rounded-lg">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
+              Start planning better trips today
+            </h2>
+          </div>
+          <div className="bg-[hsl(220,70%,15%,0.85)] backdrop-blur-sm px-4 py-3 rounded-lg max-w-3xl mx-auto">
+            <p className="text-sm sm:text-base md:text-lg text-white leading-relaxed break-words">
+              Ensuring the next trip makes it out of the group chat. <span className="text-accent font-semibold">Save 23 hours per trip</span> with the world's first AI-native group collaboration platform for trips and events.
+            </p>
+          </div>
         </div>
 
         {/* Why Upgrade Section */}
@@ -535,8 +539,10 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
       </div>
 
       {/* FAQ Section */}
-      <div className="max-w-3xl mx-auto">
-        <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground text-center mb-6 md:mb-8">Frequently Asked Questions</h3>
+      <div className="max-w-3xl mx-auto text-center">
+        <div className="inline-block bg-primary px-6 py-3 rounded-lg mb-6 md:mb-8">
+          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Frequently Asked Questions</h3>
+        </div>
         <div className="space-y-2 md:space-y-3">
           {faqItems.map((item, index) => (
             <Collapsible key={index} open={openFaq === index} onOpenChange={() => setOpenFaq(openFaq === index ? null : index)}>

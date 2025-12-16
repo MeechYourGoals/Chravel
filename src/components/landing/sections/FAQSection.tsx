@@ -30,14 +30,18 @@ export const FAQSection = () => {
 
   return (
     <div className="container mx-auto px-4 py-12 md:py-16 flex flex-col items-center justify-center min-h-screen space-y-12">
-      {/* Header */}
+      {/* Header with background for contrast */}
       <div className="text-center space-y-4 max-w-4xl">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
-          Frequently Asked Questions
-        </h2>
-        <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-          Everything you need to know about ChravelApp
-        </p>
+        <div className="inline-block bg-primary px-6 py-4 rounded-lg">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white">
+            Frequently Asked Questions
+          </h2>
+        </div>
+        <div className="bg-[hsl(220,70%,15%,0.85)] backdrop-blur-sm px-4 py-3 rounded-lg inline-block">
+          <p className="text-xl sm:text-2xl md:text-3xl text-white font-medium">
+            Everything you need to know about ChravelApp
+          </p>
+        </div>
       </div>
 
       {/* FAQ Items */}
@@ -69,10 +73,12 @@ export const FAQSection = () => {
         ))}
       </div>
 
-      {/* Bottom CTA */}
-      <p className="text-lg sm:text-xl text-foreground text-center max-w-2xl">
-        Still have questions? <a href="mailto:support@chravelapp.com" className="text-primary hover:text-primary/80 underline">Contact us</a>
-      </p>
+      {/* Bottom CTA with contrast */}
+      <div className="bg-[hsl(220,70%,15%,0.85)] backdrop-blur-sm px-4 py-3 rounded-lg inline-block">
+        <p className="text-lg sm:text-xl text-white text-center max-w-2xl">
+          Still have questions? <a href="mailto:support@chravelapp.com" className="text-accent hover:text-accent/80 underline font-medium">Contact us</a>
+        </p>
+      </div>
     </div>
   );
 };

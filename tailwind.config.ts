@@ -153,6 +153,11 @@ export default {
 					title: 'hsl(var(--on-image-title))',
 					body: 'hsl(var(--on-image-body))',
 					muted: 'hsl(var(--on-image-muted))',
+				},
+				// Midnight blue for maximum contrast on bright images
+				midnight: {
+					DEFAULT: 'hsl(var(--midnight-blue))',
+					navy: 'hsl(var(--dark-navy))',
 				}
 			},
 		spacing: {
