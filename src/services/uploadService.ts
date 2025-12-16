@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import imageCompression from 'browser-image-compression';
+import { getUploadContentType } from '@/services/mediaService';
 
 // Generate UUID using crypto API
 const uuid = () => crypto.randomUUID();
@@ -41,10 +42,12 @@ export async function uploadToStorage(
   const ext = file.name.split('.').pop() ?? 'bin';
   const key = `${tripId}/${subdir}/${id}.${ext}`;
 
+  const contentType = getUploadContentType(file);
+
   const { data, error } = await supabase.storage
     .from('trip-media')
     .upload(key, fileToUpload, {
-      contentType: file.type || file.mime || 'application/octet-stream',
+      contentType,
       upsert: false,
     });
 
@@ -64,6 +67,7 @@ export async function insertMediaIndex(params: {
   messageId?: string;
   uploadedBy?: string;
 }) {
+  const normalizedMimeType = params.mimeType && params.mimeType.length > 0 ? params.mimeType : undefined;
   const { data, error } = await supabase
     .from('trip_media_index')
     .insert({
@@ -72,7 +76,7 @@ export async function insertMediaIndex(params: {
       media_url: params.url,
       filename: params.filename ?? null,
       file_size: params.fileSize ?? null,
-      mime_type: params.mimeType ?? null,
+      mime_type: normalizedMimeType ?? null,
       message_id: params.messageId ?? null,
       metadata:
         params.uploadedBy || params.uploadPath
