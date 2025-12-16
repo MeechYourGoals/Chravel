@@ -58,10 +58,10 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
         }}
       >
         <div className="flex items-center justify-between py-2 gap-2">
-          {/* Left: Chravel Pill */}
+          {/* Left: ChravelApp Pill */}
           <div className="flex items-center flex-shrink-0">
             <span className="px-3 py-1.5 bg-muted text-foreground rounded-lg text-sm font-semibold min-h-[36px] flex items-center border border-border/30">
-              Chravel
+              ChravelApp
             </span>
           </div>
 
