@@ -11,6 +11,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { getMimeTypeFromFilename } from '@/utils/fileTypes';
 
 export interface TripMedia {
   id: string;
@@ -96,7 +97,7 @@ export async function uploadTripMedia(
   file: File,
   userId: string
 ): Promise<TripMedia> {
-  const mime = file.type;
+  const mime = file.type || getMimeTypeFromFilename(file.name) || 'application/octet-stream';
 
   // ---- Guardrails ----
   // Block HEIC (browser incompatibility)

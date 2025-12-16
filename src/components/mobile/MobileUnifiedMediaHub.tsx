@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { createTripLink } from '@/services/tripLinksService';
 import { toast } from 'sonner';
+import { getMimeTypeFromFilename } from '@/utils/fileTypes';
 
 interface MediaItem {
   id: string;
@@ -252,7 +253,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       const uploadedUrls: string[] = [];
 
       for (const file of Array.from(files)) {
-        const mime = file.type || '';
+        const mime = file.type || getMimeTypeFromFilename(file.name) || '';
         // Check extension for video detection (Files app may not set MIME type correctly)
         const isVideoByExtension = /\.(mp4|mov|m4v|avi|webm|mkv)$/i.test(file.name);
         const detected: 'image' | 'video' | 'document' =
@@ -282,7 +283,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           .upload(storagePath, file, {
             cacheControl: '3600',
             upsert: false,
-            contentType: file.type || 'application/octet-stream',
+            contentType: mime || 'application/octet-stream',
           });
 
         if (uploadError) {
@@ -301,7 +302,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           filename: file.name,
           media_type: finalType,
           file_size: file.size,
-          mime_type: file.type,
+          mime_type: mime || null,
           metadata: {
             upload_path: storagePath,
             uploaded_by: pre.userId,
