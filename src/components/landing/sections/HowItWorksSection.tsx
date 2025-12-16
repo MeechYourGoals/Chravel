@@ -38,8 +38,8 @@ export const HowItWorksSection = () => {
           How It Works
         </h2>
         <p 
-          className="text-xl sm:text-2xl md:text-3xl font-medium"
-          style={{ color: '#FF8C42', textShadow: '0 2px 6px rgba(0,0,0,0.4)' }}
+          className="text-xl sm:text-2xl md:text-3xl font-bold"
+          style={{ color: '#FF8C42', textShadow: '2px 2px 6px rgba(0, 0, 0, 0.4)' }}
         >
           Get your group organized in minutes
         </p>
@@ -119,7 +119,7 @@ export const HowItWorksSection = () => {
       <div className="w-full max-w-5xl space-y-6">
         <h3 
           className="text-2xl sm:text-3xl md:text-4xl font-bold text-center"
-          style={{ color: '#FF8C42', textShadow: '0 2px 6px rgba(0,0,0,0.4)' }}
+          style={{ color: '#FF8C42', textShadow: '2px 2px 6px rgba(0, 0, 0, 0.4)' }}
         >
           Here's What You Get
         </h3>

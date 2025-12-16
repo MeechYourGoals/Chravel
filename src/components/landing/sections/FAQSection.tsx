@@ -74,13 +74,6 @@ export const FAQSection = () => {
           </Collapsible>
         ))}
       </div>
-
-      {/* Bottom CTA with contrast */}
-      <div className="bg-[hsl(220,70%,15%,0.85)] backdrop-blur-sm px-4 py-3 rounded-lg inline-block">
-        <p className="text-lg sm:text-xl text-white text-center max-w-2xl">
-          Still have questions? <a href="mailto:support@chravelapp.com" className="text-accent hover:text-accent/80 underline font-medium">Contact us</a>
-        </p>
-      </div>
     </div>
   );
 };
