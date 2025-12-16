@@ -50,15 +50,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           Plan Together.<br />Travel Better.
         </h2>
 
-        {/* Subheadline with background box for contrast */}
-        <div 
-          className="bg-primary backdrop-blur-sm px-4 py-3 sm:px-6 sm:py-4 rounded-lg animate-fade-in max-w-4xl"
-          style={{ animationDelay: '0.1s' }}
+        {/* Subheadline with bold white text and shadow for contrast */}
+        <p 
+          className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white font-bold max-w-4xl animate-fade-in"
+          style={{ 
+            animationDelay: '0.1s',
+            textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)'
+          }}
         >
-          <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white font-medium">
-            The Group Chat Travel App for Shared Calendars, Messages, Media, Payments, and more
-          </p>
-        </div>
+          The Group Chat Travel App for Shared Calendars, Messages, Media, Payments, and more
+        </p>
 
         {/* Feature Pills */}
         <div className="flex flex-wrap justify-center gap-3 pt-2 animate-fade-in" style={{ animationDelay: '0.2s' }}>

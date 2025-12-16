@@ -30,7 +30,10 @@ export const ProblemSolutionSection = () => {
         >
           Stop juggling 10+ Apps every trip
         </h2>
-        <p className="text-xl sm:text-2xl md:text-3xl max-w-3xl mx-auto px-4 py-3 rounded-xl bg-primary text-white font-semibold">
+        <p 
+          className="text-xl sm:text-2xl md:text-3xl max-w-3xl mx-auto text-white font-bold"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
+        >
           Bring your group's photos, plans, and payments into one place
         </p>
       </div>
@@ -47,7 +50,7 @@ export const ProblemSolutionSection = () => {
               <div className="bg-primary/10 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0">
                 {React.cloneElement(feature.icon as React.ReactElement, { size: 18, className: 'text-primary' })}
               </div>
-              <h3 className="font-semibold text-sm sm:text-base lg:text-lg text-primary leading-tight">{feature.title}</h3>
+              <h3 className="font-bold text-base sm:text-lg lg:text-xl text-primary leading-tight">{feature.title}</h3>
             </div>
             <p className="text-xs sm:text-sm lg:text-base text-foreground text-center leading-relaxed line-clamp-3">{feature.description}</p>
           </div>
