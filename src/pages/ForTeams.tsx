@@ -213,7 +213,7 @@ export const ForTeams = () => {
               </div>
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-foreground mb-2">Growth Pro</h3>
-                <div className="text-4xl font-bold text-foreground mb-2">$199<span className="text-xl text-muted-foreground">/mo</span></div>
+                <div className="text-4xl font-bold text-foreground mb-2">$99<span className="text-xl text-muted-foreground">/mo</span></div>
                 <p className="text-foreground">Up to 100 team members</p>
               </div>
               <Button 
