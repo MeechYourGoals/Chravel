@@ -147,6 +147,12 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// On-image text tokens for guaranteed contrast on photo backgrounds
+				onimg: {
+					title: 'hsl(var(--on-image-title))',
+					body: 'hsl(var(--on-image-body))',
+					muted: 'hsl(var(--on-image-muted))',
 				}
 			},
 		spacing: {

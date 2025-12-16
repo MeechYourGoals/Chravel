@@ -33,17 +33,20 @@ export const ProblemSolutionSection = () => {
       </div>
 
       {/* Features Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-8 max-w-5xl w-full px-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 max-w-5xl w-full px-2">
         {features.map((feature, index) => (
           <div 
             key={index}
-            className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-6 text-center hover:border-primary/50 transition-all duration-300 hover:scale-105 w-full overflow-hidden"
+            className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-3 sm:p-4 hover:border-primary/50 transition-all duration-300 hover:scale-105 w-full overflow-hidden"
           >
-            <div className="bg-primary/10 w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4">
-              {feature.icon}
+            {/* Inline icon + title */}
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <div className="bg-primary/10 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0">
+                {React.cloneElement(feature.icon as React.ReactElement, { size: 18, className: 'text-primary' })}
+              </div>
+              <h3 className="font-semibold text-sm sm:text-base lg:text-lg text-primary leading-tight">{feature.title}</h3>
             </div>
-            <h3 className="font-semibold text-lg sm:text-xl lg:text-2xl mb-3 leading-tight sm:leading-snug break-words">{feature.title}</h3>
-            <p className="text-sm sm:text-base lg:text-lg text-foreground leading-relaxed break-words">{feature.description}</p>
+            <p className="text-xs sm:text-sm lg:text-base text-foreground text-center leading-relaxed line-clamp-3">{feature.description}</p>
           </div>
         ))}
       </div>

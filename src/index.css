@@ -167,6 +167,11 @@
     --sidebar-accent-foreground: 223 25% 90%;
     --sidebar-border: 223 15% 25%;
     --sidebar-ring: 223 56% 53%;
+    
+    /* On-image text tokens for guaranteed contrast */
+    --on-image-title: 223 60% 25%;
+    --on-image-body: 223 50% 30%;
+    --on-image-muted: 223 40% 40%;
   }
 
   .light {
@@ -215,6 +220,11 @@
     --sidebar-accent-foreground: 223 35% 20%;
     --sidebar-border: 223 15% 90%;
     --sidebar-ring: 223 56% 53%;
+    
+    /* On-image text tokens for guaranteed contrast */
+    --on-image-title: 223 60% 20%;
+    --on-image-body: 223 50% 25%;
+    --on-image-muted: 223 40% 35%;
   }
 }
 
