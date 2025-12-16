@@ -178,7 +178,7 @@ export const ForTeams = () => {
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-foreground mb-2">Starter Pro</h3>
                 <div className="text-4xl font-bold text-foreground mb-2">$49<span className="text-xl text-muted-foreground">/mo</span></div>
-                <p className="text-foreground">Up to 25 team members</p>
+                <p className="text-foreground">Up to 50 team members</p>
               </div>
               <Button 
                 className="w-full mb-6"

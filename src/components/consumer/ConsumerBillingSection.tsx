@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 export const ConsumerBillingSection = () => {
   const { subscription, tier, isSubscribed, upgradeToTier, isLoading } = useConsumerSubscription();
   const [expandedPlan, setExpandedPlan] = useState<string | null>(tier);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
 
   const handleManageSubscription = async () => {
     try {
@@ -144,7 +145,7 @@ export const ConsumerBillingSection = () => {
 
         {!isSubscribed && (
           <button 
-            onClick={() => upgradeToTier('explorer', 'annual')}
+            onClick={() => upgradeToTier('explorer', billingCycle)}
             disabled={isLoading}
             className="bg-gradient-to-r from-glass-orange to-glass-yellow hover:from-glass-orange/80 hover:to-glass-yellow/80 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
           >
@@ -168,6 +169,40 @@ export const ConsumerBillingSection = () => {
             </button>
           </div>
         )}
+      </div>
+
+      {/* Billing Period Toggle */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-3">Billing Period</h4>
+        <div className="flex items-center gap-4 mb-4">
+          <button
+            onClick={() => setBillingCycle('monthly')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              billingCycle === 'monthly'
+                ? 'bg-glass-orange text-white'
+                : 'bg-white/10 text-gray-300 hover:bg-white/20'
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setBillingCycle('annual')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              billingCycle === 'annual'
+                ? 'bg-glass-orange text-white'
+                : 'bg-white/10 text-gray-300 hover:bg-white/20'
+            }`}
+          >
+            Annual <span className="text-xs opacity-75">(Save 17%)</span>
+          </button>
+        </div>
+        <div className="text-sm text-gray-400 mb-4">
+          {billingCycle === 'monthly' ? (
+            <span>Explorer: $9.99/mo • Frequent Chraveler: $19.99/mo</span>
+          ) : (
+            <span>Explorer: $99/yr ($8.25/mo) • Frequent Chraveler: $199/yr ($16.58/mo)</span>
+          )}
+        </div>
       </div>
 
       {/* Available Plans */}
@@ -218,7 +253,7 @@ export const ConsumerBillingSection = () => {
                     </ul>
                     {key !== 'free' && key !== tier && (
                       <button 
-                        onClick={() => upgradeToTier(key as 'explorer' | 'frequent-chraveler', 'annual')}
+                        onClick={() => upgradeToTier(key as 'explorer' | 'frequent-chraveler', billingCycle)}
                         disabled={isLoading}
                         className="mt-4 bg-gradient-to-r from-glass-orange to-glass-yellow hover:from-glass-orange/80 hover:to-glass-yellow/80 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                       >
