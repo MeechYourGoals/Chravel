@@ -8,6 +8,7 @@ import { useMediaManagement } from '../../hooks/useMediaManagement';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { MediaGridItem } from './MediaGridItem';
 import { SwipeableListItem } from './SwipeableListItem';
+import { MediaViewerModal, type MediaViewerItem } from '../media/TripMediaRenderer';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { createTripLink } from '@/services/tripLinksService';
@@ -105,7 +106,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       tags?: string[];
     }>
   >([]);
-  const [activeVideo, setActiveVideo] = useState<string | null>(null);
+  // Unified active media state for both videos and images - using shared type
+  const [activeMedia, setActiveMedia] = useState<MediaViewerItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<MediaItem | null>(null);
   const [linkToDelete, setLinkToDelete] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -669,9 +671,9 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                     <MediaGridItem
                       item={item}
                       onPress={() => {
-                        if (item.type === 'video') {
-                          setActiveVideo(item.url);
-                        }
+                        // Open media viewer for both videos and images
+                        const mimeType = item.type === 'video' ? 'video/mp4' : 'image/jpeg';
+                        setActiveMedia({ url: item.url, mimeType, fileName: item.filename });
                       }}
                       onLongPress={() => {
                         setItemToDelete(item);
@@ -766,37 +768,12 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
         )}
       </div>
 
-      {/* Video Player Modal */}
-      {activeVideo && (
-        <div
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-          onClick={() => setActiveVideo(null)}
-        >
-          <button
-            className="absolute top-4 right-4 z-10 text-white bg-white/20 rounded-full p-2"
-            onClick={() => setActiveVideo(null)}
-          >
-            <X size={24} />
-          </button>
-          {/* iOS CRITICAL: muted required for autoplay, user can unmute via controls */}
-          <video
-            src={activeVideo}
-            controls
-            autoPlay
-            playsInline
-            muted
-            controlsList="nodownload"
-            preload="metadata"
-            className="max-w-full max-h-full"
-            style={{
-              maxWidth: '100vw',
-              maxHeight: '100vh',
-              width: 'auto',
-              height: 'auto',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
+      {/* Media Viewer Modal - Using shared component from TripMediaRenderer */}
+      {activeMedia && (
+        <MediaViewerModal
+          media={activeMedia}
+          onClose={() => setActiveMedia(null)}
+        />
       )}
 
       {/* Delete Confirmation Modal */}

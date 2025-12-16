@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MediaTile } from './MediaTile';
+import { MediaViewerModal, type MediaViewerItem } from './TripMediaRenderer';
 import { Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import type { UploadProgress } from '@/hooks/useMediaUpload';
@@ -28,6 +29,7 @@ export const MediaGrid = ({
   uploadQueue = [],
   onDeleteItem,
 }: MediaGridProps) => {
+  const [viewingMedia, setViewingMedia] = useState<MediaViewerItem | null>(null);
   const displayItems = maxItems ? items.slice(0, maxItems) : items;
 
   // Derive MIME type from media_type if not provided
@@ -42,6 +44,10 @@ export const MediaGrid = ({
       default:
         return 'application/octet-stream';
     }
+  };
+
+  const handleViewMedia = (media: MediaViewerItem) => {
+    setViewingMedia(media);
   };
 
   return (
@@ -98,6 +104,7 @@ export const MediaGrid = ({
             mimeType={getMimeType(item)}
             fileName={item.filename}
             onDelete={onDeleteItem}
+            onView={handleViewMedia}
           />
         ))}
       </div>
@@ -106,6 +113,14 @@ export const MediaGrid = ({
         <p className="text-center text-gray-400 text-sm">
           Showing {maxItems} of {items.length} items
         </p>
+      )}
+
+      {/* Media Viewer Modal */}
+      {viewingMedia && (
+        <MediaViewerModal
+          media={viewingMedia}
+          onClose={() => setViewingMedia(null)}
+        />
       )}
     </div>
   );
