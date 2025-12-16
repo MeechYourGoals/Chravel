@@ -78,7 +78,7 @@ export function MediaTile({
         <div className="flex items-center justify-between p-4">
           <div className="truncate text-sm text-white">{fileName ?? 'File'}</div>
           <a
-            href={finalUrl}
+            href={url}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-400 text-sm hover:text-blue-300"

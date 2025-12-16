@@ -4,8 +4,6 @@ import { MediaViewerModal, type MediaViewerItem } from './TripMediaRenderer';
 import { Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import type { UploadProgress } from '@/hooks/useMediaUpload';
-import { TripMediaRenderer } from './TripMediaRenderer';
-import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 
 interface MediaItemData {
   id: string;
@@ -129,64 +127,3 @@ export const MediaGrid = ({
     </div>
   );
 };
-
-function MediaViewerModal(props: {
-  item: MediaItemData | null;
-  mimeType: string | null;
-  onClose: () => void;
-}) {
-  const { item, mimeType, onClose } = props;
-  const resolvedUrl = useResolvedTripMediaUrl({ url: item?.media_url, metadata: item?.metadata });
-  const finalUrl = resolvedUrl ?? item?.media_url ?? '';
-
-  if (!item || !mimeType) return null;
-
-  const isVideo = mimeType.startsWith('video/');
-
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={isVideo ? 'Video viewer' : 'Media viewer'}
-    >
-      <button
-        className="absolute top-4 right-4 z-10 text-white bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors"
-        onClick={e => {
-          e.stopPropagation();
-          onClose();
-        }}
-        aria-label="Close"
-      >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-
-      <div className="w-full max-w-5xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-end mb-3">
-          <a
-            href={finalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-blue-300 hover:text-blue-200"
-          >
-            Download / Open
-          </a>
-        </div>
-
-        <div className="w-full flex items-center justify-center">
-          <TripMediaRenderer
-            url={finalUrl}
-            mimeType={mimeType}
-            alt={item.filename ?? 'Trip media'}
-            mode="full"
-            autoPlay={isVideo}
-            className="max-w-full max-h-[85vh]"
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
