@@ -75,6 +75,14 @@ class ChannelService {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
+
+      // Defense-in-depth: Verify user has permission to manage roles
+      const canManageRoles = await this.hasAdminPermission(request.tripId, 'can_manage_roles', user.id);
+      if (!canManageRoles) {
+        console.error('[ChannelService] createRole: User lacks can_manage_roles permission');
+        return null;
+      }
+
       const { data, error } = await supabase.from('trip_roles').insert({
         trip_id: request.tripId, role_name: request.roleName, description: request.description, created_by: user.id
       }).select().single();
@@ -92,6 +100,28 @@ class ChannelService {
 
   async deleteRole(roleId: string): Promise<boolean> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+
+      // First, fetch the role to get its tripId for permission check
+      const { data: role, error: fetchError } = await supabase
+        .from('trip_roles')
+        .select('trip_id')
+        .eq('id', roleId)
+        .single();
+
+      if (fetchError || !role) {
+        console.error('[ChannelService] deleteRole: Role not found');
+        return false;
+      }
+
+      // Defense-in-depth: Verify user has permission to manage roles
+      const canManageRoles = await this.hasAdminPermission(role.trip_id, 'can_manage_roles', user.id);
+      if (!canManageRoles) {
+        console.error('[ChannelService] deleteRole: User lacks can_manage_roles permission');
+        return false;
+      }
+
       const { error } = await supabase.from('trip_roles').delete().eq('id', roleId);
       return !error;
     } catch { return false; }
@@ -101,6 +131,13 @@ class ChannelService {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
+
+      // Defense-in-depth: Verify user has permission to manage roles
+      const canManageRoles = await this.hasAdminPermission(request.tripId, 'can_manage_roles', user.id);
+      if (!canManageRoles) {
+        console.error('[ChannelService] assignUserToRole: User lacks can_manage_roles permission');
+        return false;
+      }
 
       // Check if assigning as primary role and if user already has a primary role
       if (request.isPrimary !== false) { // Default to primary if not specified
@@ -134,6 +171,16 @@ class ChannelService {
 
   async revokeUserFromRole(tripId: string, userId: string, roleId: string): Promise<boolean> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+
+      // Defense-in-depth: Verify user has permission to manage roles
+      const canManageRoles = await this.hasAdminPermission(tripId, 'can_manage_roles', user.id);
+      if (!canManageRoles) {
+        console.error('[ChannelService] revokeUserFromRole: User lacks can_manage_roles permission');
+        return false;
+      }
+
       const { error } = await supabase.from('user_trip_roles').delete().eq('trip_id', tripId).eq('user_id', userId).eq('role_id', roleId);
       return !error;
     } catch { return false; }
@@ -160,6 +207,14 @@ class ChannelService {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
+
+      // Defense-in-depth: Verify user has permission to manage channels
+      const canManageChannels = await this.hasAdminPermission(request.tripId, 'can_manage_channels', user.id);
+      if (!canManageChannels) {
+        console.error('[ChannelService] createChannel: User lacks can_manage_channels permission');
+        return null;
+      }
+
       const { data } = await supabase.from('trip_channels').insert({ trip_id: request.tripId, channel_name: request.channelName, channel_slug: request.channelSlug, description: request.description, required_role_id: request.requiredRoleId, is_private: request.isPrivate ?? true, created_by: user.id }).select().single();
       return { id: data.id, tripId: data.trip_id, channelName: data.channel_name, channelSlug: data.channel_slug, description: data.description, requiredRoleId: data.required_role_id, isPrivate: data.is_private, isArchived: data.is_archived, createdBy: data.created_by, createdAt: data.created_at, updatedAt: data.updated_at };
     } catch { return null; }
@@ -175,6 +230,13 @@ class ChannelService {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
+
+      // Defense-in-depth: Verify user has permission to manage channels
+      const canManageChannels = await this.hasAdminPermission(tripId, 'can_manage_channels', user.id);
+      if (!canManageChannels) {
+        console.error('[ChannelService] createChannelWithRoles: User lacks can_manage_channels permission');
+        return null;
+      }
 
       // 1. Create the channel (use first role as required_role_id for backward compatibility)
       const { data: channelData, error: channelError } = await supabase
