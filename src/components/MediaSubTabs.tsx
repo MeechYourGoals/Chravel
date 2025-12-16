@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { toast } from 'sonner';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
+import { getUploadContentType } from '@/utils/mime';
 
 interface MediaItem {
   id: string;
@@ -240,6 +241,7 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
         }
 
         const fileName = `${tripId}/${user.id}/${Date.now()}-${file.name}`;
+        const contentType = getUploadContentType(file);
         
         // Upload to Supabase Storage with explicit contentType
         // CRITICAL: iOS Safari requires correct Content-Type headers to decode video
@@ -248,7 +250,7 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
           .upload(fileName, file, {
             cacheControl: '3600',
             upsert: false,
-            contentType: file.type || 'application/octet-stream',
+            contentType,
           });
 
         if (uploadError) {
@@ -271,7 +273,7 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
             filename: file.name,
             media_type: finalMediaType, // Use the detected/validated type
             file_size: file.size,
-            mime_type: file.type,
+            mime_type: contentType,
             metadata: {
               upload_path: fileName,
               uploaded_by: user.id

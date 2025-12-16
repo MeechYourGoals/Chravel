@@ -11,6 +11,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { getUploadContentType, inferMimeTypeFromFilename } from '@/utils/mime';
 
 export interface TripMedia {
   id: string;
@@ -42,6 +43,9 @@ export interface UploadMediaRequest {
   file: File;
   media_type: 'image' | 'video' | 'document';
 }
+
+// Back-compat re-export (so any older imports keep working).
+export { getUploadContentType, inferMimeTypeFromFilename };
 
 /**
  * Extract the Storage object path from a `trip-media` URL.
@@ -96,7 +100,7 @@ export async function uploadTripMedia(
   file: File,
   userId: string
 ): Promise<TripMedia> {
-  const mime = file.type;
+  const mime = getUploadContentType(file);
 
   // ---- Guardrails ----
   // Block HEIC (browser incompatibility)

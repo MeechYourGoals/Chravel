@@ -10,6 +10,8 @@ interface MediaGridItemProps {
     id: string;
     type: 'image' | 'video';
     url: string;
+    mimeType?: string | null;
+    metadata?: unknown;
   };
   onPress: () => void;
   onLongPress: () => void;

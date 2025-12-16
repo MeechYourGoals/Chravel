@@ -6,6 +6,7 @@ interface MediaTileProps {
   url: string;
   mimeType: string;
   fileName?: string | null;
+  metadata?: unknown;
   onDelete: (id: string) => void;
   onView?: (media: { id: string; url: string; mimeType: string; fileName?: string | null }) => void;
 }
@@ -27,6 +28,7 @@ export function MediaTile({
   url,
   mimeType,
   fileName,
+  metadata,
   onDelete,
   onView,
 }: MediaTileProps) {
@@ -76,7 +78,7 @@ export function MediaTile({
         <div className="flex items-center justify-between p-4">
           <div className="truncate text-sm text-white">{fileName ?? 'File'}</div>
           <a
-            href={url}
+            href={finalUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-400 text-sm hover:text-blue-300"

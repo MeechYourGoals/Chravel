@@ -13,6 +13,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { createTripLink } from '@/services/tripLinksService';
 import { toast } from 'sonner';
+import { TripMediaRenderer } from '@/components/media/TripMediaRenderer';
+import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
+import { getUploadContentType } from '@/utils/mime';
 
 interface MediaItem {
   id: string;
@@ -23,6 +26,8 @@ interface MediaItem {
   uploadedAt: Date;
   filename?: string;
   fileSize?: string;
+  mimeType?: string | null;
+  metadata?: unknown;
 }
 
 interface MobileUnifiedMediaHubProps {
@@ -151,6 +156,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
         uploadedAt: new Date(item.created_at),
         filename: item.filename,
         fileSize: undefined,
+        mimeType: item.mime_type ?? null,
+        metadata: item.metadata ?? undefined,
       }));
 
     // In demo mode, allow the user to “upload” and see items immediately without server persistence.
@@ -160,6 +167,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
   const combinedLinks = useMemo(() => {
     return isDemoMode ? [...demoLocalLinks, ...linkItems] : linkItems;
   }, [demoLocalLinks, isDemoMode, linkItems]);
+
+  const resolvedActiveMediaUrl = useResolvedTripMediaUrl({
+    url: activeMedia?.url ?? null,
+    metadata: activeMedia?.metadata,
+  });
 
   // Calculate counts for each tab
   const photosCount = mediaItems.filter(item => item.type === 'image').length;
@@ -250,7 +262,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       const uploadedUrls: string[] = [];
 
       for (const file of Array.from(files)) {
-        const mime = file.type || '';
+        const contentType = getUploadContentType(file);
+        const mime = contentType || '';
         // Check extension for video detection (Files app may not set MIME type correctly)
         const isVideoByExtension = /\.(mp4|mov|m4v|avi|webm|mkv)$/i.test(file.name);
         const detected: 'image' | 'video' | 'document' =
@@ -280,7 +293,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           .upload(storagePath, file, {
             cacheControl: '3600',
             upsert: false,
-            contentType: file.type || 'application/octet-stream',
+            contentType,
           });
 
         if (uploadError) {
@@ -299,7 +312,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           filename: file.name,
           media_type: finalType,
           file_size: file.size,
-          mime_type: file.type,
+          mime_type: contentType,
           metadata: {
             upload_path: storagePath,
             uploaded_by: pre.userId,

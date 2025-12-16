@@ -4,6 +4,7 @@ import { useToast } from './use-toast';
 import { useEffect } from 'react';
 import imageCompression from 'browser-image-compression';
 import { mediaService } from '@/services/mediaService';
+import { getUploadContentType } from '@/utils/mime';
 
 interface TripMedia {
   id: string;
@@ -121,10 +122,14 @@ export const useTripMedia = (tripId: string) => {
       // Upload file to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${tripId}/${Date.now()}.${fileExt}`;
+      const contentType = getUploadContentType(file);
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('trip-media')
-        .upload(fileName, fileToUpload);
+        .upload(fileName, fileToUpload, {
+          contentType,
+          upsert: false,
+        });
 
       if (uploadError) throw uploadError;
 
@@ -141,7 +146,7 @@ export const useTripMedia = (tripId: string) => {
           media_type,
           media_url: publicUrl,
           filename: file.name,
-          mime_type: file.type,
+          mime_type: contentType,
           file_size: fileToUpload.size,
           caption: null,
           tags: [],
