@@ -31,10 +31,10 @@ export const HowItWorksSection = () => {
     <div className="container mx-auto px-4 py-12 md:py-16 flex flex-col items-center justify-center min-h-screen space-y-12">
       {/* Headline */}
       <div className="text-center space-y-4 max-w-4xl">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary">
           How It Works
         </h2>
-        <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
+        <p className="text-xl sm:text-2xl md:text-3xl text-primary">
           Get your group organized in minutes
         </p>
       </div>
@@ -81,29 +81,29 @@ export const HowItWorksSection = () => {
         </div>
 
         {/* Mobile/Tablet View (Hidden on desktop) */}
-        <div className="lg:hidden space-y-6">
+        <div className="lg:hidden space-y-3">
           {steps.map((step) => (
-            <div key={step.number} className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 text-center w-full overflow-hidden">
-              {/* Number Badge */}
-              <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground font-bold text-xl flex items-center justify-center mx-auto mb-4">
-                {step.number}
-              </div>
-              
-              {/* Icon */}
-              <div className="flex justify-center mb-4">
+            <div key={step.number} className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 w-full overflow-hidden">
+              {/* Inline Step Number + Icon */}
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground font-bold text-lg flex items-center justify-center flex-shrink-0">
+                  {step.number}
+                </div>
                 {step.icon}
               </div>
               
               {/* Content */}
-              <h3 className="font-bold text-xl mb-2 text-foreground break-words">
-                {step.title}
-              </h3>
-              <p className="text-lg text-accent font-medium mb-2 break-words">
-                {step.description}
-              </p>
-              <p className="text-base text-foreground break-words">
-                {step.detail}
-              </p>
+              <div className="text-center">
+                <h3 className="font-bold text-lg mb-1 text-primary break-words">
+                  {step.title}
+                </h3>
+                <p className="text-base text-accent font-medium mb-1 break-words">
+                  {step.description}
+                </p>
+                <p className="text-sm text-primary/80 break-words">
+                  {step.detail}
+                </p>
+              </div>
             </div>
           ))}
         </div>
@@ -111,7 +111,7 @@ export const HowItWorksSection = () => {
 
       {/* Here's What You Get */}
       <div className="w-full max-w-5xl space-y-6">
-        <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-foreground">
+        <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-primary">
           Here's What You Get
         </h3>
         <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300">
@@ -124,7 +124,7 @@ export const HowItWorksSection = () => {
       </div>
 
       {/* Bottom tagline */}
-      <p className="text-lg sm:text-xl text-foreground text-center max-w-2xl">
+      <p className="text-lg sm:text-xl text-primary text-center max-w-2xl">
         That's it. No training required, no spreadsheets to manage.
       </p>
     </div>
