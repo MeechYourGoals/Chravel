@@ -13,30 +13,29 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
     <div
       className="relative container mx-auto px-4 flex flex-col items-center min-h-[85vh] md:min-h-[90vh] text-center pb-12 md:pb-0"
       style={{
-        // Mobile: account for MobileAuthHeader (52px) + safe area + extra spacing
-        // Desktop: just safe area + minimal spacing
-        paddingTop: 'max(5rem, calc(env(safe-area-inset-top, 0px) + 72px))'
+        // Minimal padding: just safe area + small offset to align with Demo toggle
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)'
       }}
     >
       {/* Demo Mode Toggle - Absolutely positioned top-right on desktop, hidden on mobile */}
       <div 
         className="hidden md:block absolute right-4 z-10" 
         style={{ 
-          top: 'max(1rem, calc(env(safe-area-inset-top) + 1rem))'
+          top: 'calc(env(safe-area-inset-top, 0px) + 16px)'
         }}
       >
         <DemoModeToggle />
       </div>
 
-      {/* Brand Name - Centered on all breakpoints */}
+      {/* Brand Name - Centered, aligned with Demo toggle */}
       <div className="w-full flex items-center justify-center px-2 md:px-4 mb-4 md:mb-6">
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight animate-fade-in text-center w-full">
           ChravelApp
         </h1>
       </div>
 
-      {/* Main Content - Centered vertically in remaining space */}
-      <div className="flex-1 flex flex-col items-center justify-center space-y-6">
+      {/* Main Content - Starts immediately after brand name, not centered vertically */}
+      <div className="flex flex-col items-center space-y-6">
         {/* Tagline - High contrast gradient with text shadow for readability */}
         <h2
           className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight animate-fade-in"
