@@ -1,5 +1,5 @@
-import React from 'react';
-import { Film, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Film, Play, Trash2 } from 'lucide-react';
 import { useLongPress } from '../../hooks/useLongPress';
 import { useSwipeToDelete } from '../../hooks/useSwipeToDelete';
 import { OptimizedImage } from './OptimizedImage';
@@ -14,6 +14,42 @@ interface MediaGridItemProps {
   onPress: () => void;
   onLongPress: () => void;
 }
+
+/**
+ * VideoThumbnail - Renders a video thumbnail using the first frame
+ * Uses <video preload="metadata"> to load just the poster frame
+ * iOS CRITICAL: playsInline prevents fullscreen takeover
+ */
+const VideoThumbnail: React.FC<{ src: string }> = ({ src }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) {
+    return (
+      <div className="w-full h-full bg-black flex items-center justify-center">
+        <Film size={24} className="text-gray-500" />
+      </div>
+    );
+  }
+
+  return (
+    <video
+      src={src}
+      className="w-full h-full object-cover"
+      muted
+      playsInline
+      preload="metadata"
+      onError={() => setHasError(true)}
+      // Load just enough to show first frame
+      onLoadedMetadata={(e) => {
+        // Seek to first frame to ensure thumbnail shows
+        const video = e.currentTarget;
+        if (video.readyState >= 1) {
+          video.currentTime = 0.1;
+        }
+      }}
+    />
+  );
+};
 
 export const MediaGridItem: React.FC<MediaGridItemProps> = ({ item, onPress, onLongPress }) => {
   const longPressHandlers = useLongPress({
@@ -67,17 +103,24 @@ export const MediaGridItem: React.FC<MediaGridItemProps> = ({ item, onPress, onL
           transition: swipeState.isSwiping ? 'none' : 'transform 0.2s ease-out',
         }}
       >
-        <OptimizedImage
-          src={item.url}
-          alt="Trip media"
-          className="w-full h-full object-cover"
-          width={300}
-          loading="lazy"
-        />
+        {/* Render video thumbnail for videos, OptimizedImage for images */}
+        {item.type === 'video' ? (
+          <VideoThumbnail src={item.url} />
+        ) : (
+          <OptimizedImage
+            src={item.url}
+            alt="Trip media"
+            className="w-full h-full object-cover"
+            width={300}
+            loading="lazy"
+          />
+        )}
+        
+        {/* Play button overlay for videos */}
         {item.type === 'video' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
-            <div className="bg-white/20 backdrop-blur-sm rounded-full p-2">
-              <Film size={20} className="text-white drop-shadow-lg" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+            <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
+              <Play size={24} className="text-white drop-shadow-lg" fill="white" />
             </div>
           </div>
         )}

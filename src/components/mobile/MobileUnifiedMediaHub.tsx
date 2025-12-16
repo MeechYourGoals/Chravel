@@ -105,7 +105,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       tags?: string[];
     }>
   >([]);
-  const [activeVideo, setActiveVideo] = useState<string | null>(null);
+  // Unified active media state for both videos and images
+  const [activeMedia, setActiveMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
   const [itemToDelete, setItemToDelete] = useState<MediaItem | null>(null);
   const [linkToDelete, setLinkToDelete] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -669,9 +670,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                     <MediaGridItem
                       item={item}
                       onPress={() => {
-                        if (item.type === 'video') {
-                          setActiveVideo(item.url);
-                        }
+                        // Open media viewer for both videos and images
+                        setActiveMedia({ url: item.url, type: item.type });
                       }}
                       onLongPress={() => {
                         setItemToDelete(item);
@@ -766,36 +766,54 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
         )}
       </div>
 
-      {/* Video Player Modal */}
-      {activeVideo && (
+      {/* Media Viewer Modal - Supports both videos and images */}
+      {activeMedia && (
         <div
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-          onClick={() => setActiveVideo(null)}
+          onClick={() => setActiveMedia(null)}
         >
           <button
-            className="absolute top-4 right-4 z-10 text-white bg-white/20 rounded-full p-2"
-            onClick={() => setActiveVideo(null)}
+            className="absolute top-4 right-4 z-10 text-white bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors"
+            onClick={() => setActiveMedia(null)}
+            aria-label="Close viewer"
           >
             <X size={24} />
           </button>
-          {/* iOS CRITICAL: muted required for autoplay, user can unmute via controls */}
-          <video
-            src={activeVideo}
-            controls
-            autoPlay
-            playsInline
-            muted
-            controlsList="nodownload"
-            preload="metadata"
-            className="max-w-full max-h-full"
-            style={{
-              maxWidth: '100vw',
-              maxHeight: '100vh',
-              width: 'auto',
-              height: 'auto',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          />
+          
+          {/* Video Player - iOS CRITICAL: muted required for autoplay, user can unmute via controls */}
+          {activeMedia.type === 'video' && (
+            <video
+              src={activeMedia.url}
+              controls
+              autoPlay
+              playsInline
+              muted
+              controlsList="nodownload"
+              preload="metadata"
+              className="max-w-full max-h-full"
+              style={{
+                maxWidth: '100vw',
+                maxHeight: '100vh',
+                width: 'auto',
+                height: 'auto',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
+          
+          {/* Image Viewer */}
+          {activeMedia.type === 'image' && (
+            <img
+              src={activeMedia.url}
+              alt="Trip media"
+              className="max-w-full max-h-full object-contain"
+              style={{
+                maxWidth: '100vw',
+                maxHeight: '100vh',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
         </div>
       )}
 
