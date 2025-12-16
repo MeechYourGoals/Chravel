@@ -296,9 +296,16 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
                   const exportEvents = events.map(e => ({
                     id: e.id,
                     title: e.title,
-                    date: e.date,
-                    location: e.location,
-                    description: ''
+                    date: e.date instanceof Date ? e.date : new Date(e.date),
+                    time: e.date instanceof Date 
+                      ? e.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                      : new Date(e.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+                    location: e.location || '',
+                    description: e.originalEvent?.description || '',
+                    createdBy: '',
+                    include_in_itinerary: true,
+                    event_category: 'other' as const,
+                    source_type: 'manual' as const
                   }));
                   calendarExporter.downloadICS(exportEvents, `Trip_${tripId}`);
                   toast.success('Calendar exported as ICS file');
