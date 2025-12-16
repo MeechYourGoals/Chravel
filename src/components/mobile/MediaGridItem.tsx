@@ -1,10 +1,9 @@
 import React from 'react';
-import { Film, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useLongPress } from '../../hooks/useLongPress';
 import { useSwipeToDelete } from '../../hooks/useSwipeToDelete';
 import { hapticService } from '../../services/hapticService';
-import { TripMediaRenderer } from '@/components/media/TripMediaRenderer';
-import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
+import { TripMediaRenderer } from '../media/TripMediaRenderer';
 
 interface MediaGridItemProps {
   item: {
@@ -18,6 +17,12 @@ interface MediaGridItemProps {
   onLongPress: () => void;
 }
 
+/**
+ * MediaGridItem - Mobile media grid item using TripMediaRenderer
+ * 
+ * Uses the canonical TripMediaRenderer for consistent iOS-safe media rendering.
+ * Supports swipe-to-delete and long-press gestures.
+ */
 export const MediaGridItem: React.FC<MediaGridItemProps> = ({ item, onPress, onLongPress }) => {
   const longPressHandlers = useLongPress({
     onLongPress: async () => {
@@ -32,11 +37,8 @@ export const MediaGridItem: React.FC<MediaGridItemProps> = ({ item, onPress, onL
     },
   });
 
-  const resolvedUrl = useResolvedTripMediaUrl({ url: item.url, metadata: item.metadata });
-  const finalUrl = resolvedUrl ?? item.url;
-  const mimeType =
-    item.mimeType ??
-    (item.type === 'video' ? 'video/mp4' : 'image/jpeg');
+  // Derive MIME type from item type
+  const mimeType = item.type === 'video' ? 'video/mp4' : 'image/jpeg';
 
   return (
     <div
@@ -57,7 +59,7 @@ export const MediaGridItem: React.FC<MediaGridItemProps> = ({ item, onPress, onL
         <Trash2 size={24} className="text-white" />
       </div>
 
-      {/* Main content */}
+      {/* Main content - Using canonical TripMediaRenderer */}
       <button
         {...longPressHandlers}
         {...swipeHandlers}
@@ -77,9 +79,8 @@ export const MediaGridItem: React.FC<MediaGridItemProps> = ({ item, onPress, onL
         }}
       >
         <TripMediaRenderer
-          url={finalUrl}
+          url={item.url}
           mimeType={mimeType}
-          alt="Trip media"
           mode="thumbnail"
           className="w-full h-full"
         />

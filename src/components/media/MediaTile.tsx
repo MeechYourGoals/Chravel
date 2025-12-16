@@ -1,5 +1,4 @@
 import { Trash2 } from 'lucide-react';
-import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 import { TripMediaRenderer } from './TripMediaRenderer';
 
 interface MediaTileProps {
@@ -9,16 +8,20 @@ interface MediaTileProps {
   fileName?: string | null;
   metadata?: unknown;
   onDelete: (id: string) => void;
-  onView?: () => void;
+  onView?: (media: { id: string; url: string; mimeType: string; fileName?: string | null }) => void;
 }
 
 /**
  * Canonical MediaTile - USED EVERYWHERE
  *
- * Single source of truth for rendering media:
- * - MIME-based rendering (not extension-based)
- * - iOS-safe video attributes (controls, playsInline, muted, preload)
+ * Single source of truth for rendering media tiles in grids.
+ * Uses TripMediaRenderer for consistent iOS-safe rendering.
+ * 
+ * Features:
+ * - MIME-based rendering via TripMediaRenderer
+ * - iOS-safe video attributes (playsInline, muted, preload)
  * - Visible delete button (always accessible, no hidden gestures)
+ * - Click-to-view support via onView callback
  */
 export function MediaTile({
   id,
@@ -31,14 +34,19 @@ export function MediaTile({
 }: MediaTileProps) {
   const isVideo = mimeType.startsWith('video/');
   const isImage = mimeType.startsWith('image/');
-  const resolvedUrl = useResolvedTripMediaUrl({ url, metadata });
-  const finalUrl = resolvedUrl ?? url;
+  const isMedia = isVideo || isImage;
+
+  const handleClick = () => {
+    if (onView && isMedia) {
+      onView({ id, url, mimeType, fileName });
+    }
+  };
 
   return (
-    <div className="relative aspect-square rounded-xl overflow-hidden bg-neutral-900">
+    <div className="relative rounded-xl overflow-hidden bg-neutral-900 group">
       {/* DELETE BUTTON - Always visible, no hidden gestures */}
       <button
-        onClick={e => {
+        onClick={(e) => {
           e.stopPropagation();
           onDelete(id);
         }}
@@ -48,22 +56,26 @@ export function MediaTile({
         <Trash2 size={16} />
       </button>
 
-      {/* IMAGE/VIDEO - Render as clickable thumbnail; open viewer modal via onView */}
-      {(isVideo || isImage) && (
-        <div className="w-full h-full" onClick={onView} role="button" tabIndex={0}>
+      {/* MEDIA (Image/Video) - Using canonical TripMediaRenderer */}
+      {isMedia && (
+        <button
+          onClick={handleClick}
+          className={`w-full cursor-pointer ${isVideo ? 'aspect-video' : ''}`}
+          aria-label={isVideo ? 'Play video' : 'View image'}
+        >
           <TripMediaRenderer
-            url={finalUrl}
+            url={url}
             mimeType={mimeType}
-            alt={fileName ?? 'Trip media'}
             mode="thumbnail"
+            alt={fileName ?? 'Trip media'}
             className="w-full h-full"
           />
-        </div>
+        </button>
       )}
 
       {/* FILE (non-image, non-video) */}
-      {!isVideo && !isImage && (
-        <div className="flex h-full items-center justify-between p-4">
+      {!isMedia && (
+        <div className="flex items-center justify-between p-4">
           <div className="truncate text-sm text-white">{fileName ?? 'File'}</div>
           <a
             href={finalUrl}
