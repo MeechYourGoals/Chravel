@@ -22,12 +22,23 @@ export const ProblemSolutionSection = () => {
 
   return (
     <div className="container mx-auto px-4 py-12 md:py-0 flex flex-col items-center justify-center min-h-screen text-center space-y-12">
-      {/* Headline */}
-      <div className="space-y-4">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary">
+      {/* Headline - positioned at top with dark background for contrast */}
+      <div className="space-y-4 mt-8 md:mt-12">
+        <h2
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold"
+          style={{ color: '#0A1E3D', textShadow: '0 2px 4px rgba(255,255,255,0.3)' }}
+        >
           Stop Juggling 15 Apps
         </h2>
-        <p className="text-xl sm:text-2xl md:text-3xl text-primary max-w-3xl mx-auto">
+        <p
+          className="text-xl sm:text-2xl md:text-3xl max-w-3xl mx-auto px-4 py-3 rounded-xl"
+          style={{
+            color: '#0A1E3D',
+            fontWeight: 700,
+            backgroundColor: 'rgba(255,255,255,0.85)',
+            backdropFilter: 'blur(8px)'
+          }}
+        >
           Bring your group's photos, plans, and payments into one place
         </p>
       </div>
