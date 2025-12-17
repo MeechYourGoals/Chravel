@@ -34,39 +34,56 @@ function getFinalY(doc: jsPDF, fallback: number): number {
  * @param url The URL of the font file to fetch.
  * @returns A promise that resolves with the base64 encoded font data.
  */
-async function getFontAsBase64(url: string): Promise<string> {
-  // In a real-world scenario, you'd want to handle network errors.
-  // For this example, we'll assume the font is always available.
-  const response = await fetch(url);
-  const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === 'string') {
-        // Strip the data URL prefix to get just the base64 data
-        resolve(reader.result.split(',')[1]);
-      } else {
-        reject(new Error('Failed to read font as base64.'));
-      }
-    };
-    reader.onerror = () => {
-      reject(new Error('Error reading font file.'));
-    };
-    reader.readAsDataURL(blob);
-  });
+async function getFontAsBase64(url: string, timeoutMs: number = 5000): Promise<string> {
+  // Add timeout to prevent hanging in PWA mode on iOS
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Font fetch failed: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          // Strip the data URL prefix to get just the base64 data
+          resolve(reader.result.split(',')[1]);
+        } else {
+          reject(new Error('Failed to read font as base64.'));
+        }
+      };
+      reader.onerror = () => {
+        reject(new Error('Error reading font file.'));
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
 }
 
 /**
  * Loads and embeds the Noto Sans font family into the jsPDF document.
  * This ensures that Unicode characters are properly rendered in the PDF.
+ * Falls back to built-in Helvetica font if loading fails (e.g., in offline PWA mode).
  * @param doc The jsPDF instance.
  */
 async function embedNotoSansFont(doc: jsPDF): Promise<void> {
   try {
-    const fontNormal = await getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-400-normal.ttf');
-    const fontBold = await getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-700-normal.ttf');
-    const fontItalic = await getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-400-italic.ttf');
-    const fontBoldItalic = await getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-700-italic.ttf');
+    // Load fonts in parallel for faster loading (especially on mobile)
+    const [fontNormal, fontBold, fontItalic, fontBoldItalic] = await Promise.all([
+      getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-400-normal.ttf'),
+      getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-700-normal.ttf'),
+      getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-400-italic.ttf'),
+      getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-700-italic.ttf'),
+    ]);
 
     doc.addFileToVFS('NotoSans-Regular.ttf', fontNormal);
     doc.addFileToVFS('NotoSans-Bold.ttf', fontBold);
@@ -80,8 +97,9 @@ async function embedNotoSansFont(doc: jsPDF): Promise<void> {
 
     doc.setFont('NotoSans', 'normal');
   } catch (error) {
-    console.error('Failed to load and embed font, falling back to default:', error);
-    // Continue with the default font (NotoSans) if embedding fails
+    console.warn('Failed to load custom fonts, using built-in Helvetica:', error);
+    // jsPDF has Helvetica as default, just ensure it's set
+    doc.setFont('helvetica', 'normal');
   }
 }
 
