@@ -109,21 +109,22 @@ export const EnhancedAgendaTab = ({
   const isOrganizer = userRole === 'organizer';
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Calendar size={24} className="text-blue-400" />
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      {/* Header - Mobile Optimized */}
+      <div className="space-y-4">
+        <div className="flex items-start gap-3">
+          <Calendar size={24} className="text-blue-400 flex-shrink-0 mt-0.5" />
           <div>
-            <h2 className="text-xl font-semibold text-white">Event Agenda</h2>
-            <p className="text-gray-400 text-sm">View the full event schedule</p>
+            <h2 className="text-lg md:text-xl font-semibold text-foreground">Event Agenda</h2>
+            <p className="text-muted-foreground text-sm">View the full event schedule</p>
           </div>
         </div>
         
+        {/* Action Buttons - Stacked on mobile */}
         {isOrganizer && !isAddingSession && (
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             {!pdfScheduleUrl && (
-              <label>
+              <label className="flex-1 sm:flex-none">
                 <input
                   type="file"
                   accept=".pdf"
@@ -133,7 +134,7 @@ export const EnhancedAgendaTab = ({
                 />
                 <Button 
                   variant="outline"
-                  className="border-gray-600 cursor-pointer"
+                  className="w-full sm:w-auto border-border cursor-pointer"
                   disabled={isUploadingPDF}
                   type="button"
                 >
@@ -144,7 +145,7 @@ export const EnhancedAgendaTab = ({
             )}
             <Button
               onClick={() => setIsAddingSession(true)}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="flex-1 sm:flex-none bg-primary hover:bg-primary/90"
             >
               <Plus size={16} className="mr-2" />
               Add Session
@@ -155,14 +156,14 @@ export const EnhancedAgendaTab = ({
 
       {/* PDF Schedule Display */}
       {pdfScheduleUrl && (
-        <Card className="bg-gray-800/50 border-gray-700">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+        <Card className="bg-card/50 border-border">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <FileText size={40} className="text-red-400" />
+                <FileText size={32} className="text-red-400 flex-shrink-0" />
                 <div>
-                  <h3 className="font-medium text-white">Full Event Schedule (PDF)</h3>
-                  <p className="text-sm text-gray-400">Complete agenda with all details</p>
+                  <h3 className="font-medium text-foreground">Full Event Schedule (PDF)</h3>
+                  <p className="text-sm text-muted-foreground">Complete agenda with all details</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -171,8 +172,9 @@ export const EnhancedAgendaTab = ({
                   download="Event_Schedule.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
+                  className="flex-1 sm:flex-none"
                 >
-                  <Button variant="outline" className="border-gray-600">
+                  <Button variant="outline" className="w-full sm:w-auto border-border">
                     <Download size={16} className="mr-2" />
                     Download
                   </Button>
@@ -185,7 +187,7 @@ export const EnhancedAgendaTab = ({
                       }
                     }}
                     variant="outline"
-                    className="border-red-600 text-red-400 hover:bg-red-600/10"
+                    className="border-destructive text-destructive hover:bg-destructive/10"
                   >
                     <Trash2 size={16} />
                   </Button>
@@ -200,20 +202,20 @@ export const EnhancedAgendaTab = ({
       {pdfScheduleUrl && sessions.length > 0 && (
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-700" />
+            <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-gray-900 px-2 text-gray-400">Or view by session</span>
+            <span className="bg-background px-2 text-muted-foreground">Or view by session</span>
           </div>
         </div>
       )}
 
       {/* Add Session Form */}
       {isAddingSession && isOrganizer && (
-        <Card className="bg-gray-800/50 border-gray-700">
-          <CardContent className="p-6 space-y-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-white">Add Session to Agenda</h3>
+        <Card className="bg-card/50 border-border">
+          <CardContent className="p-4 md:p-6 space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-medium text-foreground">Add Session to Agenda</h3>
               <Button
                 onClick={() => {
                   setIsAddingSession(false);
@@ -234,7 +236,7 @@ export const EnhancedAgendaTab = ({
                   value={newSession.title}
                   onChange={(e) => setNewSession(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="e.g., Keynote: The Future of AI"
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-background border-border"
                 />
               </div>
 
@@ -245,7 +247,7 @@ export const EnhancedAgendaTab = ({
                   value={newSession.location}
                   onChange={(e) => setNewSession(prev => ({ ...prev, location: e.target.value }))}
                   placeholder="e.g., Main Hall, Room 301"
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-background border-border"
                 />
               </div>
 
@@ -256,7 +258,7 @@ export const EnhancedAgendaTab = ({
                   type="time"
                   value={newSession.time}
                   onChange={(e) => setNewSession(prev => ({ ...prev, time: e.target.value }))}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-background border-border"
                 />
               </div>
 
@@ -267,7 +269,7 @@ export const EnhancedAgendaTab = ({
                   type="time"
                   value={newSession.endTime}
                   onChange={(e) => setNewSession(prev => ({ ...prev, endTime: e.target.value }))}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-background border-border"
                 />
               </div>
             </div>
@@ -279,14 +281,14 @@ export const EnhancedAgendaTab = ({
                 value={newSession.description}
                 onChange={(e) => setNewSession(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Brief description of the session..."
-                className="bg-gray-900 border-gray-700 text-white"
+                className="bg-background border-border"
                 rows={3}
               />
             </div>
 
             <Button
               onClick={handleAddSession}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-primary hover:bg-primary/90"
               disabled={!newSession.title || !newSession.time || !newSession.location}
             >
               <CheckCircle2 size={16} className="mr-2" />
@@ -299,27 +301,27 @@ export const EnhancedAgendaTab = ({
       {/* Sessions List */}
       {sessions.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-lg font-medium text-white">Schedule</h3>
+          <h3 className="text-lg font-medium text-foreground">Schedule</h3>
           {sessions.map(session => (
-            <Card key={session.id} className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors">
+            <Card key={session.id} className="bg-card/50 border-border hover:bg-card/70 transition-colors">
               <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-white font-medium mb-2">{session.title}</h3>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-foreground font-medium mb-2 truncate">{session.title}</h3>
                     <div className="space-y-1 text-sm">
-                      <div className="flex items-center gap-2 text-gray-400">
-                        <Clock size={14} />
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Clock size={14} className="flex-shrink-0" />
                         <span>
                           {session.time}
                           {session.endTime && ` - ${session.endTime}`}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-gray-400">
-                        <MapPin size={14} />
-                        <span>{session.location}</span>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <MapPin size={14} className="flex-shrink-0" />
+                        <span className="truncate">{session.location}</span>
                       </div>
                       {session.description && (
-                        <p className="text-gray-500 mt-2">{session.description}</p>
+                        <p className="text-muted-foreground/70 mt-2 line-clamp-2">{session.description}</p>
                       )}
                     </div>
                   </div>
@@ -328,7 +330,7 @@ export const EnhancedAgendaTab = ({
                       onClick={() => handleDeleteSession(session.id)}
                       variant="ghost"
                       size="sm"
-                      className="text-red-400 hover:text-red-300 hover:bg-red-600/10"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
                     >
                       <Trash2 size={16} />
                     </Button>
@@ -340,49 +342,21 @@ export const EnhancedAgendaTab = ({
         </div>
       )}
 
-      {/* Empty State */}
-      {!pdfScheduleUrl && sessions.length === 0 && (
-        <Card className="bg-gray-800/50 border-gray-700">
-          <CardContent className="p-12 text-center">
-            <Calendar size={64} className="text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">No Agenda Yet</h3>
-            <p className="text-gray-400 mb-6">
+      {/* Empty State - Clean, no duplicate buttons */}
+      {!pdfScheduleUrl && sessions.length === 0 && !isAddingSession && (
+        <Card className="bg-card/50 border-border">
+          <CardContent className="py-12 px-6 text-center">
+            <Calendar size={48} className="text-muted-foreground/50 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No Agenda Yet</h3>
+            <p className="text-muted-foreground text-sm max-w-xs mx-auto">
               {isOrganizer 
-                ? 'Upload a PDF schedule or add sessions manually to build your event agenda'
+                ? 'Use the buttons above to upload a PDF schedule or add sessions manually'
                 : 'The event organizer hasn\'t added an agenda yet'
               }
             </p>
-            {isOrganizer && (
-              <div className="flex gap-3 justify-center">
-                <label>
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    onChange={handlePDFUpload}
-                    className="hidden"
-                  />
-                  <Button 
-                    variant="outline"
-                    className="border-gray-600 cursor-pointer"
-                    type="button"
-                  >
-                    <Upload size={16} className="mr-2" />
-                    Upload PDF Schedule
-                  </Button>
-                </label>
-                <Button
-                  onClick={() => setIsAddingSession(true)}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Plus size={16} className="mr-2" />
-                  Add First Session
-                </Button>
-              </div>
-            )}
           </CardContent>
         </Card>
       )}
     </div>
   );
 };
-
