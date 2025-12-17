@@ -9,6 +9,7 @@ import { CreateEventModal } from './CreateEventModal';
 import { useCalendarEvents } from '../../hooks/useCalendarEvents';
 import { toast } from 'sonner';
 import { calendarExporter } from '../../utils/calendarExport';
+import { openOrDownloadBlob } from '../../utils/download';
 
 interface CalendarEvent {
   id: string;
@@ -239,50 +240,52 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
             </button>
           </div>
 
-          {/* Calendar Grid */}
-          <div className="px-4 py-4 border-b border-white/10">
-            {/* Weekday Headers */}
-            <div className="grid grid-cols-7 gap-1 mb-2">
-              {weekDays.map(day => (
-                <div key={day} className="text-center text-xs font-medium text-gray-500 py-1">
-                  {day}
-                </div>
-              ))}
-            </div>
+          {/* Compact Calendar Grid - Only shown in list view mode */}
+          {currentViewMode === 'list' && (
+            <div className="px-4 py-4 border-b border-white/10">
+              {/* Weekday Headers */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {weekDays.map(day => (
+                  <div key={day} className="text-center text-xs font-medium text-gray-500 py-1">
+                    {day}
+                  </div>
+                ))}
+              </div>
 
-            {/* Calendar Days */}
-            <div className="grid grid-cols-7 gap-1">
-              {calendarDays.map((date, index) => {
-                const isCurrentMonth = isSameMonth(date, currentMonth);
-                const isSelected = isSameDay(date, selectedDate);
-                const isToday = isSameDay(date, new Date());
-                const hasEvents = events.some(e => isSameDay(e.date, date));
-                
-                return (
-                  <button
-                    key={index}
-                    onClick={() => handleDateSelect(date)}
-                    className={`
-                      aspect-square rounded-lg flex flex-col items-center justify-center text-sm
-                      transition-all duration-200 active:scale-95
-                      ${isCurrentMonth ? 'text-white' : 'text-gray-600'}
-                      ${isSelected 
-                        ? 'bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-lg' 
-                        : isToday 
-                        ? 'bg-blue-500/20 border border-blue-500/50' 
-                        : 'hover:bg-white/10'
-                      }
-                    `}
-                  >
-                    <span className="font-medium">{format(date, 'd')}</span>
-                    {hasEvents && (
-                      <div className="w-1 h-1 rounded-full bg-blue-400 mt-0.5" />
-                    )}
-                  </button>
-                );
-              })}
+              {/* Calendar Days */}
+              <div className="grid grid-cols-7 gap-1">
+                {calendarDays.map((date, index) => {
+                  const isCurrentMonth = isSameMonth(date, currentMonth);
+                  const isSelected = isSameDay(date, selectedDate);
+                  const isToday = isSameDay(date, new Date());
+                  const hasEvents = events.some(e => isSameDay(e.date, date));
+                  
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => handleDateSelect(date)}
+                      className={`
+                        aspect-square rounded-lg flex flex-col items-center justify-center text-sm
+                        transition-all duration-200 active:scale-95
+                        ${isCurrentMonth ? 'text-white' : 'text-gray-600'}
+                        ${isSelected 
+                          ? 'bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-lg' 
+                          : isToday 
+                          ? 'bg-blue-500/20 border border-blue-500/50' 
+                          : 'hover:bg-white/10'
+                        }
+                      `}
+                    >
+                      <span className="font-medium">{format(date, 'd')}</span>
+                      {hasEvents && (
+                        <div className="w-1 h-1 rounded-full bg-blue-400 mt-0.5" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Calendar Action Buttons - Export, Month Grid, Add Event */}
           <div className="flex justify-center gap-2 px-4 py-3 border-b border-white/10">
@@ -292,23 +295,27 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
                 if (onExport) {
                   onExport();
                 } else {
-                  // Direct ICS export when no external handler
+                  // Direct ICS export with iOS-compatible download
                   const exportEvents = events.map(e => ({
                     id: e.id,
                     title: e.title,
                     date: e.date instanceof Date ? e.date : new Date(e.date),
-                    time: e.date instanceof Date 
-                      ? e.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-                      : new Date(e.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
                     location: e.location || '',
-                    description: e.originalEvent?.description || '',
-                    createdBy: '',
-                    include_in_itinerary: true,
-                    event_category: 'other' as const,
-                    source_type: 'manual' as const
+                    description: e.originalEvent?.description || ''
                   }));
-                  calendarExporter.downloadICS(exportEvents, `Trip_${tripId}`);
-                  toast.success('Calendar exported as ICS file');
+                  
+                  // Generate ICS content and use iOS-compatible download
+                  const icsContent = calendarExporter.exportToICS(exportEvents, `Trip_${tripId}`);
+                  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+                  const filename = `Trip_${tripId}_calendar.ics`;
+                  
+                  try {
+                    await openOrDownloadBlob(blob, filename, { mimeType: 'text/calendar' });
+                    toast.success('Calendar exported');
+                  } catch (error) {
+                    console.error('Export failed:', error);
+                    toast.error('Failed to export calendar');
+                  }
                 }
               }}
               className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm text-gray-300 transition-colors active:scale-95"
