@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MoreVertical, Info } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
+import { TripExportModal } from '../components/trip/TripExportModal';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
@@ -12,6 +13,10 @@ import { useDemoMode } from '../hooks/useDemoMode';
 import { useTripMembers } from '../hooks/useTripMembers';
 import { convertSupabaseTripsToMock } from '../utils/tripConverter';
 import { tripsData, generateTripMockData } from '../data/tripsData';
+import { ExportSection } from '../types/tripExport';
+import { openOrDownloadBlob } from '../utils/download';
+import { demoModeService } from '../services/demoModeService';
+import { toast } from 'sonner';
 
 export const MobileTripDetail = () => {
   const { tripId } = useParams();
@@ -35,6 +40,7 @@ export const MobileTripDetail = () => {
   const [activeTab, setActiveTab] = useState(getInitialTab);
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const headerRef = React.useRef<HTMLDivElement>(null);
 
   // Persist activeTab changes to sessionStorage
@@ -110,7 +116,97 @@ export const MobileTripDetail = () => {
   
   const basecamp = mockData?.basecamp;
 
-  // ✅ NOW SAFE: All hooks called unconditionally, early returns come AFTER
+  // PDF Export handler - same logic as TripCard
+  const handleExport = useCallback(async (sections: ExportSection[]) => {
+    const tripIdStr = tripId || '1';
+    const isNumericId = !tripIdStr.includes('-');
+    
+    toast.info('Generating PDF', {
+      description: `Creating summary for "${tripWithUpdatedDescription?.title || 'Trip'}"...`,
+    });
+
+    try {
+      let blob: Blob;
+
+      if (isDemoMode || isNumericId) {
+        // Demo mode - use mock data
+        const mockPayments = demoModeService.getMockPayments(tripIdStr);
+        const mockPolls = demoModeService.getMockPolls(tripIdStr);
+        const mockTasks = demoModeService.getMockTasks(tripIdStr);
+        const mockPlaces = demoModeService.getMockPlaces(tripIdStr);
+        
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
+        blob = await generateClientPDF(
+          {
+            tripId: tripIdStr,
+            tripTitle: tripWithUpdatedDescription?.title || 'Trip',
+            destination: tripWithUpdatedDescription?.location,
+            dateRange: tripWithUpdatedDescription?.dateRange,
+            calendar: sections.includes('calendar') ? [] : undefined,
+            payments: sections.includes('payments') && mockPayments.length > 0 ? {
+              items: mockPayments,
+              total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
+              currency: mockPayments[0]?.currency || 'USD'
+            } : undefined,
+            polls: sections.includes('polls') ? mockPolls : undefined,
+            tasks: sections.includes('tasks') ? mockTasks.map(task => ({
+              title: task.title,
+              description: task.description,
+              completed: task.completed
+            })) : undefined,
+            places: sections.includes('places') ? mockPlaces : undefined,
+          },
+          sections,
+          { customization: { compress: true, maxItemsPerSection: 100 } }
+        );
+      } else {
+        // Authenticated mode - fetch real data from Supabase
+        const { getExportData } = await import('../services/tripExportDataService');
+        const realData = await getExportData(tripIdStr, sections);
+        
+        if (!realData) {
+          throw new Error('Could not fetch trip data for export');
+        }
+        
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
+        blob = await generateClientPDF(
+          {
+            tripId: tripIdStr,
+            tripTitle: realData.trip.title,
+            destination: realData.trip.destination,
+            dateRange: realData.trip.dateRange,
+            description: realData.trip.description,
+            calendar: realData.calendar,
+            payments: realData.payments,
+            polls: realData.polls,
+            tasks: realData.tasks,
+            places: realData.places,
+            roster: realData.roster,
+          },
+          sections,
+          { customization: { compress: true, maxItemsPerSection: 100 } }
+        );
+      }
+
+      // Generate filename
+      const sanitizedTitle = (tripWithUpdatedDescription?.title || 'Trip').replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `Trip_${sanitizedTitle}_${Date.now()}.pdf`;
+
+      // Use iOS-compatible download
+      await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
+
+      toast.success('Export complete', {
+        description: `PDF ready: ${filename}`,
+      });
+    } catch (error) {
+      console.error('[MobileTripDetail Export] Error:', error);
+      toast.error('Export failed', {
+        description: error instanceof Error ? error.message : 'Failed to generate PDF. Please try again.',
+      });
+      throw error;
+    }
+  }, [tripId, tripWithUpdatedDescription, isDemoMode]);
+
   if (demoModeLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -227,6 +323,19 @@ export const MobileTripDetail = () => {
           setShowTripInfo(false);
         }}
         onDescriptionUpdate={setTripDescription}
+        onShowExport={() => {
+          setShowTripInfo(false);
+          setShowExportModal(true);
+        }}
+      />
+
+      {/* Export Modal */}
+      <TripExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        tripName={tripWithUpdatedDescription?.title || 'Trip'}
+        tripId={tripId || '1'}
       />
       </div>
     </MobileErrorBoundary>

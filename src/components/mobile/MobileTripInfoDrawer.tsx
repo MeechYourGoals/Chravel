@@ -16,6 +16,7 @@ interface MobileTripInfoDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onDescriptionUpdate: (description: string) => void;
+  onShowExport?: () => void;
   category?: ProTripCategory | string;
   tags?: string[];
 }
@@ -25,6 +26,7 @@ export const MobileTripInfoDrawer = ({
   isOpen,
   onClose,
   onDescriptionUpdate,
+  onShowExport,
   category,
   tags,
 }: MobileTripInfoDrawerProps) => {
@@ -54,6 +56,7 @@ export const MobileTripInfoDrawer = ({
           <TripHeader 
             trip={trip} 
             onDescriptionUpdate={onDescriptionUpdate}
+            onShowExport={onShowExport}
             category={category as ProTripCategory}
             tags={tags}
           />
