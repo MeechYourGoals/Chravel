@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, RefObject } from 'react';
 import { LogIn } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DemoModeSelector } from '../DemoModeSelector';
@@ -8,15 +8,19 @@ import { cn } from '@/lib/utils';
 
 interface MobileAuthHeaderProps {
   onSignUp?: () => void;
+  scrollContainerRef?: RefObject<HTMLDivElement | null>;
 }
 
 // Header content height (without safe area)
 const HEADER_HEIGHT = 52;
 
-export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp }) => {
+export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp, scrollContainerRef }) => {
   const isMobile = useIsMobile();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { scrollDirection, isAtTop } = useScrollDirection(10);
+  const { scrollDirection, isAtTop } = useScrollDirection({
+    threshold: 10,
+    containerRef: scrollContainerRef
+  });
 
   // Hide header when scrolling down, show when scrolling up or at top
   const isHidden = scrollDirection === 'down' && !isAtTop;

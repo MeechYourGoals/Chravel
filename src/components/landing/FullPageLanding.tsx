@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useRef } from 'react';
 import { FullPageLandingSection } from './FullPageLandingSection';
 import { StickyLandingNav } from './StickyLandingNav';
 import { MobileAuthHeader } from './MobileAuthHeader';
@@ -36,19 +36,22 @@ const SectionLoader = () => (
 );
 
 export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) => {
+  // Ref for scroll container - used for scroll-to-hide header detection on mobile
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   return (
     <>
-      {/* Mobile Auth Header - Shows only on mobile */}
-      <MobileAuthHeader onSignUp={onSignUp} />
-      
+      {/* Mobile Auth Header - Shows only on mobile, hides on scroll */}
+      <MobileAuthHeader onSignUp={onSignUp} scrollContainerRef={scrollContainerRef} />
+
       {/* Sticky Navigation */}
       <StickyLandingNav onSignUp={onSignUp} />
 
       {/* Full-Page Scrolling Container with PWA safe-area support */}
       <div
-        className="snap-y snap-proximity md:snap-mandatory overflow-y-auto h-screen scroll-smooth"
+        ref={scrollContainerRef}
+        className="snap-y snap-proximity md:snap-mandatory overflow-y-auto overflow-x-hidden h-screen scroll-smooth"
         style={{
-          paddingTop: 'env(safe-area-inset-top)',
           paddingLeft: 'env(safe-area-inset-left)',
           paddingRight: 'env(safe-area-inset-right)'
         }}
