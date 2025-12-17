@@ -6,6 +6,7 @@ import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
 import { MobileHeaderOptionsSheet } from '../components/mobile/MobileHeaderOptionsSheet';
 import { TripExportModal } from '../components/trip/TripExportModal';
+import { InviteModal } from '../components/InviteModal';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
@@ -46,6 +47,7 @@ export const MobileProTripDetail = () => {
   const [showTripInfo, setShowTripInfo] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   const headerRef = React.useRef<HTMLDivElement>(null);
 
@@ -233,6 +235,46 @@ export const MobileProTripDetail = () => {
     }
   }, [proTripId, tripData, isDemoMode]);
 
+  // Share Trip handler - uses native Web Share API with clipboard fallback
+  const handleShare = useCallback(async () => {
+    if (!tripData) return;
+
+    const previewLink = `https://p.chravel.app/t/${encodeURIComponent(String(proTripId))}`;
+    const participantCount = tripData.participants?.length || 0;
+    const shareText = `Check out ${tripData.title} - a trip to ${tripData.location}! ${participantCount} team members are going.`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: tripData.title,
+          text: shareText,
+          url: previewLink
+        });
+        toast.success('Share sheet opened');
+      } catch (error) {
+        // User cancelled or error - only show error if not abort
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Share failed:', error);
+          // Fallback to copy
+          try {
+            await navigator.clipboard.writeText(previewLink);
+            toast.success('Share link copied to clipboard');
+          } catch {
+            toast.error('Failed to share');
+          }
+        }
+      }
+    } else {
+      // Fallback to clipboard copy
+      try {
+        await navigator.clipboard.writeText(previewLink);
+        toast.success('Share link copied to clipboard');
+      } catch {
+        toast.error('Failed to copy share link');
+      }
+    }
+  }, [proTripId, tripData]);
+
   // ⚡ Now handle loading and error states AFTER all hooks
   if (demoModeLoading) {
     return (
@@ -417,13 +459,9 @@ export const MobileProTripDetail = () => {
         isOpen={showOptionsSheet}
         onClose={() => setShowOptionsSheet(false)}
         tripTitle={tripData?.title}
-        onShare={() => {
-          toast.info('Share functionality coming soon');
-        }}
+        onShare={handleShare}
         onExport={() => setShowExportModal(true)}
-        onSettings={() => {
-          toast.info('Trip settings coming soon');
-        }}
+        onInvite={() => setShowInviteModal(true)}
       />
 
       {/* Export Modal */}
@@ -433,6 +471,14 @@ export const MobileProTripDetail = () => {
         onExport={handleExport}
         tripName={tripData?.title || 'Pro Trip'}
         tripId={proTripId || '1'}
+      />
+
+      {/* Invite Modal */}
+      <InviteModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        tripName={tripData?.title || 'Pro Trip'}
+        proTripId={proTripId}
       />
       </div>
     </MobileErrorBoundary>
