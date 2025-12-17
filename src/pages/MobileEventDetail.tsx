@@ -4,6 +4,7 @@ import { ArrowLeft, MoreVertical, Info } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
+import { MobileHeaderOptionsSheet } from '../components/mobile/MobileHeaderOptionsSheet';
 import { TripExportModal } from '../components/trip/TripExportModal';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
@@ -40,6 +41,7 @@ export const MobileEventDetail = () => {
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showOptionsSheet, setShowOptionsSheet] = useState(false);
   const headerRef = React.useRef<HTMLDivElement>(null);
 
   // Persist activeTab changes to sessionStorage
@@ -295,24 +297,31 @@ export const MobileEventDetail = () => {
   return (
     <MobileErrorBoundary>
       <div className="flex flex-col min-h-screen bg-black">
-      {/* Mobile Header - Sticky */}
+      {/* Mobile Header - Sticky with iOS safe area */}
       <div 
         ref={headerRef} 
         className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10"
-        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        style={{ 
+          paddingTop: 'max(env(safe-area-inset-top, 0px), constant(safe-area-inset-top, 0px), 20px)'
+        }}
       >
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-2">
             <button
               onClick={handleBack}
-              className="p-2 -ml-2 active:scale-95 transition-transform"
+              className="min-w-[44px] min-h-[44px] p-3 -ml-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
+              style={{ touchAction: 'manipulation' }}
             >
               <ArrowLeft size={24} className="text-white" />
             </button>
             
             <button
-              onClick={() => hapticService.light()}
-              className="p-2 -mr-2 active:scale-95 transition-transform"
+              onClick={() => {
+                hapticService.light();
+                setShowOptionsSheet(true);
+              }}
+              className="min-w-[44px] min-h-[44px] p-3 -mr-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
+              style={{ touchAction: 'manipulation' }}
             >
               <MoreVertical size={24} className="text-white" />
             </button>
@@ -361,9 +370,24 @@ export const MobileEventDetail = () => {
         onDescriptionUpdate={setTripDescription}
         onShowExport={() => {
           setShowTripInfo(false);
-          setShowExportModal(true);
+          // Delay to let drawer close before opening modal
+          setTimeout(() => setShowExportModal(true), 200);
         }}
         category={'category' in eventData ? (eventData as any).category : undefined}
+      />
+
+      {/* Options Sheet (Three-dot menu) */}
+      <MobileHeaderOptionsSheet
+        isOpen={showOptionsSheet}
+        onClose={() => setShowOptionsSheet(false)}
+        tripTitle={eventData?.title}
+        onShare={() => {
+          toast.info('Share functionality coming soon');
+        }}
+        onExport={() => setShowExportModal(true)}
+        onSettings={() => {
+          toast.info('Event settings coming soon');
+        }}
       />
 
       {/* Export Modal */}
