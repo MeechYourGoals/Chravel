@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MoreVertical, Info } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
+import { TripExportModal } from '../components/trip/TripExportModal';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
@@ -16,6 +17,10 @@ import { convertSupabaseTripsToMock, convertSupabaseTripToProTrip } from '../uti
 import { MockRolesService } from '../services/mockRolesService';
 import { tripService } from '../services/tripService';
 import { ProTripData, ProParticipant } from '../types/pro';
+import { ExportSection } from '../types/tripExport';
+import { openOrDownloadBlob } from '../utils/download';
+import { demoModeService } from '../services/demoModeService';
+import { toast } from 'sonner';
 
 export const MobileProTripDetail = () => {
   const { proTripId } = useParams();
@@ -38,6 +43,7 @@ export const MobileProTripDetail = () => {
   const [activeTab, setActiveTab] = useState(getInitialTab);
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const headerRef = React.useRef<HTMLDivElement>(null);
 
@@ -138,6 +144,93 @@ export const MobileProTripDetail = () => {
     };
   }, []);
 
+  // PDF Export handler
+  const handleExport = useCallback(async (sections: ExportSection[]) => {
+    const tripIdStr = proTripId || '1';
+    const isNumericId = !tripIdStr.includes('-');
+    
+    toast.info('Generating PDF', {
+      description: `Creating summary for "${tripData?.title || 'Pro Trip'}"...`,
+    });
+
+    try {
+      let blob: Blob;
+
+      if (isDemoMode || isNumericId) {
+        const mockPayments = demoModeService.getMockPayments(tripIdStr);
+        const mockPolls = demoModeService.getMockPolls(tripIdStr);
+        const mockTasks = demoModeService.getMockTasks(tripIdStr);
+        const mockPlaces = demoModeService.getMockPlaces(tripIdStr);
+        
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
+        blob = await generateClientPDF(
+          {
+            tripId: tripIdStr,
+            tripTitle: tripData?.title || 'Pro Trip',
+            destination: tripData?.location,
+            dateRange: tripData?.dateRange,
+            calendar: sections.includes('calendar') ? [] : undefined,
+            payments: sections.includes('payments') && mockPayments.length > 0 ? {
+              items: mockPayments,
+              total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
+              currency: mockPayments[0]?.currency || 'USD'
+            } : undefined,
+            polls: sections.includes('polls') ? mockPolls : undefined,
+            tasks: sections.includes('tasks') ? mockTasks.map(task => ({
+              title: task.title,
+              description: task.description,
+              completed: task.completed
+            })) : undefined,
+            places: sections.includes('places') ? mockPlaces : undefined,
+          },
+          sections,
+          { customization: { compress: true, maxItemsPerSection: 100 } }
+        );
+      } else {
+        const { getExportData } = await import('../services/tripExportDataService');
+        const realData = await getExportData(tripIdStr, sections);
+        
+        if (!realData) {
+          throw new Error('Could not fetch trip data for export');
+        }
+        
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
+        blob = await generateClientPDF(
+          {
+            tripId: tripIdStr,
+            tripTitle: realData.trip.title,
+            destination: realData.trip.destination,
+            dateRange: realData.trip.dateRange,
+            description: realData.trip.description,
+            calendar: realData.calendar,
+            payments: realData.payments,
+            polls: realData.polls,
+            tasks: realData.tasks,
+            places: realData.places,
+            roster: realData.roster,
+          },
+          sections,
+          { customization: { compress: true, maxItemsPerSection: 100 } }
+        );
+      }
+
+      const sanitizedTitle = (tripData?.title || 'Pro Trip').replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `ProTrip_${sanitizedTitle}_${Date.now()}.pdf`;
+
+      await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
+
+      toast.success('Export complete', {
+        description: `PDF ready: ${filename}`,
+      });
+    } catch (error) {
+      console.error('[MobileProTripDetail Export] Error:', error);
+      toast.error('Export failed', {
+        description: error instanceof Error ? error.message : 'Failed to generate PDF. Please try again.',
+      });
+      throw error;
+    }
+  }, [proTripId, tripData, isDemoMode]);
+
   // ⚡ Now handle loading and error states AFTER all hooks
   if (demoModeLoading) {
     return (
@@ -233,7 +326,11 @@ export const MobileProTripDetail = () => {
     <MobileErrorBoundary>
       <div className="flex flex-col min-h-screen bg-black">
       {/* Mobile Header - Sticky */}
-      <div ref={headerRef} className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10">
+      <div 
+        ref={headerRef} 
+        className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-2">
             <button
@@ -297,8 +394,21 @@ export const MobileProTripDetail = () => {
           setShowTripInfo(false);
         }}
         onDescriptionUpdate={setTripDescription}
+        onShowExport={() => {
+          setShowTripInfo(false);
+          setShowExportModal(true);
+        }}
         category={tripData.proTripCategory}
         tags={tripData.tags}
+      />
+
+      {/* Export Modal */}
+      <TripExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        tripName={tripData?.title || 'Pro Trip'}
+        tripId={proTripId || '1'}
       />
       </div>
     </MobileErrorBoundary>

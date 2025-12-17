@@ -266,7 +266,11 @@ export const MobileTripDetail = () => {
     <MobileErrorBoundary>
       <div className="flex flex-col min-h-screen bg-black">
       {/* Mobile Header - Sticky */}
-      <div ref={headerRef} className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10">
+      <div 
+        ref={headerRef} 
+        className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-2">
             <button
