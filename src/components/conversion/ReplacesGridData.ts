@@ -16,36 +16,36 @@ export interface Category {
 export const CATEGORIES: Category[] = [
   {
     key: "chat",
-    title: "Chat & Broadcasts",
+    title: "Chat",
     hero: [
-      { 
-        name: "WhatsApp", 
-        androidInstalls: "10B+", 
+      {
+        name: "WhatsApp",
+        androidInstalls: "10B+",
         globalUsers: "3.0B MAU (2025-01)",
         source: "https://play.google.com/store/apps/details?id=com.whatsapp"
       },
-      { 
-        name: "Telegram", 
-        androidInstalls: "1B+", 
+      {
+        name: "Telegram",
+        androidInstalls: "1B+",
         globalUsers: "~1B MAU (2025-03)",
         source: "https://play.google.com/store/apps/details?id=org.telegram.messenger"
       },
-      { 
-        name: "Slack", 
-        androidInstalls: "10M+", 
+      {
+        name: "Slack",
+        androidInstalls: "10M+",
         globalUsers: "42M DAU / 65M MAU (2024)",
         iosRatings: "35K (US)",
         source: "https://play.google.com/store/apps/details?id=com.Slack"
       },
-      { 
-        name: "Microsoft Teams", 
-        androidInstalls: "500M+", 
+      {
+        name: "Microsoft Teams",
+        androidInstalls: "500M+",
         globalUsers: "320M MAU (2024)",
         source: "https://play.google.com/store/apps/details?id=com.microsoft.teams"
       },
-      { 
-        name: "Discord", 
-        androidInstalls: "500M+", 
+      {
+        name: "Discord",
+        androidInstalls: "500M+",
         globalUsers: "200M MAU",
         iosRatings: "3.2M (US)",
         source: "https://play.google.com/store/apps/details?id=com.discord"
@@ -58,36 +58,36 @@ export const CATEGORIES: Category[] = [
       { name: "Facebook Messenger" }
     ]
   },
-  
+
   {
     key: "calendar",
-    title: "Calendar & Scheduling",
+    title: "Calendar",
     hero: [
-      { 
-        name: "Google Calendar", 
-        androidInstalls: "5B+", 
+      {
+        name: "Google Calendar",
+        androidInstalls: "5B+",
         globalUsers: "1B+ users (milestone 2019)",
         iosRatings: "127.2K (US)",
         source: "https://play.google.com/store/apps/details?id=com.google.android.calendar"
       },
-      { 
-        name: "Outlook Calendar", 
-        androidInstalls: "500M+", 
+      {
+        name: "Outlook Calendar",
+        androidInstalls: "500M+",
         iosRatings: "8.4M (US)",
         source: "https://play.google.com/store/apps/details?id=com.microsoft.office.outlook"
       },
-      { 
-        name: "Calendly", 
-        androidInstalls: "10M+", 
+      {
+        name: "Calendly",
+        androidInstalls: "10M+",
         globalUsers: "20M+ users",
         source: "https://play.google.com/store/apps/details?id=com.calendly.Droid"
       },
-      { 
-        name: "Doodle", 
+      {
+        name: "Doodle",
         globalUsers: "30M MAU"
       },
-      { 
-        name: "Apple Calendar", 
+      {
+        name: "Apple Calendar",
         iosRatings: "127.2K (US)"
       }
     ],
@@ -96,46 +96,46 @@ export const CATEGORIES: Category[] = [
 
   {
     key: "concierge",
-    title: "AI Concierge & Research",
+    title: "AI Concierge",
     hero: [
-      { 
-        name: "ChatGPT", 
-        androidInstalls: "500M+", 
+      {
+        name: "ChatGPT",
+        androidInstalls: "500M+",
         globalUsers: "800M+ weekly actives (2025)",
         iosRatings: "4.2M (US)",
         source: "https://play.google.com/store/apps/details?id=com.openai.chatgpt"
       },
-      { 
-        name: "Gemini", 
-        androidInstalls: "100M+", 
+      {
+        name: "Gemini",
+        androidInstalls: "100M+",
         globalUsers: "80M downloads (2024)",
         source: "https://play.google.com/store/apps/details?id=com.google.android.apps.sidekick"
       },
-      { 
-        name: "Perplexity", 
-        androidInstalls: "10M+", 
+      {
+        name: "Perplexity",
+        androidInstalls: "10M+",
         globalUsers: "~22M actives (2024)",
         source: "https://play.google.com/store/apps/details?id=ai.perplexity.app.android"
       },
-      { 
-        name: "Claude", 
+      {
+        name: "Claude",
         globalUsers: "~100M monthly visits (2025-05)"
       },
-      { 
-        name: "TripAdvisor", 
+      {
+        name: "TripAdvisor",
         androidInstalls: "100M+",
         source: "https://play.google.com/store/apps/details?id=com.tripadvisor.tripadvisor"
       }
     ],
     full: [
       { name: "Microsoft Copilot" },
-      { 
-        name: "Google Search", 
+      {
+        name: "Google Search",
         androidInstalls: "10B+",
         source: "https://play.google.com/store/apps/details?id=com.google.android.googlequicksearchbox"
       },
-      { 
-        name: "Reddit", 
+      {
+        name: "Reddit",
         androidInstalls: "100M+",
         source: "https://play.google.com/store/apps/details?id=com.reddit.frontpage"
       },
@@ -145,35 +145,35 @@ export const CATEGORIES: Category[] = [
 
   {
     key: "media",
-    title: "Media & Files",
+    title: "Media",
     hero: [
-      { 
-        name: "Google Drive", 
-        androidInstalls: "10B+", 
+      {
+        name: "Google Drive",
+        androidInstalls: "10B+",
         globalUsers: "2B users (2024-12)",
         iosRatings: "7.1M (US)",
         source: "https://play.google.com/store/apps/details?id=com.google.android.apps.docs"
       },
-      { 
-        name: "Google Photos", 
+      {
+        name: "Google Photos",
         globalUsers: "1B+ users (milestone 2019)",
         iosRatings: "751.9K (US)"
       },
-      { 
-        name: "OneDrive", 
-        androidInstalls: "1B+", 
+      {
+        name: "OneDrive",
+        androidInstalls: "1B+",
         iosRatings: "481.7K (US)",
         source: "https://play.google.com/store/apps/details?id=com.microsoft.skydrive"
       },
-      { 
-        name: "Dropbox", 
-        androidInstalls: "1B+", 
+      {
+        name: "Dropbox",
+        androidInstalls: "1B+",
         globalUsers: "700M+ registered (2024)",
         iosRatings: "709.1K (US)",
         source: "https://play.google.com/store/apps/details?id=com.dropbox.android"
       },
-      { 
-        name: "Apple Photos (iCloud)", 
+      {
+        name: "Apple Photos (iCloud)",
         globalUsers: "~850M iCloud users (2018)"
       }
     ],
@@ -188,8 +188,82 @@ export const CATEGORIES: Category[] = [
   },
 
   {
+    key: "payments",
+    title: "Payments",
+    hero: [
+      {
+        name: "Venmo",
+        androidInstalls: "50M+",
+        globalUsers: "95.4M active accounts (US)",
+        iosRatings: "15.5M (US)"
+      },
+      {
+        name: "Zelle",
+        globalUsers: "151M enrolled users (2025-02), 2B transactions H1 2025"
+      },
+      {
+        name: "PayPal",
+        androidInstalls: "100M+",
+        iosRatings: "6.3M (US)"
+      },
+      {
+        name: "Cash App",
+        androidInstalls: "50M+",
+        globalUsers: "57M monthly transacting (Q2 2025)",
+        iosRatings: "7.9M (US)"
+      },
+      {
+        name: "Splitwise",
+        globalUsers: "Tens of millions registered",
+        iosRatings: "20.5K (US)"
+      }
+    ],
+    full: [
+      { name: "Apple Pay / Apple Cash" },
+      {
+        name: "Google Pay (Wallet)",
+        androidInstalls: "1B+",
+        source: "https://play.google.com/store/apps/details?id=com.google.android.apps.walletnfcrel"
+      },
+      { name: "Tab" },
+      { name: "Tricount" },
+      { name: "Settle Up" }
+    ]
+  },
+
+  {
+    key: "places",
+    title: "Places",
+    hero: [
+      {
+        name: "Google Maps",
+        androidInstalls: "10B+"
+      },
+      {
+        name: "Waze",
+        androidInstalls: "500M+",
+        iosRatings: "3.1M (US)"
+      },
+      { name: "Apple Maps" },
+      {
+        name: "Citymapper",
+        androidInstalls: "10M+"
+      },
+      {
+        name: "MapQuest"
+      }
+    ],
+    full: [
+      { name: "Find My" },
+      { name: "Glympse" },
+      { name: "what3words" },
+      { name: "Roadtrippers" }
+    ]
+  },
+
+  {
     key: "polls",
-    title: "Polls & Decisions",
+    title: "Polls",
     hero: [
       { name: "Doodle", globalUsers: "30M MAU" },
       { name: "Google Forms" },
@@ -204,18 +278,18 @@ export const CATEGORIES: Category[] = [
 
   {
     key: "tasks",
-    title: "Tasks & Checklists",
+    title: "Tasks",
     hero: [
-      { 
-        name: "Notion", 
+      {
+        name: "Notion",
         globalUsers: "100M users (2024-09)"
       },
-      { 
-        name: "Trello", 
+      {
+        name: "Trello",
         globalUsers: "50M+ registered (2019)"
       },
-      { 
-        name: "Asana", 
+      {
+        name: "Asana",
         globalUsers: "169K+ paying customers (2025-03)"
       },
       { name: "Microsoft To Do" },
@@ -225,80 +299,6 @@ export const CATEGORIES: Category[] = [
       { name: "Google Tasks" },
       { name: "Todoist", globalUsers: "30M users" },
       { name: "Monday.com" }
-    ]
-  },
-
-  {
-    key: "payments",
-    title: "Payments & Splits",
-    hero: [
-      { 
-        name: "Venmo", 
-        androidInstalls: "50M+", 
-        globalUsers: "95.4M active accounts (US)",
-        iosRatings: "15.5M (US)"
-      },
-      { 
-        name: "Zelle", 
-        globalUsers: "151M enrolled users (2025-02), 2B transactions H1 2025"
-      },
-      { 
-        name: "PayPal", 
-        androidInstalls: "100M+", 
-        iosRatings: "6.3M (US)"
-      },
-      { 
-        name: "Cash App", 
-        androidInstalls: "50M+", 
-        globalUsers: "57M monthly transacting (Q2 2025)",
-        iosRatings: "7.9M (US)"
-      },
-      { 
-        name: "Splitwise", 
-        globalUsers: "Tens of millions registered",
-        iosRatings: "20.5K (US)"
-      }
-    ],
-    full: [
-      { name: "Apple Pay / Apple Cash" },
-      { 
-        name: "Google Pay (Wallet)", 
-        androidInstalls: "1B+",
-        source: "https://play.google.com/store/apps/details?id=com.google.android.apps.walletnfcrel"
-      },
-      { name: "Tab" },
-      { name: "Tricount" },
-      { name: "Settle Up" }
-    ]
-  },
-
-  {
-    key: "maps",
-    title: "Maps & Meetups",
-    hero: [
-      { 
-        name: "Google Maps", 
-        androidInstalls: "10B+"
-      },
-      { 
-        name: "Waze", 
-        androidInstalls: "500M+", 
-        iosRatings: "3.1M (US)"
-      },
-      { name: "Apple Maps" },
-      { 
-        name: "Citymapper", 
-        androidInstalls: "10M+"
-      },
-      { 
-        name: "MapQuest"
-      }
-    ],
-    full: [
-      { name: "Find My" },
-      { name: "Glympse" },
-      { name: "what3words" },
-      { name: "Roadtrippers" }
     ]
   }
 ];
