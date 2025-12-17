@@ -60,15 +60,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           Plan Together.<br />Travel Better.
         </h2>
 
-        {/* Subheadline with bold white text and shadow for contrast */}
+        {/* Subheadline with Easter egg highlighting CH-RAVEL-APP */}
         <p 
-          className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white font-bold max-w-4xl animate-fade-in"
+          className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white/80 font-medium max-w-4xl animate-fade-in"
           style={{ 
             animationDelay: '0.1s',
             textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)'
           }}
         >
-          The Group Chat Travel App for Shared Calendars, Messages, Media, Payments, and more
+          The Group <span className="font-bold text-primary">Ch</span>at T<span className="font-bold text-primary">ravel</span> <span className="font-bold text-primary">App</span> for Shared Calendars, Messages, Media, Payments, and more
         </p>
 
         {/* Feature Pills */}
