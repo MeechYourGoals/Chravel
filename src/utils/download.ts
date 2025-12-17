@@ -1,7 +1,7 @@
 /**
- * Cross-platform Blob download helper with iOS Safari support.
+ * Cross-platform Blob download helper with iOS Safari and PWA support.
  * - Uses Web Share API with files when available (best UX on mobile)
- * - On iOS Safari, prefers navigating a pre-opened window to a blob URL
+ * - On iOS Safari/PWA, prefers navigating a pre-opened window to a blob URL
  * - Otherwise falls back to anchor download with a safe cleanup
  */
 
@@ -20,8 +20,18 @@ function isProbablyIOS(): boolean {
 
 function isSafariLike(): boolean {
   const ua = navigator.userAgent || '';
+  // Include Safari and Safari-based WebViews (including PWA standalone mode)
+  // PWA on iOS uses WKWebView which may not have "Safari" in the UA
   const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
-  return isSafari;
+  // Also check for AppleWebKit without Chrome/Firefox (covers PWA WebView)
+  const isWebKit = /AppleWebKit/.test(ua) && !/Chrome|CriOS|Firefox|FxiOS|EdgA|EdgiOS/.test(ua);
+  return isSafari || isWebKit;
+}
+
+function isStandalonePWA(): boolean {
+  // Detect if running as installed PWA (standalone mode)
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         (window.navigator as any).standalone === true;
 }
 
 export async function openOrDownloadBlob(
@@ -31,17 +41,27 @@ export async function openOrDownloadBlob(
 ): Promise<void> {
   const { preOpenedWindow, mimeType } = options;
   const type = blob.type || mimeType || 'application/octet-stream';
+  const isIOSDevice = isProbablyIOS();
+  const isPWA = isStandalonePWA();
 
-  // Prefer Web Share API with files when available (mobile-friendly)
+  // Try Web Share API first - this provides the native iOS share sheet
+  // (Message, Save to Files, Copy, AirDrop, etc.)
   try {
     const anyNavigator = navigator as any;
     const file = new File([blob], filename, { type });
     if (anyNavigator?.canShare && anyNavigator?.share && anyNavigator.canShare({ files: [file] })) {
-      await anyNavigator.share({ files: [file], title: filename });
+      // Add timeout to prevent indefinite hanging (especially in PWA mode)
+      const sharePromise = anyNavigator.share({ files: [file], title: filename });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Share timeout')), 15000)
+      );
+      await Promise.race([sharePromise, timeoutPromise]);
       return;
     }
-  } catch {
-    // fall through to other strategies
+  } catch (error) {
+    // User cancelled share, or share timed out, or not supported
+    // Fall through to blob download strategies
+    console.log('Web Share API unavailable or failed, using fallback:', error);
   }
 
   const url = URL.createObjectURL(blob);
@@ -50,9 +70,9 @@ export async function openOrDownloadBlob(
     setTimeout(() => URL.revokeObjectURL(url), 8000);
   };
 
-  // iOS Safari has limited support for a[download] and blob downloads.
-  // If a window was pre-opened during the user gesture, navigate it to the blob URL.
-  if (isProbablyIOS() && isSafariLike()) {
+  // iOS Safari/PWA has limited support for a[download] and blob downloads.
+  // For PWA standalone mode, we need special handling.
+  if (isIOSDevice && (isSafariLike() || isPWA)) {
     if (preOpenedWindow) {
       try {
         preOpenedWindow.location.href = url;
@@ -61,6 +81,23 @@ export async function openOrDownloadBlob(
       } catch {
         // If navigation fails, fallback below
       }
+    }
+
+    // For PWA mode, try opening in same window context which often works better
+    if (isPWA) {
+      // Create a download link and simulate click
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      // Use _self for PWA to avoid popup blocking issues
+      a.target = '_self';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      // Small delay before cleanup for PWA
+      setTimeout(() => document.body.removeChild(a), 100);
+      cleanup();
+      return;
     }
 
     // Fallback: open a new tab directly (may still be blocked if not user-initiated)
