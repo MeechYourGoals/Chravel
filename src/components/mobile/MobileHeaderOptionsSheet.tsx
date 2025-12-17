@@ -1,5 +1,5 @@
 import React from 'react';
-import { Share2, FileDown, Settings, X } from 'lucide-react';
+import { Share2, FileDown, UserPlus, X } from 'lucide-react';
 import { hapticService } from '../../services/hapticService';
 import {
   Drawer,
@@ -13,7 +13,7 @@ interface MobileHeaderOptionsSheetProps {
   onClose: () => void;
   onShare?: () => void;
   onExport?: () => void;
-  onSettings?: () => void;
+  onInvite?: () => void;
   tripTitle?: string;
 }
 
@@ -22,7 +22,7 @@ export const MobileHeaderOptionsSheet: React.FC<MobileHeaderOptionsSheetProps> =
   onClose,
   onShare,
   onExport,
-  onSettings,
+  onInvite,
   tripTitle = 'Trip'
 }) => {
   const handleAction = (action?: () => void) => {
@@ -72,17 +72,17 @@ export const MobileHeaderOptionsSheet: React.FC<MobileHeaderOptionsSheetProps> =
             </button>
           )}
           
-          {onSettings && (
+          {onInvite && (
             <button
-              onClick={() => handleAction(onSettings)}
+              onClick={() => handleAction(onInvite)}
               className="w-full flex items-center gap-4 p-4 rounded-xl bg-gray-800/50 hover:bg-gray-800 active:scale-[0.98] transition-all text-left"
             >
-              <div className="w-10 h-10 rounded-full bg-gray-500/20 flex items-center justify-center">
-                <Settings size={20} className="text-gray-400" />
+              <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                <UserPlus size={20} className="text-purple-400" />
               </div>
               <div>
-                <p className="text-white font-medium">Trip Settings</p>
-                <p className="text-gray-400 text-sm">Manage trip preferences</p>
+                <p className="text-white font-medium">Invite</p>
+                <p className="text-gray-400 text-sm">Add people to this trip</p>
               </div>
             </button>
           )}
