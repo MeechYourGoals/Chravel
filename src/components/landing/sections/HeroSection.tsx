@@ -2,19 +2,28 @@ import React from 'react';
 import { Button } from '../../ui/button';
 import { Users, Calendar, MapPin, Sparkles } from 'lucide-react';
 import { DemoModeToggle } from '../../DemoModeToggle';
+import { useIsMobile } from '@/hooks/use-mobile';
 import tripsDashboard from '@/assets/app-screenshots/trips-dashboard.png';
+
+// Mobile header height constant (matches MobileAuthHeader.tsx)
+const MOBILE_HEADER_HEIGHT = 52;
 
 interface HeroSectionProps {
   onSignUp: () => void;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
+  const isMobile = useIsMobile();
+
   return (
     <div
       className="relative container mx-auto px-4 flex flex-col items-center min-h-[85vh] md:min-h-[90vh] text-center pb-12 md:pb-0"
       style={{
-        // Minimal padding: just safe area + small offset to align with Demo toggle
-        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)'
+        // On mobile: account for fixed MobileAuthHeader (safe area + header height + spacing)
+        // On desktop: just safe area + small offset
+        paddingTop: isMobile
+          ? `calc(env(safe-area-inset-top, 0px) + ${MOBILE_HEADER_HEIGHT}px + 16px)`
+          : 'calc(env(safe-area-inset-top, 0px) + 16px)'
       }}
     >
       {/* Demo Mode Toggle - Absolutely positioned top-right on desktop, hidden on mobile */}
