@@ -87,9 +87,9 @@ export const HowItWorksSection = () => {
         </div>
 
         {/* Mobile/Tablet View (Hidden on desktop) */}
-        <div className="lg:hidden space-y-3">
+        <div className="lg:hidden space-y-4">
           {steps.map((step) => (
-            <div key={step.number} className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 w-full overflow-hidden">
+            <div key={step.number} className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-5 w-full overflow-hidden">
               {/* Inline Step Number + Icon */}
               <div className="flex items-center justify-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground font-bold text-lg flex items-center justify-center flex-shrink-0">
@@ -97,16 +97,16 @@ export const HowItWorksSection = () => {
                 </div>
                 {step.icon}
               </div>
-              
-              {/* Content */}
+
+              {/* Content - white bold text for readability */}
               <div className="text-center">
-                <h3 className="font-bold text-lg mb-1 text-primary break-words">
+                <h3 className="font-bold text-xl mb-2 text-white break-words" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.5)' }}>
                   {step.title}
                 </h3>
-                <p className="text-base text-accent font-medium mb-1 break-words">
+                <p className="text-lg text-white font-semibold mb-2 break-words" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.5)' }}>
                   {step.description}
                 </p>
-                <p className="text-sm text-primary/80 break-words">
+                <p className="text-base text-white/90 font-medium break-words" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.4)' }}>
                   {step.detail}
                 </p>
               </div>

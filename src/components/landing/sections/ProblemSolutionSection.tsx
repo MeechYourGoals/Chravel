@@ -38,24 +38,24 @@ export const ProblemSolutionSection = () => {
         </p>
       </div>
 
-      {/* Features Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 max-w-5xl w-full px-2">
+      {/* Features Grid - stacked vertically on mobile, 3 columns on desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-5xl w-full px-2">
         {features.map((feature, index) => (
-          <div 
+          <div
             key={index}
-            className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-3 sm:p-4 hover:border-primary/50 transition-all duration-300 hover:scale-105 w-full overflow-hidden"
+            className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 md:p-5 hover:border-primary/50 transition-all duration-300 hover:scale-105 w-full"
           >
-            {/* Inline icon + title */}
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <div className="bg-white/20 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0">
-                {React.cloneElement(feature.icon as React.ReactElement, { size: 18, className: 'text-white' })}
+            {/* Icon and title - stacked on mobile for better readability */}
+            <div className="flex flex-col items-center gap-2 mb-3">
+              <div className="bg-white/20 w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0">
+                {React.cloneElement(feature.icon as React.ReactElement, { size: 22, className: 'text-white' })}
               </div>
-              <h3 
-                className="font-extrabold text-base sm:text-lg lg:text-xl text-white leading-tight"
+              <h3
+                className="font-extrabold text-lg md:text-xl text-white leading-tight text-center"
                 style={{ textShadow: '2px 2px 8px rgba(0, 0, 0, 0.5)' }}
               >{feature.title}</h3>
             </div>
-            <p className="text-xs sm:text-sm lg:text-base text-foreground text-center leading-relaxed line-clamp-3">{feature.description}</p>
+            <p className="text-sm md:text-base text-white/90 text-center leading-relaxed">{feature.description}</p>
           </div>
         ))}
       </div>
