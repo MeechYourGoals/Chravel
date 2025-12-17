@@ -121,57 +121,45 @@ const App = () => {
   }, []);
 
 
-  // Build version check for "New Version Available" toast
+  // Breaking-only version check - only triggers for true breaking changes (manually incremented)
   useEffect(() => {
-    const BUILD_VERSION_KEY = 'chravel_build_version';
-
-    const checkForNewVersion = () => {
-      const meta = document.querySelector('meta[name="build-version"]');
-      const currentVersion = meta?.getAttribute('content') || 'unknown';
-      const storedVersion = localStorage.getItem(BUILD_VERSION_KEY);
-
-      // Skip if version is placeholder or unknown
-      if (currentVersion === 'unknown' || currentVersion === '__BUILD_VERSION__') return;
-
-      // First visit - store version
-      if (!storedVersion) {
-        localStorage.setItem(BUILD_VERSION_KEY, currentVersion);
-        return;
+    const BREAKING_VERSION_KEY = 'chravel_breaking_version';
+    const CURRENT_BREAKING_VERSION = '1'; // Only increment for true breaking changes (auth, API, schema)
+    
+    const storedBreaking = localStorage.getItem(BREAKING_VERSION_KEY);
+    
+    // First visit - store and continue
+    if (!storedBreaking) {
+      localStorage.setItem(BREAKING_VERSION_KEY, CURRENT_BREAKING_VERSION);
+      return;
+    }
+    
+    // Breaking change detected - force reload silently
+    if (storedBreaking !== CURRENT_BREAKING_VERSION) {
+      console.log('[App] Breaking version change detected, reloading silently');
+      if ('caches' in window) {
+        caches.keys().then(names => Promise.all(names.map(n => caches.delete(n))));
       }
+      localStorage.setItem(BREAKING_VERSION_KEY, CURRENT_BREAKING_VERSION);
+      window.location.reload();
+    }
+  }, []);
 
-      // New version detected
-      if (currentVersion !== storedVersion) {
-        console.log('[App] New version detected:', { stored: storedVersion, current: currentVersion });
-
-        toast({
-          title: "New Version Available",
-          description: "A new version of Chravel is available. Click to reload and get the latest features.",
-          action: (
-            <button
-              onClick={async () => {
-                // Clear caches
-                if ('caches' in window) {
-                  const names = await caches.keys();
-                  await Promise.all(names.map(name => caches.delete(name)));
-                }
-                // Update stored version
-                localStorage.setItem(BUILD_VERSION_KEY, currentVersion);
-                // Reload
-                window.location.reload();
-              }}
-              className="px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              Reload Now
-            </button>
-          ),
-          duration: 30000, // Show for 30 seconds
+  // Silent update check on visibility change (native app-style updates)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && 'serviceWorker' in navigator) {
+        // Silently check for SW updates when app becomes visible
+        navigator.serviceWorker.ready.then(registration => {
+          registration.update().catch(() => {
+            // Silently ignore update check failures
+          });
         });
       }
     };
-
-    // Check on mount (slight delay to ensure DOM is ready)
-    const timeoutId = setTimeout(checkForNewVersion, 1000);
-    return () => clearTimeout(timeoutId);
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   // Chunk load failure recovery with better error detection
