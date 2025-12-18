@@ -242,8 +242,8 @@ export const TripActionBar = ({
   
   return (
     <div className={cn("bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 w-full h-16 gap-1.5 min-w-0", className)}>
-
-          {/* New Trip - Primary CTA */}
+          
+          {/* New Trip */}
           <button
             onClick={() => {
               if (requireAuth) {
@@ -378,20 +378,20 @@ export const TripActionBar = ({
             <span className="text-sm md:text-base truncate">Settings</span>
           </button>
 
-          {/* Search - Fixed Height & Padding */}
+          {/* Search */}
           <div className={cn(
             "h-full flex items-center px-2 rounded-xl transition-all duration-300",
-            isSearchActive
+            isSearchActive 
               ? "bg-gradient-to-r from-[hsl(45,95%,58%)]/10 to-[hsl(45,90%,65%)]/10 ring-1 ring-primary/30"
               : ""
           )}>
             <div className="relative w-full h-full flex items-center py-2">
-              <Search
+              <Search 
                 className={cn(
                   "absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none",
                   isSearchActive ? "text-primary" : "text-muted-foreground"
-                )}
-                size={16}
+                )} 
+                size={16} 
               />
               <input
                 type="text"
