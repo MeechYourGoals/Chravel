@@ -17,8 +17,8 @@ export const TripStatsOverview = ({ stats, viewMode, activeFilter, onFilterClick
   };
 
   return (
-    <div className="bg-card/50 backdrop-blur-md rounded-full px-2 sm:px-3 py-0.5 sm:py-1.5 mb-2 sm:mb-4">
-      <div className="flex items-center justify-evenly gap-0.5 sm:gap-1 flex-wrap">
+    <div className="bg-card/50 backdrop-blur-md rounded-full px-2 sm:px-3 h-12 sm:h-16 flex items-center mb-2 sm:mb-4">
+      <div className="flex items-center justify-evenly gap-0.5 sm:gap-1 flex-wrap w-full">
         <button 
           onClick={() => onFilterClick('total')}
           className={getStatButtonClass('total')}
