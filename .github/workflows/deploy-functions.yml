@@ -1,0 +1,54 @@
+name: Deploy Supabase Functions
+
+on:
+  workflow_dispatch:
+    inputs:
+      function_name:
+        description: 'Function to deploy (or "all" for all functions)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - create-trip
+          - join-trip
+          - approve-join-request
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/functions/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy create-trip function
+        if: github.event.inputs.function_name == 'create-trip' || github.event.inputs.function_name == 'all' || github.event_name == 'push'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_ID: jmjiyekmxwsxkfnqwyaa
+        run: |
+          supabase functions deploy create-trip --project-ref $PROJECT_ID
+
+      - name: Deploy all functions
+        if: github.event.inputs.function_name == 'all' && github.event_name == 'workflow_dispatch'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_ID: jmjiyekmxwsxkfnqwyaa
+        run: |
+          supabase functions deploy --project-ref $PROJECT_ID
+
+      - name: Deployment summary
+        run: |
+          echo "✅ Edge Functions deployed successfully!"
+          echo "Project: jmjiyekmxwsxkfnqwyaa"
+          echo "Function: ${{ github.event.inputs.function_name || 'triggered by push' }}"
