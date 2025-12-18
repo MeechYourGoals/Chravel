@@ -10,14 +10,14 @@ interface TripStatsOverviewProps {
 
 export const TripStatsOverview = ({ stats, viewMode, activeFilter, onFilterClick }: TripStatsOverviewProps) => {
   const getStatButtonClass = (filterType: string) => {
-    const baseClass = "inline-flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-all duration-200 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full hover:bg-secondary/50";
+    const baseClass = "inline-flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-all duration-200 px-2 sm:px-3 py-1 sm:py-2 rounded-full hover:bg-secondary/50";
     return activeFilter === filterType 
       ? `${baseClass} bg-secondary/80` 
       : baseClass;
   };
 
   return (
-    <div className="bg-card/50 backdrop-blur-md rounded-full px-2 sm:px-3 py-1 sm:py-1.5 mb-4">
+    <div className="bg-card/50 backdrop-blur-md rounded-full px-2 sm:px-3 py-0.5 sm:py-1.5 mb-2 sm:mb-4">
       <div className="flex items-center justify-evenly gap-0.5 sm:gap-1 flex-wrap">
         <button 
           onClick={() => onFilterClick('total')}

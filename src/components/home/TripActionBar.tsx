@@ -241,7 +241,7 @@ export const TripActionBar = ({
   }, [isDemoMode, user]);
   
   return (
-    <div className={cn("bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 w-full h-16 gap-1.5 min-w-0", className)}>
+    <div className={cn("bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 w-full h-12 sm:h-16 gap-1 sm:gap-1.5 min-w-0", className)}>
           
           {/* New Trip */}
           <button
