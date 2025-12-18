@@ -1,14 +1,16 @@
 
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, User, MoreHorizontal, Archive, Flame, TrendingUp, EyeOff, FileDown } from 'lucide-react';
+import { Calendar, MapPin, User, MoreHorizontal, Archive, Flame, TrendingUp, EyeOff, FileDown, Trash2 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { InviteModal } from './InviteModal';
 import { ShareTripModal } from './share/ShareTripModal';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
+import { DeleteTripConfirmDialog } from './DeleteTripConfirmDialog';
 import { TripExportModal } from './trip/TripExportModal';
 import { TravelerTooltip } from './ui/traveler-tooltip';
-import { archiveTrip, hideTrip } from '../services/archiveService';
+import { archiveTrip, hideTrip, deleteTripForMe } from '../services/archiveService';
+import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/use-toast';
 import { Badge } from './ui/badge';
 import { gamificationService } from '../services/gamificationService';
@@ -50,16 +52,20 @@ interface TripCardProps {
   trip: Trip;
   onArchiveSuccess?: () => void;
   onHideSuccess?: () => void;
+  onDeleteSuccess?: () => void;
 }
 
-export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProps) => {
+export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuccess }: TripCardProps) => {
   const navigate = useNavigate();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
+  const { user } = useAuth();
   
   // Get added members from the demo store - use stable empty array reference with shallow comparison
   const tripIdStr = trip.id.toString();
@@ -106,6 +112,45 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
         description: "There was an error hiding your trip. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleDeleteTripForMe = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Not logged in",
+        description: "You must be logged in to delete a trip.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteTripForMe(trip.id.toString(), user.id);
+      toast({
+        title: "Trip deleted",
+        description: `"${trip.title}" has been removed from your account.`,
+      });
+      setShowDeleteDialog(false);
+      onDeleteSuccess?.();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage === 'CREATOR_CANNOT_DELETE') {
+        toast({
+          title: "Cannot delete trip",
+          description: "As the trip creator, you cannot delete this trip for yourself. Consider archiving it instead.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Failed to delete trip",
+          description: "There was an error deleting your trip. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -318,6 +363,14 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
                 <EyeOff className="mr-2 h-4 w-4" />
                 Hide Trip
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete for me
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -404,6 +457,14 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
         onConfirm={handleArchiveTrip}
         tripTitle={trip.title}
         isArchiving={true}
+      />
+
+      <DeleteTripConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteTripForMe}
+        tripTitle={trip.title}
+        isLoading={isDeleting}
       />
 
       <TripExportModal

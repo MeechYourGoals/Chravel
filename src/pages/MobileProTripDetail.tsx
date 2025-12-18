@@ -7,6 +7,8 @@ import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer'
 import { MobileHeaderOptionsSheet } from '../components/mobile/MobileHeaderOptionsSheet';
 import { TripExportModal } from '../components/trip/TripExportModal';
 import { InviteModal } from '../components/InviteModal';
+import { DeleteTripConfirmDialog } from '../components/DeleteTripConfirmDialog';
+import { deleteTripForMe } from '../services/archiveService';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
@@ -48,6 +50,8 @@ export const MobileProTripDetail = () => {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const headerRef = React.useRef<HTMLDivElement>(null);
 
@@ -275,6 +279,37 @@ export const MobileProTripDetail = () => {
     }
   }, [proTripId, tripData]);
 
+  // Delete Trip For Me handler - removes user's access without deleting trip for others
+  const handleDeleteTripForMe = useCallback(async () => {
+    if (!user?.id || !proTripId) {
+      toast.error('You must be logged in to delete a trip');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteTripForMe(proTripId, user.id);
+      toast.success('Trip deleted', {
+        description: `"${tripData?.title}" has been removed from your account.`,
+      });
+      setShowDeleteDialog(false);
+      navigate('/');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage === 'CREATOR_CANNOT_DELETE') {
+        toast.error('Cannot delete trip', {
+          description: 'As the trip creator, you cannot delete this trip for yourself. Consider archiving it instead.',
+        });
+      } else {
+        toast.error('Failed to delete trip', {
+          description: 'There was an error deleting your trip. Please try again.',
+        });
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [user?.id, proTripId, tripData?.title, navigate]);
+
   // ⚡ Now handle loading and error states AFTER all hooks
   if (demoModeLoading) {
     return (
@@ -462,6 +497,7 @@ export const MobileProTripDetail = () => {
         onShare={handleShare}
         onExport={() => setShowExportModal(true)}
         onInvite={() => setShowInviteModal(true)}
+        onDelete={() => setShowDeleteDialog(true)}
       />
 
       {/* Export Modal */}
@@ -479,6 +515,15 @@ export const MobileProTripDetail = () => {
         onClose={() => setShowInviteModal(false)}
         tripName={tripData?.title || 'Pro Trip'}
         proTripId={proTripId}
+      />
+
+      {/* Delete Trip Confirm Dialog */}
+      <DeleteTripConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteTripForMe}
+        tripTitle={tripData?.title || 'Pro Trip'}
+        isLoading={isDeleting}
       />
       </div>
     </MobileErrorBoundary>
