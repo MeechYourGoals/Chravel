@@ -134,16 +134,27 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
         
         if (membersToPromote.length > 0) {
           const adminPromises = membersToPromote.map(userId =>
-            promoteToAdmin(userId).catch(err => {
+            promoteToAdmin(userId).then(() => true).catch(err => {
               console.warn(`Failed to promote user ${userId} to admin:`, err);
-              return null; // Don't fail the whole operation
+              return false; // Track failure but don't fail the whole operation
             })
           );
-          await Promise.all(adminPromises);
+          const results = await Promise.all(adminPromises);
+          const successCount = results.filter(Boolean).length;
           
-          toast.success(
-            `Assigned role to ${selectedMembers.size} member${selectedMembers.size > 1 ? 's' : ''} and granted admin access to ${membersToPromote.length}`
-          );
+          if (successCount === membersToPromote.length) {
+            toast.success(
+              `Assigned role to ${selectedMembers.size} member${selectedMembers.size > 1 ? 's' : ''} and granted admin access to ${successCount}`
+            );
+          } else if (successCount > 0) {
+            toast.success(
+              `Assigned role to ${selectedMembers.size} member${selectedMembers.size > 1 ? 's' : ''}. Admin access granted to ${successCount} of ${membersToPromote.length} members.`
+            );
+          } else {
+            toast.success(
+              `Assigned role to ${selectedMembers.size} member${selectedMembers.size > 1 ? 's' : ''}, but failed to grant admin access.`
+            );
+          }
         } else {
           toast.success(`Assigned role to ${selectedMembers.size} member${selectedMembers.size > 1 ? 's' : ''} (all already admins)`);
         }
