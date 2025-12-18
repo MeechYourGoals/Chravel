@@ -12,7 +12,7 @@ import { useInboundJoinRequests } from '@/hooks/useInboundJoinRequests';
 
 interface Notification {
   id: string;
-  type: 'message' | 'broadcast' | 'calendar' | 'poll' | 'files' | 'photos' | 'chat' | 'mention' | 'task' | 'payment' | 'invite' | 'join_request' | 'system';
+  type: 'message' | 'broadcast' | 'calendar' | 'poll' | 'files' | 'photos' | 'chat' | 'mention' | 'task' | 'payment' | 'invite' | 'join_request' | 'basecamp' | 'system';
   title: string;
   description: string;
   tripId: string;
@@ -79,11 +79,11 @@ export const NotificationBell = () => {
         title: n.title,
         description: n.message,
         tripId: n.tripId,
-        tripName: (n as any).data?.trip_name || 'Spring Break Cancun',
+        tripName: n.data?.trip_name || 'Demo Trip',
         timestamp: formatDistanceToNow(new Date(n.timestamp), { addSuffix: true }),
         isRead: n.read,
         isHighPriority: n.type === 'broadcast',
-        data: (n as any).data
+        data: { ...n.data, tripType: n.tripType }
       })));
     }
   }, [isDemoMode, user]);
@@ -137,17 +137,35 @@ export const NotificationBell = () => {
         .eq('id', notification.id);
     }
 
-    // Navigate based on notification type
-    if (notification.type === 'message' || notification.type === 'chat' || notification.type === 'mention') {
-      navigate(`/trip/${notification.tripId}?tab=chat`);
-    } else if (notification.type === 'calendar') {
-      navigate(`/trip/${notification.tripId}?tab=calendar`);
-    } else if (notification.type === 'task') {
-      navigate(`/trip/${notification.tripId}?tab=tasks`);
-    } else if (notification.type === 'payment') {
-      navigate(`/trip/${notification.tripId}?tab=payments`);
+    // Determine base route based on trip type
+    const tripType = notification.data?.tripType || notification.data?.trip_type;
+    let baseRoute = `/trip/${notification.tripId}`;
+    if (tripType === 'pro') {
+      baseRoute = `/pro-trip/${notification.tripId}`;
+    } else if (tripType === 'event') {
+      baseRoute = `/events/${notification.tripId}`;
+    }
+
+    // Navigate based on notification type with appropriate tab
+    const tabMap: Record<string, string> = {
+      message: 'chat',
+      chat: 'chat',
+      mention: 'chat',
+      broadcast: 'broadcasts',
+      calendar: 'calendar',
+      task: 'tasks',
+      payment: 'payments',
+      poll: 'polls',
+      photos: 'media',
+      join_request: 'collaborators',
+      basecamp: 'places'
+    };
+
+    const tab = tabMap[notification.type];
+    if (tab) {
+      navigate(`${baseRoute}?tab=${tab}`);
     } else {
-      navigate(`/trip/${notification.tripId}`);
+      navigate(baseRoute);
     }
 
     setIsOpen(false);
@@ -176,8 +194,10 @@ export const NotificationBell = () => {
         return <Image size={16} className={iconClass} />;
       case 'join_request':
         return <UserPlus size={16} className="text-orange-400" />;
-      case 'system':
+      case 'basecamp':
         return <MapPin size={16} className="text-pink-400" />;
+      case 'system':
+        return <MapPin size={16} className="text-gray-400" />;
       default:
         return <Bell size={16} className={iconClass} />;
     }
