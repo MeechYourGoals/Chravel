@@ -17,6 +17,8 @@ export interface JoinRequest {
     display_name: string;
     avatar_url?: string;
     email?: string;
+    first_name?: string;
+    last_name?: string;
   };
 }
 
@@ -56,18 +58,37 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
 
       if (error) throw error;
 
-      // Fetch profiles separately
+      // Fetch profiles separately with all available name fields
       const requestsWithProfiles = await Promise.all(
         (data || []).map(async (request) => {
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('display_name, avatar_url, email')
+            .select('display_name, avatar_url, email, first_name, last_name')
             .eq('user_id', request.user_id)
             .single();
 
+          if (profileError) {
+            console.warn('Failed to fetch profile for user:', request.user_id, profileError);
+          }
+
+          // Build display_name from available fields if it's empty
+          let displayName = profile?.display_name;
+          if (!displayName && profile) {
+            if (profile.first_name && profile.last_name) {
+              displayName = `${profile.first_name} ${profile.last_name}`;
+            } else if (profile.first_name) {
+              displayName = profile.first_name;
+            } else if (profile.last_name) {
+              displayName = profile.last_name;
+            }
+          }
+
           return {
             ...request,
-            profile: profile || undefined
+            profile: profile ? {
+              ...profile,
+              display_name: displayName || profile.email || 'Unknown User'
+            } : undefined
           };
         })
       );

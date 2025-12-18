@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserPlus, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,12 +22,23 @@ interface JoinRequestNotificationProps {
     };
   };
   onAction: () => void;
+  onNavigate?: () => void;
   isDemoMode?: boolean;
 }
 
-export const JoinRequestNotification = ({ notification, onAction, isDemoMode }: JoinRequestNotificationProps) => {
+export const JoinRequestNotification = ({ notification, onAction, onNavigate, isDemoMode }: JoinRequestNotificationProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleNotificationClick = () => {
+    const tripId = notification.data?.trip_id;
+    if (tripId) {
+      // Navigate to trip with query param to open collaborators modal on requests tab
+      navigate(`/trip/${tripId}?showCollaborators=requests`);
+      onNavigate?.();
+    }
+  };
 
   const handleApprove = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -123,7 +135,10 @@ export const JoinRequestNotification = ({ notification, onAction, isDemoMode }: 
   };
 
   return (
-    <div className={`p-4 border-b border-gray-700/50 ${!notification.isRead ? 'bg-gray-800/30' : ''}`}>
+    <div
+      className={`p-4 border-b border-gray-700/50 cursor-pointer hover:bg-gray-800/50 transition-colors ${!notification.isRead ? 'bg-gray-800/30' : ''}`}
+      onClick={handleNotificationClick}
+    >
       <div className="flex items-start gap-3">
         <div className="mt-1 p-2 bg-blue-500/20 rounded-lg">
           <UserPlus size={16} className="text-blue-400" />
