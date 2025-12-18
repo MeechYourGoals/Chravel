@@ -339,12 +339,9 @@ export const MobileEventDetail = () => {
     <MobileErrorBoundary>
       <div className="flex flex-col min-h-screen bg-black">
       {/* Mobile Header - Sticky with iOS safe area */}
-      <div 
-        ref={headerRef} 
-        className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10"
-        style={{ 
-          paddingTop: 'max(env(safe-area-inset-top, 0px), constant(safe-area-inset-top, 0px), 20px)'
-        }}
+      <div
+        ref={headerRef}
+        className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 mobile-safe-header"
       >
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-2">

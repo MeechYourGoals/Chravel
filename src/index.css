@@ -125,6 +125,30 @@
     --mobile-header-offset: calc(env(safe-area-inset-top, 0px) + var(--mobile-header-height) + 8px);
   }
 
+  /*
+   * Mobile Safe Header - Robust iOS Safe Area Handling
+   * Fixes portrait mode overlap with iOS status bar/notch/Dynamic Island
+   * Uses cascading fallbacks for maximum browser compatibility:
+   * 1. Default fallback (44px - minimum for notched devices)
+   * 2. constant() for iOS 11.0-11.2
+   * 3. env() for iOS 11.3+
+   */
+  .mobile-safe-header {
+    /* Fallback for browsers that don't support safe-area-inset */
+    padding-top: 44px;
+    /* iOS 11.0-11.2 (Safari 11) */
+    padding-top: constant(safe-area-inset-top, 44px);
+    /* iOS 11.3+ (Safari 11.1+) - this will be used if supported */
+    padding-top: env(safe-area-inset-top, 44px);
+  }
+
+  /* Enhanced safe area for devices with larger notches/Dynamic Island */
+  @supports (padding-top: max(0px)) {
+    .mobile-safe-header {
+      padding-top: max(44px, env(safe-area-inset-top, 44px));
+    }
+  }
+
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
