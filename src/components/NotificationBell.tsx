@@ -277,6 +277,7 @@ export const NotificationBell = () => {
                           fetchNotifications();
                         }
                       }}
+                      onNavigate={() => setIsOpen(false)}
                     />
                   ) : (
                     <div

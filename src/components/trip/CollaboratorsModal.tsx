@@ -29,6 +29,8 @@ interface CollaboratorsModalProps {
   onApproveRequest?: (requestId: string) => Promise<void>;
   onRejectRequest?: (requestId: string) => Promise<void>;
   isProcessingRequest?: boolean;
+  // Initial tab to show when modal opens
+  initialTab?: TabType;
 }
 
 type TabType = 'members' | 'requests';
@@ -46,10 +48,18 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
   onApproveRequest,
   onRejectRequest,
   isProcessingRequest = false,
+  initialTab = 'members',
 }) => {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('members');
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
+  // Reset to initialTab when modal opens or initialTab changes
+  React.useEffect(() => {
+    if (open) {
+      setActiveTab(initialTab);
+    }
+  }, [open, initialTab]);
 
   const handleRemove = async (userId: string, name: string) => {
     if (!onRemoveMember) return;
