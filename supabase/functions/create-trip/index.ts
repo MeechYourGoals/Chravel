@@ -99,11 +99,8 @@ serve(async (req) => {
 
     if (tripError) throw tripError;
 
-    const { error: memberError } = await supabase
-      .from('trip_members')
-      .insert({ trip_id: trip.id, user_id: user.id, role: 'admin' });
-
-    if (memberError) throw memberError;
+    // Note: Trip creator is automatically added as admin member by the 
+    // ensure_creator_is_member database trigger - no manual insert needed
 
     // Increment taste test usage for free users (skip for super admins)
     if (!isSuperAdmin) {
