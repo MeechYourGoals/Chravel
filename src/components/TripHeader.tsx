@@ -318,7 +318,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       {!isProOrEvent && (
         <div className="relative mb-8 rounded-3xl overflow-hidden">
           <div 
-            className="h-64 bg-cover bg-center relative"
+            className="aspect-[3/1] w-full bg-cover bg-center relative"
             style={{ 
               backgroundImage: coverPhoto ? `url(${coverPhoto})` : undefined,
               backgroundColor: !coverPhoto ? '#1a1a2e' : undefined

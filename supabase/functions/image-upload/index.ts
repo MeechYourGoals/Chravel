@@ -82,8 +82,8 @@ serve(async (req) => {
       );
     }
 
-    // Validate file size (5MB max)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    // Validate file size (10MB max - matches TripCoverPhotoUpload UI)
+    const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
       return new Response(
         JSON.stringify({ error: 'File too large. Maximum size is 5MB.' }),
