@@ -369,6 +369,7 @@ export const RolesView = ({
           existingRoles={existingRoles}
           availableRoles={availableRoles}
           onUpdateMemberRole={onUpdateMemberRole}
+          tripId={tripId}
         />
       )}
 

@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTripRoles } from '@/hooks/useTripRoles';
 import { useRoleAssignments } from '@/hooks/useRoleAssignments';
+import { useTripAdmins } from '@/hooks/useTripAdmins';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, Users } from 'lucide-react';
+import { Loader2, Users, Shield } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
 interface BulkRoleAssignmentDialogProps {
@@ -45,14 +47,24 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
 }) => {
   const { roles, isLoading: loadingRoles } = useTripRoles({ tripId });
   const { assignRole, isProcessing } = useRoleAssignments({ tripId });
+  const { admins, promoteToAdmin, isProcessing: isPromotingAdmin } = useTripAdmins({ tripId });
   const [members, setMembers] = useState<TripMember[]>([]);
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [loadingMembers, setLoadingMembers] = useState(false);
+  const [grantAdminAccess, setGrantAdminAccess] = useState(false);
+
+  // Get list of current admin user IDs for UI display
+  const adminUserIds = new Set(admins.map(a => a.user_id));
 
   useEffect(() => {
     if (open) {
       fetchMembers();
+    } else {
+      // Reset state when dialog closes
+      setSelectedMembers(new Set());
+      setSelectedRole('');
+      setGrantAdminAccess(false);
     }
   }, [open, tripId]);
 
@@ -108,15 +120,40 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
     }
 
     try {
+      // Assign roles to all selected members
       const assignmentPromises = Array.from(selectedMembers).map(userId =>
         assignRole(userId, selectedRole)
       );
-
       await Promise.all(assignmentPromises);
 
-      toast.success(`Assigned role to ${selectedMembers.size} member${selectedMembers.size > 1 ? 's' : ''}`);
+      // If admin checkbox is checked, also promote selected members to admin
+      if (grantAdminAccess) {
+        const membersToPromote = Array.from(selectedMembers).filter(
+          userId => !adminUserIds.has(userId)
+        );
+        
+        if (membersToPromote.length > 0) {
+          const adminPromises = membersToPromote.map(userId =>
+            promoteToAdmin(userId).catch(err => {
+              console.warn(`Failed to promote user ${userId} to admin:`, err);
+              return null; // Don't fail the whole operation
+            })
+          );
+          await Promise.all(adminPromises);
+          
+          toast.success(
+            `Assigned role to ${selectedMembers.size} member${selectedMembers.size > 1 ? 's' : ''} and granted admin access to ${membersToPromote.length}`
+          );
+        } else {
+          toast.success(`Assigned role to ${selectedMembers.size} member${selectedMembers.size > 1 ? 's' : ''} (all already admins)`);
+        }
+      } else {
+        toast.success(`Assigned role to ${selectedMembers.size} member${selectedMembers.size > 1 ? 's' : ''}`);
+      }
+
       setSelectedMembers(new Set());
       setSelectedRole('');
+      setGrantAdminAccess(false);
       onOpenChange(false);
     } catch (error) {
       console.error('Error assigning roles:', error);
@@ -125,6 +162,12 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
   };
 
   const isLoading = loadingRoles || loadingMembers;
+  const isSubmitting = isProcessing || isPromotingAdmin;
+  
+  // Count how many selected members are not already admins
+  const nonAdminSelectedCount = Array.from(selectedMembers).filter(
+    userId => !adminUserIds.has(userId)
+  ).length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -164,6 +207,36 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
               </Select>
             </div>
 
+            {/* Admin Access Checkbox */}
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+              <Checkbox
+                id="grant-admin"
+                checked={grantAdminAccess}
+                onCheckedChange={(checked) => setGrantAdminAccess(checked === true)}
+                className="mt-0.5 border-blue-500 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+              />
+              <div className="flex-1">
+                <Label
+                  htmlFor="grant-admin"
+                  className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer"
+                >
+                  <Shield className="w-4 h-4 text-blue-500" />
+                  Also grant Admin access
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Admins can manage roles, channels, and approve join requests for Pro/Event trips
+                </p>
+                {grantAdminAccess && selectedMembers.size > 0 && (
+                  <p className="text-xs text-blue-400 mt-2">
+                    {nonAdminSelectedCount === 0 
+                      ? '✓ All selected members are already admins'
+                      : `Will grant admin access to ${nonAdminSelectedCount} member${nonAdminSelectedCount !== 1 ? 's' : ''}`
+                    }
+                  </p>
+                )}
+              </div>
+            </div>
+
             {/* Member Selection */}
             <div className="flex-1 overflow-hidden flex flex-col">
               <div className="flex items-center justify-between mb-3">
@@ -190,6 +263,7 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
                   members.map((member) => {
                     const profile = member.profile as any;
                     const isSelected = selectedMembers.has(member.user_id);
+                    const isAlreadyAdmin = adminUserIds.has(member.user_id);
 
                     return (
                       <div
@@ -214,9 +288,17 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {profile?.display_name || 'Unknown User'}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {profile?.display_name || 'Unknown User'}
+                            </p>
+                            {isAlreadyAdmin && (
+                              <span className="inline-flex items-center gap-1 text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
+                                <Shield className="w-3 h-3" />
+                                Admin
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground truncate">
                             {profile?.email}
                           </p>
@@ -235,22 +317,25 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
             variant="outline"
             onClick={() => onOpenChange(false)}
             className="rounded-full"
-            disabled={isProcessing}
+            disabled={isSubmitting}
           >
             Cancel
           </Button>
           <Button
             onClick={handleAssign}
-            disabled={!selectedRole || selectedMembers.size === 0 || isProcessing}
+            disabled={!selectedRole || selectedMembers.size === 0 || isSubmitting}
             className="rounded-full bg-primary hover:bg-primary/90"
           >
-            {isProcessing ? (
+            {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Assigning...
+                {grantAdminAccess ? 'Assigning & Promoting...' : 'Assigning...'}
               </>
             ) : (
-              `Assign to ${selectedMembers.size} Member${selectedMembers.size !== 1 ? 's' : ''}`
+              <>
+                {grantAdminAccess && <Shield className="w-4 h-4 mr-2" />}
+                {`Assign to ${selectedMembers.size} Member${selectedMembers.size !== 1 ? 's' : ''}`}
+              </>
             )}
           </Button>
         </DialogFooter>

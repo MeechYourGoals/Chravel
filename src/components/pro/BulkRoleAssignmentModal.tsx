@@ -4,12 +4,14 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Checkbox } from '../ui/checkbox';
 import {
-  Users, Check, X, Search, Filter, ChevronRight, CheckCircle2, AlertCircle
+  Users, Check, X, Search, Filter, ChevronRight, CheckCircle2, AlertCircle, Shield
 } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 import { useBulkRoleAssignment } from '../../hooks/useBulkRoleAssignment';
+import { useTripAdmins } from '../../hooks/useTripAdmins';
 import { getRoleColorClass } from '../../utils/roleUtils';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getInitials } from '../../utils/avatarUtils';
@@ -23,6 +25,7 @@ interface BulkRoleAssignmentModalProps {
   existingRoles: string[];
   availableRoles?: TripRole[];
   onUpdateMemberRole: (memberId: string, newRole: string) => Promise<void>;
+  tripId?: string;
 }
 
 type Step = 'select' | 'assign' | 'confirm';
@@ -34,14 +37,16 @@ export const BulkRoleAssignmentModal = ({
   category,
   existingRoles,
   availableRoles = [],
-  onUpdateMemberRole
+  onUpdateMemberRole,
+  tripId
 }: BulkRoleAssignmentModalProps) => {
   const [step, setStep] = useState<Step>('select');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterByRole, setFilterByRole] = useState<string>('all');
   const [selectedRole, setSelectedRole] = useState('');
   const [isCustomRole, setIsCustomRole] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; assignedCount: number } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; assignedCount: number; adminCount?: number } | null>(null);
+  const [grantAdminAccess, setGrantAdminAccess] = useState(false);
 
   const {
     selectedMembers,
@@ -52,6 +57,20 @@ export const BulkRoleAssignmentModal = ({
     assignRoleToMultiple,
     isAssigning
   } = useBulkRoleAssignment();
+
+  // Only fetch admins if we have a tripId (for admin promotion feature)
+  const { admins, promoteToAdmin, isProcessing: isPromotingAdmin } = useTripAdmins({ 
+    tripId: tripId || '', 
+    enabled: !!tripId 
+  });
+
+  // Get list of current admin user IDs for UI display
+  const adminUserIds = new Set(admins.map(a => a.user_id));
+
+  // Count how many selected members are not already admins
+  const nonAdminSelectedCount = selectedMembers.filter(
+    memberId => !adminUserIds.has(memberId)
+  ).length;
 
   // Get actual trip roles - these are the only roles that can be assigned
   // "Predefined" now means "existing trip roles", not category-based defaults
@@ -104,13 +123,32 @@ export const BulkRoleAssignmentModal = ({
   const handleAssign = async () => {
     if (!selectedRole.trim()) return;
 
-    const result = await assignRoleToMultiple(
+    const roleResult = await assignRoleToMultiple(
       selectedMembers,
       selectedRole.trim(),
       onUpdateMemberRole
     );
 
-    setResult(result);
+    // If admin checkbox is checked and we have a tripId, promote selected members to admin
+    let adminCount = 0;
+    if (grantAdminAccess && tripId) {
+      const membersToPromote = selectedMembers.filter(
+        memberId => !adminUserIds.has(memberId)
+      );
+      
+      if (membersToPromote.length > 0) {
+        const adminPromises = membersToPromote.map(memberId =>
+          promoteToAdmin(memberId).then(() => true).catch(err => {
+            console.warn(`Failed to promote member ${memberId} to admin:`, err);
+            return false;
+          })
+        );
+        const results = await Promise.all(adminPromises);
+        adminCount = results.filter(Boolean).length;
+      }
+    }
+
+    setResult({ ...roleResult, adminCount: grantAdminAccess ? adminCount : undefined });
   };
 
   const handleClose = () => {
@@ -120,9 +158,12 @@ export const BulkRoleAssignmentModal = ({
     setSelectedRole('');
     setIsCustomRole(false);
     setResult(null);
+    setGrantAdminAccess(false);
     clearSelection();
     onClose();
   };
+
+  const isSubmitting = isAssigning || isPromotingAdmin;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -224,36 +265,47 @@ export const BulkRoleAssignmentModal = ({
 
             {/* Member List */}
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {filteredRoster.map(member => (
-                <label
-                  key={member.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                    selectedMembers.includes(member.id)
-                      ? 'bg-red-500/10 border-red-500/30'
-                      : 'bg-white/5 border-gray-700 hover:bg-white/10'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedMembers.includes(member.id)}
-                    onChange={() => toggleMember(member.id)}
-                    className="rounded border-gray-600 bg-gray-800 text-red-600 focus:ring-red-500"
-                  />
-                  <Avatar className="w-10 h-10 flex-shrink-0">
-                    <AvatarImage src={member.avatar} alt={member.name} />
-                    <AvatarFallback className="bg-muted text-muted-foreground text-xs font-semibold">
-                      {getInitials(member.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{member.name}</p>
-                    <p className="text-sm text-gray-400 truncate">{member.email}</p>
-                  </div>
-                  <span className={`${getRoleColorClass(member.role, category)} px-2 py-1 rounded text-xs font-medium`}>
-                    {member.role}
-                  </span>
-                </label>
-              ))}
+              {filteredRoster.map(member => {
+                const isAlreadyAdmin = adminUserIds.has(member.id);
+                return (
+                  <label
+                    key={member.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      selectedMembers.includes(member.id)
+                        ? 'bg-red-500/10 border-red-500/30'
+                        : 'bg-white/5 border-gray-700 hover:bg-white/10'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedMembers.includes(member.id)}
+                      onChange={() => toggleMember(member.id)}
+                      className="rounded border-gray-600 bg-gray-800 text-red-600 focus:ring-red-500"
+                    />
+                    <Avatar className="w-10 h-10 flex-shrink-0">
+                      <AvatarImage src={member.avatar} alt={member.name} />
+                      <AvatarFallback className="bg-muted text-muted-foreground text-xs font-semibold">
+                        {getInitials(member.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{member.name}</p>
+                        {isAlreadyAdmin && (
+                          <span className="inline-flex items-center gap-1 text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
+                            <Shield className="w-3 h-3" />
+                            Admin
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-400 truncate">{member.email}</p>
+                    </div>
+                    <span className={`${getRoleColorClass(member.role, category)} px-2 py-1 rounded text-xs font-medium`}>
+                      {member.role}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
 
             {filteredRoster.length === 0 && (
@@ -333,6 +385,38 @@ export const BulkRoleAssignmentModal = ({
                 className="bg-gray-800 border-gray-600 text-white"
               />
             )}
+
+            {/* Admin Access Checkbox - Only show if tripId is provided */}
+            {tripId && (
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 mt-4">
+                <Checkbox
+                  id="grant-admin-modal"
+                  checked={grantAdminAccess}
+                  onCheckedChange={(checked) => setGrantAdminAccess(checked === true)}
+                  className="mt-0.5 border-blue-500 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                />
+                <div className="flex-1">
+                  <Label
+                    htmlFor="grant-admin-modal"
+                    className="flex items-center gap-2 text-sm font-medium text-white cursor-pointer"
+                  >
+                    <Shield className="w-4 h-4 text-blue-400" />
+                    Also grant Admin access
+                  </Label>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Admins can manage roles, channels, and approve join requests
+                  </p>
+                  {grantAdminAccess && selectedMembers.length > 0 && (
+                    <p className="text-xs text-blue-400 mt-2">
+                      {nonAdminSelectedCount === 0 
+                        ? '✓ All selected members are already admins'
+                        : `Will grant admin access to ${nonAdminSelectedCount} member${nonAdminSelectedCount !== 1 ? 's' : ''}`
+                      }
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -395,6 +479,12 @@ export const BulkRoleAssignmentModal = ({
                 </p>
                 <p className="text-sm text-gray-300 mt-1">
                   Successfully assigned role to {result.assignedCount} member{result.assignedCount !== 1 ? 's' : ''}.
+                  {result.adminCount !== undefined && result.adminCount > 0 && (
+                    <span className="block mt-1">
+                      <Shield className="inline w-3 h-3 mr-1" />
+                      Granted admin access to {result.adminCount} member{result.adminCount !== 1 ? 's' : ''}.
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -407,7 +497,7 @@ export const BulkRoleAssignmentModal = ({
             <Button
               onClick={handleBack}
               variant="outline"
-              disabled={isAssigning}
+              disabled={isSubmitting}
             >
               Back
             </Button>
@@ -416,7 +506,7 @@ export const BulkRoleAssignmentModal = ({
             onClick={result ? handleClose : handleClose}
             variant="outline"
             className="flex-1"
-            disabled={isAssigning}
+            disabled={isSubmitting}
           >
             <X size={16} className="mr-1" />
             {result ? 'Done' : 'Cancel'}
@@ -425,13 +515,14 @@ export const BulkRoleAssignmentModal = ({
             step === 'confirm' ? (
               <Button
                 onClick={handleAssign}
-                disabled={isAssigning || !selectedRole.trim()}
+                disabled={isSubmitting || !selectedRole.trim()}
                 className="flex-1 bg-red-600 hover:bg-red-700"
               >
-                {isAssigning ? (
-                  <>Assigning...</>
+                {isSubmitting ? (
+                  <>{grantAdminAccess ? 'Assigning & Promoting...' : 'Assigning...'}</>
                 ) : (
                   <>
+                    {grantAdminAccess && <Shield size={16} className="mr-1" />}
                     <Check size={16} className="mr-1" />
                     Assign to {selectedMembers.length}
                   </>
