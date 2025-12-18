@@ -242,28 +242,29 @@ export const TripActionBar = ({
   
   return (
     <div className={cn("bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 w-full h-16 gap-1.5 min-w-0", className)}>
-          
-          {/* Settings */}
+
+          {/* New Trip - Primary CTA */}
           <button
             onClick={() => {
               if (requireAuth) {
                 onAuthRequired?.();
               } else {
-                onSettings();
+                onCreateTrip();
               }
             }}
-            aria-label="Settings"
+            aria-label="Create New Trip"
             className={cn(
-              "h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap min-w-0 overflow-hidden",
-              isSettingsActive
+              "h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap",
+              isNewTripActive
                 ? "bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] text-black shadow-lg shadow-primary/30"
                 : "text-white hover:text-foreground"
             )}
           >
-            <span className="text-sm md:text-base truncate">Settings</span>
+            <span className="inline md:hidden text-sm">+ Trip</span>
+            <span className="hidden md:inline text-base">New Trip</span>
           </button>
 
-          {/* Notifications with Badge */}
+          {/* Alerts with Badge */}
           <button
             onClick={() => {
               if (requireAuth) {
@@ -273,7 +274,7 @@ export const TripActionBar = ({
                 _onNotifications();
               }
             }}
-            aria-label="Notifications"
+            aria-label="Alerts"
             className={cn(
               "relative h-full w-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap",
               isNotificationsActive
@@ -281,8 +282,7 @@ export const TripActionBar = ({
                 : "text-white hover:text-foreground"
             )}
           >
-            <span className="inline md:hidden text-sm">Alerts</span>
-            <span className="hidden md:inline text-base">Notifications</span>
+            <span className="text-sm md:text-base">Alerts</span>
             {unreadCount > 0 && (
               <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -358,41 +358,40 @@ export const TripActionBar = ({
             </DialogContent>
           </Dialog>
 
-          {/* New Trip */}
+          {/* Settings */}
           <button
             onClick={() => {
               if (requireAuth) {
                 onAuthRequired?.();
               } else {
-                onCreateTrip();
+                onSettings();
               }
             }}
-            aria-label="Create New Trip"
+            aria-label="Settings"
             className={cn(
-              "h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap",
-              isNewTripActive
+              "h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap min-w-0 overflow-hidden",
+              isSettingsActive
                 ? "bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] text-black shadow-lg shadow-primary/30"
                 : "text-white hover:text-foreground"
             )}
           >
-            <span className="inline md:hidden text-sm">+ Trip</span>
-            <span className="hidden md:inline text-base">New Trip</span>
+            <span className="text-sm md:text-base truncate">Settings</span>
           </button>
 
           {/* Search - Fixed Height & Padding */}
           <div className={cn(
             "h-full flex items-center px-2 rounded-xl transition-all duration-300",
-            isSearchActive 
+            isSearchActive
               ? "bg-gradient-to-r from-[hsl(45,95%,58%)]/10 to-[hsl(45,90%,65%)]/10 ring-1 ring-primary/30"
               : ""
           )}>
             <div className="relative w-full h-full flex items-center py-2">
-              <Search 
+              <Search
                 className={cn(
                   "absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none",
                   isSearchActive ? "text-primary" : "text-muted-foreground"
-                )} 
-                size={16} 
+                )}
+                size={16}
               />
               <input
                 type="text"
