@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, DollarSign, Users } from 'lucide-react';
+import { X, DollarSign, Users, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { demoModeService } from '@/services/demoModeService';
 import { usePaymentSplits } from '@/hooks/usePaymentSplits';
@@ -169,26 +169,43 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, tripMembers, onPay
               {tripMembers.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-2 w-full">No trip members found</p>
               ) : (
-                tripMembers.map(member => (
-                  <label 
-                    key={member.id}
-                    className="inline-flex items-center gap-2 cursor-pointer hover:bg-white/10 bg-white/5 border border-white/10 px-2 py-1.5 rounded-lg transition-colors w-auto shrink-0"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedParticipants.includes(member.id)}
-                      onChange={() => toggleParticipant(member.id)}
-                      className="w-4 h-4 rounded border-white/20 bg-white/5 text-green-600 focus:ring-2 focus:ring-green-500/50"
-                    />
-                    <Avatar className="w-6 h-6 shrink-0">
-                      <AvatarImage src={member.avatar} alt={member.name} />
-                      <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
-                        {getInitials(member.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-white text-sm whitespace-nowrap">{member.name}</span>
-                  </label>
-                ))
+                tripMembers.map(member => {
+                  const isSelected = selectedParticipants.includes(member.id);
+                  return (
+                    <button
+                      key={member.id}
+                      type="button"
+                      onClick={() => toggleParticipant(member.id)}
+                      className={`
+                        inline-flex items-center gap-2 rounded-lg px-2 py-1.5 cursor-pointer transition-all w-auto shrink-0
+                        ${isSelected
+                          ? 'bg-green-500/20 border-2 border-green-500 ring-1 ring-green-500/30'
+                          : 'bg-white/5 hover:bg-white/10 border-2 border-transparent'
+                        }
+                      `}
+                    >
+                      {/* Checkmark indicator */}
+                      <div className={`
+                        w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all
+                        ${isSelected
+                          ? 'bg-green-500 text-white'
+                          : 'bg-gray-700 border border-gray-600'
+                        }
+                      `}>
+                        {isSelected && <Check size={12} strokeWidth={3} />}
+                      </div>
+                      <Avatar className="w-6 h-6 shrink-0">
+                        <AvatarImage src={member.avatar} alt={member.name} />
+                        <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
+                          {getInitials(member.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className={`text-sm whitespace-nowrap ${isSelected ? 'text-white font-medium' : 'text-gray-300'}`}>
+                        {member.name}
+                      </span>
+                    </button>
+                  );
+                })
               )}
             </div>
             {perPersonAmount > 0 && selectedParticipants.length > 0 && (
@@ -203,17 +220,37 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, tripMembers, onPay
               Preferred Payment Methods
             </label>
             <div className="space-y-2">
-              {paymentMethodOptions.map((method) => (
-                <label key={method.id} className="flex items-center gap-3 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={selectedPaymentMethods.includes(method.id as any)}
-                    onChange={() => togglePaymentMethod(method.id as any)}
-                    className="w-5 h-5 rounded border-white/10 bg-white/5 text-green-600 focus:ring-2 focus:ring-green-500/50"
-                  />
-                  <span className="text-white">{method.label}</span>
-                </label>
-              ))}
+              {paymentMethodOptions.map((method) => {
+                const isSelected = selectedPaymentMethods.includes(method.id as any);
+                return (
+                  <button
+                    key={method.id}
+                    type="button"
+                    onClick={() => togglePaymentMethod(method.id as any)}
+                    className={`
+                      flex items-center gap-3 w-full p-3 rounded-xl cursor-pointer transition-all
+                      ${isSelected
+                        ? 'bg-green-500/20 border-2 border-green-500 ring-1 ring-green-500/30'
+                        : 'bg-white/5 hover:bg-white/10 border-2 border-transparent'
+                      }
+                    `}
+                  >
+                    {/* Checkmark indicator */}
+                    <div className={`
+                      w-5 h-5 rounded-md flex items-center justify-center shrink-0 transition-all
+                      ${isSelected
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-700 border border-gray-600'
+                      }
+                    `}>
+                      {isSelected && <Check size={12} strokeWidth={3} />}
+                    </div>
+                    <span className={`${isSelected ? 'text-white font-medium' : 'text-gray-300'}`}>
+                      {method.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
