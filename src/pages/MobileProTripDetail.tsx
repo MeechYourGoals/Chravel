@@ -374,46 +374,49 @@ export const MobileProTripDetail = () => {
         ref={headerRef}
         className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 mobile-safe-header"
       >
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between mb-2">
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between gap-2">
+            {/* Back button */}
             <button
               onClick={handleBack}
-              className="min-w-[44px] min-h-[44px] p-3 -ml-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
+              className="flex-shrink-0 min-w-[44px] min-h-[44px] p-2 -ml-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
               style={{ touchAction: 'manipulation' }}
             >
-              <ArrowLeft size={24} className="text-white" />
+              <ArrowLeft size={22} className="text-white" />
             </button>
             
+            {/* Trip info - centered */}
+            <div className="flex-1 min-w-0 text-center">
+              <h1 className="text-base font-semibold text-white leading-tight truncate">
+                {tripData.title}
+              </h1>
+              <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
+                <span className="truncate">{tripData.location} • {tripData.participants?.length || 0} team members</span>
+                <button
+                  onClick={() => {
+                    hapticService.light();
+                    setShowTripInfo(true);
+                  }}
+                  className="flex-shrink-0 flex items-center gap-0.5 active:scale-95 transition-transform text-blue-400 hover:text-blue-300"
+                  aria-label="View trip details"
+                >
+                  <Info size={14} />
+                  <span className="font-medium">More</span>
+                </button>
+              </div>
+            </div>
+            
+            {/* Options button */}
             <button
               onClick={() => {
                 hapticService.light();
                 setShowOptionsSheet(true);
               }}
-              className="min-w-[44px] min-h-[44px] p-3 -mr-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
+              className="flex-shrink-0 min-w-[44px] min-h-[44px] p-2 -mr-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
               style={{ touchAction: 'manipulation' }}
             >
-              <MoreVertical size={24} className="text-white" />
+              <MoreVertical size={22} className="text-white" />
             </button>
-          </div>
-          
-          <div className="text-center px-2">
-            <h1 className="text-lg font-semibold text-white leading-tight mb-1.5 break-words">
-              {tripData.title}
-            </h1>
-            <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
-              <span>{tripData.location} • {tripData.participants?.length || 0} team members</span>
-              <button
-                onClick={() => {
-                  hapticService.light();
-                  setShowTripInfo(true);
-                }}
-                className="flex items-center gap-1 active:scale-95 transition-transform text-blue-400 hover:text-blue-300"
-                aria-label="View trip details"
-              >
-                <Info size={16} />
-                <span className="font-medium">More Details</span>
-              </button>
-            </div>
           </div>
         </div>
       </div>
