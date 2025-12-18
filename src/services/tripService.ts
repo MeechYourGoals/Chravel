@@ -321,12 +321,27 @@ export const tripService = {
 
   async updateTrip(tripId: string, updates: Partial<Trip>): Promise<boolean> {
     try {
-      const { error } = await supabase
+      // Use .select() to verify the update actually happened
+      // RLS policy "Trip creators can update their trips" handles authorization
+      const { data, error } = await supabase
         .from('trips')
         .update(updates)
-        .eq('id', tripId);
+        .eq('id', tripId)
+        .select('id')
+        .maybeSingle();
 
-      return !error;
+      if (error) {
+        console.error('[tripService] Update error:', error);
+        return false;
+      }
+
+      // Check if any row was actually updated
+      if (!data) {
+        console.error('[tripService] No rows updated - user may not have permission to update trip:', tripId);
+        return false;
+      }
+
+      return true;
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error updating trip:', error);
