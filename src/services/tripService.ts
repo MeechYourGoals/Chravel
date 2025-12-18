@@ -374,6 +374,9 @@ export const tripService = {
           id,
           user_id,
           role,
+          status,
+          joined_at,
+          last_seen_at,
           created_at
         `)
         .eq('trip_id', tripId);
@@ -405,6 +408,28 @@ export const tripService = {
         console.error('Error fetching trip members:', error);
       }
       return [];
+    }
+  },
+
+  /**
+   * Update the caller's last seen timestamp for a trip.
+   * Best-effort: failures should never block core UX.
+   */
+  async touchTripMemberLastSeen(tripId: string, userId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('trip_members')
+        .update({ last_seen_at: new Date().toISOString() })
+        .eq('trip_id', tripId)
+        .eq('user_id', userId);
+
+      if (error && import.meta.env.DEV) {
+        console.warn('[tripService] Failed to update last_seen_at:', error);
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('[tripService] Unexpected error updating last_seen_at:', error);
+      }
     }
   },
 

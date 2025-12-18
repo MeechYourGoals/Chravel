@@ -12,6 +12,9 @@ interface TripMember {
   name: string;
   avatar?: string;
   isCreator?: boolean;
+  role?: string;
+  membershipStatus?: 'active' | 'inactive' | 'pending' | 'rejected' | string;
+  lastSeenAt?: string | null;
 }
 
 export const useTripMembers = (tripId?: string) => {
@@ -26,7 +29,10 @@ export const useTripMembers = (tripId?: string) => {
       id: member.user_id,
       name: member.profiles?.display_name || member.profiles?.first_name || 'Unknown User',
       avatar: member.profiles?.avatar_url,
-      isCreator: member.user_id === creatorId
+      isCreator: member.user_id === creatorId,
+      role: member.role,
+      membershipStatus: member.status || 'active',
+      lastSeenAt: member.last_seen_at ?? null,
     }));
   };
 

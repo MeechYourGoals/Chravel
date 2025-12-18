@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { markMessagesAsRead } from '@/services/readReceiptService';
 import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { TripChannel } from '@/types/roleChannels';
+import { tripService } from '@/services/tripService';
 
 interface MobileTripChatProps {
   tripId: string;
@@ -51,6 +52,16 @@ export const MobileTripChat = ({ tripId, isEvent = false, isPro = false, userRol
       setUserId(data.user?.id || null);
     });
   }, []);
+
+  // MVP: track "last seen" for trip members (best-effort; no presence)
+  useEffect(() => {
+    if (!userId || !tripId) return;
+    // Skip demo/mock numeric trips
+    if (/^\d+$/.test(tripId)) return;
+    tripService.touchTripMemberLastSeen(tripId, userId).catch(() => {
+      // Best-effort: never block chat UX
+    });
+  }, [tripId, userId]);
   
   // Use unified messages hook for real-time chat
   const {

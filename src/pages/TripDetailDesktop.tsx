@@ -186,7 +186,9 @@ export const TripDetailDesktop = () => {
             id: m.id as any, // UUID strings for authenticated trips
             name: m.name, 
             avatar: m.avatar || '',
-            role: 'member'
+            role: m.role || 'member',
+            membershipStatus: m.membershipStatus,
+            lastSeenAt: m.lastSeenAt,
           })) as any
     };
   }, [trip, tripData.title, tripData.location, tripData.dateRange, tripDescription, isDemoMode, tripMembers]);

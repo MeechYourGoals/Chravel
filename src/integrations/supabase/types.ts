@@ -2385,7 +2385,10 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          last_seen_at: string | null
+          joined_at: string | null
           role: string
+          status: string | null
           trip_id: string
           updated_at: string
           user_id: string
@@ -2393,7 +2396,10 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          last_seen_at?: string | null
+          joined_at?: string | null
           role?: string
+          status?: string | null
           trip_id: string
           updated_at?: string
           user_id: string
@@ -2401,7 +2407,10 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          last_seen_at?: string | null
+          joined_at?: string | null
           role?: string
+          status?: string | null
           trip_id?: string
           updated_at?: string
           user_id?: string

@@ -28,6 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { parseMessage } from '@/services/chatContentParser';
 import { MessageTypeBar } from './chat/MessageTypeBar';
 import { ChatSearchOverlay } from './chat/ChatSearchOverlay';
+import { tripService } from '@/services/tripService';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -218,6 +219,16 @@ export const TripChat = ({
       });
     };
   }, [liveMessages, user?.id, resolvedTripId, demoMode.isDemoMode]);
+
+  // MVP: track "last seen" for trip members (best-effort; no presence)
+  useEffect(() => {
+    if (demoMode.isDemoMode || !user?.id || !resolvedTripId) return;
+    // Skip numeric demo trips / mock contexts
+    if (/^\d+$/.test(resolvedTripId)) return;
+    tripService.touchTripMemberLastSeen(resolvedTripId, user.id).catch(() => {
+      // Best-effort: never block chat UX
+    });
+  }, [demoMode.isDemoMode, resolvedTripId, user?.id]);
 
   const liveFormattedMessages = useMemo(() => {
     if (demoMode.isDemoMode) return [];

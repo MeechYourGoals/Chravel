@@ -38,6 +38,8 @@ interface TripHeaderProps {
       avatar: string;
       role?: string;
       email?: string;
+      membershipStatus?: string;
+      lastSeenAt?: string | null;
     }>;
     coverPhoto?: string;
     trip_type?: 'consumer' | 'pro' | 'event';

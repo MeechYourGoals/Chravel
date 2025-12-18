@@ -7,6 +7,8 @@ export interface CollaboratorItem {
   name: string;
   avatar?: string;
   role?: string;
+  membershipStatus?: string;
+  lastSeenAt?: string | null;
 }
 
 interface CollaboratorsGridProps {

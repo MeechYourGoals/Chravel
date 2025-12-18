@@ -13,6 +13,8 @@ interface CollaboratorItem {
   avatar?: string;
   role?: string;
   isCreator?: boolean;
+  membershipStatus?: string;
+  lastSeenAt?: string | null;
 }
 
 interface CollaboratorsModalProps {
@@ -115,6 +117,30 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
   const canManageRequests = (isAdmin || isConsumerTrip) && onApproveRequest && onRejectRequest;
   const pendingCount = pendingRequests.length;
 
+  const getLastSeenLabel = (lastSeenAt: string | null | undefined): string => {
+    if (!lastSeenAt) return 'Not seen yet';
+    const d = new Date(lastSeenAt);
+    if (Number.isNaN(d.getTime())) return 'Not seen yet';
+    return `Seen ${formatDistanceToNow(d, { addSuffix: true })}`;
+  };
+
+  const getMembershipPill = (status: string | null | undefined): { label: string; className: string } => {
+    const normalized = (status || 'active').toLowerCase();
+    if (normalized === 'active') {
+      return { label: 'Active', className: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/20' };
+    }
+    if (normalized === 'pending') {
+      return { label: 'Pending', className: 'bg-amber-500/15 text-amber-300 border-amber-500/20' };
+    }
+    if (normalized === 'inactive') {
+      return { label: 'Inactive', className: 'bg-gray-500/15 text-gray-300 border-gray-500/20' };
+    }
+    if (normalized === 'rejected') {
+      return { label: 'Rejected', className: 'bg-red-500/15 text-red-300 border-red-500/20' };
+    }
+    return { label: status || 'Unknown', className: 'bg-gray-500/15 text-gray-300 border-gray-500/20' };
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -165,6 +191,8 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                 const isCreator = idStr === tripCreatorId || c.isCreator;
                 const isCurrentUser = idStr === currentUserId;
                 const showRemoveButton = canRemove(idStr);
+                const membership = getMembershipPill(c.membershipStatus);
+                const lastSeenLabel = getLastSeenLabel(c.lastSeenAt);
 
                 return (
                   <div
@@ -204,6 +232,21 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                       {c.role && (
                         <div className="truncate text-xs text-gray-400">{c.role}</div>
                       )}
+                      {/* MVP: lightweight status + last seen (no realtime presence) */}
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-400">
+                        <span
+                          className={cn(
+                            'inline-flex items-center rounded-md border px-1.5 py-0.5 text-[11px] font-medium',
+                            membership.className,
+                          )}
+                        >
+                          {membership.label}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Clock size={12} />
+                          <span>{lastSeenLabel}</span>
+                        </span>
+                      </div>
                     </div>
                     
                     {/* Remove button */}
@@ -268,6 +311,9 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                           <div className="flex items-center gap-1 text-xs text-gray-400">
                             <Clock size={12} />
                             <span>Requested {timeAgo}</span>
+                            <span className="ml-2 inline-flex items-center rounded-md border border-amber-500/20 bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-medium text-amber-300">
+                              Pending
+                            </span>
                           </div>
                         </div>
 
