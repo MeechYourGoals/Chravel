@@ -32,8 +32,8 @@ export const MobileTripInfoDrawer = ({
 }: MobileTripInfoDrawerProps) => {
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="bg-black border-t border-white/10 !mt-4">
-        <DrawerHeader className="border-b border-white/10 !p-3">
+      <DrawerContent className="bg-black border-t border-white/10 !mt-4 min-h-[70vh] flex flex-col">
+        <DrawerHeader className="border-b border-white/10 !p-3 flex-shrink-0">
           <div className="flex items-center justify-between">
             <DrawerTitle className="text-white text-lg font-semibold">
               Trip Details
@@ -52,9 +52,9 @@ export const MobileTripInfoDrawer = ({
           </div>
         </DrawerHeader>
 
-        <div className="px-4 py-3 max-h-[85vh] overflow-y-auto">
-          <TripHeader 
-            trip={trip} 
+        <div className="px-4 py-3 flex-1 overflow-y-auto flex flex-col justify-center">
+          <TripHeader
+            trip={trip}
             onDescriptionUpdate={onDescriptionUpdate}
             onShowExport={onShowExport}
             category={category as ProTripCategory}
