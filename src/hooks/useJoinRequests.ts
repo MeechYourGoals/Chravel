@@ -22,6 +22,15 @@ export interface JoinRequest {
   };
 }
 
+// Type for notification metadata containing requester info
+interface NotificationMetadata {
+  requester_id?: string;
+  requester_name?: string;
+  request_id?: string;
+  trip_id?: string;
+  trip_name?: string;
+}
+
 interface UseJoinRequestsProps {
   tripId: string;
   enabled?: boolean;
@@ -58,6 +67,28 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
 
       if (error) throw error;
 
+      // Fetch notifications to get requester names that were captured at request time
+      // This is the canonical source since names are stored when the request is created
+      const { data: notifications } = await supabase
+        .from('notifications')
+        .select('metadata')
+        .eq('type', 'join_request')
+        .eq('trip_id', tripId);
+
+      // Build a map of request_id -> requester info from notifications
+      const requesterInfoMap = new Map<string, { name: string; id: string }>();
+      if (notifications) {
+        for (const notif of notifications) {
+          const metadata = notif.metadata as NotificationMetadata | null;
+          if (metadata?.request_id && metadata?.requester_name) {
+            requesterInfoMap.set(metadata.request_id, {
+              name: metadata.requester_name,
+              id: metadata.requester_id || ''
+            });
+          }
+        }
+      }
+
       // Fetch profiles separately with all available name fields
       const requestsWithProfiles = await Promise.all(
         (data || []).map(async (request) => {
@@ -65,11 +96,15 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
             .from('profiles')
             .select('display_name, avatar_url, email, first_name, last_name')
             .eq('user_id', request.user_id)
-            .single();
+            .maybeSingle(); // Use maybeSingle to avoid errors when profile doesn't exist
 
           if (profileError) {
             console.warn('Failed to fetch profile for user:', request.user_id, profileError);
           }
+
+          // Get fallback name from notification metadata (captured at request creation time)
+          const notificationInfo = requesterInfoMap.get(request.id);
+          const fallbackName = notificationInfo?.name;
 
           // Build display_name from available fields if it's empty
           let displayName = profile?.display_name;
@@ -83,12 +118,24 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
             }
           }
 
+          // Final name resolution priority:
+          // 1. Built display name from profile
+          // 2. Profile email
+          // 3. Notification metadata (requester_name captured at request time)
+          // 4. "Unknown User" as last resort
+          const finalDisplayName = displayName || profile?.email || fallbackName || 'Unknown User';
+
+          // Always return a profile object with the resolved name
+          // This ensures we never show "Unknown User" if we have data from notifications
           return {
             ...request,
-            profile: profile ? {
-              ...profile,
-              display_name: displayName || profile.email || 'Unknown User'
-            } : undefined
+            profile: {
+              display_name: finalDisplayName,
+              avatar_url: profile?.avatar_url,
+              email: profile?.email,
+              first_name: profile?.first_name,
+              last_name: profile?.last_name
+            }
           };
         })
       );

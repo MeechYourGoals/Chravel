@@ -65,14 +65,25 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
   const [descEditTick, setDescEditTick] = useState(0);
 
   // Handle URL param to open collaborators modal on specific tab
+  // This runs on mount and whenever searchParams changes
   useEffect(() => {
     const showCollaboratorsParam = searchParams.get('showCollaborators');
-    if (showCollaboratorsParam === 'requests') {
-      setCollaboratorsInitialTab('requests');
+    if (showCollaboratorsParam === 'requests' || showCollaboratorsParam === 'members') {
+      // Set the tab and open modal
+      setCollaboratorsInitialTab(showCollaboratorsParam);
       setShowAllCollaborators(true);
-      // Clear the URL param after handling
-      searchParams.delete('showCollaborators');
-      setSearchParams(searchParams, { replace: true });
+
+      // Clear the URL param after a small delay to ensure state is applied
+      // This prevents the param from interfering with other navigation
+      const timeoutId = setTimeout(() => {
+        const newParams = new URLSearchParams(window.location.search);
+        if (newParams.get('showCollaborators')) {
+          newParams.delete('showCollaborators');
+          setSearchParams(newParams, { replace: true });
+        }
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
     }
   }, [searchParams, setSearchParams]);
   const { variant, accentColors } = useTripVariant();
