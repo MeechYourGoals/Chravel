@@ -36,6 +36,9 @@ verify_jwt = true
 [functions.check-subscription]
 verify_jwt = true
 
+[functions.create-trip]
+verify_jwt = true
+
 [functions.invite-organization-member]
 verify_jwt = true
 
