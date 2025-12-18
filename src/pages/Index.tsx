@@ -433,16 +433,14 @@ const Index = () => {
               />
             </div>
 
-              {!isMobile && (
-                <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                  <TripStatsOverview 
-                    stats={getCurrentStats()} 
-                    viewMode={viewMode} 
-                    activeFilter={activeFilter}
-                    onFilterClick={handleFilterClick}
-                  />
-                </div>
-              )}
+              <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                <TripStatsOverview 
+                  stats={getCurrentStats()} 
+                  viewMode={viewMode} 
+                  activeFilter={activeFilter}
+                  onFilterClick={handleFilterClick}
+                />
+              </div>
 
               {viewMode === 'travelRecs' && (
                 <div className="mb-6">
@@ -581,16 +579,14 @@ const Index = () => {
                   />
                 </div>
 
-                {!isMobile && (
-                  <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                    <TripStatsOverview 
-                      stats={getCurrentStats()} 
-                      viewMode={viewMode} 
-                      activeFilter={activeFilter}
-                      onFilterClick={handleFilterClick}
-                    />
-                  </div>
-                )}
+                <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                  <TripStatsOverview 
+                    stats={getCurrentStats()} 
+                    viewMode={viewMode} 
+                    activeFilter={activeFilter}
+                    onFilterClick={handleFilterClick}
+                  />
+                </div>
 
                 {viewMode === 'travelRecs' && (
                   <div className="mb-6">
@@ -755,16 +751,14 @@ const Index = () => {
         </div>
 
         {/* Trip Stats Overview with loading state - moved above filters for travel recs */}
-        {!isMobile && (
-          <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            <TripStatsOverview 
-              stats={getCurrentStats()} 
-              viewMode={viewMode} 
-              activeFilter={activeFilter}
-              onFilterClick={handleFilterClick}
-            />
-          </div>
-        )}
+        <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <TripStatsOverview 
+            stats={getCurrentStats()} 
+            viewMode={viewMode} 
+            activeFilter={activeFilter}
+            onFilterClick={handleFilterClick}
+          />
+        </div>
 
         {/* Travel Recommendations Filters with inline search */}
         {viewMode === 'travelRecs' && (
