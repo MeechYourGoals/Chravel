@@ -2,6 +2,42 @@ import { supabase } from '@/integrations/supabase/client';
 
 type TripType = 'consumer' | 'pro' | 'event';
 
+/**
+ * Delete a trip "for me" - removes user's access to the trip without deleting it for others.
+ * This removes the user from trip_members table.
+ * @throws Error if user is the trip creator (creators cannot delete for themselves)
+ */
+export const deleteTripForMe = async (tripId: string, userId: string): Promise<void> => {
+  // First check if user is the trip creator
+  const { data: tripData, error: tripError } = await supabase
+    .from('trips')
+    .select('created_by')
+    .eq('id', tripId)
+    .single();
+
+  if (tripError) {
+    console.error('Failed to fetch trip:', tripError);
+    throw new Error('TRIP_NOT_FOUND');
+  }
+
+  // Trip creators cannot "delete for me" - they own the trip
+  if (tripData.created_by === userId) {
+    throw new Error('CREATOR_CANNOT_DELETE');
+  }
+
+  // Remove user from trip_members
+  const { error: deleteError } = await supabase
+    .from('trip_members')
+    .delete()
+    .eq('trip_id', tripId)
+    .eq('user_id', userId);
+
+  if (deleteError) {
+    console.error('Failed to delete trip membership:', deleteError);
+    throw deleteError;
+  }
+};
+
 // Hide a trip (privacy feature - separate from archive)
 export const hideTrip = async (tripId: string): Promise<void> => {
   const { error } = await supabase

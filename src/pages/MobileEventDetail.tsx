@@ -7,6 +7,8 @@ import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer'
 import { MobileHeaderOptionsSheet } from '../components/mobile/MobileHeaderOptionsSheet';
 import { TripExportModal } from '../components/trip/TripExportModal';
 import { InviteModal } from '../components/InviteModal';
+import { DeleteTripConfirmDialog } from '../components/DeleteTripConfirmDialog';
+import { deleteTripForMe } from '../services/archiveService';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
@@ -23,7 +25,7 @@ import { toast } from 'sonner';
 export const MobileEventDetail = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
-  const { user: _user } = useAuth(); // Prefixed as unused but kept for future auth needs
+  const { user } = useAuth();
   const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
 
   // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
@@ -44,6 +46,8 @@ export const MobileEventDetail = () => {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const headerRef = React.useRef<HTMLDivElement>(null);
 
   // Persist activeTab changes to sessionStorage
@@ -230,6 +234,37 @@ export const MobileEventDetail = () => {
       }
     }
   }, [eventId, eventData]);
+
+  // Delete Trip For Me handler - removes user's access without deleting event for others
+  const handleDeleteTripForMe = useCallback(async () => {
+    if (!user?.id || !eventId) {
+      toast.error('You must be logged in to delete an event');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteTripForMe(eventId, user.id);
+      toast.success('Event deleted', {
+        description: `"${eventData?.title}" has been removed from your account.`,
+      });
+      setShowDeleteDialog(false);
+      navigate('/');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage === 'CREATOR_CANNOT_DELETE') {
+        toast.error('Cannot delete event', {
+          description: 'As the event creator, you cannot delete this event for yourself. Consider archiving it instead.',
+        });
+      } else {
+        toast.error('Failed to delete event', {
+          description: 'There was an error deleting your event. Please try again.',
+        });
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [user?.id, eventId, eventData?.title, navigate]);
 
   // ⚡ Loading and error states AFTER all hooks
   if (demoModeLoading) {
@@ -425,6 +460,7 @@ export const MobileEventDetail = () => {
         onShare={handleShare}
         onExport={() => setShowExportModal(true)}
         onInvite={() => setShowInviteModal(true)}
+        onDelete={() => setShowDeleteDialog(true)}
       />
 
       {/* Export Modal */}
@@ -442,6 +478,15 @@ export const MobileEventDetail = () => {
         onClose={() => setShowInviteModal(false)}
         tripName={eventData?.title || 'Event'}
         tripId={eventId}
+      />
+
+      {/* Delete Trip Confirm Dialog */}
+      <DeleteTripConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteTripForMe}
+        tripTitle={eventData?.title || 'Event'}
+        isLoading={isDeleting}
       />
       </div>
     </MobileErrorBoundary>
