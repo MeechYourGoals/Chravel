@@ -164,7 +164,18 @@ export const useTripChat = (tripId: string | undefined) => {
           filter: `trip_id=eq.${tripId}`
         },
         (payload) => {
-          const updatedMessage = payload.new as TripChatMessage & { is_deleted?: boolean };
+          const updatedMessage = payload.new as TripChatMessage & { 
+            is_deleted?: boolean;
+            client_message_id?: string;
+          };
+
+          console.log('[CHAT REALTIME] UPDATE received:', {
+            messageId: updatedMessage.id,
+            clientMessageId: updatedMessage.client_message_id,
+            isDeleted: updatedMessage.is_deleted,
+            hasLinkPreview: !!updatedMessage.link_preview,
+            timestamp: new Date().toISOString()
+          });
 
           // If message was deleted, remove it completely from the list
           if (updatedMessage.is_deleted) {
@@ -174,7 +185,7 @@ export const useTripChat = (tripId: string | undefined) => {
             return;
           }
 
-          // Handle message edits in real-time
+          // Handle message edits and link_preview updates in real-time
           queryClient.setQueryData(['tripChat', tripId], (old: TripChatMessage[] = []) => {
             return old.map(msg =>
               msg.id === payload.new.id

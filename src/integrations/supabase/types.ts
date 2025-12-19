@@ -1933,6 +1933,7 @@ export type Database = {
         Row: {
           attachments: Json | null
           author_name: string
+          client_message_id: string | null
           content: string
           created_at: string
           deleted_at: string | null
@@ -1956,6 +1957,7 @@ export type Database = {
         Insert: {
           attachments?: Json | null
           author_name: string
+          client_message_id?: string | null
           content: string
           created_at?: string
           deleted_at?: string | null
@@ -1979,6 +1981,7 @@ export type Database = {
         Update: {
           attachments?: Json | null
           author_name?: string
+          client_message_id?: string | null
           content?: string
           created_at?: string
           deleted_at?: string | null
