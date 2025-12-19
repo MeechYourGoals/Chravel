@@ -25,7 +25,6 @@
 - Built `EventRSVPManager` component
 - Added capacity limit enforcement
 - Added waitlist management
-- QR code ticket generation (requires `qrcode` package)
 
 ### ✅ 3. Capacity Limit Enforcement
 - Database-level capacity checking
@@ -37,7 +36,6 @@
 - Created `EventCheckIn` component for organizers
 - Manual check-in by name/email
 - Check-in statistics display
-- QR scanner placeholder (requires integration)
 
 ---
 
@@ -68,17 +66,12 @@
 
 ## Required Actions
 
-### 1. Install Dependencies
-```bash
-npm install qrcode @types/qrcode
-```
-
-### 2. Run Database Migration
+### 1. Run Database Migration
 ```bash
 supabase migration up
 ```
 
-### 3. Verify Database Functions
+### 2. Verify Database Functions
 Test the new functions:
 - `event_has_capacity(event_id)`
 - `get_event_capacity(event_id)`
@@ -90,17 +83,16 @@ Test the new functions:
 
 ### High Priority
 1. **Granular Channel Permissions** - Implement view-only vs edit permissions per channel
-2. **QR Scanner Integration** - Integrate QR scanner library for check-in
-3. **Email Notifications** - Send RSVP confirmations and reminders
+2. **Email Notifications** - Send RSVP confirmations and reminders
 
 ### Medium Priority
-4. **Testing** - Add unit tests for hooks and components
-5. **Capacity Override** - Allow organizers to override capacity limits
-6. **Export Functionality** - CSV export of RSVP list
+3. **Testing** - Add unit tests for hooks and components
+4. **Capacity Override** - Allow organizers to override capacity limits
+5. **Export Functionality** - CSV export of RSVP list
 
 ### Low Priority
-7. **Bulk Check-In** - Check in multiple attendees at once
-8. **Check-In Analytics** - Display check-in rate, peak times, etc.
+6. **Bulk Check-In** - Check in multiple attendees at once
+7. **Check-In Analytics** - Display check-in rate, peak times, etc.
 
 ---
 
@@ -108,7 +100,6 @@ Test the new functions:
 
 Requires native development:
 - Native UI components (Swift/Kotlin)
-- Native QR scanner
 - Native role management
 - Native channel UI
 - XCTest/Espresso tests
@@ -160,7 +151,6 @@ await checkInAttendee(rsvpId);
 - user_email (TEXT)
 - status (TEXT) - 'going', 'maybe', 'not-going', 'not-answered', 'waitlist'
 - rsvped_at (TIMESTAMPTZ)
-- ticket_qr_code (TEXT)
 - checked_in (BOOLEAN)
 - checked_in_at (TIMESTAMPTZ)
 - waitlist_position (INTEGER)
@@ -179,7 +169,6 @@ await checkInAttendee(rsvpId);
 - [ ] Role-based access control works correctly
 - [ ] RSVP submission enforces capacity limits
 - [ ] Waitlist assignment works when event is full
-- [ ] QR code generation works (after installing package)
 - [ ] Check-in functionality works for organizers
 - [ ] Non-admins cannot see Check-In tab
 - [ ] Channel permissions are enforced
@@ -190,11 +179,10 @@ await checkInAttendee(rsvpId);
 ## Next Steps for Developer
 
 1. **Review Documentation**: Read `EVENTS_MVP_ENHANCEMENT_DOCUMENTATION.md` for full details
-2. **Install Dependencies**: Run `npm install qrcode @types/qrcode`
-3. **Run Migration**: Apply database migration
-4. **Test Functionality**: Use testing checklist above
-5. **Implement Remaining 8%**: Focus on granular permissions and QR scanner
-6. **Add Tests**: Write unit tests for hooks and components
+2. **Run Migration**: Apply database migration
+3. **Test Functionality**: Use testing checklist above
+4. **Implement Remaining 8%**: Focus on granular permissions and email integration
+5. **Add Tests**: Write unit tests for hooks and components
 
 ---
 

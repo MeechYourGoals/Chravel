@@ -445,7 +445,7 @@ Organization Invitations
 Event Management
 • Multi-track session scheduling
 • Speaker directories
-• Attendee check-in (QR/NFC)
+• Attendee check-in
 • Live Q&A and polling
 • Networking matchmaking
 • Business card exchange

@@ -54,7 +54,6 @@ export interface LinkItem {
   domain: string;
   category?: string;
   notes?: string;
-  qrSvg?: string;
 }
 
 export interface TaskItem {
@@ -94,7 +93,6 @@ export interface TripExportData {
   destination?: string;
   startDate: string;
   endDate: string;
-  deeplinkQrSvg: string;
   generatedAtLocal: string;
   layout: ExportLayout;
   privacyRedaction: boolean;

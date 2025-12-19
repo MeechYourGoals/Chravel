@@ -23,7 +23,7 @@ interface EventTasksTabProps {
 const DEMO_TASKS: EventTask[] = [
   { id: '1', title: 'Pick up your badge at the registration desk', description: 'Located in the main lobby, open from 8:00 AM', sort_order: 0 },
   { id: '2', title: 'Visit the welcome booth for your event kit', description: 'Includes schedule, map, and swag bag', sort_order: 1 },
-  { id: '3', title: 'Download the event app for real-time updates', description: 'Scan the QR code at registration', sort_order: 2 },
+  { id: '3', title: 'Download the event app for real-time updates', description: 'Use the link provided at registration', sort_order: 2 },
   { id: '4', title: 'Check in for your reserved sessions', description: 'Some sessions require advance check-in', sort_order: 3 },
   { id: '5', title: 'Complete the feedback survey after each session', description: 'Help us improve future events', sort_order: 4 }
 ];

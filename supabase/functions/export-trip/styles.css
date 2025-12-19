@@ -176,25 +176,6 @@ p {
   margin-bottom: 6pt;
 }
 
-.header-qr {
-  text-align: center;
-  padding-top: 4pt;
-  flex-shrink: 0;
-}
-
-.header-qr svg {
-  width: 96pt;
-  height: 96pt;
-  display: block;
-}
-
-.qr-label {
-  font-size: 8pt;
-  color: var(--muted);
-  margin-top: 6pt;
-  font-weight: 500;
-}
-
 /* Section Container */
 .section {
   margin: 0 0 24pt;
@@ -367,16 +348,6 @@ p {
   align-items: flex-start;
   margin-bottom: 6pt;
   gap: 8pt;
-}
-
-.qr-small {
-  flex-shrink: 0;
-}
-
-.qr-small svg {
-  width: 48pt;
-  height: 48pt;
-  display: block;
 }
 
 .link-url {

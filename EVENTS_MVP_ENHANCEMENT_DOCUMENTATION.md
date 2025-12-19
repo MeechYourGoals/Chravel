@@ -57,7 +57,6 @@ This document outlines the enhancements made to the Events (Pro/Enterprise) feat
 **What Was Fixed:**
 - ✅ Created `event_rsvps` table with fields:
   - `status`: going, maybe, not-going, not-answered, waitlist
-  - `ticket_qr_code`: QR code data for tickets
   - `checked_in`: Boolean for check-in status
   - `waitlist_position`: Position in waitlist if event is full
 - ✅ Implemented capacity limit enforcement
@@ -66,7 +65,6 @@ This document outlines the enhancements made to the Events (Pro/Enterprise) feat
   - RSVP status buttons (Going, Maybe, Can't Go)
   - Capacity display with progress bar
   - Waitlist position display
-  - QR code ticket generation (requires `qrcode` package)
 - ✅ Added RLS policies for security:
   - Users can view/manage their own RSVP
   - Event organizers can view all RSVPs
@@ -78,7 +76,6 @@ This document outlines the enhancements made to the Events (Pro/Enterprise) feat
 - `check_in_attendee(rsvp_id, checked_in_by)` - Checks in an attendee (organizers only)
 
 **Remaining Work:**
-- ⚠️ **QR Code Library**: Install `qrcode` package: `npm install qrcode @types/qrcode`
 - ⚠️ **Email Notifications**: Send confirmation emails when users RSVP
 - ⚠️ **RSVP Reminders**: Send reminder emails before event
 - ⚠️ **Export Functionality**: CSV export of RSVP list for organizers
@@ -109,10 +106,8 @@ This document outlines the enhancements made to the Events (Pro/Enterprise) feat
 - ✅ Manual check-in by searching attendee name/email
 - ✅ Check-in status display with counts
 - ✅ Integration with `check_in_attendee()` database function
-- ✅ QR code scanner placeholder (requires QR scanner library integration)
 
 **Remaining Work:**
-- ⚠️ **QR Code Scanner**: Integrate QR code scanner library (e.g., `@zxing/library` or Capacitor Barcode Scanner plugin)
 - ⚠️ **Bulk Check-In**: Allow checking in multiple attendees at once
 - ⚠️ **Check-In Analytics**: Display check-in rate, peak check-in times, etc.
 
@@ -163,23 +158,7 @@ This document outlines the enhancements made to the Events (Pro/Enterprise) feat
 
 ## Dependencies Required
 
-### Required Packages (Install These):
-
-```bash
-npm install qrcode @types/qrcode
-```
-
-**Note:** QR code generation is currently optional - the code handles missing library gracefully.
-
-### Optional Packages (For Enhanced Features):
-
-```bash
-# For QR code scanning in check-in
-npm install @zxing/library
-
-# Or use Capacitor Barcode Scanner (for mobile)
-npm install @capacitor-community/barcode-scanner
-```
+No additional npm dependencies are required for RSVP + check-in.
 
 ---
 
@@ -195,7 +174,6 @@ npm install @capacitor-community/barcode-scanner
 - [ ] Test RSVP submission (going, maybe, not-going)
 - [ ] Test capacity limit enforcement
 - [ ] Test waitlist assignment when event is full
-- [ ] Test QR code generation (after installing `qrcode` package)
 - [ ] Test check-in functionality
 - [ ] Test RLS policies (users can only see their own RSVP, organizers can see all)
 
@@ -208,7 +186,6 @@ npm install @capacitor-community/barcode-scanner
 - [ ] Test manual check-in by name/email
 - [ ] Test check-in count updates
 - [ ] Test that only organizers can access check-in
-- [ ] Test QR code scanner (after integrating scanner library)
 
 ---
 
@@ -219,7 +196,7 @@ The following requires native development and cannot be completed in web code:
 ### Native Event UI Components
 - [ ] `EventDashboardView.swift` - Dashboard for organizers
 - [ ] `AttendeeListView.swift` - List view with search/filter
-- [ ] `CheckInView.swift` - Check-in interface with QR scanner
+- [ ] `CheckInView.swift` - Check-in interface
 
 ### Native Role Management
 - [ ] Role picker UI component
@@ -249,20 +226,17 @@ The following requires native development and cannot be completed in web code:
 **`src/hooks/useEventRSVP.ts`**
 - `useEventRSVP(eventId)` - Returns RSVP data, capacity info, submitRSVP function
 - `submitRSVP(status)` - Submits RSVP with capacity enforcement
-- `generateTicketQRCode()` - Generates QR code for ticket
 
 ### New Components
 
 **`src/components/events/EventRSVPManager.tsx`**
 - RSVP UI for attendees
 - Capacity display
-- QR code ticket display
 - Waitlist management
 
 **`src/components/events/EventCheckIn.tsx`**
 - Check-in interface for organizers
 - Manual search and check-in
-- QR scanner placeholder
 - Check-in statistics
 
 ### Modified Components
@@ -278,18 +252,13 @@ The following requires native development and cannot be completed in web code:
 ## Developer Notes
 
 ### Important Considerations
+1. **Channel Permissions**: Currently, channel access is binary (can access or cannot). Granular permissions (view-only, edit, moderate) need to be implemented in the UI layer.
 
-1. **QR Code Library**: The `qrcode` package is required for ticket generation. The code handles missing library gracefully, but install it for full functionality.
+2. **Capacity Override**: Organizers may need to override capacity limits for special cases. This is not yet implemented.
 
-2. **Channel Permissions**: Currently, channel access is binary (can access or cannot). Granular permissions (view-only, edit, moderate) need to be implemented in the UI layer.
+3. **Email Notifications**: RSVP confirmations and reminders are not yet implemented. Consider integrating with an email service (SendGrid, AWS SES, etc.).
 
-3. **Capacity Override**: Organizers may need to override capacity limits for special cases. This is not yet implemented.
-
-4. **Email Notifications**: RSVP confirmations and reminders are not yet implemented. Consider integrating with an email service (SendGrid, AWS SES, etc.).
-
-5. **QR Scanner**: The QR scanner in `EventCheckIn` is a placeholder. Integrate with a QR scanner library for production use.
-
-6. **Testing**: Add comprehensive tests for:
+4. **Testing**: Add comprehensive tests for:
    - Permission checks
    - RSVP capacity enforcement
    - Check-in functionality
@@ -307,7 +276,6 @@ The following requires native development and cannot be completed in web code:
 - All RLS policies are in place for `event_rsvps` table
 - Check-in function requires admin permissions
 - Channel access is enforced at database level via `can_access_channel()` function
-- QR codes contain event ID and user ID for verification
 
 ---
 
@@ -319,12 +287,7 @@ The following requires native development and cannot be completed in web code:
    supabase migration up
    ```
 
-2. **Install Dependencies:**
-   ```bash
-   npm install qrcode @types/qrcode
-   ```
-
-3. **Verify Database Functions:**
+2. **Verify Database Functions:**
    ```sql
    -- Test capacity check
    SELECT event_has_capacity('your-event-id');
@@ -350,12 +313,10 @@ The following requires native development and cannot be completed in web code:
 - ✅ RSVP/registration system with database
 - ✅ Capacity limit enforcement
 - ✅ Check-in functionality (manual)
-- ✅ QR code ticket generation (requires package install)
 - ✅ Permission-based tab visibility
 
 **Remaining (8%):**
 - ⚠️ Granular channel permissions (view-only vs edit)
-- ⚠️ QR code scanner integration
 - ⚠️ Email notifications
 - ⚠️ Testing
 
@@ -363,7 +324,6 @@ The following requires native development and cannot be completed in web code:
 
 **Requires Native Development:**
 - Native UI components (Swift/Objective-C)
-- Native QR scanner integration
 - Native role management UI
 - Native channel UI
 - XCTest test suite
@@ -372,15 +332,13 @@ The following requires native development and cannot be completed in web code:
 
 ## Questions for Developer Agency
 
-1. **QR Scanner**: Which QR scanner library should we use for iOS/Android? (Capacitor plugin vs native)
+1. **Email Service**: Which email service should we integrate with for RSVP confirmations?
 
-2. **Email Service**: Which email service should we integrate with for RSVP confirmations?
+2. **Channel Permissions**: Should granular permissions be stored in `channel_role_access` table metadata or separate table?
 
-3. **Channel Permissions**: Should granular permissions be stored in `channel_role_access` table metadata or separate table?
+3. **Capacity Override**: How should organizers override capacity limits? Admin UI or database function?
 
-4. **Capacity Override**: How should organizers override capacity limits? Admin UI or database function?
-
-5. **Testing Strategy**: What testing framework should we use for permission checks? (Vitest, Jest, etc.)
+4. **Testing Strategy**: What testing framework should we use for permission checks? (Vitest, Jest, etc.)
 
 ---
 
@@ -391,14 +349,12 @@ This enhancement brings the Events feature from **75% to 92%** web readiness by 
 - ✅ RSVP/registration system
 - ✅ Capacity limit enforcement
 - ✅ Check-in functionality
-- ✅ QR code ticket generation
 
 The remaining **8%** consists of:
 - Granular channel permissions UI
-- QR scanner integration
 - Email notifications
 - Comprehensive testing
 
 **Estimated Developer Hours Saved:** ~15-20 hours (role-based access, RSVP system, capacity enforcement, check-in UI)
 
-**Remaining Developer Hours Needed:** ~5-8 hours (granular permissions, QR scanner, email integration, testing)
+**Remaining Developer Hours Needed:** ~5-8 hours (granular permissions, email integration, testing)

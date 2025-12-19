@@ -9,7 +9,6 @@ CREATE TABLE IF NOT EXISTS public.event_rsvps (
   guest_count INTEGER DEFAULT 0,
   dietary_restrictions TEXT,
   rsvped_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  ticket_qr_code TEXT,
   checked_in BOOLEAN DEFAULT FALSE,
   checked_in_at TIMESTAMP WITH TIME ZONE,
   waitlist_position INTEGER,

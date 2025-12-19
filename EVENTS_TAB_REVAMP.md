@@ -188,7 +188,7 @@
 - Multi-track sessions
 - Room capacity management
 - Personal schedule builder (checkboxes)
-- QR code check-in per session
+- Session check-in (per session)
 - Live session ratings
 
 **Auto-Sync with Calendar:**
@@ -379,7 +379,7 @@ Events range from corporate conferences to underground comedy shows. "Performers
 - [ ] Personal agenda builder (checkboxes for sessions)
 - [ ] Multi-track session management
 - [ ] Room capacity tracking
-- [ ] QR code check-in
+- [ ] Session check-in
 - [ ] Live session ratings
 - [ ] Sponsor integration
 - [ ] Ticketing integration

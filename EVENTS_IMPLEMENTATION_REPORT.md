@@ -37,7 +37,7 @@
 
 ### 2. RSVP/Registration System ✅
 
-**Problem:** No RSVP system, no ticket QR codes, no check-in functionality.
+**Problem:** No RSVP system, no ticketing, no check-in functionality.
 
 **Solution:**
 - Created `event_rsvps` database table with full RSVP tracking
@@ -45,7 +45,6 @@
 - Built `EventRSVPManager` component with full UI
 - Added capacity limit enforcement
 - Added waitlist management
-- Implemented QR code ticket generation
 
 **Files:**
 - `src/hooks/useEventRSVP.ts` (NEW - 242 lines)
@@ -56,7 +55,7 @@
 ```sql
 event_rsvps (
   id, event_id, user_id, user_name, user_email,
-  status, rsvped_at, ticket_qr_code, checked_in,
+  status, rsvped_at, checked_in,
   checked_in_at, waitlist_position
 )
 ```
@@ -97,7 +96,6 @@ event_rsvps (
 - Created `EventCheckIn` component for organizers
 - Manual check-in by searching attendee name/email
 - Check-in statistics display
-- QR code scanner placeholder (requires library integration)
 
 **Files:**
 - `src/components/events/EventCheckIn.tsx` (NEW - 250 lines)
@@ -106,9 +104,8 @@ event_rsvps (
 - Search attendees by name/email
 - Check-in status display
 - Check-in count tracking
-- QR scanner UI placeholder
 
-**Status:** ✅ Complete (QR scanner integration pending - 2% remaining)
+**Status:** ✅ Complete
 
 ---
 
@@ -174,19 +171,7 @@ event_rsvps (
 
 ## Dependencies
 
-### Required (Install These)
-```bash
-npm install qrcode @types/qrcode
-```
-
-### Optional (For Enhanced Features)
-```bash
-# QR scanner for check-in
-npm install @zxing/library
-
-# Or Capacitor Barcode Scanner (mobile)
-npm install @capacitor-community/barcode-scanner
-```
+No additional npm dependencies are required.
 
 ---
 
@@ -211,7 +196,6 @@ npm install @capacitor-community/barcode-scanner
 - [ ] RSVP submission works
 - [ ] Capacity limits enforced
 - [ ] Waitlist assignment works
-- [ ] QR code generation works
 - [ ] Check-in works for organizers
 - [ ] Non-admins cannot see Check-In tab
 - [ ] Channel permissions enforced
@@ -226,19 +210,14 @@ npm install @capacitor-community/barcode-scanner
    - Permission management UI
    - Permission indicators
 
-2. **QR Scanner Integration** (2%)
-   - Integrate QR scanner library
-   - QR code verification
-   - Scanner UI polish
-
 ### Medium Priority (2%)
-3. **Email Notifications** (2%)
+2. **Email Notifications** (2%)
    - RSVP confirmation emails
    - Reminder emails
    - Check-in notifications
 
 ### Low Priority (1%)
-4. **Testing** (1%)
+3. **Testing** (1%)
    - Unit tests
    - Integration tests
    - E2E tests
@@ -249,7 +228,6 @@ npm install @capacitor-community/barcode-scanner
 
 **Requires Native Development:**
 - Native UI components (Swift/Kotlin)
-- Native QR scanner integration
 - Native role management UI
 - Native channel UI
 - XCTest/Espresso test suite
@@ -262,7 +240,6 @@ npm install @capacitor-community/barcode-scanner
 
 ### Immediate Actions
 - [ ] Review `EVENTS_MVP_ENHANCEMENT_DOCUMENTATION.md`
-- [ ] Install dependencies: `npm install qrcode @types/qrcode`
 - [ ] Run database migration: `supabase migration up`
 - [ ] Verify database functions work
 - [ ] Test RSVP flow
@@ -270,17 +247,15 @@ npm install @capacitor-community/barcode-scanner
 
 ### Next Steps
 - [ ] Implement granular channel permissions UI
-- [ ] Integrate QR scanner library
 - [ ] Add email notification service
 - [ ] Write unit tests
 - [ ] Write integration tests
 
 ### Questions to Resolve
-1. Which QR scanner library for iOS/Android?
-2. Which email service for notifications?
-3. Where to store granular permissions metadata?
-4. How should capacity override work?
-5. Testing framework preference?
+1. Which email service for notifications?
+2. Where to store granular permissions metadata?
+3. How should capacity override work?
+4. Testing framework preference?
 
 ---
 
@@ -293,7 +268,7 @@ npm install @capacitor-community/barcode-scanner
 
 ### After Enhancement
 - Web: 92% ready
-- Missing: Granular permissions UI, QR scanner, email notifications, tests
+- Missing: Granular permissions UI, email notifications, tests
 - Estimated hours needed: 5-8 hours
 
 ### Hours Saved
@@ -326,12 +301,10 @@ The Events feature has been significantly enhanced, bringing web readiness from 
 ✅ Role-based access control system
 ✅ RSVP/registration system with capacity enforcement
 ✅ Check-in functionality for organizers
-✅ QR code ticket generation
 ✅ Waitlist management
 
 **Remaining 8%** consists of:
 - Granular channel permissions UI
-- QR scanner integration
 - Email notifications
 - Comprehensive testing
 
