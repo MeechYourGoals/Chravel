@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.chravel.app',
-  appName: 'Chravel',
+  appName: 'ChravelApp',
   webDir: 'dist',
   // PRODUCTION MODE: App bundles static assets
   // For development with hot reload, uncomment the server block:

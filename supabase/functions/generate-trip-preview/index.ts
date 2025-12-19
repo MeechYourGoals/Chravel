@@ -368,7 +368,7 @@ function generateHTML(trip: {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${safeTitle} | Chravel</title>
+  <title>${safeTitle} | ChravelApp</title>
   
   <!-- Open Graph Meta Tags -->
   <meta property="og:type" content="website">
@@ -379,7 +379,7 @@ function generateHTML(trip: {
   <meta property="og:image" content="${safeCoverPhoto}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:site_name" content="Chravel">
+  <meta property="og:site_name" content="ChravelApp">
   
   <!-- Twitter Card Meta Tags -->
   <meta name="twitter:card" content="summary_large_image">

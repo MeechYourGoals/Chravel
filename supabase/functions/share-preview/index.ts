@@ -63,7 +63,7 @@ function generateOGHtml(params: {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(title)} - Chravel</title>
+  <title>${escapeHtml(title)} - ChravelApp</title>
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
@@ -73,7 +73,7 @@ function generateOGHtml(params: {
   <meta property="og:image" content="${escapeHtml(imageUrl)}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:site_name" content="${escapeHtml(siteName)}">
+  <meta property="og:site_name" content="ChravelApp">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
@@ -140,7 +140,7 @@ function generateOGHtml(params: {
     <div class="loader"></div>
     <div class="badge">${escapeHtml(typeLabel)}</div>
     <h1>${escapeHtml(title)}</h1>
-    <p>Redirecting to Chravel...</p>
+    <p>Redirecting to ChravelApp...</p>
   </div>
 </body>
 </html>`;
@@ -203,7 +203,7 @@ serve(async (req): Promise<Response> => {
           description: "You've been invited to join a trip! Click to see details.",
           imageUrl: DEFAULT_IMAGE,
           url: `${baseAppUrl}/join/${inviteCode}`,
-          siteName: "Chravel",
+          siteName: "ChravelApp",
           type: 'trip'
         });
         return new Response(html, {
@@ -221,7 +221,7 @@ serve(async (req): Promise<Response> => {
           description: "This invite link is no longer valid. Please request a new one.",
           imageUrl: DEFAULT_IMAGE,
           url: `${baseAppUrl}/join/${inviteCode}`,
-          siteName: "Chravel",
+          siteName: "ChravelApp",
           type: 'trip'
         });
         return new Response(html, {
@@ -243,7 +243,7 @@ serve(async (req): Promise<Response> => {
           description: "This trip may have been deleted.",
           imageUrl: DEFAULT_IMAGE,
           url: `${baseAppUrl}/join/${inviteCode}`,
-          siteName: "Chravel",
+          siteName: "ChravelApp",
           type: 'trip'
         });
         return new Response(html, {
@@ -319,7 +319,7 @@ serve(async (req): Promise<Response> => {
       description,
       imageUrl: tripData.cover_image_url || DEFAULT_IMAGE,
       url: redirectUrl,
-      siteName: "Chravel",
+      siteName: "ChravelApp",
       type: tripType,
       destination: tripData.destination || undefined,
       dateRange: dateRange || undefined,
@@ -346,7 +346,7 @@ serve(async (req): Promise<Response> => {
       description: "Plan and coordinate group travel with friends, family, or colleagues.",
       imageUrl: DEFAULT_IMAGE,
       url: "https://app.chravel.com",
-      siteName: "Chravel",
+      siteName: "ChravelApp",
       type: 'trip'
     });
 

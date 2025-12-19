@@ -23,7 +23,7 @@ export default async function handler(request: Request): Promise<Response> {
   <title>Invalid Invite - Chravel</title>
   <meta property="og:title" content="Invalid Invite Link" />
   <meta property="og:description" content="This invite link is missing or invalid." />
-  <meta property="og:site_name" content="Chravel" />
+  <meta property="og:site_name" content="ChravelApp" />
 </head>
 <body>
   <h1>Invalid Invite Link</h1>
@@ -65,11 +65,11 @@ export default async function handler(request: Request): Promise<Response> {
       `<!DOCTYPE html>
 <html>
 <head>
-  <title>Trip Invite - Chravel</title>
+  <title>Trip Invite - ChravelApp</title>
   <meta property="og:title" content="You're Invited!" />
-  <meta property="og:description" content="Join this trip on Chravel - The Group Chat Travel App" />
-  <meta property="og:site_name" content="Chravel" />
-  <meta property="og:image" content="https://chravel.app/og-default.png" />
+  <meta property="og:description" content="Join this trip on ChravelApp - The Group Chat Travel App" />
+  <meta property="og:site_name" content="ChravelApp" />
+  <meta property="og:image" content="https://chravel.app/chravel-logo.png" />
 </head>
 <body>
   <h1>You're Invited to a Trip!</h1>
