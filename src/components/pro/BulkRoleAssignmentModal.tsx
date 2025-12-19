@@ -67,9 +67,21 @@ export const BulkRoleAssignmentModal = ({
   // Get list of current admin user IDs for UI display
   const adminUserIds = new Set(admins.map(a => a.user_id));
 
+  // Helper to get Supabase userId from participant id
+  const getSupabaseUserId = (participantId: string): string | undefined => {
+    const member = roster.find(m => m.id === participantId);
+    return member?.userId;
+  };
+
+  // Helper to check if a participant is an admin (by looking up their userId)
+  const isParticipantAdmin = (participantId: string): boolean => {
+    const userId = getSupabaseUserId(participantId);
+    return !!userId && adminUserIds.has(userId);
+  };
+
   // Count how many selected members are not already admins
   const nonAdminSelectedCount = selectedMembers.filter(
-    memberId => !adminUserIds.has(memberId)
+    memberId => !isParticipantAdmin(memberId)
   ).length;
 
   // Get actual trip roles - these are the only roles that can be assigned
@@ -132,14 +144,15 @@ export const BulkRoleAssignmentModal = ({
     // If admin checkbox is checked and we have a tripId, promote selected members to admin
     let adminCount = 0;
     if (grantAdminAccess && tripId) {
-      const membersToPromote = selectedMembers.filter(
-        memberId => !adminUserIds.has(memberId)
-      );
+      // Get Supabase userIds for selected members who aren't already admins
+      const userIdsToPromote = selectedMembers
+        .map(participantId => getSupabaseUserId(participantId))
+        .filter((userId): userId is string => !!userId && !adminUserIds.has(userId));
       
-      if (membersToPromote.length > 0) {
-        const adminPromises = membersToPromote.map(memberId =>
-          promoteToAdmin(memberId).then(() => true).catch(err => {
-            console.warn(`Failed to promote member ${memberId} to admin:`, err);
+      if (userIdsToPromote.length > 0) {
+        const adminPromises = userIdsToPromote.map(userId =>
+          promoteToAdmin(userId).then(() => true).catch(err => {
+            console.warn(`Failed to promote user ${userId} to admin:`, err);
             return false;
           })
         );
@@ -266,7 +279,7 @@ export const BulkRoleAssignmentModal = ({
             {/* Member List */}
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {filteredRoster.map(member => {
-                const isAlreadyAdmin = adminUserIds.has(member.id);
+                const isAlreadyAdmin = member.userId ? adminUserIds.has(member.userId) : false;
                 return (
                   <label
                     key={member.id}
