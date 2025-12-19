@@ -49,6 +49,11 @@ BEGIN
   WHERE t.id = NEW.trip_id
   LIMIT 1;
 
+  -- If the trip row doesn't exist (unexpected), do nothing.
+  IF v_trip_type IS NULL THEN
+    RETURN NEW;
+  END IF;
+
   IF COALESCE(v_trip_type, 'consumer') IS DISTINCT FROM 'consumer' THEN
     RETURN NEW;
   END IF;
