@@ -1,7 +1,7 @@
 
 {
-  "name": "Chravel - Travel Planning Platform",
-  "short_name": "Chravel",
+  "name": "ChravelApp - Travel Planning Platform",
+  "short_name": "ChravelApp",
   "description": "Chat-powered professional trip management and collaborative travel planning platform",
   "start_url": "/",
   "display": "standalone",
