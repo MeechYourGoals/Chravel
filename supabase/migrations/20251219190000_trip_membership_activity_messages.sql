@@ -37,9 +37,22 @@ AS $$
 DECLARE
   v_display_name text;
   v_trip_creator_id uuid;
+  v_trip_type text;
   v_event text;
   v_content text;
 BEGIN
+  -- Only create membership activity messages for consumer trips.
+  -- Pro/Event trips can have large rosters (100s/1000s) and this would be spammy.
+  SELECT t.trip_type
+  INTO v_trip_type
+  FROM public.trips t
+  WHERE t.id = NEW.trip_id
+  LIMIT 1;
+
+  IF COALESCE(v_trip_type, 'consumer') IS DISTINCT FROM 'consumer' THEN
+    RETURN NEW;
+  END IF;
+
   -- Resolve display name (fall back safely)
   SELECT COALESCE(
     NULLIF(p.display_name, ''),
