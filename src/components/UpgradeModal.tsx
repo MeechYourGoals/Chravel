@@ -406,7 +406,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   <Ticket size={24} className="text-indigo-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Professional Invitations & Ticketing</h4>
-                <p className="text-gray-300 text-sm">Generate custom invitations, integrate with ticketing platforms, and QR code ticket management.</p>
+                <p className="text-gray-300 text-sm">Generate custom invitations, integrate with ticketing platforms, and manage attendee ticketing.</p>
               </div>
 
               <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6 relative">

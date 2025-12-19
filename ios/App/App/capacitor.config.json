@@ -1,6 +1,6 @@
 {
 	"appId": "com.chravel.app",
-	"appName": "Chravel",
+	"appName": "ChravelApp",
 	"webDir": "dist",
 	"plugins": {
 		"PushNotifications": {

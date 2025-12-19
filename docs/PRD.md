@@ -155,7 +155,7 @@ Key Principles
 - Supabase Auth; ensure Authentication > URL Configuration is set correctly (Site and Redirect URLs).
 - Google sign-in (optional) per Supabase docs.
 - Share Trip:
-  - Create invite link (trip_invites/invite_links): set code, max_uses, expiration; present friendly share modal with QR and deep links.
+  - Create invite link (trip_invites/invite_links): set code, max_uses, expiration; present friendly share modal with deep links.
   - Join Trip:
     - Validates code, checks active/expiry/uses; increments usage; inserts into trip_members (when created).
 

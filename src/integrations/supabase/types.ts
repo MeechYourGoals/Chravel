@@ -643,7 +643,6 @@ export type Database = {
           id: string
           rsvped_at: string
           status: string
-          ticket_qr_code: string | null
           updated_at: string
           user_email: string
           user_id: string
@@ -660,7 +659,6 @@ export type Database = {
           id?: string
           rsvped_at?: string
           status: string
-          ticket_qr_code?: string | null
           updated_at?: string
           user_email: string
           user_id: string
@@ -677,7 +675,6 @@ export type Database = {
           id?: string
           rsvped_at?: string
           status?: string
-          ticket_qr_code?: string | null
           updated_at?: string
           user_email?: string
           user_id?: string
