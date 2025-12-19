@@ -39,10 +39,10 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
 
   const fetchRequests = async () => {
     try {
-      // Fetch requests
+      // Fetch requests - only select columns that exist in the table
       const { data: requestsData, error: requestsError } = await supabase
         .from('trip_join_requests')
-        .select('*, requester_name, requester_email')
+        .select('id, trip_id, user_id, invite_code, status, requested_at, resolved_at, resolved_by')
         .eq('trip_id', tripId)
         .eq('status', 'pending')
         .order('requested_at', { ascending: false });
@@ -63,21 +63,14 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
         const mergedData = requestsData.map(request => {
           const profile = profilesData?.find(p => p.user_id === request.user_id);
           
-          // Determine display name with fallback to requester_name/email if profile missing
-          let displayName = profile?.display_name || profile?.email;
-          if (!displayName) {
-             // Fallback to snapshot data
-             displayName = request.requester_name || request.requester_email || 'Unknown User';
-          }
+          // Determine display name from profile
+          const displayName = profile?.display_name || profile?.email || 'Unknown User';
           
           return {
             ...request,
             profiles: {
-              ...(profile || {}),
-              // Override display name if we have a better one or fallback
               display_name: displayName,
-              // Use snapshot email if profile email is missing
-              email: profile?.email || request.requester_email || null,
+              email: profile?.email || null,
               avatar_url: profile?.avatar_url || null
             }
           };

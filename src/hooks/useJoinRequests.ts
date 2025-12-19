@@ -53,10 +53,10 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
     try {
       setIsLoading(true);
 
-      // Fetch pending join requests with fallback name/email
+      // Fetch pending join requests - only select columns that exist
       const { data, error } = await supabase
         .from('trip_join_requests')
-        .select('id, trip_id, user_id, invite_code, status, requested_at, resolved_at, resolved_by, requester_name, requester_email')
+        .select('id, trip_id, user_id, invite_code, status, requested_at, resolved_at, resolved_by')
         .eq('trip_id', tripId)
         .eq('status', 'pending')
         .order('requested_at', { ascending: false });
@@ -80,9 +80,7 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
           // 1. Profile display_name
           // 2. Profile first/last name combination
           // 3. Profile email
-          // 4. Request snapshot name (requester_name)
-          // 5. Request snapshot email (requester_email)
-          // 6. "Unknown User" as last resort
+          // 4. "Unknown User" as last resort
           let finalDisplayName: string | null = null;
 
           if (profile) {
@@ -100,11 +98,6 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
             }
           }
 
-          // Fallback to snapshot data if profile data didn't yield a name
-          if (!finalDisplayName) {
-            finalDisplayName = request.requester_name || request.requester_email || null;
-          }
-
           finalDisplayName = finalDisplayName || 'Unknown User';
 
           return {
@@ -112,7 +105,7 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
             profile: {
               display_name: finalDisplayName,
               avatar_url: profile?.avatar_url,
-              email: profile?.email || request.requester_email,
+              email: profile?.email,
               first_name: profile?.first_name,
               last_name: profile?.last_name
             }
