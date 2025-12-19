@@ -32,11 +32,15 @@ export const JoinRequestNotification = ({ notification, onAction, onNavigate, is
   const navigate = useNavigate();
 
   const handleNotificationClick = () => {
-    const tripId = notification.data?.trip_id;
+    // Get trip ID from notification data, with fallback to notification-level tripId if available
+    const tripId = notification.data?.trip_id || (notification as { tripId?: string }).tripId;
     if (tripId) {
       // Navigate to trip with query param to open collaborators modal on requests tab
+      // This deep-links directly to the Requests tab for quick approval/rejection
       navigate(`/trip/${tripId}?showCollaborators=requests`);
       onNavigate?.();
+    } else {
+      console.warn('JoinRequestNotification: Missing trip_id in notification data', notification);
     }
   };
 
