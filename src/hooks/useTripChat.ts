@@ -100,6 +100,8 @@ export const useTripChat = (tripId: string | undefined) => {
     const rateLimitWindow = 60000; // 1 minute
     let windowStart = Date.now();
 
+    console.log('[CHAT REALTIME] Subscribing to channel:', `trip_chat_${tripId}`);
+    
     const channel = supabase
       .channel(`trip_chat_${tripId}`)
       .on(
@@ -111,6 +113,13 @@ export const useTripChat = (tripId: string | undefined) => {
           filter: `trip_id=eq.${tripId}`
         },
         (payload) => {
+          console.log('[CHAT REALTIME] INSERT received:', {
+            messageId: payload.new?.id,
+            author: (payload.new as any)?.author_name,
+            content: (payload.new as any)?.content?.substring(0, 50),
+            timestamp: new Date().toISOString()
+          });
+          
           const now = Date.now();
           
           // Reset rate limit window if needed
@@ -121,7 +130,7 @@ export const useTripChat = (tripId: string | undefined) => {
           
           // Rate limit protection
           if (messageCount >= maxMessagesPerMinute) {
-            console.warn('Message rate limit exceeded, dropping message');
+            console.warn('[CHAT REALTIME] Rate limit exceeded, dropping message');
             return;
           }
           
@@ -133,11 +142,13 @@ export const useTripChat = (tripId: string | undefined) => {
             
             // Prevent duplicate messages
             if (old.some(msg => msg.id === newMessage.id)) {
+              console.log('[CHAT REALTIME] Duplicate message ignored:', newMessage.id);
               return old;
             }
             
             // Insert message in correct chronological order
             const newMessages = [...old, newMessage];
+            console.log('[CHAT RENDER] Messages count after INSERT:', newMessages.length);
             return newMessages.sort((a, b) => 
               new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             );
@@ -173,9 +184,12 @@ export const useTripChat = (tripId: string | undefined) => {
           });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[CHAT REALTIME] Subscription status:', status);
+      });
 
     return () => {
+      console.log('[CHAT REALTIME] Unsubscribing from channel:', `trip_chat_${tripId}`);
       supabase.removeChannel(channel);
     };
   }, [tripId, queryClient]);

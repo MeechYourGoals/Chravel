@@ -15,7 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEventPermissions } from '@/hooks/useEventPermissions';
 import { CheckCircle2, Search, Users, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
