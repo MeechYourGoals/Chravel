@@ -13,6 +13,9 @@ export interface JoinRequest {
   requested_at: string;
   resolved_by?: string;
   resolved_at?: string;
+  // Name captured at request creation time (fail-safe, stored in DB)
+  requester_name?: string;
+  requester_email?: string;
   profile?: {
     display_name: string;
     avatar_url?: string;
@@ -22,14 +25,6 @@ export interface JoinRequest {
   };
 }
 
-// Type for notification metadata containing requester info
-interface NotificationMetadata {
-  requester_id?: string;
-  requester_name?: string;
-  request_id?: string;
-  trip_id?: string;
-  trip_name?: string;
-}
 
 interface UseJoinRequestsProps {
   tripId: string;
@@ -58,81 +53,68 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
     try {
       setIsLoading(true);
 
+      // Fetch requests with the new requester_name and requester_email fields
+      // These are captured at request creation time and stored directly in the table
       const { data, error } = await supabase
         .from('trip_join_requests')
-        .select('*')
+        .select('id, trip_id, user_id, invite_code, status, requested_at, resolved_at, resolved_by, requester_name, requester_email')
         .eq('trip_id', tripId)
         .eq('status', 'pending')
         .order('requested_at', { ascending: false });
 
       if (error) throw error;
 
-      // Fetch notifications to get requester names that were captured at request time
-      // This is the canonical source since names are stored when the request is created
-      const { data: notifications } = await supabase
-        .from('notifications')
-        .select('metadata')
-        .eq('type', 'join_request')
-        .eq('trip_id', tripId);
-
-      // Build a map of request_id -> requester info from notifications
-      const requesterInfoMap = new Map<string, { name: string; id: string }>();
-      if (notifications) {
-        for (const notif of notifications) {
-          const metadata = notif.metadata as NotificationMetadata | null;
-          if (metadata?.request_id && metadata?.requester_name) {
-            requesterInfoMap.set(metadata.request_id, {
-              name: metadata.requester_name,
-              id: metadata.requester_id || ''
-            });
-          }
-        }
-      }
-
-      // Fetch profiles separately with all available name fields
+      // Fetch profiles for additional info (avatar, etc.) but NOT as primary name source
       const requestsWithProfiles = await Promise.all(
         (data || []).map(async (request) => {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('display_name, avatar_url, email, first_name, last_name')
             .eq('user_id', request.user_id)
-            .maybeSingle(); // Use maybeSingle to avoid errors when profile doesn't exist
+            .maybeSingle();
 
           if (profileError) {
             console.warn('Failed to fetch profile for user:', request.user_id, profileError);
           }
 
-          // Get fallback name from notification metadata (captured at request creation time)
-          const notificationInfo = requesterInfoMap.get(request.id);
-          const fallbackName = notificationInfo?.name;
+          // Name resolution priority (fail-safe approach):
+          // 1. requester_name from DB (captured at request creation - most reliable)
+          // 2. requester_email from DB (fallback captured at request creation)
+          // 3. Profile display_name (may be updated after request)
+          // 4. Profile first/last name combination
+          // 5. Profile email
+          // 6. "Unknown User" as last resort
+          let finalDisplayName = request.requester_name;
 
-          // Build display_name from available fields if it's empty
-          let displayName = profile?.display_name;
-          if (!displayName && profile) {
-            if (profile.first_name && profile.last_name) {
-              displayName = `${profile.first_name} ${profile.last_name}`;
-            } else if (profile.first_name) {
-              displayName = profile.first_name;
-            } else if (profile.last_name) {
-              displayName = profile.last_name;
+          if (!finalDisplayName) {
+            // Fallback to DB-stored email
+            finalDisplayName = request.requester_email;
+          }
+
+          if (!finalDisplayName && profile) {
+            // Fallback to current profile data
+            finalDisplayName = profile.display_name;
+            if (!finalDisplayName) {
+              if (profile.first_name && profile.last_name) {
+                finalDisplayName = `${profile.first_name} ${profile.last_name}`;
+              } else if (profile.first_name) {
+                finalDisplayName = profile.first_name;
+              } else if (profile.last_name) {
+                finalDisplayName = profile.last_name;
+              } else {
+                finalDisplayName = profile.email;
+              }
             }
           }
 
-          // Final name resolution priority:
-          // 1. Built display name from profile
-          // 2. Profile email
-          // 3. Notification metadata (requester_name captured at request time)
-          // 4. "Unknown User" as last resort
-          const finalDisplayName = displayName || profile?.email || fallbackName || 'Unknown User';
+          finalDisplayName = finalDisplayName || 'Unknown User';
 
-          // Always return a profile object with the resolved name
-          // This ensures we never show "Unknown User" if we have data from notifications
           return {
             ...request,
             profile: {
               display_name: finalDisplayName,
               avatar_url: profile?.avatar_url,
-              email: profile?.email,
+              email: profile?.email || request.requester_email,
               first_name: profile?.first_name,
               last_name: profile?.last_name
             }

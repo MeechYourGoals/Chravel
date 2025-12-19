@@ -173,14 +173,40 @@ serve(async (req) => {
     const requiresApproval = invite.require_approval || false;
 
     if (requiresApproval) {
-      // Create join request instead of auto-joining
+      // Get requester profile FIRST to capture name at request time
+      // This is critical for displaying the correct name in the Requests tab
+      const { data: requesterProfile } = await supabaseClient
+        .from("profiles")
+        .select("display_name, email, first_name, last_name")
+        .eq("user_id", user.id)
+        .single();
+
+      // Build requester name with multiple fallbacks
+      let requesterName = requesterProfile?.display_name;
+      if (!requesterName && requesterProfile) {
+        if (requesterProfile.first_name && requesterProfile.last_name) {
+          requesterName = `${requesterProfile.first_name} ${requesterProfile.last_name}`;
+        } else if (requesterProfile.first_name) {
+          requesterName = requesterProfile.first_name;
+        } else if (requesterProfile.last_name) {
+          requesterName = requesterProfile.last_name;
+        }
+      }
+      requesterName = requesterName || requesterProfile?.email || user.email || "Someone";
+      const requesterEmail = requesterProfile?.email || user.email;
+
+      logStep("Requester profile captured", { requesterName, requesterEmail });
+
+      // Create join request with requester info stored directly
       const { data: joinRequest, error: requestError } = await supabaseClient
         .from("trip_join_requests")
         .insert({
           trip_id: invite.trip_id,
           user_id: user.id,
           invite_code: inviteCode,
-          status: 'pending'
+          status: 'pending',
+          requester_name: requesterName,
+          requester_email: requesterEmail
         })
         .select('id')
         .single();
@@ -214,14 +240,8 @@ serve(async (req) => {
 
       logStep("Join request created successfully", { requestId: joinRequest?.id });
 
-      // Get requester profile for notification
-      const { data: requesterProfile } = await supabaseClient
-        .from("profiles")
-        .select("display_name, email")
-        .eq("user_id", user.id)
-        .single();
-
-      const requesterName = requesterProfile?.display_name || requesterProfile?.email || user.email || "Someone";
+      // Note: requesterName and requesterEmail were already captured above
+      // when we created the join request - no need to fetch profile again
 
       // Determine notification recipients based on trip type
       let recipientIds: string[] = [];
