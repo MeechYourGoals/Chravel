@@ -584,11 +584,11 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                     ? `bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white hover:scale-105`
                     : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/50'
                 )}
-                title={canExport ? 'Export Trip to PDF' : 'Upgrade for PDF export'}
-                aria-label="Export Trip to PDF"
+                title={canExport ? 'Create PDF Recap' : 'Upgrade for PDF recap'}
+                aria-label="Create PDF Recap"
               >
                 <FileDown size={14} />
-                <span>Export to PDF</span>
+                <span>PDF Recap</span>
               </button>
             </div>
           </div>

@@ -68,8 +68,8 @@ export const MobileHeaderOptionsSheet: React.FC<MobileHeaderOptionsSheetProps> =
                 <FileDown size={20} className="text-emerald-400" />
               </div>
               <div>
-                <p className="text-white font-medium">Export to PDF</p>
-                <p className="text-gray-400 text-sm">Download trip summary</p>
+                <p className="text-white font-medium">PDF Recap</p>
+                <p className="text-gray-400 text-sm">Create your trip memories</p>
               </div>
             </button>
           )}

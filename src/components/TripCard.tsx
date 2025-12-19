@@ -164,8 +164,8 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
     }
 
     toast({
-      title: "Generating PDF",
-      description: `Creating summary for "${trip.title}"...`,
+      title: "Creating Recap",
+      description: `Building your trip memories for "${trip.title}"...`,
     });
 
     try {
@@ -245,13 +245,13 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
       await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
 
       toast({
-        title: "Export complete",
+        title: "Recap ready",
         description: `PDF downloaded: ${filename}`,
       });
     } catch (error) {
       console.error('[TripCard Export] Error:', error);
       toast({
-        title: "Export failed",
+        title: "Recap failed",
         description: error instanceof Error ? error.message : "Failed to generate PDF. Please try again.",
         variant: "destructive",
       });
@@ -405,7 +405,7 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
           >
             <FileDown size={14} className="md:hidden" />
             <FileDown size={16} className="hidden md:block" />
-            Export
+            Recap
           </button>
 
           <button
