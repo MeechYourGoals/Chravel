@@ -3,7 +3,7 @@
  *
  * This component provides a single source of truth for rendering videos
  * and images across the app. It includes all iOS-required attributes
- * for reliable playback on Safari, PWA, and Capacitor WebViews.
+ * for reliable playback on Safari and PWA (mobile via Flutter separately).
  *
  * iOS WebKit Requirements:
  * - `playsInline` - Required for inline playback (vs fullscreen takeover)
