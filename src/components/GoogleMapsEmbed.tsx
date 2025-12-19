@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin } from 'lucide-react';
 import { GoogleMapsService } from '@/services/googleMapsService';
-import { useBasecamp } from '@/contexts/BasecampContext';
+import { BasecampLocation } from '@/types/basecamp';
 
 interface GoogleMapsEmbedProps {
   className?: string;
+  /** Trip basecamp (preferred). If omitted, defaults to world map. */
+  basecamp?: BasecampLocation | null;
   /** External search location - when set, map centers on these coordinates */
   searchLocation?: { lat: number; lng: number; address?: string } | null;
   /** Callback when user wants to save searched location as basecamp */
@@ -13,10 +15,10 @@ interface GoogleMapsEmbedProps {
 
 export const GoogleMapsEmbed = ({ 
   className, 
+  basecamp,
   searchLocation,
   onSaveAsBasecamp 
 }: GoogleMapsEmbedProps) => {
-  const { basecamp, isBasecampSet } = useBasecamp();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [embedUrl, setEmbedUrl] = useState('');
@@ -40,7 +42,7 @@ export const GoogleMapsEmbed = ({
         );
       }
       // Priority 2: Trip basecamp from context
-      else if (isBasecampSet && basecamp?.address) {
+      else if (basecamp?.address) {
         url = GoogleMapsService.buildEmbeddableUrl(basecamp.address, basecamp.coordinates);
       } 
       // Priority 3: Default world map
@@ -59,7 +61,7 @@ export const GoogleMapsEmbed = ({
     }, 100);
     
     return () => clearTimeout(timer);
-  }, [isBasecampSet, basecamp, retryCount, searchLocation]);
+  }, [basecamp, retryCount, searchLocation]);
 
   const handleIframeLoad = () => {
     setIsLoading(false);

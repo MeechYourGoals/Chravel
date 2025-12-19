@@ -6,13 +6,13 @@ import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { useBasecamp } from '@/contexts/BasecampContext';
 import { toast } from 'sonner';
 
 export interface BasecampsPanelProps {
   tripId: string;
   tripBasecamp: BasecampLocation | null;
   onTripBasecampSet: (basecamp: BasecampLocation) => Promise<void> | void;
+  onTripBasecampClear?: () => Promise<void> | void;
   /** @deprecated Map centering is now disconnected from basecamp saving */
   onCenterMap?: (coords: { lat: number; lng: number }, type: 'trip' | 'personal') => void;
   activeContext: 'trip' | 'personal';
@@ -25,13 +25,13 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   tripId,
   tripBasecamp,
   onTripBasecampSet,
+  onTripBasecampClear,
   // onCenterMap is deprecated - map centering is disconnected from basecamp saving
   personalBasecamp: externalPersonalBasecamp,
   onPersonalBasecampUpdate
 }) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
-  const { clearBasecamp } = useBasecamp();
   const [internalPersonalBasecamp, setInternalPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
   const [showTripSelector, setShowTripSelector] = useState(false);
   const [showPersonalSelector, setShowPersonalSelector] = useState(false);
@@ -94,10 +94,9 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
     if (!tripBasecamp) return;
     
     try {
-      if (isDemoMode) {
-        demoModeService.clearSessionTripBasecamp(tripId);
+      if (onTripBasecampClear) {
+        await Promise.resolve(onTripBasecampClear());
       }
-      clearBasecamp();
       toast.success('Trip basecamp cleared');
     } catch (error) {
       console.error('Failed to clear trip basecamp:', error);

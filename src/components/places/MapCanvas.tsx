@@ -792,6 +792,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
           <GoogleMapsEmbed 
             className="w-full h-full" 
+            basecamp={tripBasecamp ?? null}
             searchLocation={iframeSearchLocation}
             onSaveAsBasecamp={onSaveSearchAsBasecamp}
           />

@@ -6,7 +6,7 @@ import { Badge } from './ui/badge';
 import { BasecampSelector } from './BasecampSelector';
 import { personalAccommodationService, PersonalAccommodation } from '../services/personalAccommodationService';
 import { useAuth } from '../hooks/useAuth';
-import { useBasecamp } from '../contexts/BasecampContext';
+import { useTripBasecamp } from '../contexts/BasecampContext';
 
 interface AccommodationSelectorProps {
   tripId: string;
@@ -37,7 +37,7 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
   onLocationSet
 }) => {
   const { user } = useAuth();
-  const { basecamp: tripBasecamp } = useBasecamp();
+  const { basecamp: tripBasecamp } = useTripBasecamp(tripId);
   const [personalAccommodation, setPersonalAccommodation] = useState<PersonalAccommodation | null>(null);
   const [showPersonalSelector, setShowPersonalSelector] = useState(false);
   const [loading, setLoading] = useState(true);

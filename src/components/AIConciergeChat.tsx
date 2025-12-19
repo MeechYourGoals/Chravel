@@ -5,7 +5,7 @@ import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { TripPreferences } from '../types/consumer';
 import { TripContextService } from '../services/tripContextService';
 import { EnhancedTripContextService } from '../services/enhancedTripContextService';
-import { useBasecamp } from '../contexts/BasecampContext';
+import { useBasecamp, useTripBasecamp } from '../contexts/BasecampContext';
 import { ChatMessages } from './chat/ChatMessages';
 import { AiChatInput } from './chat/AiChatInput';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,6 +47,7 @@ interface ChatMessage {
 export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = false, isEvent = false }: AIConciergeChatProps) => {
   const { isPlus } = useConsumerSubscription();
   const { basecamp: globalBasecamp } = useBasecamp();
+  const { basecamp: tripScopedBasecamp } = useTripBasecamp(tripId);
   const { user } = useAuth();
   const { usage, getUsageStatus, formatTimeUntilReset, isFreeUser, upgradeUrl } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
@@ -61,6 +62,9 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
   const isMounted = useRef(true);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Prefer explicit prop basecamp, then trip-scoped, then legacy/global
+  const effectiveBasecamp = basecamp ?? tripScopedBasecamp ?? globalBasecamp ?? undefined;
 
   // Helper to convert isPlus boolean to tier string
   const getUserTier = (): 'free' | 'plus' | 'pro' => {
@@ -241,11 +245,11 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
           tripContext = {
             tripId,
             title: 'Current Trip',
-            location: globalBasecamp?.address || basecamp?.address || 'Unknown location',
+            location: effectiveBasecamp?.address || 'Unknown location',
             dateRange: new Date().toISOString().split('T')[0],
             participants: [],
             itinerary: [],
-            accommodation: globalBasecamp?.name || basecamp?.name,
+            accommodation: effectiveBasecamp?.name,
             currentDate: new Date().toISOString().split('T')[0],
             upcomingEvents: [],
             recentUpdates: [],
@@ -264,13 +268,12 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       }));
 
       // Prepare basecamp location (already declared above)
-      basecampLocation = globalBasecamp ? {
-        name: globalBasecamp.name || 'Basecamp',
-        address: globalBasecamp.address
-      } : (basecamp ? {
-        name: basecamp.name || 'Basecamp',
-        address: basecamp.address
-      } : undefined);
+      basecampLocation = effectiveBasecamp
+        ? {
+            name: effectiveBasecamp.name || 'Basecamp',
+            address: effectiveBasecamp.address,
+          }
+        : undefined;
 
       // Send to Lovable AI Concierge with retry logic and graceful degradation
       let retryCount = 0;

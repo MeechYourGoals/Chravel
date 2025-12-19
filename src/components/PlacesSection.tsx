@@ -8,7 +8,7 @@ import { useTripVariant } from '../contexts/TripVariantContext';
 import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { useBasecamp } from '@/contexts/BasecampContext';
+import { useTripBasecamp } from '@/contexts/BasecampContext';
 import { supabase } from '@/integrations/supabase/client';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
@@ -27,7 +27,11 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
   const { variant: _variant } = useTripVariant();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
-  const { basecamp: contextBasecamp, setBasecamp: setContextBasecamp, isBasecampSet } = useBasecamp();
+  const {
+    basecamp: tripBasecamp,
+    setBasecamp: setTripBasecamp,
+    clearBasecamp: clearTripBasecamp,
+  } = useTripBasecamp(tripId);
   const mapRef = useRef<MapCanvasRef>(null);
 
   // State
@@ -219,6 +223,52 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
   const lastLocalUpdateRef = useRef<{ timestamp: number; address: string } | null>(null);
   const UPDATE_DEBOUNCE_MS = 2000; // 2 second window to detect local vs remote updates
 
+  // Hydrate trip basecamp from DB (authenticated) or demo session
+  useEffect(() => {
+    if (!tripId) return;
+
+    let mounted = true;
+
+    const loadTripBasecamp = async () => {
+      try {
+        if (isDemoMode) {
+          const session = demoModeService.getSessionTripBasecamp(tripId);
+          if (!mounted) return;
+
+          if (!session) {
+            await setTripBasecamp(null);
+            return;
+          }
+
+          await setTripBasecamp({
+            address: session.address,
+            name: session.name,
+            type: 'other',
+            coordinates: undefined,
+          });
+          return;
+        }
+
+        // Authenticated / real trip
+        if (!user) return;
+
+        const dbBasecamp = await basecampService.getTripBasecamp(tripId);
+        if (!mounted) return;
+        await setTripBasecamp(dbBasecamp);
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('[PlacesSection] Failed to load trip basecamp:', error);
+        }
+      }
+    };
+
+    void loadTripBasecamp();
+
+    return () => {
+      mounted = false;
+    };
+  }, [tripId, isDemoMode, user, setTripBasecamp]);
+
   // Realtime sync for trip basecamp updates
   useEffect(() => {
     if (isDemoMode || !tripId) return;
@@ -247,10 +297,10 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
 
           if (isLocalUpdate) {
             // Still update the context silently
-            setContextBasecamp(updatedBasecamp);
+            await setTripBasecamp(updatedBasecamp);
           } else {
             // Remote update - show notification
-            setContextBasecamp(updatedBasecamp);
+            await setTripBasecamp(updatedBasecamp);
             toast.success('Trip Base Camp updated by another member!', {
               description: updatedBasecamp.name || updatedBasecamp.address
             });
@@ -262,24 +312,83 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tripId, isDemoMode, setContextBasecamp]);
+  }, [tripId, isDemoMode, setTripBasecamp]);
 
   // Note: Search origin and distance calculations are no longer tied to basecamps
   // Basecamps are now simple text references without coordinates
   // The map is for browsing only and is not affected by basecamp changes
 
-  const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
+  const handleTripBasecampSet = async (newBasecamp: BasecampLocation) => {
     // Track local update for conflict resolution
     lastLocalUpdateRef.current = {
       timestamp: Date.now(),
       address: newBasecamp.address
     };
     
-    setContextBasecamp(newBasecamp);
+    const previous = tripBasecamp;
+    await setTripBasecamp(newBasecamp);
+
+    // Demo mode: keep session basecamp in sync (no DB)
+    if (isDemoMode) {
+      demoModeService.setSessionTripBasecamp(tripId, { name: newBasecamp.name, address: newBasecamp.address });
+      return;
+    }
+
+    if (!user) {
+      // Revert optimistic update
+      await setTripBasecamp(previous ?? null);
+      throw new Error('User not authenticated');
+    }
+
+    const result = await basecampService.setTripBasecamp(tripId, {
+      name: newBasecamp.name,
+      address: newBasecamp.address,
+      latitude: newBasecamp.coordinates?.lat,
+      longitude: newBasecamp.coordinates?.lng,
+    });
+
+    if (!result.success) {
+      if (result.conflict) {
+        const latest = await basecampService.getTripBasecamp(tripId);
+        await setTripBasecamp(latest);
+        throw new Error(result.error || 'Basecamp was modified by another user.');
+      }
+
+      // Non-conflict failure: revert optimistic update
+      await setTripBasecamp(previous ?? null);
+      throw new Error(result.error || 'Failed to save trip basecamp');
+    }
     
     // Note: Map centering is now disconnected from basecamp saving
     // Basecamps are simple text references without coordinates
     // The map is for browsing only and is not affected by basecamp changes
+  };
+
+  const handleTripBasecampClear = async () => {
+    const previous = tripBasecamp;
+
+    await clearTripBasecamp();
+
+    if (isDemoMode) {
+      demoModeService.clearSessionTripBasecamp(tripId);
+      return;
+    }
+
+    if (!user) {
+      await setTripBasecamp(previous ?? null);
+      throw new Error('User not authenticated');
+    }
+
+    const result = await basecampService.clearTripBasecamp(tripId);
+    if (!result.success) {
+      if (result.conflict) {
+        const latest = await basecampService.getTripBasecamp(tripId);
+        await setTripBasecamp(latest);
+        throw new Error(result.error || 'Basecamp was modified by another user.');
+      }
+      await setTripBasecamp(previous ?? null);
+      throw new Error(result.error || 'Failed to clear trip basecamp');
+    }
   };
 
   const handleCenterMap = (coords: { lat: number; lng: number }, type?: 'trip' | 'personal' | 'search') => {
@@ -432,8 +541,9 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
             {activeTab === 'basecamps' && (
               <BasecampsPanel
                 tripId={tripId}
-                tripBasecamp={contextBasecamp}
-                onTripBasecampSet={handleBasecampSet}
+                tripBasecamp={tripBasecamp}
+                onTripBasecampSet={handleTripBasecampSet}
+                onTripBasecampClear={handleTripBasecampClear}
                 onCenterMap={handleCenterMap}
                 activeContext={searchContext}
                 onContextChange={handleContextChange}
@@ -446,7 +556,7 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
               <LinksPanel
                 tripId={tripId}
                 places={places}
-                basecamp={contextBasecamp}
+                basecamp={tripBasecamp}
                 personalBasecamp={personalBasecamp}
                 onPlaceAdded={(place) => {
                   setPlaces(prev => [...prev, place]);
@@ -482,7 +592,7 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
             <MapCanvas
               ref={mapRef}
               activeContext={searchContext}
-              tripBasecamp={contextBasecamp}
+              tripBasecamp={tripBasecamp}
               personalBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : null}
               className="w-full h-full"
               onMapReady={handleMapReady}
@@ -494,10 +604,15 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
                   type: 'other',
                   coordinates: { lat: location.lat, lng: location.lng }
                 };
-                handleBasecampSet(newBasecamp);
-                toast.success('Saved as Trip Base Camp!', {
-                  description: newBasecamp.name
-                });
+                void handleTripBasecampSet(newBasecamp)
+                  .then(() => {
+                    toast.success('Saved as Trip Base Camp!', {
+                      description: newBasecamp.name,
+                    });
+                  })
+                  .catch(() => {
+                    toast.error('Failed to save Trip Base Camp');
+                  });
               }}
             />
 

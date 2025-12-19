@@ -75,7 +75,7 @@ class BasecampService {
 
   /**
    * Set the trip basecamp (shared across all users)
-   * Only trip creator/admin can do this
+   * Any active trip member can do this
    * Logs changes to history
    */
   async setTripBasecamp(
@@ -131,6 +131,22 @@ class BasecampService {
       console.error('Error setting trip basecamp:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
+  }
+
+  /**
+   * Clear the trip basecamp. Stored as an empty address (treated as "unset" in reads).
+   */
+  async clearTripBasecamp(
+    tripId: string,
+    options?: { skipHistory?: boolean; currentVersion?: number }
+  ): Promise<{ success: boolean; error?: string; conflict?: boolean }> {
+    const result = await this.setTripBasecamp(
+      tripId,
+      { name: undefined, address: '', latitude: undefined, longitude: undefined },
+      options,
+    );
+
+    return { success: result.success, error: result.error, conflict: result.conflict };
   }
 
   /**
