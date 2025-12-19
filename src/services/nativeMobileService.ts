@@ -1,353 +1,79 @@
-// 🆕 Native mobile service for iOS/Android features
-import { Capacitor } from '@capacitor/core';
-
-// Dynamic imports for native features
-let Camera: any, Geolocation: any, PushNotifications: any, LocalNotifications: any;
-let Haptics: any, StatusBar: any, SplashScreen: any, App: any;
-
-const loadNativePlugins = async () => {
-  if (Capacitor.isNativePlatform()) {
-    try {
-      // Only load plugins when actually needed to avoid build issues
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Failed to load native plugins:', error);
-    }
-  }
-};
+// Web-only mobile service stubs (native functionality moved to Flutter)
 
 export class NativeMobileService {
-  private static isNative = Capacitor.isNativePlatform();
-  private static isIOS = Capacitor.getPlatform() === 'ios';
-  private static isAndroid = Capacitor.getPlatform() === 'android';
+  private static isNative = false; // Always false on web
 
-  static async initialize() {
-    if (!this.isNative) return;
-    
-    await loadNativePlugins();
-    await this.setupPushNotifications();
-    await this.setupAppStateHandling();
-    await this.setupNativeOptimizations();
+  static async initialize(): Promise<void> {
+    // No-op on web
   }
 
-  // 🆕 Camera Integration
+  // Camera Integration (web fallback)
   static async takePhoto(): Promise<{ dataUrl: string; path: string } | null> {
-    if (!this.isNative || !Camera) return null;
-
-    try {
-      const image = await Camera.getPhoto({
-        quality: 90,
-        allowEditing: true,
-        resultType: Camera.CameraResultType.DataUrl,
-        source: Camera.CameraSource.Camera
-      });
-
-      return {
-        dataUrl: image.dataUrl || '',
-        path: image.path || ''
-      };
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Camera error:', error);
-      return null;
-    }
+    return null; // Use capacitorIntegration.takePicture() instead
   }
 
   static async selectFromGallery(): Promise<{ dataUrl: string; path: string } | null> {
-    if (!this.isNative || !Camera) return null;
-
-    try {
-      const image = await Camera.getPhoto({
-        quality: 90,
-        allowEditing: true,
-        resultType: Camera.CameraResultType.DataUrl,
-        source: Camera.CameraSource.Photos
-      });
-
-      return {
-        dataUrl: image.dataUrl || '',
-        path: image.path || ''
-      };
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Gallery error:', error);
-      return null;
-    }
+    return null;
   }
 
-  // 🆕 Location Services
+  // Location Services (web implementation)
   static async getCurrentLocation(): Promise<{ latitude: number; longitude: number; accuracy: number } | null> {
-    if (!this.isNative || !Geolocation) return null;
-
-    try {
-      const position = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000
-      });
-
-      return {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy: position.coords.accuracy
-      };
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Location error:', error);
-      return null;
-    }
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) =>
+          resolve({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+          }),
+        () => resolve(null)
+      );
+    });
   }
 
-  static async watchLocation(callback: (location: { latitude: number; longitude: number }) => void): Promise<string | null> {
-    if (!this.isNative || !Geolocation) return null;
-
-    try {
-      const watchId = await Geolocation.watchPosition({
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000
-      }, (position) => {
-        callback({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
-        });
-      });
-
-      return watchId;
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Location watch error:', error);
-      return null;
-    }
+  static async watchLocation(
+    callback: (location: { latitude: number; longitude: number }) => void
+  ): Promise<string | null> {
+    if (!navigator.geolocation) return null;
+    const watchId = navigator.geolocation.watchPosition((pos) => {
+      callback({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+    });
+    return String(watchId);
   }
 
-  // 🆕 Push Notifications
-  private static async setupPushNotifications() {
-    if (!this.isNative || !PushNotifications) return;
-
-    try {
-      // Request permissions
-      const permStatus = await PushNotifications.requestPermissions();
-      if (permStatus.receive === 'granted') {
-        // Register for push notifications
-        await PushNotifications.register();
-      }
-
-      // Listen for notification events
-      PushNotifications.addListener('registration', (token) => {
-        // Send token to your backend
-      });
-
-      PushNotifications.addListener('registrationError', (error) => {
-        if (import.meta.env.DEV) console.error('Push registration error: ' + JSON.stringify(error));
-      });
-
-      PushNotifications.addListener('pushNotificationReceived', (notification) => {
-        // Handle notification received
-      });
-
-      PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-        // Handle notification action
-      });
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Push notification setup error:', error);
-    }
+  // Notifications (no-op on web)
+  static async scheduleLocalNotification(): Promise<void> {
+    console.warn('Local notifications not available on web');
   }
 
-  // 🆕 Local Notifications
-  static async scheduleLocalNotification(title: string, body: string, scheduleTime: Date) {
-    if (!this.isNative || !LocalNotifications) return;
-
-    try {
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            title,
-            body,
-            id: Date.now(),
-            schedule: { at: scheduleTime },
-            sound: 'beep.wav',
-            attachments: undefined,
-            actionTypeId: '',
-            extra: null
-          }
-        ]
-      });
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Local notification error:', error);
-    }
+  // Haptic Feedback (no-op on web)
+  static async triggerHaptic(): Promise<void> {
+    // No haptic feedback on web
   }
 
-  // 🆕 Haptic Feedback
-  static async triggerHaptic(type: 'light' | 'medium' | 'heavy' | 'success' | 'error') {
-    if (!this.isNative || !Haptics) return;
-
-    try {
-      switch (type) {
-        case 'light':
-          await Haptics.impact({ style: 'Light' });
-          break;
-        case 'medium':
-          await Haptics.impact({ style: 'Medium' });
-          break;
-        case 'heavy':
-          await Haptics.impact({ style: 'Heavy' });
-          break;
-        case 'success':
-          await Haptics.notification({ type: 'Success' });
-          break;
-        case 'error':
-          await Haptics.notification({ type: 'Error' });
-          break;
-      }
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Haptic feedback error:', error);
-    }
-  }
-
-  // 🆕 App State Handling
-  private static async setupAppStateHandling() {
-    if (!this.isNative || !App) return;
-
-    try {
-      App.addListener('appStateChange', ({ isActive }) => {
-        // Handle app state changes
-      });
-
-      App.addListener('backButton', () => {
-        // Handle back button
-      });
-
-      App.addListener('pause', () => {
-        // Handle app pause
-      });
-
-      App.addListener('resume', () => {
-        // Handle app resume
-      });
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('App state handling error:', error);
-    }
-  }
-
-  // 🆕 Native Optimizations
-  private static async setupNativeOptimizations() {
-    if (!this.isNative) return;
-
-    try {
-      // Configure status bar
-      if (StatusBar) {
-        await StatusBar.setStyle({ style: 'DARK' });
-        await StatusBar.setBackgroundColor({ color: '#1a1a1a' });
-      }
-
-      // Hide splash screen
-      if (SplashScreen) {
-        await SplashScreen.hide();
-      }
-
-      // Set up native-specific optimizations
-      this.setupNativeCSS();
-      this.setupNativeTouch();
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Native optimization error:', error);
-    }
-  }
-
-  private static setupNativeCSS() {
-    if (!this.isNative) return;
-
-    // Add native-specific CSS
-    const style = document.createElement('style');
-    style.textContent = `
-      /* Native mobile optimizations */
-      body {
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        -webkit-tap-highlight-color: transparent;
-        touch-action: manipulation;
-      }
-      
-      /* iOS specific */
-      @supports (-webkit-touch-callout: none) {
-        body {
-          -webkit-overflow-scrolling: touch;
-        }
-      }
-      
-      /* Android specific */
-      @media screen and (-webkit-min-device-pixel-ratio: 0) {
-        body {
-          -webkit-text-size-adjust: 100%;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  private static setupNativeTouch() {
-    if (!this.isNative) return;
-
-    // Prevent zoom on double tap
-    document.addEventListener('touchstart', (e) => {
-      if (e.touches.length > 1) {
-        e.preventDefault();
-      }
-    }, { passive: false });
-
-    // Optimize touch targets
-    const touchStyle = document.createElement('style');
-    touchStyle.textContent = `
-      button, [role="button"], input, select, textarea {
-        min-height: 44px;
-        min-width: 44px;
-        touch-action: manipulation;
-      }
-    `;
-    document.head.appendChild(touchStyle);
-  }
-
-  // 🆕 Utility Methods
+  // Platform Detection (always web)
   static isNativeDevice(): boolean {
-    return this.isNative;
+    return false;
   }
 
   static isIOSDevice(): boolean {
-    return this.isIOS;
+    return false;
   }
 
   static isAndroidDevice(): boolean {
-    return this.isAndroid;
+    return false;
   }
 
   static getPlatform(): string {
-    return Capacitor.getPlatform();
+    return 'web';
   }
 
-  // 🆕 Performance Monitoring
-  static trackNativePerformance() {
-    if (!this.isNative || import.meta.env.PROD) return;
-
-    // Monitor frame rate
-    let frameCount = 0;
-    let lastTime = performance.now();
-    let rafId: number;
-    const stopTime = Date.now() + 10000; // Stop after 10 seconds
-
-    const countFrames = () => {
-      if (Date.now() > stopTime) {
-        return;
-      }
-
-      frameCount++;
-      const currentTime = performance.now();
-
-      if (currentTime - lastTime >= 1000) {
-        frameCount = 0;
-        lastTime = currentTime;
-      }
-
-      rafId = requestAnimationFrame(countFrames);
-    };
-
-    rafId = requestAnimationFrame(countFrames);
-
-    // Return cleanup function
-    return () => cancelAnimationFrame(rafId);
+  // Performance Monitoring (no-op)
+  static trackNativePerformance(): () => void {
+    return () => {}; // No-op cleanup
   }
 }
