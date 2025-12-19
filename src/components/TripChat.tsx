@@ -225,14 +225,15 @@ export const TripChat = ({
       id: message.id,
       text: message.content,
       sender: {
-        // Prefer user_id for accurate ownership detection, fallback to author_name for display
-        id: message.user_id || message.author_name || 'unknown',
+        // Prefer user_id for accurate ownership detection, fallback to author_name for display.
+        // For system messages user_id may be null (by design).
+        id: message.user_id || message.author_name || 'system',
         name:
           tripMembers.find(m => m.id === (message.user_id || ''))?.name ||
           message.author_name ||
-          'Unknown',
+          'System',
         // Canonical avatar comes from `profiles.avatar_url` via `useTripMembers`.
-        // Real users without photos get generic silhouette, NOT mock AI avatars.
+        // System messages should render without avatar in MessageItem.
         avatar: tripMembers.find(m => m.id === (message.user_id || ''))?.avatar || defaultAvatar,
         // Store original user_id separately for ownership checks
         userId: message.user_id
@@ -242,7 +243,9 @@ export const TripChat = ({
       isPayment: message.message_type === 'payment',
       isEdited: message.is_edited || false,
       editedAt: message.edited_at,
-      tags: [] as string[]
+      // Ensure system messages are never filtered out by dedupe/memoization layers
+      // and can be rendered via the special system-message UI path.
+      tags: message.message_type === 'system' ? (['system'] as string[]) : ([] as string[])
     }));
   }, [liveMessages, demoMode.isDemoMode, tripMembers]);
 

@@ -16,6 +16,8 @@ interface MessageItemProps {
 export const MessageItem = memo(({ message, reactions, onReaction, showSenderInfo, onRetry }: MessageItemProps) => {
   const { user } = useAuth();
   const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
+
+  const isSystemMessage = message.tags?.includes('system') === true;
   
   // Determine if message is from current user
   // Check by user ID first (most reliable), then fall back to author name match
@@ -36,6 +38,16 @@ export const MessageItem = memo(({ message, reactions, onReaction, showSenderInf
   
   // Extract media data from message
   const messageWithMedia = message as any;
+
+  if (isSystemMessage) {
+    return (
+      <div className="flex justify-center px-3 py-2">
+        <div className="max-w-[90%] rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs md:text-sm italic text-white/70 select-none">
+          {message.text}
+        </div>
+      </div>
+    );
+  }
   
   return (
     <MessageBubble
