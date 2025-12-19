@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from './useAuth';
 import { productionNotificationService, NotificationPreference } from '../services/productionNotificationService';
-import { capacitorIntegration } from '../services/capacitorIntegration';
 
 export interface ProductionNotificationState {
   permission: NotificationPermission;
@@ -46,11 +45,6 @@ export const useProductionNotifications = () => {
           // Subscribe to push notifications
           const token = await productionNotificationService.subscribeToPush(user.id);
           setState(prev => ({ ...prev, token }));
-        }
-
-        // Initialize Capacitor if on mobile
-        if (capacitorIntegration.isNativePlatform()) {
-          await capacitorIntegration.initializeApp();
         }
       } catch (error) {
         console.error('Error initializing notifications:', error);

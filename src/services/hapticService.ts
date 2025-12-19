@@ -1,66 +1,39 @@
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
+// Haptic feedback service
+// Web: Uses navigator.vibrate where available (mobile browsers)
+// Native: Handled by Flutter app separately
 
 class HapticService {
-  private isCapacitorAvailable = false;
+  private canVibrate = typeof navigator !== 'undefined' && 'vibrate' in navigator;
 
-  constructor() {
-    // Check if we're running in a Capacitor environment
-    this.isCapacitorAvailable = !!(window as any).Capacitor;
-  }
-
-  async light() {
-    if (!this.isCapacitorAvailable) return;
-    
+  private vibrate(pattern: number | number[]): void {
+    if (!this.canVibrate) return;
     try {
-      await Haptics.impact({ style: ImpactStyle.Light });
-    } catch (error) {
-      console.warn('Haptic feedback not available:', error);
+      navigator.vibrate(pattern);
+    } catch {
+      // Vibration not supported or blocked - silently ignore
     }
   }
 
-  async medium() {
-    if (!this.isCapacitorAvailable) return;
-    
-    try {
-      await Haptics.impact({ style: ImpactStyle.Medium });
-    } catch (error) {
-      console.warn('Haptic feedback not available:', error);
-    }
+  async light(): Promise<void> {
+    this.vibrate(10);
   }
 
-  async heavy() {
-    if (!this.isCapacitorAvailable) return;
-    
-    try {
-      await Haptics.impact({ style: ImpactStyle.Heavy });
-    } catch (error) {
-      console.warn('Haptic feedback not available:', error);
-    }
+  async medium(): Promise<void> {
+    this.vibrate(20);
   }
 
-  async success() {
-    if (!this.isCapacitorAvailable) return;
-    
-    try {
-      // Double light tap for success feeling
-      await Haptics.impact({ style: ImpactStyle.Light });
-      setTimeout(() => Haptics.impact({ style: ImpactStyle.Light }), 100);
-    } catch (error) {
-      console.warn('Haptic feedback not available:', error);
-    }
+  async heavy(): Promise<void> {
+    this.vibrate(30);
   }
 
-  async celebration() {
-    if (!this.isCapacitorAvailable) return;
-    
-    try {
-      // Celebration pattern: medium, pause, light, light
-      await Haptics.impact({ style: ImpactStyle.Medium });
-      setTimeout(() => Haptics.impact({ style: ImpactStyle.Light }), 150);
-      setTimeout(() => Haptics.impact({ style: ImpactStyle.Light }), 250);
-    } catch (error) {
-      console.warn('Haptic feedback not available:', error);
-    }
+  async success(): Promise<void> {
+    // Double tap pattern for success
+    this.vibrate([10, 50, 10]);
+  }
+
+  async celebration(): Promise<void> {
+    // Celebration pattern: medium, pause, light, light
+    this.vibrate([20, 100, 10, 50, 10]);
   }
 }
 

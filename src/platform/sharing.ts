@@ -1,7 +1,7 @@
 /**
  * Platform-agnostic sharing
- * Web: Uses Web Share API with fallback
- * Mobile: Would use native Share module
+ * Web: Uses Web Share API with clipboard and prompt fallbacks
+ * Mobile: Handled by Flutter app separately
  */
 
 export interface ShareOptions {
@@ -14,6 +14,8 @@ export interface ShareOptions {
 export interface ShareResult {
   success: boolean;
   error?: string;
+  /** If true, the URL was shown in a prompt for manual copy (last resort fallback) */
+  fallbackPrompt?: boolean;
 }
 
 class WebSharing {
@@ -21,7 +23,7 @@ class WebSharing {
     if (!navigator.share) {
       return false;
     }
-    
+
     try {
       // Check if files are supported if files are provided
       if (options.files && options.files.length > 0) {
@@ -34,24 +36,59 @@ class WebSharing {
   }
 
   async share(options: ShareOptions): Promise<ShareResult> {
-    try {
-      if (!navigator.share) {
-        // Fallback: copy to clipboard
-        const shareText = [options.title, options.text, options.url]
-          .filter(Boolean)
-          .join('\n');
-        
+    // Build share text for fallbacks
+    const shareText = [options.url, options.text, options.title]
+      .filter(Boolean)
+      .join('\n');
+
+    // 1. Try native Web Share API
+    if (navigator.share) {
+      try {
+        await navigator.share(options);
+        return { success: true };
+      } catch (error) {
+        // User cancelled - not an error
+        if ((error as Error).name === 'AbortError') {
+          return { success: false, error: 'Sharing cancelled' };
+        }
+        // Fall through to clipboard fallback
+        console.warn('Web Share API failed, trying clipboard:', error);
+      }
+    }
+
+    // 2. Try clipboard fallback
+    if (navigator.clipboard?.writeText) {
+      try {
         await navigator.clipboard.writeText(shareText);
         return { success: true };
+      } catch (error) {
+        console.warn('Clipboard API failed, using prompt fallback:', error);
       }
-
-      await navigator.share(options);
-      return { success: true };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Share failed';
-      console.error('Share error:', error);
-      return { success: false, error: errorMessage };
     }
+
+    // 3. Try execCommand fallback (older browsers)
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = shareText;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      textarea.style.top = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      if (success) {
+        return { success: true };
+      }
+    } catch (error) {
+      console.warn('execCommand copy failed:', error);
+    }
+
+    // 4. Last resort: Show prompt with URL for manual copy
+    const urlToShow = options.url || shareText;
+    window.prompt('Copy this link to share:', urlToShow);
+    return { success: true, fallbackPrompt: true };
   }
 }
 
