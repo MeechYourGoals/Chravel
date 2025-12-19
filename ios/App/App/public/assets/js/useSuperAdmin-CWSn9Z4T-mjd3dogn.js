@@ -1,0 +1,1 @@
+import{u as e,aa as o}from"./index-Ta7FH5xW-mjd3dogn.js";import{r}from"./react-vendor-D1R0t5S0-mjd3dogn.js";const s=()=>{const{user:s}=e();return{isSuperAdmin:r.useMemo(()=>!!(null==s?void 0:s.email)&&o.includes(s.email.toLowerCase().trim()),[null==s?void 0:s.email])}};export{s as u};

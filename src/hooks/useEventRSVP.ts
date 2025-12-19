@@ -5,7 +5,6 @@
  * - RSVP status tracking (going, maybe, not-going, not-answered)
  * - Capacity limit enforcement
  * - Waitlist management
- * - QR code generation for tickets
  * 
  * Database: event_rsvps table (to be created in migration)
  */
@@ -23,7 +22,6 @@ export interface EventRSVP {
   userEmail: string;
   status: RSVPStatus;
   rsvpedAt: string;
-  ticketQrCode?: string;
   checkedIn: boolean;
   checkedInAt?: string;
   waitlistPosition?: number;
@@ -120,7 +118,6 @@ export const useEventRSVP = (eventId: string) => {
           userEmail: (userRsvp as any).user_email || user.email || '',
           status: (userRsvp as any).status as RSVPStatus,
           rsvpedAt: (userRsvp as any).rsvped_at,
-          ticketQrCode: (userRsvp as any).ticket_qr_code,
           checkedIn: (userRsvp as any).checked_in || false,
           checkedInAt: (userRsvp as any).checked_in_at,
           waitlistPosition: (userRsvp as any).waitlist_position
@@ -155,12 +152,6 @@ export const useEventRSVP = (eventId: string) => {
       const userName = (profile as any)?.full_name || user.email || 'Unknown';
       const userEmail = (profile as any)?.email || user.email || '';
 
-      // Generate QR code for ticket if going
-      let ticketQrCode: string | undefined;
-      if (status === 'going') {
-        ticketQrCode = await generateTicketQRCode(eventId, user.id);
-      }
-
       // Determine waitlist position if needed
       let waitlistPosition: number | undefined;
       if (status === 'going' && capacity?.isFull && capacity.isWaitlistEnabled) {
@@ -182,7 +173,6 @@ export const useEventRSVP = (eventId: string) => {
           user_email: userEmail,
           status: status === 'going' && capacity?.isFull && capacity.isWaitlistEnabled ? 'waitlist' : status,
           rsvped_at: new Date().toISOString(),
-          ticket_qr_code: ticketQrCode,
           waitlist_position: waitlistPosition
         }, {
           onConflict: 'event_id,user_id'
@@ -205,26 +195,6 @@ export const useEventRSVP = (eventId: string) => {
       setIsSubmitting(false);
     }
   }, [user?.id, eventId, capacity, loadRSVP]);
-
-  // Generate QR code for ticket
-  const generateTicketQRCode = useCallback(async (eventId: string, userId: string): Promise<string> => {
-    // Generate a unique ticket ID
-    const ticketId = `${eventId}-${userId}-${Date.now()}`;
-    
-    // In production, this would call a QR code generation service
-    // For now, return a data URL that can be used with a QR library
-    // Format: eventId|userId|timestamp
-    const qrData = JSON.stringify({
-      eventId,
-      userId,
-      ticketId,
-      timestamp: Date.now()
-    });
-
-    // TODO: Integrate with QR code library (e.g., qrcode.js)
-    // For now, return the data string - frontend will generate QR code
-    return qrData;
-  }, []);
 
   useEffect(() => {
     loadRSVP();

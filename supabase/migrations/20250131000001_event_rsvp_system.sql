@@ -18,7 +18,6 @@ CREATE TABLE IF NOT EXISTS public.event_rsvps (
   user_email TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'not-answered' CHECK (status IN ('going', 'maybe', 'not-going', 'not-answered', 'waitlist')),
   rsvped_at TIMESTAMPTZ DEFAULT NOW(),
-  ticket_qr_code TEXT,
   checked_in BOOLEAN DEFAULT false,
   checked_in_at TIMESTAMPTZ,
   waitlist_position INTEGER,
@@ -213,5 +212,4 @@ EXECUTE FUNCTION public.update_updated_at_column();
 
 COMMENT ON TABLE public.event_rsvps IS 'Manages RSVP/registration system for Events including capacity enforcement, waitlist, and check-in';
 COMMENT ON COLUMN public.event_rsvps.status IS 'RSVP status: going, maybe, not-going, not-answered, or waitlist';
-COMMENT ON COLUMN public.event_rsvps.ticket_qr_code IS 'QR code data for ticket verification';
 COMMENT ON COLUMN public.event_rsvps.waitlist_position IS 'Position in waitlist if event is full';

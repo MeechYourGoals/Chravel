@@ -903,7 +903,7 @@ npm run build  # Runs typecheck + vite build
    - `/src/components/places/BasecampCard.tsx` - TODO for admin check
    - `/src/components/mobile/MobileTripPayments.tsx` - Payment detail modal TODO
    - `/src/components/ai/AiMessageModal.tsx` - Message sending TODO
-   - `/src/components/events/EventCheckIn.tsx` - QR code scanner TODO
+   - `/src/components/events/EventCheckIn.tsx` - Check-in enhancements TODO
    - `/src/pages/AdminDashboard.tsx` - Scheduled messages TODO
    - Impact: Incomplete features
    - Status: Should be tracked in issue tracker

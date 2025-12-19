@@ -3,7 +3,6 @@
  */
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { generateQRSvg } from './qr.ts';
 import type {
   TripExportData,
   ExportLayout,
@@ -39,10 +38,6 @@ export async function getTripData(
   
   console.log('[EXPORT-DATA] Trip found:', trip.name, 'trip_type:', trip.trip_type);
 
-  // Generate deeplink QR
-  const deeplink = `https://chravelapp.com/trip/${tripId}`;
-  const deeplinkQrSvg = generateQRSvg(deeplink, 96);
-
   // Format dates
   const startDate = trip.start_date ? formatDate(trip.start_date) : '';
   const endDate = trip.end_date ? formatDate(trip.end_date) : '';
@@ -55,7 +50,6 @@ export async function getTripData(
     destination: trip.destination || undefined,
     startDate,
     endDate,
-    deeplinkQrSvg,
     generatedAtLocal,
     layout,
     privacyRedaction,
@@ -400,7 +394,6 @@ async function fetchPlaces(
         domain: 'maps.google.com',
         category: 'Basecamp',
         notes: trip.basecamp_address,
-        qrSvg: undefined, // Skip QR for basecamps
       });
     }
 
@@ -424,7 +417,6 @@ async function fetchPlaces(
           domain: 'maps.google.com',
           category: 'Personal Basecamp',
           notes: personalAccom.address,
-          qrSvg: undefined,
         });
       }
     }
@@ -458,7 +450,6 @@ async function fetchPlaces(
           domain,
           category: link.category || undefined,
           notes: link.description || undefined,
-          qrSvg: link.url ? generateQRSvg(link.url, 48) : undefined,
         });
       }
     }

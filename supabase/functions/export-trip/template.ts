@@ -32,7 +32,6 @@ export async function renderTemplate(data: TripExportData): Promise<string> {
     destination,
     startDate,
     endDate,
-    deeplinkQrSvg,
     generatedAtLocal,
     layout,
     totals,
@@ -80,7 +79,7 @@ export async function renderTemplate(data: TripExportData): Promise<string> {
  * Simple Text Header (No Cover Image)
  */
 function renderHeader(data: TripExportData): string {
-  const { tripTitle, subtitle, destination, startDate, endDate, deeplinkQrSvg } = data;
+  const { tripTitle, subtitle, destination, startDate, endDate } = data;
   
   const hasMeta = destination || (startDate && endDate);
   const metaText = [
@@ -95,11 +94,6 @@ function renderHeader(data: TripExportData): string {
       ${subtitle ? `<p class="subtitle">${escapeHtml(subtitle)}</p>` : ''}
       ${hasMeta ? `<div class="meta">${metaText}</div>` : ''}
     </div>
-    ${deeplinkQrSvg ? `
-    <div class="header-qr">
-      ${deeplinkQrSvg}
-      <div class="qr-label">Scan to open live trip</div>
-    </div>` : ''}
   </div>`;
 }
 
@@ -272,7 +266,6 @@ function renderPlaces(places: any[]): string {
             <strong>${escapeHtml(place.title)}</strong>
             <span class="small"> (${escapeHtml(place.domain)})</span>
           </div>
-          ${place.qrSvg ? `<div class="qr-small">${place.qrSvg}</div>` : ''}
         </div>
         ${place.category ? `<div class="small"><strong>Category:</strong> ${escapeHtml(place.category)}</div>` : ''}
         ${place.notes ? `<div class="small">${escapeHtml(place.notes)}</div>` : ''}

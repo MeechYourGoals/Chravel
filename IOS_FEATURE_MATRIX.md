@@ -183,7 +183,7 @@ This document provides a complete breakdown of features available in each Chrave
 |---------|------|------|-----|
 | Multi-track sessions | ❌ | ❌ | ✅ |
 | Speaker directories | ❌ | ❌ | ✅ |
-| Attendee check-in (QR/NFC) | ❌ | ❌ | ✅ |
+| Attendee check-in | ❌ | ❌ | ✅ |
 | Live Q&A/polling | ❌ | ❌ | ✅ |
 | Networking matchmaking | ❌ | ❌ | ✅ |
 | Sponsor placements | ❌ | ❌ | ✅ |
