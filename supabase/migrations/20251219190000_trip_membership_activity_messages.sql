@@ -105,67 +105,12 @@ EXECUTE FUNCTION public.create_trip_membership_system_message();
 
 COMMENT ON FUNCTION public.create_trip_membership_system_message() IS 'Creates a system chat message when a user becomes a trip member (joined/created).';
 
--- 4) OPTIONAL: membership DELETE -> "left the trip" system message (not idempotent by design)
-CREATE OR REPLACE FUNCTION public.create_trip_membership_left_system_message()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_display_name text;
-BEGIN
-  -- Avoid FK issues during trip teardown: only emit if trip still exists
-  IF NOT EXISTS (SELECT 1 FROM public.trips t WHERE t.id = OLD.trip_id) THEN
-    RETURN OLD;
-  END IF;
-
-  SELECT COALESCE(
-    NULLIF(p.display_name, ''),
-    NULLIF(BTRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, '')), ''),
-    NULLIF(p.email, ''),
-    'Someone'
-  )
-  INTO v_display_name
-  FROM public.profiles p
-  WHERE p.user_id = OLD.user_id
-  LIMIT 1;
-
-  INSERT INTO public.trip_chat_messages (
-    trip_id,
-    content,
-    author_name,
-    user_id,
-    message_type,
-    attachments,
-    is_deleted,
-    is_edited,
-    system_event,
-    system_subject_user_id
-  ) VALUES (
-    OLD.trip_id,
-    v_display_name || ' left the trip',
-    'System',
-    NULL,
-    'system',
-    '[]'::jsonb,
-    FALSE,
-    FALSE,
-    'member_left',
-    OLD.user_id
-  );
-
-  RETURN OLD;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS trigger_trip_membership_system_message_delete ON public.trip_members;
-CREATE TRIGGER trigger_trip_membership_system_message_delete
-AFTER DELETE ON public.trip_members
-FOR EACH ROW
-EXECUTE FUNCTION public.create_trip_membership_left_system_message();
-
-COMMENT ON FUNCTION public.create_trip_membership_left_system_message() IS 'Creates a system chat message when a user leaves a trip (membership removed).';
+-- 4) OPTIONAL (intentionally not enabled here):
+-- "left the trip" messages on membership removal.
+--
+-- We are NOT enabling a DELETE trigger by default because there are legitimate
+-- bulk-deletion flows (e.g. deleting old archived trips) that remove memberships
+-- and would unintentionally spam system messages right before teardown.
 
 -- 5) Avoid push notifications for system messages (they should still appear in chat via realtime)
 -- Existing notification trigger may send on any trip_chat_messages insert; we exclude message_type='system'.
