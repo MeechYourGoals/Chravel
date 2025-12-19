@@ -53,18 +53,17 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
     try {
       setIsLoading(true);
 
-      // Fetch requests with the new requester_name and requester_email fields
-      // These are captured at request creation time and stored directly in the table
+      // Fetch pending join requests
       const { data, error } = await supabase
         .from('trip_join_requests')
-        .select('id, trip_id, user_id, invite_code, status, requested_at, resolved_at, resolved_by, requester_name, requester_email')
+        .select('id, trip_id, user_id, invite_code, status, requested_at, resolved_at, resolved_by')
         .eq('trip_id', tripId)
         .eq('status', 'pending')
         .order('requested_at', { ascending: false });
 
       if (error) throw error;
 
-      // Fetch profiles for additional info (avatar, etc.) but NOT as primary name source
+      // Fetch profiles for user info (name, avatar, email)
       const requestsWithProfiles = await Promise.all(
         (data || []).map(async (request) => {
           const { data: profile, error: profileError } = await supabase
@@ -77,22 +76,14 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
             console.warn('Failed to fetch profile for user:', request.user_id, profileError);
           }
 
-          // Name resolution priority (fail-safe approach):
-          // 1. requester_name from DB (captured at request creation - most reliable)
-          // 2. requester_email from DB (fallback captured at request creation)
-          // 3. Profile display_name (may be updated after request)
-          // 4. Profile first/last name combination
-          // 5. Profile email
-          // 6. "Unknown User" as last resort
-          let finalDisplayName = request.requester_name;
+          // Name resolution priority:
+          // 1. Profile display_name
+          // 2. Profile first/last name combination
+          // 3. Profile email
+          // 4. "Unknown User" as last resort
+          let finalDisplayName: string | null = null;
 
-          if (!finalDisplayName) {
-            // Fallback to DB-stored email
-            finalDisplayName = request.requester_email;
-          }
-
-          if (!finalDisplayName && profile) {
-            // Fallback to current profile data
+          if (profile) {
             finalDisplayName = profile.display_name;
             if (!finalDisplayName) {
               if (profile.first_name && profile.last_name) {
@@ -114,7 +105,7 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
             profile: {
               display_name: finalDisplayName,
               avatar_url: profile?.avatar_url,
-              email: profile?.email || request.requester_email,
+              email: profile?.email,
               first_name: profile?.first_name,
               last_name: profile?.last_name
             }
