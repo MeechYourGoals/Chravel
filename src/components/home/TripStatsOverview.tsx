@@ -17,33 +17,37 @@ export const TripStatsOverview = ({ stats, viewMode, activeFilter, onFilterClick
   };
 
   return (
-    <div className="bg-card/50 backdrop-blur-md rounded-full px-2 sm:px-3 h-12 sm:h-16 flex items-center mb-2 sm:mb-4">
-      <div className="flex items-center justify-evenly gap-0.5 sm:gap-1 flex-wrap w-full">
-        <button 
+    <div className="bg-card/50 backdrop-blur-md rounded-2xl px-2 sm:px-3 py-2 sm:py-3 mb-2 sm:mb-4">
+      {/* Row 1: Total, Upcoming, Completed */}
+      <div className="flex items-center justify-center gap-2 sm:gap-4">
+        <button
           onClick={() => onFilterClick('total')}
           className={getStatButtonClass('total')}
         >
           <span className="text-sm sm:text-base font-bold text-foreground">{stats.total}</span>
           <span className="text-xs sm:text-sm text-muted-foreground">Total</span>
         </button>
-        
-        <button 
+
+        <button
           onClick={() => onFilterClick('upcoming')}
           className={getStatButtonClass('upcoming')}
         >
           <span className="text-sm sm:text-base font-bold text-accent">{stats.upcoming}</span>
           <span className="text-xs sm:text-sm text-muted-foreground">Upcoming</span>
         </button>
-        
-        <button 
+
+        <button
           onClick={() => onFilterClick('completed')}
           className={getStatButtonClass('completed')}
         >
           <span className="text-sm sm:text-base font-bold text-green-500">{stats.completed}</span>
           <span className="text-xs sm:text-sm text-muted-foreground">Completed</span>
         </button>
-        
-        <button 
+      </div>
+
+      {/* Row 2: Active and Requests - staggered between top row items */}
+      <div className="flex items-center justify-center gap-8 sm:gap-16 mt-1">
+        <button
           onClick={() => onFilterClick('inProgress')}
           className={getStatButtonClass('inProgress')}
         >
@@ -56,8 +60,7 @@ export const TripStatsOverview = ({ stats, viewMode, activeFilter, onFilterClick
           <span className="text-xs sm:text-sm text-muted-foreground">Active</span>
         </button>
 
-        {/* Requests Tab */}
-        <button 
+        <button
           onClick={() => onFilterClick('requests')}
           className={getStatButtonClass('requests')}
         >
