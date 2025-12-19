@@ -269,9 +269,9 @@ export const TripDetailDesktop = () => {
           preOpenedWindow = window.open('', '_blank');
           if (preOpenedWindow) {
             preOpenedWindow.document.write(
-              '<html><head><title>Generating PDF…</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>' +
+              '<html><head><title>Creating your Recap…</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>' +
               '<body style="font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial; padding: 16px; color: #e5e7eb; background: #111827">' +
-              '<div>Generating PDF…</div></body></html>'
+              '<div>Creating your Recap…</div></body></html>'
             );
           }
         }
@@ -279,7 +279,7 @@ export const TripDetailDesktop = () => {
         // Non-fatal; continue without pre-open
       }
 
-      toast.info('Generating PDF...');
+      toast.info('Creating Recap...');
       const isMockTrip = tripId && /^\d+$/.test(tripId);
       let blob: Blob;
 
@@ -397,8 +397,8 @@ export const TripDetailDesktop = () => {
       });
       toast.error(
         error instanceof Error 
-          ? `Export failed: ${error.message}` 
-          : 'Failed to export PDF'
+          ? `Recap failed: ${error.message}` 
+          : 'Failed to create recap'
       );
       throw error;
     }

@@ -51,7 +51,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
   const handleExport = async () => {
     if (selectedSections.length === 0) {
-      setError('Please select at least one section to export');
+      setError('Please select at least one section for your recap');
       return;
     }
 
@@ -62,7 +62,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
       await onExport(selectedSections);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to export trip summary');
+      setError(err instanceof Error ? err.message : 'Failed to create trip recap');
     } finally {
       setIsExporting(false);
     }
@@ -83,8 +83,8 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
               <FileText size={16} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">Export Trip Summary</h2>
-              <p className="text-[10px] text-gray-400">Create a PDF summary</p>
+              <h2 className="text-base font-bold text-white">Create Trip Recap</h2>
+              <p className="text-[10px] text-gray-400">Build a memory book PDF</p>
             </div>
           </div>
           <button
@@ -118,7 +118,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
               <div className="mb-2">
                 <h3 className="text-white font-semibold text-xs mb-0.5">Trip: {tripName}</h3>
                 <p className="text-gray-400 text-[10px]">
-                  Select sections to include in your PDF
+                  Select sections to include in your recap
                 </p>
               </div>
 
@@ -198,7 +198,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
               ) : (
                 <>
                   <Download size={14} />
-                  Download PDF
+                  Create Recap
                 </>
               )}
             </button>

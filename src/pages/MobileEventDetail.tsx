@@ -114,8 +114,8 @@ export const MobileEventDetail = () => {
     const tripIdStr = eventId || '1';
     const isNumericId = !tripIdStr.includes('-');
     
-    toast.info('Generating PDF', {
-      description: `Creating summary for "${eventData?.title || 'Event'}"...`,
+    toast.info('Creating Recap', {
+      description: `Building your event memories for "${eventData?.title || 'Event'}"...`,
     });
 
     try {
@@ -184,12 +184,12 @@ export const MobileEventDetail = () => {
 
       await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
 
-      toast.success('Export complete', {
+      toast.success('Recap ready', {
         description: `PDF ready: ${filename}`,
       });
     } catch (error) {
       console.error('[MobileEventDetail Export] Error:', error);
-      toast.error('Export failed', {
+      toast.error('Recap failed', {
         description: error instanceof Error ? error.message : 'Failed to generate PDF. Please try again.',
       });
       throw error;
