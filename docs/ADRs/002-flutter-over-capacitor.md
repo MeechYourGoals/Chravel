@@ -58,6 +58,18 @@ Migrate mobile development from Capacitor to Flutter.
 - The React web app is now "cleaned" of all Capacitor-specific code
 - Platform abstraction layers (storage, media, notifications) simplified to web-only
 
+## Current State (as of this PR)
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| React Web App | Active | This repository (`/src`) |
+| PWA Support | Active | Service worker at `/public/sw.js` |
+| Supabase Backend | Shared | Same database for web + future mobile |
+| Flutter Mobile App | **Not yet created** | Separate repository (TBD) |
+| Capacitor Code | Removed | Archived in `docs/archive/capacitor/` |
+
+**Important**: This PR only removes Capacitor from the React web app. The Flutter mobile app is a future initiative and does not exist yet. No mobile app deployment capability exists after this PR until Flutter development begins.
+
 ## Related Documents
 - See `docs/archive/capacitor/` for historical Capacitor documentation
 - Flutter project structure: (to be created in separate repository)

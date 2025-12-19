@@ -37,7 +37,6 @@
 │   ├── main.tsx            # Entry point
 │   └── index.css            # Global styles
 ├── supabase/               # Supabase migrations and SQL
-├── ios/                    # iOS native code (Capacitor)
 └── public/                 # Static assets
 ```
 
@@ -328,11 +327,11 @@
 - `hapticService.ts` - Haptic feedback (mobile)
 - `apiHealthCheck.ts` (7.6 KB) - API status monitoring
 
-### Mobile Services
-- `mobileLocationService.ts` (6.3 KB) - GPS/location
-- `nativeMobileService.ts` (10.4 KB) - Native plugins
-- `capacitorIntegration.ts` (5.2 KB) - Capacitor setup
-- `mobileOptimizationService.ts` (4.5 KB) - Mobile performance
+### Mobile Services (Web Stubs - Native via Flutter)
+- `mobileLocationService.ts` (6.3 KB) - GPS/location (web geolocation API)
+- `nativeMobileService.ts` (10.4 KB) - Platform detection stubs
+- `capacitorIntegration.ts` (5.2 KB) - Web-only stubs (legacy name)
+- `mobileOptimizationService.ts` (4.5 KB) - Mobile web performance
 
 ### Performance Services
 - `performanceService.ts` (4.5 KB) - Performance monitoring
@@ -641,20 +640,15 @@
 - Subscription tiers
 - Webhook handling
 
-### Capacitor (Mobile Native)
-**Purpose**: Bridge to native iOS/Android
-**Plugins Used**:
-- Camera (photo capture)
-- Geolocation (GPS)
-- FileSystem (file access)
-- LocalNotifications (push)
-- PushNotifications (remote)
-- StatusBar (native bar)
-- Share (native sharing)
-- Preferences (local storage)
-- Haptics (vibration)
-
-**Build**: `npm run ios:build` triggers `npx cap sync ios`
+### Mobile (Flutter - Separate Codebase)
+**Purpose**: Native iOS/Android apps
+**Status**: Migrating from Capacitor to Flutter (separate repo)
+**Web Fallbacks**:
+- Camera → file input with capture attribute
+- Geolocation → browser geolocation API
+- Share → Web Share API + clipboard fallback
+- Storage → localStorage
+- Haptics → navigator.vibrate on supported browsers
 
 ### Runware (AI Image Generation)
 **Service**: `runwareService.ts`
@@ -800,9 +794,10 @@ App Init → useDemoModeStore.init() → demoModeService → return isDemo
    - Service worker for PWA support
 
 5. **Mobile-First Design**
-   - Capacitor for native features
+   - PWA support for web
    - Mobile-specific layouts and components
    - Responsive Tailwind CSS
+   - Native mobile via Flutter (separate codebase)
 
 6. **Demo Mode System**
    - Comprehensive mock data
@@ -883,7 +878,6 @@ App Init → useDemoModeStore.init() → demoModeService → return isDemo
 - **Supabase** 2.53.0 - Backend as a Service
 - **Google Maps** (@googlemaps/js-api-loader 1.16.10)
 - **Stream Chat** (9.10.0, 13.2.1) - Real-time chat
-- **Capacitor** 7.4.2 - Mobile native bridge
 
 ### Forms & Validation
 - **React Hook Form** 7.53.0 - Form state
@@ -976,7 +970,6 @@ App.tsx (route)
 - `eslint.config.js` - Linting rules
 - `.prettierrc` - Code formatting
 - `components.json` - UI component library config
-- `capacitor.config.ts` - iOS/Android configuration
 - `vercel.json` - Deployment configuration
 - `.env.example` & `.env.production.example` - Environment variables
 
