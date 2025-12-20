@@ -294,7 +294,7 @@ const testimonials = [
 ];
 
 export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [activeTab, setActiveTab] = useState<'consumer' | 'pro'>('consumer');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -547,33 +547,6 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
           </div>
         ))}
       </div>
-
-      {/* FAQ Section */}
-      <div className="max-w-3xl mx-auto text-center">
-        <div className="inline-block bg-primary px-6 py-3 rounded-lg mb-6 md:mb-8">
-          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Frequently Asked Questions</h3>
-        </div>
-        <div className="space-y-2 md:space-y-3">
-          {faqItems.map((item, index) => (
-            <Collapsible key={index} open={openFaq === index} onOpenChange={() => setOpenFaq(openFaq === index ? null : index)}>
-              <CollapsibleTrigger className="w-full">
-                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-3 md:p-4 hover:bg-card/70 transition-colors">
-                  <div className="flex items-center justify-between gap-3">
-                    <h4 className="text-left font-semibold text-foreground text-sm sm:text-base md:text-lg break-words">{item.question}</h4>
-                    <ChevronDown className={`text-foreground transition-transform flex-shrink-0 ${openFaq === index ? 'rotate-180' : ''}`} size={18} />
-                  </div>
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="bg-card/30 border border-border/30 border-t-0 rounded-b-lg p-3 md:p-4 -mt-1">
-                  <p className="text-foreground text-xs sm:text-sm md:text-base break-words">{item.answer}</p>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          ))}
-        </div>
-      </div>
-
     </div>
   );
 };

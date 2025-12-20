@@ -22,9 +22,16 @@ const faqItems = [
   {
     question: "Do all trip members need to pay?",
     answer: "Trips are free with limited features. Or upgrade to Explorer or Pro to keep unlimited trips and more features. For ChravelApp Pro, only the admin pays and can assign a set number of seats to team members — ideal for organizations, sports teams, and tour management."
+  },
+  {
+    question: "What's included with the free Pro Trip and Event?",
+    answer: "Every account gets 1 free ChravelApp Pro trip and 1 free Event to experience all premium features. It's our way of letting you try before you buy — no commitment required!"
+  },
+  {
+    question: "Are Events included in my subscription?",
+    answer: "Yes! Events are bundled into all paid plans. Explorer includes unlimited Events with up to 100 guests each. Frequent Chraveler includes Events with up to 200 guests. All Pro tiers include unlimited Events for your entire team."
   }
 ];
-
 export const FAQSection = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
