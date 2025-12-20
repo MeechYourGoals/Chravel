@@ -5,7 +5,7 @@
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { encodeBase64 } from "https://deno.land/std@0.190.0/encoding/base64.ts";
+import { encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from "https://esm.sh/pdf-lib@1.17.1";
@@ -33,7 +33,7 @@ async function getBrandLogoDataUri(): Promise<string | null> {
   try {
     const logoUrl = new URL('./assets/chravel-logo.png', import.meta.url);
     const bytes = await Deno.readFile(logoUrl);
-    cachedBrandLogoDataUri = `data:image/png;base64,${encodeBase64(bytes)}`;
+    cachedBrandLogoDataUri = `data:image/png;base64,${encode(bytes)}`;
     return cachedBrandLogoDataUri;
   } catch (error) {
     console.warn('[EXPORT-TRIP] Failed to load brand logo asset:', error);
