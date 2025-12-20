@@ -25,6 +25,34 @@ const corsHeaders = {
 
 type PaperSize = 'letter' | 'a4';
 
+function getBrandHeaderTemplate(): string {
+  // Puppeteer header/footer templates are isolated from the page CSS, so we inline styles.
+  // Keep it lightweight and deterministic (no external images required).
+  return `
+    <div style="width:100%; padding: 6pt 54pt 0 54pt; font-family: 'Source Sans 3', system-ui, -apple-system, sans-serif;">
+      <div style="width:100%; display:flex; justify-content:flex-end;">
+        <div style="
+          display:inline-flex;
+          flex-direction:column;
+          align-items:flex-end;
+          border:1px solid #111827;
+          background:#111827;
+          padding:6pt 8pt;
+          border-radius:8pt;
+          line-height:1.1;
+        ">
+          <div style="font-size:10.5pt; font-weight:700; color:#D4AF37;">
+            ChravelApp Recap
+          </div>
+          <div style="font-size:7.8pt; font-weight:600; color:#F9FAFB; opacity:0.95;">
+            Less chaos. More coordination.
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function getPaperSizePts(paper: PaperSize): { width: number; height: number } {
   // PDF points: 72pt = 1 inch
   if (paper === 'a4') return { width: 595.28, height: 841.89 };
@@ -387,7 +415,7 @@ serve(async (req) => {
       printBackground: true,
       format: paper === 'a4' ? 'A4' : 'Letter',
       displayHeaderFooter: true,
-      headerTemplate: `<div></div>`,
+      headerTemplate: getBrandHeaderTemplate(),
       footerTemplate: `
         <div style="font-family:'Source Sans 3',sans-serif;font-size:9pt;width:100%;padding:6pt 54pt;display:flex;justify-content:space-between;color:#6B7280;">
           <div>Generated on ${exportData.generatedAtLocal} • ${layoutName}</div>
