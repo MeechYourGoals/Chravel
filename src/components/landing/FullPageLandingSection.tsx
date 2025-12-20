@@ -11,6 +11,7 @@ interface FullPageLandingSectionProps {
   minHeight?: string;
   children: React.ReactNode;
   className?: string;
+  imagePosition?: string;
 }
 
 export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
@@ -21,7 +22,8 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
   enableSnapScroll = true,
   minHeight = '100vh',
   children,
-  className
+  className,
+  imagePosition = 'center'
 }) => {
   return (
     <section
@@ -39,6 +41,7 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
           videoSrc={videoSrc}
           imageFallback={imageFallback || ''}
           opacity={videoOpacity}
+          imagePosition={imagePosition}
         />
       )}
 

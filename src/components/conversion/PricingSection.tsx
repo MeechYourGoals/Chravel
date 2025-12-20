@@ -344,7 +344,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
           </div>
           <div className="bg-primary backdrop-blur-sm px-4 py-3 rounded-lg max-w-3xl mx-auto">
             <p className="text-sm sm:text-base md:text-lg text-white font-bold leading-relaxed break-words">
-              Make sure your next trip makes it out of the group chat. <span className="text-accent font-bold">Chravel saves you more time, money, & headaches.</span>
+              Make sure your next trip makes it out of the group chat. <span className="text-white font-bold">Save more time, money, and headaches with ChravelApp.</span>
             </p>
           </div>
         </div>
