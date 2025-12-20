@@ -33,7 +33,7 @@ async function getBrandLogoDataUri(): Promise<string | null> {
   try {
     const logoUrl = new URL('./assets/chravel-logo.png', import.meta.url);
     const bytes = await Deno.readFile(logoUrl);
-    cachedBrandLogoDataUri = `data:image/png;base64,${encode(bytes)}`;
+    cachedBrandLogoDataUri = `data:image/png;base64,${encode(bytes.buffer)}`;
     return cachedBrandLogoDataUri;
   } catch (error) {
     console.warn('[EXPORT-TRIP] Failed to load brand logo asset:', error);
@@ -163,7 +163,7 @@ async function addFallbackAttachmentPage(params: {
 }
 
 async function appendAttachmentsToPdf(params: {
-  supabaseClient: ReturnType<typeof createClient>;
+  supabaseClient: any;
   basePdfBytes: Uint8Array;
   attachments: Array<{
     name: string;

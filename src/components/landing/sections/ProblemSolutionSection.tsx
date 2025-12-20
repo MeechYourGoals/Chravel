@@ -34,7 +34,7 @@ export const ProblemSolutionSection = () => {
           className="text-xl sm:text-2xl md:text-3xl max-w-3xl mx-auto text-white font-bold"
           style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
         >
-          Bring your group's photos, plans, and payments into one place
+          Social Storage Simplified
         </p>
       </div>
 

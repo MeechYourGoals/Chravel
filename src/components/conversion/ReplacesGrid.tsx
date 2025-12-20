@@ -25,14 +25,11 @@ export const ReplacesGrid = () => {
         <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-3 md:mb-4 break-words">
           ChravelApp is the Operating System for Groups on the Go.
         </h2>
-        <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white font-medium max-w-3xl mx-auto leading-relaxed break-words">
-          Bringing the most-used workflows in one shared planning space.
-        </p>
         <p className="text-white/90 font-semibold text-base sm:text-lg md:text-xl mt-6 md:mt-8 text-center max-w-4xl mx-auto">
-          Think of it as the "Travel 365" suite for when you're Out of Office 365.
+          Travel 365 for when you're Out of Office 365.
         </p>
         <p className="text-white/90 font-medium text-sm sm:text-base md:text-lg mt-4 text-center max-w-4xl mx-auto">
-          Spend less time logging in, signing up, and switching between different Apps — Consolidate them into ChravelApp Tabs. Our 8 Core Tabs reduce the need to bounce between the apps below
+          Spend less time logging in, signing up, and switching between different Apps — Consolidate the usage of the apps below into 8 core ChravelApp Tabs.
         </p>
       </div>
 
