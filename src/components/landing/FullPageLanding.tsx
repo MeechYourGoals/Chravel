@@ -75,7 +75,18 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           <ProblemSolutionSection />
         </FullPageLandingSection>
 
-        {/* Section 3: How It Works */}
+        {/* Section 3: Replaces - Operating System for Groups */}
+        <FullPageLandingSection
+          id="section-replaces"
+          imageFallback={replacesImage}
+          videoOpacity={0.6}
+        >
+          <Suspense fallback={<SectionLoader />}>
+            <ReplacesSection />
+          </Suspense>
+        </FullPageLandingSection>
+
+        {/* Section 4: How It Works */}
         <FullPageLandingSection
           id="section-how"
           imageFallback={howItWorksImage}
@@ -86,18 +97,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 4: AI Features */}
-        <FullPageLandingSection
-          id="section-ai"
-          imageFallback={aiImage}
-          videoOpacity={0.5}
-        >
-          <Suspense fallback={<SectionLoader />}>
-            <AiFeaturesSection />
-          </Suspense>
-        </FullPageLandingSection>
-
-        {/* Section 5: Use Cases */}
+        {/* Section 5: Use Cases - Built for Every Journey */}
         <FullPageLandingSection
           id="section-use-cases"
           imageFallback={scenariosImage}
@@ -109,14 +109,14 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 6: Replaces */}
+        {/* Section 6: AI Features */}
         <FullPageLandingSection
-          id="section-replaces"
-          imageFallback={replacesImage}
-          videoOpacity={0.6}
+          id="section-ai"
+          imageFallback={aiImage}
+          videoOpacity={0.5}
         >
           <Suspense fallback={<SectionLoader />}>
-            <ReplacesSection />
+            <AiFeaturesSection />
           </Suspense>
         </FullPageLandingSection>
 
