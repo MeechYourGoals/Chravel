@@ -1,23 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ChevronDown } from 'lucide-react';
-import { CATEGORIES, Category } from './ReplacesGridData';
+import { CATEGORIES } from './ReplacesGridData';
 import { cn } from '@/lib/utils';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 
 export const ReplacesGrid = () => {
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-
-  const toggleCategory = (key: string) => {
-    setExpandedCategories(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  };
-
   return (
     <section className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
       {/* Header */}
@@ -33,85 +25,54 @@ export const ReplacesGrid = () => {
         </p>
       </div>
 
-      {/* Grid */}
-      <div className="space-y-4">
-        {CATEGORIES.map((category) => (
-          <CategoryRow
-            key={category.key}
-            category={category}
-            isExpanded={expandedCategories.has(category.key)}
-            onToggle={() => toggleCategory(category.key)}
-          />
-        ))}
-      </div>
-
+      {/* Accordion Grid */}
+      <Accordion type="single" collapsible className="space-y-3">
+        {CATEGORIES.map((category) => {
+          const allApps = [...category.hero, ...category.full];
+          
+          return (
+            <AccordionItem
+              key={category.key}
+              value={category.key}
+              className="bg-card/25 backdrop-blur-sm border border-border/30 rounded-xl overflow-hidden"
+            >
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-card/40 transition-colors group [&[data-state=open]>svg]:rotate-180">
+                <div className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                  <span className="text-xl sm:text-2xl flex-shrink-0">{category.icon}</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0 flex-1">
+                    <span className="text-base sm:text-lg md:text-xl font-semibold text-foreground flex-shrink-0">
+                      {category.title}
+                    </span>
+                    <span className="text-sm sm:text-base text-muted-foreground truncate">
+                      {category.subtitle}
+                    </span>
+                  </div>
+                </div>
+                <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-muted-foreground transition-transform duration-200 ml-2" />
+              </AccordionTrigger>
+              
+              <AccordionContent className="px-4 pb-4">
+                {/* Expanded description */}
+                <p className="text-sm sm:text-base text-muted-foreground mb-4 pl-9 sm:pl-11">
+                  {category.expandedDescription}
+                </p>
+                
+                {/* App chips */}
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 pl-9 sm:pl-11">
+                  {allApps.map((app, index) => (
+                    <span
+                      key={`${app.name}-${index}`}
+                      className="bg-background/60 border border-border/40 rounded-lg px-2.5 py-1 text-xs sm:text-sm text-foreground/90"
+                    >
+                      {app.name}
+                    </span>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+      </Accordion>
     </section>
-  );
-};
-
-interface CategoryRowProps {
-  category: Category;
-  isExpanded: boolean;
-  onToggle: () => void;
-}
-
-const CategoryRow: React.FC<CategoryRowProps> = ({ category, isExpanded, onToggle }) => {
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Detect mobile breakpoint
-  React.useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  const allApps = [...category.hero, ...category.full];
-  const displayLimit = isMobile ? 18 : 16;
-  const needsExpansion = allApps.length > displayLimit;
-  
-  const visibleApps = isExpanded ? allApps : allApps.slice(0, displayLimit);
-  const hiddenCount = Math.max(0, allApps.length - displayLimit);
-
-  return (
-    <div className="bg-card/25 backdrop-blur-sm border border-border/30 rounded-xl p-3 sm:p-4 transition-all duration-200">
-      {/* Category Header */}
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-foreground break-words">
-          {category.title}
-        </h3>
-        
-        {needsExpansion && (
-          <button
-            onClick={onToggle}
-            className="flex items-center gap-1.5 md:gap-2 text-sm sm:text-base text-primary hover:text-primary/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md px-2 py-1 flex-shrink-0"
-            aria-expanded={isExpanded}
-            aria-label={isExpanded ? 'Show fewer apps' : `See ${hiddenCount}+ more apps`}
-          >
-            <span>
-              {isExpanded ? 'Show fewer' : `See ${hiddenCount}+ more`}
-            </span>
-            <ChevronDown 
-              className={cn(
-                "w-3 h-3 md:w-4 md:h-4 transition-transform duration-200",
-                isExpanded && "rotate-180"
-              )}
-            />
-          </button>
-        )}
-      </div>
-
-      {/* App Chips */}
-      <div className="flex flex-wrap gap-1.5">
-        {visibleApps.map((app, index) => (
-          <div
-            key={`${app.name}-${index}`}
-            className="bg-background/80 hover:bg-background border border-border/30 rounded-lg px-2.5 py-1.5 text-sm sm:text-base md:text-lg text-foreground transition-colors duration-150 break-words"
-          >
-            {app.name}
-          </div>
-        ))}
-      </div>
-    </div>
   );
 };
