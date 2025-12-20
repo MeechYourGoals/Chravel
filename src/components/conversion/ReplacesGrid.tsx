@@ -74,7 +74,7 @@ const CategoryRow: React.FC<CategoryRowProps> = ({ category, isExpanded, onToggl
   const hiddenCount = Math.max(0, allApps.length - displayLimit);
 
   return (
-    <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-3 sm:p-4 transition-all duration-200">
+    <div className="bg-card/25 backdrop-blur-sm border border-border/30 rounded-xl p-3 sm:p-4 transition-all duration-200">
       {/* Category Header */}
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-foreground break-words">

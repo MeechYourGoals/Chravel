@@ -32,14 +32,14 @@ export const HowItWorksSection = () => {
       {/* Headline */}
       <div className="text-center space-y-4 max-w-4xl">
         <h2 
-          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold"
-          style={{ color: '#FF8C42', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white"
+          style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.7), 0 0 20px rgba(0,0,0,0.5)' }}
         >
           How It Works
         </h2>
         <p 
-          className="text-xl sm:text-2xl md:text-3xl font-bold"
-          style={{ color: '#FF8C42', textShadow: '2px 2px 6px rgba(0, 0, 0, 0.4)' }}
+          className="text-xl sm:text-2xl md:text-3xl font-bold text-white"
+          style={{ textShadow: '2px 2px 6px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0,0,0,0.4)' }}
         >
           Get your group organized in minutes
         </p>
@@ -118,8 +118,8 @@ export const HowItWorksSection = () => {
       {/* Here's What You Get */}
       <div className="w-full max-w-5xl space-y-6">
         <h3 
-          className="text-2xl sm:text-3xl md:text-4xl font-bold text-center"
-          style={{ color: '#FF8C42', textShadow: '2px 2px 6px rgba(0, 0, 0, 0.4)' }}
+          className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-white"
+          style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.7), 0 0 20px rgba(0,0,0,0.5)' }}
         >
           Here's What You Get
         </h3>

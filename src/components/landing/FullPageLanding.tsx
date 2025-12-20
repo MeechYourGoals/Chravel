@@ -91,6 +91,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           id="section-how"
           imageFallback={howItWorksImage}
           videoOpacity={0.5}
+          imagePosition="60% center"
         >
           <Suspense fallback={<SectionLoader />}>
             <HowItWorksSection />
