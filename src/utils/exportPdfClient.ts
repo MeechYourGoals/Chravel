@@ -7,6 +7,28 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ExportSection, PDFCustomizationOptions, PDFProgressCallback } from '@/types/tripExport';
 
+async function fetchAsDataUrl(url: string, timeoutMs: number = 5000): Promise<string> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+    const blob = await response.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') resolve(reader.result);
+        else reject(new Error('Failed to convert to data URL'));
+      };
+      reader.onerror = () => reject(new Error('Failed to read blob'));
+      reader.readAsDataURL(blob);
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 /**
  * Font loading for jsPDF
  * Fetches a font from a URL and returns it as a base64 encoded string.
@@ -225,6 +247,15 @@ export async function generateClientPDF(
 
   // Embed the Unicode font
   await embedNotoSansFont(doc);
+
+  // Best-effort logo for virality. If it fails (offline, etc), we still render text branding.
+  // We only draw the logo on page 1 to avoid ballooning the PDF size.
+  let brandLogoDataUrl: string | null = null;
+  try {
+    brandLogoDataUrl = await fetchAsDataUrl('/chravel-logo.png', 4000);
+  } catch {
+    brandLogoDataUrl = null;
+  }
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -857,18 +888,28 @@ export async function generateClientPDF(
   const totalPages = doc.internal.pages.length - 1; // jsPDF uses 1-indexed pages but array is 0-indexed
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
+    // Optional logo (page 1 only)
+    if (i === 1 && brandLogoDataUrl) {
+      try {
+        const logoW = 88;
+        const logoH = 28;
+        doc.addImage(brandLogoDataUrl, 'PNG', pageWidth - margin - logoW, 6, logoW, logoH, undefined, 'FAST');
+      } catch {
+        // ignore (some environments may not support addImage for large PNGs)
+      }
+    }
     // Top-right brand (virality)
     doc.setFont('NotoSans', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(brandGold[0], brandGold[1], brandGold[2]);
     const titleW = doc.getTextWidth(brandTitle);
-    doc.text(brandTitle, pageWidth - margin - titleW, 24);
+    doc.text(brandTitle, pageWidth - margin - titleW, 40);
 
     doc.setFont('NotoSans', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(30);
     const tagW = doc.getTextWidth(brandTagline);
-    doc.text(brandTagline, pageWidth - margin - tagW, 36);
+    doc.text(brandTagline, pageWidth - margin - tagW, 52);
 
     // Bottom-left footer
     doc.setFontSize(8);
