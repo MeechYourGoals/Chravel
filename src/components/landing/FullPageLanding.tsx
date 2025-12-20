@@ -121,18 +121,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 7: FAQ */}
-        <FullPageLandingSection
-          id="section-faq"
-          imageFallback={faqImage}
-          videoOpacity={0.5}
-        >
-          <Suspense fallback={<SectionLoader />}>
-            <FAQSection />
-          </Suspense>
-        </FullPageLandingSection>
-
-        {/* Section 8: Pricing */}
+        {/* Section 7: Pricing */}
         <FullPageLandingSection
           id="section-pricing"
           imageFallback={pricingWorkspaceImage}
@@ -141,6 +130,17 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
         >
           <Suspense fallback={<SectionLoader />}>
             <PricingLandingSection onSignUp={onSignUp} />
+          </Suspense>
+        </FullPageLandingSection>
+
+        {/* Section 8: FAQ */}
+        <FullPageLandingSection
+          id="section-faq"
+          imageFallback={faqImage}
+          videoOpacity={0.5}
+        >
+          <Suspense fallback={<SectionLoader />}>
+            <FAQSection />
           </Suspense>
         </FullPageLandingSection>
 
