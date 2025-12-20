@@ -64,17 +64,18 @@ export const ReplacesGrid = () => {
               
               <AccordionContent className="px-4 pb-4">
                 {/* Expanded description */}
-                <p className="text-sm sm:text-base text-white/90 mb-4 text-center font-medium"
-                  style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
+                <p className="text-base sm:text-lg md:text-xl text-white mb-4 text-center font-bold"
+                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.6)' }}>
                   {category.expandedDescription}
                 </p>
                 
                 {/* App chips */}
-                <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
+                <div className="flex flex-wrap gap-2 sm:gap-2.5 justify-center">
                   {allApps.map((app, index) => (
                     <span
                       key={`${app.name}-${index}`}
-                      className="bg-background/60 border border-border/40 rounded-lg px-2.5 py-1 text-xs sm:text-sm text-foreground/90"
+                      className="bg-background/70 border border-border/50 rounded-lg px-3 py-1.5 text-sm sm:text-base font-bold text-white"
+                      style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
                     >
                       {app.name}
                     </span>
