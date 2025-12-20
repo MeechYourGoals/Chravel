@@ -7,7 +7,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
-import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, StandardFonts, rgb, type PDFFont } from "https://esm.sh/pdf-lib@1.17.1";
 import { getTripData } from './data.ts';
 import { renderTemplate } from './template.ts';
 import { slug, formatTimestamp } from './util.ts';
@@ -51,7 +51,7 @@ function classifyForEmbedding(opts: { name: string; mimeType?: string; typeLabel
 function wrapText(params: {
   text: string;
   maxWidth: number;
-  font: any;
+  font: PDFFont;
   fontSize: number;
 }): string[] {
   const words = params.text.split(/\s+/).filter(Boolean);
