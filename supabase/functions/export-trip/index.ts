@@ -5,7 +5,6 @@
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from "https://esm.sh/pdf-lib@1.17.1";
@@ -26,47 +25,18 @@ const corsHeaders = {
 
 type PaperSize = 'letter' | 'a4';
 
-let cachedBrandLogoDataUri: string | null | undefined = undefined;
-
-async function getBrandLogoDataUri(): Promise<string | null> {
-  if (cachedBrandLogoDataUri !== undefined) return cachedBrandLogoDataUri;
-  try {
-    const logoUrl = new URL('./assets/chravel-logo.png', import.meta.url);
-    const bytes = await Deno.readFile(logoUrl);
-    cachedBrandLogoDataUri = `data:image/png;base64,${encode(bytes.buffer)}`;
-    return cachedBrandLogoDataUri;
-  } catch (error) {
-    console.warn('[EXPORT-TRIP] Failed to load brand logo asset:', error);
-    cachedBrandLogoDataUri = null;
-    return null;
-  }
-}
-
-function getBrandHeaderTemplate(opts?: { logoDataUri?: string | null }): string {
+function getBrandHeaderTemplate(): string {
   // Puppeteer header/footer templates are isolated from the page CSS, so we inline styles.
   // Keep it lightweight and deterministic (no external images required).
-  const logo = opts?.logoDataUri
-    ? `<img alt="Chravel logo" src="${opts.logoDataUri}" style="height:22pt; width:auto; display:block; margin:0 0 4pt auto;" />`
-    : '';
   return `
-    <div style="width:100%; padding: 6pt 54pt 0 54pt; font-family: 'Source Sans 3', system-ui, -apple-system, sans-serif;">
-      <div style="width:100%; display:flex; justify-content:flex-end;">
-        <div style="
-          display:inline-flex;
-          flex-direction:column;
-          align-items:flex-end;
-          border:1px solid #111827;
-          background:#111827;
-          padding:6pt 8pt;
-          border-radius:8pt;
-          line-height:1.1;
-        ">
-          ${logo}
-          <div style="font-size:10.5pt; font-weight:700; color:#D4AF37;">
+    <div style="width:100%; padding: 8pt 54pt 0 54pt; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;">
+      <div style="width:100%; display:flex; justify-content:flex-end; text-align:right; line-height:1.15;">
+        <div>
+          <div style="font-size:10.5pt; font-weight:700; color:#111827;">
             ChravelApp Recap
           </div>
-          <div style="font-size:7.8pt; font-weight:600; color:#F9FAFB; opacity:0.95;">
-            Less chaos. More coordination.
+          <div style="font-size:8pt; font-weight:600; color:#374151;">
+            The Group Chat Travel App
           </div>
         </div>
       </div>
@@ -431,17 +401,15 @@ serve(async (req) => {
     // Layout name for metadata
     const layoutName = layout === 'pro' ? 'Chravel Pro Summary' : 'One-Pager';
 
-    const brandLogoDataUri = await getBrandLogoDataUri();
-
     logStep("Generating PDF", { format: paper, layout: layoutName });
     let pdfBytes = await page.pdf({
       printBackground: true,
       format: paper === 'a4' ? 'A4' : 'Letter',
       displayHeaderFooter: true,
-      headerTemplate: getBrandHeaderTemplate({ logoDataUri: brandLogoDataUri }),
+      headerTemplate: getBrandHeaderTemplate(),
       footerTemplate: `
-        <div style="font-family:'Source Sans 3',sans-serif;font-size:9pt;width:100%;padding:6pt 54pt;display:flex;justify-content:space-between;color:#6B7280;">
-          <div>Generated on ${exportData.generatedAtLocal} • ${layoutName}</div>
+        <div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:9pt;width:100%;padding:6pt 54pt;display:flex;justify-content:space-between;color:#6B7280;">
+          <div>From www.Chravel.App</div>
           <div>Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
         </div>
       `,
