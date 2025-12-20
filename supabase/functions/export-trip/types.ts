@@ -80,10 +80,43 @@ export interface BroadcastItem {
 }
 
 export interface AttachmentItem {
+  /**
+   * Display name shown in the recap body.
+   * Typically the original filename (e.g. "MLB_Dodgers_Tickets.pdf").
+   */
   name: string;
+  /**
+   * Best-effort mime/type label for display (e.g. "PDF", "Image", "DOCX").
+   */
   type: string;
+  /**
+   * Optional uploader display name (not required for exports).
+   * Never include email/phone (privacy rule).
+   */
   uploaded_by?: string;
+  /**
+   * Human-readable upload date/time for display.
+   */
   date?: string;
+
+  /**
+   * Storage path in the `trip-files` bucket (preferred for embedding).
+   * Example: "<tripId>/<fileName>" or "<tripId>/files/<uuid>.pdf"
+   */
+  path?: string;
+  /**
+   * If present, a URL that can be shown on fallback pages.
+   * Should be a signed URL for private buckets.
+   */
+  url?: string;
+  /**
+   * Raw mime type (e.g. "application/pdf") when available.
+   */
+  mime_type?: string;
+  /**
+   * Byte size when available (used for safeguards/logging).
+   */
+  size_bytes?: number;
 }
 
 export interface TripExportData {

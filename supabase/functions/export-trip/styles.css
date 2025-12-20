@@ -143,6 +143,25 @@ p {
   color: var(--muted);
 }
 
+/* Lists (used for Attachments index) */
+.bullet-list {
+  margin: 8pt 0 12pt 18pt;
+  padding: 0;
+}
+
+.bullet-list li {
+  margin: 0 0 4pt;
+}
+
+.file-name {
+  color: var(--ink);
+}
+
+.file-meta {
+  color: var(--muted);
+  font-size: 9.5pt;
+}
+
 /* Subtitle */
 .subtitle {
   font-size: 11pt;

@@ -784,6 +784,7 @@ export async function generateClientPDF(
       yPos = checkPageBreak(doc, yPos, 60);
       
       const attachments = data.attachments || [];
+      // Match server behavior: if no attachments exist, omit the section entirely.
       if (attachments.length > 0) {
         const attachmentChunks = attachments.length > maxItems 
           ? chunkArray(attachments, maxItems)
@@ -840,12 +841,6 @@ export async function generateClientPDF(
         doc.setTextColor(100);
         doc.text('Note: Download full attachments from the Chravel app', margin, yPos);
         yPos += 20;
-      } else {
-        doc.setFontSize(10);
-        doc.setFont('NotoSans', 'normal');
-        doc.setTextColor(120);
-        doc.text('No attachments available', margin, yPos);
-        yPos += 30;
       }
     }
   }
