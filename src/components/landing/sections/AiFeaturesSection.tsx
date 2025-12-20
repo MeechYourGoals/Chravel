@@ -1,30 +1,30 @@
 import React from 'react';
-import { Sparkles, MapPin, Bell, FileText } from 'lucide-react';
+import { Wand2, Compass, BellRing, ScrollText } from 'lucide-react';
 import aiConcierge from '@/assets/app-screenshots/ai-concierge.png';
 import placesMaps from '@/assets/app-screenshots/places-maps.png';
 
 export const AiFeaturesSection = () => {
   const aiFeatures = [
     {
-      icon: <Sparkles className="text-accent" size={32} />,
+      icon: <Wand2 className="text-accent" size={32} />,
       title: 'AI Concierge',
       description: 'Chat with AI for personalized recommendations based on your location, preferences, and trip context. From finding the perfect restaurant to planning activities, your AI assistant knows your trip inside-out.',
       badge: 'Smart'
     },
     {
-      icon: <MapPin className="text-primary" size={32} />,
+      icon: <Compass className="text-primary" size={32} />,
       title: 'Smart Basecamp',
       description: 'Get location-aware recommendations within perfect travel distance from your home base. AI understands where you\'re staying and suggests venues, activities, and restaurants in your ideal radius.',
       badge: 'Location-Aware'
     },
     {
-      icon: <Bell className="text-accent" size={32} />,
+      icon: <BellRing className="text-accent" size={32} />,
       title: 'Smart Notifications',
       description: 'Context-aware alerts for schedule conflicts, important chat messages, and group itineraries. Never miss what matters without notification overload.',
       badge: 'Context-Aware'
     },
     {
-      icon: <FileText className="text-primary" size={32} />,
+      icon: <ScrollText className="text-primary" size={32} />,
       title: 'AI Trip Summaries',
       description: 'Get daily or weekly digests of what\'s happening with your group — upcoming events, pending payments, and recent photos, all in one smart briefing.',
       badge: 'Automated'

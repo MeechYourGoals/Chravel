@@ -25,8 +25,8 @@ export const ReplacesGrid = () => {
         </p>
       </div>
 
-      {/* Accordion Grid */}
-      <Accordion type="single" collapsible className="space-y-3">
+      {/* Accordion Grid - Multi-open behavior */}
+      <Accordion type="multiple" className="space-y-3">
         {CATEGORIES.map((category) => {
           const allApps = [...category.hero, ...category.full];
           
@@ -37,28 +37,40 @@ export const ReplacesGrid = () => {
               className="bg-card/25 backdrop-blur-sm border border-border/30 rounded-xl overflow-hidden"
             >
               <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-card/40 transition-colors group [&[data-state=open]>svg]:rotate-180">
-                <div className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                  <span className="text-xl sm:text-2xl flex-shrink-0">{category.icon}</span>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0 flex-1">
-                    <span className="text-base sm:text-lg md:text-xl font-semibold text-foreground flex-shrink-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 flex-1 min-w-0 text-left">
+                  {/* Icon + Title - Left aligned */}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <span className="text-2xl sm:text-3xl">{category.icon}</span>
+                    <span className="text-lg sm:text-xl md:text-2xl font-bold text-white"
+                      style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
                       {category.title}
                     </span>
-                    <span className="text-sm sm:text-base text-muted-foreground truncate">
+                  </div>
+                  {/* Subtitle - Centered with enhanced readability */}
+                  <div className="flex-1 flex justify-center">
+                    <span 
+                      className="text-base sm:text-lg md:text-xl font-bold text-white text-center px-3 py-1 rounded-lg"
+                      style={{ 
+                        textShadow: '0 2px 8px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.6)',
+                        backgroundColor: 'rgba(0,0,0,0.3)'
+                      }}
+                    >
                       {category.subtitle}
                     </span>
                   </div>
                 </div>
-                <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-muted-foreground transition-transform duration-200 ml-2" />
+                <ChevronDown className="h-5 w-5 sm:h-6 sm:w-6 shrink-0 text-white transition-transform duration-200 ml-2" />
               </AccordionTrigger>
               
               <AccordionContent className="px-4 pb-4">
                 {/* Expanded description */}
-                <p className="text-sm sm:text-base text-muted-foreground mb-4 pl-9 sm:pl-11">
+                <p className="text-sm sm:text-base text-white/90 mb-4 text-center font-medium"
+                  style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
                   {category.expandedDescription}
                 </p>
                 
                 {/* App chips */}
-                <div className="flex flex-wrap gap-1.5 sm:gap-2 pl-9 sm:pl-11">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
                   {allApps.map((app, index) => (
                     <span
                       key={`${app.name}-${index}`}
