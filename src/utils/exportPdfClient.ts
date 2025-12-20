@@ -888,28 +888,28 @@ export async function generateClientPDF(
   const totalPages = doc.internal.pages.length - 1; // jsPDF uses 1-indexed pages but array is 0-indexed
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    // Optional logo (page 1 only)
+    // Optional logo (page 1 only) - sized larger to fill the top-right corner
     if (i === 1 && brandLogoDataUrl) {
       try {
-        const logoW = 88;
-        const logoH = 28;
-        doc.addImage(brandLogoDataUrl, 'PNG', pageWidth - margin - logoW, 6, logoW, logoH, undefined, 'FAST');
+        const logoW = 140;
+        const logoH = 45;
+        doc.addImage(brandLogoDataUrl, 'PNG', pageWidth - margin - logoW, 10, logoW, logoH, undefined, 'FAST');
       } catch {
         // ignore (some environments may not support addImage for large PNGs)
       }
     }
-    // Top-right brand (virality)
+    // Top-right brand text (below logo)
     doc.setFont('NotoSans', 'bold');
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     doc.setTextColor(brandGold[0], brandGold[1], brandGold[2]);
     const titleW = doc.getTextWidth(brandTitle);
-    doc.text(brandTitle, pageWidth - margin - titleW, 40);
+    doc.text(brandTitle, pageWidth - margin - titleW, 62);
 
     doc.setFont('NotoSans', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setTextColor(30);
     const tagW = doc.getTextWidth(brandTagline);
-    doc.text(brandTagline, pageWidth - margin - tagW, 52);
+    doc.text(brandTagline, pageWidth - margin - tagW, 76);
 
     // Bottom-left footer
     doc.setFontSize(8);
