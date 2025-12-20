@@ -66,7 +66,7 @@ export async function renderTemplate(data: TripExportData): Promise<string> {
   ${tasks && tasks.length > 0 ? renderTasks(tasks) : ''}
   ${places && places.length > 0 ? renderPlaces(places) : ''}
   ${broadcasts && broadcasts.length > 0 && layout === 'pro' ? renderBroadcasts(broadcasts) : ''}
-  ${attachments && attachments.length > 0 && layout === 'pro' ? renderAttachments(attachments) : ''}
+  ${attachments && attachments.length > 0 ? renderAttachments(attachments) : ''}
 
   <div class="footer-text">
     Generated on ${escapeHtml(generatedAtLocal)} &nbsp;•&nbsp; ${layoutName} &nbsp;•&nbsp; Trip ID: ${escapeHtml(tripId)}
@@ -307,29 +307,22 @@ function renderBroadcasts(broadcasts: any[]): string {
 }
 
 function renderAttachments(attachments: any[]): string {
+  // Plain-text index only (no embeds in the body). Actual file pages are appended after
+  // the main recap in the PDF post-processing step.
   return `
   <section class="section">
     <h2>Attachments</h2>
-    <table class="table">
-      <thead>
-        <tr>
-          <th>File</th>
-          <th>Type</th>
-          <th>Uploaded by</th>
-          <th>Date</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${attachments.map(a => `
-          <tr>
-            <td>${escapeHtml(a.name)}</td>
-            <td>${escapeHtml(a.type)}</td>
-            <td>${escapeHtml(a.uploaded_by || '—')}</td>
-            <td>${escapeHtml(a.date || '—')}</td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
+    <ul class="bullet-list">
+      ${attachments.map(a => {
+        const meta = [a.type ? escapeHtml(a.type) : null, a.date ? escapeHtml(a.date) : null].filter(Boolean).join(' • ');
+        return `
+          <li>
+            <span class="file-name">${escapeHtml(a.name)}</span>
+            ${meta ? `<span class="file-meta"> (${meta})</span>` : ''}
+          </li>
+        `;
+      }).join('')}
+    </ul>
   </section>`;
 }
 

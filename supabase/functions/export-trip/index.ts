@@ -5,8 +5,10 @@
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { encodeBase64 } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
+import { PDFDocument, StandardFonts, rgb, type PDFFont } from "https://esm.sh/pdf-lib@1.17.1";
 import { getTripData } from './data.ts';
 import { renderTemplate } from './template.ts';
 import { slug, formatTimestamp } from './util.ts';
@@ -21,6 +23,259 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+type PaperSize = 'letter' | 'a4';
+
+let cachedBrandLogoDataUri: string | null | undefined = undefined;
+
+async function getBrandLogoDataUri(): Promise<string | null> {
+  if (cachedBrandLogoDataUri !== undefined) return cachedBrandLogoDataUri;
+  try {
+    const logoUrl = new URL('./assets/chravel-logo.png', import.meta.url);
+    const bytes = await Deno.readFile(logoUrl);
+    cachedBrandLogoDataUri = `data:image/png;base64,${encodeBase64(bytes)}`;
+    return cachedBrandLogoDataUri;
+  } catch (error) {
+    console.warn('[EXPORT-TRIP] Failed to load brand logo asset:', error);
+    cachedBrandLogoDataUri = null;
+    return null;
+  }
+}
+
+function getBrandHeaderTemplate(opts?: { logoDataUri?: string | null }): string {
+  // Puppeteer header/footer templates are isolated from the page CSS, so we inline styles.
+  // Keep it lightweight and deterministic (no external images required).
+  const logo = opts?.logoDataUri
+    ? `<img alt="Chravel logo" src="${opts.logoDataUri}" style="height:22pt; width:auto; display:block; margin:0 0 4pt auto;" />`
+    : '';
+  return `
+    <div style="width:100%; padding: 6pt 54pt 0 54pt; font-family: 'Source Sans 3', system-ui, -apple-system, sans-serif;">
+      <div style="width:100%; display:flex; justify-content:flex-end;">
+        <div style="
+          display:inline-flex;
+          flex-direction:column;
+          align-items:flex-end;
+          border:1px solid #111827;
+          background:#111827;
+          padding:6pt 8pt;
+          border-radius:8pt;
+          line-height:1.1;
+        ">
+          ${logo}
+          <div style="font-size:10.5pt; font-weight:700; color:#D4AF37;">
+            ChravelApp Recap
+          </div>
+          <div style="font-size:7.8pt; font-weight:600; color:#F9FAFB; opacity:0.95;">
+            Less chaos. More coordination.
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function getPaperSizePts(paper: PaperSize): { width: number; height: number } {
+  // PDF points: 72pt = 1 inch
+  if (paper === 'a4') return { width: 595.28, height: 841.89 };
+  return { width: 612, height: 792 }; // Letter
+}
+
+function guessExt(filename: string | undefined): string {
+  const name = (filename || '').toLowerCase();
+  const ext = name.includes('.') ? name.split('.').pop() : '';
+  return ext || '';
+}
+
+function classifyForEmbedding(opts: { name: string; mimeType?: string; typeLabel?: string }): 'pdf' | 'image' | 'doc' | 'other' {
+  const mime = (opts.mimeType || '').toLowerCase();
+  const label = (opts.typeLabel || '').toLowerCase();
+  const ext = guessExt(opts.name);
+
+  if (mime === 'application/pdf' || ext === 'pdf' || label === 'pdf') return 'pdf';
+  if (mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp'].includes(ext)) return 'image';
+  if (['doc', 'docx'].includes(ext)) return 'doc';
+  return 'other';
+}
+
+function wrapText(params: {
+  text: string;
+  maxWidth: number;
+  font: PDFFont;
+  fontSize: number;
+}): string[] {
+  const words = params.text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = '';
+
+  for (const w of words) {
+    const candidate = current ? `${current} ${w}` : w;
+    const width = params.font.widthOfTextAtSize(candidate, params.fontSize);
+    if (width <= params.maxWidth) {
+      current = candidate;
+    } else {
+      if (current) lines.push(current);
+      current = w;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+async function addFallbackAttachmentPage(params: {
+  doc: PDFDocument;
+  paper: PaperSize;
+  title: string;
+  subtitle?: string;
+  lines: string[];
+}): Promise<void> {
+  const { width, height } = getPaperSizePts(params.paper);
+  const page = params.doc.addPage([width, height]);
+  const font = await params.doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await params.doc.embedFont(StandardFonts.HelveticaBold);
+
+  const margin = 54;
+  let y = height - margin;
+
+  page.drawText('Attachment', { x: margin, y, font: fontBold, size: 18, color: rgb(0.06, 0.09, 0.16) });
+  y -= 28;
+  page.drawText(params.title, { x: margin, y, font: fontBold, size: 12, color: rgb(0.06, 0.09, 0.16) });
+  y -= 18;
+
+  if (params.subtitle) {
+    const subLines = wrapText({ text: params.subtitle, maxWidth: width - margin * 2, font, fontSize: 10 });
+    for (const line of subLines) {
+      page.drawText(line, { x: margin, y, font, size: 10, color: rgb(0.42, 0.45, 0.5) });
+      y -= 14;
+    }
+    y -= 8;
+  }
+
+  for (const rawLine of params.lines) {
+    const lineParts = wrapText({ text: rawLine, maxWidth: width - margin * 2, font, fontSize: 10 });
+    for (const line of lineParts) {
+      page.drawText(line, { x: margin, y, font, size: 10, color: rgb(0.12, 0.16, 0.23) });
+      y -= 14;
+      if (y < margin + 20) break;
+    }
+    if (y < margin + 20) break;
+    y -= 4;
+  }
+}
+
+async function appendAttachmentsToPdf(params: {
+  supabaseClient: ReturnType<typeof createClient>;
+  basePdfBytes: Uint8Array;
+  attachments: Array<{
+    name: string;
+    type: string;
+    path?: string;
+    url?: string;
+    mime_type?: string;
+  }>;
+  paper: PaperSize;
+}): Promise<Uint8Array> {
+  const baseDoc = await PDFDocument.load(params.basePdfBytes);
+
+  for (const att of params.attachments) {
+    const kind = classifyForEmbedding({ name: att.name, mimeType: att.mime_type, typeLabel: att.type });
+
+    // Prefer storage path for fetching.
+    const storagePath = att.path;
+    let fileBytes: Uint8Array | null = null;
+
+    if (storagePath) {
+      try {
+        const { data, error } = await params.supabaseClient.storage
+          .from('trip-files')
+          .download(storagePath);
+        if (error) throw error;
+        const ab = await data.arrayBuffer();
+        fileBytes = new Uint8Array(ab);
+      } catch (e) {
+        logStep('Attachment download failed', { name: att.name, path: storagePath, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+
+    try {
+      if (kind === 'pdf' && fileBytes) {
+        const src = await PDFDocument.load(fileBytes);
+        const pages = await baseDoc.copyPages(src, src.getPageIndices());
+        for (const p of pages) baseDoc.addPage(p);
+        continue;
+      }
+
+      if (kind === 'image' && fileBytes) {
+        const { width, height } = getPaperSizePts(params.paper);
+        const page = baseDoc.addPage([width, height]);
+
+        const ext = guessExt(att.name);
+        const isPng = ext === 'png';
+        const embedded = isPng ? await baseDoc.embedPng(fileBytes) : await baseDoc.embedJpg(fileBytes);
+
+        const margin = 18;
+        const maxW = width - margin * 2;
+        const maxH = height - margin * 2;
+        const imgW = embedded.width;
+        const imgH = embedded.height;
+        const scale = Math.min(maxW / imgW, maxH / imgH);
+        const drawW = imgW * scale;
+        const drawH = imgH * scale;
+        const x = (width - drawW) / 2;
+        const y = (height - drawH) / 2;
+
+        page.drawImage(embedded, { x, y, width: drawW, height: drawH });
+        continue;
+      }
+
+      // DOC/DOCX conversion is not available in this edge runtime.
+      // For unsupported or failed-embed files, we still append a deterministic fallback page.
+      const fallbackLines: string[] = [];
+      if (kind === 'doc') {
+        fallbackLines.push('This document could not be embedded as a PDF in this export.');
+        fallbackLines.push('Please download it from Chravel to view the original formatting.');
+      } else if (kind === 'other') {
+        fallbackLines.push('This file type could not be embedded in the PDF export.');
+        fallbackLines.push('Please download it from Chravel to access the original file.');
+      } else {
+        fallbackLines.push('This attachment could not be embedded in the PDF export.');
+        fallbackLines.push('Please download it from Chravel to access the original file.');
+      }
+
+      // Best-effort signed URL for private bucket (used only for display).
+      let signedUrl: string | undefined = att.url;
+      if (!signedUrl && storagePath) {
+        try {
+          const { data: signed, error: signErr } = await params.supabaseClient.storage
+            .from('trip-files')
+            .createSignedUrl(storagePath, 60 * 60);
+          if (!signErr) signedUrl = signed?.signedUrl;
+        } catch {
+          // ignore
+        }
+      }
+      if (signedUrl) fallbackLines.push(`Download link: ${signedUrl}`);
+
+      await addFallbackAttachmentPage({
+        doc: baseDoc,
+        paper: params.paper,
+        title: att.name,
+        subtitle: `${att.type}${att.mime_type ? ` • ${att.mime_type}` : ''}`,
+        lines: fallbackLines,
+      });
+    } catch (e) {
+      logStep('Attachment embed failed', { name: att.name, error: e instanceof Error ? e.message : String(e) });
+      await addFallbackAttachmentPage({
+        doc: baseDoc,
+        paper: params.paper,
+        title: att.name,
+        subtitle: att.type,
+        lines: ['This attachment could not be embedded in the PDF export. Please download it from Chravel.'],
+      });
+    }
+  }
+
+  return await baseDoc.save();
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -176,12 +431,14 @@ serve(async (req) => {
     // Layout name for metadata
     const layoutName = layout === 'pro' ? 'Chravel Pro Summary' : 'One-Pager';
 
+    const brandLogoDataUri = await getBrandLogoDataUri();
+
     logStep("Generating PDF", { format: paper, layout: layoutName });
-    const pdfBuffer = await page.pdf({
+    let pdfBytes = await page.pdf({
       printBackground: true,
       format: paper === 'a4' ? 'A4' : 'Letter',
       displayHeaderFooter: true,
-      headerTemplate: `<div></div>`,
+      headerTemplate: getBrandHeaderTemplate({ logoDataUri: brandLogoDataUri }),
       footerTemplate: `
         <div style="font-family:'Source Sans 3',sans-serif;font-size:9pt;width:100%;padding:6pt 54pt;display:flex;justify-content:space-between;color:#6B7280;">
           <div>Generated on ${exportData.generatedAtLocal} • ${layoutName}</div>
@@ -192,19 +449,39 @@ serve(async (req) => {
     });
 
     await browser.close();
-    logStep("PDF generated successfully", { size: pdfBuffer.length });
+    logStep("PDF generated successfully", { size: pdfBytes.length });
+
+    // If attachments are included, append the actual files after the recap.
+    // The recap body already contains a plain-text Attachments index section.
+    if (sections.includes('attachments') && Array.isArray((exportData as any).attachments) && (exportData as any).attachments.length > 0) {
+      logStep("Appending attachment pages", { count: (exportData as any).attachments.length });
+      try {
+        const merged = await appendAttachmentsToPdf({
+          supabaseClient,
+          basePdfBytes: new Uint8Array(pdfBytes),
+          attachments: (exportData as any).attachments,
+          paper,
+        });
+        logStep("Attachments appended", { newSize: merged.length });
+        pdfBytes = merged;
+      } catch (e) {
+        logStep("Failed to append attachments (continuing with base PDF)", {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
 
     // Generate filename with timestamp
     const filename = `Trip_${slug(exportData.tripTitle)}_${layout}_${formatTimestamp()}.pdf`;
-    logStep("Returning PDF", { filename, size: pdfBuffer.length });
+    logStep("Returning PDF", { filename, size: pdfBytes.length });
 
     // Return PDF directly as Response body
-    return new Response(pdfBuffer as unknown as BodyInit, {
+    return new Response(pdfBytes as unknown as BodyInit, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${filename}"`,
-        'Content-Length': pdfBuffer.length.toString(),
+        'Content-Length': pdfBytes.length.toString(),
       },
     });
 

@@ -38,7 +38,8 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     { id: 'tasks' as ExportSection, label: 'Tasks', icon: '✅' },
     { id: 'broadcasts' as ExportSection, label: 'Broadcast Log', icon: '📢', proOnly: true },
     { id: 'roster' as ExportSection, label: 'Roster & Contacts', icon: '👥', proOnly: true },
-    { id: 'attachments' as ExportSection, label: 'Attachments', icon: '📎', proOnly: true },
+    // Attachments are available for both consumer + pro trips (content still respects RLS).
+    { id: 'attachments' as ExportSection, label: 'Attachments', icon: '📎' },
   ];
 
   const toggleSection = (sectionId: ExportSection) => {
