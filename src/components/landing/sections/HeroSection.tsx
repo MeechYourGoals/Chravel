@@ -71,26 +71,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           The Group Chat Travel App for Shared Calendars, Messages, Media, Payments, and more
         </p>
 
-        {/* Feature Pills */}
-        <div className="flex flex-wrap justify-center gap-3 pt-2 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          <div className="bg-background/50 backdrop-blur-sm border border-border rounded-full px-4 py-2 flex items-center gap-2">
-            <Users size={16} className="text-primary" />
-            <span className="text-base md:text-lg">Group Planning & Events</span>
-          </div>
-          <div className="bg-background/50 backdrop-blur-sm border border-border rounded-full px-4 py-2 flex items-center gap-2">
-            <Calendar size={16} className="text-accent" />
-            <span className="text-base md:text-lg">Smart Itineraries & Schedules</span>
-          </div>
-          <div className="bg-background/50 backdrop-blur-sm border border-border rounded-full px-4 py-2 flex items-center gap-2">
-            <MapPin size={16} className="text-primary" />
-            <span className="text-base md:text-lg">Real-Time Maps & Basecamps</span>
-          </div>
-          <div className="bg-background/50 backdrop-blur-sm border border-border rounded-full px-4 py-2 flex items-center gap-2">
-            <Sparkles size={16} className="text-accent" />
-            <span className="text-base md:text-lg">AI Concierge & Search</span>
-          </div>
-        </div>
-
         {/* CTA */}
         <Button
           size="lg"

@@ -339,12 +339,12 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
         <div className="space-y-4">
           <div className="inline-block bg-primary px-6 py-3 rounded-lg">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
-              Start planning better trips today
+              Upgrade your travel experience today
             </h2>
           </div>
           <div className="bg-primary backdrop-blur-sm px-4 py-3 rounded-lg max-w-3xl mx-auto">
             <p className="text-sm sm:text-base md:text-lg text-white font-bold leading-relaxed break-words">
-              Ensuring the next trip makes it out of the group chat. <span className="text-accent font-bold">Save 23 hours per trip</span> with the world's first AI-native group collaboration platform for trips and events.
+              Make sure your next trip makes it out of the group chat. <span className="text-accent font-bold">Chravel saves you more time, money, & headaches.</span>
             </p>
           </div>
         </div>
