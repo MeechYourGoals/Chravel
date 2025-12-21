@@ -1,8 +1,10 @@
 
 import React, { useState } from 'react';
-import { Settings, Users, Shield, Trash2, X } from 'lucide-react';
+import { Settings, Users, Shield, Trash2, X, ScrollText } from 'lucide-react';
 import { TripUserManagement } from './TripUserManagement';
 import { getConsistentAvatar } from '../utils/avatarUtils';
+import { EventLogDrawer } from './trip/EventLogDrawer';
+import { isConsumerTrip } from '@/utils/tripTierDetector';
 
 interface TripUser {
   id: string;
@@ -30,10 +32,12 @@ const TRIP_CATEGORIES = [
 ];
 
 export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId }: TripSettingsProps) => {
-  const [activeTab, setActiveTab] = useState<'users' | 'general' | 'danger'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'general' | 'danger' | 'eventlog'>('users');
   const [tripCategory, setTripCategory] = useState('Business Travel');
   const [customCategory, setCustomCategory] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [showEventLog, setShowEventLog] = useState(false);
+  const showEventLogTab = isConsumerTrip(tripId);
 
   // Mock users data - this would come from your backend
   const [users, setUsers] = useState<TripUser[]>([
@@ -97,6 +101,7 @@ export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId 
   const tabs = [
     { id: 'users', label: 'Members', icon: Users },
     { id: 'general', label: 'General', icon: Settings },
+    ...(showEventLogTab ? [{ id: 'eventlog', label: 'Event Log', icon: ScrollText }] : []),
     { id: 'danger', label: 'Danger Zone', icon: Trash2 }
   ];
 
@@ -217,6 +222,19 @@ export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId 
               </div>
             )}
 
+            {activeTab === 'eventlog' && showEventLogTab && (
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Event Log</h3>
+                <p className="text-gray-400 mb-6">View system events and activity for this trip.</p>
+                <button
+                  onClick={() => setShowEventLog(true)}
+                  className="bg-glass-orange hover:bg-glass-orange/80 text-white px-6 py-3 rounded-xl transition-colors"
+                >
+                  Open Event Log
+                </button>
+              </div>
+            )}
+
             {activeTab === 'danger' && (
               <div className="bg-white/10 backdrop-blur-md border border-red-500/20 rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-red-300 mb-4">Danger Zone</h3>
@@ -229,6 +247,13 @@ export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId 
           </div>
         </div>
       </div>
+
+      {/* Event Log Drawer */}
+      <EventLogDrawer
+        isOpen={showEventLog}
+        onClose={() => setShowEventLog(false)}
+        tripId={tripId}
+      />
     </div>
   );
 };

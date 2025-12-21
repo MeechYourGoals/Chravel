@@ -1,9 +1,9 @@
-import React, { memo } from 'react';
+import React, { memo, useCallback } from 'react';
 import { ChatMessage } from '@/hooks/useChatComposer';
 import { ChatMessageWithGrounding } from '@/types/grounding';
 import { MessageBubble } from './MessageBubble';
+import { SystemMessageBubble } from './SystemMessageBubble';
 import { useAuth } from '@/hooks/useAuth';
-import { useCallback } from 'react';
 
 interface MessageItemProps {
   message: ChatMessage & { status?: 'sending' | 'sent' | 'failed' };
@@ -17,7 +17,9 @@ export const MessageItem = memo(({ message, reactions, onReaction, showSenderInf
   const { user } = useAuth();
   const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
 
-  const isSystemMessage = message.tags?.includes('system') === true;
+  // Check for system messages - either by tag or message_type
+  const isSystemMessage = message.tags?.includes('system') === true || 
+    (message as any).message_type === 'system';
   
   // Determine if message is from current user
   // Check by user ID first (most reliable), then fall back to author name match
@@ -41,11 +43,10 @@ export const MessageItem = memo(({ message, reactions, onReaction, showSenderInf
 
   if (isSystemMessage) {
     return (
-      <div className="flex justify-center px-3 py-2">
-        <div className="max-w-[90%] rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs md:text-sm italic text-white/70 select-none">
-          {message.text}
-        </div>
-      </div>
+      <SystemMessageBubble
+        body={message.text}
+        timestamp={message.createdAt}
+      />
     );
   }
   

@@ -12,6 +12,10 @@ interface MockMessage {
   delay_seconds?: number;
   timestamp_offset_days?: number;
   tags?: string[];
+  // System message fields
+  message_type?: 'text' | 'system';
+  system_event_type?: string;
+  payload?: Record<string, any>;
 }
 
 export type { MockMessage };
@@ -297,7 +301,10 @@ class DemoModeService {
     // Add trip-specific messages based on type
     const tripSpecificMessages = this.getTripSpecificMessages(tripType, currentUserId);
     
-    let allMessages = [...baseMessages, ...tripSpecificMessages];
+    // Add system messages for consumer trips (demo timeline events)
+    const systemMessages = this.getDemoSystemMessages();
+    
+    let allMessages = [...baseMessages, ...tripSpecificMessages, ...systemMessages];
     
     // Filter out payment messages if excludePayments is true (for events)
     if (excludePayments) {
@@ -307,6 +314,115 @@ class DemoModeService {
     return allMessages.sort((a, b) => 
       (b.timestamp_offset_days || 0) - (a.timestamp_offset_days || 0)
     );
+  }
+
+  /**
+   * Get demo system messages for consumer trip timeline
+   * These appear as centered muted text in the chat
+   */
+  getDemoSystemMessages(): MockMessage[] {
+    return [
+      {
+        id: 'sys_1',
+        sender_name: 'System',
+        message_content: 'Marcus Johnson joined the trip',
+        timestamp_offset_days: 5,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'member_joined',
+        payload: { memberName: 'Marcus Johnson' }
+      },
+      {
+        id: 'sys_2',
+        sender_name: 'System',
+        message_content: 'Sarah Chen joined the trip',
+        timestamp_offset_days: 5,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'member_joined',
+        payload: { memberName: 'Sarah Chen' }
+      },
+      {
+        id: 'sys_3',
+        sender_name: 'System',
+        message_content: 'Base camp set to The Hermitage Hotel, Nashville',
+        timestamp_offset_days: 4,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'trip_base_camp_updated',
+        payload: { newAddress: 'The Hermitage Hotel, Nashville' }
+      },
+      {
+        id: 'sys_4',
+        sender_name: 'System',
+        message_content: 'Emma Rodriguez created a poll: "What time should we meet for dinner?"',
+        timestamp_offset_days: 3,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'poll_created',
+        payload: { pollQuestion: 'What time should we meet for dinner?', actorName: 'Emma Rodriguez' }
+      },
+      {
+        id: 'sys_5',
+        sender_name: 'System',
+        message_content: 'Alex Kim added a task: "Book airport transfers"',
+        timestamp_offset_days: 3,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'task_created',
+        payload: { taskTitle: 'Book airport transfers', actorName: 'Alex Kim' }
+      },
+      {
+        id: 'sys_6',
+        sender_name: 'System',
+        message_content: 'Priya Patel uploaded 4 photos',
+        timestamp_offset_days: 2,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'photos_uploaded',
+        payload: { mediaCount: 4, actorName: 'Priya Patel' }
+      },
+      {
+        id: 'sys_7',
+        sender_name: 'System',
+        message_content: 'Poll closed - "7:30 PM" won',
+        timestamp_offset_days: 2,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'poll_closed',
+        payload: { winningOption: '7:30 PM' }
+      },
+      {
+        id: 'sys_8',
+        sender_name: 'System',
+        message_content: 'Sarah Chen added an expense: Dinner at Sakura ($240.00)',
+        timestamp_offset_days: 1,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'payment_recorded',
+        payload: { amount: 240, currency: 'USD', description: 'Dinner at Sakura', actorName: 'Sarah Chen' }
+      },
+      {
+        id: 'sys_9',
+        sender_name: 'System',
+        message_content: 'Alex Kim completed: "Book airport transfers"',
+        timestamp_offset_days: 1,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'task_completed',
+        payload: { taskTitle: 'Book airport transfers', actorName: 'Alex Kim' }
+      },
+      {
+        id: 'sys_10',
+        sender_name: 'System',
+        message_content: 'Base camp changed from The Hermitage Hotel → The Grand Hyatt Nashville',
+        timestamp_offset_days: 0,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'trip_base_camp_updated',
+        payload: { previousAddress: 'The Hermitage Hotel', newAddress: 'The Grand Hyatt Nashville' }
+      }
+    ];
   }
 
   getProMockMessages(tripType: 'pro' | 'event', currentUserId: string): MockMessage[] {
