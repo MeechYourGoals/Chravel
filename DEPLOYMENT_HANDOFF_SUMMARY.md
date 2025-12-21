@@ -1,163 +1,311 @@
 # Chravel Deployment Handoff Summary
 
-**Date:** October 21, 2025  
-**Final Readiness:** 95%  
-**Status:** Ready for Developer Agency Handoff
+> This document is governed by the No Regressions Policy.
+> See: `ARCHITECTURE_DECISIONS.md` → Mobile Platform Strategy
+
+**Date:** December 2025
+**Status:** Production Ready
+**Platform:** Web Application (React/TypeScript)
+
+---
 
 ## Executive Summary
 
-Chravel has been successfully prepared for app store deployment with comprehensive documentation, environment templates, and platform configurations. The application is now **95% ready** for deployment to both iOS App Store and Google Play Store.
+Chravel is a production-ready React/TypeScript web application deployed on Vercel. This document provides a complete handoff summary for developers, contractors, or agencies taking over deployment and maintenance.
+
+**Important Platform Decision:** This repository contains the web application only. Mobile apps (iOS/Android) will be developed separately using Flutter in a dedicated repository. Capacitor has been removed from this project.
+
+---
+
+## Current State
+
+### What's Deployed
+
+| Component | Status | Platform | Notes |
+|-----------|--------|----------|-------|
+| Web Application | **Production** | Vercel | chravel.app |
+| PWA Support | **Active** | Service Worker | Offline-capable |
+| Supabase Backend | **Production** | Supabase Cloud | PostgreSQL + Edge Functions |
+| Edge Functions | **Deployed** | Supabase | See function list below |
+
+### What's NOT Deployed (By Design)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| iOS App | **Planned** | Will use Flutter (separate repo) |
+| Android App | **Planned** | Will use Flutter (separate repo) |
+| Capacitor | **Removed** | See `docs/archive/capacitor/` for history |
+
+---
+
+## Technical Architecture
+
+### Stack Overview
+
+```
+Frontend:
+├── React 18 + TypeScript
+├── Vite (build tool)
+├── Tailwind CSS + Radix UI
+├── React Query + Zustand
+└── React Router
+
+Backend:
+├── Supabase (PostgreSQL)
+├── Supabase Auth
+├── Supabase Edge Functions (Deno)
+├── Supabase Real-time
+└── Supabase Storage
+
+External APIs:
+├── Google Gemini AI (via Lovable Gateway)
+└── Google Maps API (Places, Geocoding)
+```
+
+### Repository Contents
+
+```
+Chravel/
+├── src/                    # React application source
+├── supabase/
+│   ├── functions/          # Edge Functions (Deno)
+│   └── migrations/         # Database migrations
+├── public/                 # Static assets + PWA manifest
+├── docs/                   # Documentation
+│   ├── ADRs/              # Architecture decisions
+│   └── archive/capacitor/ # Archived Capacitor docs (DO NOT USE)
+└── e2e/                    # Playwright E2E tests
+```
+
+---
 
 ## What Has Been Completed
 
-### 1. ✅ Environment Configuration (Complete)
-- Created `.env.production.example` with all required variables
-- Created `ENVIRONMENT_SETUP_GUIDE.md` with step-by-step API key instructions
-- Documented cost estimates for all services
-- Added security best practices
+### 1. Web Application
 
-### 2. ✅ Security Hardening (Complete)
-- Added Content Security Policy headers to index.html
-- Configured proper CORS policies
-- Fixed critical TODO comments with proper user authentication
-- Documented npm vulnerabilities (non-critical, no fixes available)
+- **All core features functional**: Chat, Tasks, Payments, Calendar, AI Concierge
+- **Performance optimized**: Code splitting, lazy loading, asset caching
+- **Security hardened**: CSP headers, RLS policies, secure auth
+- **PWA enabled**: Service worker, offline support, installable
 
-### 3. ✅ Performance Optimization (Complete)
-- Configured Vite build optimization with code splitting
-- Manual chunks for vendor libraries (React, UI, Supabase, etc.)
-- Lazy loading already implemented for all routes
-- Bundle size optimization with terser minification
-- Asset optimization with proper naming conventions
+### 2. Backend Infrastructure
 
-### 4. ✅ iOS Documentation (Complete)
-- Created `IOS_APP_STORE_READINESS.md` with full deployment guide
-- App Store listing content prepared
-- Screenshot requirements documented
-- Common rejection reasons and solutions
-- TestFlight testing checklist
+- **Database**: PostgreSQL with RLS policies
+- **Authentication**: Supabase Auth with email/password
+- **Edge Functions**: All deployed and operational
+- **Real-time**: Supabase subscriptions for live updates
 
-### 5. ✅ Android Documentation (Complete)
-- Created `ANDROID_CAPACITOR_GUIDE.md` with complete setup instructions
-- Play Store listing content prepared
-- Step-by-step Android Studio configuration
-- Created `setup-android.sh` automation script
-- Firebase configuration guide for push notifications
+### 3. CI/CD Pipeline
 
-### 6. ✅ Code Quality Improvements (Complete)
-- Fixed critical TODO comments with proper implementations
-- Improved type safety in key components
-- All features build without errors
-- Database schema fully documented
+- **GitHub Actions**: Linting, type checking, testing on every PR
+- **Automatic Deploys**: Vercel deploys on push to `main`
+- **Edge Function Deploys**: Automated via GitHub Actions
 
-## Key Files for Developer Agency
+### 4. Documentation
 
-### Configuration Files
-1. **`.env.production.example`** - Environment variable template
-2. **`ENVIRONMENT_SETUP_GUIDE.md`** - API key setup instructions
-3. **`capacitor.config.ts`** - Mobile app configuration
+- **DEVELOPER_HANDBOOK.md**: Complete development guide
+- **DEPLOYMENT_GUIDE.md**: Deployment procedures
+- **ARCHITECTURE_DECISIONS.md**: Platform strategy and decisions
+- **CONTRIBUTING.md**: Contribution guidelines
+- **ENVIRONMENT_SETUP_GUIDE.md**: API key setup
 
-### iOS Deployment
-1. **`IOS_APP_STORE_READINESS.md`** - Complete iOS deployment guide
-2. **`ios/`** - iOS platform already configured
-3. **`PRODUCTION_BUILD_CHECKLIST.md`** - Pre-submission checklist
+---
 
-### Android Deployment
-1. **`ANDROID_CAPACITOR_GUIDE.md`** - Android setup from scratch
-2. **`setup-android.sh`** - Automated Android platform setup
-3. Android platform ready to be added with one command
+## Key Files for Handoff
+
+### Configuration
+
+| File | Purpose |
+|------|---------|
+| `package.json` | Dependencies and scripts |
+| `vite.config.ts` | Build configuration |
+| `vercel.json` | Vercel deployment config |
+| `render.yaml` | Render deployment config (backup) |
+| `tsconfig.json` | TypeScript configuration |
+| `.env.production.example` | Environment variable template |
 
 ### Documentation
-1. **`DEPLOYMENT_READINESS_ASSESSMENT.md`** - Current state analysis
-2. **`DEVELOPER_HANDBOOK.md`** - Technical architecture
-3. **`docs/`** - Comprehensive feature documentation
 
-## Immediate Actions for Developer Agency
+| File | Purpose |
+|------|---------|
+| `DEVELOPER_HANDBOOK.md` | Development setup and architecture |
+| `DEPLOYMENT_GUIDE.md` | Deployment procedures |
+| `ARCHITECTURE_DECISIONS.md` | Platform decisions (Flutter vs Capacitor) |
+| `CLAUDE.md` | Coding standards for AI assistants |
+| `CONTRIBUTING.md` | PR and contribution guidelines |
 
-### Day 1: Environment Setup
-1. Copy `.env.production.example` to `.env.production`
-2. Obtain all API keys following `ENVIRONMENT_SETUP_GUIDE.md`
-3. Test build: `npm install && npm run build`
+### Backend
 
-### Day 2-3: iOS Deployment
-1. Remove development server from `capacitor.config.ts`
-2. Generate app icons and screenshots
-3. Build and test on physical iOS device
-4. Submit to TestFlight for beta testing
+| Directory | Purpose |
+|-----------|---------|
+| `supabase/functions/` | Edge Functions source |
+| `supabase/migrations/` | Database migrations |
 
-### Day 3-4: Android Setup
-1. Run `./setup-android.sh` to add Android platform
-2. Configure Firebase for push notifications
-3. Test on Android emulator and device
-4. Build release bundle for Play Store
+---
 
-### Day 5+: App Store Submission
-1. Complete App Store Connect metadata
-2. Submit iOS app for review
-3. Submit Android app to Play Store
-4. Monitor for review feedback
+## Deployment Checklist
 
-## Technical Specifications
+### For New Developers
 
-### Build Performance
-- Build time: ~23 seconds
-- Zero TypeScript errors
-- All tests passing
-- Bundle sizes optimized with code splitting
+#### Day 1: Environment Setup
 
-### Platform Support
-- iOS: 13.0+ (via Capacitor)
-- Android: API 26+ (via Capacitor)
-- Web: Modern browsers (Chrome, Safari, Firefox)
+```bash
+# 1. Clone and install
+git clone https://github.com/MeechYourGoals/Chravel.git
+cd Chravel
+npm install
 
-### Native Features Configured
-- Camera access
-- Photo library
-- Location services
-- Push notifications
-- Haptic feedback
-- Share functionality
-- Offline support
+# 2. Set up environment
+cp .env.example .env
+# Fill in values from ENVIRONMENT_SETUP_GUIDE.md
+
+# 3. Verify build
+npm run lint && npm run typecheck && npm run build
+
+# 4. Start development
+npm run dev
+```
+
+#### Day 2: Understand the Codebase
+
+1. Read `DEVELOPER_HANDBOOK.md` for architecture overview
+2. Read `CLAUDE.md` for coding standards
+3. Explore `src/` directory structure
+4. Review `supabase/functions/` for backend logic
+
+#### Day 3: Deploy Changes
+
+1. Make changes on a feature branch
+2. Run `npm run validate` before committing
+3. Create PR to `main`
+4. Vercel will create a preview deployment
+5. Merge to `main` for production deployment
+
+---
+
+## Edge Functions
+
+### Deployed Functions
+
+| Function | Purpose | Endpoint |
+|----------|---------|----------|
+| `create-trip` | Create new trips | `/functions/create-trip` |
+| `join-trip` | Handle join requests | `/functions/join-trip` |
+| `approve-join-request` | Admin approvals | `/functions/approve-join-request` |
+| `lovable-concierge` | AI Concierge | `/functions/lovable-concierge` |
+| `google-maps-proxy` | Maps API proxy | `/functions/google-maps-proxy` |
+| `unified-messaging` | Message management | `/functions/unified-messaging` |
+
+### Deploying Functions
+
+```bash
+# Via CLI
+supabase functions deploy --project-ref jmjiyekmxwsxkfnqwyaa
+
+# Or use the script
+./deploy-functions.sh
+```
+
+See `DEPLOYMENT_GUIDE.md` for detailed deployment options.
+
+---
+
+## Environment Variables
+
+### Required for Production
+
+| Variable | Where to Get |
+|----------|--------------|
+| `VITE_SUPABASE_URL` | Supabase Dashboard → Settings → API |
+| `VITE_SUPABASE_ANON_KEY` | Supabase Dashboard → Settings → API |
+| `VITE_GOOGLE_MAPS_API_KEY` | Google Cloud Console |
+
+### Setting in Vercel
+
+1. Go to Vercel Dashboard → Your Project → Settings
+2. Click "Environment Variables"
+3. Add each variable for Production, Preview, and Development
+
+---
+
+## Mobile Strategy
+
+### What This Means for You
+
+**This repository is web-only.** There are no mobile deployment steps here.
+
+The decision to use Flutter for mobile is documented in `docs/ADRs/002-flutter-over-capacitor.md`.
+
+### If You Need Mobile Apps
+
+1. Create a new Flutter repository
+2. Connect it to the same Supabase backend
+3. Use the `supabase_flutter` package
+4. Develop iOS/Android features natively
+
+### What NOT to Do
+
+- Do NOT add Capacitor back to this project
+- Do NOT run `npx cap sync` or similar commands
+- Do NOT reference archived Capacitor documentation as current
+
+See `ARCHITECTURE_DECISIONS.md` for the No Regressions Policy.
+
+---
 
 ## Known Issues (Non-Blocking)
 
-1. **npm vulnerabilities** - xlsx package has high severity vulnerability with no fix available. Consider replacing with exceljs if critical.
+| Issue | Impact | Notes |
+|-------|--------|-------|
+| npm vulnerabilities in xlsx | Low | No fix available, consider exceljs |
+| Large bundle sizes | Low | Already optimized with code splitting |
 
-2. **Large bundle sizes** - Some chunks exceed 500KB. Already optimized with code splitting, further optimization possible post-launch.
-
-3. **Remaining TODOs** - 8 non-critical TODO comments remain for future enhancements (export features, etc.)
+---
 
 ## Support Resources
 
-### For Technical Issues
-- Capacitor Docs: https://capacitorjs.com/docs
-- Supabase Support: https://supabase.com/docs
-- Stream Chat: https://getstream.io/chat/docs
+### Internal Docs
 
-### Chravel Resources
-- Backend: Supabase project dashboard
-- Monitoring: Check error logs in Supabase
-- Analytics: To be configured post-launch
+- `DEVELOPER_HANDBOOK.md` - Development guide
+- `DEPLOYMENT_GUIDE.md` - Deployment procedures
+- `ARCHITECTURE_DECISIONS.md` - Platform decisions
+- `docs/API_DOCUMENTATION.md` - API reference
+- `docs/DATABASE_SCHEMA.md` - Database structure
 
-## Success Metrics
+### External Docs
 
-- ✅ 95% deployment ready (exceeded 90% target)
-- ✅ All core features functional
-- ✅ Production build successful
-- ✅ Security headers configured
-- ✅ Performance optimized
-- ✅ Documentation complete
-- ✅ Both platforms documented
+| Service | Documentation |
+|---------|---------------|
+| Supabase | https://supabase.com/docs |
+| Vercel | https://vercel.com/docs |
+| React | https://react.dev |
+| Vite | https://vitejs.dev |
 
-## Final Notes
+---
 
-Chravel is now ready for professional deployment to both app stores. The remaining 5% consists of:
+## Handoff Contacts
 
-1. **API Keys** - Obtain production credentials
-2. **App Assets** - Generate final icons and screenshots
-3. **Testing** - Physical device testing
-4. **Certificates** - iOS signing and Android keystore
-5. **Submission** - App store review process
+For questions about this repository:
+- **GitHub Issues**: Report bugs and request features
+- **Pull Requests**: Contribute code changes
 
-With the comprehensive documentation provided, a professional developer agency should be able to complete deployment within 5-7 business days.
+---
 
-**The codebase is stable, feature-complete, and production-ready.**
+## Summary
+
+**The Chravel web application is production-ready and fully operational.**
+
+Key points for anyone taking over:
+
+1. **This is a web app** - No mobile builds here
+2. **Flutter for mobile** - Separate repository when needed
+3. **Capacitor is gone** - Archived, not supported
+4. **Vercel + Supabase** - Primary deployment stack
+5. **Read the docs** - Start with `DEVELOPER_HANDBOOK.md`
+
+**The codebase is stable, feature-complete, and ready for continued development.**
+
+---
+
+**Document Version:** 2.0
+**Last Updated:** December 2025
