@@ -1,11 +1,38 @@
-
 import React from 'react';
+import { ChatActivitySettings } from '@/components/settings/ChatActivitySettings';
+import { useGlobalSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
+import { SystemMessageCategoryPrefs } from '@/utils/systemMessageCategory';
 
 export const ConsumerGeneralSettings = () => {
+  const { preferences, updatePreferences, isUpdating } = useGlobalSystemMessagePreferences();
+
+  const handleShowSystemMessagesChange = (value: boolean) => {
+    updatePreferences({ showSystemMessages: value, categories: preferences.categories });
+  };
+
+  const handleCategoryChange = (category: keyof SystemMessageCategoryPrefs, value: boolean) => {
+    updatePreferences({
+      showSystemMessages: preferences.showSystemMessages,
+      categories: { ...preferences.categories, [category]: value }
+    });
+  };
+
   return (
     <div className="space-y-3">
       <h3 className="text-2xl font-bold text-white">General Settings</h3>
       
+      {/* Chat Activity Section */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-3">Chat Activity</h4>
+        <ChatActivitySettings
+          showSystemMessages={preferences.showSystemMessages}
+          categories={preferences.categories}
+          onShowSystemMessagesChange={handleShowSystemMessagesChange}
+          onCategoryChange={handleCategoryChange}
+          disabled={isUpdating}
+        />
+      </div>
+
       {/* App Preferences */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">App Preferences</h4>

@@ -2390,6 +2390,30 @@ export type Database = {
           },
         ]
       }
+      trip_member_preferences: {
+        Row: {
+          show_system_messages: boolean
+          system_message_categories: Json
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          show_system_messages?: boolean
+          system_message_categories?: Json
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          show_system_messages?: boolean
+          system_message_categories?: Json
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trip_members: {
         Row: {
           created_at: string
@@ -2967,6 +2991,8 @@ export type Database = {
           created_at: string
           id: string
           preferences: Json
+          show_system_messages: boolean
+          system_message_categories: Json
           updated_at: string
           user_id: string
         }
@@ -2974,6 +3000,8 @@ export type Database = {
           created_at?: string
           id?: string
           preferences?: Json
+          show_system_messages?: boolean
+          system_message_categories?: Json
           updated_at?: string
           user_id: string
         }
@@ -2981,6 +3009,8 @@ export type Database = {
           created_at?: string
           id?: string
           preferences?: Json
+          show_system_messages?: boolean
+          system_message_categories?: Json
           updated_at?: string
           user_id?: string
         }
