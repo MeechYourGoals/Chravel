@@ -194,6 +194,40 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
     loadPlaces();
   }, [tripId, isDemoMode]);
 
+  // Load Trip Basecamp from database on mount (NOT from localStorage context)
+  // This ensures cross-device persistence and prevents stale data
+  useEffect(() => {
+    const loadTripBasecamp = async () => {
+      try {
+        if (isDemoMode) {
+          // Demo mode: use session storage (handled by demoModeService)
+          const sessionBasecamp = demoModeService.getSessionTripBasecamp(tripId);
+          if (sessionBasecamp) {
+            setContextBasecamp({
+              address: sessionBasecamp.address,
+              name: sessionBasecamp.name,
+              type: 'other',
+              coordinates: undefined
+            });
+          }
+        } else {
+          // Authenticated mode: ALWAYS load from database as source of truth
+          const dbBasecamp = await basecampService.getTripBasecamp(tripId);
+          if (dbBasecamp) {
+            // Update context with database value (overrides any stale localStorage)
+            setContextBasecamp(dbBasecamp);
+          }
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('[PlacesSection] Failed to load trip basecamp from database:', error);
+        }
+      }
+    };
+
+    loadTripBasecamp();
+  }, [tripId, isDemoMode, setContextBasecamp]);
+
   // Load personal basecamp
   useEffect(() => {
     const loadPersonalBasecamp = async () => {
@@ -275,11 +309,58 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
       address: newBasecamp.address
     };
     
+    // Optimistic UI update - show immediately in context
     setContextBasecamp(newBasecamp);
     
-    // Note: Map centering is now disconnected from basecamp saving
-    // Basecamps are simple text references without coordinates
-    // The map is for browsing only and is not affected by basecamp changes
+    try {
+      if (isDemoMode) {
+        // Demo mode: persist to session storage (not database)
+        demoModeService.setSessionTripBasecamp(tripId, {
+          name: newBasecamp.name,
+          address: newBasecamp.address
+        });
+      } else {
+        // CRITICAL: Persist to database for cross-device consistency
+        // This was the missing piece causing data loss across sessions/devices
+        const result = await basecampService.setTripBasecamp(
+          tripId,
+          {
+            name: newBasecamp.name,
+            address: newBasecamp.address,
+            latitude: newBasecamp.coordinates?.lat,
+            longitude: newBasecamp.coordinates?.lng
+          }
+        );
+        
+        if (!result.success) {
+          // Rollback optimistic update on failure
+          if (import.meta.env.DEV) {
+            console.error('[PlacesSection] Failed to save trip basecamp:', result.error);
+          }
+          
+          if (result.conflict) {
+            // Conflict detected - refresh from database
+            const currentBasecamp = await basecampService.getTripBasecamp(tripId);
+            if (currentBasecamp) {
+              setContextBasecamp(currentBasecamp);
+            }
+            toast.error('Basecamp was modified by another user. Please try again.');
+          } else {
+            toast.error('Failed to save basecamp. Please try again.');
+          }
+          return;
+        }
+        
+        if (import.meta.env.DEV) {
+          console.log('[PlacesSection] Trip basecamp persisted to database:', newBasecamp.address);
+        }
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[PlacesSection] Error saving trip basecamp:', error);
+      }
+      toast.error('Failed to save basecamp. Please try again.');
+    }
   };
 
   const handleCenterMap = (coords: { lat: number; lng: number }, type?: 'trip' | 'personal' | 'search') => {
