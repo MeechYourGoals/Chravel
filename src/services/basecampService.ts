@@ -40,10 +40,14 @@ export interface BasecampChangeHistory {
 }
 
 class BasecampService {
+  private readonly LOG_PREFIX = '[BasecampService]';
+
   /**
    * Get the trip basecamp (shared across all users)
    */
   async getTripBasecamp(tripId: string): Promise<BasecampLocation | null> {
+    console.log(this.LOG_PREFIX, 'getTripBasecamp called:', { tripId, timestamp: new Date().toISOString() });
+    
     try {
       const { data, error } = await supabase
         .from('trips')
@@ -52,15 +56,16 @@ class BasecampService {
         .single();
 
       if (error) {
-        if (import.meta.env.DEV) console.error('Failed to get trip basecamp:', error);
+        console.error(this.LOG_PREFIX, 'getTripBasecamp error:', { tripId, error });
         return null;
       }
 
       if (!data?.basecamp_address) {
+        console.log(this.LOG_PREFIX, 'getTripBasecamp: no basecamp set for trip:', tripId);
         return null;
       }
 
-      return {
+      const result: BasecampLocation = {
         address: data.basecamp_address,
         name: data.basecamp_name || undefined,
         type: 'other',
@@ -68,8 +73,11 @@ class BasecampService {
           ? { lat: data.basecamp_latitude, lng: data.basecamp_longitude }
           : undefined
       };
+
+      console.log(this.LOG_PREFIX, 'getTripBasecamp success:', { tripId, address: result.address });
+      return result;
     } catch (error) {
-      if (import.meta.env.DEV) console.error('Error getting trip basecamp:', error);
+      console.error(this.LOG_PREFIX, 'getTripBasecamp exception:', { tripId, error });
       return null;
     }
   }
@@ -84,6 +92,14 @@ class BasecampService {
     basecamp: { name?: string; address: string; latitude?: number; longitude?: number },
     options?: { skipHistory?: boolean; currentVersion?: number; previousAddress?: string }
   ): Promise<{ success: boolean; error?: string; conflict?: boolean; coordinates?: { lat: number; lng: number } }> {
+    console.log(this.LOG_PREFIX, 'setTripBasecamp called:', {
+      tripId,
+      newAddress: basecamp.address,
+      newName: basecamp.name,
+      hasCoordinates: !!(basecamp.latitude && basecamp.longitude),
+      timestamp: new Date().toISOString()
+    });
+
     try {
       // Get current version if not provided
       const currentVersion = options?.currentVersion ?? await this.getBasecampVersion(tripId);
@@ -96,8 +112,15 @@ class BasecampService {
       const userId = user?.id;
       
       if (!userId) {
+        console.error(this.LOG_PREFIX, 'setTripBasecamp: User not authenticated');
         return { success: false, error: 'User not authenticated' };
       }
+
+      console.log(this.LOG_PREFIX, 'setTripBasecamp: calling RPC update_trip_basecamp_with_version', {
+        tripId,
+        userId,
+        currentVersion
+      });
 
       // Use versioned update RPC
       const { data, error } = await supabase.rpc('update_trip_basecamp_with_version', {
@@ -111,12 +134,13 @@ class BasecampService {
       }) as { data: any; error: any };
 
       if (error) {
-        console.error('Failed to update basecamp:', error);
+        console.error(this.LOG_PREFIX, 'setTripBasecamp RPC error:', { tripId, error });
         return { success: false, error: error.message };
       }
 
       // Check for conflict
       if (data && typeof data === 'object' && data.conflict === true) {
+        console.warn(this.LOG_PREFIX, 'setTripBasecamp: conflict detected', { tripId });
         return {
           success: false,
           conflict: true,
@@ -133,12 +157,19 @@ class BasecampService {
         basecamp.address
       );
 
+      console.log(this.LOG_PREFIX, 'setTripBasecamp SUCCESS:', {
+        tripId,
+        newAddress: basecamp.address,
+        userId,
+        timestamp: new Date().toISOString()
+      });
+
       return {
         success: true,
         coordinates: finalLatitude && finalLongitude ? { lat: finalLatitude, lng: finalLongitude } : undefined
       };
     } catch (error) {
-      console.error('Error setting trip basecamp:', error);
+      console.error(this.LOG_PREFIX, 'setTripBasecamp exception:', { tripId, error });
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }

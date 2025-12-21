@@ -1,6 +1,21 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+/**
+ * BasecampContext - UI state container for current basecamp display
+ * 
+ * IMPORTANT: This context is now a PURE UI STATE CONTAINER.
+ * It does NOT persist to localStorage. The source of truth is:
+ * - Database (for authenticated users) via useTripBasecamp hook
+ * - In-memory session storage (for demo mode) via demoModeService
+ * 
+ * This context exists for:
+ * 1. Sharing basecamp state between components that don't have tripId
+ * 2. Backward compatibility with existing component APIs
+ * 3. Real-time sync updates (populated from useTripBasecamp)
+ * 
+ * For new code, prefer using useTripBasecamp(tripId) directly.
+ */
+
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { BasecampLocation } from '@/types/basecamp';
-import { getStorageItem, setStorageItem, removeStorageItem } from '@/platform/storage';
 
 interface BasecampContextType {
   basecamp: BasecampLocation | null;
@@ -12,46 +27,17 @@ interface BasecampContextType {
 
 const BasecampContext = createContext<BasecampContextType | undefined>(undefined);
 
-const BASECAMP_STORAGE_KEY = 'trip-basecamp';
-
 export const BasecampProvider = ({ children }: { children: ReactNode }) => {
+  // Pure in-memory state - NO localStorage
   const [basecamp, setBasecampState] = useState<BasecampLocation | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // isLoading is always false now since we don't load from storage
+  const isLoading = false;
 
-  // Load basecamp from platform storage on mount
-  useEffect(() => {
-    const loadBasecamp = async () => {
-      try {
-        const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 2000));
-        const stored = await Promise.race([
-          getStorageItem<BasecampLocation>(BASECAMP_STORAGE_KEY),
-          timeout
-        ]);
-        if (stored) {
-          setBasecampState(stored as BasecampLocation);
-        }
-      } catch (error) {
-        console.warn('Failed to load basecamp from storage:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadBasecamp();
-  }, []);
-
-  // Save basecamp to platform storage whenever it changes
-  const setBasecamp = async (newBasecamp: BasecampLocation | null) => {
+  const setBasecamp = (newBasecamp: BasecampLocation | null) => {
+    // Just update React state - no persistence
+    // Persistence is handled by useTripBasecamp/useUpdateTripBasecamp
     setBasecampState(newBasecamp);
-    
-    try {
-      if (newBasecamp) {
-        await setStorageItem(BASECAMP_STORAGE_KEY, newBasecamp);
-      } else {
-        await removeStorageItem(BASECAMP_STORAGE_KEY);
-      }
-    } catch (error) {
-      console.warn('Failed to save basecamp to storage:', error);
-    }
   };
 
   const clearBasecamp = () => {

@@ -40,23 +40,13 @@ const generateBrandedCode = (): string => {
 
 // Check if a code already exists in the database
 const checkCodeExists = async (code: string): Promise<boolean> => {
-  // Use RPC to check securely without RLS blocking or exposing all invites
-  const { data, error } = await supabase.rpc('check_invite_code_exists', { 
-    code_param: code 
-  });
-  
-  if (error) {
-    console.warn('RPC check_invite_code_exists failed, falling back to direct query:', error);
-    // If RPC not available (e.g. before migration applied), fallback to query
-    // This maintains backward compatibility during deployment
-    const { data: queryData } = await supabase
-      .from('trip_invites')
-      .select('id')
-      .eq('code', code)
-      .maybeSingle();
-    return !!queryData;
-  }
-  
+  // Direct query to check code existence
+  // Uses maybeSingle to avoid errors when no match found
+  const { data } = await supabase
+    .from('trip_invites')
+    .select('id')
+    .eq('code', code)
+    .maybeSingle();
   return !!data;
 };
 
