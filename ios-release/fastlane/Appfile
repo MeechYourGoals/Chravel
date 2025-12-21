@@ -1,0 +1,19 @@
+# Chravel Fastlane Appfile
+# https://docs.fastlane.tools/advanced/Appfile/
+
+# App Identifier (Bundle ID)
+app_identifier("com.chravel.app")
+
+# Apple ID email (for App Store Connect)
+apple_id(ENV["APPLE_ID"] || "developer@chravel.app")
+
+# Team ID (Developer Portal)
+team_id(ENV["APPLE_TEAM_ID"] || "YOUR_TEAM_ID")
+
+# App Store Connect Team ID
+itc_team_id(ENV["ITC_TEAM_ID"] || "YOUR_ITC_TEAM_ID")
+
+# For all environments
+for_platform :ios do
+  app_identifier("com.chravel.app")
+end

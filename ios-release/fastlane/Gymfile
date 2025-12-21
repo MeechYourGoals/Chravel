@@ -1,0 +1,48 @@
+# Chravel Gym (build) Configuration
+# https://docs.fastlane.tools/actions/gym/
+
+# Workspace
+workspace("../../ios/App/App.xcworkspace")
+
+# Scheme
+scheme("App")
+
+# Configuration
+configuration("Release")
+
+# Output
+output_directory("./build")
+output_name("Chravel")
+
+# Export method (app-store, ad-hoc, development, enterprise)
+export_method("app-store")
+
+# Clean before build
+clean(true)
+
+# Include bitcode
+include_bitcode(false)
+
+# Include symbols for crash reporting
+include_symbols(true)
+
+# Archive path
+archive_path("./build/Chravel.xcarchive")
+
+# Build settings
+xcargs("-allowProvisioningUpdates")
+
+# Derived data path (for CI caching)
+derived_data_path("./build/DerivedData") if ENV['CI']
+
+# Silent xcodebuild output
+silent(false)
+
+# Disable code signing during build (match handles it)
+skip_codesigning(false)
+
+# Suppress output
+suppress_xcode_output(false)
+
+# Analyzer (disable for faster builds)
+analyze(false)

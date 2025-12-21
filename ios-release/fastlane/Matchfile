@@ -1,0 +1,36 @@
+# Chravel Match Configuration
+# https://docs.fastlane.tools/actions/match/
+
+# Git repository to store certificates
+git_url(ENV["MATCH_GIT_URL"] || "git@github.com:your-org/certificates.git")
+
+# Default storage type
+storage_mode("git")
+
+# App identifier
+app_identifier(["com.chravel.app"])
+
+# Username for App Store Connect
+username(ENV["APPLE_ID"] || "developer@chravel.app")
+
+# Team ID
+team_id(ENV["APPLE_TEAM_ID"] || "YOUR_TEAM_ID")
+
+# Certificate types to manage
+# Valid values: appstore, adhoc, development, enterprise
+type("appstore")
+
+# Don't clone the full repo (faster)
+shallow_clone(true)
+
+# Platform
+platform("ios")
+
+# Keychain name for CI
+keychain_name(ENV["MATCH_KEYCHAIN_NAME"] || "fastlane_keychain") if ENV['CI']
+
+# Generate Apple ID if missing
+generate_apple_certs(true)
+
+# Force device registration
+force_for_new_devices(true)
