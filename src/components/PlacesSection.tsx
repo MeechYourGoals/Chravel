@@ -8,7 +8,7 @@ import { useTripVariant } from '../contexts/TripVariantContext';
 import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { useBasecamp } from '@/contexts/BasecampContext';
+import { useTripBasecamp, useUpdateTripBasecamp } from '@/hooks/useTripBasecamp';
 import { supabase } from '@/integrations/supabase/client';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
@@ -27,7 +27,11 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
   const { variant: _variant } = useTripVariant();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
-  const { basecamp: contextBasecamp, setBasecamp: setContextBasecamp, isBasecampSet } = useBasecamp();
+  
+  // Use TanStack Query for trip basecamp (canonical source of truth)
+  const { data: tripBasecamp, isLoading: isBasecampLoading } = useTripBasecamp(tripId);
+  const updateBasecampMutation = useUpdateTripBasecamp(tripId);
+  
   const mapRef = useRef<MapCanvasRef>(null);
 
   // State
@@ -194,39 +198,8 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
     loadPlaces();
   }, [tripId, isDemoMode]);
 
-  // Load Trip Basecamp from database on mount (NOT from localStorage context)
-  // This ensures cross-device persistence and prevents stale data
-  useEffect(() => {
-    const loadTripBasecamp = async () => {
-      try {
-        if (isDemoMode) {
-          // Demo mode: use session storage (handled by demoModeService)
-          const sessionBasecamp = demoModeService.getSessionTripBasecamp(tripId);
-          if (sessionBasecamp) {
-            setContextBasecamp({
-              address: sessionBasecamp.address,
-              name: sessionBasecamp.name,
-              type: 'other',
-              coordinates: undefined
-            });
-          }
-        } else {
-          // Authenticated mode: ALWAYS load from database as source of truth
-          const dbBasecamp = await basecampService.getTripBasecamp(tripId);
-          if (dbBasecamp) {
-            // Update context with database value (overrides any stale localStorage)
-            setContextBasecamp(dbBasecamp);
-          }
-        }
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error('[PlacesSection] Failed to load trip basecamp from database:', error);
-        }
-      }
-    };
-
-    loadTripBasecamp();
-  }, [tripId, isDemoMode, setContextBasecamp]);
+  // Trip basecamp is now loaded by useTripBasecamp hook - no manual loading needed
+  // The hook handles both demo mode and authenticated mode automatically
 
   // Load personal basecamp
   useEffect(() => {
@@ -253,7 +226,7 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
   const lastLocalUpdateRef = useRef<{ timestamp: number; address: string } | null>(null);
   const UPDATE_DEBOUNCE_MS = 2000; // 2 second window to detect local vs remote updates
 
-  // Realtime sync for trip basecamp updates
+  // Realtime sync for trip basecamp updates - invalidate TanStack Query cache
   useEffect(() => {
     if (isDemoMode || !tripId) return;
 
@@ -279,16 +252,14 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
             now - lastLocalUpdateRef.current.timestamp < UPDATE_DEBOUNCE_MS &&
             updatedBasecamp.address === lastLocalUpdateRef.current.address;
 
-          if (isLocalUpdate) {
-            // Still update the context silently
-            setContextBasecamp(updatedBasecamp);
-          } else {
+          if (!isLocalUpdate) {
             // Remote update - show notification
-            setContextBasecamp(updatedBasecamp);
             toast.success('Trip Base Camp updated by another member!', {
               description: updatedBasecamp.name || updatedBasecamp.address
             });
           }
+          
+          // TanStack Query will handle refetch via invalidation in the mutation
         }
       )
       .subscribe();
@@ -296,7 +267,7 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tripId, isDemoMode, setContextBasecamp]);
+  }, [tripId, isDemoMode]);
 
   // Note: Search origin and distance calculations are no longer tied to basecamps
   // Basecamps are now simple text references without coordinates
@@ -309,57 +280,23 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
       address: newBasecamp.address
     };
     
-    // Optimistic UI update - show immediately in context
-    setContextBasecamp(newBasecamp);
-    
+    // Use the mutation hook which handles optimistic updates, rollback, and cache invalidation
     try {
-      if (isDemoMode) {
-        // Demo mode: persist to session storage (not database)
-        demoModeService.setSessionTripBasecamp(tripId, {
-          name: newBasecamp.name,
-          address: newBasecamp.address
-        });
-      } else {
-        // CRITICAL: Persist to database for cross-device consistency
-        // This was the missing piece causing data loss across sessions/devices
-        const result = await basecampService.setTripBasecamp(
-          tripId,
-          {
-            name: newBasecamp.name,
-            address: newBasecamp.address,
-            latitude: newBasecamp.coordinates?.lat,
-            longitude: newBasecamp.coordinates?.lng
-          }
-        );
-        
-        if (!result.success) {
-          // Rollback optimistic update on failure
-          if (import.meta.env.DEV) {
-            console.error('[PlacesSection] Failed to save trip basecamp:', result.error);
-          }
-          
-          if (result.conflict) {
-            // Conflict detected - refresh from database
-            const currentBasecamp = await basecampService.getTripBasecamp(tripId);
-            if (currentBasecamp) {
-              setContextBasecamp(currentBasecamp);
-            }
-            toast.error('Basecamp was modified by another user. Please try again.');
-          } else {
-            toast.error('Failed to save basecamp. Please try again.');
-          }
-          return;
-        }
-        
-        if (import.meta.env.DEV) {
-          console.log('[PlacesSection] Trip basecamp persisted to database:', newBasecamp.address);
-        }
+      await updateBasecampMutation.mutateAsync({
+        name: newBasecamp.name,
+        address: newBasecamp.address,
+        latitude: newBasecamp.coordinates?.lat,
+        longitude: newBasecamp.coordinates?.lng
+      });
+      
+      if (import.meta.env.DEV) {
+        console.log('[PlacesSection] Trip basecamp persisted:', newBasecamp.address);
       }
     } catch (error) {
+      // Error handling is done in the mutation hook
       if (import.meta.env.DEV) {
         console.error('[PlacesSection] Error saving trip basecamp:', error);
       }
-      toast.error('Failed to save basecamp. Please try again.');
     }
   };
 
@@ -513,7 +450,7 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
             {activeTab === 'basecamps' && (
               <BasecampsPanel
                 tripId={tripId}
-                tripBasecamp={contextBasecamp}
+                tripBasecamp={tripBasecamp || null}
                 onTripBasecampSet={handleBasecampSet}
                 onCenterMap={handleCenterMap}
                 activeContext={searchContext}
@@ -527,7 +464,7 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
               <LinksPanel
                 tripId={tripId}
                 places={places}
-                basecamp={contextBasecamp}
+                basecamp={tripBasecamp || null}
                 personalBasecamp={personalBasecamp}
                 onPlaceAdded={(place) => {
                   setPlaces(prev => [...prev, place]);
@@ -563,7 +500,7 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
             <MapCanvas
               ref={mapRef}
               activeContext={searchContext}
-              tripBasecamp={contextBasecamp}
+              tripBasecamp={tripBasecamp || null}
               personalBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : null}
               className="w-full h-full"
               onMapReady={handleMapReady}
