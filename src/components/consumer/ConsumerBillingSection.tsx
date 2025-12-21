@@ -61,7 +61,7 @@ export const ConsumerBillingSection = () => {
         'Photo & video sharing',
         'Basic itinerary planning',
         'Expense tracking',
-        'AI Trip Assistant (5 queries per trip)'
+        'AI Trip Assistant (5 queries per user per trip)'
       ]
     },
     explorer: {
@@ -71,7 +71,7 @@ export const ConsumerBillingSection = () => {
       icon: Globe,
       features: [
         'Unlimited saved trips',
-        '10 AI queries per trip',
+        '10 AI queries per user per trip',
         'Location-aware AI suggestions',
         'Smart notifications',
         'Search past trips',

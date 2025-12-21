@@ -198,7 +198,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Unlimited AI queries - your 24/7 travel concierge
+                      10 AI queries per user per trip - double the free tier
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
@@ -206,11 +206,11 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Calendar sync (Google, Apple, Outlook)
+                      Smart notifications - never miss important updates
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      PDF trip export
+                      Search past trips - find that perfect restaurant again
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>

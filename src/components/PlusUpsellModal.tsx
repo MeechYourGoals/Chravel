@@ -140,7 +140,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
               {selectedTier === 'explorer' ? (
                 <ul className="space-y-2 text-sm text-green-300">
                   <li>• Unlimited saved trips</li>
-                  <li>• 10 AI queries per trip</li>
+                  <li>• 10 AI queries per user per trip</li>
                   <li>• Location-aware AI</li>
                   <li>• Custom trip categories</li>
                   <li>• Smart notifications</li>
