@@ -1,125 +1,166 @@
 # Chravel Developer Handbook
 
-## 🎯 **Project Overview**
+> This document is governed by the No Regressions Policy.
+> See: `ARCHITECTURE_DECISIONS.md` → Mobile Platform Strategy
+
+---
+
+## Project Overview
 
 **Chravel** is a comprehensive travel coordination platform that combines group chat, AI concierge, task management, payments, and itinerary planning into a unified experience. Built with React/TypeScript and powered by Google Gemini AI.
 
 ---
 
-## 🏗️ **Architecture Overview**
+## Architecture Overview
 
-### **Frontend Stack**
-- **React 18** with TypeScript
-- **Vite** for build tooling
-- **Tailwind CSS** + **Radix UI** for styling
-- **Capacitor** for mobile deployment
-- **React Query** for state management
-- **React Router** for navigation
+### Platform Architecture
 
-### **Backend Stack**
-- **Supabase** (PostgreSQL + Auth + Real-time)
-- **Google Gemini AI** (via Lovable Gateway)
-- **Google Maps API** (Places, Geocoding, Grounding)
-- **Edge Functions** (Deno runtime)
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      CHRAVEL PLATFORM                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│   ┌──────────────┐    ┌──────────────┐    ┌──────────────┐  │
+│   │  React Web   │    │   Flutter    │    │   Flutter    │  │
+│   │     App      │    │  iOS App     │    │ Android App  │  │
+│   │  (This Repo) │    │  (Planned)   │    │  (Planned)   │  │
+│   └──────┬───────┘    └──────┬───────┘    └──────┬───────┘  │
+│          │                   │                   │          │
+│          └───────────────────┼───────────────────┘          │
+│                              │                              │
+│                              ▼                              │
+│                    ┌─────────────────┐                      │
+│                    │    Supabase     │                      │
+│                    │    Backend      │                      │
+│                    │  (PostgreSQL +  │                      │
+│                    │   Edge Funcs)   │                      │
+│                    └─────────────────┘                      │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
 
-### **Mobile Stack**
-- **Capacitor** for native iOS/Android
-- **Swift/Objective-C** (iOS) via Capacitor bridge
-- **Kotlin/Java** (Android) via Capacitor bridge
+### What This Repository Contains
+
+This repository (`MeechYourGoals/Chravel`) contains:
+
+- **React Web Application** - The primary web experience
+- **PWA Support** - Service worker for offline capability
+- **Supabase Edge Functions** - Backend logic
+- **Supabase Migrations** - Database schema
+
+### What This Repository Does NOT Contain
+
+- **Flutter Mobile Apps** - Will be in a separate repository
+- **iOS/Android Native Code** - No Xcode or Android Studio projects
+- **Capacitor** - Deprecated and removed (see `docs/archive/capacitor/`)
+
+### Frontend Stack
+
+| Technology | Purpose |
+|------------|---------|
+| React 18 | UI framework |
+| TypeScript | Type safety |
+| Vite | Build tooling |
+| Tailwind CSS | Styling |
+| Radix UI | Accessible components |
+| React Query | Server state management |
+| React Router | Navigation |
+| Zustand | Client state management |
+
+### Backend Stack
+
+| Technology | Purpose |
+|------------|---------|
+| Supabase | Database, Auth, Real-time |
+| PostgreSQL | Primary database |
+| Edge Functions | Serverless Deno functions |
+| Google Gemini AI | AI concierge (via Lovable Gateway) |
+| Google Maps API | Places, Geocoding, Grounding |
 
 ---
 
-## 🚀 **Core Features & Implementation**
+## Core Features & Implementation
 
-### **1. AI Concierge System**
+### 1. AI Concierge System
+
 **Purpose:** Context-aware travel assistant with full trip intelligence
 
-**Backend Implementation:**
+**Key Files:**
 - `supabase/functions/lovable-concierge/index.ts` - Main AI endpoint
 - `supabase/functions/place-grounding/index.ts` - Google Maps grounding
 - `src/services/universalConciergeService.ts` - Frontend integration
 
-**Key Capabilities:**
-- **Payment Intelligence**: "Who do I owe money to?" queries
-- **Poll Awareness**: "Where did everyone decide on dinner?"
-- **Task Management**: "What tasks am I responsible for?"
-- **Calendar Mastery**: "What time is dinner?" with addresses
-- **Chat Intelligence**: "What did I miss in the chat?" summarization
-- **Enterprise Mode**: Automatic detection for large groups (minimal emojis)
+**Capabilities:**
+- Payment Intelligence: "Who do I owe money to?"
+- Poll Awareness: "Where did everyone decide on dinner?"
+- Task Management: "What tasks am I responsible for?"
+- Calendar Mastery: "What time is dinner?"
+- Chat Intelligence: "What did I miss in the chat?"
+- Enterprise Mode: Automatic detection for large groups
 
-**Context Data Sources:**
+**Data Sources:**
 - Trip participants, basecamp location, preferences
 - Payment history, poll results, task assignments
 - Calendar events, chat history, spending patterns
 - Google Maps grounding for location-based responses
 
-### **2. Unified Messaging System**
+### 2. Unified Messaging System
+
 **Purpose:** Single chat interface for all communication
 
-**Primary Component:** `src/components/TripChat.tsx`
-**Service:** `src/services/unifiedMessagingService.ts`
+**Key Files:**
+- `src/components/TripChat.tsx` - Primary component
+- `src/services/unifiedMessagingService.ts` - Service layer
 
 **Features:**
-- Real-time messaging with Supabase subscriptions
-- Broadcast messages for important announcements
+- Real-time messaging via Supabase subscriptions
+- Broadcast messages for announcements
 - Payment requests and receipts
-- AI Concierge integration with Google Maps widgets
+- AI Concierge integration with Maps widgets
 - Message reactions and replies
-- Mobile-optimized interface
 
-**Backend:**
-- `supabase/functions/unified-messaging/index.ts`
-- Real-time subscriptions via Supabase channels
-- Message templates and scheduled messages
+### 3. Task Management System
 
-### **3. Task Management System**
 **Purpose:** Collaborative task tracking and assignment
 
-**Primary Hook:** `src/hooks/useTripTasks.ts` (consolidated)
-**Components:** `src/components/todo/` directory
+**Key Files:**
+- `src/hooks/useTripTasks.ts` - Consolidated hook
+- `src/components/todo/` - Component directory
 
 **Features:**
 - Task creation, assignment, and status tracking
 - Category-based organization
 - Due date management
 - Bulk operations
-- Mobile-optimized task interface
 
-**Backend:**
-- `trip_tasks` table in Supabase
-- Real-time updates via subscriptions
-- Task assignment and notification system
+### 4. Payment & Expense Tracking
 
-### **4. Payment & Expense Tracking**
 **Purpose:** Group expense management and splitting
 
-**Components:** `src/components/payments/` directory
-**Services:** `src/services/paymentService.ts`, `src/services/paymentBalanceService.ts`
+**Key Files:**
+- `src/components/payments/` - Component directory
+- `src/services/paymentService.ts`
+- `src/services/paymentBalanceService.ts`
 
 **Features:**
 - Receipt scanning and AI parsing
 - Automatic expense splitting
 - Payment method management
 - Balance tracking and settlements
-- Integration with AI Concierge for payment queries
 
-**Backend:**
-- `trip_payments` table
-- Receipt parsing via AI
-- Payment calculation algorithms
+### 5. Google Maps Integration
 
-### **5. Google Maps Integration**
 **Purpose:** Location services and venue discovery
 
-**Service:** `src/services/googleMapsService.ts`
-**Proxy:** `supabase/functions/google-maps-proxy/index.ts`
+**Key Files:**
+- `src/services/googleMapsService.ts`
+- `supabase/functions/google-maps-proxy/index.ts`
 
 **Features:**
-- Basecamp location selection with hybrid autocomplete
-- Google Places Text Search for venue discovery
-- Interactive Maps widgets in chat responses
+- Basecamp location selection
+- Google Places Text Search
+- Interactive Maps widgets
 - Geocoding and reverse geocoding
-- Google Maps grounding for AI responses
 
 **API Endpoints:**
 - `autocomplete` - Place suggestions
@@ -127,48 +168,57 @@
 - `geocode` - Address to coordinates
 - `place-details` - Detailed venue information
 
-### **6. Poll & Decision Making**
+### 6. Poll & Decision Making
+
 **Purpose:** Group decision coordination
 
-**Components:** `src/components/polls/` directory
-**Integration:** AI Concierge awareness of poll results
+**Key Files:**
+- `src/components/polls/` - Component directory
 
 **Features:**
 - Multiple choice polls
 - Real-time voting
 - Result visualization
-- Integration with AI for decision summaries
+- AI awareness of poll results
 
-### **7. Calendar & Itinerary**
+### 7. Calendar & Itinerary
+
 **Purpose:** Trip scheduling and event management
 
-**Components:** `src/components/calendar/` directory
-**Integration:** AI Concierge calendar queries
+**Key Files:**
+- `src/components/calendar/` - Component directory
 
 **Features:**
 - Event creation and management
 - Time zone handling
-- Integration with basecamp location
-- AI-powered schedule optimization
+- Basecamp location integration
+- AI-powered schedule queries
 
 ---
 
-## 🔧 **Development Setup**
+## Development Setup
 
-### **Prerequisites**
+### Prerequisites
+
 ```bash
 # Node.js 18+ (use nvm)
 nvm install 18
 nvm use 18
 
+# Verify installation
+node --version  # Should be v18.x or higher
+
 # Install dependencies
 npm install
 
-# Install Supabase CLI
+# Install Supabase CLI (for Edge Functions)
 npm install -g supabase
 ```
 
-### **Environment Variables**
+### Environment Variables
+
+Create a `.env` file based on `.env.example`:
+
 ```bash
 # Supabase
 VITE_SUPABASE_URL=your_supabase_url
@@ -181,7 +231,10 @@ VITE_GOOGLE_MAPS_API_KEY=your_google_maps_key
 LOVABLE_API_KEY=your_lovable_api_key
 ```
 
-### **Development Commands**
+See `ENVIRONMENT_SETUP_GUIDE.md` for detailed API key setup.
+
+### Development Commands
+
 ```bash
 # Start development server
 npm run dev
@@ -193,48 +246,56 @@ npm run build
 npm run lint
 
 # Run type checking
-npm run type-check
+npm run typecheck
+
+# Run all checks
+npm run validate
+
+# Run unit tests
+npm run test
+
+# Run E2E tests
+npm run test:e2e
 
 # Start Supabase locally
 supabase start
+
+# Preview production build
+npm run preview
 ```
 
 ---
 
-## 📱 **Mobile Development**
+## Project Structure
 
-### **Capacitor Setup**
-```bash
-# Add native platforms
-npx cap add ios
-npx cap add android
-
-# Build and sync
-npm run build
-npx cap sync
-
-# Open in native IDEs
-npx cap open ios      # Requires Xcode (Mac only)
-npx cap open android  # Requires Android Studio
 ```
-
-### **Mobile-Specific Features**
-- **Native Camera**: Receipt scanning, photo sharing
-- **Push Notifications**: Real-time message alerts
-- **Haptic Feedback**: Touch responses
-- **Geolocation**: Automatic basecamp detection
-- **Offline Support**: Service worker caching
-
-### **Platform-Specific Code**
-- **iOS**: Swift/Objective-C via Capacitor bridge
-- **Android**: Kotlin/Java via Capacitor bridge
-- **Web**: Standard React components
+Chravel/
+├── src/
+│   ├── components/     # React components
+│   ├── hooks/          # Custom React hooks
+│   ├── pages/          # Page components
+│   ├── services/       # API and business logic
+│   ├── integrations/   # External service integrations
+│   ├── types/          # TypeScript type definitions
+│   └── lib/            # Utility functions
+├── supabase/
+│   ├── functions/      # Edge Functions
+│   └── migrations/     # Database migrations
+├── public/             # Static assets
+├── docs/               # Documentation
+│   ├── ADRs/           # Architecture Decision Records
+│   ├── archive/        # Archived documentation
+│   │   └── capacitor/  # Deprecated Capacitor docs
+│   └── ios/            # iOS-specific documentation
+└── e2e/                # End-to-end tests
+```
 
 ---
 
-## 🗄️ **Database Schema**
+## Database Schema
 
-### **Core Tables**
+### Core Tables
+
 ```sql
 -- Trip management
 trips (id, title, location, start_date, end_date, basecamp, participants)
@@ -258,30 +319,37 @@ trip_polls (id, trip_id, question, options, results, created_at)
 trip_events (id, trip_id, title, start_date, end_date, location, address)
 ```
 
----
-
-## 🔌 **API Endpoints**
-
-### **Supabase Edge Functions**
-```
-/functions/lovable-concierge     - AI Concierge with Google Maps grounding
-/functions/place-grounding       - Place-specific AI responses
-/functions/google-maps-proxy     - Google Maps API proxy
-/functions/unified-messaging     - Message management
-/functions/ai-search            - Trip data search
-/functions/receipt-parser       - Receipt AI parsing
-```
-
-### **External APIs**
-- **Google Gemini**: AI responses via Lovable Gateway
-- **Google Maps**: Places, Geocoding, Grounding
-- **Supabase**: Database, Auth, Real-time subscriptions
+See `docs/DATABASE_SCHEMA.md` for complete schema documentation.
 
 ---
 
-## 🚨 **Critical Implementation Notes**
+## API Endpoints
 
-### **1. AI Concierge Context**
+### Supabase Edge Functions
+
+| Endpoint | Purpose |
+|----------|---------|
+| `/functions/lovable-concierge` | AI Concierge with Google Maps grounding |
+| `/functions/place-grounding` | Place-specific AI responses |
+| `/functions/google-maps-proxy` | Google Maps API proxy |
+| `/functions/unified-messaging` | Message management |
+| `/functions/ai-search` | Trip data search |
+| `/functions/receipt-parser` | Receipt AI parsing |
+
+### External APIs
+
+| API | Purpose |
+|-----|---------|
+| Google Gemini | AI responses via Lovable Gateway |
+| Google Maps | Places, Geocoding, Grounding |
+| Supabase | Database, Auth, Real-time subscriptions |
+
+---
+
+## Implementation Notes
+
+### AI Concierge Context
+
 The AI Concierge has access to ALL trip data:
 - Payment history and balances
 - Poll results and group decisions
@@ -290,130 +358,132 @@ The AI Concierge has access to ALL trip data:
 - Chat history for summarization
 - Basecamp location for local recommendations
 
-### **2. Google Maps Grounding**
+### Google Maps Grounding
+
 - Only triggers for location-based queries
 - Uses trip basecamp coordinates for accuracy
 - Returns interactive Maps widgets
 - Provides verified source citations
 - Cost-optimized with smart detection
 
-### **3. Real-time Subscriptions**
+### Real-time Subscriptions
+
 - Chat messages via Supabase channels
 - Task updates and assignments
 - Payment notifications
 - Poll result updates
 
-### **4. Mobile Optimization**
-- Touch targets 44px+ for accessibility
-- Virtual scrolling for performance
-- Offline-first architecture
-- Native camera integration
+### PWA Capabilities
+
+- Service worker for offline support
+- Add to home screen
+- Push notifications (when backend configured)
+- Responsive design for all screen sizes
 
 ---
 
-## 🎯 **Production Readiness Status**
+## Mobile Strategy
 
-### **Web Version: 85% Ready**
-✅ **Completed:**
-- AI Concierge with full contextual awareness
-- Google Maps grounding integration
-- Unified messaging system
-- Task management consolidation
-- Payment tracking system
-- Mobile-responsive design
+### Current State
 
-⚠️ **Remaining:**
-- Security vulnerability fixes
-- Type safety improvements
-- Bundle size optimization
-- Final testing and polish
+**This repository is web-only.** Mobile apps will be developed separately using Flutter.
 
-### **Mobile App: 70% Ready**
-✅ **Completed:**
-- Capacitor integration
-- Mobile-optimized components
-- Native camera integration
-- Push notification setup
-- Offline support architecture
+| Platform | Status | Technology | Repository |
+|----------|--------|------------|------------|
+| Web | **Active** | React/TypeScript | This repo |
+| PWA | **Active** | Service Worker | This repo |
+| iOS | **Planned** | Flutter | Separate repo (TBD) |
+| Android | **Planned** | Flutter | Separate repo (TBD) |
 
-⚠️ **Remaining:**
-- iOS App Store configuration
-- Android Play Store setup
-- Native plugin optimization
-- Performance tuning
+### Why Flutter?
 
----
+The decision to use Flutter (instead of Capacitor) is documented in `docs/ADRs/002-flutter-over-capacitor.md`. Key reasons:
 
-## 🔄 **Sync Strategy for Web + Mobile**
+1. **Performance**: Native compilation vs WebView
+2. **Platform Parity**: Single codebase for iOS and Android
+3. **Native Access**: First-class access to platform APIs
+4. **Developer Experience**: Hot reload, strong tooling
 
-### **Current Architecture**
-- **Single Codebase**: React/TypeScript shared between web and mobile
-- **Capacitor Bridge**: Translates web code to native iOS/Android
-- **Shared Backend**: Same Supabase database and APIs
-- **Real-time Sync**: Supabase subscriptions work across platforms
+### What This Means for Web Development
 
-### **How It Works**
-1. **Web Version**: Standard React app deployed to web
-2. **Mobile Version**: Same React code wrapped by Capacitor
-3. **Native Features**: Camera, notifications, haptic feedback via Capacitor plugins
-4. **Data Sync**: Same Supabase backend ensures real-time sync
-5. **User Experience**: Seamless transition between web and mobile
+- Focus on web-first development in this repository
+- PWA provides mobile web experience
+- No Capacitor-related code or configuration
+- Mobile-specific features will be in Flutter app
 
-### **Benefits of Single Codebase**
-- **Faster Development**: Write once, deploy everywhere
-- **Consistent UX**: Same interface across platforms
-- **Easier Maintenance**: Single codebase to update
-- **Real-time Sync**: Changes appear instantly on all devices
+See `ARCHITECTURE_DECISIONS.md` for the full platform strategy.
 
 ---
 
-## 📋 **Next Steps for Production**
+## Production Readiness
 
-### **Immediate (1-2 weeks)**
-1. Fix remaining security vulnerabilities
-2. Complete type safety improvements
-3. Optimize bundle size
-4. Final testing and bug fixes
+### Web Version
 
-### **Mobile App Store (2-4 weeks)**
-1. Set up Apple Developer account
-2. Configure iOS App Store metadata
-3. Test on physical devices
-4. Submit for App Store review
+| Area | Status | Notes |
+|------|--------|-------|
+| Core Features | ✅ Ready | All features functional |
+| Authentication | ✅ Ready | Supabase Auth |
+| Real-time | ✅ Ready | Supabase subscriptions |
+| AI Concierge | ✅ Ready | Google Maps grounding |
+| Payments | ✅ Ready | Split calculations |
+| PWA | ✅ Ready | Service worker active |
+| Performance | ✅ Ready | Code splitting enabled |
+| Security | ✅ Ready | CSP headers, RLS policies |
 
-### **Long-term Enhancements**
-1. Advanced AI features
-2. Enterprise-specific optimizations
-3. Performance monitoring
-4. Analytics integration
+### Deployment
+
+- **Vercel**: Primary deployment platform
+- **Render**: Secondary/backup option
+- **Supabase**: Edge Functions and database
+
+See `DEPLOYMENT_GUIDE.md` for deployment procedures.
 
 ---
 
-## 🆘 **Troubleshooting**
+## Troubleshooting
 
-### **Common Issues**
-- **Build Errors**: Check TypeScript types and imports
-- **Mobile Issues**: Ensure Capacitor plugins are properly configured
-- **AI Responses**: Verify Lovable API key and Google Maps credentials
-- **Real-time Issues**: Check Supabase connection and RLS policies
+### Common Issues
 
-### **Debug Tools**
+| Issue | Solution |
+|-------|----------|
+| Build errors | Check TypeScript types, run `npm run typecheck` |
+| API errors | Verify environment variables are set |
+| Auth issues | Check Supabase connection and RLS policies |
+| Map issues | Verify Google Maps API key and quota |
+
+### Debug Tools
+
 - **React DevTools**: Component inspection
 - **Supabase Dashboard**: Database and auth debugging
-- **Capacitor DevTools**: Mobile debugging
 - **Network Tab**: API call inspection
+- **Console**: Error logging
 
 ---
 
-## 📞 **Support & Resources**
+## Support & Resources
 
-- **Documentation**: This file + inline code comments
-- **Supabase Docs**: https://supabase.com/docs
-- **Capacitor Docs**: https://capacitorjs.com/docs
-- **Google Maps Docs**: https://developers.google.com/maps
-- **React Docs**: https://react.dev
+### Internal Documentation
+
+| Document | Purpose |
+|----------|---------|
+| `CLAUDE.md` | AI coding standards |
+| `DEPLOYMENT_GUIDE.md` | Deployment procedures |
+| `ARCHITECTURE_DECISIONS.md` | Platform strategy |
+| `CONTRIBUTING.md` | Contribution guidelines |
+| `ENVIRONMENT_SETUP_GUIDE.md` | API key setup |
+
+### External Resources
+
+| Resource | Link |
+|----------|------|
+| Supabase Docs | https://supabase.com/docs |
+| React Docs | https://react.dev |
+| TypeScript Docs | https://typescriptlang.org/docs |
+| Tailwind CSS Docs | https://tailwindcss.com/docs |
+| Vite Docs | https://vitejs.dev |
+| Google Maps Docs | https://developers.google.com/maps |
 
 ---
 
-*Last Updated: December 2024*
-*Version: 1.0.0*
+**Last Updated:** December 2025
+**Version:** 2.0.0 (Post-Capacitor Removal)
