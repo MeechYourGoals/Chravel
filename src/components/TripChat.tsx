@@ -28,6 +28,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { parseMessage } from '@/services/chatContentParser';
 import { MessageTypeBar } from './chat/MessageTypeBar';
 import { ChatSearchOverlay } from './chat/ChatSearchOverlay';
+import { useEffectiveSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
+import { isConsumerTrip } from '@/utils/tripTierDetector';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -82,6 +84,10 @@ export const TripChat = ({
   
   const demoMode = useDemoMode();
   const { user } = useAuth();
+
+  // System message preferences - only for consumer trips
+  const isConsumer = isConsumerTrip(resolvedTripId);
+  const { data: systemMessagePrefs } = useEffectiveSystemMessagePreferences(isConsumer ? resolvedTripId : '');
 
   // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
   const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
@@ -494,6 +500,7 @@ export const TripChat = ({
                         message={message}
                         reactions={reactions[message.id]}
                         onReaction={handleReaction}
+                        systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
                       />
                     </div>
                   )}

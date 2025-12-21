@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
-import { Settings, Users, Shield, Trash2, X, ScrollText } from 'lucide-react';
+import { Settings, Users, Shield, Trash2, X, ScrollText, Activity } from 'lucide-react';
 import { TripUserManagement } from './TripUserManagement';
 import { getConsistentAvatar } from '../utils/avatarUtils';
 import { EventLogDrawer } from './trip/EventLogDrawer';
 import { isConsumerTrip } from '@/utils/tripTierDetector';
+import { TripActivitySettings } from './settings/TripActivitySettings';
 
 interface TripUser {
   id: string;
@@ -32,7 +32,7 @@ const TRIP_CATEGORIES = [
 ];
 
 export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId }: TripSettingsProps) => {
-  const [activeTab, setActiveTab] = useState<'users' | 'general' | 'danger' | 'eventlog'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'general' | 'activity' | 'danger' | 'eventlog'>('users');
   const [tripCategory, setTripCategory] = useState('Business Travel');
   const [customCategory, setCustomCategory] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -101,6 +101,7 @@ export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId 
   const tabs = [
     { id: 'users', label: 'Members', icon: Users },
     { id: 'general', label: 'General', icon: Settings },
+    ...(showEventLogTab ? [{ id: 'activity', label: 'Activity', icon: Activity }] : []),
     ...(showEventLogTab ? [{ id: 'eventlog', label: 'Event Log', icon: ScrollText }] : []),
     { id: 'danger', label: 'Danger Zone', icon: Trash2 }
   ];
@@ -219,6 +220,12 @@ export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId 
                     className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 focus:border-glass-orange/50 resize-none"
                   />
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'activity' && showEventLogTab && (
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
+                <TripActivitySettings tripId={tripId} />
               </div>
             )}
 
