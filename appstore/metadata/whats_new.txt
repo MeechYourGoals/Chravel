@@ -1,0 +1,13 @@
+Version 1.0.0
+
+Welcome to Chravel! This initial release includes:
+
+• Smart trip planning with AI-powered itinerary builder
+• Real-time group chat with @mentions and reactions
+• Automatic expense splitting and budget tracking
+• Shared photo and video albums
+• AI Concierge for personalized recommendations
+• Offline access for essential trip information
+• Universal Links for easy trip sharing
+
+We're excited to help you plan your next adventure!
