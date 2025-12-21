@@ -34,12 +34,15 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
   const highlightText = (text: string, searchTerm: string) => {
     if (!searchTerm.trim()) return text;
     
-    const parts = text.split(new RegExp(`(${searchTerm})`, 'gi'));
+    // Escape special regex characters in searchTerm
+    const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const parts = text.split(new RegExp(`(${escapedTerm})`, 'gi'));
+    
     return parts.map((part, i) => 
       part.toLowerCase() === searchTerm.toLowerCase() 
-        ? `<mark class="bg-yellow-500/30 text-yellow-200">${part}</mark>`
+        ? <mark key={i} className="bg-yellow-500/30 text-yellow-200 rounded px-0.5">{part}</mark>
         : part
-    ).join('');
+    );
   };
 
   const handleSearch = useCallback(async (searchQuery: string) => {
@@ -246,10 +249,9 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
                   })}
                 </span>
               </div>
-              <div 
-                className="text-sm text-gray-300 line-clamp-2"
-                dangerouslySetInnerHTML={{ __html: highlightText(result.content, query) }}
-              />
+              <div className="text-sm text-gray-300 line-clamp-2">
+                {highlightText(result.content, query)}
+              </div>
             </button>
           ))}
         </div>
