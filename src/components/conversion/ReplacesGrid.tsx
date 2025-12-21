@@ -69,12 +69,6 @@ export const ReplacesGrid = () => {
               </AccordionTrigger>
               
               <AccordionContent className="px-4 pb-4">
-                {/* Expanded description */}
-                <p className="text-base sm:text-lg md:text-xl text-white mb-4 text-center font-bold"
-                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.6)' }}>
-                  {category.expandedDescription}
-                </p>
-                
                 {/* App chips */}
                 <div className="flex flex-wrap gap-2 sm:gap-2.5 justify-center">
                   {allApps.map((app, index) => (
