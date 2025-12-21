@@ -13,13 +13,19 @@
 // CONSUMER PLANS - ChravelApp Plus
 // ============================================================
 
+/**
+ * Consumer Plans - AI Query Limits:
+ * - Free: 5 queries per user per trip
+ * - Explorer: 10 queries per user per trip
+ * - Frequent Chraveler: Unlimited
+ */
 export const CONSUMER_PLANS = {
   free: {
     name: 'Free',
     tier: 'free',
     features: {
       activeTrips: 3,
-      aiQueriesPerTrip: 10,
+      aiQueriesPerTrip: 5, // 5 queries per user per trip
       freeProTrips: 1,
       freeEvents: 1,
     },
@@ -38,7 +44,7 @@ export const CONSUMER_PLANS = {
     },
     features: {
       activeTrips: 'unlimited',
-      aiQueries: 'unlimited',
+      aiQueriesPerTrip: 10, // 10 queries per user per trip
       events: { maxAttendees: 100 },
     },
   },

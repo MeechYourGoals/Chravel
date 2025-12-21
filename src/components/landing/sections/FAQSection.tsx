@@ -8,8 +8,8 @@ const faqItems = [
     answer: "You'll need to delete an old trip to create a new one. Or upgrade to Explorer to keep unlimited trips!"
   },
   {
-    question: "How do AI queries work on the free plan?",
-    answer: "Each user gets 5 AI queries per trip. A counter shows how many you have left. Resets with each new trip."
+    question: "How do AI queries work on each plan?",
+    answer: "Free users get 5 AI queries per user per trip. Explorer gets 10 AI queries per user per trip. Frequent Chraveler gets unlimited AI queries. A counter shows how many you have left. Each new trip starts fresh with your full query limit."
   },
   {
     question: "Can I change plans anytime?",

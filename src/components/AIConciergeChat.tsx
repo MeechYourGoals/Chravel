@@ -48,19 +48,17 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   const { isPlus } = useConsumerSubscription();
   const { basecamp: globalBasecamp } = useBasecamp();
   const { user } = useAuth();
-  const { usage, getUsageStatus, formatTimeUntilReset, isFreeUser, upgradeUrl } = useConciergeUsage(tripId);
+  const { usage, getUsageStatus, isFreeUser, upgradeUrl } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [aiStatus, setAiStatus] = useState<'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded'>('connected');
   const [remainingQueries, setRemainingQueries] = useState<number>(Infinity);
-  const [resetCountdown, setResetCountdown] = useState<string>('');
   const [isUsingCachedResponse, setIsUsingCachedResponse] = useState(false);
 
   // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
   const isMounted = useRef(true);
-  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Helper to convert isPlus boolean to tier string
   const getUserTier = (): 'free' | 'plus' | 'pro' => {
@@ -74,9 +72,6 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
     isMounted.current = true;
     return () => {
       isMounted.current = false;
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-      }
     };
   }, []);
 
@@ -95,19 +90,6 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
             console.error('Failed to get remaining queries:', err);
           }
         });
-      
-      // Load reset countdown timer
-      conciergeRateLimitService.getTimeUntilReset(user.id, tripId, getUserTier())
-        .then(timeUntilReset => {
-          if (isMounted.current) {
-            setResetCountdown(timeUntilReset);
-          }
-        })
-        .catch(err => {
-          if (import.meta.env.DEV) {
-            console.error('Failed to get reset time:', err);
-          }
-        });
     }
     
     // Load cached messages for offline mode (user-isolated)
@@ -116,33 +98,6 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       setMessages(cachedMessages);
     }
   }, [isEvent, user, tripId, isPlus]);
-
-  // Update countdown timer every minute
-  useEffect(() => {
-    if (isEvent && user && remainingQueries !== Infinity) {
-      const updateCountdown = async () => {
-        try {
-          const timeUntilReset = await conciergeRateLimitService.getTimeUntilReset(user.id, tripId, getUserTier());
-          if (isMounted.current) {
-            setResetCountdown(timeUntilReset);
-          }
-        } catch (err) {
-          if (import.meta.env.DEV) {
-            console.error('Failed to update countdown:', err);
-          }
-        }
-      };
-      
-      updateCountdown();
-      countdownIntervalRef.current = setInterval(updateCountdown, 60000); // Update every minute
-      
-      return () => {
-        if (countdownIntervalRef.current) {
-          clearInterval(countdownIntervalRef.current);
-        }
-      };
-    }
-  }, [isEvent, user, tripId, remainingQueries]);
 
   // Monitor offline status
   useEffect(() => {
@@ -191,16 +146,14 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       }
     }
 
-    // 🆕 Rate limit check for events
+    // 🆕 Rate limit check for events (per-trip, no daily reset)
     if (isEvent && user) {
       const canQuery = await conciergeRateLimitService.canQuery(user.id, tripId, getUserTier());
       if (!canQuery) {
-        const resetTime = await conciergeRateLimitService.getTimeUntilReset(user.id, tripId, getUserTier());
-        
         setMessages(prev => [...prev, {
           id: Date.now().toString(),
           type: 'assistant',
-          content: `⚠️ **Daily Limit Reached**\n\nYou've used all ${getUserTier() === 'free' ? 5 : 50} AI Concierge queries for today. Your limit will reset in ${resetTime}.\n\n💎 Upgrade to Chravel+ for unlimited AI assistance!`,
+          content: `⚠️ **Trip Limit Reached**\n\nYou've used all ${getUserTier() === 'free' ? 5 : 10} AI Concierge queries for this trip.\n\n💎 Upgrade to ${getUserTier() === 'free' ? 'Explorer for 10 queries per trip' : 'Frequent Chraveler for unlimited AI assistance'}!`,
           timestamp: new Date().toISOString()
         }]);
         return;
@@ -348,16 +301,14 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       setAiStatus('connected');
       setIsUsingCachedResponse(false);
 
-      // 🆕 Increment usage for events
+      // 🆕 Increment usage for events (per-trip, no daily reset)
       if (isEvent && user) {
         try {
           await conciergeRateLimitService.incrementUsage(user.id, tripId, getUserTier());
           const remaining = await conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier());
-          const resetTime = await conciergeRateLimitService.getTimeUntilReset(user.id, tripId, getUserTier());
           // PHASE 1 BUG FIX #7: Only update state if component is still mounted
           if (isMounted.current) {
             setRemainingQueries(remaining);
-            setResetCountdown(resetTime);
           }
         } catch (error) {
           if (import.meta.env.DEV) {
@@ -525,18 +476,13 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
               </div>
             )}
             
-            {/* Rate limit indicator for events with countdown */}
+            {/* Rate limit indicator for events */}
             {isEvent && !isPlus && user && remainingQueries !== Infinity && (
               <div className="flex items-center gap-1 ml-2">
                 <AlertCircle size={16} className={remainingQueries <= 2 ? 'text-orange-400' : 'text-blue-400'} />
                 <span className={`text-xs ${remainingQueries <= 2 ? 'text-orange-400' : 'text-blue-400'}`}>
-                  {remainingQueries} {remainingQueries === 1 ? 'query' : 'queries'} left
+                  {remainingQueries} {remainingQueries === 1 ? 'query' : 'queries'} left for this trip
                 </span>
-                {resetCountdown && (
-                  <span className="text-xs text-gray-400 ml-1">
-                    (resets in {resetCountdown})
-                  </span>
-                )}
               </div>
             )}
             
@@ -574,20 +520,16 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
           <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <Crown size={24} className="text-white" />
           </div>
-          <h4 className="text-white font-medium mb-3">Daily Limit Reached</h4>
+          <h4 className="text-white font-medium mb-3">Trip Limit Reached</h4>
           <div className="text-sm text-gray-300 space-y-3 max-w-md mx-auto">
-            <p>You've used all {usage.limit} free AI queries today.</p>
-            <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
-              <Clock size={14} />
-              <span>Resets in {formatTimeUntilReset(usage.resetTime)}</span>
-            </div>
+            <p>You've used all {usage.limit} free AI queries for this trip.</p>
             <div className="mt-4">
               <Button
                 onClick={() => window.open(upgradeUrl, '_blank')}
                 className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
               >
                 <Crown size={16} className="mr-2" />
-                Upgrade to Pro for Unlimited Access
+                Upgrade to Explorer for 10 Queries
               </Button>
             </div>
           </div>
