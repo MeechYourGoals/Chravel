@@ -1945,10 +1945,12 @@ export type Database = {
           media_type: string | null
           media_url: string | null
           message_type: string | null
+          payload: Json | null
           privacy_encrypted: boolean | null
           privacy_mode: string | null
           reply_to_id: string | null
           sentiment: string | null
+          system_event_type: string | null
           thread_id: string | null
           trip_id: string
           updated_at: string
@@ -1969,10 +1971,12 @@ export type Database = {
           media_type?: string | null
           media_url?: string | null
           message_type?: string | null
+          payload?: Json | null
           privacy_encrypted?: boolean | null
           privacy_mode?: string | null
           reply_to_id?: string | null
           sentiment?: string | null
+          system_event_type?: string | null
           thread_id?: string | null
           trip_id: string
           updated_at?: string
@@ -1993,10 +1997,12 @@ export type Database = {
           media_type?: string | null
           media_url?: string | null
           message_type?: string | null
+          payload?: Json | null
           privacy_encrypted?: boolean | null
           privacy_mode?: string | null
           reply_to_id?: string | null
           sentiment?: string | null
+          system_event_type?: string | null
           thread_id?: string | null
           trip_id?: string
           updated_at?: string

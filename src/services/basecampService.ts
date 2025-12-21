@@ -1,5 +1,6 @@
 import { supabase } from '../integrations/supabase/client';
 import { BasecampLocation } from '../types/basecamp';
+import { systemMessageService } from './systemMessageService';
 
 export interface TripBasecamp {
   trip_id: string;
@@ -81,7 +82,7 @@ class BasecampService {
   async setTripBasecamp(
     tripId: string,
     basecamp: { name?: string; address: string; latitude?: number; longitude?: number },
-    options?: { skipHistory?: boolean; currentVersion?: number }
+    options?: { skipHistory?: boolean; currentVersion?: number; previousAddress?: string }
   ): Promise<{ success: boolean; error?: string; conflict?: boolean; coordinates?: { lat: number; lng: number } }> {
     try {
       // Get current version if not provided
@@ -122,6 +123,15 @@ class BasecampService {
           error: 'Basecamp was modified by another user. Please refresh and try again.'
         };
       }
+
+      // Create system message for consumer trips
+      const userName = user?.email?.split('@')[0] || 'Someone';
+      systemMessageService.tripBaseCampUpdated(
+        tripId,
+        userName,
+        options?.previousAddress,
+        basecamp.address
+      );
 
       return {
         success: true,
@@ -264,6 +274,14 @@ class BasecampService {
           if (import.meta.env.DEV) console.error('[BasecampService] Failed to log history:', historyError);
         }
       }
+
+      // Create system message for consumer trips
+      const userName = user?.email?.split('@')[0] || 'Someone';
+      systemMessageService.personalBaseCampUpdated(
+        payload.trip_id,
+        userName,
+        payload.address
+      );
 
       return data as PersonalBasecamp;
     } catch (error) {
