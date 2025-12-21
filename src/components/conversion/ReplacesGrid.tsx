@@ -45,8 +45,7 @@ export const ReplacesGrid = () => {
               <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-card/40 transition-colors group [&[data-state=open]>svg]:rotate-180">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 flex-1 min-w-0 text-left">
                   {/* Icon + Title - Left aligned */}
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <span className="text-2xl sm:text-3xl">{category.icon}</span>
+                  <div className="flex items-center flex-shrink-0">
                     <span className="text-lg sm:text-xl md:text-2xl font-bold text-white"
                       style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
                       {category.title}
