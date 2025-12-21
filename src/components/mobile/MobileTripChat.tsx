@@ -20,6 +20,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { markMessagesAsRead } from '@/services/readReceiptService';
 import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { TripChannel } from '@/types/roleChannels';
+import { useEffectiveSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
+import { isConsumerTrip } from '@/utils/tripTierDetector';
 
 interface MobileTripChatProps {
   tripId: string;
@@ -37,6 +39,10 @@ export const MobileTripChat = ({ tripId, isEvent = false, isPro = false, userRol
   const [userId, setUserId] = useState<string | null>(null);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
   const [profileByUserId, setProfileByUserId] = useState<Record<string, { display_name: string | null; avatar_url: string | null }>>({});
+
+  // System message preferences - only for consumer trips
+  const isConsumer = isConsumerTrip(tripId);
+  const { data: systemMessagePrefs } = useEffectiveSystemMessagePreferences(isConsumer ? tripId : '');
 
   // Initialize role channels hook for Pro/Enterprise trips
   const {
@@ -270,6 +276,7 @@ export const MobileTripChat = ({ tripId, isEvent = false, isPro = false, userRol
                   message={message}
                   reactions={reactions[message.id]}
                   onReaction={handleReaction}
+                  systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
                 />
               )}
               onLoadMore={loadMore}
