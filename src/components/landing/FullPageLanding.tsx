@@ -6,7 +6,6 @@ import { HeroSection } from './sections/HeroSection';
 import { ProblemSolutionSection } from './sections/ProblemSolutionSection';
 
 // Lazy load sections for better performance
-const HowItWorksSection = lazy(() => import('./sections/HowItWorksSection').then(module => ({ default: module.HowItWorksSection })));
 const AiFeaturesSection = lazy(() => import('./sections/AiFeaturesSection').then(module => ({ default: module.AiFeaturesSection })));
 const UseCasesSection = lazy(() => import('./sections/UseCasesSection').then(module => ({ default: module.UseCasesSection })));
 const ReplacesSection = lazy(() => import('./sections/ReplacesSection').then(module => ({ default: module.ReplacesSection })));
@@ -22,7 +21,7 @@ import scenariosImage from '@/assets/hero-images/sports-events-1920.jpg';
 import replacesImage from '@/assets/hero-images/basketball-team-bus.png';
 import pricingWorkspaceImage from '@/assets/hero-images/skiers-mountain-resort.png';
 import faqImage from '@/assets/hero-images/golf-course-tropical.png';
-import howItWorksImage from '@/assets/hero-images/family-hawaii-luggage.png';
+
 
 interface FullPageLandingProps {
   onSignUp: () => void;
@@ -66,7 +65,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           <HeroSection onSignUp={onSignUp} />
         </FullPageLandingSection>
 
-        {/* Section 2: Problem/Solution */}
+        {/* Section 2: How It Works (merged) */}
         <FullPageLandingSection
           id="section-features"
           imageFallback={chaosImage}
@@ -86,19 +85,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 4: How It Works */}
-        <FullPageLandingSection
-          id="section-how"
-          imageFallback={howItWorksImage}
-          videoOpacity={0.5}
-          imagePosition="60% center"
-        >
-          <Suspense fallback={<SectionLoader />}>
-            <HowItWorksSection />
-          </Suspense>
-        </FullPageLandingSection>
-
-        {/* Section 5: Use Cases - Built for Every Journey */}
+        {/* Section 4: Use Cases - Built for Every Journey */}
         <FullPageLandingSection
           id="section-use-cases"
           imageFallback={scenariosImage}
@@ -110,7 +97,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 6: AI Features */}
+        {/* Section 5: AI Features */}
         <FullPageLandingSection
           id="section-ai"
           imageFallback={aiImage}
@@ -121,7 +108,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 7: Pricing */}
+        {/* Section 6: Pricing */}
         <FullPageLandingSection
           id="section-pricing"
           imageFallback={pricingWorkspaceImage}
@@ -133,7 +120,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 8: FAQ */}
+        {/* Section 7: FAQ */}
         <FullPageLandingSection
           id="section-faq"
           imageFallback={faqImage}
