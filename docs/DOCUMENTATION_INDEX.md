@@ -8,9 +8,9 @@ This index provides a comprehensive guide to all Chravel documentation.
 
 ## 📚 Getting Started
 
-- **[DEVELOPER_HANDBOOK.md](_archive/root/DEVELOPER_HANDBOOK.md)** - Complete developer onboarding guide (historical)
+- **[DEVELOPER_HANDBOOK.md](ACTIVE/DEVELOPER_HANDBOOK.md)** - Complete developer onboarding guide
 - **[ENVIRONMENT_SETUP_GUIDE.md](ACTIVE/ENVIRONMENT_SETUP_GUIDE.md)** - Local development setup
-- **[CODEBASE_MAP.md](_archive/root/CODEBASE_MAP.md)** - High-level codebase overview (historical)
+- **[CODEBASE_MAP.md](ACTIVE/CODEBASE_MAP.md)** - High-level codebase overview
 
 ---
 
@@ -58,8 +58,8 @@ npm run docs:generate
 
 ### iOS Deployment
 - **[IOS_DEPLOY_QUICKSTART.md](_archive/root/IOS_DEPLOY_QUICKSTART.md)** - Quick iOS deployment guide (historical)
-- **[IOS_APP_STORE_GUIDE.md](_archive/root/IOS_APP_STORE_GUIDE.md)** - App Store submission guide (historical)
-- **[IOS_TESTING_CHECKLIST.md](_archive/root/IOS_TESTING_CHECKLIST.md)** - iOS testing checklist (historical)
+- **[IOS_APP_STORE_GUIDE.md](ACTIVE/IOS_APP_STORE_GUIDE.md)** - App Store submission guide
+- **[IOS_TESTING_CHECKLIST.md](ACTIVE/IOS_TESTING_CHECKLIST.md)** - iOS testing checklist
 
 ### Android Deployment
 - **[ANDROID_DEPLOY_QUICKSTART.md](_archive/root/ANDROID_DEPLOY_QUICKSTART.md)** - Quick Android deployment guide (historical)
@@ -87,12 +87,12 @@ npm run storybook
 
 ### Feature-Specific
 - **[AI_CONCIERGE_SETUP.md](AI_CONCIERGE_SETUP.md)** - AI concierge implementation
-- **[GOOGLE_MAPS_PLACES_INTEGRATION.md](_archive/root/GOOGLE_MAPS_PLACES_INTEGRATION.md)** - Maps integration (historical)
+- **[GOOGLE_MAPS_PLACES_INTEGRATION.md](ACTIVE/GOOGLE_MAPS_PLACES_INTEGRATION.md)** - Maps integration
 - **[AUTHENTICATION_SETUP.md](ACTIVE/AUTHENTICATION_SETUP.md)** - Auth setup guide
 
 ### Testing
 - **[CI_CD_SETUP.md](CI_CD_SETUP.md)** - CI/CD pipeline setup
-- **[IOS_TESTING_CHECKLIST.md](../IOS_TESTING_CHECKLIST.md)** - iOS testing
+- **[IOS_TESTING_CHECKLIST.md](ACTIVE/IOS_TESTING_CHECKLIST.md)** - iOS testing
 
 ---
 
@@ -113,7 +113,7 @@ npm run storybook
 
 ### Quick References
 - **[SUPABASE_QUICK_REFERENCE.md](SUPABASE_QUICK_REFERENCE.md)** - Supabase commands and patterns
-- **[CODEBASE_MAP.md](_archive/root/CODEBASE_MAP.md)** - Codebase structure (historical)
+- **[CODEBASE_MAP.md](ACTIVE/CODEBASE_MAP.md)** - Codebase structure
 
 ### Handoff Documents
 - **[HANDOFF.md](HANDOFF.md)** - General handoff guide

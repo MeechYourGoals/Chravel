@@ -80,11 +80,11 @@ Chravel is available as a native iOS and Android app powered by Capacitor.
 
 **Build Instructions:**
 
-For detailed iOS App Store submission guide, see: [IOS_APP_STORE_GUIDE.md](IOS_APP_STORE_GUIDE.md)
+For detailed iOS App Store submission guide, see: [docs/ACTIVE/IOS_APP_STORE_GUIDE.md](docs/ACTIVE/IOS_APP_STORE_GUIDE.md)
 
-For production build checklist, see: [PRODUCTION_BUILD_CHECKLIST.md](PRODUCTION_BUILD_CHECKLIST.md)
+For production build checklist, see: [docs/ACTIVE/PRODUCTION_BUILD_CHECKLIST.md](docs/ACTIVE/PRODUCTION_BUILD_CHECKLIST.md)
 
-For screenshot guide, see: [APP_STORE_SCREENSHOTS.md](APP_STORE_SCREENSHOTS.md)
+For screenshot guide, see: [docs/ACTIVE/APP_STORE_SCREENSHOTS.md](docs/ACTIVE/APP_STORE_SCREENSHOTS.md)
 
 **Quick Start:**
 ```bash
@@ -127,9 +127,9 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-trick
 ## 🚀 **Developer Resources**
 
 **For comprehensive development documentation, see:**
-- **[DEVELOPER_HANDBOOK.md](DEVELOPER_HANDBOOK.md)** - Complete developer guide
-- **[PRODUCTION_CLEANUP_SUMMARY.md](PRODUCTION_CLEANUP_SUMMARY.md)** - Recent improvements
-- **[production-ready-codebase.plan.md](production-ready-codebase.plan.md)** - Production roadmap
+- **[docs/ACTIVE/DEVELOPER_HANDBOOK.md](docs/ACTIVE/DEVELOPER_HANDBOOK.md)** - Complete developer guide
+- **[docs/_archive/root/PRODUCTION_CLEANUP_SUMMARY.md](docs/_archive/root/PRODUCTION_CLEANUP_SUMMARY.md)** - Recent improvements (historical)
+- **[docs/_archive/root/production-ready-codebase.plan.md](docs/_archive/root/production-ready-codebase.plan.md)** - Production roadmap (historical)
 
 ## 🔧 **Environment Configuration**
 
