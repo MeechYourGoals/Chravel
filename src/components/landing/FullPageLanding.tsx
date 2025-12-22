@@ -15,7 +15,7 @@ const FooterSection = lazy(() => import('./FooterSection').then(module => ({ def
 
 // Import cinematic hero images
 import heroImage from '@/assets/hero-images/cafe-devices-planning.png';
-import chaosImage from '@/assets/hero-images/group-terrace-ui-overlays.png';
+import howItWorksImage from '@/assets/hero-images/friends-amusement-park.png';
 import aiImage from '@/assets/hero-images/adventure-nature-1920.jpg';
 import scenariosImage from '@/assets/hero-images/sports-events-1920.jpg';
 import replacesImage from '@/assets/hero-images/basketball-team-bus.png';
@@ -68,7 +68,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
         {/* Section 2: How It Works (merged) */}
         <FullPageLandingSection
           id="section-features"
-          imageFallback={chaosImage}
+          imageFallback={howItWorksImage}
           videoOpacity={0.5}
         >
           <ProblemSolutionSection />
