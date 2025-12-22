@@ -28,16 +28,13 @@ export const EventLogDrawer: React.FC<EventLogDrawerProps> = ({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Only render for consumer trips
-  if (!isConsumerTrip(tripId)) {
-    return null;
-  }
+  const isConsumer = isConsumerTrip(tripId);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isConsumer && isOpen) {
       fetchEvents();
     }
-  }, [isOpen, tripId]);
+  }, [isConsumer, isOpen, tripId]);
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -76,6 +73,11 @@ export const EventLogDrawer: React.FC<EventLogDrawerProps> = ({
     setCopiedId(event.id);
     setTimeout(() => setCopiedId(null), 2000);
   };
+
+  // Only render for consumer trips
+  if (!isConsumer) {
+    return null;
+  }
 
   if (!isOpen) return null;
 

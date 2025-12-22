@@ -1,0 +1,37 @@
+name: Prevent root markdown sprawl
+
+on:
+  pull_request:
+
+jobs:
+  no_root_markdown:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fail if new root markdown files are added
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          # List added files, then filter to root-level *.md (allowlist a few)
+          NEW_ROOT_MD="$(
+            git diff --name-status "$BASE_SHA" "$HEAD_SHA" \
+              | awk '$1 ~ /^A/ {print $2}' \
+              | awk -F/ 'NF==1 && $0 ~ /\.md$/ {print}' \
+              | awk '!/^(README|CLAUDE|CONTRIBUTING)\.md$/ {print}' \
+              || true
+          )"
+
+          if [ -n "$NEW_ROOT_MD" ]; then
+            echo "New root-level markdown files detected:"
+            echo "$NEW_ROOT_MD"
+            echo
+            echo "Please put docs in docs/ACTIVE/ (maintained) or docs/_archive/ (historical)."
+            exit 1
+          fi
