@@ -8,26 +8,22 @@ export const AiFeaturesSection = () => {
     {
       icon: <Wand2 className="text-accent" size={32} />,
       title: 'AI Concierge',
-      description: 'Chat with AI for personalized recommendations based on your location, preferences, and trip context. From finding the perfect restaurant to planning activities, your AI assistant knows your trip inside-out.',
-      badge: 'Smart'
+      description: 'AI that understands your trip — not just your question.'
     },
     {
       icon: <Compass className="text-primary" size={32} />,
       title: 'Smart Basecamp',
-      description: 'Get location-aware recommendations within perfect travel distance from your home base. AI understands where you\'re staying and suggests venues, activities, and restaurants in your ideal radius.',
-      badge: 'Location-Aware'
+      description: 'Recommendations based on where you\'re actually staying.'
     },
     {
       icon: <BellRing className="text-accent" size={32} />,
       title: 'Smart Notifications',
-      description: 'Context-aware alerts for schedule conflicts, important chat messages, and group itineraries. Never miss what matters without notification overload.',
-      badge: 'Context-Aware'
+      description: 'Alerts only when something matters.'
     },
     {
       icon: <ScrollText className="text-primary" size={32} />,
       title: 'AI Trip Summaries',
-      description: 'Get daily or weekly digests of what\'s happening with your group — upcoming events, pending payments, and recent photos, all in one smart briefing.',
-      badge: 'Automated'
+      description: 'A shared briefing so no one falls behind.'
     }
   ];
 
@@ -41,12 +37,6 @@ export const AiFeaturesSection = () => {
         >
           Travel Intelligence
         </h2>
-        <p
-          className="text-xl sm:text-2xl md:text-3xl text-white font-bold"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
-        >
-          Chart Adventures with Context Aware Concierge Advisor
-        </p>
       </div>
 
       {/* Split Layout: Screenshots + Features */}
@@ -81,13 +71,8 @@ export const AiFeaturesSection = () => {
                   {feature.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <h3 className="font-bold text-lg sm:text-xl leading-tight">{feature.title}</h3>
-                    <span className="text-xs px-2 py-1 bg-accent/20 text-accent rounded-full whitespace-nowrap">
-                      {feature.badge}
-                    </span>
-                  </div>
-                  <p className="text-sm sm:text-base text-foreground leading-relaxed">
+                  <h3 className="font-bold text-xl sm:text-2xl mb-2 leading-tight">{feature.title}</h3>
+                  <p className="text-base sm:text-lg text-foreground leading-relaxed font-medium">
                     {feature.description}
                   </p>
                 </div>

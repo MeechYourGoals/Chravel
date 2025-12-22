@@ -6,35 +6,35 @@ export const ProblemSolutionSection = () => {
     {
       icon: <Search className="text-primary" size={28} />,
       title: 'Never Ask "What\'s the Plan?"',
-      description: 'Everyone sees the same itinerary, updated instantly. No more digging through old texts or missed calendar invites.'
+      description: 'One live itinerary everyone sees.'
     },
     {
       icon: <MessageCircle className="text-accent" size={28} />,
       title: 'Never Lose a Memory',
-      description: 'All your group\'s photos, links, and moments in one searchable place — from boarding passes to game-day highlights.'
+      description: 'Every photo, link, and file — auto-saved.'
     },
     {
       icon: <Clock className="text-primary" size={28} />,
       title: 'Never Chase a Payment',
-      description: 'See who paid, who owes, and split expenses without the awkward follow-up texts. Complete audit trail included.'
+      description: 'Know who paid. Instantly.'
     }
   ];
 
   return (
     <div className="container mx-auto px-4 pt-8 md:pt-12 pb-12 flex flex-col items-center min-h-screen text-center space-y-12">
-      {/* Headline - positioned at top with dark background for contrast */}
+      {/* Headline - positioned at top with darker background for contrast */}
       <div className="space-y-4">
         <h2
           className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}
         >
           Stop juggling 10+ Apps every trip
         </h2>
         <p 
           className="text-xl sm:text-2xl md:text-3xl max-w-3xl mx-auto text-white font-bold"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7), 0 4px 16px rgba(0,0,0,0.5)' }}
         >
-          Social Storage Simplified
+          Everything your group needs. One place.
         </p>
       </div>
 
@@ -43,7 +43,7 @@ export const ProblemSolutionSection = () => {
         {features.map((feature, index) => (
           <div
             key={index}
-            className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 md:p-5 hover:border-primary/50 transition-all duration-300 hover:scale-105 w-full"
+            className="bg-card/60 backdrop-blur-sm border border-border rounded-2xl p-4 md:p-5 hover:border-primary/50 transition-all duration-300 hover:scale-105 w-full"
           >
             {/* Icon and title - stacked on mobile for better readability */}
             <div className="flex flex-col items-center gap-2 mb-3">
@@ -55,7 +55,7 @@ export const ProblemSolutionSection = () => {
                 style={{ textShadow: '2px 2px 8px rgba(0, 0, 0, 0.5)' }}
               >{feature.title}</h3>
             </div>
-            <p className="text-sm md:text-base text-white/90 text-center leading-relaxed">{feature.description}</p>
+            <p className="text-base md:text-lg text-white/95 text-center font-medium leading-relaxed">{feature.description}</p>
           </div>
         ))}
       </div>

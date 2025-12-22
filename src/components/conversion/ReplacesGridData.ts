@@ -19,7 +19,7 @@ export const CATEGORIES: Category[] = [
   {
     key: "chat",
     title: "Chat",
-    subtitle: "Your group chat — Less chaos, Less Scrolling to find info",
+    subtitle: "",
     icon: "💬",
     hero: [
       { name: "WhatsApp" },
@@ -39,7 +39,7 @@ export const CATEGORIES: Category[] = [
   {
     key: "calendar",
     title: "Calendar",
-    subtitle: "One source of truth for dates, times, and changes",
+    subtitle: "",
     icon: "📅",
     hero: [
       { name: "Google Calendar" },
@@ -54,7 +54,7 @@ export const CATEGORIES: Category[] = [
   {
     key: "concierge",
     title: "AI Concierge",
-    subtitle: "Ask once. Get answers instantly.",
+    subtitle: "",
     icon: "🤖",
     hero: [
       { name: "ChatGPT" },
@@ -73,7 +73,7 @@ export const CATEGORIES: Category[] = [
   {
     key: "media",
     title: "Media",
-    subtitle: "Every file, photo, and memory — organized automatically",
+    subtitle: "",
     icon: "📸",
     hero: [
       { name: "Google Drive" },
@@ -95,7 +95,7 @@ export const CATEGORIES: Category[] = [
   {
     key: "payments",
     title: "Payments",
-    subtitle: "Know who paid. Know who owes. Instantly.",
+    subtitle: "",
     icon: "💳",
     hero: [
       { name: "Venmo" },
@@ -115,7 +115,7 @@ export const CATEGORIES: Category[] = [
   {
     key: "places",
     title: "Places",
-    subtitle: "Never ask \"where are we going?\" again",
+    subtitle: "",
     icon: "📍",
     hero: [
       { name: "Google Maps" },
@@ -134,7 +134,7 @@ export const CATEGORIES: Category[] = [
   {
     key: "polls",
     title: "Polls",
-    subtitle: "Decide faster. Move forward.",
+    subtitle: "",
     icon: "📊",
     hero: [
       { name: "Doodle" },
@@ -151,7 +151,7 @@ export const CATEGORIES: Category[] = [
   {
     key: "tasks",
     title: "Tasks",
-    subtitle: "Everyone knows what they're responsible for",
+    subtitle: "",
     icon: "✅",
     hero: [
       { name: "Notion" },

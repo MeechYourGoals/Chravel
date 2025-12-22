@@ -8,16 +8,17 @@ const scenarios = [
     emoji: "👨‍👩‍👧‍👦",
     title: "Family Trip",
     subtitle: "18 guests",
-    before: "10 different group chats. Email threads. Lost PDFs with tickets and reservations.",
+    before: "10 group chats. Email threads. Lost PDFs with reservations.",
     expandCTA: "See how families stay sane with Chravel",
     after: "One shared space for flights, calendars, park reservations, and photos — no confusion, just memories.",
-    badge: "75% less stress"
+    badge: "75% less stress",
+    isHero: true
   },
   {
     emoji: "🎤",
     title: "Touring Artists",
     subtitle: "12-person crew",
-    before: "21 cities over 5 months. Endless texts, spreadsheets, and miscommunication.",
+    before: "21 cities over 5 months. Endless texts, spreadsheets, confusion.",
     expandCTA: "See how tours stay in sync",
     after: "Show days, off days, crew channels, payments, and logistics — everyone aligned in every city.",
     badge: "$30K saved on average"
@@ -26,7 +27,7 @@ const scenarios = [
     emoji: "💍",
     title: "Wedding Weekend",
     subtitle: "Wedding party + families",
-    before: "Wedding website no one checks. Email chains. Scattered chats for bach events.",
+    before: "Wedding website ignored. Scattered chats for bach events.",
     expandCTA: "See how weekends run smoothly",
     after: "One shared itinerary, pinned locations, live photo uploads — no more \"where are we supposed to be?\"",
     badge: "3× more photos captured"
@@ -35,7 +36,7 @@ const scenarios = [
     emoji: "⚽",
     title: "Youth Soccer Season",
     subtitle: "Parents coordinating",
-    before: "Last-minute texts about snacks, rides, and which field you're on this week.",
+    before: "Last-minute texts about snacks, rides, and which field.",
     expandCTA: "See how seasons stay organized",
     after: "One season calendar, carpool sign-ups, snack assignments, and shared photos — automatically synced.",
     badge: "10 hrs/month saved"
@@ -44,7 +45,7 @@ const scenarios = [
     emoji: "🏈",
     title: "College Football Program",
     subtitle: "80+ people",
-    before: "Staff juggling travel, practices, classes, hotels, and group chats across apps.",
+    before: "Staff juggling travel, practices, hotels across apps.",
     expandCTA: "See how programs stay aligned",
     after: "Role-based access, team calendars, academic schedules, and instant updates — all in one place.",
     badge: "15 hrs/week saved"
@@ -53,7 +54,7 @@ const scenarios = [
     emoji: "🐕",
     title: "Friends & Community Groups",
     subtitle: "Local crews & clubs",
-    before: "Plans scattered across DMs, texts, and random calendar invites.",
+    before: "Plans scattered across DMs and random calendar invites.",
     expandCTA: "See how groups stay connected",
     after: "One shared hub for meetups, locations, notes, and photos — your group finally has a home.",
     badge: "1 home for recurring plans"
@@ -97,8 +98,9 @@ export const UseCasesSection = () => {
               key={index}
               onClick={() => toggleCard(index)}
               className={cn(
-                "bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-5 md:p-6 transition-all duration-300 cursor-pointer max-w-md mx-auto md:max-w-none",
-                isExpanded ? "border-primary/50 bg-card/60" : "hover:border-primary/30"
+                "bg-card/50 backdrop-blur-sm border rounded-2xl p-4 sm:p-5 md:p-6 transition-all duration-300 cursor-pointer max-w-md mx-auto md:max-w-none",
+                isExpanded ? "border-primary/50 bg-card/60" : "hover:border-primary/30",
+                scenario.isHero ? "border-primary/40 ring-2 ring-primary/20 shadow-lg shadow-primary/10" : "border-border"
               )}
             >
               {/* Header */}
@@ -113,7 +115,7 @@ export const UseCasesSection = () => {
               {/* Before Section - Always Visible */}
               <div className="mb-3">
                 <div className="text-xs sm:text-sm font-bold text-red-400 mb-1 uppercase tracking-wide">
-                  BEFORE CHRAVELAPP
+                  Before: Chaos
                 </div>
                 <p className="text-sm sm:text-base md:text-lg text-foreground leading-relaxed break-words">
                   {scenario.before}
@@ -150,7 +152,7 @@ export const UseCasesSection = () => {
                       {/* After Section */}
                       <div>
                         <div className="text-xs sm:text-sm font-bold text-green-400 mb-1 uppercase tracking-wide">
-                          WITH CHRAVELAPP
+                          After: Coordinated
                         </div>
                         <p className="text-sm sm:text-base md:text-lg text-foreground leading-relaxed break-words">
                           {scenario.after}
