@@ -13,10 +13,25 @@ export const ReplacesGrid = () => {
   return (
     <section className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
       {/* Header */}
-      <div className="text-center mb-6 sm:mb-8 md:mb-12">
-        <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-3 md:mb-4 break-words">
-          ChravelApp is the Operating System for Groups on the Go.
+      <div className="text-center mb-6 sm:mb-8 md:mb-12 space-y-3">
+        <h2 
+          className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white break-words"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}
+        >
+          Stop juggling 10+ apps every trip
         </h2>
+        <p 
+          className="text-lg sm:text-xl md:text-2xl text-white/90 font-medium max-w-4xl mx-auto"
+          style={{ textShadow: '0 2px 6px rgba(0,0,0,0.6)' }}
+        >
+          ChravelApp consolidates dozens of scattered tools into 8 focused tabs — built for groups on the go.
+        </p>
+        <p 
+          className="text-base sm:text-lg text-white/80 font-medium"
+          style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}
+        >
+          Click the ChravelTabs below to see how many apps your group can save time switching from.
+        </p>
       </div>
 
       {/* Accordion Grid - Multi-open behavior */}

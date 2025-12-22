@@ -1,63 +1,128 @@
 import React from 'react';
-import { Search, Clock, MessageCircle } from 'lucide-react';
+import { CalendarPlus, Share2, RefreshCw } from 'lucide-react';
+import corporateSkiTrip from '@/assets/app-screenshots/corporate-ski-trip.png';
 
 export const ProblemSolutionSection = () => {
-  const features = [
+  const steps = [
     {
-      icon: <Search className="text-primary" size={28} />,
-      title: 'Never Ask "What\'s the Plan?"',
-      description: 'One live itinerary everyone sees.'
+      number: 1,
+      icon: <CalendarPlus size={32} className="text-primary" />,
+      title: "Create a trip",
+      description: "Name it. Add dates. Done."
     },
     {
-      icon: <MessageCircle className="text-accent" size={28} />,
-      title: 'Never Lose a Memory',
-      description: 'Every photo, link, and file — auto-saved.'
+      number: 2,
+      icon: <Share2 size={32} className="text-accent" />,
+      title: "Invite your group",
+      description: "One link. No downloads."
     },
     {
-      icon: <Clock className="text-primary" size={28} />,
-      title: 'Never Chase a Payment',
-      description: 'Know who paid. Instantly.'
+      number: 3,
+      icon: <RefreshCw size={32} className="text-primary" />,
+      title: "Everything syncs",
+      description: "Plans, chat, payments — live."
     }
   ];
 
   return (
-    <div className="container mx-auto px-4 pt-8 md:pt-12 pb-12 flex flex-col items-center min-h-screen text-center space-y-12">
-      {/* Headline - positioned at top with darker background for contrast */}
-      <div className="space-y-4">
-        <h2
+    <div className="container mx-auto px-4 py-12 md:py-16 flex flex-col items-center justify-center min-h-screen space-y-12">
+      {/* Headline */}
+      <div className="text-center space-y-4 max-w-4xl">
+        <h2 
           className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}
+          style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.7), 0 0 20px rgba(0,0,0,0.5)' }}
         >
-          Stop juggling 10+ Apps every trip
+          How It Works
         </h2>
         <p 
-          className="text-xl sm:text-2xl md:text-3xl max-w-3xl mx-auto text-white font-bold"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7), 0 4px 16px rgba(0,0,0,0.5)' }}
+          className="text-lg sm:text-xl md:text-2xl font-semibold text-white/90"
+          style={{ textShadow: '2px 2px 6px rgba(0, 0, 0, 0.6)' }}
         >
-          Everything your group needs. One place.
+          From zero → organized in under 60 seconds
         </p>
       </div>
 
-      {/* Features Grid - stacked vertically on mobile, 3 columns on desktop */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-5xl w-full px-2">
-        {features.map((feature, index) => (
-          <div
-            key={index}
-            className="bg-card/60 backdrop-blur-sm border border-border rounded-2xl p-4 md:p-5 hover:border-primary/50 transition-all duration-300 hover:scale-105 w-full"
-          >
-            {/* Icon and title - stacked on mobile for better readability */}
-            <div className="flex flex-col items-center gap-2 mb-3">
-              <div className="bg-white/20 w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0">
-                {React.cloneElement(feature.icon as React.ReactElement, { size: 22, className: 'text-white' })}
+      {/* Steps - Horizontal on desktop, vertical on mobile */}
+      <div className="w-full max-w-6xl">
+        {/* Desktop View (Hidden on mobile/tablet) */}
+        <div className="hidden lg:flex items-center justify-between gap-4 relative">
+          {steps.map((step, index) => (
+            <React.Fragment key={step.number}>
+              {/* Step Card */}
+              <div className="flex-1 min-w-0 overflow-hidden bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 text-center hover:border-primary/50 transition-all duration-300 relative z-10">
+                {/* Number Badge */}
+                <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground font-bold text-xl flex items-center justify-center mx-auto mb-4">
+                  {step.number}
+                </div>
+                
+                {/* Icon */}
+                <div className="flex justify-center mb-4">
+                  {step.icon}
+                </div>
+                
+                {/* Content */}
+                <h3 className="font-bold text-xl md:text-2xl mb-2 text-foreground break-words">
+                  {step.title}
+                </h3>
+                <p className="text-lg text-accent font-medium break-words">
+                  {step.description}
+                </p>
               </div>
-              <h3
-                className="font-extrabold text-lg md:text-xl text-white leading-tight text-center"
-                style={{ textShadow: '2px 2px 8px rgba(0, 0, 0, 0.5)' }}
-              >{feature.title}</h3>
+
+              {/* Connecting Arrow (not after last step) */}
+              {index < steps.length - 1 && (
+                <div className="flex-shrink-0 w-12 h-1 bg-gradient-to-r from-primary to-accent relative" 
+                     style={{ marginLeft: '-1rem', marginRight: '-1rem', zIndex: 0 }}>
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-l-8 border-transparent border-l-accent" />
+                </div>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* Mobile/Tablet View (Hidden on desktop) */}
+        <div className="lg:hidden space-y-4">
+          {steps.map((step) => (
+            <div key={step.number} className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-5 w-full overflow-hidden">
+              {/* Inline Step Number + Icon */}
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground font-bold text-lg flex items-center justify-center flex-shrink-0">
+                  {step.number}
+                </div>
+                {step.icon}
+              </div>
+
+              {/* Content - white bold text for readability */}
+              <div className="text-center">
+                <h3 className="font-bold text-xl mb-2 text-white break-words" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.5)' }}>
+                  {step.title}
+                </h3>
+                <p className="text-lg text-white font-semibold break-words" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.5)' }}>
+                  {step.description}
+                </p>
+              </div>
             </div>
-            <p className="text-base md:text-lg text-white/95 text-center font-medium leading-relaxed">{feature.description}</p>
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+
+      {/* Trip Preview Image */}
+      <div className="w-full max-w-5xl space-y-4">
+        <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300">
+          <img 
+            src={corporateSkiTrip} 
+            alt="Corporate Holiday Ski Trip showing ChravelApp tabs in action" 
+            className="w-full h-auto"
+          />
+        </div>
+        
+        {/* Micro-caption */}
+        <p 
+          className="text-center text-lg text-white/80 font-medium"
+          style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.5)' }}
+        >
+          Every trip lives in its own shared space.
+        </p>
       </div>
     </div>
   );
