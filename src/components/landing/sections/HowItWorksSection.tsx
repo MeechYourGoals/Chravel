@@ -7,23 +7,20 @@ export const HowItWorksSection = () => {
     {
       number: 1,
       icon: <CalendarPlus size={32} className="text-primary" />,
-      title: "Create a trip or event",
-      description: "Set up your group in 30 seconds",
-      detail: "Name it, add dates, invite your crew"
+      title: "Create a trip",
+      description: "Name it. Add dates. Done."
     },
     {
       number: 2,
       icon: <Share2 size={32} className="text-accent" />,
       title: "Invite your group",
-      description: "One link, everyone's in",
-      detail: "Share via text, email, or social"
+      description: "One link. No downloads."
     },
     {
       number: 3,
       icon: <RefreshCw size={32} className="text-primary" />,
       title: "Everything syncs",
-      description: "Automatically for everyone",
-      detail: "Chat, calendar, payments, photos — all in one place"
+      description: "Plans, chat, payments — live."
     }
   ];
 
@@ -38,10 +35,10 @@ export const HowItWorksSection = () => {
           How It Works
         </h2>
         <p 
-          className="text-xl sm:text-2xl md:text-3xl font-bold text-white"
-          style={{ textShadow: '2px 2px 6px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0,0,0,0.4)' }}
+          className="text-lg sm:text-xl md:text-2xl font-semibold text-white/90"
+          style={{ textShadow: '2px 2px 6px rgba(0, 0, 0, 0.6)' }}
         >
-          Get your group organized in minutes
+          From zero → organized in under 60 seconds
         </p>
       </div>
 
@@ -67,11 +64,8 @@ export const HowItWorksSection = () => {
                 <h3 className="font-bold text-xl md:text-2xl mb-2 text-foreground break-words">
                   {step.title}
                 </h3>
-                <p className="text-lg text-accent font-medium mb-2 break-words">
+                <p className="text-lg text-accent font-medium break-words">
                   {step.description}
-                </p>
-                <p className="text-base text-foreground break-words">
-                  {step.detail}
                 </p>
               </div>
 
@@ -103,11 +97,8 @@ export const HowItWorksSection = () => {
                 <h3 className="font-bold text-xl mb-2 text-white break-words" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.5)' }}>
                   {step.title}
                 </h3>
-                <p className="text-lg text-white font-semibold mb-2 break-words" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.5)' }}>
+                <p className="text-lg text-white font-semibold break-words" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.5)' }}>
                   {step.description}
-                </p>
-                <p className="text-base text-white/90 font-medium break-words" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.4)' }}>
-                  {step.detail}
                 </p>
               </div>
             </div>
@@ -123,13 +114,38 @@ export const HowItWorksSection = () => {
         >
           Here's What You Get
         </h3>
-        <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300">
-          <img 
-            src={tripDetail} 
-            alt="Complete trip organization with chat, calendar, and payments" 
-            className="w-full h-auto"
-          />
+        
+        {/* Screenshot with callouts */}
+        <div className="relative">
+          <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300">
+            <img 
+              src={tripDetail} 
+              alt="Complete trip organization with chat, calendar, and payments" 
+              className="w-full h-auto"
+            />
+          </div>
+          
+          {/* Subtle callouts */}
+          <div className="flex flex-wrap justify-center gap-3 mt-4">
+            <span className="bg-primary/20 text-primary px-3 py-1.5 rounded-full text-sm font-medium">
+              Live itinerary
+            </span>
+            <span className="bg-accent/20 text-accent px-3 py-1.5 rounded-full text-sm font-medium">
+              Shared media
+            </span>
+            <span className="bg-primary/20 text-primary px-3 py-1.5 rounded-full text-sm font-medium">
+              Group chat + payments
+            </span>
+          </div>
         </div>
+        
+        {/* Micro-caption */}
+        <p 
+          className="text-center text-lg text-white/80 font-medium"
+          style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.5)' }}
+        >
+          Every trip lives in its own shared space.
+        </p>
       </div>
 
     </div>

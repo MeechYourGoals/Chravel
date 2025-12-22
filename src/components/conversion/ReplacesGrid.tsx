@@ -17,18 +17,6 @@ export const ReplacesGrid = () => {
         <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-3 md:mb-4 break-words">
           ChravelApp is the Operating System for Groups on the Go.
         </h2>
-        <p 
-          className="text-white font-bold text-lg sm:text-xl md:text-2xl mt-6 md:mt-8 text-center max-w-4xl mx-auto"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.6)' }}
-        >
-          Travel 365 for when you're Out of Office 365.
-        </p>
-        <p 
-          className="text-white font-bold text-base sm:text-lg md:text-xl mt-4 text-center max-w-4xl mx-auto"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.6)' }}
-        >
-          Spend less time logging in, signing up, and switching between different Apps — Consolidate the usage of the apps below into 8 core ChravelApp Tabs.
-        </p>
       </div>
 
       {/* Accordion Grid - Multi-open behavior */}
@@ -49,18 +37,6 @@ export const ReplacesGrid = () => {
                     <span className="text-lg sm:text-xl md:text-2xl font-bold text-white"
                       style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
                       {category.title}
-                    </span>
-                  </div>
-                  {/* Subtitle - Centered with enhanced readability */}
-                  <div className="flex-1 flex justify-center">
-                    <span 
-                      className="text-base sm:text-lg md:text-xl font-bold text-white text-center px-3 py-1 rounded-lg"
-                      style={{ 
-                        textShadow: '0 2px 8px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.6)',
-                        backgroundColor: 'rgba(0,0,0,0.3)'
-                      }}
-                    >
-                      {category.subtitle}
                     </span>
                   </div>
                 </div>
