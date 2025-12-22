@@ -57,21 +57,20 @@ const consumerTiers: PricingTier[] = [
     description: 'Perfect for trying ChravelApp with your crew',
     icon: <Users size={24} />,
     features: [
-      'Create unlimited trip participants',
-      'Core group chat & collaboration',
+      'Core group chat',
       'Shared calendar (manual entry)',
       'Photo & video sharing',
       'Basic itinerary planning',
-      'Expense tracking',
-      'Polls & decision making',
+      'Payment tracking',
+      'Polls & group decisions',
       'AI Trip Assistant (5 queries per user per trip)',
       'Save up to 3 active trips',
-      '🎁 1 Free ChravelApp Pro trip to try',
-      '🎁 1 Free Event to try'
+      '🎁 1 free Pro trip to try',
+      '🎁 1 free Event to try'
     ],
-    cta: 'Get Started Free · Log In or Sign Up',
+    cta: 'Try It Free',
     category: 'consumer',
-    limitation: 'To create a new trip after 3, you\'ll need to delete an old one'
+    limitation: 'To create a new trip after 3, you\'ll need to delete an old one.'
   },
   {
     id: 'explorer',
@@ -79,20 +78,16 @@ const consumerTiers: PricingTier[] = [
     price: '$9.99',
     annualPrice: '$99',
     originalPrice: '$119.88',
-    description: 'Never lose a trip memory',
+    description: 'For people who travel often and want smarter planning',
     icon: <Globe size={24} />,
     features: [
-      'Unlimited saved trips - keep every memory forever',
-      '10 AI queries per user per trip - double the free tier',
-      'Location-aware AI suggestions - personalized recs based on where you are',
-      'Smart notifications - never miss important updates',
-      'Search past trips - find that perfect restaurant again',
-      'Priority support - we\'ve got your back',
-      'Custom trip categories - tag trips by type',
-      '🎉 Unlimited Events included (up to 100 guests each)',
-      '🎁 Your first Pro Trip + Event included free'
+      'Everything in Free',
+      'Unlimited saved trips',
+      '10 AI queries per user per trip',
+      'Location-aware AI recommendations',
+      'Search past trips and memories'
     ],
-    cta: 'Get Started Free · Log In or Sign Up',
+    cta: 'Upgrade My Trips',
     popular: true,
     category: 'consumer',
     badge: 'Most Popular',
@@ -104,21 +99,18 @@ const consumerTiers: PricingTier[] = [
     price: '$19.99',
     annualPrice: '$199',
     originalPrice: '$239.88',
-    description: 'For travel pros and adventure enthusiasts',
+    description: 'For power users, organizers, and travel pros',
     icon: <Sparkles size={24} />,
     features: [
       'Everything in Explorer',
-      'Unlimited AI queries - your 24/7 concierge with no limits',
-      'Calendar sync - Google, Apple, Outlook integration',
-      'PDF trip export - one-click beautiful itineraries',
-      'Create 1 ChravelApp Pro trip per month - invite up to 50 people',
-      'Role-based channels & pro features on your Pro trip',
-      'Custom trip categories - tag by type (work/leisure/family/etc.)',
-      'Early feature access - shape the future of ChravelApp',
-      '🎉 Unlimited Events included (up to 200 guests each)',
-      '🎁 Your first Pro Trip + Event included free'
+      'Unlimited AI queries (24/7 concierge)',
+      'Calendar sync (Google, Apple, Outlook)',
+      'One-click PDF trip exports',
+      'Role-based channels & Pro features',
+      'Custom trip categories',
+      'Early feature access'
     ],
-    cta: 'Get Started Free · Log In or Sign Up',
+    cta: 'Upgrade My Trips',
     category: 'consumer',
     savings: 'Save $40/year'
   }
@@ -514,16 +506,16 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
 
             <CardContent className="space-y-3 md:space-y-4 px-4 md:px-6 pb-4 md:pb-6 flex-1">
               {tier.limitation && (
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2.5 md:p-3 text-xs sm:text-sm text-yellow-400 break-words">
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2.5 md:p-3 text-sm text-yellow-400 break-words font-medium">
                   {tier.limitation}
                 </div>
               )}
               
-              <ul className="space-y-2 md:space-y-3">
+              <ul className="space-y-2.5 md:space-y-3">
                 {tier.features.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <Check size={14} className="text-green-400 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-foreground break-words">{feature}</span>
+                  <li key={index} className="flex items-start gap-2.5">
+                    <Check size={16} className="text-green-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-base font-semibold text-foreground break-words">{feature}</span>
                   </li>
                 ))}
               </ul>
