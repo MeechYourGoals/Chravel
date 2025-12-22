@@ -3,7 +3,7 @@ import { Button } from '../../ui/button';
 import { Users, Calendar, MapPin, Sparkles } from 'lucide-react';
 import { DemoModeToggle } from '../../DemoModeToggle';
 import { useIsMobile } from '@/hooks/use-mobile';
-import tripsDashboard from '@/assets/app-screenshots/trips-dashboard.png';
+import heroDashboard from '@/assets/app-screenshots/hero-dashboard-updated.png';
 
 // Mobile header height constant (matches MobileAuthHeader.tsx)
 const MOBILE_HEADER_HEIGHT = 52;
@@ -84,7 +84,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         {/* Product Preview */}
         <div className="mt-8 w-full max-w-5xl mx-auto animate-fade-in" style={{ animationDelay: '0.5s' }}>
           <img
-            src={tripsDashboard}
+            src={heroDashboard}
             alt="ChravelApp trips dashboard showing organized group travel"
             className="rounded-xl shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300"
           />

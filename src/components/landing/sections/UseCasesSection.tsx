@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 
 const scenarios = [
   {
-    emoji: "👨‍👩‍👧‍👦",
     title: "Family Trip",
     subtitle: "18 guests",
     before: "10 group chats. Email threads. Lost PDFs with reservations.",
@@ -15,7 +14,6 @@ const scenarios = [
     isHero: true
   },
   {
-    emoji: "🎤",
     title: "Touring Artists",
     subtitle: "12-person crew",
     before: "21 cities over 5 months. Endless texts, spreadsheets, confusion.",
@@ -24,7 +22,6 @@ const scenarios = [
     badge: "$30K saved on average"
   },
   {
-    emoji: "💍",
     title: "Wedding Weekend",
     subtitle: "Wedding party + families",
     before: "Wedding website ignored. Scattered chats for bach events.",
@@ -33,7 +30,6 @@ const scenarios = [
     badge: "3× more photos captured"
   },
   {
-    emoji: "⚽",
     title: "Youth Soccer Season",
     subtitle: "Parents coordinating",
     before: "Last-minute texts about snacks, rides, and which field.",
@@ -42,7 +38,6 @@ const scenarios = [
     badge: "10 hrs/month saved"
   },
   {
-    emoji: "🏈",
     title: "College Football Program",
     subtitle: "80+ people",
     before: "Staff juggling travel, practices, hotels across apps.",
@@ -51,7 +46,6 @@ const scenarios = [
     badge: "15 hrs/week saved"
   },
   {
-    emoji: "🐕",
     title: "Friends & Community Groups",
     subtitle: "Local crews & clubs",
     before: "Plans scattered across DMs and random calendar invites.",
@@ -104,12 +98,9 @@ export const UseCasesSection = () => {
               )}
             >
               {/* Header */}
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-3xl sm:text-4xl flex-shrink-0">{scenario.emoji}</span>
-                <div className="min-w-0">
-                  <h3 className="font-bold text-xl md:text-2xl leading-tight break-words">{scenario.title}</h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground break-words">{scenario.subtitle}</p>
-                </div>
+              <div className="mb-4">
+                <h3 className="font-bold text-xl md:text-2xl leading-tight break-words">{scenario.title}</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground break-words">{scenario.subtitle}</p>
               </div>
 
               {/* Before Section - Always Visible */}
