@@ -57,7 +57,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
           }}
         >
-          Plan Together.<br />Travel Better.
+          The Group Chat Travel App
         </h2>
 
         {/* Subheadline with bold white text and shadow for contrast */}
@@ -68,7 +68,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)'
           }}
         >
-          The Group Chat Travel App for Shared Calendars, Messages, Media, Payments, and more
+          One Shared Space for Chat, Calendar, Photos, & Payments
         </p>
 
         {/* CTA */}
