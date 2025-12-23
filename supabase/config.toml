@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.get-trip-preview]
 verify_jwt = false
+
+[functions.send-push]
+verify_jwt = true

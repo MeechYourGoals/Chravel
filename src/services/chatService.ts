@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import { retryWithBackoff } from '@/utils/retry';
 import type { RichChatAttachment, RichLinkPreview } from '@/types/chatAttachment';
-
+import { notifyTripOfChatMessage } from './pushNotificationTrigger';
 type Row = Database['public']['Tables']['trip_chat_messages']['Row'];
 type Insert = Database['public']['Tables']['trip_chat_messages']['Insert'];
 
@@ -47,6 +47,19 @@ export async function sendChatMessage(msg: ChatMessageInsert) {
         .select()
         .single();
       if (error) throw error;
+      
+      // TODO: Trigger push notification after successful message creation
+      // Fire and forget - don't block message return
+      if (data && msg.user_id && msg.message_type !== 'system') {
+        notifyTripOfChatMessage({
+          tripId: data.trip_id,
+          senderId: msg.user_id,
+          senderName: data.author_name,
+          messageContent: data.content,
+          messageId: data.id,
+        });
+      }
+      
       return data;
     },
     {
@@ -112,6 +125,18 @@ export async function sendRichChatMessage(msg: RichChatMessageInsert) {
           if (existing) return existing;
         }
         throw error;
+      }
+      
+      // TODO: Trigger push notification after successful message creation
+      // Fire and forget - don't block message return
+      if (data && msg.user_id && msg.message_type !== 'system') {
+        notifyTripOfChatMessage({
+          tripId: data.trip_id,
+          senderId: msg.user_id,
+          senderName: data.author_name,
+          messageContent: data.content,
+          messageId: data.id,
+        });
       }
       
       return data;
