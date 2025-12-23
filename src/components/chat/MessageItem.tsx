@@ -30,6 +30,14 @@ export const MessageItem = memo(({
   const { user } = useAuth();
   const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
 
+  const handleEdit = useCallback(async (messageId: string, newContent: string) => {
+    console.log('Message edited:', messageId, newContent);
+  }, []);
+
+  const handleDelete = useCallback(async (messageId: string) => {
+    console.log('Message deleted:', messageId);
+  }, []);
+
   // Check for system messages
   const isSystemMessage = message.tags?.includes('system') === true || 
     (message as any).message_type === 'system';
@@ -51,14 +59,6 @@ export const MessageItem = memo(({
   const isOwnMessage = user?.id 
     ? (senderUserId === user.id || message.sender.id === user.id || message.sender.name === (user.displayName || user.email?.split('@')[0]))
     : false;
-
-  const handleEdit = useCallback(async (messageId: string, newContent: string) => {
-    console.log('Message edited:', messageId, newContent);
-  }, []);
-
-  const handleDelete = useCallback(async (messageId: string) => {
-    console.log('Message deleted:', messageId);
-  }, []);
   
   const messageWithMedia = message as any;
 

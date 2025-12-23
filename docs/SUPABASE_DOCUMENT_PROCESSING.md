@@ -416,4 +416,4 @@ If confidence < 0.75:
 
 - [RAG System Setup](./RAG_CRON_SETUP.md)
 - [AI Concierge Setup](./AI_CONCIERGE_SETUP.md)
-- [Google Ecosystem Migration](../GOOGLE_ECOSYSTEM_MIGRATION_SUMMARY.md)
+- [Google Ecosystem Migration](/docs/_archive/root/GOOGLE_ECOSYSTEM_MIGRATION_SUMMARY.md)

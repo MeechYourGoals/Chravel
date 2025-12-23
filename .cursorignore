@@ -1,0 +1,36 @@
+################################################################################
+# Cursor ignore contract
+#
+# Goal: prevent repo indexers / context builders from slurping large or stale
+# documentation and binary assets. Keep "active" docs small + curated.
+################################################################################
+
+# Archived / scratch docs (primary win)
+docs/_archive/**
+docs/_scratch/**
+docs/_external/**
+docs/archive/**
+
+# Large binary / media files
+**/*.pdf
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.webp
+**/*.gif
+**/*.mp4
+**/*.mov
+**/*.zip
+
+# Dependency / build outputs
+node_modules/**
+dist/**
+build/**
+coverage/**
+out/**
+.next/**
+.vercel/**
+.turbo/**
+
+# Local / generated artifacts
+**/*.log

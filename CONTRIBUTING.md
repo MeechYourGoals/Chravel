@@ -1,6 +1,6 @@
 # Contributing to Chravel
 
-> **Important:** Before making architectural changes, read `ARCHITECTURE_DECISIONS.md`.
+> **Important:** Before making architectural changes, read `docs/ACTIVE/ARCHITECTURE_DECISIONS.md`.
 
 ---
 
@@ -32,7 +32,7 @@ npm run dev
 
 ### Environment Variables
 
-See `ENVIRONMENT_SETUP_GUIDE.md` for detailed instructions on obtaining API keys.
+See `docs/ACTIVE/ENVIRONMENT_SETUP_GUIDE.md` for detailed instructions on obtaining API keys.
 
 ---
 
