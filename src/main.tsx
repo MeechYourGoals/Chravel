@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { TripVariantProvider } from "@/contexts/TripVariantContext";
 import { BasecampProvider } from "@/contexts/BasecampContext";
+import { initNativeLifecycle } from "@/native/lifecycle";
 import { registerServiceWorker } from "./utils/serviceWorkerRegistration";
 import App from "./App.tsx";
 import "./index.css";
@@ -23,6 +24,9 @@ import "./index.css";
 if (import.meta.env.PROD) {
   registerServiceWorker();
 }
+
+// Initialize native lifecycle listeners as early as possible (no-op on web).
+initNativeLifecycle();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
