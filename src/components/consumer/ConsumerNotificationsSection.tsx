@@ -4,6 +4,7 @@ import { Bell, Mail, Smartphone, MessageCircle, Radio, Calendar, DollarSign, Che
 import { useAuth } from '../../hooks/useAuth';
 import { userPreferencesService, NotificationPreferences } from '../../services/userPreferencesService';
 import { useToast } from '../../hooks/use-toast';
+import { useNativePush } from '@/hooks/useNativePush';
 
 interface NotificationCategory {
   key: string;
@@ -75,7 +76,9 @@ const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
 export const ConsumerNotificationsSection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isNative: isNativePush, registerForPush, unregisterFromPush } = useNativePush();
   const [isLoading, setIsLoading] = useState(true);
+  const [isUpdatingPush, setIsUpdatingPush] = useState(false);
   
   // State for notification settings - matching database columns
   const [notificationSettings, setNotificationSettings] = useState<Record<string, boolean>>({
@@ -137,51 +140,81 @@ export const ConsumerNotificationsSection = () => {
 
   const handleNotificationToggle = async (setting: string) => {
     const newValue = !notificationSettings[setting];
-    
-    // Update local state immediately for responsiveness
+
+    // Map local state keys to database column names
+    const keyMap: Record<string, keyof NotificationPreferences> = {
+      messages: 'chat_messages',
+      broadcasts: 'broadcasts',
+      calendar: 'calendar_events',
+      payments: 'payments',
+      tasks: 'tasks',
+      polls: 'polls',
+      joinRequests: 'join_requests',
+      basecampUpdates: 'basecamp_updates',
+      email: 'email_enabled',
+      push: 'push_enabled',
+      sms: 'sms_enabled',
+      quietHours: 'quiet_hours_enabled',
+    };
+
+    const dbKey = keyMap[setting];
+    if (!dbKey) return;
+
+    // Push notifications: request/register only when user explicitly enables (native only).
+    if (setting === 'push' && user?.id && isNativePush) {
+      setIsUpdatingPush(true);
+      try {
+        if (newValue) {
+          const token = await registerForPush();
+          if (!token) {
+            toast({
+              title: 'Push notifications not enabled',
+              description: 'Allow notifications in iOS Settings to receive alerts.',
+              variant: 'destructive',
+            });
+            return;
+          }
+        } else {
+          await unregisterFromPush();
+        }
+
+        setNotificationSettings(prev => ({ ...prev, push: newValue }));
+        await userPreferencesService.updateNotificationPreferences(user.id, { [dbKey]: newValue });
+        return;
+      } catch (error) {
+        console.error('Error updating push notifications:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to update push notifications. Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      } finally {
+        setIsUpdatingPush(false);
+      }
+    }
+
+    // Default: update local state immediately for responsiveness
     setNotificationSettings(prev => ({
       ...prev,
-      [setting]: newValue
+      [setting]: newValue,
     }));
 
     // Persist to database if user is authenticated
     if (user?.id) {
       try {
-        const updates: Partial<NotificationPreferences> = {};
-        
-        // Map local state keys to database column names
-        const keyMap: Record<string, keyof NotificationPreferences> = {
-          messages: 'chat_messages',
-          broadcasts: 'broadcasts',
-          calendar: 'calendar_events',
-          payments: 'payments',
-          tasks: 'tasks',
-          polls: 'polls',
-          joinRequests: 'join_requests',
-          basecampUpdates: 'basecamp_updates',
-          email: 'email_enabled',
-          push: 'push_enabled',
-          sms: 'sms_enabled',
-          quietHours: 'quiet_hours_enabled'
-        };
-
-        const dbKey = keyMap[setting];
-        if (dbKey) {
-          (updates as any)[dbKey] = newValue;
-        }
-
-        await userPreferencesService.updateNotificationPreferences(user.id, updates);
+        await userPreferencesService.updateNotificationPreferences(user.id, { [dbKey]: newValue });
       } catch (error) {
         console.error('Error saving notification preference:', error);
         // Revert on error
         setNotificationSettings(prev => ({
           ...prev,
-          [setting]: !newValue
+          [setting]: !newValue,
         }));
         toast({
           title: 'Error',
           description: 'Failed to save preference. Please try again.',
-          variant: 'destructive'
+          variant: 'destructive',
         });
       }
     }
@@ -202,9 +235,10 @@ export const ConsumerNotificationsSection = () => {
     }
   };
 
-  const renderToggle = (key: string, isEnabled: boolean) => (
+  const renderToggle = (key: string, isEnabled: boolean, isDisabled?: boolean) => (
     <button
       onClick={() => handleNotificationToggle(key)}
+      disabled={isDisabled}
       className={`relative w-12 h-6 rounded-full transition-colors ${
         isEnabled ? 'bg-glass-orange' : 'bg-gray-600'
       }`}
@@ -256,7 +290,7 @@ export const ConsumerNotificationsSection = () => {
                 <p className="text-sm text-gray-400">Real-time notifications on your device</p>
               </div>
             </div>
-            {renderToggle('push', notificationSettings.push)}
+            {renderToggle('push', notificationSettings.push, isUpdatingPush)}
           </div>
           
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
