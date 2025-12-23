@@ -9,7 +9,7 @@ import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import * as NativePush from '@/native/push';
 import { saveDeviceToken, removeDeviceToken, updateLastSeen } from '@/services/pushTokenService';
-import { handleNotificationNavigation, buildRouteFromPayload } from '@/native/pushRouting';
+import { buildRouteFromPayload } from '@/native/pushRouting';
 
 export interface NativePushState {
   token: string | null;
@@ -162,19 +162,12 @@ export function useNativePush() {
       });
     });
 
-    // Handle notification tap (background/killed state)
-    const unsubAction = NativePush.onNotificationActionPerformed((action) => {
-      console.log('[useNativePush] Notification tapped:', action);
-      
-      const payload = NativePush.parsePayload(action.notification.data || {});
-      if (payload) {
-        handleNotificationNavigation(payload, navigate);
-      }
-    });
+    // NOTE: Notification tap routing is handled centrally in `src/native/lifecycle.ts`
+    // to guarantee cold-start routing. Keep this hook focused on registration and
+    // foreground UX only.
 
     return () => {
       unsubReceived();
-      unsubAction();
     };
   }, [navigate]);
 
