@@ -87,27 +87,31 @@ export async function register(): Promise<PushNotificationResult> {
     return { token: null, error: 'Not native platform' };
   }
   
-  return new Promise(async (resolve) => {
-    // Set up one-time listeners for registration result
-    const registrationListener = await PushNotifications.addListener('registration', async (token: Token) => {
-      await registrationListener.remove();
-      resolve({ token: token.value });
-    });
-    
-    const errorListener = await PushNotifications.addListener('registrationError', async (error) => {
-      await errorListener.remove();
-      console.error('[NativePush] Registration error:', error);
-      resolve({ token: null, error: error.error });
-    });
-    
-    // Trigger registration
-    try {
-      await PushNotifications.register();
-    } catch (err) {
-      await registrationListener.remove();
-      await errorListener.remove();
+  return new Promise((resolve) => {
+    void (async () => {
+      // Set up one-time listeners for registration result
+      const registrationListener = await PushNotifications.addListener('registration', (token: Token) => {
+        void registrationListener.remove();
+        resolve({ token: token.value });
+      });
+      
+      const errorListener = await PushNotifications.addListener('registrationError', (error) => {
+        void errorListener.remove();
+        console.error('[NativePush] Registration error:', error);
+        resolve({ token: null, error: error.error });
+      });
+      
+      // Trigger registration
+      try {
+        await PushNotifications.register();
+      } catch (err) {
+        await registrationListener.remove();
+        await errorListener.remove();
+        resolve({ token: null, error: err instanceof Error ? err.message : 'Registration failed' });
+      }
+    })().catch(err => {
       resolve({ token: null, error: err instanceof Error ? err.message : 'Registration failed' });
-    }
+    });
   });
 }
 

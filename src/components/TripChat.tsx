@@ -279,6 +279,9 @@ export const TripChat = ({
       return;
     }
 
+    // Message send: light haptic (native-only, hard-gated).
+    void hapticService.light();
+
     if (demoMode.isDemoMode) {
       setDemoMessages(prev => [...prev, message as MockMessage]);
       return;

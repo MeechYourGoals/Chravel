@@ -5,6 +5,8 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
+import * as haptics from '@/native/haptics';
+
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
 
@@ -140,6 +142,11 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
+  // Error states: destructive toast => error haptic (native-only, hard-gated).
+  if (props.variant === 'destructive') {
+    void haptics.error();
+  }
+
   const id = genId()
 
   const update = (props: ToasterToast) =>
