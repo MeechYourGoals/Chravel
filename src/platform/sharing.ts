@@ -1,7 +1,7 @@
 /**
  * Platform-agnostic sharing
  * Web: Uses Web Share API with clipboard and prompt fallbacks
- * Mobile: Handled by Flutter app separately
+ * Mobile: Implemented by the native shell (e.g., via Capacitor plugins)
  */
 
 export interface ShareOptions {

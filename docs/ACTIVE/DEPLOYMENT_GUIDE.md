@@ -13,7 +13,7 @@ Chravel is a React/TypeScript web application deployed as a static site. This gu
 2. **Supabase Edge Functions** deployment
 3. **Environment configuration**
 
-**Important**: This repository contains the web application only. Mobile apps (iOS/Android) will be developed separately using Flutter and are not part of this deployment process.
+**Important**: This guide covers web + backend deployment. Mobile store builds (iOS/Android) are handled via native tooling (Xcode/Gradle) driven by the Capacitor workflow and are not part of the standard web deployment process.
 
 ---
 
@@ -332,20 +332,16 @@ Test function endpoints:
 
 ### Current Status
 
-**Mobile apps are NOT deployed from this repository.**
+**Mobile store builds are not part of the standard web deployment flow.**
 
-The architectural decision to use Flutter means:
-- iOS and Android apps will be developed in a **separate repository**
-- They will connect to the **same Supabase backend**
-- Deployment will use native tooling (Xcode, Gradle)
+Mobile apps are packaged from this codebase using Capacitor and then built/distributed using native tooling (Xcode, Gradle). This documentation will be expanded as the Capacitor setup is finalized.
 
 See `ARCHITECTURE_DECISIONS.md` for details on this decision.
 
 ### What This Means
 
 - This repository handles **web deployment only**
-- No `npx cap sync` or Capacitor commands are used
-- No iOS/Android build artifacts are produced here
+- iOS/Android build artifacts are produced via the Capacitor workflow when the native projects are present/configured
 - The PWA (Progressive Web App) remains active for mobile web users
 
 ---

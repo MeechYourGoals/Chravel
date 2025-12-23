@@ -1,6 +1,6 @@
 // Haptic feedback service
 // Web: Uses navigator.vibrate where available (mobile browsers)
-// Native: Handled by Flutter app separately
+// Native: Provided by the native shell when enabled (e.g., via Capacitor plugins)
 
 class HapticService {
   private canVibrate = typeof navigator !== 'undefined' && 'vibrate' in navigator;

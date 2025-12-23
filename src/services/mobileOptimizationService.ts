@@ -1,4 +1,4 @@
-// Mobile optimization service for web (Capacitor removed - native optimizations in Flutter)
+// Mobile optimization service for the web/PWA (native shell optimizations may be added separately)
 
 export class MobileOptimizationService {
   private static isMobile =

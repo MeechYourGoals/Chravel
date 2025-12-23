@@ -327,10 +327,10 @@
 - `hapticService.ts` - Haptic feedback (mobile)
 - `apiHealthCheck.ts` (7.6 KB) - API status monitoring
 
-### Mobile Services (Web Stubs - Native via Flutter)
+### Mobile Services (Web-first, native via Capacitor when enabled)
 - `mobileLocationService.ts` (6.3 KB) - GPS/location (web geolocation API)
 - `nativeMobileService.ts` (10.4 KB) - Platform detection stubs
-- `capacitorIntegration.ts` (5.2 KB) - Web-only stubs (legacy name)
+- `capacitorIntegration.ts` (5.2 KB) - Web-first implementation with native hook points
 - `mobileOptimizationService.ts` (4.5 KB) - Mobile web performance
 
 ### Performance Services
@@ -640,9 +640,9 @@
 - Subscription tiers
 - Webhook handling
 
-### Mobile (Flutter - Separate Codebase)
-**Purpose**: Native iOS/Android apps
-**Status**: Migrating from Capacitor to Flutter (separate repo)
+### Mobile (Capacitor - Same Codebase)
+**Purpose**: Package the React web app as iOS/Android apps with access to native capabilities via plugins
+**Status**: Planned / in progress
 **Web Fallbacks**:
 - Camera → file input with capture attribute
 - Geolocation → browser geolocation API
@@ -797,7 +797,7 @@ App Init → useDemoModeStore.init() → demoModeService → return isDemo
    - PWA support for web
    - Mobile-specific layouts and components
    - Responsive Tailwind CSS
-   - Native mobile via Flutter (separate codebase)
+   - Native mobile packaging via Capacitor (same codebase)
 
 6. **Demo Mode System**
    - Comprehensive mock data

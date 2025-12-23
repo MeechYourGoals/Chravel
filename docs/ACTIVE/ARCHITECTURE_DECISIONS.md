@@ -10,26 +10,19 @@
 
 ### Canonical Decision
 
-**Flutter is the sole supported native mobile strategy for Chravel.**
+**Capacitor is the supported mobile packaging strategy for Chravel (iOS + Android).**
 
 | Component | Status | Location |
 |-----------|--------|----------|
 | React Web App | **Active** | This repository (`/src`) |
 | PWA Support | **Active** | Service worker at `/public/sw.js` |
-| Supabase Backend | **Shared** | Same database for web + future mobile |
-| Flutter Mobile App | **Planned** | Separate repository (TBD) |
-| Capacitor | **Removed** | Archived in `docs/archive/capacitor/` |
+| Supabase Backend | **Shared** | Same database for web + mobile |
+| Mobile Apps | **Planned / In Progress** | Packaged from this repo via Capacitor |
+| Capacitor | **Planned / In Progress** | Config + native projects to be (re)introduced here |
 
 ### Background
 
-Chravel initially explored Capacitor to wrap the React web app for iOS and Android. After evaluation, this approach was deprecated in favor of Flutter for the following reasons:
-
-1. **Performance**: WebView-based rendering couldn't match native performance for complex UI interactions
-2. **Platform parity**: Achieving consistent behavior across iOS/Android required significant workarounds
-3. **Native access**: Advanced native features required custom plugin development
-4. **Bundle size**: Shipping a full web app inside a native wrapper increased app size
-
-See `docs/ADRs/002-flutter-over-capacitor.md` for the full decision record.
+Chravel’s product strategy prioritizes a **single codebase** where web and mobile ship from the same React application. Capacitor provides a native shell and a maintained JS↔native bridge so we can add native capabilities (push, haptics, deep links, etc.) without rewriting the UI layer.
 
 ### Current Architecture
 
@@ -38,14 +31,14 @@ See `docs/ADRs/002-flutter-over-capacitor.md` for the full decision record.
 │                      CHRAVEL PLATFORM                        │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
-│   ┌──────────────┐    ┌──────────────┐    ┌──────────────┐  │
-│   │  React Web   │    │   Flutter    │    │   Flutter    │  │
-│   │     App      │    │  iOS App     │    │ Android App  │  │
-│   │  (Active)    │    │  (Planned)   │    │  (Planned)   │  │
-│   └──────┬───────┘    └──────┬───────┘    └──────┬───────┘  │
-│          │                   │                   │          │
-│          └───────────────────┼───────────────────┘          │
-│                              │                              │
+│   ┌──────────────┐    ┌─────────────────────────────────┐  │
+│   │  React Web   │    │     iOS / Android App Shell      │  │
+│   │     App      │    │          (Capacitor)             │  │
+│   │  (Active)    │    │     (Planned / In Progress)      │  │
+│   └──────┬───────┘    └─────────────────────────────────┘  │
+│          │                         │                         │
+│          └─────────────────────────┼─────────────────────────┘
+│                                    │
 │                              ▼                              │
 │                    ┌─────────────────┐                      │
 │                    │    Supabase     │                      │
@@ -61,19 +54,15 @@ See `docs/ADRs/002-flutter-over-capacitor.md` for the full decision record.
 
 ## No Regressions Policy (Authoritative)
 
-This repository has undergone a **deliberate platform decision**.
+This repository has an explicit mobile packaging strategy.
 
 ### Prohibited Regressions
 
 The following are **not allowed** in this repository without an approved RFC:
 
-- Re-introducing Capacitor, Cordova, or hybrid wrapper assumptions
-- Adding deployment steps that depend on `npx cap`, `capacitor.config.*`, or Capacitor plugins
-- Documentation that implies:
-  - "Web → wrapped → App Store" as the mobile path
-  - Capacitor as a fallback or interim solution
-- CI/CD workflows that assume a Capacitor-based iOS or Android build
-- Instructions that mix Flutter-native and Capacitor concepts
+- Introducing additional mobile frameworks / parallel mobile codebases that diverge from the React app
+- Documentation that implies the mobile app is built from a separate UI codebase
+- CI/CD workflows that depend on non-standard mobile toolchains unrelated to Capacitor + native IDE builds
 
 If any of the above appear, it is considered a **documentation or architectural regression**, not a stylistic difference.
 
@@ -82,8 +71,8 @@ If any of the above appear, it is considered a **documentation or architectural 
 All documentation in this repo must:
 
 - Reflect the **current production reality**, not historical decisions
-- Treat Flutter as the **source of truth for mobile**
-- Treat outdated approaches as **removed**, not "still supported"
+- Treat Capacitor as the **source of truth for mobile packaging**
+- Treat unsupported approaches as **not used**, not “still supported”
 - Be safe for:
   - New hires
   - Contractors
@@ -95,8 +84,8 @@ Docs are not historical artifacts — they are **operational contracts**.
 ### Enforcement Rule
 
 Any PR that:
-- Reintroduces deprecated mobile strategies, or
-- Adds ambiguity around Flutter vs Capacitor
+- Introduces a diverging mobile strategy, or
+- Adds ambiguity around the mobile packaging approach
 
 **must be blocked** until corrected.
 
@@ -157,11 +146,10 @@ Output: Static files in `/dist` directory served via CDN.
 
 ### Mobile Deployment (Future)
 
-When the Flutter mobile app is created:
-- It will exist in a **separate repository**
-- It will connect to the **same Supabase backend**
-- iOS builds will go through Xcode/App Store Connect
-- Android builds will go through Gradle/Google Play Console
+When mobile store builds are created:
+- iOS builds go through Xcode/App Store Connect
+- Android builds go through Gradle/Google Play Console
+- Both connect to the same Supabase backend
 
 **Important**: This repository (`MeechYourGoals/Chravel`) contains the web app only. No mobile build steps exist here.
 
@@ -185,9 +173,9 @@ See `.env.production.example` for the complete list of required environment vari
 
 ## Historical Context (Archived)
 
-### Capacitor (Deprecated)
+### Prior Mobile Notes
 
-Capacitor documentation has been moved to `docs/archive/capacitor/` for historical reference only.
+Older Capacitor notes may exist under `docs/archive/capacitor/`. Treat archived docs as non-authoritative unless explicitly referenced by current guides.
 
 **These documents are NOT operational:**
 - `001-capacitor-over-react-native.md`
@@ -206,7 +194,6 @@ Capacitor documentation has been moved to `docs/archive/capacitor/` for historic
 
 ## Related Documents
 
-- `docs/ADRs/002-flutter-over-capacitor.md` - Flutter decision ADR
 - `docs/ADRs/002-supabase-over-firebase.md` - Supabase decision ADR
 - `docs/ARCHITECTURE.md` - Technical architecture details
 - `DEVELOPER_HANDBOOK.md` - Development setup and guidelines

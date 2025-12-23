@@ -20,14 +20,14 @@
 │                      CHRAVEL PLATFORM                        │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
-│   ┌──────────────┐    ┌──────────────┐    ┌──────────────┐  │
-│   │  React Web   │    │   Flutter    │    │   Flutter    │  │
-│   │     App      │    │  iOS App     │    │ Android App  │  │
-│   │  (This Repo) │    │  (Planned)   │    │  (Planned)   │  │
-│   └──────┬───────┘    └──────┬───────┘    └──────┬───────┘  │
-│          │                   │                   │          │
-│          └───────────────────┼───────────────────┘          │
-│                              │                              │
+│   ┌──────────────┐    ┌─────────────────────────────────┐  │
+│   │  React Web   │    │     iOS / Android App Shell      │  │
+│   │     App      │    │          (Capacitor)             │  │
+│   │  (This Repo) │    │     (Planned / In Progress)      │  │
+│   └──────┬───────┘    └─────────────────────────────────┘  │
+│          │                         │                         │
+│          └─────────────────────────┼─────────────────────────┘
+│                                    │
 │                              ▼                              │
 │                    ┌─────────────────┐                      │
 │                    │    Supabase     │                      │
@@ -50,9 +50,8 @@ This repository (`MeechYourGoals/Chravel`) contains:
 
 ### What This Repository Does NOT Contain
 
-- **Flutter Mobile Apps** - Will be in a separate repository
-- **iOS/Android Native Code** - No Xcode or Android Studio projects
-- **Capacitor** - Deprecated and removed (see `docs/archive/capacitor/`)
+- **A separate mobile UI codebase** - Mobile ships from the same React app
+- **Guaranteed native projects** - iOS/Android projects may be added/updated via Capacitor workflow as needed
 
 ### Frontend Stack
 
@@ -386,30 +385,24 @@ The AI Concierge has access to ALL trip data:
 
 ### Current State
 
-**This repository is web-only.** Mobile apps will be developed separately using Flutter.
+**This repository is web-first today.** Mobile apps are packaged from this same codebase using Capacitor (iOS first, Android next).
 
 | Platform | Status | Technology | Repository |
 |----------|--------|------------|------------|
 | Web | **Active** | React/TypeScript | This repo |
 | PWA | **Active** | Service Worker | This repo |
-| iOS | **Planned** | Flutter | Separate repo (TBD) |
-| Android | **Planned** | Flutter | Separate repo (TBD) |
+| iOS | **Planned / In Progress** | Capacitor | This repo |
+| Android | **Planned / In Progress** | Capacitor | This repo |
 
-### Why Flutter?
+### Why Capacitor?
 
-The decision to use Flutter (instead of Capacitor) is documented in `docs/ADRs/002-flutter-over-capacitor.md`. Key reasons:
-
-1. **Performance**: Native compilation vs WebView
-2. **Platform Parity**: Single codebase for iOS and Android
-3. **Native Access**: First-class access to platform APIs
-4. **Developer Experience**: Hot reload, strong tooling
+Capacitor allows Chravel to ship a functioning website and a store-distributed iOS/Android app from the same React codebase, while selectively adding native capabilities (push, haptics, deep links, etc.) via a maintained JS↔native bridge.
 
 ### What This Means for Web Development
 
-- Focus on web-first development in this repository
-- PWA provides mobile web experience
-- No Capacitor-related code or configuration
-- Mobile-specific features will be in Flutter app
+- Continue web-first development in this repository
+- PWA remains valuable for mobile web users
+- Mobile-specific capabilities are added via shared platform services and (when configured) Capacitor plugins
 
 See `ARCHITECTURE_DECISIONS.md` for the full platform strategy.
 
@@ -486,4 +479,4 @@ See `DEPLOYMENT_GUIDE.md` for deployment procedures.
 ---
 
 **Last Updated:** December 2025
-**Version:** 2.0.0 (Post-Capacitor Removal)
+**Version:** 2.0.0

@@ -1,4 +1,4 @@
-// Web-only mobile service stubs (native functionality moved to Flutter)
+// Web-first mobile service stubs (native functionality can be provided by a native shell)
 
 export class NativeMobileService {
   private static isNative = false; // Always false on web
