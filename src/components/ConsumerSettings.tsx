@@ -1,12 +1,25 @@
 
 import React, { useState } from 'react';
-import { User, Bell, CreditCard, Shield, Settings, Wallet, ChevronDown, Archive, Bookmark, Sparkles } from 'lucide-react';
+import {
+  User,
+  Bell,
+  CreditCard,
+  Shield,
+  Settings,
+  Wallet,
+  ChevronDown,
+  Archive,
+  Bookmark,
+  Sparkles,
+  KeyRound,
+} from 'lucide-react';
 import { TravelWallet } from './TravelWallet';
 import { ConsumerProfileSection } from './consumer/ConsumerProfileSection';
 import { ConsumerBillingSection } from './consumer/ConsumerBillingSection';
 import { ConsumerNotificationsSection } from './consumer/ConsumerNotificationsSection';
 import { ConsumerPrivacySection } from './consumer/ConsumerPrivacySection';
 import { ConsumerGeneralSettings } from './consumer/ConsumerGeneralSettings';
+import { ConsumerPermissionsSection } from './consumer/ConsumerPermissionsSection';
 import { ArchivedTripsSection } from './ArchivedTripsSection';
 import { useIsMobile } from '../hooks/use-mobile';
 import { SavedRecommendations } from './SavedRecommendations';
@@ -33,6 +46,7 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose: _onCl
     { id: 'travel-wallet', label: 'Travel Wallet', icon: Wallet },
     { id: 'saved-recs', label: 'Saved Places', icon: Bookmark, comingSoon: !isAppPreview },
     { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'permissions', label: 'Permissions', icon: KeyRound },
     { id: 'privacy', label: 'Privacy & Security', icon: Shield },
     { id: 'settings', label: 'General Settings', icon: Settings },
     { id: 'archived', label: 'Archived Trips', icon: Archive }
@@ -52,6 +66,7 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose: _onCl
       case 'travel-wallet': return renderTravelWalletSection();
       case 'saved-recs': return <SavedRecommendations />;
       case 'notifications': return <ConsumerNotificationsSection />;
+      case 'permissions': return <ConsumerPermissionsSection />;
       case 'privacy': return <ConsumerPrivacySection />;
       case 'settings': return <ConsumerGeneralSettings />;
       case 'archived': return <ArchivedTripsSection />;
