@@ -17,6 +17,7 @@
     "cap:init": "node scripts/capacitor/init.mjs",
     "cap:sync": "npm run build && npx cap sync",
     "ios:open": "npx cap open ios",
+    "ios:run": "npm run cap:sync && npx cap run ios",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
