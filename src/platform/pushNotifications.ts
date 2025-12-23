@@ -1,7 +1,7 @@
 /**
  * Platform-agnostic push notification handling
  * Web: Uses Web Push API / Service Workers
- * Mobile: Handled by Flutter app separately
+ * Mobile: Implemented by the native shell (e.g., via Capacitor plugins)
  */
 
 export interface PushNotificationToken {

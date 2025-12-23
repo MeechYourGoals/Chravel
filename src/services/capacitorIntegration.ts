@@ -1,4 +1,4 @@
-// Web-only stub service (Capacitor removed - mobile functionality moved to Flutter)
+// Web-first implementation. When packaged in a native shell, this is the seam for Capacitor plugins.
 
 export class CapacitorIntegrationService {
   private static instance: CapacitorIntegrationService;
@@ -13,7 +13,7 @@ export class CapacitorIntegrationService {
   }
 
   async initializeApp(): Promise<void> {
-    // No-op on web - native initialization moved to Flutter
+    // No-op on web. Native initialization can be added when Capacitor is enabled.
     return;
   }
 

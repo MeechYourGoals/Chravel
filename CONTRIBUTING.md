@@ -115,7 +115,7 @@ Before submitting a PR, ensure:
 PRs that involve architectural changes require additional review:
 
 - [ ] No deprecated mobile strategies introduced
-- [ ] Flutter remains the only native mobile path
+- [ ] Mobile packaging strategy remains Capacitor-based
 - [ ] Docs updated to match code changes
 - [ ] Changes align with `ARCHITECTURE_DECISIONS.md`
 
@@ -124,7 +124,7 @@ PRs that involve architectural changes require additional review:
 1. **Build failures**: Code that doesn't compile
 2. **Type errors**: Missing or incorrect TypeScript types
 3. **Lint errors**: ESLint violations
-4. **Platform regressions**: Reintroducing Capacitor or hybrid wrappers
+4. **Platform regressions**: Introducing a diverging mobile framework strategy or separate mobile UI codebase
 5. **Security issues**: Exposed secrets, SQL injection, XSS vulnerabilities
 6. **Missing error handling**: Ignored async errors
 
@@ -140,11 +140,8 @@ This repository has an explicit No Regressions Policy regarding mobile platform 
 
 Specifically, do NOT:
 
-- Add Capacitor, Cordova, or hybrid wrapper dependencies
-- Add deployment steps using `npx cap`, `capacitor.config.*`
-- Document Capacitor as a supported mobile path
-- Create CI/CD workflows for Capacitor-based builds
-- Mix Flutter and Capacitor concepts in documentation
+- Introduce additional mobile frameworks / separate mobile UI codebases
+- Add conflicting mobile build instructions unrelated to the Capacitor packaging approach
 
 **Read:** `ARCHITECTURE_DECISIONS.md` before making architectural changes.
 
@@ -154,10 +151,10 @@ Specifically, do NOT:
 |----------|--------|------------|
 | Web | **Active** | React/TypeScript + Vite |
 | PWA | **Active** | Service Worker |
-| iOS | **Planned** | Flutter (separate repo) |
-| Android | **Planned** | Flutter (separate repo) |
+| iOS | **Planned / In Progress** | Capacitor |
+| Android | **Planned / In Progress** | Capacitor |
 
-The Flutter mobile app does not exist in this repository. This repo is web-only.
+Mobile apps are packaged from this codebase via Capacitor.
 
 ---
 

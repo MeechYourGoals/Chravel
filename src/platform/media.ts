@@ -1,7 +1,7 @@
 /**
  * Platform-agnostic media picker
  * Web: Uses file input with capture attribute for camera access
- * Mobile: Handled by Flutter app separately
+ * Mobile: Implemented by the native shell (e.g., via Capacitor plugins)
  */
 
 export interface MediaPickerOptions {

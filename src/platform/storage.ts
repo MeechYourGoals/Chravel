@@ -1,7 +1,7 @@
 /**
  * Platform-agnostic persistent storage
  * Web: Uses localStorage
- * Mobile: Handled by Flutter app separately
+ * Mobile: Implemented by the native shell (e.g., via Capacitor plugins)
  */
 
 export interface PlatformStorage {
@@ -46,7 +46,7 @@ class WebStorage implements PlatformStorage {
   }
 }
 
-// Create singleton storage instance (web-only now, Flutter handles mobile)
+// Create singleton storage instance (web-first; native storage can be added via a native shell)
 export const platformStorage: PlatformStorage = new WebStorage();
 
 // Helper functions for typed storage
