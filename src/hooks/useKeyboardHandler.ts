@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useIsMobile } from './use-mobile';
+import { Capacitor } from '@capacitor/core';
 
 interface KeyboardHandlerOptions {
   preventZoom?: boolean;
@@ -11,13 +12,33 @@ interface KeyboardHandlerOptions {
 export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
   const isMobile = useIsMobile();
   const initialViewportHeight = useRef<number>();
-  const keyboardVisible = useRef(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   useEffect(() => {
     if (!isMobile) return;
 
+    // Native shell (Capacitor): we rely on a single global keyboard listener in `initializeNativeShell()`.
+    // This hook just mirrors the global event into React state for components that need it.
+    if (Capacitor.isNativePlatform()) {
+      const handleNativeKeyboard = (event: WindowEventMap['chravel:keyboard']) => {
+        const nextVisible = event.detail.visible;
+        setIsKeyboardVisible(nextVisible);
+        if (nextVisible) {
+          options.onShow?.();
+        } else {
+          options.onHide?.();
+        }
+      };
+
+      window.addEventListener('chravel:keyboard', handleNativeKeyboard as EventListener);
+      return () => {
+        window.removeEventListener('chravel:keyboard', handleNativeKeyboard as EventListener);
+      };
+    }
+
     // Store initial viewport height
     initialViewportHeight.current = window.visualViewport?.height || window.innerHeight;
+    const keyboardVisibleRef = { current: false };
 
     const handleViewportChange = () => {
       if (!window.visualViewport) return;
@@ -26,12 +47,13 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
       const heightDifference = (initialViewportHeight.current || 0) - currentHeight;
       
       // Keyboard is considered visible if viewport height decreased by more than 150px
-      const isKeyboardVisible = heightDifference > 150;
+      const nextVisible = heightDifference > 150;
 
-      if (isKeyboardVisible !== keyboardVisible.current) {
-        keyboardVisible.current = isKeyboardVisible;
+      if (nextVisible !== keyboardVisibleRef.current) {
+        keyboardVisibleRef.current = nextVisible;
+        setIsKeyboardVisible(nextVisible);
 
-        if (isKeyboardVisible) {
+        if (nextVisible) {
           document.body.classList.add('keyboard-visible');
           options.onShow?.();
           
@@ -99,6 +121,6 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
   }, [isMobile, options.preventZoom, options.adjustViewport, options.onShow, options.onHide]);
 
   return {
-    isKeyboardVisible: keyboardVisible.current
+    isKeyboardVisible
   };
 };

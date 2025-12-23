@@ -271,7 +271,6 @@ export const ChatInput = ({
             "chat-composer flex items-center gap-2 px-3 py-2 bg-neutral-950/90 backdrop-blur-md sticky bottom-0 relative transition-all duration-200 w-full rounded-xl border border-white/10",
             isDragActive && "ring-2 ring-primary ring-offset-2 ring-offset-background"
           )}
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}

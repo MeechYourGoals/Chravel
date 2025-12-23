@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import WebKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -7,8 +8,53 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // iOS polish: tune the Capacitor WebView scroll behavior (reduce rubber-band/overscroll artifacts).
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.applyWebViewPolish()
+        }
         return true
+    }
+
+    private func applyWebViewPolish() {
+        guard let bridgeVC = findBridgeViewController(startingAt: window?.rootViewController) else {
+            return
+        }
+
+        // Disable the "rubber band" overscroll bounce that can show a white/gray background
+        // above/below the web content (especially noticeable on dark UIs).
+        let scrollView = bridgeVC.webView.scrollView
+        scrollView.bounces = false
+        scrollView.alwaysBounceVertical = false
+        scrollView.alwaysBounceHorizontal = false
+
+        // Match the app theme behind the web content to avoid flashing.
+        scrollView.backgroundColor = UIColor.black
+        bridgeVC.webView.isOpaque = false
+        bridgeVC.webView.backgroundColor = UIColor.clear
+    }
+
+    private func findBridgeViewController(startingAt viewController: UIViewController?) -> CAPBridgeViewController? {
+        guard let viewController else { return nil }
+
+        if let bridge = viewController as? CAPBridgeViewController {
+            return bridge
+        }
+
+        // Search children (common if embedded in container/navigation controllers).
+        for child in viewController.children {
+            if let found = findBridgeViewController(startingAt: child) {
+                return found
+            }
+        }
+
+        // Search presented view controller.
+        if let presented = viewController.presentedViewController {
+            if let found = findBridgeViewController(startingAt: presented) {
+                return found
+            }
+        }
+
+        return nil
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
