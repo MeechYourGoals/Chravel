@@ -169,11 +169,12 @@ export const MobileTripChat = ({ tripId, isEvent = false, isPro = false, userRol
   });
 
   const handleMobileSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: any) => {
-    await hapticService.light();
-    if (inputMessage.trim()) {
-      await sendUnifiedMessage(inputMessage, isBroadcast ? 'broadcast' : 'standard');
-      setInputMessage('');
-    }
+    if (!inputMessage.trim()) return;
+
+    // Message send: light haptic (native-only, hard-gated).
+    void hapticService.light();
+    await sendUnifiedMessage(inputMessage, isBroadcast ? 'broadcast' : 'standard');
+    setInputMessage('');
   };
 
   const handleReaction = async (messageId: string, reactionType: string) => {

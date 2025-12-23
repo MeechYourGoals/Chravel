@@ -15,7 +15,7 @@ export function buildRouteFromPayload(payload: ChravelPushPayload): string {
   const { type, tripId, threadId, messageId, eventId, pollId, taskId } = payload;
   
   // Base trip route
-  let route = `/trip/${tripId}`;
+  const route = `/trip/${tripId}`;
   
   // Build query params based on notification type
   const params = new URLSearchParams();

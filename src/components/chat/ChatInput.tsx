@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import { fetchOGMetadata } from '@/services/ogMetadataService';
 import { cn } from '@/lib/utils';
+import * as haptics from '@/native/haptics';
 
 // URL detection regex
 const URL_REGEX = /https?:\/\/[^\s<>"{}|\\^`[\]]+/gi;
@@ -78,6 +79,7 @@ export const ChatInput = ({
     },
     onError: (error, fileName) => {
       toast.error(`Failed to upload ${fileName}: ${error.message}`);
+      void haptics.error();
     }
   });
 
