@@ -1546,6 +1546,7 @@ export type Database = {
         Row: {
           created_at: string | null
           device_id: string | null
+          disabled_at: string | null
           id: string
           last_seen_at: string | null
           platform: string
@@ -1556,6 +1557,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           device_id?: string | null
+          disabled_at?: string | null
           id?: string
           last_seen_at?: string | null
           platform: string
@@ -1566,6 +1568,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           device_id?: string | null
+          disabled_at?: string | null
           id?: string
           last_seen_at?: string | null
           platform?: string
