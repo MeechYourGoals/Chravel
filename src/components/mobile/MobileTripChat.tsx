@@ -323,6 +323,7 @@ export const MobileTripChat = ({ tripId, isEvent = false, isPro = false, userRol
             isTyping={false}
             tripMembers={[]}
             hidePayments={true}
+            safeAreaBottom={false}
             tripId={tripId}
           />
         </div>

@@ -34,6 +34,13 @@ interface ChatInputProps {
   isPro?: boolean;
   tripId: string;
   onTypingChange?: (isTyping: boolean) => void;
+  /**
+   * Adds extra bottom padding equal to the iOS safe-area inset so the composer
+   * never overlaps the home-indicator gesture area when embedded without a wrapper.
+   *
+   * Set to `false` if the parent already applies `pb-[env(safe-area-inset-bottom)]`.
+   */
+  safeAreaBottom?: boolean;
 }
 
 export const ChatInput = ({
@@ -48,7 +55,8 @@ export const ChatInput = ({
   isInChannelMode = false,
   isPro = false,
   tripId,
-  onTypingChange
+  onTypingChange,
+  safeAreaBottom = true,
 }: ChatInputProps) => {
   const [isBroadcastMode, setIsBroadcastMode] = useState(false);
   const [isPaymentMode, setIsPaymentMode] = useState(false);
@@ -271,6 +279,7 @@ export const ChatInput = ({
             "chat-composer flex items-center gap-2 px-3 py-2 bg-neutral-950/90 backdrop-blur-md sticky bottom-0 relative transition-all duration-200 w-full rounded-xl border border-white/10",
             isDragActive && "ring-2 ring-primary ring-offset-2 ring-offset-background"
           )}
+          style={safeAreaBottom ? { paddingBottom: 'env(safe-area-inset-bottom, 0px)' } : undefined}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}

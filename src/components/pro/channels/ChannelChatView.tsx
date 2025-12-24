@@ -198,6 +198,7 @@ export const ChannelChatView = ({ channel, availableChannels = [], onBack, onCha
             hidePayments={true}
             isInChannelMode={true}
             isPro={true}
+            safeAreaBottom={false}
             tripId={channel.tripId}
           />
         ) : (
