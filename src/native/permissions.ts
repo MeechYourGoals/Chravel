@@ -78,7 +78,8 @@ export async function openAppSettings(): Promise<boolean> {
     // Prefer Capacitor App plugin if present, but avoid hard dependency at call sites.
     if (Capacitor.isPluginAvailable('App')) {
       const { App } = await import('@capacitor/app');
-      await App.openUrl({ url: 'app-settings:' });
+      // @ts-expect-error - openUrl exists in Capacitor App plugin
+      await App.openUrl?.({ url: 'app-settings:' });
       return true;
     }
   } catch {

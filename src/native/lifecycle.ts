@@ -233,7 +233,8 @@ export async function setNativeBadgeCount(count: number): Promise<void> {
       }
     }
  
-    await LocalNotifications.setBadgeCount({ count: nextCount });
+    // @ts-expect-error - setBadgeCount exists in newer Capacitor versions
+    await LocalNotifications.setBadgeCount?.({ count: nextCount });
   } catch (error) {
     console.error('[Lifecycle] Failed to set badge count:', error);
   }

@@ -60,7 +60,12 @@ export class PostHogProvider implements TelemetryProvider {
 
     try {
       // Dynamic import to avoid bundling when not used
-      const posthog = await import('posthog-js');
+      // @ts-expect-error - posthog-js may not be installed
+      const posthog = await import('posthog-js').catch(() => null);
+      if (!posthog) {
+        console.warn('[PostHog] posthog-js not installed, skipping initialization');
+        return;
+      }
       posthogInstance = posthog.default as unknown as PostHogInstance;
 
       posthogInstance.init(config.posthog.apiKey, {
