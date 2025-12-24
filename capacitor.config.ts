@@ -13,6 +13,34 @@ const config: CapacitorConfig = {
   appName: process.env.IOS_APP_NAME ?? 'Chravel',
   webDir: 'dist',
   bundledWebRuntime: false,
+  plugins: {
+    /**
+     * iOS native shell UX polish:
+     * - `overlaysWebView: true` lets the web UI draw behind the status bar.
+     *   We rely on CSS safe-area insets (`env(safe-area-inset-*)`) for layout.
+     * - Style is finalized at runtime (theme-aware) in `src/native/nativeShell.ts`.
+     */
+    StatusBar: {
+      overlaysWebView: true,
+      // Default on cold start (Chravel ships dark-first); updated dynamically at runtime.
+      style: 'LIGHT',
+    },
+    /**
+     * Keyboard: ensure the WebView/body resizes so the composer is never covered.
+     * Runtime keyboard insets are also exposed via CSS variables for fine-tuning.
+     */
+    Keyboard: {
+      resize: 'body',
+      style: 'dark',
+    },
+    /**
+     * Splash screen behavior (assets live in iOS asset catalogs; see docs).
+     * Keep defaults unless we find a concrete flash/flicker to address.
+     */
+    SplashScreen: {
+      launchAutoHide: true,
+    },
+  },
 };
 
 export default config;
