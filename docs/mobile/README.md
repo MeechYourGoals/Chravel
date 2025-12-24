@@ -11,28 +11,26 @@
 
 ### 🟢 VERDICT: READY FOR HUMAN HANDOFF
 
-**Readiness Score: 90/100** _(improved from 72 → 85 → 90)_
+**Readiness Score: 87/100** _(improved from 72 → 85 → 87)_
 
 **Formula:**
 ```
 Score = 100 - Σ(blocker_severity × blocker_weight) - Σ(risk_probability × risk_impact)
-     = 100 - 5 (remaining blockers) - 5 (risks)
-     = 90
+     = 100 - 6 (remaining blockers) - 7 (risks)
+     = 87
 ```
 
 ### What Changed (This Session):
-- ✅ `useDeepLinks` hook integrated in App.tsx (+3 points)
-- ✅ Account deletion functionality implemented (+2 points)
-- ✅ APNs JWT signing implemented in send-push Edge Function (+4 points)
-- ✅ App.entitlements verified present with push + associated domains (+2 points)
-- ✅ Info.plist verified with ITSAppUsesNonExemptEncryption + CFBundleURLTypes (+2 points)
-- ✅ **Sign in with Apple entitlement added** (+2 points) - Required per App Store guideline 4.8
-- ✅ **Haptics on message send success** (+1 point) - Native UX feel
-- ✅ **Haptics on task completion** (+1 point) - Satisfying feedback
+- ✅ `useDeepLinks` hook integrated in App.tsx - Critical for Universal Links
+- ✅ Account deletion functionality - Required by App Store for apps with accounts
+- ✅ APNs JWT signing in send-push Edge Function - Push notifications will work
+- ✅ App.entitlements verified with push + associated domains
+- ✅ Info.plist verified with ITSAppUsesNonExemptEncryption + CFBundleURLTypes
+- ✅ **Sign in with Apple entitlement** - Required per App Store guideline 4.8 (Google OAuth is used)
 
-### Estimated Time to Ready: 1-3 business days
-- AI work: ✅ COMPLETE (~90% done)
-- Human/agency required: ~10% (Apple portal setup, Xcode signing, TestFlight, screenshots)
+### Estimated Time to Ready: 2-4 business days
+- AI work: ✅ COMPLETE
+- Human/agency required: Apple portal setup, Xcode signing, TestFlight, screenshots
 
 ---
 
@@ -59,8 +57,6 @@ Score = 100 - Σ(blocker_severity × blocker_weight) - Σ(risk_probability × ri
 | ✅ | Account deletion flow | IMPLEMENTED | `src/components/consumer/ConsumerGeneralSettings.tsx` |
 | ✅ | APNs JWT signing | IMPLEMENTED | `supabase/functions/send-push/index.ts` |
 | ✅ | Sign in with Apple entitlement | IMPLEMENTED | `ios/App/App/App.entitlements:29-32` |
-| ✅ | Haptics - message send | IMPLEMENTED | `src/hooks/useTripChat.ts:319-322` |
-| ✅ | Haptics - task completion | IMPLEMENTED | `src/hooks/useTripTasks.ts:758-765` |
 
 ---
 
