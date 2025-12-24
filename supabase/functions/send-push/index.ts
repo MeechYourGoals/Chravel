@@ -111,50 +111,193 @@ async function sendFCM(tokens: string[], notification: NotificationContent): Pro
 // APNs (Apple Push Notification service) - iOS
 // ============================================================================
 
-async function sendAPNs(tokens: string[], notification: NotificationContent): Promise<{ success: string[]; failed: string[] }> {
+// APNs JWT cache - tokens are valid for 1 hour, we refresh at 50 minutes
+let cachedApnsJwt: { token: string; expiresAt: number } | null = null;
+
+/**
+ * Generate APNs JWT for authentication
+ * Uses ES256 (ECDSA with P-256 and SHA-256) as required by Apple
+ */
+async function generateApnsJwt(
+  keyId: string,
+  teamId: string,
+  privateKeyPem: string
+): Promise<string> {
+  // Check cache first
+  const now = Math.floor(Date.now() / 1000);
+  if (cachedApnsJwt && cachedApnsJwt.expiresAt > now + 600) {
+    return cachedApnsJwt.token;
+  }
+
+  // JWT Header
+  const header = {
+    alg: 'ES256',
+    kid: keyId,
+  };
+
+  // JWT Claims
+  const claims = {
+    iss: teamId,
+    iat: now,
+  };
+
+  // Base64URL encode
+  const encoder = new TextEncoder();
+  const base64url = (data: Uint8Array | string): string => {
+    const bytes = typeof data === 'string' ? encoder.encode(data) : data;
+    const base64 = btoa(String.fromCharCode(...bytes));
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  };
+
+  const headerB64 = base64url(JSON.stringify(header));
+  const claimsB64 = base64url(JSON.stringify(claims));
+  const signingInput = `${headerB64}.${claimsB64}`;
+
+  // Parse PEM private key
+  const pemContents = privateKeyPem
+    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+    .replace(/-----END PRIVATE KEY-----/g, '')
+    .replace(/\s/g, '');
+
+  const keyData = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+
+  // Import the private key
+  const privateKey = await crypto.subtle.importKey(
+    'pkcs8',
+    keyData,
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    false,
+    ['sign']
+  );
+
+  // Sign the JWT
+  const signature = await crypto.subtle.sign(
+    { name: 'ECDSA', hash: 'SHA-256' },
+    privateKey,
+    encoder.encode(signingInput)
+  );
+
+  const signatureB64 = base64url(new Uint8Array(signature));
+  const jwt = `${signingInput}.${signatureB64}`;
+
+  // Cache for 50 minutes (tokens valid for 1 hour)
+  cachedApnsJwt = { token: jwt, expiresAt: now + 3000 };
+
+  return jwt;
+}
+
+interface ApnsResult {
+  success: string[];
+  failed: string[];
+  invalidTokens: string[];
+}
+
+async function sendAPNs(tokens: string[], notification: NotificationContent): Promise<ApnsResult> {
   const apnsKeyId = Deno.env.get('APNS_KEY_ID');
   const apnsTeamId = Deno.env.get('APNS_TEAM_ID');
   const apnsPrivateKey = Deno.env.get('APNS_PRIVATE_KEY');
-  const apnsBundleId = Deno.env.get('APNS_BUNDLE_ID') || 'app.lovable.20feaa0409464c68a68d0eb88cc1b9c4';
+  const apnsBundleId = Deno.env.get('APNS_BUNDLE_ID') || 'com.chravel.app';
+  const apnsEnvironment = Deno.env.get('APNS_ENVIRONMENT') || 'development'; // 'development' or 'production'
 
   if (!apnsKeyId || !apnsTeamId || !apnsPrivateKey) {
     console.warn('[send-push] APNs credentials not configured, skipping APNs delivery');
-    return { success: [], failed: tokens };
+    return { success: [], failed: tokens, invalidTokens: [] };
   }
 
   const success: string[] = [];
   const failed: string[] = [];
+  const invalidTokens: string[] = [];
 
-  // TODO: Implement actual APNs HTTP/2 API call
-  // For now, log and mark as failed until APNs is configured
-  //
-  // Reference: https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns
-  //
-  // Steps:
-  // 1. Create JWT token using APNS_KEY_ID, APNS_TEAM_ID, APNS_PRIVATE_KEY
-  // 2. For each device token, POST to:
-  //    Production: https://api.push.apple.com/3/device/{deviceToken}
-  //    Sandbox: https://api.sandbox.push.apple.com/3/device/{deviceToken}
-  // 3. Handle response codes (410 = token invalid, should disable)
-  //
-  // const payload = {
-  //   aps: {
-  //     alert: {
-  //       title: notification.title,
-  //       body: notification.body,
-  //     },
-  //     badge: 1,
-  //     sound: 'default',
-  //   },
-  //   ...notification.data,
-  // };
+  try {
+    // Generate JWT for APNs authentication
+    const jwt = await generateApnsJwt(apnsKeyId, apnsTeamId, apnsPrivateKey);
 
-  console.log(`[send-push] APNs: Would send to ${tokens.length} tokens (TODO: implement APNs integration)`);
-  
-  // Mark all as failed until implemented
-  failed.push(...tokens);
+    // APNs endpoint (production vs sandbox)
+    const apnsHost = apnsEnvironment === 'production'
+      ? 'api.push.apple.com'
+      : 'api.sandbox.push.apple.com';
 
-  return { success, failed };
+    // Build the APNs payload
+    const payload = JSON.stringify({
+      aps: {
+        alert: {
+          title: notification.title,
+          body: notification.body,
+        },
+        badge: 1,
+        sound: 'default',
+        'mutable-content': 1,
+      },
+      // Include custom data for routing
+      ...(notification.data || {}),
+    });
+
+    console.log(`[send-push] APNs: Sending to ${tokens.length} tokens via ${apnsHost}`);
+
+    // Send to each device token
+    // Note: In production, consider batching or using HTTP/2 multiplexing
+    const results = await Promise.allSettled(
+      tokens.map(async (token) => {
+        const response = await fetch(`https://${apnsHost}/3/device/${token}`, {
+          method: 'POST',
+          headers: {
+            'authorization': `bearer ${jwt}`,
+            'apns-topic': apnsBundleId,
+            'apns-push-type': 'alert',
+            'apns-priority': '10',
+            'apns-expiration': '0',
+            'content-type': 'application/json',
+          },
+          body: payload,
+        });
+
+        if (response.ok) {
+          return { token, success: true };
+        }
+
+        // Handle errors
+        const status = response.status;
+        let errorBody = '';
+        try {
+          errorBody = await response.text();
+        } catch {
+          // Ignore
+        }
+
+        // 410 Gone = invalid token (device unregistered)
+        // 400 BadDeviceToken = malformed token
+        if (status === 410 || (status === 400 && errorBody.includes('BadDeviceToken'))) {
+          return { token, success: false, invalid: true, error: errorBody };
+        }
+
+        return { token, success: false, invalid: false, error: `${status}: ${errorBody}` };
+      })
+    );
+
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        if (result.value.success) {
+          success.push(result.value.token);
+        } else {
+          failed.push(result.value.token);
+          if (result.value.invalid) {
+            invalidTokens.push(result.value.token);
+          }
+          console.warn(`[send-push] APNs failed for token: ${result.value.error}`);
+        }
+      } else {
+        console.error(`[send-push] APNs request failed:`, result.reason);
+      }
+    }
+
+    console.log(`[send-push] APNs complete: ${success.length} sent, ${failed.length} failed, ${invalidTokens.length} invalid`);
+
+  } catch (error) {
+    console.error('[send-push] APNs error:', error);
+    failed.push(...tokens);
+  }
+
+  return { success, failed, invalidTokens };
 }
 
 // ============================================================================
@@ -282,13 +425,19 @@ Deno.serve(async (req) => {
       const apnsResult = await sendAPNs(iosTokens, body.notification);
       results.sent += apnsResult.success.length;
       results.failed += apnsResult.failed.length;
-      
-      // TODO: Disable invalid tokens (410 responses)
-      // if (apnsResult.invalidTokens?.length) {
-      //   await supabase.from('push_device_tokens')
-      //     .update({ disabled_at: new Date().toISOString() })
-      //     .in('token', apnsResult.invalidTokens);
-      // }
+
+      // Disable invalid tokens (410 responses) to prevent future failures
+      if (apnsResult.invalidTokens?.length) {
+        console.log(`[send-push] Disabling ${apnsResult.invalidTokens.length} invalid iOS tokens`);
+        const { error: disableError } = await supabase
+          .from('push_device_tokens')
+          .update({ disabled_at: new Date().toISOString() })
+          .in('token', apnsResult.invalidTokens);
+
+        if (disableError) {
+          console.error('[send-push] Failed to disable invalid tokens:', disableError);
+        }
+      }
     }
 
     if (androidTokens.length > 0) {

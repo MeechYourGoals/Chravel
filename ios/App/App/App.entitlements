@@ -9,7 +9,7 @@
 	-->
 	<key>aps-environment</key>
 	<string>development</string>
-	
+
 	<!--
 	Associated Domains for Universal Links
 	Enables deep linking from chravel.app URLs
@@ -19,6 +19,16 @@
 	<array>
 		<string>applinks:chravel.app</string>
 		<string>webcredentials:chravel.app</string>
+	</array>
+
+	<!--
+	Sign in with Apple
+	REQUIRED: App Store guideline 4.8 - Apps using third-party OAuth
+	(like Google) must also offer Sign in with Apple
+	-->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
 	</array>
 </dict>
 </plist>
