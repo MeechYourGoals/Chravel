@@ -7,6 +7,7 @@ import { PersonalBalance } from '../../services/paymentBalanceService';
 import { SettlePaymentDialog } from './SettlePaymentDialog';
 import { ConfirmPaymentDialog } from './ConfirmPaymentDialog';
 import { maskPaymentIdentifier } from '@/utils/paymentIdentifierMasking';
+import { PaymentIdentifierCopy } from '@/components/payments/PaymentIdentifierCopy';
 
 interface PersonBalanceCardProps {
   balance: PersonalBalance;
@@ -85,9 +86,22 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
               
               <div className="min-w-0">
                 <h4 className="font-semibold text-foreground truncate">{balance.userName}</h4>
-                <p className="text-xs text-muted-foreground truncate">
-                  {getPaymentMethodDisplay()}
-                </p>
+                {balance.preferredPaymentMethod ? (
+                  <div className="text-xs text-muted-foreground truncate">
+                    <span className="mr-1">{(balance.preferredPaymentMethod.type || 'other').toString()}:</span>
+                    <PaymentIdentifierCopy
+                      identifier={balance.preferredPaymentMethod.identifier}
+                      methodType={balance.preferredPaymentMethod.type}
+                      methodLabel={balance.preferredPaymentMethod.type}
+                      className="inline-flex items-center gap-1"
+                      buttonVariant="ghost"
+                      buttonSize="icon"
+                      maskedClassName="text-muted-foreground"
+                    />
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground truncate">{getPaymentMethodDisplay()}</p>
+                )}
               </div>
             </div>
 

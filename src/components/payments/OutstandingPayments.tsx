@@ -11,7 +11,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/use-toast';
 import { Loader2, Clock, Users } from 'lucide-react';
 import * as haptics from '@/native/haptics';
-import { maskPaymentIdentifier } from '@/utils/paymentIdentifierMasking';
+import { PaymentIdentifierCopy } from '@/components/payments/PaymentIdentifierCopy';
 
 interface PaymentSplit {
   id: string;
@@ -338,9 +338,13 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
                       <span className="text-muted-foreground hidden sm:inline">•</span>
                       <span className="text-sm">
                         <span className="text-muted-foreground">{method.displayName}:</span>{' '}
-                        <span className="text-primary">
-                          {method.identifier ? maskPaymentIdentifier(method.identifier, method.method) : '—'}
-                        </span>
+                        <PaymentIdentifierCopy
+                          identifier={method.identifier ?? ''}
+                          methodType={method.method}
+                          methodLabel={method.displayName}
+                          className="inline-flex items-center gap-1"
+                          maskedClassName="text-primary"
+                        />
                       </span>
                     </React.Fragment>
                   ))}
