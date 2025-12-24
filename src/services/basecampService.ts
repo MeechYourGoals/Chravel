@@ -241,27 +241,10 @@ class BasecampService {
       const currentBasecamp = await this.getPersonalBasecamp(payload.trip_id, user.id);
       const isUpdate = !!currentBasecamp;
 
-      // If no coordinates provided, try to geocode the address
-      let finalLatitude = payload.latitude || null;
-      let finalLongitude = payload.longitude || null;
-      
-      if (!finalLatitude && !finalLongitude && payload.address) {
-        try {
-          const geocoded = await this.geocodeAddress(payload.address);
-          if (geocoded) {
-            finalLatitude = geocoded.lat;
-            finalLongitude = geocoded.lng;
-            if (import.meta.env.DEV) {
-              console.log('[BasecampService] Geocoded address:', payload.address, '->', geocoded);
-            }
-          }
-        } catch (geocodeError) {
-          if (import.meta.env.DEV) {
-            console.warn('[BasecampService] Geocoding failed, saving without coordinates:', geocodeError);
-          }
-          // Continue without coordinates - don't block the save
-        }
-      }
+      // Skip geocoding entirely - basecamps are text-only references
+      // This prevents the save from hanging if Google Maps API doesn't respond
+      const finalLatitude = payload.latitude || null;
+      const finalLongitude = payload.longitude || null;
 
       const { data, error } = await (supabase as any)
         .from('trip_personal_basecamps')
@@ -426,35 +409,39 @@ class BasecampService {
    * Uses Google Geocoding API via the browser's geolocation proxy
    */
   async geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+    // Add 5-second timeout to prevent hanging
+    const TIMEOUT_MS = 5000;
+    
     try {
-      // Try using Google Maps Geocoding API if available
-      if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
-        const geocoder = new google.maps.Geocoder();
-        
-        return new Promise((resolve) => {
-          geocoder.geocode({ address }, (results, status) => {
-            if (status === 'OK' && results && results.length > 0) {
-              const location = results[0].geometry.location;
-              resolve({ lat: location.lat(), lng: location.lng() });
-            } else {
-              if (import.meta.env.DEV) {
-                console.warn('[BasecampService] Geocoding failed:', status);
-              }
-              resolve(null);
-            }
-          });
-        });
-      }
-      
-      // Fallback: Return null if Google Maps not available
-      if (import.meta.env.DEV) {
+      if (typeof google === 'undefined' || !google.maps?.Geocoder) {
         console.warn('[BasecampService] Google Maps Geocoder not available');
+        return null;
       }
-      return null;
+
+      const geocoder = new google.maps.Geocoder();
+      
+      const geocodePromise = new Promise<{ lat: number; lng: number } | null>((resolve) => {
+        geocoder.geocode({ address }, (results, status) => {
+          if (status === 'OK' && results && results.length > 0) {
+            const location = results[0].geometry.location;
+            resolve({ lat: location.lat(), lng: location.lng() });
+          } else {
+            console.warn('[BasecampService] Geocoding failed:', status);
+            resolve(null);
+          }
+        });
+      });
+
+      const timeoutPromise = new Promise<null>((resolve) => 
+        setTimeout(() => {
+          console.warn('[BasecampService] Geocoding timed out after', TIMEOUT_MS, 'ms');
+          resolve(null);
+        }, TIMEOUT_MS)
+      );
+
+      return await Promise.race([geocodePromise, timeoutPromise]);
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[BasecampService] Geocoding error:', error);
-      }
+      console.error('[BasecampService] Geocoding error:', error);
       return null;
     }
   }

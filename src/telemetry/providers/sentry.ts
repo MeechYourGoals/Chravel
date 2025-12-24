@@ -64,11 +64,21 @@ export class SentryProvider implements TelemetryProvider {
 
       if (isNative) {
         // Dynamic import for Capacitor Sentry
-        const Sentry = await import('@sentry/capacitor');
+        // @ts-expect-error - @sentry/capacitor may not be installed
+        const Sentry = await import('@sentry/capacitor').catch(() => null);
+        if (!Sentry) {
+          console.warn('[Sentry] @sentry/capacitor not installed, skipping initialization');
+          return;
+        }
         sentryInstance = Sentry as unknown as SentryInstance;
       } else {
         // Dynamic import for React Sentry
-        const Sentry = await import('@sentry/react');
+        // @ts-expect-error - @sentry/react may not be installed
+        const Sentry = await import('@sentry/react').catch(() => null);
+        if (!Sentry) {
+          console.warn('[Sentry] @sentry/react not installed, skipping initialization');
+          return;
+        }
         sentryInstance = Sentry as unknown as SentryInstance;
       }
 
