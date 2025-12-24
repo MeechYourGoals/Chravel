@@ -172,7 +172,9 @@ export const useTripPolls = (tripId: string) => {
 
       return transformed;
     },
-    enabled: !!tripId
+    enabled: !!tripId,
+    // Ensure we reconcile server state after connectivity is restored.
+    refetchOnReconnect: true,
   });
 
   // Create poll mutation
@@ -334,6 +336,24 @@ export const useTripPolls = (tripId: string) => {
         });
       });
 
+      // Persist the optimistic update into the offline snapshot so refetches while offline
+      // cannot overwrite the optimistic state with stale IndexedDB data.
+      try {
+        const next = queryClient.getQueryData<TripPoll[]>(['tripPolls', tripId]);
+        const updatedPoll = next?.find(p => p.id === pollId);
+        if (updatedPoll) {
+          void cacheEntity({
+            entityType: 'trip_polls',
+            entityId: updatedPoll.id,
+            tripId,
+            data: updatedPoll,
+            version: (updatedPoll as any).version ?? undefined,
+          });
+        }
+      } catch {
+        // Best-effort only; UI state is already updated in React Query cache.
+      }
+
       return { previous };
     },
     onSuccess: () => {
@@ -344,10 +364,22 @@ export const useTripPolls = (tripId: string) => {
         description: 'Your vote has been saved.'
       });
     },
-    onError: (error: any, _vars, context) => {
+    onError: (error: any, vars, context) => {
       // Keep optimistic update when offline (queued).
       if (!error?.message?.includes('OFFLINE:') && context?.previous) {
         queryClient.setQueryData(['tripPolls', tripId], context.previous);
+
+        // Also rollback the offline snapshot if we applied an optimistic write.
+        const previousPoll = context.previous.find(p => p.id === vars.pollId);
+        if (previousPoll) {
+          void cacheEntity({
+            entityType: 'trip_polls',
+            entityId: previousPoll.id,
+            tripId,
+            data: previousPoll,
+            version: (previousPoll as any).version ?? undefined,
+          });
+        }
       }
 
       if (error?.message?.includes('OFFLINE:')) {
