@@ -3,10 +3,11 @@ import { supabase } from '../integrations/supabase/client';
 import { TripTask, CreateTaskRequest, ToggleTaskRequest } from '../types/tasks';
 import { useToast } from './use-toast';
 import { taskStorageService } from '../services/taskStorageService';
-import { taskOfflineQueue } from '../services/taskOfflineQueue';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { offlineSyncService } from '@/services/offlineSyncService';
+import { cacheEntity, getCachedEntities } from '@/offline/cache';
 
 // Task form management types
 export interface TaskFormData {
@@ -350,11 +351,23 @@ export const useTripTasks = (tripId: string, options?: {
         return [];
       }
 
+      // Offline-first: load cached tasks for instant rendering / fallback.
+      const cachedEntities = await getCachedEntities({ tripId, entityType: 'trip_tasks' });
+      const cachedTasks = cachedEntities
+        .map(c => c.data as TripTask)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      // If offline, prefer cached tasks.
+      if (navigator.onLine === false && cachedTasks.length > 0) {
+        return cachedTasks;
+      }
+
       // Authenticated mode: use Supabase
       try {
-      const query = supabase
-        .from('trip_tasks')
-        .select(`
+        const query = supabase
+          .from('trip_tasks')
+          .select(
+            `
           *,
           task_status(*),
           creator:creator_id (
@@ -362,27 +375,28 @@ export const useTripTasks = (tripId: string, options?: {
             display_name,
             avatar_url
           )
-        `)
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
+        `,
+          )
+          .eq('trip_id', tripId)
+          .order('created_at', { ascending: false });
 
-      // Limit initial load for performance
-      if (!showAllTasks) {
-        query.limit(TASKS_PER_PAGE);
-      }
+        // Limit initial load for performance
+        if (!showAllTasks) {
+          query.limit(TASKS_PER_PAGE);
+        }
 
-      const { data: tasks, error } = await query;
+        const { data: tasks, error } = await query;
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // ✅ If no real tasks exist, return empty array for authenticated users
-      // (Only generate seed tasks in demo mode)
-      if (!tasks || tasks.length === 0) {
-        return [];
-      }
+        // ✅ If no real tasks exist, return empty array for authenticated users
+        // (Only generate seed tasks in demo mode)
+        if (!tasks || tasks.length === 0) {
+          return [];
+        }
 
         // Transform database tasks to match TripTask interface
-        return tasks.map((task: any) => ({
+        const transformed = tasks.map((task: any) => ({
           id: task.id,
           trip_id: task.trip_id,
           creator_id: task.creator_id,
@@ -399,17 +413,39 @@ export const useTripTasks = (tripId: string, options?: {
           },
           task_status: (task.task_status || []) as any[]
         }));
+
+        // Cache tasks for offline access (best-effort).
+        await Promise.all(
+          transformed.map(t =>
+            cacheEntity({
+              entityType: 'trip_tasks',
+              entityId: t.id,
+              tripId: t.trip_id,
+              data: t,
+              version: (t as any).version ?? undefined,
+            }),
+          ),
+        );
+
+        return transformed;
       } catch (error) {
         console.error('[useTripTasks] Error fetching tasks:', error);
         console.error('[useTripTasks] Error details:', JSON.stringify(error, null, 2));
-        
-        // Show user-friendly error
-        toast({
-          title: 'Failed to load tasks',
-          description: 'Unable to fetch tasks. Please refresh the page.',
-          variant: 'destructive'
-        });
-        
+
+        // If fetch fails, prefer cached tasks if available.
+        if (cachedTasks.length > 0) {
+          return cachedTasks;
+        }
+
+        // Show user-friendly error (avoid spamming when offline).
+        if (navigator.onLine !== false) {
+          toast({
+            title: 'Failed to load tasks',
+            description: 'Unable to fetch tasks. Please refresh the page.',
+            variant: 'destructive',
+          });
+        }
+
         // Return empty array on error (no seed tasks for authenticated users)
         return [];
       }
@@ -431,11 +467,7 @@ export const useTripTasks = (tripId: string, options?: {
 
       // Check if offline - queue the operation
       if (!navigator.onLine) {
-        await taskOfflineQueue.enqueue({
-          type: 'create',
-          tripId,
-          data: task
-        });
+        await offlineSyncService.queueOperation('task', 'create', tripId, task);
         throw new Error('OFFLINE: Task queued for sync when connection is restored.');
       }
 
@@ -581,11 +613,7 @@ export const useTripTasks = (tripId: string, options?: {
 
     // Check if offline - queue the operation
     if (!navigator.onLine) {
-      await taskOfflineQueue.enqueue({
-        type: 'toggle',
-        tripId,
-        data: { taskId, completed }
-      });
+      await offlineSyncService.queueOperation('task', 'update', tripId, { completed }, taskId);
       throw new Error('OFFLINE: Task update queued for sync when connection is restored.');
     }
 
@@ -731,29 +759,7 @@ export const useTripTasks = (tripId: string, options?: {
     }
   });
 
-  // Process offline queue when online
-  useEffect(() => {
-    const processQueue = async () => {
-      if (navigator.onLine && user && !isDemoMode) {
-        await taskOfflineQueue.processQueue(
-          async (tripId, data) => {
-            // Re-run create mutation
-            await createTaskMutation.mutateAsync(data);
-          },
-          async (data) => {
-            // Re-run toggle mutation
-            await toggleTaskMutation.mutateAsync(data);
-          }
-        );
-      }
-    };
-
-    // Process queue on mount and when coming online
-    processQueue();
-    window.addEventListener('online', processQueue);
-    return () => window.removeEventListener('online', processQueue);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, isDemoMode, tripId]);
+  // Offline sync is handled globally in `App.tsx` via `setupGlobalSyncProcessor()`.
 
   // Delete task mutation - any trip member can delete
   const deleteTaskMutation = useMutation({

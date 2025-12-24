@@ -91,6 +91,11 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
         throw new Error('No tripId provided');
       }
 
+      // Guardrail: basecamp is never queued offline (prevent silent overwrites).
+      if (!isDemoMode && typeof navigator !== 'undefined' && navigator.onLine === false) {
+        throw new Error('OFFLINE: Trip Base Camp updates require an internet connection.');
+      }
+
       console.log(LOG_PREFIX, 'Updating basecamp:', {
         tripId,
         isDemoMode,
@@ -161,7 +166,12 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
         );
       }
 
-      toast.error('Failed to save basecamp. Please try again.');
+      const msg = error instanceof Error ? error.message : '';
+      if (msg.includes('OFFLINE:')) {
+        toast.error('Trip Base Camp requires an internet connection.');
+      } else {
+        toast.error('Failed to save basecamp. Please try again.');
+      }
     },
 
     // Always refetch after success or error to ensure consistency

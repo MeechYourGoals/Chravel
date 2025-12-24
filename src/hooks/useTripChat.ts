@@ -258,6 +258,7 @@ export const useTripChat = (tripId: string | undefined) => {
         content: sanitizedContent,
         author_name: InputValidator.sanitizeText(message.author_name),
         user_id: message.userId,
+        client_message_id: undefined as string | undefined,
         privacy_mode: message.privacyMode || 'standard',
         message_type: message.messageType || 'text',
         media_type: message.media_type,
@@ -266,6 +267,10 @@ export const useTripChat = (tripId: string | undefined) => {
 
       // If offline, queue the message using unified sync service
       if (isOffline) {
+        // Stable client-side ID for dedupe on reconnect retries.
+        const clientMessageId = `cm_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+        messageData.client_message_id = clientMessageId;
+
         const queueId = await offlineSyncService.queueOperation(
           'chat_message',
           'create',

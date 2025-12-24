@@ -8,7 +8,7 @@
  */
 
 import { offlineSyncService } from './offlineSyncService';
-import { sendChatMessage } from './chatService';
+import { sendChatMessage, sendRichChatMessage } from './chatService';
 import { calendarService } from './calendarService';
 
 /**
@@ -34,6 +34,10 @@ export async function processGlobalSyncQueue(): Promise<{
   const result = await offlineSyncService.processSyncQueue({
     // Chat message handlers
     onChatMessageCreate: async (tripId, data) => {
+      // Prefer rich sender with client_message_id dedupe (if provided).
+      if (data?.client_message_id) {
+        return await sendRichChatMessage(data);
+      }
       return await sendChatMessage(data);
     },
     onChatMessageUpdate: async (entityId, data) => {
@@ -89,16 +93,73 @@ export async function processGlobalSyncQueue(): Promise<{
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Fetch latest version so queued toggles don't conflict.
+      const { data: taskRow, error: taskErr } = await supabase
+        .from('trip_tasks')
+        .select('version')
+        .eq('id', entityId)
+        .maybeSingle();
+      if (taskErr) throw taskErr;
+
       // Use the same atomic function as useTripTasks
       const { error } = await supabase.rpc('toggle_task_status', {
         p_task_id: entityId,
         p_user_id: user.id,
         p_completed: data.completed,
-        p_current_version: data.version || 1,
+        p_current_version: taskRow?.version ?? 1,
       });
 
       if (error) throw error;
       return { taskId: entityId, completed: data.completed };
+    },
+
+    // Poll handlers (MVP: votes only)
+    onPollVote: async (pollId, data) => {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const optionIds: string[] = Array.isArray((data as any)?.optionIds)
+        ? (data as any).optionIds
+        : typeof (data as any)?.optionIds === 'string'
+          ? [(data as any).optionIds]
+          : [];
+
+      if (optionIds.length === 0) {
+        throw new Error('No poll optionIds provided');
+      }
+
+      const voteWithLatestVersion = async (): Promise<void> => {
+        const { data: pollRow, error: pollErr } = await supabase
+          .from('trip_polls')
+          .select('version')
+          .eq('id', pollId)
+          .maybeSingle();
+        if (pollErr) throw pollErr;
+
+        for (const optionId of optionIds) {
+          const { error } = await supabase.rpc('vote_on_poll', {
+            p_poll_id: pollId,
+            p_option_id: optionId,
+            p_user_id: user.id,
+            p_current_version: pollRow?.version ?? null,
+          });
+          if (error) throw error;
+        }
+      };
+
+      try {
+        await voteWithLatestVersion();
+      } catch (e: any) {
+        // Retry once on optimistic-lock conflicts.
+        if (e?.message?.includes('modified by another user') || e?.message?.includes('version')) {
+          await voteWithLatestVersion();
+          return { pollId, optionIds };
+        }
+        throw e;
+      }
+
+      return { pollId, optionIds };
     },
 
     // Calendar event handlers
