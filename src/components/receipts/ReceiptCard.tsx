@@ -1,10 +1,10 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Eye, ExternalLink, Users, DollarSign } from 'lucide-react';
 import { Receipt } from '../../types/receipts';
 import { PaymentMethodIcon } from './PaymentMethodIcon';
 import { generatePaymentDeeplink } from '../../utils/paymentDeeplinks';
 import { ReceiptViewModal } from './ReceiptViewModal';
+import { supabase } from '../../integrations/supabase/client';
 
 interface ReceiptCardProps {
   receipt: Receipt;
@@ -12,6 +12,47 @@ interface ReceiptCardProps {
 
 export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
   const [showViewModal, setShowViewModal] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string>(receipt.fileUrl);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchSignedUrl = async () => {
+      // If it looks like a path (no http scheme), it's a relative storage path
+      if (receipt.fileUrl && !receipt.fileUrl.startsWith('http')) {
+        const { data } = await supabase.storage
+          .from('trip-files')
+          .createSignedUrl(receipt.fileUrl, 3600); // 1 hour expiry
+        
+        if (isMounted && data?.signedUrl) {
+          setImageUrl(data.signedUrl);
+        }
+      } 
+      // Handle legacy public Supabase URLs - extract path and sign it
+      else if (receipt.fileUrl && receipt.fileUrl.includes('/storage/v1/object/public/trip-files/')) {
+        try {
+           const path = receipt.fileUrl.split('/storage/v1/object/public/trip-files/')[1];
+           if (path) {
+             const { data } = await supabase.storage
+               .from('trip-files')
+               .createSignedUrl(path, 3600);
+             
+             if (isMounted && data?.signedUrl) {
+               setImageUrl(data.signedUrl);
+             }
+           }
+        } catch (e) {
+          console.error('Error parsing legacy URL', e);
+        }
+      }
+    };
+    
+    fetchSignedUrl();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [receipt.fileUrl]);
 
   const handlePaymentClick = () => {
     const deeplink = generatePaymentDeeplink(
@@ -46,7 +87,7 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
           <div className="flex-shrink-0">
             {isImage ? (
               <img
-                src={receipt.fileUrl}
+                src={imageUrl}
                 alt={fileName}
                 className="w-16 h-16 rounded-lg object-cover cursor-pointer"
                 onClick={() => setShowViewModal(true)}
@@ -125,7 +166,7 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
       <ReceiptViewModal
         isOpen={showViewModal}
         onClose={() => setShowViewModal(false)}
-        receipt={receipt}
+        receipt={{...receipt, fileUrl: imageUrl}}
       />
     </>
   );

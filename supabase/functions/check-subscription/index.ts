@@ -83,11 +83,11 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
-    // Update profile with stripe_customer_id
+    // Update private profile with stripe_customer_id
     await supabaseClient
-      .from('profiles')
-      .update({ stripe_customer_id: customerId })
-      .eq('user_id', user.id);
+      .from('private_profiles')
+      .upsert({ id: user.id, stripe_customer_id: customerId })
+      .select();
 
     // Check for active subscription
     const subscriptions = await stripe.subscriptions.list({

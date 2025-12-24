@@ -35,8 +35,8 @@ export const ReceiptViewModal = ({ isOpen, onClose, receipt }: ReceiptViewModalP
     document.body.removeChild(link);
   };
 
-  const isImage = !receipt.fileUrl.toLowerCase().endsWith('.pdf');
-  const fileName = receipt.fileUrl.split('/').pop() || 'Receipt';
+  const isImage = !receipt.fileUrl.split('?')[0].toLowerCase().endsWith('.pdf');
+  const fileName = receipt.fileUrl.split('?')[0].split('/').pop() || 'Receipt';
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">

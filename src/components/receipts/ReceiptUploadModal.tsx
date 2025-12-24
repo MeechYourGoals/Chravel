@@ -66,7 +66,8 @@ export const ReceiptUploadModal = ({
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${tripId}/receipts/${fileName}`;
 
-      let publicUrl = URL.createObjectURL(selectedFile);
+      let receiptUrlForAI = URL.createObjectURL(selectedFile);
+      let storagePath: string | undefined;
 
       try {
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -74,15 +75,27 @@ export const ReceiptUploadModal = ({
           .upload(filePath, selectedFile, { contentType: selectedFile.type, upsert: false });
 
         if (!uploadError && uploadData) {
-          const { data } = supabase.storage.from('trip-files').getPublicUrl(uploadData.path);
-          publicUrl = data.publicUrl;
+          storagePath = uploadData.path;
+          // Generate a signed URL for the AI service to access the file
+          const { data: signedData } = await supabase.storage
+            .from('trip-files')
+            .createSignedUrl(uploadData.path, 3600); // 1 hour expiry
+            
+          if (signedData) {
+            receiptUrlForAI = signedData.signedUrl;
+          }
         }
       } catch {
         // Upload failed - will use fallback URL handling in parser
       }
 
       const { data, error } = await supabase.functions.invoke('receipt-parser', {
-        body: { receiptImageUrl: publicUrl, tripId, userId: user.id }
+        body: { 
+          receiptImageUrl: receiptUrlForAI, 
+          receiptPath: storagePath,
+          tripId, 
+          userId: user.id 
+        }
       });
 
       if (error) throw error;

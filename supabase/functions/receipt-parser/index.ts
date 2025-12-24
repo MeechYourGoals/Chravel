@@ -22,7 +22,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { receiptImageUrl, tripId, userId } = await req.json();
+    const { receiptImageUrl, receiptPath, tripId, userId } = await req.json();
 
     if (!receiptImageUrl || !tripId || !userId) {
       return new Response(
@@ -98,7 +98,7 @@ serve(async (req) => {
       .from('trip_receipts')
       .insert({
         trip_id: tripId,
-        receipt_url: receiptImageUrl,
+        receipt_url: receiptPath || receiptImageUrl,
         amount: parsedData.total_amount || null,
         user_id: userId,
         description: parsedData.merchant_name || null
