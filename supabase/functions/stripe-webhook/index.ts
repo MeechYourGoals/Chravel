@@ -116,11 +116,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, supabas
     return;
   }
 
-  // Update profile with customer ID
+  // Update private_profiles with customer ID
   await supabase
-    .from('profiles')
-    .update({ stripe_customer_id: customerId })
-    .eq('user_id', userId);
+    .from('private_profiles')
+    .upsert({ id: userId, stripe_customer_id: customerId })
+    .select();
 
   logStep("Checkout completed, customer linked", { userId, customerId });
 }
@@ -135,28 +135,35 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supa
 
   // Find user by customer ID
   const { data: profiles } = await supabase
-    .from('profiles')
-    .select('user_id')
+    .from('private_profiles')
+    .select('id')
     .eq('stripe_customer_id', customerId)
     .limit(1);
 
   if (!profiles || profiles.length === 0) {
-    logStep("Customer not found in profiles", { customerId });
+    logStep("Customer not found in private_profiles", { customerId });
     return;
   }
 
-  const userId = profiles[0].user_id;
+  const userId = profiles[0].id;
 
-  // Update profile with subscription details
+  // Update private_profiles with subscription details
+  await supabase
+    .from('private_profiles')
+    .update({
+      stripe_subscription_id: subscription.id,
+    })
+    .eq('id', userId);
+
+  // Update public profile with subscription status
   const { error: profileError } = await supabase
     .from('profiles')
     .update({
-      stripe_subscription_id: subscription.id,
       subscription_product_id: productId,
       subscription_status: subscription.status,
       subscription_end: subscriptionEnd
     })
-    .eq('user_id', userId);
+    .eq('id', userId);
 
   if (profileError) {
     logError('STRIPE_WEBHOOK', profileError);
@@ -218,8 +225,8 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supa
   const customerId = subscription.customer as string;
 
   const { data: profiles } = await supabase
-    .from('profiles')
-    .select('user_id')
+    .from('private_profiles')
+    .select('id')
     .eq('stripe_customer_id', customerId)
     .limit(1);
 
@@ -228,17 +235,23 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supa
     return;
   }
 
-  const userId = profiles[0].user_id;
+  const userId = profiles[0].id;
+
+  await supabase
+    .from('private_profiles')
+    .update({
+      stripe_subscription_id: null
+    })
+    .eq('id', userId);
 
   await supabase
     .from('profiles')
     .update({
-      stripe_subscription_id: null,
       subscription_product_id: null,
       subscription_status: 'canceled',
       subscription_end: null
     })
-    .eq('user_id', userId);
+    .eq('id', userId);
 
   logStep("Subscription deleted", { userId });
 }
@@ -258,19 +271,19 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any
   const customerId = invoice.customer as string;
 
   const { data: profiles } = await supabase
-    .from('profiles')
-    .select('user_id')
+    .from('private_profiles')
+    .select('id')
     .eq('stripe_customer_id', customerId)
     .limit(1);
 
   if (!profiles || profiles.length === 0) return;
 
-  const userId = profiles[0].user_id;
+  const userId = profiles[0].id;
 
   await supabase
     .from('profiles')
     .update({ subscription_status: 'past_due' })
-    .eq('user_id', userId);
+    .eq('id', userId);
 
   // Notify user of payment failure
   await supabase
