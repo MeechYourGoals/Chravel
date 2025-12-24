@@ -96,6 +96,10 @@
   ],
   "rewrites": [
     {
+      "source": "/.well-known/apple-app-site-association",
+      "destination": "/api/aasa"
+    },
+    {
       "source": "/join/:code",
       "destination": "/api/invite-preview?code=:code"
     },
