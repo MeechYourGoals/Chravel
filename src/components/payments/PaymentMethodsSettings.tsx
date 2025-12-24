@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { paymentService } from '../../services/paymentService';
 import { useToast } from '../../hooks/use-toast';
+import { maskPaymentIdentifier } from '@/utils/paymentIdentifierMasking';
 
 interface PaymentMethodsSettingsProps {
   userId: string;
@@ -299,7 +300,7 @@ export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) 
                         )}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {method.identifier}
+                        {maskPaymentIdentifier(method.identifier, method.type)}
                         {!method.isVisible && (
                           <span className="ml-2 text-xs text-muted-foreground">
                             (Private)

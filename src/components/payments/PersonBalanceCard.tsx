@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, ExternalLink, Clock } from 'lucide-react';
 import { PersonalBalance } from '../../services/paymentBalanceService';
 import { SettlePaymentDialog } from './SettlePaymentDialog';
 import { ConfirmPaymentDialog } from './ConfirmPaymentDialog';
+import { maskPaymentIdentifier } from '@/utils/paymentIdentifierMasking';
 
 interface PersonBalanceCardProps {
   balance: PersonalBalance;
@@ -41,7 +42,8 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
       applecash: 'Apple Cash'
     };
 
-    return `${typeNames[method.type] || method.type}: ${method.identifier}`;
+    const maskedIdentifier = maskPaymentIdentifier(method.identifier, method.type);
+    return `${typeNames[method.type] || method.type}: ${maskedIdentifier}`;
   };
 
   const getPaymentLink = () => {

@@ -103,7 +103,7 @@ export const paymentBalanceService = {
       // Fetch all payment methods for all users
       const { data: paymentMethods, error: methodsError } = await supabase
         .from('user_payment_methods')
-        .select('*')
+        .select('id, user_id, method_type, identifier, display_name, is_preferred, is_visible')
         .in('user_id', Array.from(allUserIds));
 
       if (methodsError) throw methodsError;

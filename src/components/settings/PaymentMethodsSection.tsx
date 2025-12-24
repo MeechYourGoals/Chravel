@@ -12,6 +12,7 @@ import { usePayments } from '@/hooks/usePayments';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash2 } from 'lucide-react';
+import { maskPaymentIdentifier } from '@/utils/paymentIdentifierMasking';
 
 type PaymentMethodType = 'venmo' | 'cashapp' | 'zelle' | 'paypal' | 'applecash';
 const PAYMENT_METHOD_TYPES: PaymentMethodType[] = ['venmo', 'cashapp', 'zelle', 'paypal', 'applecash'];
@@ -117,7 +118,9 @@ export const PaymentMethodsSection: React.FC = () => {
                 <p className="font-medium">
                   {method.display_name || method.displayName || 'Payment Method'}
                 </p>
-                <p className="text-sm text-muted-foreground">{method.identifier}</p>
+                <p className="text-sm text-muted-foreground">
+                  {maskPaymentIdentifier(method.identifier, method.type ?? method.method_type)}
+                </p>
               </div>
               <Button
                 variant="ghost"

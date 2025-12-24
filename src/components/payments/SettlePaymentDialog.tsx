@@ -12,6 +12,9 @@ import { PersonalBalance } from '../../services/paymentBalanceService';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../ui/use-toast';
 import { Loader2 } from 'lucide-react';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Checkbox } from '../ui/checkbox';
 
 interface SettlePaymentDialogProps {
   open: boolean;
@@ -24,11 +27,31 @@ export const SettlePaymentDialog = ({
   open,
   onOpenChange,
   balance,
-  tripId
+  tripId: _tripId
 }: SettlePaymentDialogProps) => {
   const { toast } = useToast();
   const [settling, setSettling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [transactionReference, setTransactionReference] = useState('');
+  const [settlementNote, setSettlementNote] = useState('');
+  const [acknowledged, setAcknowledged] = useState(false);
+
+  const normalizeProvider = (
+    methodType?: string,
+  ): 'venmo' | 'zelle' | 'paypal' | 'cash-app' | 'manual' => {
+    switch ((methodType ?? '').toLowerCase()) {
+      case 'venmo':
+        return 'venmo';
+      case 'zelle':
+        return 'zelle';
+      case 'paypal':
+        return 'paypal';
+      case 'cashapp':
+        return 'cash-app';
+      default:
+        return 'manual';
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -50,11 +73,30 @@ export const SettlePaymentDialog = ({
 
       // If you're the payer (you owe them), mark as pending confirmation
       if (youOweThem) {
+        if (!acknowledged) {
+          throw new Error('Please confirm you sent the payment.');
+        }
+
+        const provider = normalizeProvider(balance.preferredPaymentMethod?.type);
+        const requiresReference = provider !== 'manual';
+        const reference = transactionReference.trim();
+        const note = settlementNote.trim();
+
+        if (requiresReference && reference.length < 4) {
+          throw new Error('Transaction reference is required for verification.');
+        }
+
         const { error: updateError } = await supabase
           .from('payment_splits')
           .update({
             confirmation_status: 'pending',
-            settlement_method: balance.preferredPaymentMethod?.type || 'other'
+            settlement_method: balance.preferredPaymentMethod?.type || 'other',
+            external_settlement_provider: provider,
+            external_settlement_id: reference || null,
+            external_settlement_metadata: {
+              note: note || null,
+              captured_at: new Date().toISOString(),
+            },
           })
           .in('payment_message_id', splitIds)
           .eq('debtor_user_id', user.id)
@@ -109,6 +151,14 @@ export const SettlePaymentDialog = ({
   };
 
   const youOweThem = balance.amountOwed < 0;
+  const paymentMethodLabel = balance.preferredPaymentMethod
+    ? `${balance.preferredPaymentMethod.type.charAt(0).toUpperCase()}${balance.preferredPaymentMethod.type.slice(1)}`
+    : 'Other';
+  const provider = normalizeProvider(balance.preferredPaymentMethod?.type);
+  const referenceIsRequired = youOweThem && provider !== 'manual';
+  const canConfirmSettlement = youOweThem
+    ? acknowledged && (!referenceIsRequired || transactionReference.trim().length >= 4)
+    : true;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -139,15 +189,60 @@ export const SettlePaymentDialog = ({
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Method:</span>
               <span className="font-medium">
-                {balance.preferredPaymentMethod.type.charAt(0).toUpperCase() + 
-                 balance.preferredPaymentMethod.type.slice(1)}
+                {paymentMethodLabel}
               </span>
             </div>
           )}
 
-          <p className="text-sm text-muted-foreground mt-4">
-            This will mark all associated payments as settled. This action cannot be undone.
-          </p>
+          {youOweThem ? (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="transaction-reference">
+                  Transaction reference {referenceIsRequired ? '(required)' : '(optional)'}
+                </Label>
+                <Input
+                  id="transaction-reference"
+                  value={transactionReference}
+                  onChange={e => setTransactionReference(e.target.value)}
+                  placeholder="Paste the transaction ID / reference from your payment app"
+                  autoComplete="off"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This helps prevent fraud and makes it easier for {balance.userName} to verify.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="settlement-note">Note (optional)</Label>
+                <Input
+                  id="settlement-note"
+                  value={settlementNote}
+                  onChange={e => setSettlementNote(e.target.value)}
+                  placeholder="e.g., “Dinner split”, “Hotel deposit”"
+                  autoComplete="off"
+                />
+              </div>
+
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="acknowledge-settlement"
+                  checked={acknowledged}
+                  onCheckedChange={checked => setAcknowledged(checked === true)}
+                />
+                <Label htmlFor="acknowledge-settlement" className="text-sm leading-5">
+                  I confirm I sent this payment to {balance.userName}.
+                </Label>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                This will request confirmation from {balance.userName} before the payment is finalized.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground mt-4">
+              This will mark all associated payments as settled. This action cannot be undone.
+            </p>
+          )}
 
           {error && (
             <div className="mt-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
@@ -173,7 +268,7 @@ export const SettlePaymentDialog = ({
           >
             Cancel
           </Button>
-          <Button onClick={handleSettle} disabled={settling}>
+          <Button onClick={handleSettle} disabled={settling || !canConfirmSettlement}>
             {settling && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             {settling ? 'Settling...' : 'Confirm Settlement'}
           </Button>
