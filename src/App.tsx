@@ -18,6 +18,7 @@ import { AppInitializer } from "./components/app/AppInitializer";
 import BuildBadge from "./components/BuildBadge";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { attachNavigator, onNativeResume, setNativeBadgeCount } from "@/native/lifecycle";
+import { useDeepLinks } from "@/hooks/useDeepLinks";
 
 import { toast } from "@/hooks/use-toast";
 import { setupGlobalSyncProcessor } from "./services/globalSyncProcessor";
@@ -94,6 +95,9 @@ const Router = BrowserRouter;
 const NativeLifecycleBridge = ({ client }: { client: QueryClient }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Handle deep links (Universal Links + Custom URL Scheme)
+  useDeepLinks();
 
   // Allow native lifecycle module to route notification taps (including cold start).
   useEffect(() => {
