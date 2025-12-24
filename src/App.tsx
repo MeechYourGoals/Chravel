@@ -1,11 +1,11 @@
 
-import React, { lazy, useEffect } from "react";
+import React, { lazy, useCallback, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./hooks/useAuth";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from "react-router-dom";
+import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { ConsumerSubscriptionProvider } from "./hooks/useConsumerSubscription";
 import { MobileAppLayout } from "./components/mobile/MobileAppLayout";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -17,7 +17,7 @@ import { supabase } from "./integrations/supabase/client";
 import { AppInitializer } from "./components/app/AppInitializer";
 import BuildBadge from "./components/BuildBadge";
 import { OfflineIndicator } from "./components/OfflineIndicator";
-import { Navigate, useParams } from "react-router-dom";
+import { attachNavigator, onNativeResume, setNativeBadgeCount } from "@/native/lifecycle";
 
 import { toast } from "@/hooks/use-toast";
 import { setupGlobalSyncProcessor } from "./services/globalSyncProcessor";
@@ -90,6 +90,61 @@ const queryClient = new QueryClient();
 
 // Always use BrowserRouter - Lovable preview now supports SPA routing
 const Router = BrowserRouter;
+
+const NativeLifecycleBridge = ({ client }: { client: QueryClient }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Allow native lifecycle module to route notification taps (including cold start).
+  useEffect(() => {
+    return attachNavigator(navigate);
+  }, [navigate]);
+
+  const refreshCriticalData = useCallback(async (): Promise<void> => {
+    if (!user) return;
+    // Refetch active queries when returning to foreground.
+    await client.invalidateQueries({ refetchType: 'active' });
+  }, [client, user]);
+
+  const syncBadgeCount = useCallback(async (): Promise<void> => {
+    if (!user) {
+      await setNativeBadgeCount(0);
+      return;
+    }
+
+    // Minimal badge source-of-truth: unread rows in `notifications` table.
+    // (If you later add a dedicated unread-messages aggregate, swap it in here.)
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('is_read', false);
+
+    if (error) {
+      console.error('[Lifecycle] Failed to fetch unread notifications count:', error);
+      return;
+    }
+
+    await setNativeBadgeCount(count ?? 0);
+  }, [user]);
+
+  // Run once on mount (helps cold start).
+  useEffect(() => {
+    void syncBadgeCount();
+  }, [syncBadgeCount]);
+
+  // On resume: refresh + badge sync.
+  useEffect(() => {
+    const unsubRefresh = onNativeResume(refreshCriticalData);
+    const unsubBadge = onNativeResume(syncBadgeCount);
+    return () => {
+      unsubRefresh();
+      unsubBadge();
+    };
+  }, [refreshCriticalData, syncBadgeCount]);
+
+  return null;
+};
 
 // ⚡ PERFORMANCE: Initialize demo mode synchronously at module load
 useDemoModeStore.getState().init();
@@ -246,6 +301,7 @@ const App = () => {
                 <BuildBadge />
                 <OfflineIndicator />
                 <Router>
+                <NativeLifecycleBridge client={queryClient} />
                 <MobileAppLayout>
                   <Routes>
                     <Route path="/" element={

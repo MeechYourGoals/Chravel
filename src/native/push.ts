@@ -107,6 +107,20 @@ export async function register(): Promise<PushNotificationResult> {
         resolve({ token: null, error: error.error });
       });
 
+  return new Promise((resolve) => {
+    void (async () => {
+      // Set up one-time listeners for registration result
+      const registrationListener = await PushNotifications.addListener('registration', (token: Token) => {
+        void registrationListener.remove();
+        resolve({ token: token.value });
+      });
+      
+      const errorListener = await PushNotifications.addListener('registrationError', (error) => {
+        void errorListener.remove();
+        console.error('[NativePush] Registration error:', error);
+        resolve({ token: null, error: error.error });
+      });
+      
       // Trigger registration
       try {
         await PushNotifications.register();
@@ -116,6 +130,13 @@ export async function register(): Promise<PushNotificationResult> {
         resolve({ token: null, error: err instanceof Error ? err.message : 'Registration failed' });
       }
     })();
+        await registrationListener.remove();
+        await errorListener.remove();
+        resolve({ token: null, error: err instanceof Error ? err.message : 'Registration failed' });
+      }
+    })().catch(err => {
+      resolve({ token: null, error: err instanceof Error ? err.message : 'Registration failed' });
+    });
   });
 }
 

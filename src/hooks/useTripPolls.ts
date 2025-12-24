@@ -7,6 +7,7 @@ import { pollStorageService } from '@/services/pollStorageService';
 import { getStorageItem, setStorageItem } from '@/platform/storage';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
+import * as haptics from '@/native/haptics';
 
 interface TripPoll {
   id: string;
@@ -337,6 +338,7 @@ export const useTripPolls = (tripId: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+      void haptics.medium();
       toast({
         title: 'Vote recorded',
         description: 'Your vote has been saved.'
@@ -450,6 +452,7 @@ export const useTripPolls = (tripId: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+      void haptics.success();
       toast({
         title: 'Poll closed',
         description: 'No more votes will be accepted.'

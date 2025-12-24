@@ -47,6 +47,12 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampCle
     
     setIsLoading(true);
     
+    // Safety timeout - reset loading state after 15 seconds if save hangs
+    const safetyTimeout = setTimeout(() => {
+      setIsLoading(false);
+      toast.error('Save timed out. Please try again.');
+    }, 15000);
+    
     try {
       // Simple text save - no geocoding, no Google Places API validation
       // Users can enter any text: "Grandma's house", "Hotel lobby", etc.
@@ -62,9 +68,11 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampCle
       };
       
       await Promise.resolve(onBasecampSet(basecamp));
+      clearTimeout(safetyTimeout);
       toast.success('Basecamp saved!');
       onClose();
     } catch {
+      clearTimeout(safetyTimeout);
       toast.error('Failed to set basecamp. Please try again.');
     } finally {
       setIsLoading(false);

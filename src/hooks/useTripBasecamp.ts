@@ -81,6 +81,9 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
   const { isDemoMode } = useDemoMode();
 
   return useMutation({
+    // Disable retries to prevent hanging on repeated failures
+    retry: false,
+    
     mutationFn: async (newBasecamp: {
       name?: string;
       address: string;

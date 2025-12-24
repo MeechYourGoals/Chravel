@@ -10,6 +10,7 @@ import { useDemoMode } from '../../hooks/useDemoMode';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/use-toast';
 import { Loader2, Clock, Users } from 'lucide-react';
+import * as haptics from '@/native/haptics';
 
 interface PaymentSplit {
   id: string;
@@ -249,6 +250,11 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
         title: currentlySettled ? "Marked as unpaid" : "Marked as paid", 
         description: "Payment status updated" 
       });
+
+      if (!currentlySettled) {
+        // Payment marked paid: success haptic (native-only, hard-gated).
+        void haptics.success();
+      }
       return;
     }
 
@@ -265,6 +271,11 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
         title: currentlySettled ? "Marked as unpaid" : "Marked as paid", 
         description: "Payment status updated" 
       });
+
+      if (!currentlySettled) {
+        // Payment marked paid: success haptic (native-only, hard-gated).
+        void haptics.success();
+      }
       await loadPayments();
       onPaymentUpdated?.();
     } else {

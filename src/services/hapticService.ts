@@ -1,39 +1,41 @@
-// Haptic feedback service
-// Web: Uses navigator.vibrate where available (mobile browsers)
-// Native: Provided by the native shell when enabled (e.g., via Capacitor plugins)
+/**
+ * Backwards-compatible haptics service.
+ *
+ * IMPORTANT:
+ * - Must not run on web. All methods are hard-gated behind native detection.
+ * - Delegates to `src/native/haptics.ts` (Capacitor Haptics plugin).
+ */
+
+import * as nativeHaptics from '@/native/haptics';
 
 class HapticService {
-  private canVibrate = typeof navigator !== 'undefined' && 'vibrate' in navigator;
-
-  private vibrate(pattern: number | number[]): void {
-    if (!this.canVibrate) return;
-    try {
-      navigator.vibrate(pattern);
-    } catch {
-      // Vibration not supported or blocked - silently ignore
-    }
-  }
-
   async light(): Promise<void> {
-    this.vibrate(10);
+    await nativeHaptics.light();
   }
 
   async medium(): Promise<void> {
-    this.vibrate(20);
+    await nativeHaptics.medium();
   }
 
   async heavy(): Promise<void> {
-    this.vibrate(30);
+    await nativeHaptics.heavy();
   }
 
   async success(): Promise<void> {
-    // Double tap pattern for success
-    this.vibrate([10, 50, 10]);
+    await nativeHaptics.success();
   }
 
+  async warning(): Promise<void> {
+    await nativeHaptics.warning();
+  }
+
+  async error(): Promise<void> {
+    await nativeHaptics.error();
+  }
+
+  // Legacy alias (not currently used, but kept to avoid regressions)
   async celebration(): Promise<void> {
-    // Celebration pattern: medium, pause, light, light
-    this.vibrate([20, 100, 10, 50, 10]);
+    await nativeHaptics.success();
   }
 }
 
