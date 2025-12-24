@@ -175,6 +175,31 @@ describe('offlineSyncService - Data Loss Prevention', () => {
     expect(remainingOps.map(op => op.id)).not.toContain(voteQueueId);
   });
 
+  it('should route task completion updates to onTaskToggle (even if onTaskUpdate exists)', async () => {
+    const taskQueueId = await offlineSyncService.queueOperation(
+      'task',
+      'update',
+      'trip-123',
+      { completed: true },
+      'task-1'
+    );
+
+    const onTaskUpdate = vi.fn().mockResolvedValue({ id: 'task-1' });
+    const onTaskToggle = vi.fn().mockResolvedValue({ taskId: 'task-1', completed: true });
+
+    const result = await offlineSyncService.processSyncQueue({
+      onTaskUpdate,
+      onTaskToggle,
+    });
+
+    expect(result.processed).toBe(1);
+    expect(onTaskToggle).toHaveBeenCalledTimes(1);
+    expect(onTaskUpdate).not.toHaveBeenCalled();
+
+    const remainingOps = await offlineSyncService.getQueuedOperations();
+    expect(remainingOps.map(op => op.id)).not.toContain(taskQueueId);
+  });
+
   it('should reject basecamp operations (guardrail)', async () => {
     await expect(
       offlineSyncService.queueOperation('basecamp' as any, 'update', 'trip-123', { address: 'X' })

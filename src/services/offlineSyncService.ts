@@ -362,12 +362,19 @@ class OfflineSyncService {
             if (operation.operationType === 'create' && handlers.onTaskCreate) {
               result = await handlers.onTaskCreate(operation.tripId, operation.data);
               handlerRan = true;
-            } else if (operation.operationType === 'update' && handlers.onTaskUpdate) {
-              result = await handlers.onTaskUpdate(operation.entityId!, operation.data);
-              handlerRan = true;
-            } else if (operation.operationType === 'update' && operation.data.completed !== undefined && handlers.onTaskToggle) {
-              result = await handlers.onTaskToggle(operation.entityId!, operation.data);
-              handlerRan = true;
+              break;
+            }
+
+            if (operation.operationType === 'update') {
+              // IMPORTANT: Prioritize toggles over generic updates.
+              // Task completion is stored in `task_status` via `toggle_task_status` RPC, not on `trip_tasks`.
+              if (operation.data?.completed !== undefined && handlers.onTaskToggle) {
+                result = await handlers.onTaskToggle(operation.entityId!, operation.data);
+                handlerRan = true;
+              } else if (handlers.onTaskUpdate) {
+                result = await handlers.onTaskUpdate(operation.entityId!, operation.data);
+                handlerRan = true;
+              }
             }
             break;
 
