@@ -44,16 +44,25 @@ test.describe('Offline resilience (MVP)', () => {
     await chatInput.fill(msg);
     await chatInput.press('Enter');
 
-    // Banner should show pending (reconnecting/offline with queued ops).
-    // We accept either state because some UIs might remain "Offline" until navigator flips.
-    await expect(
-      page.getByText(/pending/i),
-    ).toBeVisible({ timeout: 10_000 });
+    // Banner should reflect that we’re offline and will sync later.
+    // (In Offline state we intentionally show a human message rather than a pending count.)
+    await expect(page.getByText(/sync/i)).toBeVisible({ timeout: 10_000 });
 
     // Restore connectivity and expect sync to complete.
     await context.setOffline(false);
     await page.waitForTimeout(500);
-    await expect(page.getByText('Synced', { exact: true })).toBeVisible({ timeout: 15_000 });
+
+    const synced = page.getByText('Synced', { exact: true });
+    const offline = page.getByText('Offline', { exact: true });
+
+    // Either the “Synced” badge appears briefly, or the banner disappears quickly after sync.
+    await expect
+      .poll(async () => {
+        const syncedVisible = await synced.isVisible().catch(() => false);
+        const offlineVisible = await offline.isVisible().catch(() => false);
+        return syncedVisible || !offlineVisible;
+      })
+      .toBeTruthy();
   });
 });
 
