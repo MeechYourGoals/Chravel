@@ -109,3 +109,105 @@ export class CSPHelper {
            !value.includes('>');
   }
 }
+
+/**
+ * Secure Storage Access Helper
+ * Provides utilities for accessing secure_storage with proper authentication verification
+ */
+export class SecureStorageHelper {
+  /**
+   * Creates a verification session after successful authentication
+   * This must be called before accessing secure_storage to grant access for a limited time
+   * 
+   * @param supabaseClient - Supabase client instance
+   * @param verificationMethod - Method used for verification ('password', 'mfa', 'biometric')
+   * @param sessionDurationMinutes - Duration of the verification session (default: 15, max: 60)
+   * @returns Promise with session details or error
+   */
+  static async createVerificationSession(
+    supabaseClient: any,
+    verificationMethod: 'password' | 'mfa' | 'biometric' = 'password',
+    sessionDurationMinutes: number = 15
+  ): Promise<{ success: boolean; sessionId?: string; expiresAt?: string; error?: string }> {
+    try {
+      const { data, error } = await supabaseClient.functions.invoke('verify-identity', {
+        body: {
+          verification_method: verificationMethod,
+          session_duration_minutes: sessionDurationMinutes,
+        },
+      });
+
+      if (error) {
+        console.error('Failed to create verification session:', error);
+        return { success: false, error: error.message || 'Failed to create verification session' };
+      }
+
+      return {
+        success: true,
+        sessionId: data.session_id,
+        expiresAt: data.expires_at,
+      };
+    } catch (err: any) {
+      console.error('Error creating verification session:', err);
+      return { success: false, error: err.message || 'Unexpected error' };
+    }
+  }
+
+  /**
+   * Attempts to access secure_storage with automatic verification session creation if needed
+   * If access fails due to missing recent authentication, prompts for re-authentication
+   * 
+   * @param supabaseClient - Supabase client instance
+   * @param operation - Function that performs the secure_storage operation
+   * @param onReauthRequired - Callback to handle re-authentication requirement
+   * @returns Promise with operation result or error
+   */
+  static async withSecureStorageAccess<T>(
+    supabaseClient: any,
+    operation: () => Promise<T>,
+    onReauthRequired?: () => Promise<void>
+  ): Promise<{ success: boolean; data?: T; error?: string; requiresReauth?: boolean }> {
+    try {
+      // Attempt the operation first
+      const result = await operation();
+      return { success: true, data: result };
+    } catch (err: any) {
+      // Check if error is due to missing recent authentication
+      const errorMessage = err.message || '';
+      const isAuthError = 
+        errorMessage.includes('permission denied') ||
+        errorMessage.includes('row-level security') ||
+        errorMessage.includes('policy violation');
+
+      if (isAuthError && onReauthRequired) {
+        // Attempt to create verification session and retry
+        const sessionResult = await this.createVerificationSession(supabaseClient, 'password');
+        
+        if (sessionResult.success) {
+          try {
+            const retryResult = await operation();
+            return { success: true, data: retryResult };
+          } catch (retryErr: any) {
+            // Still failing after verification session - require explicit re-auth
+            await onReauthRequired();
+            return { 
+              success: false, 
+              error: 'Access denied. Please re-authenticate.', 
+              requiresReauth: true 
+            };
+          }
+        } else {
+          // Failed to create verification session - require explicit re-auth
+          await onReauthRequired();
+          return { 
+            success: false, 
+            error: 'Access denied. Please re-authenticate.', 
+            requiresReauth: true 
+          };
+        }
+      }
+
+      return { success: false, error: err.message || 'Operation failed' };
+    }
+  }
+}
