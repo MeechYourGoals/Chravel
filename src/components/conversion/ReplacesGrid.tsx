@@ -27,10 +27,10 @@ export const ReplacesGrid = () => {
           ChravelApp consolidates dozens of scattered tools into 8 focused tabs — built for groups on the go.
         </p>
         <p 
-          className="text-base sm:text-lg text-white/80 font-medium"
-          style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}
+          className="text-lg sm:text-xl text-white font-medium italic underline"
+          style={{ textShadow: '0 2px 6px rgba(0,0,0,0.7)' }}
         >
-          Click the ChravelTabs below to see how many apps your group can save time switching from.
+          Click below to see how many disconnected apps in your travel arsenal... can be simplified with ChravelTabs
         </p>
       </div>
 
