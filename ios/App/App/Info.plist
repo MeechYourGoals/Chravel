@@ -2,12 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CAPACITOR_DEBUG</key>
+	<key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Chravel</string>
+	<string>Chravel</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -52,6 +52,19 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Chravel needs access to your photo library so you can upload photos and videos to trip chats and shared albums.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Chravel uses your location (only while you’re using the app) for optional location sharing and to help coordinate meetups during a trip.</string>
+	<string>Chravel uses your location (only while you're using the app) for optional location sharing and to help coordinate meetups during a trip.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.chravel.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>chravel</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
