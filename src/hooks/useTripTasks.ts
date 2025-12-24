@@ -8,6 +8,7 @@ import { useAuth } from './useAuth';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
+import * as haptics from '@/native/haptics';
 
 // Task form management types
 export interface TaskFormData {
@@ -753,6 +754,14 @@ export const useTripTasks = (tripId: string, options?: {
         description: errorDescription,
         variant
       });
+    },
+    onSuccess: (data) => {
+      // Satisfying haptic feedback when completing a task
+      if (data.completed) {
+        void haptics.success();
+      } else {
+        void haptics.light();
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });

@@ -9,6 +9,7 @@ import { offlineSyncService } from '@/services/offlineSyncService';
 import { saveMessagesToCache, loadMessagesFromCache } from '@/services/chatStorage';
 import { useOfflineStatus } from './useOfflineStatus';
 import { sendChatMessage } from '@/services/chatService';
+import * as haptics from '@/native/haptics';
 
 interface TripChatMessage {
   id: string;
@@ -315,9 +316,14 @@ export const useTripChat = (tripId: string | undefined) => {
       
       return data;
     },
+    onSuccess: () => {
+      // Subtle haptic feedback on successful message send
+      void haptics.light();
+    },
     onError: (error: any) => {
       console.error('Message creation error:', error);
       const errorMessage = error.message || 'Failed to send message. Please try again.';
+      void haptics.error();
       toast({
         title: 'Error',
         description: errorMessage,
