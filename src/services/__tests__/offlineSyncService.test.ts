@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import 'fake-indexeddb/auto';
 import { offlineSyncService } from '../offlineSyncService';
 
 describe('offlineSyncService - Data Loss Prevention', () => {
@@ -151,5 +152,57 @@ describe('offlineSyncService - Data Loss Prevention', () => {
     // Verify retry count was incremented
     const op = remainingOps.find(o => o.id === chatQueueId);
     expect(op?.retryCount).toBe(1);
+  });
+
+  it('should process poll votes when handler provided', async () => {
+    const voteQueueId = await offlineSyncService.queueOperation(
+      'poll_vote',
+      'create',
+      'trip-123',
+      { optionIds: ['option_1'] },
+      'poll-1'
+    );
+
+    const mockVoteHandler = vi.fn().mockResolvedValue({ pollId: 'poll-1' });
+    const result = await offlineSyncService.processSyncQueue({
+      onPollVote: mockVoteHandler,
+    });
+
+    expect(result.processed).toBe(1);
+    expect(mockVoteHandler).toHaveBeenCalledTimes(1);
+
+    const remainingOps = await offlineSyncService.getQueuedOperations();
+    expect(remainingOps.map(op => op.id)).not.toContain(voteQueueId);
+  });
+
+  it('should route task completion updates to onTaskToggle (even if onTaskUpdate exists)', async () => {
+    const taskQueueId = await offlineSyncService.queueOperation(
+      'task',
+      'update',
+      'trip-123',
+      { completed: true },
+      'task-1'
+    );
+
+    const onTaskUpdate = vi.fn().mockResolvedValue({ id: 'task-1' });
+    const onTaskToggle = vi.fn().mockResolvedValue({ taskId: 'task-1', completed: true });
+
+    const result = await offlineSyncService.processSyncQueue({
+      onTaskUpdate,
+      onTaskToggle,
+    });
+
+    expect(result.processed).toBe(1);
+    expect(onTaskToggle).toHaveBeenCalledTimes(1);
+    expect(onTaskUpdate).not.toHaveBeenCalled();
+
+    const remainingOps = await offlineSyncService.getQueuedOperations();
+    expect(remainingOps.map(op => op.id)).not.toContain(taskQueueId);
+  });
+
+  it('should reject basecamp operations (guardrail)', async () => {
+    await expect(
+      offlineSyncService.queueOperation('basecamp' as any, 'update', 'trip-123', { address: 'X' })
+    ).rejects.toThrow('Basecamp');
   });
 });

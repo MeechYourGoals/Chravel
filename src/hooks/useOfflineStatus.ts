@@ -1,25 +1,34 @@
-import { useState, useEffect } from 'react';
-import { offlineService } from '@/services/offlineService';
+import { useEffect, useState } from 'react';
+import { getQueueStats, clearAllQueuedOperations } from '@/offline/queue';
+import { processGlobalSyncQueue } from '@/services/globalSyncProcessor';
 
 export const useOfflineStatus = () => {
-  const [isOnline, setIsOnline] = useState(offlineService.getIsOnline());
-  const [queueSize, setQueueSize] = useState(offlineService.getQueueSize());
+  const [isOnline, setIsOnline] = useState(navigator.onLine !== false);
+  const [queueSize, setQueueSize] = useState(0);
 
   useEffect(() => {
-    // Subscribe to online/offline changes
-    const unsubscribe = offlineService.subscribe((online) => {
-      setIsOnline(online);
-      setQueueSize(offlineService.getQueueSize());
-    });
+    const refresh = async () => {
+      const stats = await getQueueStats();
+      setQueueSize(stats.total);
+    };
 
-    // Update queue size periodically
-    const interval = setInterval(() => {
-      setQueueSize(offlineService.getQueueSize());
-    }, 5000);
+    const handleOnline = () => {
+      setIsOnline(true);
+      void refresh();
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
 
+    void refresh();
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    const interval = window.setInterval(() => void refresh(), 4000);
     return () => {
-      unsubscribe();
-      clearInterval(interval);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.clearInterval(interval);
     };
   }, []);
 
@@ -27,7 +36,15 @@ export const useOfflineStatus = () => {
     isOnline,
     isOffline: !isOnline,
     queueSize,
-    processQueue: () => offlineService.processQueue(),
-    clearQueue: () => offlineService.clearQueue(),
+    processQueue: async () => {
+      if (navigator.onLine === false) return;
+      await processGlobalSyncQueue();
+      const stats = await getQueueStats();
+      setQueueSize(stats.total);
+    },
+    clearQueue: async () => {
+      await clearAllQueuedOperations();
+      setQueueSize(0);
+    },
   };
 };

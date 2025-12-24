@@ -4,12 +4,21 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useTripTasks } from '../useTripTasks';
 import { supabase } from '../../integrations/supabase/client';
 import { taskStorageService } from '../../services/taskStorageService';
-import { taskOfflineQueue } from '../../services/taskOfflineQueue';
+import { offlineSyncService } from '@/services/offlineSyncService';
+import { getCachedEntities } from '@/offline/cache';
 
 // Mock dependencies
 vi.mock('../../integrations/supabase/client');
 vi.mock('../../services/taskStorageService');
-vi.mock('../../services/taskOfflineQueue');
+vi.mock('@/services/offlineSyncService', () => ({
+  offlineSyncService: {
+    queueOperation: vi.fn(),
+  },
+}));
+vi.mock('@/offline/cache', () => ({
+  cacheEntity: vi.fn(),
+  getCachedEntities: vi.fn(),
+}));
 vi.mock('../useAuth', () => ({
   useAuth: () => ({
     user: { id: 'test-user-id' }
@@ -41,6 +50,40 @@ const createWrapper = () => {
   );
 };
 
+type SupabaseChainOverrides = Partial<{
+  // Response returned when the query builder is awaited (`await query`)
+  then: { data: any; error: any };
+  // Optional response used when `.limit()` is called before awaiting
+  limitResponse: { data: any; error: any };
+  single: any;
+  maybeSingle: any;
+}>;
+
+function makeSupabaseChain(overrides: SupabaseChainOverrides = {}) {
+  const chain: any = {};
+  let response = overrides.then ?? { data: [], error: null };
+  chain.select = vi.fn(() => chain);
+  chain.eq = vi.fn(() => chain);
+  chain.order = vi.fn(() => chain);
+  chain.limit = vi.fn(() => {
+    if (overrides.limitResponse) {
+      response = overrides.limitResponse;
+    }
+    return chain;
+  });
+  chain.insert = vi.fn(() => chain);
+  chain.update = vi.fn(() => chain);
+  chain.delete = vi.fn(() => chain);
+  chain.in = vi.fn(() => chain);
+  chain.single = vi.fn(async () => overrides.single ?? { data: null, error: null });
+  chain.maybeSingle = vi.fn(async () => overrides.maybeSingle ?? { data: null, error: null });
+  // Make the chain awaitable (Supabase query builders are Promise-like).
+  chain.then = (onFulfilled: any, onRejected: any) => Promise.resolve(response).then(onFulfilled, onRejected);
+  return chain;
+}
+
+let tableMocks: Record<string, any> = {};
+
 describe('useTripTasks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -48,6 +91,20 @@ describe('useTripTasks', () => {
     Object.defineProperty(navigator, 'onLine', {
       writable: true,
       value: true
+    });
+
+    vi.mocked(getCachedEntities).mockResolvedValue([]);
+
+    // Default realtime mocks used by useTripTasks effect
+    (supabase as any).channel = vi.fn().mockReturnValue({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnValue({}),
+    });
+    (supabase as any).removeChannel = vi.fn();
+
+    tableMocks = {};
+    vi.mocked(supabase.from).mockImplementation((tableName: any) => {
+      return tableMocks[String(tableName)] ?? makeSupabaseChain();
     });
   });
 
@@ -73,15 +130,9 @@ describe('useTripTasks', () => {
         }
       ];
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({
-          data: mockTasks,
-          error: null
-        })
-      } as any);
+      tableMocks.trip_tasks = makeSupabaseChain({
+        limitResponse: { data: mockTasks, error: null },
+      });
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
         wrapper: createWrapper()
@@ -117,14 +168,14 @@ describe('useTripTasks', () => {
         error: null
       } as any);
 
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: mockNewTask,
-          error: null
-        })
-      } as any);
+      tableMocks.trip_tasks = makeSupabaseChain({
+        single: { data: mockNewTask, error: null },
+        limitResponse: { data: [], error: null },
+      });
+      tableMocks.task_status = makeSupabaseChain();
+      tableMocks.profiles = makeSupabaseChain({
+        single: { data: { display_name: 'Test User', avatar_url: null }, error: null },
+      });
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
         wrapper: createWrapper()
@@ -156,14 +207,10 @@ describe('useTripTasks', () => {
         error: null
       } as any);
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: { is_completed: false, version: 1 },
-          error: null
-        })
-      } as any);
+      tableMocks.trip_tasks = makeSupabaseChain({
+        maybeSingle: { data: { version: 1 }, error: null },
+        limitResponse: { data: [], error: null },
+      });
 
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: { success: true, new_version: 2, is_completed: true },
@@ -196,19 +243,14 @@ describe('useTripTasks', () => {
         error: null
       } as any);
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn()
-          .mockResolvedValueOnce({
-            data: { is_completed: false, version: 1 },
-            error: null
-          })
-          .mockResolvedValueOnce({
-            data: { is_completed: false, version: 2 },
-            error: null
-          })
-      } as any);
+      const tripTasksChain = makeSupabaseChain({
+        limitResponse: { data: [], error: null },
+      });
+      tripTasksChain.maybeSingle = vi
+        .fn()
+        .mockResolvedValueOnce({ data: { version: 1 }, error: null })
+        .mockResolvedValueOnce({ data: { version: 2 }, error: null });
+      tableMocks.trip_tasks = tripTasksChain;
 
       // First call fails with version conflict, second succeeds
       vi.mocked(supabase.rpc)
@@ -238,7 +280,7 @@ describe('useTripTasks', () => {
       });
 
       // Advance timers to trigger retry
-      vi.advanceTimersByTime(2000);
+      await vi.advanceTimersByTimeAsync(2000);
 
       await promise;
 
@@ -254,14 +296,10 @@ describe('useTripTasks', () => {
         error: null
       } as any);
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: { is_completed: false, version: 1 },
-          error: null
-        })
-      } as any);
+      tableMocks.trip_tasks = makeSupabaseChain({
+        maybeSingle: { data: { version: 1 }, error: null },
+        limitResponse: { data: [], error: null },
+      });
 
       // Always return version conflict
       vi.mocked(supabase.rpc).mockResolvedValue({
@@ -279,12 +317,14 @@ describe('useTripTasks', () => {
 
       vi.useFakeTimers();
 
-      await expect(
-        result.current.toggleTaskMutation.mutateAsync({
-          taskId: 'task-1',
-          completed: true
-        })
-      ).rejects.toThrow();
+      const promise = result.current.toggleTaskMutation.mutateAsync({
+        taskId: 'task-1',
+        completed: true
+      });
+
+      const expectation = expect(promise).rejects.toThrow();
+      await vi.advanceTimersByTimeAsync(10_000);
+      await expectation;
 
       vi.useRealTimers();
     });
@@ -297,7 +337,7 @@ describe('useTripTasks', () => {
         value: false
       });
 
-      vi.mocked(taskOfflineQueue.enqueue).mockResolvedValue('queue-id-1');
+      vi.mocked(offlineSyncService.queueOperation).mockResolvedValue('queue-id-1' as any);
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
         wrapper: createWrapper()
@@ -314,12 +354,11 @@ describe('useTripTasks', () => {
         })
       ).rejects.toThrow('OFFLINE:');
 
-      expect(taskOfflineQueue.enqueue).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'create',
-          tripId: 'trip-1',
-          data: expect.objectContaining({ title: 'Offline Task' })
-        })
+      expect(offlineSyncService.queueOperation).toHaveBeenCalledWith(
+        'task',
+        'create',
+        'trip-1',
+        expect.objectContaining({ title: 'Offline Task' }),
       );
     });
 
@@ -329,7 +368,12 @@ describe('useTripTasks', () => {
         value: false
       });
 
-      vi.mocked(taskOfflineQueue.enqueue).mockResolvedValue('queue-id-2');
+      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+        data: { user: { id: 'test-user-id' } },
+        error: null
+      } as any);
+
+      vi.mocked(offlineSyncService.queueOperation).mockResolvedValue('queue-id-2' as any);
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
         wrapper: createWrapper()
@@ -346,12 +390,12 @@ describe('useTripTasks', () => {
         })
       ).rejects.toThrow('OFFLINE:');
 
-      expect(taskOfflineQueue.enqueue).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'toggle',
-          tripId: 'trip-1',
-          data: expect.objectContaining({ taskId: 'task-1', completed: true })
-        })
+      expect(offlineSyncService.queueOperation).toHaveBeenCalledWith(
+        'task',
+        'update',
+        'trip-1',
+        { completed: true },
+        'task-1',
       );
     });
   });
@@ -363,14 +407,15 @@ describe('useTripTasks', () => {
         error: null
       } as any);
 
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: null,
-          error: { code: 'PGRST116', message: 'Access denied' }
-        })
-      } as any);
+      vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null } as any);
+
+      tableMocks.trip_tasks = makeSupabaseChain({
+        single: { data: null, error: { code: 'PGRST116', message: 'Access denied' } },
+        limitResponse: { data: [], error: null },
+      });
+      tableMocks.profiles = makeSupabaseChain({
+        single: { data: { display_name: 'Test User', avatar_url: null }, error: null },
+      });
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
         wrapper: createWrapper()
@@ -380,10 +425,12 @@ describe('useTripTasks', () => {
         expect(result.current.createTaskMutation).toBeDefined();
       });
 
-      await result.current.createTaskMutation.mutateAsync({
-        title: 'Test Task',
-        is_poll: false
-      });
+      await expect(
+        result.current.createTaskMutation.mutateAsync({
+          title: 'Test Task',
+          is_poll: false
+        })
+      ).rejects.toThrow('Access denied');
 
       await waitFor(() => {
         expect(result.current.createTaskMutation.isError).toBe(true);
@@ -396,14 +443,10 @@ describe('useTripTasks', () => {
         error: null
       } as any);
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'fetch failed', code: 'NETWORK_ERROR' }
-        })
-      } as any);
+      tableMocks.trip_tasks = makeSupabaseChain({
+        maybeSingle: { data: null, error: { message: 'fetch failed', code: 'NETWORK_ERROR' } },
+        limitResponse: { data: [], error: null },
+      });
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
         wrapper: createWrapper()
@@ -413,10 +456,12 @@ describe('useTripTasks', () => {
         expect(result.current.toggleTaskMutation).toBeDefined();
       });
 
-      await result.current.toggleTaskMutation.mutateAsync({
-        taskId: 'task-1',
-        completed: true
-      });
+      await expect(
+        result.current.toggleTaskMutation.mutateAsync({
+          taskId: 'task-1',
+          completed: true
+        })
+      ).rejects.toThrow('Network error');
 
       await waitFor(() => {
         expect(result.current.toggleTaskMutation.isError).toBe(true);
@@ -437,15 +482,9 @@ describe('useTripTasks', () => {
         task_status: []
       }));
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({
-          data: mockTasks.slice(0, 100),
-          error: null
-        })
-      } as any);
+      tableMocks.trip_tasks = makeSupabaseChain({
+        limitResponse: { data: mockTasks.slice(0, 100), error: null },
+      });
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
         wrapper: createWrapper()
@@ -471,19 +510,9 @@ describe('useTripTasks', () => {
         task_status: []
       }));
 
-      let limitCalled = false;
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockImplementation(() => {
-          limitCalled = true;
-          return Promise.resolve({
-            data: mockTasks.slice(0, 100),
-            error: null
-          });
-        })
-      } as any);
+      tableMocks.trip_tasks = makeSupabaseChain({
+        limitResponse: { data: mockTasks.slice(0, 100), error: null },
+      });
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
         wrapper: createWrapper()
@@ -493,15 +522,10 @@ describe('useTripTasks', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // Mock unlimited query
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({
-          data: mockTasks,
-          error: null
-        })
-      } as any);
+      // After user opts to load all tasks, return the full dataset (no `.limit()` call).
+      tableMocks.trip_tasks = makeSupabaseChain({
+        then: { data: mockTasks, error: null },
+      });
 
       result.current.loadAllTasks();
 

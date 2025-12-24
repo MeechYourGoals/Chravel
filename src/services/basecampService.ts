@@ -1,6 +1,7 @@
 import { supabase } from '../integrations/supabase/client';
 import { BasecampLocation } from '../types/basecamp';
 import { systemMessageService } from './systemMessageService';
+import { cacheEntity, getCachedEntity } from '@/offline/cache';
 
 export interface TripBasecamp {
   trip_id: string;
@@ -49,6 +50,12 @@ class BasecampService {
     console.log(this.LOG_PREFIX, 'getTripBasecamp called:', { tripId, timestamp: new Date().toISOString() });
     
     try {
+      // Offline-first: use cached basecamp when offline.
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        const cached = await getCachedEntity({ entityType: 'trip_basecamp', entityId: tripId });
+        return (cached?.data as BasecampLocation | null | undefined) ?? null;
+      }
+
       const { data, error } = await supabase
         .from('trips')
         .select('basecamp_name, basecamp_address, basecamp_latitude, basecamp_longitude')
@@ -75,9 +82,25 @@ class BasecampService {
       };
 
       console.log(this.LOG_PREFIX, 'getTripBasecamp success:', { tripId, address: result.address });
+
+      // Cache for offline access (best-effort).
+      await cacheEntity({
+        entityType: 'trip_basecamp',
+        entityId: tripId,
+        tripId,
+        data: result,
+      });
+
       return result;
     } catch (error) {
       console.error(this.LOG_PREFIX, 'getTripBasecamp exception:', { tripId, error });
+      // Fallback to cached.
+      try {
+        const cached = await getCachedEntity({ entityType: 'trip_basecamp', entityId: tripId });
+        return (cached?.data as BasecampLocation | null | undefined) ?? null;
+      } catch {
+        // ignore
+      }
       return null;
     }
   }

@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
 import { rateLimiter } from '@/utils/concurrencyUtils';
 import { InputValidator } from '@/utils/securityUtils';
-import { queueMessage, processQueue } from '@/services/offlineMessageQueue';
+import { processQueue } from '@/services/offlineMessageQueue';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { saveMessagesToCache, loadMessagesFromCache } from '@/services/chatStorage';
 import { useOfflineStatus } from './useOfflineStatus';
@@ -45,6 +45,13 @@ export const useTripChat = (tripId: string | undefined) => {
   const { isOffline } = useOfflineStatus();
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const createClientMessageId = (): string => {
+    // `client_message_id` is stored as a UUID in the DB for dedupe.
+    // Prefer native UUID, with a safe fallback for environments without `crypto.randomUUID`.
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+    const random = Math.random().toString(16).slice(2).padEnd(12, '0').slice(0, 12);
+    return `00000000-0000-4000-8000-${random}`;
+  };
 
   // Fetch initial messages (last 10) with offline cache support
   const { data: messages = [], isLoading, error } = useQuery({
@@ -258,6 +265,7 @@ export const useTripChat = (tripId: string | undefined) => {
         content: sanitizedContent,
         author_name: InputValidator.sanitizeText(message.author_name),
         user_id: message.userId,
+        client_message_id: undefined as string | undefined,
         privacy_mode: message.privacyMode || 'standard',
         message_type: message.messageType || 'text',
         media_type: message.media_type,
@@ -266,6 +274,10 @@ export const useTripChat = (tripId: string | undefined) => {
 
       // If offline, queue the message using unified sync service
       if (isOffline) {
+        // Stable client-side ID for dedupe on reconnect retries.
+        const clientMessageId = createClientMessageId();
+        messageData.client_message_id = clientMessageId;
+
         const queueId = await offlineSyncService.queueOperation(
           'chat_message',
           'create',
@@ -273,8 +285,8 @@ export const useTripChat = (tripId: string | undefined) => {
           messageData
         );
         
-        // Also queue in old system for backward compatibility
-        await queueMessage(messageData);
+        // Do NOT enqueue into the legacy queue. That queue will also attempt to send and can
+        // produce duplicate-key failures due to the unique `(trip_id, client_message_id)` index.
         
         toast({
           title: 'Message queued',

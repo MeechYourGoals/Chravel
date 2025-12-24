@@ -14,6 +14,7 @@ import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
 import { getTripById, generateTripMockData } from '@/data/tripsData';
 import { toast } from 'sonner';
+import { cacheEntity, getCachedEntity } from '@/offline/cache';
 
 interface PlacesSectionProps {
   tripId?: string;
@@ -112,6 +113,10 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
   // Load places data on mount
   useEffect(() => {
     const loadPlaces = async () => {
+      const cacheKey = `${tripId}:places`;
+      const cached = await getCachedEntity({ entityType: 'trip_links', entityId: cacheKey });
+      const cachedPlaces = (cached?.data as PlaceWithDistance[] | undefined) ?? [];
+
       // Helper to load trip links from tripsData.ts
       const loadDemoPlacesFromTripsData = async (): Promise<PlaceWithDistance[]> => {
         const trip = getTripById(Number(tripId));
@@ -147,6 +152,12 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
           }
         }
       } else {
+        // If offline, prefer cached.
+        if (navigator.onLine === false && cachedPlaces.length > 0) {
+          setPlaces(cachedPlaces);
+          return;
+        }
+
         // Load real data for authenticated users
         const { data, error } = await supabase
           .from('trip_link_index')
@@ -156,6 +167,9 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
         if (error) {
           if (import.meta.env.DEV) {
             console.error('Failed to load places:', error);
+          }
+          if (cachedPlaces.length > 0) {
+            setPlaces(cachedPlaces);
           }
           return;
         }
@@ -192,6 +206,14 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
             };
           });
         setPlaces(placesWithDistance);
+
+        // Cache for offline access (best-effort).
+        await cacheEntity({
+          entityType: 'trip_links',
+          entityId: cacheKey,
+          tripId,
+          data: placesWithDistance,
+        });
       }
     };
 

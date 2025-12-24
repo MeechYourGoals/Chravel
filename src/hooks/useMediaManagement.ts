@@ -6,6 +6,7 @@ import { proTripMockData } from '../data/proTripMockData';
 import { eventsMockData } from '../data/eventsMockData';
 import TripSpecificMockDataService from '../services/tripSpecificMockDataService';
 import UniversalMockDataService from '../services/UniversalMockDataService';
+import { cacheEntity, getCachedEntity } from '@/offline/cache';
 
 export interface MediaItem {
   id: string;
@@ -43,6 +44,7 @@ export const useMediaManagement = (tripId: string) => {
     try {
       let items: MediaItem[] = [];
       const tripTier = detectTripTier(tripId);
+      const listKey = `${tripId}:list`;
 
       if (isDemoMode) {
         // Trip-specific mock data
@@ -105,12 +107,20 @@ export const useMediaManagement = (tripId: string) => {
       }
 
       setMediaItems(items);
+
+      // Cache for offline access (best-effort, authenticated only)
+      if (!isDemoMode) {
+        await cacheEntity({ entityType: 'trip_media', entityId: listKey, tripId, data: items });
+        await cacheEntity({ entityType: 'trip_files', entityId: listKey, tripId, data: items });
+      }
     } catch (error) {
       console.error('Error fetching media items:', error);
       if (isDemoMode) {
         setMediaItems(UniversalMockDataService.getCombinedMediaItems(tripId));
       } else {
-        setMediaItems([]);
+        const listKey = `${tripId}:list`;
+        const cached = await getCachedEntity({ entityType: 'trip_media', entityId: listKey });
+        setMediaItems((cached?.data as MediaItem[] | undefined) ?? []);
       }
     } finally {
       setLoading(false);
@@ -121,6 +131,7 @@ export const useMediaManagement = (tripId: string) => {
     try {
       let items: LinkItem[] = [];
       const tripTier = detectTripTier(tripId);
+      const listKey = `${tripId}:list`;
 
       if (isDemoMode) {
         if (tripTier === 'consumer' && TripSpecificMockDataService.getTripLinkItems(parseInt(tripId)).length > 0) {
@@ -178,12 +189,18 @@ export const useMediaManagement = (tripId: string) => {
       }
 
       setLinkItems(items);
+
+      if (!isDemoMode) {
+        await cacheEntity({ entityType: 'trip_links', entityId: listKey, tripId, data: items });
+      }
     } catch (error) {
       console.error('Error fetching link items:', error);
       if (isDemoMode) {
         setLinkItems(UniversalMockDataService.getLinkItems(tripId));
       } else {
-        setLinkItems([]);
+        const listKey = `${tripId}:list`;
+        const cached = await getCachedEntity({ entityType: 'trip_links', entityId: listKey });
+        setLinkItems((cached?.data as LinkItem[] | undefined) ?? []);
       }
     }
   }, [tripId, isDemoMode]);
