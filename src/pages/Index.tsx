@@ -114,38 +114,74 @@ const Index = () => {
   // Count total results for current view mode
   const searchResultCount = useMemo(() => {
     if (!searchQuery.trim()) return 0;
-    
-    // Get appropriate data based on demo mode
+
+    // Filter based on current view mode
+    if (viewMode === 'myTrips') {
+      // Only count consumer trips
+      return trips.length;
+    } else if (viewMode === 'pro') {
+      // Only count pro trips
+      const safeProTrips = isDemoMode ? proTripMockData : {};
+
+      if (!isDemoMode && userTripsRaw) {
+        const proTripsFromDB = userTripsRaw.filter(t => t.trip_type === 'pro');
+        const proCount = proTripsFromDB.reduce((acc, trip) => {
+          acc[trip.id] = convertSupabaseTripToProTrip(trip);
+          return acc;
+        }, {} as Record<string, any>);
+        const filteredPro = filterProTrips(proCount, searchQuery, activeFilter as DateFacet | '');
+        return Object.keys(filteredPro).length;
+      }
+
+      const filteredPro = filterProTrips(safeProTrips, searchQuery, activeFilter as DateFacet | '');
+      return Object.keys(filteredPro).length;
+    } else if (viewMode === 'events') {
+      // Only count events
+      const safeEvents = isDemoMode ? eventsMockData : {};
+
+      if (!isDemoMode && userTripsRaw) {
+        const eventsFromDB = userTripsRaw.filter(t => t.trip_type === 'event');
+        const eventCount = eventsFromDB.reduce((acc, trip) => {
+          acc[trip.id] = convertSupabaseTripToEvent(trip);
+          return acc;
+        }, {} as Record<string, any>);
+        const filteredEvents = filterEvents(eventCount, searchQuery, activeFilter as DateFacet | '');
+        return Object.keys(filteredEvents).length;
+      }
+
+      const filteredEvents = filterEvents(safeEvents, searchQuery, activeFilter as DateFacet | '');
+      return Object.keys(filteredEvents).length;
+    }
+
+    // For travelRecs or other modes, count all
     const safeProTrips = isDemoMode ? proTripMockData : {};
     const safeEvents = isDemoMode ? eventsMockData : {};
-    
-    // For authenticated users, populate from userTripsRaw
+
     if (!isDemoMode && userTripsRaw) {
       const proTripsFromDB = userTripsRaw.filter(t => t.trip_type === 'pro');
       const eventsFromDB = userTripsRaw.filter(t => t.trip_type === 'event');
-      
+
       const proCount = proTripsFromDB.reduce((acc, trip) => {
         acc[trip.id] = convertSupabaseTripToProTrip(trip);
         return acc;
       }, {} as Record<string, any>);
-      
+
       const eventCount = eventsFromDB.reduce((acc, trip) => {
         acc[trip.id] = convertSupabaseTripToEvent(trip);
         return acc;
       }, {} as Record<string, any>);
-      
+
       const filteredPro = filterProTrips(proCount, searchQuery, activeFilter as DateFacet | '');
       const filteredEvents = filterEvents(eventCount, searchQuery, activeFilter as DateFacet | '');
-      
+
       return trips.length + Object.keys(filteredPro).length + Object.keys(filteredEvents).length;
     }
-    
-    // Demo mode counts
+
     const filteredPro = filterProTrips(safeProTrips, searchQuery, activeFilter as DateFacet | '');
     const filteredEvents = filterEvents(safeEvents, searchQuery, activeFilter as DateFacet | '');
-    
+
     return trips.length + Object.keys(filteredPro).length + Object.keys(filteredEvents).length;
-  }, [searchQuery, trips.length, isDemoMode, userTripsRaw, activeFilter]);
+  }, [searchQuery, trips.length, isDemoMode, userTripsRaw, activeFilter, viewMode]);
 
   // Development diagnostics available via console when needed
 
@@ -739,9 +775,8 @@ const Index = () => {
             onSettings={() => isMobile ? setIsMobileSettingsOpen(true) : (setSettingsInitialType('consumer'), setIsSettingsOpen(true))}
             onCreateTrip={handleCreateTrip}
             onSearch={(query: string) => {
-              if (query) {
-                setIsSearchOpen(true);
-              }
+              setSearchQuery(query);
+              setIsSearchOpen(true);
             }}
             onNotifications={() => {}}
             isNotificationsOpen={isNotificationsOpen}
@@ -841,6 +876,14 @@ const Index = () => {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
+      />
+
+      <SearchOverlay
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        resultCount={searchResultCount}
       />
 
       <MobileSettingsSheet
