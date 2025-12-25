@@ -30,7 +30,8 @@ export const ConsumerGeneralSettings = () => {
     try {
       // Call the account deletion Edge Function (or RPC)
       // This should handle cascading deletes per privacy policy
-      const { error } = await supabase.rpc('request_account_deletion');
+      // Note: This RPC may not exist yet - we handle the error gracefully
+      const { error } = await supabase.rpc('request_account_deletion' as any);
 
       if (error) {
         // If RPC doesn't exist, fall back to manual request

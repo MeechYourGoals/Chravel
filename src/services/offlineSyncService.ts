@@ -114,9 +114,9 @@ class OfflineSyncService {
     let operations: QueuedSyncOperation[];
 
     if (filters?.status) {
-      operations = await db.getAllFromIndex('syncQueue', 'by-status', filters.status);
+      operations = (await db.getAllFromIndex('syncQueue', 'by-status', filters.status)) as QueuedSyncOperation[];
     } else {
-      operations = await db.getAll('syncQueue');
+      operations = (await db.getAll('syncQueue')) as QueuedSyncOperation[];
     }
 
     // Apply additional filters
@@ -156,11 +156,11 @@ class OfflineSyncService {
 
     if (!operation) return null;
 
-    const updated: QueuedSyncOperation = {
+    const updated = {
       ...operation,
       status,
       retryCount: incrementRetry ? operation.retryCount + 1 : operation.retryCount,
-    };
+    } as QueuedSyncOperation;
 
     await db.put('syncQueue', updated);
     return updated;
@@ -230,10 +230,10 @@ class OfflineSyncService {
 
     if (entityType) {
       const allCached = await db.getAllFromIndex('cache', 'by-entity-type', entityType);
-      cached = allCached.filter(c => c.tripId === tripId);
+      cached = (allCached.filter(c => c.tripId === tripId)) as CachedEntity[];
     } else {
       const allCached = await db.getAllFromIndex('cache', 'by-trip', tripId);
-      cached = allCached;
+      cached = allCached as CachedEntity[];
     }
 
     // Filter expired entries
@@ -261,7 +261,7 @@ class OfflineSyncService {
       return null;
     }
 
-    return cached;
+    return cached as CachedEntity;
   }
 
   /**
