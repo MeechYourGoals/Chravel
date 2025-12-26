@@ -1,8 +1,6 @@
 import React from 'react';
 import { Button } from '../../ui/button';
-import { Users, Calendar, MapPin, Sparkles } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import heroDashboard from '@/assets/app-screenshots/hero-dashboard-updated.png';
 
 // Mobile header height constant (matches MobileAuthHeader.tsx)
 const MOBILE_HEADER_HEIGHT = 52;
@@ -77,15 +75,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         </p>
 
         {/* Mobile CTA removed - MobileAuthHeader provides the single prominent "Log in / Sign up" CTA on mobile */}
-
-        {/* Product Preview */}
-        <div className="mt-8 w-full max-w-5xl mx-auto animate-fade-in" style={{ animationDelay: '0.5s' }}>
-          <img
-            src={heroDashboard}
-            alt="ChravelApp trips dashboard showing organized group travel"
-            className="rounded-xl shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300"
-          />
-        </div>
       </div>
     </div>
   );
