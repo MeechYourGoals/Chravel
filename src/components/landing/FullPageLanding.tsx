@@ -16,11 +16,11 @@ const FooterSection = lazy(() => import('./FooterSection').then(module => ({ def
 // Import cinematic hero images
 import heroImage from '@/assets/hero-images/cafe-devices-planning.png';
 import howItWorksImage from '@/assets/hero-images/friends-amusement-park.png';
-import aiImage from '@/assets/hero-images/adventure-nature-1920.jpg';
+import aiImage from '@/assets/hero-images/ai-travel-devices.png';
 import scenariosImage from '@/assets/hero-images/sports-events-1920.jpg';
 import replacesImage from '@/assets/hero-images/basketball-team-bus.png';
 import pricingWorkspaceImage from '@/assets/hero-images/skiers-mountain-resort.png';
-import faqImage from '@/assets/hero-images/golf-course-tropical.png';
+import faqImage from '@/assets/hero-images/golf-course-chravel-banner.png';
 
 
 interface FullPageLandingProps {
