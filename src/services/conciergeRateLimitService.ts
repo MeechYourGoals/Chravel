@@ -2,15 +2,17 @@
  * Concierge Rate Limiting Service for Trips/Events
  * Prevents API cost overruns while maintaining good UX
  * NOW WITH DATABASE-BACKED RATE LIMITING
- * 
+ *
  * IMPORTANT: Limits are per user, per trip (NOT daily reset):
  * - Free: 5 queries per user per trip
  * - Explorer (Plus): 10 queries per user per trip
  * - Frequent Chraveler (Pro): Unlimited
+ * - Super Admin (Founder): Unlimited
  */
 
 import { supabase } from '@/integrations/supabase/client';
 import { demoModeService } from './demoModeService';
+import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 
 export interface ConciergeUsage {
   userId: string;
@@ -25,13 +27,19 @@ class ConciergeRateLimitService {
 
   /**
    * Get per-trip query limit based on user's subscription tier
-   * 
+   *
    * Limits (per user, per trip - NO daily reset):
    * - Free: 5 queries
    * - Explorer/Plus: 10 queries
    * - Frequent Chraveler/Pro: Unlimited
+   * - Super Admin (Founder): Unlimited
    */
-  getTripLimit(userTier: 'free' | 'plus' | 'pro'): number {
+  getTripLimit(userTier: 'free' | 'plus' | 'pro', userEmail?: string): number {
+    // Super admin bypass - founders always get unlimited
+    if (userEmail && SUPER_ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
+      return Infinity;
+    }
+
     if (userTier === 'pro') return Infinity;
     if (userTier === 'plus') return 10; // Explorer tier: 10 queries per trip
     return 5; // Free: 5 queries per trip
@@ -161,7 +169,12 @@ class ConciergeRateLimitService {
   /**
    * Check if user can make another query - DATABASE-BACKED
    */
-  async canQuery(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro' = 'free'): Promise<boolean> {
+  async canQuery(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro' = 'free', userEmail?: string): Promise<boolean> {
+    // Super admin bypass - founders always can query
+    if (userEmail && SUPER_ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
+      return true;
+    }
+
     if (userTier === 'pro') return true;
 
     const usage = await this.getUsage(userId, eventId, userTier);
@@ -171,9 +184,14 @@ class ConciergeRateLimitService {
   /**
    * Get remaining queries for user in this trip
    */
-  async getRemainingQueries(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro'): Promise<number> {
+  async getRemainingQueries(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro', userEmail?: string): Promise<number> {
+    // Super admin bypass - founders always have unlimited
+    if (userEmail && SUPER_ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
+      return Infinity;
+    }
+
     if (userTier === 'pro') return Infinity;
-    
+
     const usage = await this.getUsage(userId, eventId, userTier);
     return Math.max(0, usage.tripLimit - usage.queriesUsed);
   }
