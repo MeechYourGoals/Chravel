@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import useCasesBackground from '@/assets/use-cases-stadium-chravelapp.png';
 
 const scenarios = [
   {
@@ -71,7 +72,19 @@ export const UseCasesSection = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-12 md:py-16 flex flex-col items-center justify-center min-h-screen space-y-12">
+    <div 
+      className="relative min-h-screen flex flex-col items-center justify-center py-12 md:py-16 space-y-12"
+      style={{
+        backgroundImage: `url(${useCasesBackground})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-black/50" />
+      
+      <div className="container mx-auto px-4 relative z-10 flex flex-col items-center space-y-12">
       {/* Headline */}
       <div className="text-center space-y-4 max-w-4xl">
         <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
@@ -162,6 +175,7 @@ export const UseCasesSection = () => {
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
