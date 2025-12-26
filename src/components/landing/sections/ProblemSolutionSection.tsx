@@ -9,19 +9,19 @@ export const ProblemSolutionSection = () => {
       number: 1,
       icon: <CalendarPlus size={32} className="text-primary" />,
       title: "Create a trip",
-      description: "Name it. Add dates. Done."
+      description: "Name it. Add Details. Done."
     },
     {
       number: 2,
       icon: <Share2 size={32} className="text-accent" />,
       title: "Invite your group",
-      description: "One link. No downloads."
+      description: "One Link. Easily Shared"
     },
     {
       number: 3,
       icon: <RefreshCw size={32} className="text-primary" />,
       title: "Everything syncs",
-      description: "Plans, chat, payments — live."
+      description: "Plans, Places, Photos, Payments — Live"
     }
   ];
 
