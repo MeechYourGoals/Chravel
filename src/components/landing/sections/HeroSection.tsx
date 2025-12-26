@@ -26,13 +26,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           : 'calc(env(safe-area-inset-top, 0px) + 16px)'
       }}
     >
-      {/* Demo Mode Toggle - Absolutely positioned top-right on desktop, hidden on mobile */}
+      {/* Top-right controls - CTA above Demo toggle on desktop */}
       <div 
-        className="hidden md:block absolute right-4 z-10" 
+        className="hidden md:flex flex-col items-end gap-2 absolute right-4 z-10" 
         style={{ 
           top: 'calc(env(safe-area-inset-top, 0px) + 16px)'
         }}
       >
+        <Button
+          size="default"
+          onClick={onSignUp}
+          className="text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
+        >
+          Start Free · Login/Sign Up
+        </Button>
         <DemoModeToggle />
       </div>
 
@@ -71,14 +78,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           One Shared Space for Chat, Calendar, Photos, & Payments
         </p>
 
-        {/* CTA */}
+        {/* CTA - Mobile only (desktop CTA is in top-right corner) */}
         <Button
           size="lg"
           onClick={onSignUp}
-          className="text-base md:text-xl px-6 md:px-8 py-6 md:py-7 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 animate-fade-in"
+          className="md:hidden text-base px-6 py-6 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 animate-fade-in"
           style={{ animationDelay: '0.3s' }}
         >
-          Get Started Free · Log In or Sign Up
+          Start Free · Login/Sign Up
         </Button>
 
         {/* Product Preview */}
