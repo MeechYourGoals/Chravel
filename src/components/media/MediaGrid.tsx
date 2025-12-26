@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { MediaTile } from './MediaTile';
-import { MediaViewerModal, type MediaViewerItem } from './TripMediaRenderer';
+import { MediaViewerModal, type MediaViewerItem } from './MediaViewerModal';
 import { Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import type { UploadProgress } from '@/hooks/useMediaUpload';
@@ -29,9 +29,8 @@ export const MediaGrid = ({
   uploadQueue = [],
   onDeleteItem,
 }: MediaGridProps) => {
-  const [viewingMedia, setViewingMedia] = useState<MediaViewerItem | null>(null);
+  const [activeMediaIndex, setActiveMediaIndex] = useState<number>(-1);
   const displayItems = maxItems ? items.slice(0, maxItems) : items;
-  const [activeItem, setActiveItem] = React.useState<MediaItemData | null>(null);
 
   // Derive MIME type from media_type if not provided
   const getMimeType = (item: MediaItemData): string => {
@@ -47,8 +46,24 @@ export const MediaGrid = ({
     }
   };
 
-  const handleViewMedia = (media: MediaViewerItem) => {
-    setViewingMedia(media);
+  // Convert items to MediaViewerItem format for swipe navigation
+  const viewerItems: MediaViewerItem[] = useMemo(() => {
+    return displayItems
+      .filter(item => item.media_type === 'image' || item.media_type === 'video')
+      .map(item => ({
+        id: item.id,
+        url: item.media_url,
+        mimeType: getMimeType(item),
+        fileName: item.filename,
+        metadata: item.metadata,
+      }));
+  }, [displayItems]);
+
+  const handleViewMedia = (itemId: string) => {
+    const index = viewerItems.findIndex(v => v.id === itemId);
+    if (index !== -1) {
+      setActiveMediaIndex(index);
+    }
   };
 
   return (
@@ -106,7 +121,7 @@ export const MediaGrid = ({
             fileName={item.filename}
             metadata={item.metadata}
             onDelete={onDeleteItem}
-            onView={handleViewMedia}
+            onView={(media) => handleViewMedia(item.id)}
           />
         ))}
       </div>
@@ -117,11 +132,13 @@ export const MediaGrid = ({
         </p>
       )}
 
-      {/* Media Viewer Modal */}
-      {viewingMedia && (
+      {/* Media Viewer Modal with swipe navigation */}
+      {activeMediaIndex >= 0 && viewerItems.length > 0 && (
         <MediaViewerModal
-          media={viewingMedia}
-          onClose={() => setViewingMedia(null)}
+          items={viewerItems}
+          initialIndex={activeMediaIndex}
+          onClose={() => setActiveMediaIndex(-1)}
+          onIndexChange={(newIndex) => setActiveMediaIndex(newIndex)}
         />
       )}
     </div>
