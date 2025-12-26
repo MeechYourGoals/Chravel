@@ -152,14 +152,14 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
                       >
                         {isTaskCompleted(task) && <Check size={14} className="text-white" />}
                       </button>
-                      <div className="flex-1">
-                        <h4 className="text-white font-medium">{task.title}</h4>
-                        <div className="flex items-center gap-3 mt-1">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-white font-medium break-words">{task.title}</h4>
+                        <div className="flex items-center gap-3 mt-1 flex-wrap">
                           {task.description && (
-                            <span className="text-xs text-gray-400 line-clamp-1">{task.description}</span>
+                            <span className="text-xs text-gray-400 line-clamp-1 break-words min-w-0">{task.description}</span>
                           )}
                           {task.due_at && (
-                            <span className="text-xs text-orange-400">
+                            <span className="text-xs text-orange-400 flex-shrink-0">
                               {new Date(task.due_at).toLocaleDateString()}
                             </span>
                           )}
@@ -203,10 +203,10 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
                       >
                         <Check size={14} className="text-white" />
                       </button>
-                      <div className="flex-1">
-                        <h4 className="text-gray-300 line-through">{task.title}</h4>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-gray-300 line-through break-words">{task.title}</h4>
                         {task.description && (
-                          <span className="text-xs text-gray-500 line-clamp-1">{task.description}</span>
+                          <span className="text-xs text-gray-500 line-clamp-1 break-words min-w-0">{task.description}</span>
                         )}
                       </div>
                     </div>
