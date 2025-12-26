@@ -3,7 +3,6 @@ import { LogIn } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DemoModeSelector } from '../DemoModeSelector';
 import { AuthModal } from '../AuthModal';
-import { useScrollDirection } from '@/hooks/useScrollDirection';
 import { cn } from '@/lib/utils';
 
 interface MobileAuthHeaderProps {
@@ -14,16 +13,9 @@ interface MobileAuthHeaderProps {
 // Header content height (without safe area)
 const HEADER_HEIGHT = 52;
 
-export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp, scrollContainerRef }) => {
+export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp }) => {
   const isMobile = useIsMobile();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { scrollDirection, isAtTop } = useScrollDirection({
-    threshold: 10,
-    containerRef: scrollContainerRef
-  });
-
-  // Hide header when scrolling down, show when scrolling up or at top
-  const isHidden = scrollDirection === 'down' && !isAtTop;
 
   // Only render on mobile
   if (!isMobile) return null;
@@ -38,13 +30,11 @@ export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp, sc
 
   return (
     <>
-      {/* Fixed Mobile Header - extends through safe area */}
-      <div 
+      {/* Fixed Mobile Header - always visible, extends through safe area */}
+      <div
         className={cn(
           "fixed top-0 left-0 right-0 z-50",
-          "bg-background/95 backdrop-blur-md border-b border-border/50",
-          "transition-transform duration-200 ease-out",
-          isHidden ? "-translate-y-full" : "translate-y-0"
+          "bg-background/95 backdrop-blur-md border-b border-border/50"
         )}
         style={{
           // Extend background through entire safe area
@@ -70,14 +60,14 @@ export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp, sc
             <DemoModeSelector />
           </div>
 
-          {/* Login Button */}
+          {/* Auth CTA Button - Single prominent CTA */}
           <div className="flex-shrink-0">
             <button
               onClick={handleAuthClick}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm font-medium min-h-[36px] border border-primary/30"
             >
               <LogIn size={16} />
-              <span>Log In</span>
+              <span>Log in / Sign up</span>
             </button>
           </div>
         </div>
