@@ -14,9 +14,9 @@ const PricingLandingSection = lazy(() => import('./sections/PricingLandingSectio
 const FooterSection = lazy(() => import('./FooterSection').then(module => ({ default: module.FooterSection })));
 
 // Import cinematic hero images
-import heroImage from '@/assets/hero-images/cafe-devices-planning.png';
-import howItWorksImage from '@/assets/hero-images/friends-amusement-park.png';
-import aiImage from '@/assets/hero-images/ai-travel-devices.png';
+import heroImage from '@/assets/hero-images/hero-travel-desk.png';
+import howItWorksImage from '@/assets/hero-images/festival-goers-phone.png';
+import aiImage from '@/assets/hero-images/conference-enterprise.png';
 import scenariosImage from '@/assets/hero-images/sports-events-1920.jpg';
 import replacesImage from '@/assets/hero-images/basketball-team-bus.png';
 import pricingWorkspaceImage from '@/assets/hero-images/skiers-mountain-resort.png';
