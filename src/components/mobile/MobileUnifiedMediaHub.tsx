@@ -8,13 +8,12 @@ import { useMediaManagement } from '../../hooks/useMediaManagement';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { MediaGridItem } from './MediaGridItem';
 import { SwipeableListItem } from './SwipeableListItem';
-import { MediaViewerModal, type MediaViewerItem } from '../media/TripMediaRenderer';
+import { MediaViewerModal, type MediaViewerItem } from '../media/MediaViewerModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { createTripLink } from '@/services/tripLinksService';
 import { toast } from 'sonner';
 import { TripMediaRenderer } from '@/components/media/TripMediaRenderer';
-import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 import { getUploadContentType } from '@/utils/mime';
 
 interface MediaItem {
@@ -111,10 +110,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       tags?: string[];
     }>
   >([]);
-  // Extended type for local use with metadata support
-  type ExtendedMediaViewerItem = MediaViewerItem & { metadata?: unknown };
-  // Unified active media state for both videos and images - using extended type
-  const [activeMedia, setActiveMedia] = useState<ExtendedMediaViewerItem | null>(null);
+  // Track active media index for swipe navigation (-1 means no viewer open)
+  const [activeMediaIndex, setActiveMediaIndex] = useState<number>(-1);
   const [itemToDelete, setItemToDelete] = useState<MediaItem | null>(null);
   const [linkToDelete, setLinkToDelete] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -170,10 +167,21 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
     return isDemoMode ? [...demoLocalLinks, ...linkItems] : linkItems;
   }, [demoLocalLinks, isDemoMode, linkItems]);
 
-  const resolvedActiveMediaUrl = useResolvedTripMediaUrl({
-    url: activeMedia?.url ?? null,
-    metadata: activeMedia?.metadata,
-  });
+  // Filter for swipeable media (images and videos only)
+  const swipeableMedia = useMemo(() => {
+    return mediaItems.filter(item => item.type === 'image' || item.type === 'video');
+  }, [mediaItems]);
+
+  // Convert MediaItem to MediaViewerItem for the modal
+  const viewerItems: MediaViewerItem[] = useMemo(() => {
+    return swipeableMedia.map(item => ({
+      id: item.id,
+      url: item.url,
+      mimeType: item.mimeType || (item.type === 'video' ? 'video/mp4' : 'image/jpeg'),
+      fileName: item.filename,
+      metadata: item.metadata,
+    }));
+  }, [swipeableMedia]);
 
   // Calculate counts for each tab
   const photosCount = mediaItems.filter(item => item.type === 'image').length;
@@ -686,9 +694,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                     <MediaGridItem
                       item={item}
                       onPress={() => {
-                        // Open media viewer for both videos and images
-                        const mimeType = item.type === 'video' ? 'video/mp4' : 'image/jpeg';
-                        setActiveMedia({ url: item.url, mimeType, fileName: item.filename });
+                        // Find index in swipeableMedia array for navigation
+                        const swipeIndex = swipeableMedia.findIndex(m => m.id === item.id);
+                        if (swipeIndex !== -1) {
+                          setActiveMediaIndex(swipeIndex);
+                        }
                       }}
                       onLongPress={() => {
                         setItemToDelete(item);
@@ -783,11 +793,13 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
         )}
       </div>
 
-      {/* Media Viewer Modal - Using shared component from TripMediaRenderer */}
-      {activeMedia && (
+      {/* Media Viewer Modal - With swipe navigation */}
+      {activeMediaIndex >= 0 && viewerItems.length > 0 && (
         <MediaViewerModal
-          media={activeMedia}
-          onClose={() => setActiveMedia(null)}
+          items={viewerItems}
+          initialIndex={activeMediaIndex}
+          onClose={() => setActiveMediaIndex(-1)}
+          onIndexChange={(newIndex) => setActiveMediaIndex(newIndex)}
         />
       )}
 
