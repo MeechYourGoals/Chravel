@@ -16,6 +16,7 @@ import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { conciergeCacheService } from '../services/conciergeCacheService';
+import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 
 interface AIConciergeChatProps {
   tripId: string;
@@ -62,6 +63,10 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
 
   // Helper to convert isPlus boolean to tier string
   const getUserTier = (): 'free' | 'plus' | 'pro' => {
+    // Super admin bypass - founders always get pro tier (unlimited)
+    if (user?.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      return 'pro';
+    }
     if (user?.isPro) return 'pro';
     if (isPlus) return 'plus';
     return 'free';
@@ -78,7 +83,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   // Initialize remaining queries for events and load cached messages
   useEffect(() => {
     if (isEvent && user) {
-      conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier())
+      conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier(), user.email)
         .then(remaining => {
           // PHASE 1 BUG FIX #7: Only update state if component is still mounted
           if (isMounted.current) {
@@ -91,7 +96,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
           }
         });
     }
-    
+
     // Load cached messages for offline mode (user-isolated)
     const cachedMessages = conciergeCacheService.getCachedMessages(tripId, user?.id);
     if (cachedMessages && cachedMessages.length > 0 && isMounted.current) {
@@ -148,7 +153,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
 
     // 🆕 Rate limit check for events (per-trip, no daily reset)
     if (isEvent && user) {
-      const canQuery = await conciergeRateLimitService.canQuery(user.id, tripId, getUserTier());
+      const canQuery = await conciergeRateLimitService.canQuery(user.id, tripId, getUserTier(), user.email);
       if (!canQuery) {
         setMessages(prev => [...prev, {
           id: Date.now().toString(),
@@ -305,7 +310,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       if (isEvent && user) {
         try {
           await conciergeRateLimitService.incrementUsage(user.id, tripId, getUserTier());
-          const remaining = await conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier());
+          const remaining = await conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier(), user.email);
           // PHASE 1 BUG FIX #7: Only update state if component is still mounted
           if (isMounted.current) {
             setRemainingQueries(remaining);

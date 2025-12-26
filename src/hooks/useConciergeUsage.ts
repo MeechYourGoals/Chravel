@@ -1,14 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 
 /**
  * Per-trip AI query limits for freemium model
- * 
+ *
  * IMPORTANT: These are per user, per trip limits (NO daily reset):
  * - Free: 5 queries per user per trip
  * - Explorer: 10 queries per user per trip
  * - Frequent Chraveler/Pro: Unlimited
+ * - Super Admin (Founder): Unlimited
  */
 const FREE_TIER_LIMIT = 5; // 5 queries per user per trip
 const EXPLORER_TIER_LIMIT = 10; // 10 queries per user per trip
@@ -16,7 +18,12 @@ const PAID_TIER_LIMIT = -1; // Unlimited
 
 type UserTier = 'free' | 'explorer' | 'frequent-chraveler' | 'pro';
 
-const getTierFromRole = (appRole?: string): UserTier => {
+const getTierFromRole = (appRole?: string, email?: string): UserTier => {
+  // Super admin bypass - founders always get pro tier (unlimited)
+  if (email && SUPER_ADMIN_EMAILS.includes(email.toLowerCase())) {
+    return 'pro';
+  }
+
   if (!appRole || appRole === 'consumer') return 'free';
   if (appRole === 'plus' || appRole === 'explorer') return 'explorer';
   if (appRole === 'frequent-chraveler') return 'frequent-chraveler';
@@ -54,7 +61,7 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
       if (!targetUserId) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('app_role')
+        .select('app_role, email')
         .eq('id', targetUserId)
         .single();
 
@@ -68,7 +75,8 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const userTier = getTierFromRole(profileData?.app_role);
+  // Pass both app_role and email to check for super admin status
+  const userTier = getTierFromRole(profileData?.app_role, profileData?.email || user?.email);
   const tierLimit = getLimitForTier(userTier);
 
   const { data: usage, isLoading, error, refetch } = useQuery({
