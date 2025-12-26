@@ -26,9 +26,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       }}
     >
       {/* Top-right controls - CTA above Demo toggle on desktop */}
-      <div 
-        className="hidden md:flex flex-col items-end gap-2 absolute right-4 z-10" 
-        style={{ 
+      <div
+        className="hidden md:flex flex-col items-end gap-2 absolute right-4 z-10"
+        style={{
           top: 'calc(env(safe-area-inset-top, 0px) + 16px)'
         }}
       >
@@ -37,7 +37,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           onClick={onSignUp}
           className="text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
         >
-          Start Free · Login/Sign Up
+          Log in / Sign up
         </Button>
       </div>
 
@@ -66,9 +66,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         </h2>
 
         {/* Subheadline with bold white text and shadow for contrast */}
-        <p 
+        <p
           className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white font-bold max-w-4xl animate-fade-in"
-          style={{ 
+          style={{
             animationDelay: '0.1s',
             textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)'
           }}
@@ -76,15 +76,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           One Shared Space for Chat, Calendar, Photos, Payments, & More
         </p>
 
-        {/* CTA - Mobile only (desktop CTA is in top-right corner) */}
-        <Button
-          size="lg"
-          onClick={onSignUp}
-          className="md:hidden text-base px-6 py-6 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 animate-fade-in"
-          style={{ animationDelay: '0.3s' }}
-        >
-          Start Free · Login/Sign Up
-        </Button>
+        {/* Mobile CTA removed - MobileAuthHeader provides the single prominent "Log in / Sign up" CTA on mobile */}
 
         {/* Product Preview */}
         <div className="mt-8 w-full max-w-5xl mx-auto animate-fade-in" style={{ animationDelay: '0.5s' }}>
