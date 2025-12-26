@@ -1,7 +1,6 @@
 import React from 'react';
 import { Button } from '../../ui/button';
 import { Users, Calendar, MapPin, Sparkles } from 'lucide-react';
-import { DemoModeToggle } from '../../DemoModeToggle';
 import { useIsMobile } from '@/hooks/use-mobile';
 import heroDashboard from '@/assets/app-screenshots/hero-dashboard-updated.png';
 
@@ -40,7 +39,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         >
           Start Free · Login/Sign Up
         </Button>
-        <DemoModeToggle />
       </div>
 
       {/* Brand Name - Centered, aligned with Demo toggle */}
@@ -75,7 +73,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)'
           }}
         >
-          One Shared Space for Chat, Calendar, Photos, & Payments
+          One Shared Space for Chat, Calendar, Photos, Payments, & More
         </p>
 
         {/* CTA - Mobile only (desktop CTA is in top-right corner) */}

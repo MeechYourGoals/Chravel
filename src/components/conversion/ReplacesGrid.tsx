@@ -30,7 +30,7 @@ export const ReplacesGrid = () => {
           className="text-lg sm:text-xl text-white font-medium italic underline"
           style={{ textShadow: '0 2px 6px rgba(0,0,0,0.7)' }}
         >
-          Click below to see how many disconnected apps in your travel arsenal... can be simplified with ChravelTabs
+          Click below to see how many disconnected apps can be simplified with ChravelTabs
         </p>
       </div>
 
