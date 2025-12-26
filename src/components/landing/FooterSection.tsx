@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useDemoModeStore } from '@/store/demoModeStore';
 
 const scrollToSection = (id: string) => {
   const element = document.getElementById(id);
@@ -18,7 +19,7 @@ export const FooterSection = () => {
           {/* Company Info */}
           <div className="space-y-4">
             <div className="text-2xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-              Chravel
+              ChravelApp
             </div>
             <p className="text-sm text-foreground max-w-xs">
               The AI-powered social storage platform for group plans, messages, and memories.
@@ -57,6 +58,14 @@ export const FooterSection = () => {
                 <Link to="/teams" className="text-foreground hover:text-primary transition-colors">
                   For Teams
                 </Link>
+              </li>
+              <li>
+                <button
+                  onClick={() => useDemoModeStore.getState().enable()}
+                  className="text-foreground hover:text-primary transition-colors text-left"
+                >
+                  Demo
+                </button>
               </li>
             </ul>
           </div>
