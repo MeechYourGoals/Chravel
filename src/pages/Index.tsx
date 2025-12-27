@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 import { AuthPromptBanner } from '../components/mobile/AuthPromptBanner';
 import { CreateTripModal } from '../components/CreateTripModal';
@@ -36,6 +36,7 @@ import { useMyPendingTrips } from '../hooks/useMyPendingTrips';
 import { proTripMockData } from '../data/proTripMockData';
 import { eventsMockData } from '../data/eventsMockData';
 import { tripsData } from '../data/tripsData';
+import { demoModeService } from '../services/demoModeService';
 import { mockMyPendingRequests } from '../mockData/pendingRequestsMock';
 import { calculateTripStats, calculateProTripStats, calculateEventStats, filterItemsByStatus } from '../utils/tripStatsCalculator';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -71,6 +72,16 @@ const Index = () => {
   const { demoView, isDemoMode } = useDemoMode();
   const isMobilePortrait = useMobilePortrait();
 
+  // Counter to force re-renders when demo session state changes (archive/hide)
+  const [demoRefreshCounter, setDemoRefreshCounter] = useState(0);
+
+  // Callback to refresh trip list when a trip is archived/hidden in demo mode
+  const handleTripStateChange = useCallback(() => {
+    if (isDemoMode) {
+      setDemoRefreshCounter(prev => prev + 1);
+    }
+  }, [isDemoMode]);
+
   // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
   // The hook handles demo mode internally, returning empty arrays when in demo mode
   const { trips: userTripsRaw, loading: tripsLoading } = useTrips();
@@ -84,16 +95,28 @@ const Index = () => {
   // Use centralized trip data - demo data or real user data converted to mock format
   // ✅ FILTER: Only consumer trips in allTrips (Pro/Event filtered separately below)
   // ✅ FILTER: Exclude archived trips from main list (they have their own section)
+  // ✅ FILTER: In demo mode, also exclude session-archived/hidden trips
   // ✅ SEPARATE: Pending trips from active trips
   const { activeTrips: allTrips, pendingTrips } = useMemo(() => {
     if (isDemoMode) {
+      // Get session-scoped archived/hidden trip IDs
+      const archivedIds = demoModeService.getSessionArchivedTripIds();
+      const hiddenIds = demoModeService.getSessionHiddenTripIds();
+
+      // Filter out trips that have been archived or hidden in this session
+      const filteredTrips = tripsData.filter(t =>
+        !t.archived &&
+        !archivedIds.includes(t.id.toString()) &&
+        !hiddenIds.includes(t.id.toString())
+      );
+
       return {
-        activeTrips: tripsData.filter(t => !t.archived),
+        activeTrips: filteredTrips,
         pendingTrips: []
       };
     }
     const converted = convertSupabaseTripsToMock(
-      userTripsRaw.filter(t => 
+      userTripsRaw.filter(t =>
         (t.trip_type === 'consumer' || !t.trip_type) && !t.is_archived
       )
     );
@@ -104,7 +127,8 @@ const Index = () => {
       activeTrips: active,
       pendingTrips: pending
     };
-  }, [isDemoMode, userTripsRaw]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemoMode, userTripsRaw, demoRefreshCounter]);
   
   // Unified semantic search + date facet filtering
   const trips = useMemo(() => {
@@ -497,6 +521,7 @@ const Index = () => {
                   loading={isLoading}
                   onCreateTrip={handleCreateTrip}
                   activeFilter={recsFilter}
+                  onTripStateChange={handleTripStateChange}
                 />
               </div>
             </div>
@@ -644,6 +669,7 @@ const Index = () => {
                     loading={isLoading}
                     onCreateTrip={handleCreateTrip}
                     activeFilter={recsFilter}
+                    onTripStateChange={handleTripStateChange}
                   />
                 </div>
               </div>
@@ -841,6 +867,7 @@ const Index = () => {
             onCreateTrip={handleCreateTrip}
             activeFilter={activeFilter}
             myPendingRequests={isDemoMode ? mockMyPendingRequests : myPendingRequests}
+            onTripStateChange={handleTripStateChange}
           />
         </div>
 
