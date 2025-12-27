@@ -3,11 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Switch } from '../ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Calendar, ExternalLink, Settings, Download } from 'lucide-react';
+import { Calendar, ExternalLink, Settings, Download, Crown, Lock } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { CalendarEvent } from '../../types/calendar';
 import { calendarExporter } from '../../utils/calendarExport';
 import { useToast } from '../../hooks/use-toast';
+import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
 
 interface CalendarSyncModalProps {
   isOpen: boolean;
@@ -33,6 +34,11 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
   events
 }) => {
   const { toast } = useToast();
+  const { tier, upgradeToTier, isLoading: isUpgrading } = useConsumerSubscription();
+
+  // Calendar Sync requires Explorer+ tier (ICS download is free for all)
+  const hasSyncAccess = tier === 'explorer' || tier === 'frequent-chraveler';
+
   const [providers, setProviders] = useState<CalendarProvider[]>([
     {
       id: 'google',
@@ -64,6 +70,16 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
   ]);
 
   const handleConnect = async (providerId: string) => {
+    // Check subscription first
+    if (!hasSyncAccess) {
+      toast({
+        title: 'Upgrade Required',
+        description: 'Calendar sync is available with Explorer and Frequent Chraveler plans.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     // This would normally trigger OAuth flow
     toast({
       title: 'API Key Required',
@@ -136,9 +152,55 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
 
           {/* Calendar Providers */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Calendar Integrations</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Calendar Integrations</h3>
+              {!hasSyncAccess && (
+                <Badge variant="secondary" className="bg-amber-500/20 text-amber-300 border-amber-500/30">
+                  <Crown className="w-3 h-3 mr-1" />
+                  Explorer+
+                </Badge>
+              )}
+            </div>
+
+            {/* Upgrade prompt for free users */}
+            {!hasSyncAccess && (
+              <Card className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border-purple-500/30">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600">
+                      <Crown className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Upgrade to Sync Calendars</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Auto-sync trip events with Google, Outlook, or Apple Calendar.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => upgradeToTier('explorer', 'monthly')}
+                      disabled={isUpgrading}
+                      size="sm"
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700"
+                    >
+                      {isUpgrading ? 'Processing...' : 'Explorer $9.99/mo'}
+                    </Button>
+                    <Button
+                      onClick={() => upgradeToTier('frequent-chraveler', 'monthly')}
+                      disabled={isUpgrading}
+                      size="sm"
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700"
+                    >
+                      {isUpgrading ? 'Processing...' : 'Frequent Chraveler $19.99/mo'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {providers.map((provider) => (
-              <Card key={provider.id}>
+              <Card key={provider.id} className={!hasSyncAccess ? 'opacity-60' : ''}>
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -153,12 +215,17 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      {provider.connected ? (
+                      {!hasSyncAccess ? (
+                        <Badge variant="secondary" className="text-muted-foreground">
+                          <Lock className="w-3 h-3 mr-1" />
+                          Locked
+                        </Badge>
+                      ) : provider.connected ? (
                         <>
                           <Badge variant="secondary">Connected</Badge>
                           <Switch
                             checked={provider.syncEnabled}
-                            onCheckedChange={(checked) => 
+                            onCheckedChange={(checked) =>
                               handleSyncToggle(provider.id, checked)
                             }
                           />
@@ -181,9 +248,12 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
           </div>
 
           {/* Sync Settings */}
-          <Card>
+          <Card className={!hasSyncAccess ? 'opacity-60' : ''}>
             <CardHeader>
-              <CardTitle className="text-lg">Sync Settings</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                Sync Settings
+                {!hasSyncAccess && <Lock className="w-4 h-4 text-muted-foreground" />}
+              </CardTitle>
               <CardDescription>
                 Control how your trip events are synchronized
               </CardDescription>
@@ -191,15 +261,15 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span>Auto-sync new events</span>
-                <Switch defaultChecked />
+                <Switch defaultChecked disabled={!hasSyncAccess} />
               </div>
               <div className="flex items-center justify-between">
                 <span>Sync event updates</span>
-                <Switch defaultChecked />
+                <Switch defaultChecked disabled={!hasSyncAccess} />
               </div>
               <div className="flex items-center justify-between">
                 <span>Include private events</span>
-                <Switch />
+                <Switch disabled={!hasSyncAccess} />
               </div>
             </CardContent>
           </Card>

@@ -70,7 +70,7 @@ const consumerTiers: PricingTier[] = [
     ],
     cta: 'Try It Free',
     category: 'consumer',
-    limitation: 'To create a new trip after 3, you\'ll need to delete an old one.'
+    limitation: 'Archive trips to make room for new ones. Upgrade to restore anytime!'
   },
   {
     id: 'explorer',
@@ -236,7 +236,7 @@ const valuePropItems = [
 const faqItems = [
   {
     question: "What happens when I hit my 3-trip limit?",
-    answer: "You'll need to delete an old trip to create a new one. Or upgrade to Explorer to keep unlimited trips!"
+    answer: "Your trips are never deleted! Just archive a trip to make room for new ones. Archived trips are safely stored and can be restored anytime after upgrading to Explorer or Frequent Chraveler."
   },
   {
     question: "How do AI queries work on each plan?",

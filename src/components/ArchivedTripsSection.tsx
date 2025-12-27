@@ -7,10 +7,11 @@ import { getArchivedTrips, restoreTrip, getHiddenTrips, unhideTrip } from '../se
 import { useToast } from '../hooks/use-toast';
 import { supabase } from '../integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArchiveRestore, Calendar, MapPin, Users, Archive, Eye, EyeOff } from 'lucide-react';
+import { ArchiveRestore, Calendar, MapPin, Users, Archive, Eye, EyeOff, Crown, Lock } from 'lucide-react';
 import { EnhancedEmptyState } from './ui/enhanced-empty-state';
 import { format } from 'date-fns';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 
 type TabType = 'archived' | 'hidden';
 
@@ -57,13 +58,18 @@ export const ArchivedTripsSection = () => {
     tripTitle: '',
     tripType: 'consumer'
   });
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isDemoMode } = useDemoMode();
+  const { tier, upgradeToTier, isLoading: isUpgrading } = useConsumerSubscription();
   const [archivedTrips, setArchivedTrips] = useState<{ consumer: any[]; pro: any[]; events: any[]; total: number }>({ consumer: [], pro: [], events: [], total: 0 });
   const [hiddenTrips, setHiddenTrips] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Free users can see archived trips but cannot restore them without upgrading
+  const isFreeUser = tier === 'free';
+  const canRestoreTrips = !isFreeUser;
 
   const loadTrips = async () => {
     setIsLoading(true);
@@ -102,20 +108,33 @@ export const ArchivedTripsSection = () => {
   }, [confirmDialog.isOpen, isDemoMode]);
 
   const handleRestoreClick = async (tripId: string, tripTitle: string, tripType: 'consumer' | 'pro' | 'event') => {
+    // Free users cannot restore - show upgrade prompt
+    if (isFreeUser) {
+      toast({
+        title: "Upgrade to Restore",
+        description: "Upgrade to Explorer or Frequent Chraveler to restore archived trips and unlock unlimited trips.",
+        action: {
+          label: 'View Plans',
+          onClick: () => { window.location.href = '/settings'; }
+        }
+      });
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       await restoreTrip(tripId, tripType, user.id);
-      
+
       // Invalidate trips query cache so main list updates immediately
       queryClient.invalidateQueries({ queryKey: ['trips'] });
-      
+
       toast({
         title: "Trip restored",
         description: `"${tripTitle}" has been restored to your trips list.`,
       });
-      
+
       loadTrips();
     } catch (error) {
       if (error instanceof Error && error.message === 'TRIP_LIMIT_REACHED') {
@@ -172,7 +191,7 @@ export const ArchivedTripsSection = () => {
   };
 
   const renderArchivedTripCard = (trip: any, type: 'consumer' | 'pro' | 'event') => (
-    <Card key={`${type}-${trip.id}`} className="bg-card border-border">
+    <Card key={`${type}-${trip.id}`} className={`bg-card border-border ${isFreeUser ? 'opacity-80' : ''}`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -200,6 +219,12 @@ export const ArchivedTripsSection = () => {
             <Badge variant="secondary" className="text-xs">
               {type === 'consumer' ? 'Personal' : type === 'pro' ? 'Professional' : 'Event'}
             </Badge>
+            {isFreeUser && (
+              <Badge variant="secondary" className="text-xs bg-amber-500/20 text-amber-300 border-amber-500/30">
+                <Lock className="h-3 w-3 mr-1" />
+                Locked
+              </Badge>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -208,20 +233,33 @@ export const ArchivedTripsSection = () => {
           <p className="text-sm text-muted-foreground line-clamp-2">
             {trip.description || 'No description'}
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setConfirmDialog({
-              isOpen: true,
-              tripId: trip.id.toString(),
-              tripTitle: trip.name || trip.title || 'Untitled Trip',
-              tripType: type
-            })}
-            className="ml-4 flex items-center gap-2"
-          >
-            <ArchiveRestore className="h-4 w-4" />
-            Restore
-          </Button>
+          {isFreeUser ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => upgradeToTier('explorer', 'monthly')}
+              disabled={isUpgrading}
+              className="ml-4 flex items-center gap-2 bg-gradient-to-r from-amber-500/20 to-amber-600/20 border-amber-500/30 hover:bg-amber-500/30"
+            >
+              <Crown className="h-4 w-4 text-amber-400" />
+              {isUpgrading ? 'Processing...' : 'Upgrade to Restore'}
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmDialog({
+                isOpen: true,
+                tripId: trip.id.toString(),
+                tripTitle: trip.name || trip.title || 'Untitled Trip',
+                tripType: type
+              })}
+              className="ml-4 flex items-center gap-2"
+            >
+              <ArchiveRestore className="h-4 w-4" />
+              Restore
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -315,6 +353,37 @@ export const ArchivedTripsSection = () => {
       {/* Content */}
       {activeTab === 'archived' ? (
         <div className="space-y-4">
+          {/* Upgrade banner for free users with archived trips */}
+          {isFreeUser && hasArchivedTrips && (
+            <Card className="bg-gradient-to-r from-amber-900/30 to-amber-800/30 border-amber-500/30">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600">
+                      <Crown className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-amber-100">Your trips are safe!</h4>
+                      <p className="text-sm text-amber-200/70">
+                        Upgrade to unlock {archivedTrips.total} archived trip{archivedTrips.total !== 1 ? 's' : ''} and get unlimited active trips.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => upgradeToTier('explorer', 'monthly')}
+                      disabled={isUpgrading}
+                      size="sm"
+                      className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white"
+                    >
+                      {isUpgrading ? 'Processing...' : 'Upgrade Now'}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {hasArchivedTrips ? (
             <div className="grid gap-4">
               {archivedTrips.consumer.map(trip => renderArchivedTripCard(trip, 'consumer'))}
@@ -325,7 +394,7 @@ export const ArchivedTripsSection = () => {
             <EnhancedEmptyState
               icon={Archive}
               title="No archived trips"
-              description="Trips you archive will appear here."
+              description="Trips you archive will appear here. Free users can archive trips to stay within the 3-trip limit — upgrade anytime to restore them!"
             />
           )}
         </div>

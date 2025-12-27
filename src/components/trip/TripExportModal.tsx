@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Download, Loader2, FileText } from 'lucide-react';
+import { X, Download, Loader2, FileText, Crown } from 'lucide-react';
 import { ExportSection } from '@/types/tripExport';
 import { isConsumerTrip } from '@/utils/tripTierDetector';
+import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 
 interface TripExportModalProps {
   isOpen: boolean;
@@ -19,6 +20,10 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   tripId,
 }) => {
   const isConsumer = isConsumerTrip(tripId);
+  const { tier, upgradeToTier, isLoading: isUpgrading } = useConsumerSubscription();
+
+  // PDF Export requires Explorer+ tier
+  const hasExportAccess = tier === 'explorer' || tier === 'frequent-chraveler';
   
   const [selectedSections, setSelectedSections] = useState<ExportSection[]>([
     'calendar',
@@ -71,8 +76,8 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Export is now available to everyone
-  const hasAccess = true;
+  // PDF Export requires Explorer+ subscription
+  const hasAccess = hasExportAccess;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2">
@@ -100,19 +105,30 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
         {/* Content */}
         <div className="p-3 overflow-y-auto flex-1">
           {!hasAccess ? (
-            <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 border border-purple-500/30 rounded-lg p-3 mb-3">
-              <h3 className="text-sm font-semibold text-white mb-1">Upgrade Required</h3>
-              <p className="text-gray-300 text-xs mb-2">
-                PDF Export is available for Frequent Chraveler and Enterprise tiers.
+            <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 border border-purple-500/30 rounded-lg p-4 mb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Crown size={18} className="text-yellow-400" />
+                <h3 className="text-sm font-semibold text-white">Upgrade to Export</h3>
+              </div>
+              <p className="text-gray-300 text-xs mb-3">
+                PDF Trip Recaps are available with Explorer and Frequent Chraveler plans. Create beautiful memory books of your adventures!
               </p>
-              <button
-                onClick={() => {
-                  window.location.href = '/pricing';
-                }}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-3 py-1.5 text-xs rounded-lg transition-all"
-              >
-                Upgrade Now
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => upgradeToTier('explorer', 'monthly')}
+                  disabled={isUpgrading}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-3 py-2 text-xs rounded-lg transition-all disabled:opacity-50"
+                >
+                  {isUpgrading ? 'Processing...' : 'Explorer $9.99/mo'}
+                </button>
+                <button
+                  onClick={() => upgradeToTier('frequent-chraveler', 'monthly')}
+                  disabled={isUpgrading}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-3 py-2 text-xs rounded-lg transition-all disabled:opacity-50"
+                >
+                  {isUpgrading ? 'Processing...' : 'Frequent Chraveler $19.99/mo'}
+                </button>
+              </div>
             </div>
           ) : (
             <>

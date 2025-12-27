@@ -128,7 +128,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
             <div>
               <h4 className="text-white font-medium mb-3">Free Plan</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>• Up to 3 active trips</li>
+                <li>• Up to 3 active trips (archive to save more)</li>
                 <li>• Basic group chat</li>
                 <li>• Shared calendar (manual)</li>
                 <li>• Photo & video sharing</li>
@@ -139,7 +139,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
               <h4 className="text-white font-medium mb-3">{selectedTier === 'explorer' ? 'Explorer' : 'Frequent Chraveler'}</h4>
               {selectedTier === 'explorer' ? (
                 <ul className="space-y-2 text-sm text-green-300">
-                  <li>• Unlimited saved trips</li>
+                  <li>• Unlimited saved trips + restore archived</li>
                   <li>• 10 AI queries per user per trip</li>
                   <li>• Location-aware AI</li>
                   <li>• Custom trip categories</li>
