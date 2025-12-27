@@ -96,8 +96,8 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   const showUpgradePrompt = !isPaidUser && !canExport;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2">
-      <div className="bg-gray-900 rounded-xl shadow-2xl max-w-md w-full max-h-[85vh] border border-gray-700 flex flex-col">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-2">
+      <div className="bg-gray-900 rounded-t-2xl sm:rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] sm:max-h-[85vh] border border-gray-700 flex flex-col pb-[env(safe-area-inset-bottom)]">
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b border-gray-700 flex-shrink-0">
           <div className="flex items-center gap-2">
@@ -111,10 +111,10 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors p-1"
+            className="text-gray-400 hover:text-white transition-colors p-2 -m-1 min-w-[44px] min-h-[44px] flex items-center justify-center"
             disabled={isExporting}
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
@@ -130,18 +130,18 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
               <p className="text-gray-300 text-xs mb-3">
                 You've used your free export for this trip. Upgrade to create unlimited PDF recaps and share your adventures with everyone!
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   onClick={() => upgradeToTier('explorer', 'monthly')}
                   disabled={isUpgrading}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-3 py-2 text-xs rounded-lg transition-all disabled:opacity-50"
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-3 py-2.5 text-sm rounded-lg transition-all disabled:opacity-50 min-h-[44px]"
                 >
                   {isUpgrading ? 'Processing...' : 'Explorer $9.99/mo'}
                 </button>
                 <button
                   onClick={() => upgradeToTier('frequent-chraveler', 'monthly')}
                   disabled={isUpgrading}
-                  className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-3 py-2 text-xs rounded-lg transition-all disabled:opacity-50"
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-3 py-2.5 text-sm rounded-lg transition-all disabled:opacity-50 min-h-[44px]"
                 >
                   {isUpgrading ? 'Processing...' : 'Frequent Chraveler $19.99/mo'}
                 </button>

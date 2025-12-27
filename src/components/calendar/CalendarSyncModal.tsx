@@ -112,7 +112,7 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto pb-[env(safe-area-inset-bottom)]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5" />
@@ -130,15 +130,16 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <Button onClick={handleExportICS} variant="outline">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button onClick={handleExportICS} variant="outline" className="min-h-[44px]">
                   <Download className="w-4 h-4 mr-2" />
                   Download ICS File
                 </Button>
-                <Button 
+                <Button
                   onClick={() => handleQuickAdd(events[0])}
                   variant="outline"
                   disabled={events.length === 0}
+                  className="min-h-[44px]"
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
                   Add to Google Calendar
@@ -177,20 +178,18 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                       onClick={() => upgradeToTier('explorer', 'monthly')}
                       disabled={isUpgrading}
-                      size="sm"
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700"
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 min-h-[44px]"
                     >
                       {isUpgrading ? 'Processing...' : 'Explorer $9.99/mo'}
                     </Button>
                     <Button
                       onClick={() => upgradeToTier('frequent-chraveler', 'monthly')}
                       disabled={isUpgrading}
-                      size="sm"
-                      className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700"
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 min-h-[44px]"
                     >
                       {isUpgrading ? 'Processing...' : 'Frequent Chraveler $19.99/mo'}
                     </Button>

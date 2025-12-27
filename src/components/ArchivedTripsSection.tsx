@@ -236,10 +236,9 @@ export const ArchivedTripsSection = () => {
           {isFreeUser ? (
             <Button
               variant="outline"
-              size="sm"
               onClick={() => upgradeToTier('explorer', 'monthly')}
               disabled={isUpgrading}
-              className="ml-4 flex items-center gap-2 bg-gradient-to-r from-amber-500/20 to-amber-600/20 border-amber-500/30 hover:bg-amber-500/30"
+              className="ml-4 flex items-center gap-2 bg-gradient-to-r from-amber-500/20 to-amber-600/20 border-amber-500/30 hover:bg-amber-500/30 min-h-[44px]"
             >
               <Crown className="h-4 w-4 text-amber-400" />
               {isUpgrading ? 'Processing...' : 'Upgrade to Restore'}
@@ -247,14 +246,13 @@ export const ArchivedTripsSection = () => {
           ) : (
             <Button
               variant="outline"
-              size="sm"
               onClick={() => setConfirmDialog({
                 isOpen: true,
                 tripId: trip.id.toString(),
                 tripTitle: trip.name || trip.title || 'Untitled Trip',
                 tripType: type
               })}
-              className="ml-4 flex items-center gap-2"
+              className="ml-4 flex items-center gap-2 min-h-[44px]"
             >
               <ArchiveRestore className="h-4 w-4" />
               Restore
@@ -297,9 +295,8 @@ export const ArchivedTripsSection = () => {
           </p>
           <Button
             variant="outline"
-            size="sm"
             onClick={() => handleUnhideClick(trip.id, trip.name || 'Untitled Trip')}
-            className="ml-4 flex items-center gap-2"
+            className="ml-4 flex items-center gap-2 min-h-[44px]"
           >
             <Eye className="h-4 w-4" />
             Unhide
@@ -357,9 +354,9 @@ export const ArchivedTripsSection = () => {
           {isFreeUser && hasArchivedTrips && (
             <Card className="bg-gradient-to-r from-amber-900/30 to-amber-800/30 border-amber-500/30">
               <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600">
+                    <div className="p-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 flex-shrink-0">
                       <Crown className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -369,16 +366,13 @@ export const ArchivedTripsSection = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => upgradeToTier('explorer', 'monthly')}
-                      disabled={isUpgrading}
-                      size="sm"
-                      className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white"
-                    >
-                      {isUpgrading ? 'Processing...' : 'Upgrade Now'}
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={() => upgradeToTier('explorer', 'monthly')}
+                    disabled={isUpgrading}
+                    className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white min-h-[44px] w-full sm:w-auto"
+                  >
+                    {isUpgrading ? 'Processing...' : 'Upgrade Now'}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
