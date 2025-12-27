@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { CheckCircle, Search, AlertCircle, Crown, Clock } from 'lucide-react';
+import { CheckCircle, Search, AlertCircle, Crown, Clock, Sparkles } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { TripPreferences } from '../types/consumer';
 import { TripContextService } from '../services/tripContextService';
@@ -516,23 +516,34 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
 
         {/* Usage Limit Reached State */}
         {isFreeUser && usage?.isLimitReached && (
-        <div className="text-center py-8 mb-6 flex-shrink-0">
-          <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="text-center py-6 px-4 mb-4 flex-shrink-0">
+          <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <Crown size={24} className="text-white" />
           </div>
-          <h4 className="text-white font-medium mb-3">Trip Limit Reached</h4>
-          <div className="text-sm text-gray-300 space-y-3 max-w-md mx-auto">
-            <p>You've used all {usage.limit} free AI queries for this trip.</p>
-            <div className="mt-4">
-              <Button
-                onClick={() => window.open(upgradeUrl, '_blank')}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-              >
-                <Crown size={16} className="mr-2" />
-                Upgrade to Explorer for 10 Queries
-              </Button>
-            </div>
+          <h4 className="text-white font-medium mb-2">Trip Limit Reached</h4>
+          <p className="text-sm text-gray-300 mb-4 max-w-sm mx-auto">
+            You've used all {usage.limit} free AI queries for this trip. Upgrade to keep planning!
+          </p>
+          <div className="flex flex-col gap-2 max-w-xs mx-auto">
+            <Button
+              onClick={() => window.location.href = upgradeUrl}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 w-full"
+            >
+              <Crown size={16} className="mr-2" />
+              Explorer - 10 Queries/Trip ($9.99/mo)
+            </Button>
+            <Button
+              onClick={() => window.location.href = upgradeUrl}
+              variant="outline"
+              className="bg-gradient-to-r from-purple-500/20 to-purple-600/20 border-purple-500/50 hover:bg-purple-500/30 w-full"
+            >
+              <Sparkles size={16} className="mr-2" />
+              Frequent Chraveler - Unlimited ($19.99/mo)
+            </Button>
           </div>
+          <p className="text-xs text-gray-500 mt-3">
+            Your previous conversations are saved and will remain accessible.
+          </p>
         </div>
         )}
 

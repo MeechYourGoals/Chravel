@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, User, MoreHorizontal, Archive, Flame, TrendingUp, EyeOff, FileDown, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, User, MoreHorizontal, Archive, Flame, TrendingUp, EyeOff, FileDown, Trash2, Crown } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { InviteModal } from './InviteModal';
 import { ShareTripModal } from './share/ShareTripModal';
@@ -20,6 +20,7 @@ import { useDemoMode } from '../hooks/useDemoMode';
 import { ExportSection } from '@/types/tripExport';
 import { demoModeService } from '../services/demoModeService';
 import { openOrDownloadBlob } from '../utils/download';
+import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,6 +67,10 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
+  const { tier } = useConsumerSubscription();
+
+  // Free users use archive-first (no hard delete) to preserve their trips
+  const isFreeUser = tier === 'free';
   
   // Get added members from the demo store - use stable empty array reference with shallow comparison
   const tripIdStr = trip.id.toString();
@@ -119,7 +124,7 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
     if (!user?.id) {
       toast({
         title: "Not logged in",
-        description: "You must be logged in to delete a trip.",
+        description: "You must be logged in to manage trips.",
         variant: "destructive",
       });
       return;
@@ -129,7 +134,7 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
     try {
       await deleteTripForMe(trip.id.toString(), user.id);
       toast({
-        title: "Trip deleted",
+        title: "Trip removed",
         description: `"${trip.title}" has been removed from your account.`,
       });
       setShowDeleteDialog(false);
@@ -137,15 +142,38 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       if (errorMessage === 'CREATOR_CANNOT_DELETE') {
-        toast({
-          title: "Cannot delete trip",
-          description: "As the trip creator, you cannot delete this trip for yourself. Consider archiving it instead.",
-          variant: "destructive",
-        });
+        // For free users (trip creators), archive instead of blocking
+        if (isFreeUser) {
+          try {
+            await archiveTrip(trip.id.toString(), 'consumer');
+            toast({
+              title: "Trip archived",
+              description: `"${trip.title}" has been archived. Upgrade to restore it anytime!`,
+              action: {
+                label: 'View Plans',
+                onClick: () => { window.location.href = '/settings'; }
+              }
+            });
+            setShowDeleteDialog(false);
+            onArchiveSuccess?.();
+          } catch (archiveError) {
+            toast({
+              title: "Failed to archive trip",
+              description: "There was an error archiving your trip. Please try again.",
+              variant: "destructive",
+            });
+          }
+        } else {
+          toast({
+            title: "Cannot delete trip",
+            description: "As the trip creator, you can archive this trip instead.",
+            variant: "destructive",
+          });
+        }
       } else {
         toast({
-          title: "Failed to delete trip",
-          description: "There was an error deleting your trip. Please try again.",
+          title: "Failed to remove trip",
+          description: "There was an error removing the trip. Please try again.",
           variant: "destructive",
         });
       }
@@ -366,10 +394,19 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setShowDeleteDialog(true)}
-                className="text-destructive hover:text-destructive"
+                className={isFreeUser ? "text-muted-foreground hover:text-foreground" : "text-destructive hover:text-destructive"}
               >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete for me
+                {isFreeUser ? (
+                  <>
+                    <Archive className="mr-2 h-4 w-4" />
+                    Archive Trip
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete for me
+                  </>
+                )}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

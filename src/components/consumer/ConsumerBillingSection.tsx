@@ -54,14 +54,16 @@ export const ConsumerBillingSection = () => {
       price: 0,
       icon: Crown,
       features: [
-        'Up to 3 active trips',
+        'Up to 3 active trips (archive to save more)',
         'Unlimited participants',
         'Core group chat',
         'Shared calendar (manual)',
         'Photo & video sharing',
         'Basic itinerary planning',
         'Expense tracking',
-        'AI Trip Assistant (5 queries per user per trip)'
+        'AI Trip Assistant (5 queries per user per trip)',
+        '1 PDF export per trip',
+        'ICS calendar download'
       ]
     },
     explorer: {
@@ -70,8 +72,9 @@ export const ConsumerBillingSection = () => {
       annualPrice: CONSUMER_PRICING.explorer.annual,
       icon: Globe,
       features: [
-        'Unlimited saved trips',
+        'Unlimited saved trips + restore archived',
         '10 AI queries per user per trip',
+        'Unlimited PDF exports',
         'Location-aware AI suggestions',
         'Smart notifications',
         'Search past trips',

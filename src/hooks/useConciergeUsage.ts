@@ -31,8 +31,8 @@ const getLimitForTier = (tier: UserTier): number => {
 };
 
 const getUpgradeUrlForTier = (tier: UserTier): string => {
-  if (tier === 'free') return '/settings/billing?plan=explorer';
-  return '/settings/billing';
+  // All upgrade actions go to settings - the billing section handles tier selection
+  return '/settings';
 };
 
 export interface ConciergeUsage {

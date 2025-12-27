@@ -64,13 +64,15 @@ const consumerTiers: PricingTier[] = [
       'Payment tracking',
       'Polls & group decisions',
       'AI Trip Assistant (5 queries per user per trip)',
+      '1 PDF export per trip (sample it!)',
+      'ICS calendar export',
       'Save up to 3 active trips',
       '🎁 1 free Pro trip to try',
       '🎁 1 free Event to try'
     ],
     cta: 'Try It Free',
     category: 'consumer',
-    limitation: 'To create a new trip after 3, you\'ll need to delete an old one.'
+    limitation: 'Archive trips to make room for new ones. Upgrade to restore anytime!'
   },
   {
     id: 'explorer',
@@ -82,8 +84,9 @@ const consumerTiers: PricingTier[] = [
     icon: <Globe size={24} />,
     features: [
       'Everything in Free',
-      'Unlimited saved trips',
+      'Unlimited saved trips + restore archived',
       '10 AI queries per user per trip',
+      'Unlimited PDF exports',
       'Location-aware AI recommendations',
       'Search past trips and memories'
     ],
@@ -236,7 +239,7 @@ const valuePropItems = [
 const faqItems = [
   {
     question: "What happens when I hit my 3-trip limit?",
-    answer: "You'll need to delete an old trip to create a new one. Or upgrade to Explorer to keep unlimited trips!"
+    answer: "Your trips are never deleted! Just archive a trip to make room for new ones. Archived trips are safely stored and can be restored anytime after upgrading to Explorer or Frequent Chraveler."
   },
   {
     question: "How do AI queries work on each plan?",
