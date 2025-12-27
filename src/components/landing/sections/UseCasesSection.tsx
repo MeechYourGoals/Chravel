@@ -73,11 +73,11 @@ export const UseCasesSection = () => {
 
   return (
     <div 
-      className="relative min-h-screen flex flex-col items-center justify-center py-12 md:py-16 space-y-12"
+      className="relative min-h-screen flex flex-col items-center justify-start pt-16 md:pt-24 pb-12 md:pb-16 space-y-12"
       style={{
         backgroundImage: `url(${useCasesBackground})`,
         backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundPosition: 'center bottom',
         backgroundRepeat: 'no-repeat'
       }}
     >
@@ -85,13 +85,13 @@ export const UseCasesSection = () => {
       <div className="absolute inset-0 bg-black/50" />
       
       <div className="container mx-auto px-4 relative z-10 flex flex-col items-center space-y-12">
-      {/* Headline */}
+      {/* Headline - positioned higher to avoid towel overlap */}
       <div className="text-center space-y-4 max-w-4xl">
         <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
           Built for Every Journey
         </h2>
         <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-          From family vacations to sports travel & tours to business trips. ChravelApp handles it all
+          For work trips, vacations, sports teams, tours, and even local events. ChravelApp is designed to handle it all.
         </p>
       </div>
 

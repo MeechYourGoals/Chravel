@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { ToastAction } from './ui/toast';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -136,10 +137,11 @@ export const ArchivedTripsSection = () => {
       toast({
         title: "Upgrade to Restore",
         description: "Upgrade to Explorer or Frequent Chraveler to restore archived trips and unlock unlimited trips.",
-        action: {
-          label: 'View Plans',
-          onClick: () => { window.location.href = '/settings'; }
-        }
+        action: (
+          <ToastAction altText="View Plans" onClick={() => { window.location.href = '/settings'; }}>
+            View Plans
+          </ToastAction>
+        )
       });
       return;
     }
