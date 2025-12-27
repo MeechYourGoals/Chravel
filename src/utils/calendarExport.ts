@@ -1,3 +1,5 @@
+import { brandEventTitleForIcs } from './icsBranding';
+
 export interface ICSEvent {
   title: string;
   start: Date;
@@ -34,7 +36,7 @@ export class CalendarExporter {
 
   exportToICS(events: ICSExportEvent[], tripName: string): string {
     const icsEvents = events.map(event => ({
-      title: event.title,
+      title: brandEventTitleForIcs(event.title), // Apply ChravelApp branding
       start: event.date instanceof Date ? event.date : new Date(event.date),
       end: new Date((event.date instanceof Date ? event.date : new Date(event.date)).getTime() + (2 * 60 * 60 * 1000)), // 2 hours default
       location: event.location,
@@ -49,7 +51,7 @@ export class CalendarExporter {
     const lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Ravel//Trip Planning//EN',
+      'PRODID:-//Chravel//Trip Planning//EN',
       `X-WR-CALNAME:${this.escapeText(calendarName)}`,
       'X-WR-TIMEZONE:UTC',
       'CALSCALE:GREGORIAN',
@@ -58,7 +60,7 @@ export class CalendarExporter {
 
     events.forEach(event => {
       lines.push('BEGIN:VEVENT');
-      lines.push(`UID:${event.uid}@ravel.app`);
+      lines.push(`UID:${event.uid}@chravel.app`);
       lines.push(`DTSTART:${this.formatDate(event.start)}`);
       lines.push(`DTEND:${this.formatDate(event.end)}`);
       lines.push(`SUMMARY:${this.escapeText(event.title)}`);
@@ -115,7 +117,7 @@ export class CalendarExporter {
       google: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${params.title}&dates=${params.start}/${params.end}&location=${params.location}&details=${params.description}`,
       outlook: `https://outlook.live.com/calendar/0/deeplink/compose?subject=${params.title}&startdt=${params.start}&enddt=${params.end}&location=${params.location}&body=${params.description}`,
       apple: `data:text/calendar;charset=utf8,${encodeURIComponent(this.generateICS([{
-        title: event.title,
+        title: brandEventTitleForIcs(event.title), // Apply ChravelApp branding
         start: eventDate,
         end: new Date(eventDate.getTime() + (2 * 60 * 60 * 1000)),
         location: event.location,
