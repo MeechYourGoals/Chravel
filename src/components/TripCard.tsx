@@ -12,6 +12,7 @@ import { TravelerTooltip } from './ui/traveler-tooltip';
 import { archiveTrip, hideTrip, deleteTripForMe } from '../services/archiveService';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/use-toast';
+import { ToastAction } from './ui/toast';
 import { Badge } from './ui/badge';
 import { gamificationService } from '../services/gamificationService';
 import { isConsumerTrip } from '../utils/tripTierDetector';
@@ -184,10 +185,11 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
             toast({
               title: "Trip archived",
               description: `"${trip.title}" has been archived. Upgrade to restore it anytime!`,
-              action: {
-                label: 'View Plans',
-                onClick: () => { window.location.href = '/settings'; }
-              }
+              action: (
+                <ToastAction altText="View Plans" onClick={() => { window.location.href = '/settings'; }}>
+                  View Plans
+                </ToastAction>
+              )
             });
             setShowDeleteDialog(false);
             onArchiveSuccess?.();

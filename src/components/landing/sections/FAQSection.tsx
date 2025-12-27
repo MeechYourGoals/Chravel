@@ -4,6 +4,10 @@ import { ChevronDown } from 'lucide-react';
 
 const faqItems = [
   {
+    question: "Who is ChravelApp for?",
+    answer: "Anybody organizing a group that wants to simplify sharing information: Work, Personal, Sports, Tours, Conferences, Vacations, Travel, or even local events."
+  },
+  {
     question: "What happens when I hit my 3-trip limit?",
     answer: "You'll need to delete an old trip to create a new one. Or upgrade to Explorer to keep unlimited trips!"
   },
