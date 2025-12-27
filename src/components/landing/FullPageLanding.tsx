@@ -65,16 +65,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           <HeroSection onSignUp={onSignUp} />
         </FullPageLandingSection>
 
-        {/* Section 2: How It Works (merged) */}
-        <FullPageLandingSection
-          id="section-features"
-          imageFallback={howItWorksImage}
-          videoOpacity={0.5}
-        >
-          <ProblemSolutionSection />
-        </FullPageLandingSection>
-
-        {/* Section 3: Replaces - Operating System for Groups */}
+        {/* Section 2: Problem It Solves - Operating System for Groups */}
         <FullPageLandingSection
           id="section-replaces"
           imageFallback={replacesImage}
@@ -83,6 +74,15 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           <Suspense fallback={<SectionLoader />}>
             <ReplacesSection />
           </Suspense>
+        </FullPageLandingSection>
+
+        {/* Section 3: How It Works (merged) */}
+        <FullPageLandingSection
+          id="section-features"
+          imageFallback={howItWorksImage}
+          videoOpacity={0.5}
+        >
+          <ProblemSolutionSection />
         </FullPageLandingSection>
 
         {/* Section 4: Use Cases - Built for Every Journey */}

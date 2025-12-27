@@ -18,7 +18,7 @@ export const ReplacesGrid = () => {
           className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white break-words"
           style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}
         >
-          Stop juggling 10+ apps every trip
+          Problem it solves: Juggling 10+ apps to plan every trip
         </h2>
         <p 
           className="text-lg sm:text-xl md:text-2xl text-white/90 font-medium max-w-4xl mx-auto"
