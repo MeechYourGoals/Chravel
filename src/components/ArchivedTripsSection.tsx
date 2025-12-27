@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -12,38 +12,21 @@ import { EnhancedEmptyState } from './ui/enhanced-empty-state';
 import { format } from 'date-fns';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
+import { demoModeService } from '../services/demoModeService';
+import { tripsData } from '../data/tripsData';
 
 type TabType = 'archived' | 'hidden';
 
-// Mock data for demo mode
-const mockArchivedTrips = {
-  consumer: [
-    {
-      id: 'demo-archived-1',
-      name: 'Phoenix Golf Outing 2024',
-      destination: 'Phoenix, Arizona',
-      start_date: '2024-02-20',
-      end_date: '2024-02-23',
-      description: "Annual guys' golf trip with tournaments and poker nights",
-      participants: [{ id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }]
-    }
-  ],
-  pro: [],
-  events: [],
-  total: 1
-};
-
-const mockHiddenTrips = [
-  {
-    id: 'demo-hidden-1',
-    name: "Kristen's Bachelorette Party",
-    destination: 'Nashville, TN',
-    start_date: '2025-11-08',
-    end_date: '2025-11-10',
-    description: 'Epic bachelorette celebration - keeping this one private!',
-    is_hidden: true
-  }
-];
+// Helper to convert tripsData format to archived/hidden display format
+const convertTripToDisplayFormat = (trip: typeof tripsData[0]) => ({
+  id: trip.id.toString(),
+  name: trip.title,
+  destination: trip.location,
+  start_date: trip.dateRange.split(' - ')[0],
+  end_date: trip.dateRange.split(' - ')[1] || trip.dateRange.split(' - ')[0],
+  description: trip.description,
+  participants: trip.participants.map(p => ({ id: p.id.toString() }))
+});
 
 export const ArchivedTripsSection = () => {
   const [activeTab, setActiveTab] = useState<TabType>('archived');
@@ -67,21 +50,50 @@ export const ArchivedTripsSection = () => {
   const [hiddenTrips, setHiddenTrips] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Counter to force re-renders when session state changes in demo mode
+  const [refreshCounter, setRefreshCounter] = useState(0);
+
   // Free users can see archived trips but cannot restore them without upgrading
   const isFreeUser = tier === 'free';
   const canRestoreTrips = !isFreeUser;
 
-  const loadTrips = async () => {
+  // Helper to force refresh of trips list
+  const refreshTrips = useCallback(() => {
+    setRefreshCounter(prev => prev + 1);
+  }, []);
+
+  const loadTrips = useCallback(async () => {
     setIsLoading(true);
-    
-    // Demo mode: use mock data
+
+    // Demo mode: use session-scoped state from demoModeService
     if (isDemoMode) {
-      setArchivedTrips(mockArchivedTrips);
-      setHiddenTrips(mockHiddenTrips);
+      // Get session-archived trip IDs and find matching trips from tripsData
+      const archivedIds = demoModeService.getSessionArchivedTripIds();
+      const hiddenIds = demoModeService.getSessionHiddenTripIds();
+
+      // Convert tripsData trips to display format for those that are archived/hidden
+      const archivedConsumerTrips = tripsData
+        .filter(trip => archivedIds.includes(trip.id.toString()))
+        .map(convertTripToDisplayFormat);
+
+      const hiddenTripsList = tripsData
+        .filter(trip => hiddenIds.includes(trip.id.toString()))
+        .map(trip => ({
+          ...convertTripToDisplayFormat(trip),
+          is_hidden: true
+        }));
+
+      setArchivedTrips({
+        consumer: archivedConsumerTrips,
+        pro: [],
+        events: [],
+        total: archivedConsumerTrips.length
+      });
+      setHiddenTrips(hiddenTripsList);
       setIsLoading(false);
       return;
     }
-    
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -101,13 +113,24 @@ export const ArchivedTripsSection = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isDemoMode]);
 
   useEffect(() => {
     loadTrips();
-  }, [confirmDialog.isOpen, isDemoMode]);
+  }, [loadTrips, confirmDialog.isOpen, refreshCounter]);
 
   const handleRestoreClick = async (tripId: string, tripTitle: string, tripType: 'consumer' | 'pro' | 'event') => {
+    // Demo mode: session-scoped restore
+    if (isDemoMode) {
+      demoModeService.unarchiveTripSession(tripId);
+      toast({
+        title: "Trip restored",
+        description: `"${tripTitle}" has been restored to your trips list.`,
+      });
+      refreshTrips();
+      return;
+    }
+
     // Free users cannot restore - show upgrade prompt
     if (isFreeUser) {
       toast({
@@ -155,12 +178,23 @@ export const ArchivedTripsSection = () => {
   };
 
   const handleUnhideClick = async (tripId: string, tripName: string) => {
+    // Demo mode: session-scoped unhide
+    if (isDemoMode) {
+      demoModeService.unhideTripSession(tripId);
+      toast({
+        title: "Trip unhidden",
+        description: `"${tripName}" is now visible in your trips list.`,
+      });
+      refreshTrips();
+      return;
+    }
+
     try {
       await unhideTrip(tripId);
-      
+
       // Invalidate trips query cache so main list updates immediately
       queryClient.invalidateQueries({ queryKey: ['trips'] });
-      
+
       toast({
         title: "Trip unhidden",
         description: `"${tripName}" is now visible in your trips list.`,

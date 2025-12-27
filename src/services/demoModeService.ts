@@ -111,6 +111,10 @@ class DemoModeService {
   private sessionPayments: Map<string, SessionPayment[]> = new Map();
   private sessionPersonalBasecamps: Map<string, SessionPersonalBasecamp> = new Map();
   private sessionTripBasecamps: Map<string, { name?: string; address: string }> = new Map();
+
+  // Session-scoped archived/hidden trips (ephemeral demo state - reset on refresh)
+  private sessionArchivedTripIds: Set<string> = new Set();
+  private sessionHiddenTripIds: Set<string> = new Set();
   getTripType(trip: any): string {
     if (!trip) return 'demo';
     if (trip.category === 'pro') return 'pro-trip';
@@ -957,17 +961,106 @@ class DemoModeService {
   getMockPlaces(tripId: string): Array<{ name: string; url: string; description?: string; votes: number }> {
     const numericTripId = parseInt(tripId);
     const tripData = TripSpecificMockDataService.getTripMockData(numericTripId);
-    
+
     if (!tripData?.links) {
       return [];
     }
-    
+
     return tripData.links.map(link => ({
       name: link.title,
       url: link.url,
       description: link.description,
       votes: 0
     }));
+  }
+
+  // ============================================
+  // Session-Scoped Archive/Hide (Demo Mode)
+  // These mutations are ephemeral - they reset on page refresh or demo mode exit
+  // ============================================
+
+  /**
+   * Archive a trip in session (demo mode only)
+   * Does NOT persist to database - UI state only
+   */
+  archiveTripSession(tripId: string): void {
+    this.sessionArchivedTripIds.add(tripId);
+    // A trip can only be in one state - remove from hidden if it was hidden
+    this.sessionHiddenTripIds.delete(tripId);
+  }
+
+  /**
+   * Unarchive (restore) a trip in session (demo mode only)
+   */
+  unarchiveTripSession(tripId: string): void {
+    this.sessionArchivedTripIds.delete(tripId);
+  }
+
+  /**
+   * Hide a trip in session (demo mode only)
+   * Does NOT persist to database - UI state only
+   */
+  hideTripSession(tripId: string): void {
+    this.sessionHiddenTripIds.add(tripId);
+    // A trip can only be in one state - remove from archived if it was archived
+    this.sessionArchivedTripIds.delete(tripId);
+  }
+
+  /**
+   * Unhide a trip in session (demo mode only)
+   */
+  unhideTripSession(tripId: string): void {
+    this.sessionHiddenTripIds.delete(tripId);
+  }
+
+  /**
+   * Check if a trip is archived in the current session
+   */
+  isTripArchivedInSession(tripId: string): boolean {
+    return this.sessionArchivedTripIds.has(tripId);
+  }
+
+  /**
+   * Check if a trip is hidden in the current session
+   */
+  isTripHiddenInSession(tripId: string): boolean {
+    return this.sessionHiddenTripIds.has(tripId);
+  }
+
+  /**
+   * Get all session-archived trip IDs
+   */
+  getSessionArchivedTripIds(): string[] {
+    return Array.from(this.sessionArchivedTripIds);
+  }
+
+  /**
+   * Get all session-hidden trip IDs
+   */
+  getSessionHiddenTripIds(): string[] {
+    return Array.from(this.sessionHiddenTripIds);
+  }
+
+  /**
+   * Clear all session archived/hidden state (called when demo mode is toggled off)
+   */
+  clearSessionArchivedTrips(): void {
+    this.sessionArchivedTripIds.clear();
+  }
+
+  clearSessionHiddenTrips(): void {
+    this.sessionHiddenTripIds.clear();
+  }
+
+  /**
+   * Clear all session-scoped demo mutations (archive, hide, payments, basecamps)
+   */
+  clearAllSessionState(): void {
+    this.sessionArchivedTripIds.clear();
+    this.sessionHiddenTripIds.clear();
+    this.sessionPayments.clear();
+    this.sessionPersonalBasecamps.clear();
+    this.sessionTripBasecamps.clear();
   }
 }
 

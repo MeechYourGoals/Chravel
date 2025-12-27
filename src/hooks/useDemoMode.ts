@@ -20,11 +20,11 @@ export const useDemoMode = () => {
     const wasAppPreview = demoView === 'app-preview';
     // Get action from store state to avoid subscription
     await useDemoModeStore.getState().setDemoView(view);
-    
-    // Clear session data when turning OFF app preview mode
+
+    // Clear ALL session data when turning OFF app preview mode
+    // This ensures demo mutations don't persist across sessions
     if (wasAppPreview && view !== 'app-preview') {
-      demoModeService.clearSessionPayments();
-      demoModeService.clearSessionPersonalBasecamps();
+      demoModeService.clearAllSessionState();
     }
   }, [demoView]);
 
@@ -32,11 +32,11 @@ export const useDemoMode = () => {
     const wasEnabled = isDemoMode;
     // Get action from store state to avoid subscription
     await useDemoModeStore.getState().toggle();
-    
-    // Clear session data when turning demo mode OFF
+
+    // Clear ALL session data when turning demo mode OFF
+    // This ensures demo mutations don't persist across sessions
     if (wasEnabled) {
-      demoModeService.clearSessionPayments();
-      demoModeService.clearSessionPersonalBasecamps();
+      demoModeService.clearAllSessionState();
     }
   }, [isDemoMode]);
 

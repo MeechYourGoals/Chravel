@@ -86,6 +86,19 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
 
 
   const handleArchiveTrip = async () => {
+    // Demo mode: session-scoped, non-persistent archive
+    if (isDemoMode) {
+      demoModeService.archiveTripSession(trip.id.toString());
+      toast({
+        title: "Trip archived",
+        description: `"${trip.title}" has been archived. View it in the Archived tab.`,
+      });
+      setShowArchiveDialog(false);
+      onArchiveSuccess?.();
+      return;
+    }
+
+    // Authenticated mode: persist to database
     try {
       await archiveTrip(trip.id.toString(), 'consumer');
       toast({
@@ -104,6 +117,18 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
   };
 
   const handleHideTrip = async () => {
+    // Demo mode: session-scoped, non-persistent hide
+    if (isDemoMode) {
+      demoModeService.hideTripSession(trip.id.toString());
+      toast({
+        title: "Trip hidden",
+        description: `"${trip.title}" is now hidden. Enable "Show Hidden Trips" in Settings to view it.`,
+      });
+      onHideSuccess?.();
+      return;
+    }
+
+    // Authenticated mode: persist to database
     try {
       await hideTrip(trip.id.toString());
       toast({
@@ -121,6 +146,16 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
   };
 
   const handleDeleteTripForMe = async () => {
+    // Demo mode: block delete with toast - demo trips are deletion-proof
+    if (isDemoMode) {
+      toast({
+        title: "Demo trip",
+        description: "This is a demo trip and cannot be deleted.",
+      });
+      setShowDeleteDialog(false);
+      return;
+    }
+
     if (!user?.id) {
       toast({
         title: "Not logged in",
