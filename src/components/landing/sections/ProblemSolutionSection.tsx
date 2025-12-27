@@ -110,49 +110,73 @@ export const ProblemSolutionSection = () => {
       {/* Screenshots Row - Two cards centered and staggered */}
       <div className="w-full max-w-4xl">
         {/* Desktop: Side by side with offset */}
-        <div className="hidden md:flex justify-center items-end gap-6">
-          <div className="max-w-[340px] transform -translate-y-4">
-            <img 
-              src={tripShareGolf}
-              alt="Golf Outing trip share card showing group sharing interface"
-              className="w-full h-auto rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
-            />
+        <div className="hidden md:flex justify-center items-end gap-8">
+          <div className="flex flex-col items-center">
+            <span 
+              className="text-white font-semibold text-lg mb-3"
+              style={{ textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}
+            >
+              Trip Share
+            </span>
+            <div className="max-w-[340px] transform -translate-y-4">
+              <img 
+                src={tripShareGolf}
+                alt="Golf Outing trip share card showing group sharing interface"
+                className="w-full h-auto rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
+              />
+            </div>
           </div>
-          <div className="max-w-[340px] transform translate-y-4">
-            <img 
-              src={tripInviteCoachella}
-              alt="Coachella trip invite card showing invitation interface"
-              className="w-full h-auto rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
-            />
+          <div className="flex flex-col items-center">
+            <span 
+              className="text-white font-semibold text-lg mb-3"
+              style={{ textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}
+            >
+              Trip Invite
+            </span>
+            <div className="max-w-[340px] transform translate-y-4">
+              <img 
+                src={tripInviteCoachella}
+                alt="Coachella trip invite card showing invitation interface"
+                className="w-full h-auto rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
+              />
+            </div>
           </div>
         </div>
 
         {/* Mobile: Stacked */}
-        <div className="md:hidden flex flex-col items-center gap-4">
-          <div className="max-w-[300px]">
-            <img 
-              src={tripShareGolf}
-              alt="Golf Outing trip share card showing group sharing interface"
-              className="w-full h-auto rounded-xl shadow-xl border border-border/50"
-            />
+        <div className="md:hidden flex flex-col items-center gap-6">
+          <div className="flex flex-col items-center">
+            <span 
+              className="text-white font-semibold text-base mb-2"
+              style={{ textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}
+            >
+              Trip Share
+            </span>
+            <div className="max-w-[300px]">
+              <img 
+                src={tripShareGolf}
+                alt="Golf Outing trip share card showing group sharing interface"
+                className="w-full h-auto rounded-xl shadow-xl border border-border/50"
+              />
+            </div>
           </div>
-          <div className="max-w-[300px]">
-            <img 
-              src={tripInviteCoachella}
-              alt="Coachella trip invite card showing invitation interface"
-              className="w-full h-auto rounded-xl shadow-xl border border-border/50"
-            />
+          <div className="flex flex-col items-center">
+            <span 
+              className="text-white font-semibold text-base mb-2"
+              style={{ textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}
+            >
+              Trip Invite
+            </span>
+            <div className="max-w-[300px]">
+              <img 
+                src={tripInviteCoachella}
+                alt="Coachella trip invite card showing invitation interface"
+                className="w-full h-auto rounded-xl shadow-xl border border-border/50"
+              />
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Micro-caption */}
-      <p 
-        className="text-center text-lg text-white/80 font-medium"
-        style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.5)' }}
-      >
-        Every trip lives in its own shared space.
-      </p>
     </div>
   );
 };

@@ -11,26 +11,26 @@ import {
 
 export const ReplacesGrid = () => {
   return (
-    <section className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+    <section className="w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 sm:pb-16">
       {/* Header */}
       <div className="text-center mb-6 sm:mb-8 md:mb-12 space-y-3">
         <h2 
           className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white break-words"
           style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}
         >
-          Problem it solves: Juggling 10+ apps to plan every trip
+          Problems Solved: No more juggling 10+ apps to plan every trip
         </h2>
         <p 
-          className="text-lg sm:text-xl md:text-2xl text-white/90 font-medium max-w-4xl mx-auto"
+          className="text-lg sm:text-xl md:text-2xl text-white font-medium max-w-4xl mx-auto"
           style={{ textShadow: '0 2px 6px rgba(0,0,0,0.6)' }}
         >
-          ChravelApp consolidates dozens of scattered tools into 8 focused tabs — built for groups on the go.
+          Your group already has download overload. ChravelApp consolidates dozens of scattered tools into 8 focused tabs — built for groups on the go.
         </p>
         <p 
-          className="text-lg sm:text-xl text-white font-medium italic underline"
+          className="text-lg sm:text-xl text-white font-medium italic underline mt-4"
           style={{ textShadow: '0 2px 6px rgba(0,0,0,0.7)' }}
         >
-          Click below to see how many disconnected apps can be simplified with ChravelTabs
+          Click below to see how many apps &amp; sites are simplified with ChravelTabs
         </p>
       </div>
 
