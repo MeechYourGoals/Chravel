@@ -109,8 +109,8 @@ export const ProblemSolutionSection = () => {
 
       {/* Screenshots Row - Two cards centered and staggered */}
       <div className="w-full max-w-4xl">
-        {/* Desktop: Side by side with offset */}
-        <div className="hidden md:flex justify-center items-end gap-8">
+        {/* Desktop: Side by side with equal height */}
+        <div className="hidden md:flex justify-center items-start gap-8">
           <div className="flex flex-col items-center">
             <span 
               className="text-white font-semibold text-lg mb-3"
@@ -118,11 +118,11 @@ export const ProblemSolutionSection = () => {
             >
               Trip Share
             </span>
-            <div className="max-w-[340px] transform -translate-y-4">
+            <div className="w-[340px] h-[520px] flex items-center">
               <img 
                 src={tripShareGolf}
                 alt="Golf Outing trip share card showing group sharing interface"
-                className="w-full h-auto rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
+                className="w-full h-auto max-h-full object-contain rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
               />
             </div>
           </div>
@@ -133,11 +133,11 @@ export const ProblemSolutionSection = () => {
             >
               Trip Invite
             </span>
-            <div className="max-w-[340px] transform translate-y-4">
+            <div className="w-[340px] h-[520px] flex items-center">
               <img 
                 src={tripInviteCoachella}
                 alt="Coachella trip invite card showing invitation interface"
-                className="w-full h-auto rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
+                className="w-full h-auto max-h-full object-contain rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
               />
             </div>
           </div>
