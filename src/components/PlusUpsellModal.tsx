@@ -133,6 +133,8 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
                 <li>• Shared calendar (manual)</li>
                 <li>• Photo & video sharing</li>
                 <li>• 5 AI queries per user per trip</li>
+                <li>• 1 PDF export per trip</li>
+                <li>• ICS calendar download</li>
               </ul>
             </div>
             <div>
@@ -141,6 +143,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
                 <ul className="space-y-2 text-sm text-green-300">
                   <li>• Unlimited saved trips + restore archived</li>
                   <li>• 10 AI queries per user per trip</li>
+                  <li>• Unlimited PDF exports</li>
                   <li>• Location-aware AI</li>
                   <li>• Custom trip categories</li>
                   <li>• Smart notifications</li>

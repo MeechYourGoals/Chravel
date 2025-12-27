@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { X, Download, Loader2, FileText, Crown } from 'lucide-react';
+import { X, Download, Loader2, FileText, Crown, Gift, Sparkles } from 'lucide-react';
 import { ExportSection } from '@/types/tripExport';
 import { isConsumerTrip } from '@/utils/tripTierDetector';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
+import { usePdfExportUsage } from '@/hooks/usePdfExportUsage';
+import { Badge } from '@/components/ui/badge';
 
 interface TripExportModalProps {
   isOpen: boolean;
@@ -20,10 +22,17 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   tripId,
 }) => {
   const isConsumer = isConsumerTrip(tripId);
-  const { tier, upgradeToTier, isLoading: isUpgrading } = useConsumerSubscription();
+  const { upgradeToTier, isLoading: isUpgrading } = useConsumerSubscription();
+  const {
+    usage,
+    recordExport,
+    getUsageStatus,
+    isPaidUser,
+    canExport,
+  } = usePdfExportUsage(tripId);
 
-  // PDF Export requires Explorer+ tier
-  const hasExportAccess = tier === 'explorer' || tier === 'frequent-chraveler';
+  // Free users get 1 export per trip, paid users get unlimited
+  const hasExportAccess = isPaidUser || canExport;
   
   const [selectedSections, setSelectedSections] = useState<ExportSection[]>([
     'calendar',
@@ -66,6 +75,10 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
     try {
       await onExport(selectedSections);
+      // Record the export for free users
+      if (!isPaidUser) {
+        recordExport();
+      }
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create trip recap');
@@ -76,8 +89,11 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
   if (!isOpen) return null;
 
-  // PDF Export requires Explorer+ subscription
+  // Free users: 1 export per trip, Paid users: unlimited
   const hasAccess = hasExportAccess;
+  const usageStatus = getUsageStatus();
+  const showFreeExportBanner = !isPaidUser && canExport;
+  const showUpgradePrompt = !isPaidUser && !canExport;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2">
@@ -104,14 +120,15 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
         {/* Content */}
         <div className="p-3 overflow-y-auto flex-1">
-          {!hasAccess ? (
+          {/* Upgrade prompt when free export is used */}
+          {showUpgradePrompt ? (
             <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 border border-purple-500/30 rounded-lg p-4 mb-3">
               <div className="flex items-center gap-2 mb-2">
                 <Crown size={18} className="text-yellow-400" />
-                <h3 className="text-sm font-semibold text-white">Upgrade to Export</h3>
+                <h3 className="text-sm font-semibold text-white">Upgrade for Unlimited Exports</h3>
               </div>
               <p className="text-gray-300 text-xs mb-3">
-                PDF Trip Recaps are available with Explorer and Frequent Chraveler plans. Create beautiful memory books of your adventures!
+                You've used your free export for this trip. Upgrade to create unlimited PDF recaps and share your adventures with everyone!
               </p>
               <div className="flex gap-2">
                 <button
@@ -129,9 +146,38 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                   {isUpgrading ? 'Processing...' : 'Frequent Chraveler $19.99/mo'}
                 </button>
               </div>
+              <p className="text-gray-400 text-[10px] mt-2 text-center">
+                💡 Tip: Check your sent messages for the PDF you already exported
+              </p>
             </div>
           ) : (
             <>
+              {/* Free export banner for free users */}
+              {showFreeExportBanner && (
+                <div className="bg-gradient-to-r from-green-900/40 to-emerald-900/40 border border-green-500/30 rounded-lg p-2.5 mb-3">
+                  <div className="flex items-center gap-2">
+                    <Gift size={16} className="text-green-400" />
+                    <div className="flex-1">
+                      <span className="text-green-300 text-xs font-medium">1 Free Export</span>
+                      <span className="text-green-400/70 text-[10px] ml-1">per trip</span>
+                    </div>
+                    <Badge variant="secondary" className="bg-green-500/20 text-green-300 text-[10px]">
+                      Sample it!
+                    </Badge>
+                  </div>
+                </div>
+              )}
+
+              {/* Unlimited badge for paid users */}
+              {isPaidUser && (
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="secondary" className="bg-purple-500/20 text-purple-300 text-[10px]">
+                    <Sparkles size={10} className="mr-1" />
+                    Unlimited Exports
+                  </Badge>
+                </div>
+              )}
+
               <div className="mb-2">
                 <h3 className="text-white font-semibold text-xs mb-0.5">Trip: {tripName}</h3>
                 <p className="text-gray-400 text-[10px]">

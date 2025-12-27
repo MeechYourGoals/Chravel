@@ -64,6 +64,8 @@ const consumerTiers: PricingTier[] = [
       'Payment tracking',
       'Polls & group decisions',
       'AI Trip Assistant (5 queries per user per trip)',
+      '1 PDF export per trip (sample it!)',
+      'ICS calendar export',
       'Save up to 3 active trips',
       '🎁 1 free Pro trip to try',
       '🎁 1 free Event to try'
@@ -82,8 +84,9 @@ const consumerTiers: PricingTier[] = [
     icon: <Globe size={24} />,
     features: [
       'Everything in Free',
-      'Unlimited saved trips',
+      'Unlimited saved trips + restore archived',
       '10 AI queries per user per trip',
+      'Unlimited PDF exports',
       'Location-aware AI recommendations',
       'Search past trips and memories'
     ],

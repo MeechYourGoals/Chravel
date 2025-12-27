@@ -61,7 +61,9 @@ export const ConsumerBillingSection = () => {
         'Photo & video sharing',
         'Basic itinerary planning',
         'Expense tracking',
-        'AI Trip Assistant (5 queries per user per trip)'
+        'AI Trip Assistant (5 queries per user per trip)',
+        '1 PDF export per trip',
+        'ICS calendar download'
       ]
     },
     explorer: {
@@ -72,6 +74,7 @@ export const ConsumerBillingSection = () => {
       features: [
         'Unlimited saved trips + restore archived',
         '10 AI queries per user per trip',
+        'Unlimited PDF exports',
         'Location-aware AI suggestions',
         'Smart notifications',
         'Search past trips',
