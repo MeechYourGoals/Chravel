@@ -23,21 +23,23 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           : 'calc(env(safe-area-inset-top, 0px) + 16px)'
       }}
     >
-      {/* Top-right controls - CTA above Demo toggle on desktop */}
-      <div
-        className="hidden md:flex flex-col items-end gap-2 absolute right-4 z-10"
-        style={{
-          top: 'calc(env(safe-area-inset-top, 0px) + 16px)'
-        }}
-      >
-        <Button
-          size="default"
-          onClick={onSignUp}
-          className="text-sm px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
+      {/* Top-right controls - CTA above Demo toggle on desktop - Only show if NOT mobile (avoids duplication with MobileAuthHeader) */}
+      {!isMobile && (
+        <div
+          className="hidden md:flex flex-col items-end gap-2 absolute right-4 z-10"
+          style={{
+            top: 'calc(env(safe-area-inset-top, 0px) + 16px)'
+          }}
         >
-          Log in / Sign up
-        </Button>
-      </div>
+          <Button
+            size="default"
+            onClick={onSignUp}
+            className="text-sm px-4 py-2 bg-black/40 hover:bg-black/50 backdrop-blur-md border border-white/10 text-white shadow-lg"
+          >
+            Log in
+          </Button>
+        </div>
+      )}
 
       {/* Brand Name - Centered, aligned with Demo toggle */}
       <div className="w-full flex items-center justify-center px-2 md:px-4 mb-4 md:mb-6">

@@ -48,15 +48,16 @@ export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp }) 
           className="flex items-center justify-between px-3 gap-2"
           style={{ height: `${HEADER_HEIGHT}px` }}
         >
-          {/* ChravelApp Pill */}
+          {/* ChravelApp Pill - Hidden to reduce crowding per user request
           <div className="flex items-center flex-shrink-0">
             <span className="px-3 py-1.5 bg-muted text-foreground rounded-lg text-sm font-semibold min-h-[36px] flex items-center border border-border/30">
               ChravelApp
             </span>
           </div>
+          */}
 
           {/* Demo Toggle - Center */}
-          <div className="flex-1 flex justify-center min-w-0">
+          <div className="flex-1 flex justify-start sm:justify-center min-w-0">
             <DemoModeSelector />
           </div>
 
@@ -67,7 +68,7 @@ export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp }) 
               className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm font-medium min-h-[36px] border border-primary/30"
             >
               <LogIn size={16} />
-              <span>Log in / Sign up</span>
+              <span>Log in</span>
             </button>
           </div>
         </div>

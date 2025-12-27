@@ -35,7 +35,7 @@ export const DemoModeSelector = () => {
               aria-label="Marketing landing page"
             >
               <EyeOff className="h-3 w-3 flex-shrink-0" />
-              <span>Info</span>
+              <span className="hidden sm:inline">Info</span>
             </button>
             <button
               onClick={() => handleViewChange('marketing')}
@@ -49,7 +49,7 @@ export const DemoModeSelector = () => {
               aria-label="Home view"
             >
               <Home className="h-3 w-3 flex-shrink-0" />
-              <span>Home</span>
+              <span className="hidden sm:inline">Home</span>
             </button>
             <button
               onClick={() => handleViewChange('app-preview')}
@@ -63,7 +63,7 @@ export const DemoModeSelector = () => {
               aria-label="Demo data mode"
             >
               <Eye className="h-3 w-3 flex-shrink-0" />
-              <span>Demo</span>
+              <span className="hidden sm:inline">Demo</span>
             </button>
           </div>
         </TooltipTrigger>
