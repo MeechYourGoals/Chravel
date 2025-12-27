@@ -1,5 +1,6 @@
 import { CalendarEvent } from '@/types/calendar';
 import { calendarService, TripEvent } from './calendarService';
+import { brandEventTitleForIcs } from '@/utils/icsBranding';
 
 /**
  * Calendar Sync Service
@@ -35,17 +36,17 @@ function eventToICal(event: CalendarEvent): ICalEvent {
     endDate.setHours(endDate.getHours() + 1);
   }
 
-  const status = event.availability_status === 'tentative' 
-    ? 'TENTATIVE' 
-    : event.availability_status === 'free' 
-    ? 'TENTATIVE' 
+  const status = event.availability_status === 'tentative'
+    ? 'TENTATIVE'
+    : event.availability_status === 'free'
+    ? 'TENTATIVE'
     : 'CONFIRMED';
 
   return {
     uid: `chravel-${event.id}@chravel.app`,
     dtstart: startDate,
     dtend: endDate,
-    summary: event.title,
+    summary: brandEventTitleForIcs(event.title), // Apply ChravelApp branding
     description: event.description || '',
     location: event.location || '',
     rrule: event.recurrence_rule,
