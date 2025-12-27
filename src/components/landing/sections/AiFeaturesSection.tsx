@@ -12,20 +12,6 @@ export const AiFeaturesSection = () => {
       description: 'AI that understands your trip — not just your question.'
     },
     {
-      icon: <Compass className="text-primary" size={28} />,
-      title: 'BaseCamps',
-      description: 'No more fumbling to find the Airbnb or hotel address. Store it once for all trip members.'
-    },
-    {
-      icon: <BellRing className="text-accent" size={28} />,
-      title: 'Smart Notifications',
-      description: 'Important updates without the message overload.'
-    }
-  ];
-
-  // Group 2 - aligned with Places screenshot
-  const aiFeatures2 = [
-    {
       icon: <DollarSign className="text-primary" size={28} />,
       title: 'Payment Summaries',
       description: 'Payment tracking made easy.'
@@ -34,6 +20,20 @@ export const AiFeaturesSection = () => {
       icon: <BarChart3 className="text-accent" size={28} />,
       title: 'Polls',
       description: 'Group decisions, locked in — no scrolling, no second-guessing.'
+    }
+  ];
+
+  // Group 2 - aligned with Places screenshot
+  const aiFeatures2 = [
+    {
+      icon: <Compass className="text-primary" size={28} />,
+      title: 'BaseCamps',
+      description: 'No more fumbling to find the Airbnb or hotel address. Store it once for all trip members.'
+    },
+    {
+      icon: <BellRing className="text-accent" size={28} />,
+      title: 'Smart Notifications',
+      description: 'Important updates without the message overload.'
     },
     {
       icon: <ScrollText className="text-primary" size={28} />,
