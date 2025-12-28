@@ -136,22 +136,14 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
         </h3>
 
         {/* Status Pills */}
-        <div className="flex flex-wrap gap-2 mb-3">
-          <div className="flex flex-wrap gap-2">
-            {trip.roster && trip.roster.length > 0 && (
-              <div className="flex items-center gap-1 bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-xs border border-blue-500/30">
-                <Users size={12} />
-                <span>Team: {trip.roster.length}</span>
-              </div>
-            )}
-            {nextLoadIn && (
-              <div className="flex items-center gap-1 bg-orange-500/20 text-orange-300 px-3 py-1 rounded-full text-xs border border-orange-500/30">
-                <Clock size={12} />
-                <span>Next Load-In: {new Date(nextLoadIn.startTime).toLocaleDateString()}</span>
-              </div>
-            )}
+        {nextLoadIn && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex items-center gap-1 bg-orange-500/20 text-orange-300 px-3 py-1 rounded-full text-xs border border-orange-500/30">
+              <Clock size={12} />
+              <span>Next Load-In: {new Date(nextLoadIn.startTime).toLocaleDateString()}</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Location */}

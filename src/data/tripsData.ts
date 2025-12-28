@@ -45,7 +45,7 @@ export interface Trip {
 export const tripsData: Trip[] = [
   {
     id: 1,
-    title: "Spring Break Cancun 2026 Kappa Alpha Psi Trip",
+    title: "Spring Break Cancun 2026 – Fraternity Trip",
     location: "Cancun, Mexico",
     dateRange: "Mar 15 - Mar 22, 2026",
     description: "Brotherhood spring break getaway with beach activities, nightlife, and bonding experiences",
@@ -56,7 +56,16 @@ export const tripsData: Trip[] = [
       { id: 2, name: "Jamal", avatar: getMockAvatar("Jamal") },
       { id: 3, name: "Darius", avatar: getMockAvatar("Darius") },
       { id: 4, name: "Terrell", avatar: getMockAvatar("Terrell") },
-      { id: 5, name: "Jerome", avatar: getMockAvatar("Jerome") }
+      { id: 5, name: "Jerome", avatar: getMockAvatar("Jerome") },
+      { id: 6, name: "DeAndre", avatar: getMockAvatar("DeAndre") },
+      { id: 7, name: "Malik", avatar: getMockAvatar("Malik") },
+      { id: 8, name: "Brandon", avatar: getMockAvatar("Brandon") },
+      { id: 9, name: "Kevin", avatar: getMockAvatar("Kevin") },
+      { id: 10, name: "Andre", avatar: getMockAvatar("Andre") },
+      { id: 11, name: "Isaiah", avatar: getMockAvatar("Isaiah") },
+      { id: 12, name: "Justin", avatar: getMockAvatar("Justin") },
+      { id: 13, name: "Tyler", avatar: getMockAvatar("Tyler") },
+      { id: 14, name: "Chris", avatar: getMockAvatar("Chris") }
     ]
   },
   {
@@ -66,43 +75,75 @@ export const tripsData: Trip[] = [
     dateRange: "Oct 5 - Oct 15, 2025",
     description: "Cultural exploration of Japan's capital with temples, modern tech districts, and amazing cuisine",
     coverPhoto: tokyoAdventure,
-    placesCount: 18,
+    placesCount: 9,
     participants: [
       { id: 4, name: "Alex", avatar: getMockAvatar("Alex") },
       { id: 5, name: "Maria", avatar: getMockAvatar("Maria") },
-      { id: 6, name: "David", avatar: getMockAvatar("David") }
+      { id: 6, name: "David", avatar: getMockAvatar("David") },
+      { id: 7, name: "Sarah", avatar: getMockAvatar("Sarah") },
+      { id: 8, name: "James", avatar: getMockAvatar("James") },
+      { id: 9, name: "Emily", avatar: getMockAvatar("Emily") },
+      { id: 10, name: "Ryan", avatar: getMockAvatar("Ryan") },
+      { id: 11, name: "Jessica", avatar: getMockAvatar("Jessica") },
+      { id: 12, name: "Michael", avatar: getMockAvatar("Michael") },
+      { id: 13, name: "Amanda", avatar: getMockAvatar("Amanda") },
+      { id: 14, name: "Daniel", avatar: getMockAvatar("Daniel") },
+      { id: 15, name: "Laura", avatar: getMockAvatar("Laura") }
     ]
   },
   {
     id: 3,
     title: "Jack and Jill's destination wedding",
     location: "Bali, Indonesia",
-    dateRange: "Dec 10 - Dec 20, 2025",
-    description: "Romantic destination wedding celebration with family and friends in paradise",
+    dateRange: "Dec 10 - Dec 12, 2025",
+    description: "Romantic destination wedding celebration with family and friends in paradise, featuring welcome dinner, ceremony, and reception",
     coverPhoto: baliDestinationWedding,
-    placesCount: 8,
-    participants: [
-      { id: 7, name: "Jack", avatar: getMockAvatar("Jack") },
-      { id: 8, name: "Jill", avatar: getMockAvatar("Jill") },
-      { id: 9, name: "Steve", avatar: getMockAvatar("Steve") },
-      { id: 10, name: "Emma", avatar: getMockAvatar("Emma") }
-    ]
+    placesCount: 4,
+    participants: Array.from({ length: 112 }, (_, i) => {
+      if (i === 0) return { id: i + 1, name: "Jack", avatar: getMockAvatar("Jack") };
+      if (i === 1) return { id: i + 1, name: "Jill", avatar: getMockAvatar("Jill") };
+      if (i < 12) {
+        const brideFamily = ["Mom Sarah", "Dad Robert", "Sister Emma", "Brother Mike", "Grandma Rose", "Grandpa John", "Aunt Lisa", "Uncle Tom", "Cousin Anna", "Cousin David"];
+        return { id: i + 1, name: brideFamily[i - 2] || `Bride Family ${i - 1}`, avatar: getMockAvatar(brideFamily[i - 2] || `Guest${i}`) };
+      }
+      if (i < 22) {
+        const groomFamily = ["Dad Steve", "Mom Linda", "Brother Chris", "Sister Katie", "Grandma Mary", "Grandpa Bill", "Aunt Carol", "Uncle Dan", "Cousin Beth", "Cousin Mark"];
+        return { id: i + 1, name: groomFamily[i - 12] || `Groom Family ${i - 11}`, avatar: getMockAvatar(groomFamily[i - 12] || `Guest${i}`) };
+      }
+      return { id: i + 1, name: `Wedding Guest ${i - 21}`, avatar: getMockAvatar(`Guest${i}`) };
+    })
   },
   {
     id: 4,
     title: "Kristen's Bachelorette Party",
     location: "Nashville, TN",
     dateRange: "Nov 8 - Nov 10, 2025",
-    description: "Epic bachelorette celebration with honky-tonk bars, live music, and unforgettable memories",
+    description: "Epic bachelorette celebration with honky-tonk bars, live music, spa day, karaoke, and unforgettable memories across multiple Nashville venues",
     coverPhoto: nashvilleBachelorette,
-    placesCount: 12,
+    placesCount: 7,
     participants: [
       { id: 10, name: "Kristen", avatar: getMockAvatar("Kristen") },
       { id: 11, name: "Ashley", avatar: getMockAvatar("Ashley") },
       { id: 12, name: "Megan", avatar: getMockAvatar("Megan") },
       { id: 13, name: "Taylor", avatar: getMockAvatar("Taylor") },
       { id: 14, name: "Sam", avatar: getMockAvatar("Sam") },
-      { id: 15, name: "Jenna", avatar: getMockAvatar("Jenna") }
+      { id: 15, name: "Jenna", avatar: getMockAvatar("Jenna") },
+      { id: 16, name: "Rachel", avatar: getMockAvatar("Rachel") },
+      { id: 17, name: "Lauren", avatar: getMockAvatar("Lauren") },
+      { id: 18, name: "Nicole", avatar: getMockAvatar("Nicole") },
+      { id: 19, name: "Madison", avatar: getMockAvatar("Madison") },
+      { id: 20, name: "Olivia", avatar: getMockAvatar("Olivia") },
+      { id: 21, name: "Sophia", avatar: getMockAvatar("Sophia") },
+      { id: 22, name: "Emma", avatar: getMockAvatar("Emma") },
+      { id: 23, name: "Ava", avatar: getMockAvatar("Ava") },
+      { id: 24, name: "Isabella", avatar: getMockAvatar("Isabella") },
+      { id: 25, name: "Mia", avatar: getMockAvatar("Mia") },
+      { id: 26, name: "Charlotte", avatar: getMockAvatar("Charlotte") },
+      { id: 27, name: "Amelia", avatar: getMockAvatar("Amelia") },
+      { id: 28, name: "Harper", avatar: getMockAvatar("Harper") },
+      { id: 29, name: "Evelyn", avatar: getMockAvatar("Evelyn") },
+      { id: 30, name: "Abigail", avatar: getMockAvatar("Abigail") },
+      { id: 31, name: "Emily", avatar: getMockAvatar("Emily") }
     ]
   },
   {
@@ -112,29 +153,49 @@ export const tripsData: Trip[] = [
     dateRange: "Apr 10 - Apr 13, 2026",
     description: "Music festival adventure with top artists, desert vibes, and group camping",
     coverPhoto: cochelleFestivalNew,
-    placesCount: 10,
+    placesCount: 7,
     participants: [
       { id: 16, name: "Tyler", avatar: getMockAvatar("Tyler") },
       { id: 17, name: "Zoe", avatar: getMockAvatar("Zoe") },
       { id: 18, name: "Mason", avatar: getMockAvatar("Mason") },
       { id: 19, name: "Chloe", avatar: getMockAvatar("Chloe") },
-      { id: 20, name: "Jordan", avatar: getMockAvatar("Jordan") }
+      { id: 20, name: "Jordan", avatar: getMockAvatar("Jordan") },
+      { id: 21, name: "Ethan", avatar: getMockAvatar("Ethan") },
+      { id: 22, name: "Lily", avatar: getMockAvatar("Lily") },
+      { id: 23, name: "Noah", avatar: getMockAvatar("Noah") },
+      { id: 24, name: "Grace", avatar: getMockAvatar("Grace") },
+      { id: 25, name: "Liam", avatar: getMockAvatar("Liam") },
+      { id: 26, name: "Hannah", avatar: getMockAvatar("Hannah") },
+      { id: 27, name: "Lucas", avatar: getMockAvatar("Lucas") },
+      { id: 28, name: "Bella", avatar: getMockAvatar("Bella") },
+      { id: 29, name: "Dylan", avatar: getMockAvatar("Dylan") },
+      { id: 30, name: "Aria", avatar: getMockAvatar("Aria") },
+      { id: 31, name: "Jackson", avatar: getMockAvatar("Jackson") },
+      { id: 32, name: "Scarlett", avatar: getMockAvatar("Scarlett") },
+      { id: 33, name: "Aiden", avatar: getMockAvatar("Aiden") },
+      { id: 34, name: "Layla", avatar: getMockAvatar("Layla") },
+      { id: 35, name: "Carter", avatar: getMockAvatar("Carter") },
+      { id: 36, name: "Nora", avatar: getMockAvatar("Nora") },
+      { id: 37, name: "Sebastian", avatar: getMockAvatar("Sebastian") }
     ]
   },
   {
     id: 6,
-    title: "Johnson Family Summer Vacay",
-    location: "Saratoga Springs, NY",
-    dateRange: "Jul 20 - Jul 28, 2025",
-    description: "Multi-generational family retreat with horse racing, spa time, and quality family bonding",
+    title: "Cameron's Birthday Trip",
+    location: "Dubai, UAE",
+    dateRange: "Jul 5 - Jul 9, 2026",
+    description: "Luxury birthday celebration in Dubai featuring Burj Khalifa, desert safari, yacht party, and fine dining",
     coverPhoto: aspenFamilySummer,
-    placesCount: 12,
+    placesCount: 4,
     participants: [
-      { id: 21, name: "Dad (Mike)", avatar: getMockAvatar("Mike") },
-      { id: 22, name: "Mom (Linda)", avatar: getMockAvatar("Linda") },
-      { id: 23, name: "Katie", avatar: getMockAvatar("Katie") },
-      { id: 24, name: "Tommy", avatar: getMockAvatar("Tommy") },
-      { id: 25, name: "Grandma Pat", avatar: getMockAvatar("Pat") }
+      { id: 21, name: "Cameron", avatar: getMockAvatar("Cameron") },
+      { id: 22, name: "Alex", avatar: getMockAvatar("Alex") },
+      { id: 23, name: "Jordan", avatar: getMockAvatar("Jordan") },
+      { id: 24, name: "Taylor", avatar: getMockAvatar("Taylor") },
+      { id: 25, name: "Morgan", avatar: getMockAvatar("Morgan") },
+      { id: 26, name: "Casey", avatar: getMockAvatar("Casey") },
+      { id: 27, name: "Riley", avatar: getMockAvatar("Riley") },
+      { id: 28, name: "Avery", avatar: getMockAvatar("Avery") }
     ]
   },
   {
@@ -158,20 +219,14 @@ export const tripsData: Trip[] = [
     id: 8,
     title: "Tulum Wellness Retreat",
     location: "Tulum, Mexico",
-    dateRange: "Nov 10 - Nov 16, 2025",
+    dateRange: "Nov 10 - Nov 23, 2025",
     description: "Yoga and wellness focused retreat with breathwork, meditation, and spa treatments",
     coverPhoto: tulumYogaWellness,
     placesCount: 10,
-    participants: [
-      { id: 32, name: "Elena Ramirez", avatar: getMockAvatar("Elena") },
-      { id: 33, name: "Jason Wu", avatar: getMockAvatar("Jason") },
-      { id: 34, name: "Amara Vance", avatar: getMockAvatar("Amara") },
-      { id: 35, name: "Sophia Chen", avatar: getMockAvatar("Sophia") },
-      { id: 36, name: "Marcus Thompson", avatar: getMockAvatar("Marcus") },
-      { id: 37, name: "Isla Rodriguez", avatar: getMockAvatar("Isla") },
-      { id: 38, name: "Maya Patel", avatar: getMockAvatar("Maya") },
-      { id: 39, name: "River Johnson", avatar: getMockAvatar("River") }
-    ]
+    participants: Array.from({ length: 34 }, (_, i) => {
+      const names = ["Elena Ramirez", "Jason Wu", "Amara Vance", "Sophia Chen", "Marcus Thompson", "Isla Rodriguez", "Maya Patel", "River Johnson", "Luna Martinez", "Phoenix Anderson", "Aurora Kim", "Sage Williams", "Willow Davis", "Ocean Brooks", "Sky Thompson", "Rain Garcia", "Storm Lee", "Ember Jones", "Aspen Miller", "Sierra Wilson", "Canyon Moore", "River Taylor", "Jade Martinez", "Crystal White", "Harmony Brown", "Serenity Clark", "Karma Lopez", "Zen Jackson", "Peace Harris", "Lotus Martin", "Chakra Robinson", "Mantra Lewis", "Aura Walker", "Nirvana Hall"];
+      return { id: 32 + i, name: names[i] || `Wellness Guest ${i + 1}`, avatar: getMockAvatar(names[i] || `Guest${i}`) };
+    })
   },
   {
     id: 9,
@@ -194,22 +249,14 @@ export const tripsData: Trip[] = [
     id: 10,
     title: "Corporate Holiday Ski Trip – Aspen",
     location: "Aspen, CO",
-    dateRange: "Dec 12 - Dec 17, 2025",
-    description: "Company holiday celebration with skiing, team building, and winter activities",
+    dateRange: "Dec 12 - Dec 15, 2025",
+    description: "Company holiday celebration with skiing, team building, and winter activities featuring corporate lodging, group ski lessons, and team dinners",
     coverPhoto: aspenCorporateSki,
-    placesCount: 12,
-    participants: [
-      { id: 46, name: "Tom Nguyen", avatar: getMockAvatar("Tom") },
-      { id: 47, name: "Heather Cole", avatar: getMockAvatar("Heather") },
-      { id: 48, name: "Luis Ortiz", avatar: getMockAvatar("Luis") },
-      { id: 49, name: "Sarah Kim", avatar: getMockAvatar("Sarah") },
-      { id: 50, name: "Michael Chang", avatar: getMockAvatar("Michael") },
-      { id: 51, name: "Jennifer Lee", avatar: getMockAvatar("Jennifer") },
-      { id: 52, name: "David Park", avatar: getMockAvatar("David") },
-      { id: 53, name: "Lisa Wong", avatar: getMockAvatar("Lisa") },
-      { id: 54, name: "Kevin Zhang", avatar: getMockAvatar("Kevin") },
-      { id: 55, name: "Emily Chen", avatar: getMockAvatar("Emily") }
-    ]
+    placesCount: 3,
+    participants: Array.from({ length: 44 }, (_, i) => {
+      const names = ["Tom Nguyen", "Heather Cole", "Luis Ortiz", "Sarah Kim", "Michael Chang", "Jennifer Lee", "David Park", "Lisa Wong", "Kevin Zhang", "Emily Chen", "Robert Smith", "Anna Garcia", "James Wilson", "Maria Rodriguez", "John Martinez", "Patricia Anderson", "Carlos Thomas", "Linda Taylor", "Daniel Moore", "Nancy Jackson", "Matthew White", "Karen Harris", "Anthony Martin", "Betty Thompson", "Mark Garcia", "Sandra Lee", "Donald Lewis", "Ashley Robinson", "Steven Clark", "Donna Walker", "Paul Hall", "Carol Allen", "Andrew Young", "Michelle King", "Joshua Wright", "Laura Lopez", "Kenneth Hill", "Kimberly Scott", "Brian Green", "Elizabeth Adams", "George Baker", "Deborah Nelson", "Edward Carter", "Jessica Mitchell"];
+      return { id: 46 + i, name: names[i] || `Employee ${i + 1}`, avatar: getMockAvatar(names[i] || `Employee${i}`) };
+    })
   },
   {
     id: 11,
@@ -330,6 +377,12 @@ const getCitySpecificLinks = (location: string) => {
       { title: 'Grand Prismatic Spring Overlook Trail', url: 'https://www.nps.gov/yell/planyourvisit/grand-prismatic-spring.htm', category: 'Activity', domain: 'nps.gov', description: "Hike to view the park's largest hot spring" },
       { title: 'Old Faithful Inn Dining Room', url: 'https://www.yellowstonenationalparklodges.com/dining/', category: 'Appetite', domain: 'yellowstonenationalparklodges.com', description: 'Historic lodge dining with regional American cuisine' },
       { title: 'Old Faithful Geyser', url: 'https://www.nps.gov/yell/planyourvisit/exploreoldfaithful.htm', category: 'Attraction', domain: 'nps.gov', description: 'Iconic geyser erupting every 90 minutes' }
+    ],
+    'Dubai': [
+      { title: 'Burj Al Arab Jumeirah', url: 'https://www.jumeirah.com/en/stay/dubai/burj-al-arab-jumeirah', category: 'Accommodation', domain: 'jumeirah.com', description: 'Iconic luxury hotel shaped like a sail' },
+      { title: 'Desert Safari Dubai Adventure', url: 'https://www.desertsafaridubai.com/', category: 'Activity', domain: 'desertsafaridubai.com', description: 'Dune bashing, camel rides, and Bedouin dinner' },
+      { title: 'At.mosphere - Burj Khalifa', url: 'https://www.atmosphereburjkhalifa.com/', category: 'Appetite', domain: 'atmosphereburjkhalifa.com', description: 'Fine dining on 122nd floor of Burj Khalifa' },
+      { title: 'Burj Khalifa Observation Deck', url: 'https://www.burjkhalifa.ae/en/', category: 'Attraction', domain: 'burjkhalifa.ae', description: "World's tallest building with panoramic views" }
     ]
   };
   
