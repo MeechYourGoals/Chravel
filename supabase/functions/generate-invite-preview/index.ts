@@ -503,7 +503,7 @@ function generateInviteHTML(trip: {
       <a href="${escapeHtml(joinUrl)}" class="cta">Join This Trip</a>
       <p class="loading">Redirecting you to Chravel in 5 seconds...</p>
     </div>
-    <div class="logo">Powered by Chravel</div>
+    <div class="logo">Powered by ChravelApp</div>
   </div>
 </body>
 </html>`;

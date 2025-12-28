@@ -488,7 +488,7 @@ function generateHTML(trip: {
       </div>
       <a href="${escapeHtml(appTripUrl)}" class="cta">View Trip on Chravel</a>
     </div>
-    <div class="logo">Powered by Chravel</div>
+    <div class="logo">Powered by ChravelApp</div>
   </div>
 </body>
 </html>`;

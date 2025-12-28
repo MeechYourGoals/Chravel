@@ -223,7 +223,7 @@ const DemoTripGate = () => {
             </div>
 
             <div className="mt-6 pt-6 border-t border-white/10 text-center">
-              <p className="text-white/40 text-xs">Powered by Chravel</p>
+              <p className="text-white/40 text-xs">Powered by ChravelApp</p>
             </div>
           </div>
         </div>

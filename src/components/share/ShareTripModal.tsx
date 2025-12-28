@@ -139,7 +139,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
 
             {/* Chravel Badge */}
             <div className="absolute top-1.5 left-1.5 bg-black/50 backdrop-blur-sm px-1.5 py-0.5 rounded-full">
-              <span className="text-yellow-400 text-[10px] font-bold">Chravel</span>
+              <span className="text-white text-[10px] font-semibold">ChravelApp</span>
             </div>
 
             {/* Trip Details - Compact */}
