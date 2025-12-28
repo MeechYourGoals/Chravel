@@ -390,8 +390,8 @@ function generateHTML(trip: {
   <!-- Additional Meta Tags -->
   <meta name="description" content="${safeDescription}">
 
-  <!-- Instant redirect for humans (bots ignore meta refresh; they parse OG tags only) -->
-  <meta http-equiv="refresh" content="0;url=${escapeHtml(appTripUrl)}">
+  <!-- Human redirect with 5s delay (bots ignore; humans see card briefly then redirect) -->
+  <meta http-equiv="refresh" content="5;url=${escapeHtml(appTripUrl)}">
   
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
