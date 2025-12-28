@@ -29,7 +29,12 @@ const convertTripToDisplayFormat = (trip: typeof tripsData[0]) => ({
   participants: trip.participants.map(p => ({ id: p.id.toString() }))
 });
 
-export const ArchivedTripsSection = () => {
+interface ArchivedTripsSectionProps {
+  // Callback when a trip is restored/unhidden (for parent component to refresh)
+  onTripStateChange?: () => void;
+}
+
+export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSectionProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('archived');
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -129,6 +134,8 @@ export const ArchivedTripsSection = () => {
         description: `"${tripTitle}" has been restored to your trips list.`,
       });
       refreshTrips();
+      // Notify parent to refresh the main trips list
+      onTripStateChange?.();
       return;
     }
 
@@ -188,6 +195,8 @@ export const ArchivedTripsSection = () => {
         description: `"${tripName}" is now visible in your trips list.`,
       });
       refreshTrips();
+      // Notify parent to refresh the main trips list
+      onTripStateChange?.();
       return;
     }
 

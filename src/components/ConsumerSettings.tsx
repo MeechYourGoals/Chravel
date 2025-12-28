@@ -30,9 +30,11 @@ interface ConsumerSettingsProps {
   currentUserId: string;
   initialSection?: string;
   onClose?: () => void;
+  // Callback when a trip is restored/unhidden (for parent component to refresh)
+  onTripStateChange?: () => void;
 }
 
-export const ConsumerSettings = ({ currentUserId, initialSection, onClose: _onClose }: ConsumerSettingsProps) => {
+export const ConsumerSettings = ({ currentUserId, initialSection, onClose: _onClose, onTripStateChange }: ConsumerSettingsProps) => {
   const [activeSection, setActiveSection] = useState(initialSection || 'profile');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const isMobile = useIsMobile();
@@ -69,7 +71,7 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose: _onCl
       case 'permissions': return <ConsumerPermissionsSection />;
       case 'privacy': return <ConsumerPrivacySection />;
       case 'settings': return <ConsumerGeneralSettings />;
-      case 'archived': return <ArchivedTripsSection />;
+      case 'archived': return <ArchivedTripsSection onTripStateChange={onTripStateChange} />;
       default: return <ConsumerProfileSection />;
     }
   };
