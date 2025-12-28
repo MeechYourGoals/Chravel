@@ -438,19 +438,10 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setShowDeleteDialog(true)}
-                className={isFreeUser ? "text-muted-foreground hover:text-foreground" : "text-destructive hover:text-destructive"}
+                className="text-destructive hover:text-destructive"
               >
-                {isFreeUser ? (
-                  <>
-                    <Archive className="mr-2 h-4 w-4" />
-                    Archive Trip
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete for me
-                  </>
-                )}
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete for me
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

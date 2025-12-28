@@ -339,14 +339,26 @@ export const TripGrid = React.memo(({
           </>
         ) : viewMode === 'tripsPro' ? (
           Object.values(activeProTrips).map((trip) => (
-            <ProTripCard key={trip.id} trip={trip} />
+            <ProTripCard
+              key={trip.id}
+              trip={trip}
+              onArchiveSuccess={onTripStateChange}
+              onHideSuccess={onTripStateChange}
+              onDeleteSuccess={onTripStateChange}
+            />
           ))
         ) : viewMode === 'events' ? (
           Object.values(activeEvents).map((event) => (
             isMobile ? (
               <MobileEventCard key={event.id} event={event} />
             ) : (
-              <EventCard key={event.id} event={event} />
+              <EventCard
+                key={event.id}
+                event={event}
+                onArchiveSuccess={onTripStateChange}
+                onHideSuccess={onTripStateChange}
+                onDeleteSuccess={onTripStateChange}
+              />
             )
           ))
         ) : viewMode === 'travelRecs' ? (

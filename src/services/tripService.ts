@@ -171,13 +171,12 @@ export const tripService = {
     }
   },
 
-  async getUserTrips(isDemoMode?: boolean): Promise<Trip[]> {
+  async getUserTrips(isDemoMode?: boolean, tripType?: 'consumer' | 'pro' | 'event'): Promise<Trip[]> {
     try {
-      // Phase 3: Accept isDemoMode as parameter to avoid repeated checks
       const demoEnabled = isDemoMode ?? await demoModeService.isDemoModeEnabled();
       if (demoEnabled) {
-        // PHASE 0A: Use schema adapter to convert tripsData to Trip interface
-        // This ensures all 12 consumer trips are returned in the correct format
+        if (tripType === 'pro') return [];
+        if (tripType === 'event') return [];
         const adaptedTrips = adaptTripsDataToTripSchema(tripsData);
         return adaptedTrips;
       }
@@ -185,14 +184,19 @@ export const tripService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      // Fetch trips where user is creator
-      const { data: createdTrips, error: createdError } = await supabase
+      let query = supabase
         .from('trips')
         .select('*')
         .eq('created_by', user.id)
         .eq('is_archived', false)
         .eq('is_hidden', false)
         .order('created_at', { ascending: false });
+
+      if (tripType) {
+        query = query.eq('trip_type', tripType);
+      }
+
+      const { data: createdTrips, error: createdError } = await query;
 
       if (createdError) throw createdError;
 
