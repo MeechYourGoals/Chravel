@@ -646,5 +646,5 @@ export const eventsMockData: Record<string, EventData> = {
       { id: 'frm-t3', title: 'Download the race tracker app for live timing', sort_order: 2 }
     ]
   },
-  'google-io-2026': googleIO2026Event
+  'spotify-house-seoul-2026': googleIO2026Event
 };
