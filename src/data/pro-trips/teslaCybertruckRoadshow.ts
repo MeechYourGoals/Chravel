@@ -178,7 +178,7 @@ export const teslaCybertruckRoadshow: ProTripData = {
       occupants: ['1', '2'],
       checkIn: '2026-04-17T09:00:00Z',
       checkOut: '2026-04-20T12:00:00Z',
-      roomType: 'shared',
+      roomType: 'double',
       specialRequests: []
     }
   ],

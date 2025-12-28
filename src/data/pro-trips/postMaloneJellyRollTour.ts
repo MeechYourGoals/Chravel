@@ -100,8 +100,8 @@ export const postMaloneJellyRollTour: ProTripData = {
     { id: '3', name: 'Erik Kennedy', role: 'Agent', email: 'erik@talentmanagement.com', avatar: getMockAvatar('Erik Kennedy'), credentialLevel: 'Backstage', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
     { id: '4', name: 'Ryan O\'Connor', role: 'Production Manager', email: 'ryan@production.com', avatar: getMockAvatar('Ryan O\'Connor'), credentialLevel: 'AllAccess', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
     { id: '5', name: 'Lena Morales', role: 'Merch Director', email: 'lena@merch.com', avatar: getMockAvatar('Lena Morales'), credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '6', name: 'Tom Reeves', role: 'FOH Audio', email: 'tom@audio.com', avatar: getMockAvatar('Tom Reeves'), credentialLevel: 'Crew', permissions: ['viewer'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '7', name: 'Chris Dalton', role: 'Security Lead', email: 'chris@security.com', avatar: getMockAvatar('Chris Dalton'), credentialLevel: 'Crew', permissions: ['viewer'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' }
+    { id: '6', name: 'Tom Reeves', role: 'FOH Audio', email: 'tom@audio.com', avatar: getMockAvatar('Tom Reeves'), credentialLevel: 'Backstage', permissions: ['viewer'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '7', name: 'Chris Dalton', role: 'Security Lead', email: 'chris@security.com', avatar: getMockAvatar('Chris Dalton'), credentialLevel: 'Backstage', permissions: ['viewer'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' }
   ],
   itinerary: [
     {

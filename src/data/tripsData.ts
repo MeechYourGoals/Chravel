@@ -4,7 +4,7 @@ import tokyoAdventure from '../assets/trip-covers/tokyo-adventure.webp';
 import baliDestinationWedding from '../assets/trip-covers/bali-destination-wedding.webp';
 import nashvilleBachelorette from '../assets/trip-covers/nashville-bachelorette.webp';
 import cochelleFestivalNew from '../assets/trip-covers/coachella-festival-new.webp';
-import dubaiBirthdayLuxury from '../assets/trip-covers/dubai-birthday-luxury.webp';
+import dubaiBirthdayCameronKnight from '../assets/trip-covers/dubai-birthday-cameron-knight.webp';
 import phoenixGolfOuting from '../assets/trip-covers/phoenix-golf-outing.webp';
 import tulumYogaWellness from '../assets/trip-covers/tulum-yoga-wellness.webp';
 import napaWineGetaway from '../assets/trip-covers/napa-wine-getaway.webp';
@@ -91,6 +91,7 @@ export const tripsData: Trip[] = [
       { id: 15, name: "Laura", avatar: getMockAvatar("Laura") }
     ]
   },
+  // ⚠️ DEMO DATA — peopleCount is authoritative. Do not auto-derive or use fallbacks.
   {
     id: 3,
     title: "The Tyler's Tie The Knot",
@@ -99,7 +100,8 @@ export const tripsData: Trip[] = [
     description: "Romantic destination wedding celebration with family and friends in paradise, featuring welcome dinner, ceremony, and reception",
     coverPhoto: baliDestinationWedding,
     placesCount: 4,
-    participants: Array.from({ length: 112 }, (_, i) => {
+    peopleCount: 63, // Explicit count — do not derive from participants array
+    participants: Array.from({ length: 63 }, (_, i) => {
       if (i === 0) return { id: i + 1, name: "Jack", avatar: getMockAvatar("Jack") };
       if (i === 1) return { id: i + 1, name: "Jill", avatar: getMockAvatar("Jill") };
       if (i < 12) {
@@ -115,7 +117,7 @@ export const tripsData: Trip[] = [
   },
   {
     id: 4,
-    title: "Kristen's Bachelorette Party",
+    title: "Kristen Goldberg's Bachelorette Party",
     location: "Nashville, TN",
     dateRange: "Nov 8 - Nov 10, 2026",
     description: "Epic bachelorette celebration with honky-tonk bars, live music, spa day, karaoke, and unforgettable memories across multiple Nashville venues",
@@ -181,11 +183,11 @@ export const tripsData: Trip[] = [
   },
   {
     id: 6,
-    title: "Cameron's Birthday Trip",
+    title: "Cameron Knight's Dubai Birthday",
     location: "Dubai, UAE",
     dateRange: "Jul 5 - Jul 9, 2026",
     description: "Luxury birthday celebration in Dubai featuring Burj Khalifa, desert safari, yacht party, and fine dining",
-    coverPhoto: dubaiBirthdayLuxury,
+    coverPhoto: dubaiBirthdayCameronKnight, // Unique Dubai cityscape — no wedding imagery
     placesCount: 4,
     participants: [
       { id: 21, name: "Cameron", avatar: getMockAvatar("Cameron") },
@@ -230,10 +232,10 @@ export const tripsData: Trip[] = [
   },
   {
     id: 9,
-    title: "Newly Divorced Wine-Tasting Getaway",
+    title: "Sarah Gardelin's Promotion Celebration",
     location: "Napa Valley, CA",
     dateRange: "May 2 - May 5, 2026",
-    description: "Celebratory wine country escape with tastings, spa treatments, and new beginnings",
+    description: "Celebratory wine country escape with close friends to mark a major career milestone, featuring tastings, spa treatments, and new adventures",
     coverPhoto: napaWineGetaway,
     placesCount: 8,
     participants: [
