@@ -4,7 +4,7 @@ import tokyoAdventure from '../assets/trip-covers/tokyo-adventure.webp';
 import baliDestinationWedding from '../assets/trip-covers/bali-destination-wedding.webp';
 import nashvilleBachelorette from '../assets/trip-covers/nashville-bachelorette.webp';
 import cochelleFestivalNew from '../assets/trip-covers/coachella-festival-new.webp';
-import aspenFamilySummer from '../assets/trip-covers/aspen-family-summer.webp';
+import dubaiBirthdayLuxury from '../assets/trip-covers/dubai-birthday-luxury.webp';
 import phoenixGolfOuting from '../assets/trip-covers/phoenix-golf-outing.webp';
 import tulumYogaWellness from '../assets/trip-covers/tulum-yoga-wellness.webp';
 import napaWineGetaway from '../assets/trip-covers/napa-wine-getaway.webp';
@@ -72,7 +72,7 @@ export const tripsData: Trip[] = [
     id: 2,
     title: "Tokyo Adventure",
     location: "Tokyo, Japan",
-    dateRange: "Oct 5 - Oct 15, 2025",
+    dateRange: "Oct 5 - Oct 15, 2026",
     description: "Cultural exploration of Japan's capital with temples, modern tech districts, and amazing cuisine",
     coverPhoto: tokyoAdventure,
     placesCount: 9,
@@ -95,7 +95,7 @@ export const tripsData: Trip[] = [
     id: 3,
     title: "Jack and Jill's destination wedding",
     location: "Bali, Indonesia",
-    dateRange: "Dec 10 - Dec 12, 2025",
+    dateRange: "Dec 10 - Dec 12, 2026",
     description: "Romantic destination wedding celebration with family and friends in paradise, featuring welcome dinner, ceremony, and reception",
     coverPhoto: baliDestinationWedding,
     placesCount: 4,
@@ -117,7 +117,7 @@ export const tripsData: Trip[] = [
     id: 4,
     title: "Kristen's Bachelorette Party",
     location: "Nashville, TN",
-    dateRange: "Nov 8 - Nov 10, 2025",
+    dateRange: "Nov 8 - Nov 10, 2026",
     description: "Epic bachelorette celebration with honky-tonk bars, live music, spa day, karaoke, and unforgettable memories across multiple Nashville venues",
     coverPhoto: nashvilleBachelorette,
     placesCount: 7,
@@ -185,7 +185,7 @@ export const tripsData: Trip[] = [
     location: "Dubai, UAE",
     dateRange: "Jul 5 - Jul 9, 2026",
     description: "Luxury birthday celebration in Dubai featuring Burj Khalifa, desert safari, yacht party, and fine dining",
-    coverPhoto: aspenFamilySummer,
+    coverPhoto: dubaiBirthdayLuxury,
     placesCount: 4,
     participants: [
       { id: 21, name: "Cameron", avatar: getMockAvatar("Cameron") },
@@ -202,7 +202,7 @@ export const tripsData: Trip[] = [
     id: 7,
     title: "Fantasy Football Chat's Annual Golf Outing",
     location: "Phoenix, Arizona",
-    dateRange: "Feb 20 - Feb 23, 2025",
+    dateRange: "Feb 20 - Feb 23, 2026",
     description: "Annual guys' golf trip with tournaments, poker nights, and fantasy football draft",
     coverPhoto: phoenixGolfOuting,
     placesCount: 6,
@@ -219,7 +219,7 @@ export const tripsData: Trip[] = [
     id: 8,
     title: "Tulum Wellness Retreat",
     location: "Tulum, Mexico",
-    dateRange: "Nov 10 - Nov 23, 2025",
+    dateRange: "Nov 10 - Nov 23, 2026",
     description: "Yoga and wellness focused retreat with breathwork, meditation, and spa treatments",
     coverPhoto: tulumYogaWellness,
     placesCount: 10,
@@ -232,7 +232,7 @@ export const tripsData: Trip[] = [
     id: 9,
     title: "Newly Divorced Wine-Tasting Getaway",
     location: "Napa Valley, CA",
-    dateRange: "May 2 - May 5, 2025",
+    dateRange: "May 2 - May 5, 2026",
     description: "Celebratory wine country escape with tastings, spa treatments, and new beginnings",
     coverPhoto: napaWineGetaway,
     placesCount: 8,
@@ -249,7 +249,7 @@ export const tripsData: Trip[] = [
     id: 10,
     title: "Corporate Holiday Ski Trip – Aspen",
     location: "Aspen, CO",
-    dateRange: "Dec 12 - Dec 15, 2025",
+    dateRange: "Dec 12 - Dec 15, 2026",
     description: "Company holiday celebration with skiing, team building, and winter activities featuring corporate lodging, group ski lessons, and team dinners",
     coverPhoto: aspenCorporateSki,
     placesCount: 3,
@@ -262,7 +262,7 @@ export const tripsData: Trip[] = [
     id: 11,
     title: "Disney Cruise Family Vacation",
     location: "Port Canaveral, FL",
-    dateRange: "Jun 15 - Jun 22, 2025",
+    dateRange: "Jun 15 - Jun 22, 2026",
     description: "Magical family cruise with Disney characters, activities, and island adventures",
     coverPhoto: disneyFamilyCruise,
     placesCount: 10,
@@ -280,7 +280,7 @@ export const tripsData: Trip[] = [
     id: 12,
     title: "Yellowstone National-Park Hiking Adventure",
     location: "Yellowstone, WY",
-    dateRange: "Jul 10 - Jul 17, 2025",
+    dateRange: "Jul 10 - Jul 17, 2026",
     description: "Outdoor adventure exploring geysers, wildlife, and backcountry hiking trails",
     coverPhoto: yellowstoneHikingGroup,
     placesCount: 14,
