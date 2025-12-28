@@ -78,7 +78,7 @@ export const yCombinatorCohort: ProTripData = {
     {
       id: 'bc-creator-2',
       senderId: '4',
-      message: 'Great work today everyone! Tomorrow's call time is 9 AM for indoor studio setup.',
+      message: "Great work today everyone! Tomorrow's call time is 9 AM for indoor studio setup.",
       targetTrips: ['creator-house-content-shoot-2026'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
