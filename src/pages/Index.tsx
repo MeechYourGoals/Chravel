@@ -542,11 +542,12 @@ const Index = () => {
             onClose={() => setIsUpgradeModalOpen(false)} 
           />
 
-          <SettingsMenu 
-            isOpen={isSettingsOpen} 
-            onClose={() => setIsSettingsOpen(false)} 
+          <SettingsMenu
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
             initialConsumerSection={settingsInitialConsumerSection}
             initialSettingsType={settingsInitialType}
+            onTripStateChange={handleTripStateChange}
           />
 
           {/* Search indicator when active */}
@@ -692,11 +693,12 @@ const Index = () => {
             onClose={() => setIsUpgradeModalOpen(false)} 
           />
 
-          <SettingsMenu 
-            isOpen={isSettingsOpen} 
-            onClose={() => setIsSettingsOpen(false)} 
+          <SettingsMenu
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
             initialConsumerSection={settingsInitialConsumerSection}
             initialSettingsType={settingsInitialType}
+            onTripStateChange={handleTripStateChange}
           />
 
           <DemoModal
@@ -887,11 +889,12 @@ const Index = () => {
         onClose={() => setIsUpgradeModalOpen(false)} 
       />
 
-      <SettingsMenu 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
+      <SettingsMenu
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
         initialConsumerSection={settingsInitialConsumerSection}
         initialSettingsType={settingsInitialType}
+        onTripStateChange={handleTripStateChange}
       />
 
       <DemoModal

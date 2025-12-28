@@ -23,9 +23,11 @@ interface SettingsMenuProps {
   onClose: () => void;
   initialConsumerSection?: string;
   initialSettingsType?: 'consumer' | 'enterprise' | 'events';
+  // Callback when a trip is restored/unhidden (for parent component to refresh)
+  onTripStateChange?: () => void;
 }
 
-export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialSettingsType }: SettingsMenuProps) => {
+export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialSettingsType, onTripStateChange }: SettingsMenuProps) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -215,7 +217,7 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {settingsType === 'consumer' ? (
               <div className="flex-1 min-h-0">
-                <ConsumerSettings currentUserId={currentUser.id} initialSection={initialConsumerSection} onClose={onClose} />
+                <ConsumerSettings currentUserId={currentUser.id} initialSection={initialConsumerSection} onClose={onClose} onTripStateChange={onTripStateChange} />
               </div>
             ) : settingsType === 'enterprise' ? (
               <div className="flex-1 min-h-0">
