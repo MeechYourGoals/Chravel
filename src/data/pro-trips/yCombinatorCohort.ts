@@ -165,7 +165,7 @@ export const yCombinatorCohort: ProTripData = {
       email: 'trevor@camera.com',
       avatar: getMockAvatar('Trevor Mills'),
       role: 'Camera & Editing',
-      credentialLevel: 'Crew',
+      credentialLevel: 'Backstage',
       permissions: ['editor'],
       roomPreferences: [],
       dietaryRestrictions: []
@@ -176,7 +176,7 @@ export const yCombinatorCohort: ProTripData = {
       email: 'jamal@logistics.com',
       avatar: getMockAvatar('Jamal Wright'),
       role: 'Logistics & Security',
-      credentialLevel: 'Crew',
+      credentialLevel: 'Backstage',
       permissions: ['editor'],
       roomPreferences: [],
       dietaryRestrictions: []
@@ -190,7 +190,7 @@ export const yCombinatorCohort: ProTripData = {
       occupants: ['1', '2', '3'],
       checkIn: '2026-08-03T12:00:00Z',
       checkOut: '2026-08-08T11:00:00Z',
-      roomType: 'shared',
+      roomType: 'double',
       specialRequests: ['streaming-setup', 'soundproofing']
     }
   ],
@@ -223,7 +223,7 @@ export const yCombinatorCohort: ProTripData = {
   compliance: [
     {
       id: 'comp-creator1',
-      type: 'legal',
+      type: 'safety',
       title: 'Content Release Agreements',
       description: 'All talent must sign content release forms and location permits secured',
       deadline: '2026-08-02',

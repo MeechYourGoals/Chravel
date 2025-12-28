@@ -153,7 +153,7 @@ export const kaiDruskiStream: ProTripData = {
       email: 'luke@amazonprime.com',
       avatar: getMockAvatar('Luke Matthews'),
       role: 'Camera Lead',
-      credentialLevel: 'Crew',
+      credentialLevel: 'Backstage',
       permissions: ['field-access', 'camera-positions'],
       roomPreferences: ['standard', 'any-floor'],
       dietaryRestrictions: []

@@ -456,7 +456,7 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
         <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
           <div className="text-center">
             <div className="text-xl md:text-2xl font-bold text-white">
-              {trip.peopleCount ?? (trip.id === 3 ? 200 : participantsWithAvatars.length)}
+              {trip.peopleCount ?? participantsWithAvatars.length}
             </div>
             <div className="text-xs md:text-sm text-gray-400">People</div>
           </div>
