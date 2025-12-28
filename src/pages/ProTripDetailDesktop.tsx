@@ -23,6 +23,7 @@ import { ProAdminDashboard } from '../components/pro/admin/ProAdminDashboard';
 import { useProTripAdmin } from '../hooks/useProTripAdmin';
 import { MockRolesService } from '../services/mockRolesService';
 import { tripService } from '../services/tripService';
+import { demoModeService } from '../services/demoModeService';
 import { ProTripData, ProParticipant } from '../types/pro';
 
 // 🚀 OPTIMIZATION: Lazy load heavy components for faster initial render
