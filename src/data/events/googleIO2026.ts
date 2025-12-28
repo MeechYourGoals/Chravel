@@ -1,73 +1,114 @@
 import { EventData } from '../../types/events';
+import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const googleIO2026Event: EventData = {
-  id: 'google-io-2026',
-  title: 'Google I/O 2026 – Speakers & Demo Team',
-  location: 'Mountain View, CA',
-  dateRange: 'May 12 - May 15, 2026',
-  category: 'Tech Conference',
-  description: 'Google\'s annual developer conference showcasing latest innovations',
-  tags: ['Technology', 'Developer', 'AI', 'Android', 'Cloud'],
+  id: 'spotify-house-seoul-2026',
+  title: 'Spotify House Holiday Party — Seoul',
+  location: 'Seoul, South Korea',
+  dateRange: 'Dec 12, 2026',
+  category: 'Brand / Music / Creator Event',
+  description: 'Spotify\'s annual holiday celebration in Seoul bringing together artists, creators, industry leaders, and tastemakers. Featuring live performances, DJ sets, immersive brand activations, and curated experiences.',
+  tags: ['Music', 'Creators', 'Brand Activation', 'Nightlife', 'Seoul'],
   participants: [
-    { id: 1, name: 'Sundar Pichai', avatar: '/images/avatars/blank-13.png', role: 'Keynote Speaker' },
-    { id: 2, name: 'Aparna Pappu', avatar: '/images/avatars/blank-14.png', role: 'Demo Lead' },
-    { id: 3, name: 'Jordan Tigani', avatar: '/images/avatars/blank-15.png', role: 'BigQuery PM' },
-    { id: 4, name: 'Maya Chen', avatar: '/images/avatars/blank-16.png', role: 'Developer Advocate' }
+    { id: 1, name: 'DJ SODA', avatar: getMockAvatar('DJ SODA'), role: 'Headliner DJ' },
+    { id: 2, name: 'Jay Park', avatar: getMockAvatar('Jay Park'), role: 'Special Guest Artist' },
+    { id: 3, name: 'Min-ji Kim', avatar: getMockAvatar('Min-ji Kim'), role: 'Event Producer' },
+    { id: 4, name: 'Alex Chen', avatar: getMockAvatar('Alex Chen'), role: 'Spotify Partnerships' }
   ],
   itinerary: [
     {
-      date: '2026-05-12',
+      date: '2026-12-12',
       events: [
-        { title: 'Keynote Setup', location: 'Shoreline Amphitheatre', time: '08:00' },
-        { title: 'Opening Keynote', location: 'Main Stage', time: '10:00' },
-        { title: 'Developer Sessions', location: 'Various Venues', time: '14:00' }
+        { title: 'VIP Check-In & Welcome Cocktails', location: 'Spotify House Seoul', time: '19:00' },
+        { title: 'Opening Performance & Brand Activation', location: 'Main Stage', time: '20:00' },
+        { title: 'DJ Sets & Late Night Party', location: 'Club Level', time: '22:00' }
       ]
     }
   ],
   budget: {
-    total: 8000000,
-    spent: 4500000,
+    total: 650000,
+    spent: 420000,
     categories: [
-      { name: 'Venue', allocated: 3000000, spent: 2000000 },
-      { name: 'Technology', allocated: 2500000, spent: 1500000 },
-      { name: 'Speakers', allocated: 1500000, spent: 800000 },
-      { name: 'Catering', allocated: 1000000, spent: 200000 }
+      { name: 'Venue & Production', allocated: 280000, spent: 200000 },
+      { name: 'Talent & Artists', allocated: 250000, spent: 150000 },
+      { name: 'Hospitality & Catering', allocated: 120000, spent: 70000 }
     ]
   },
   groupChatEnabled: true,
-  attendanceExpected: 2000,
-  capacity: 7500,
+  attendanceExpected: 1200,
+  capacity: 1200,
   registrationStatus: 'open',
   checkedInCount: 0,
-  userRole: 'organizer',
+  userRole: 'attendee',
   tracks: [
-    { id: 'ai-ml', name: 'AI & Machine Learning', color: '#4285F4', location: 'Building A' },
-    { id: 'android', name: 'Android Development', color: '#34A853', location: 'Building B' },
-    { id: 'cloud', name: 'Google Cloud', color: '#FBBC05', location: 'Building C' }
+    { id: 'main-stage', name: 'Main Stage', color: '#1DB954', location: 'Ground Floor' },
+    { id: 'lounge', name: 'Creator Lounge', color: '#191414', location: '2nd Floor' },
+    { id: 'club', name: 'Club Level', color: '#535353', location: 'Basement' }
   ],
   speakers: [
     {
-      id: 'sundar-pichai',
-      name: 'Sundar Pichai',
-      title: 'CEO',
-      company: 'Google',
-      bio: 'CEO of Google and Alphabet, leading the company\'s technology strategy.',
-      avatar: '/images/avatars/blank-13.png',
-      sessions: ['keynote-main']
+      id: 'dj-soda',
+      name: 'DJ SODA',
+      title: 'International DJ & Producer',
+      company: 'Independent',
+      bio: 'World-renowned Korean DJ known for electrifying performances and massive social media following, bringing high-energy EDM to global audiences.',
+      avatar: getMockAvatar('DJ SODA'),
+      sessions: ['main-performance']
+    },
+    {
+      id: 'jay-park',
+      name: 'Jay Park',
+      title: 'Artist & CEO',
+      company: 'H1GHR Music & AOMG',
+      bio: 'Korean-American rapper, singer, songwriter, and entrepreneur. Founder of two influential hip-hop labels and pioneer of Korean R&B.',
+      avatar: getMockAvatar('Jay Park'),
+      sessions: ['special-guest-set']
     }
   ],
   sessions: [
     {
-      id: 'keynote-main',
-      title: 'The Future of AI',
-      description: 'Sundar Pichai presents Google\'s latest AI innovations.',
-      speaker: 'sundar-pichai',
-      track: 'ai-ml',
-      startTime: '10:00',
-      endTime: '11:00',
+      id: 'main-performance',
+      title: 'Opening Performance & Brand Showcase',
+      description: 'Spotify\'s immersive brand experience featuring live performances, artist collaborations, and exclusive music previews.',
+      speaker: 'dj-soda',
+      track: 'main-stage',
+      startTime: '20:00',
+      endTime: '22:00',
+      location: 'Main Stage'
+    },
+    {
+      id: 'special-guest-set',
+      title: 'Jay Park Special Performance',
+      description: 'Exclusive live set from Jay Park featuring unreleased tracks and surprise guest collaborations.',
+      speaker: 'jay-park',
+      track: 'main-stage',
+      startTime: '21:00',
+      endTime: '21:45',
       location: 'Main Stage'
     }
   ],
-  sponsors: [],
-  exhibitors: []
+  sponsors: [
+    {
+      id: 'sponsor-1',
+      name: 'Samsung',
+      tier: 'platinum',
+      logo: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=120&h=60&fit=crop',
+      website: 'https://samsung.com',
+      description: 'Premium audio and mobile technology partner',
+      booth: 'Activation Zone A'
+    }
+  ],
+  exhibitors: [],
+  agenda: [
+    { id: 'sps-a1', title: 'VIP Check-In & Welcome Cocktails', start_time: '19:00', end_time: '20:00', location: 'Entrance Lounge' },
+    { id: 'sps-a2', title: 'Opening Performance', start_time: '20:00', end_time: '21:00', location: 'Main Stage' },
+    { id: 'sps-a3', title: 'Jay Park Special Set', start_time: '21:00', end_time: '21:45', location: 'Main Stage' },
+    { id: 'sps-a4', title: 'DJ Sets & Late Night Party', start_time: '22:00', end_time: '03:00', location: 'Club Level' }
+  ],
+  tasks: [
+    { id: 'sps-t1', title: 'Download your digital invitation QR code', sort_order: 0 },
+    { id: 'sps-t2', title: 'Arrive before 8 PM for priority entry', sort_order: 1 },
+    { id: 'sps-t3', title: 'Check out the brand activations on the 2nd floor', sort_order: 2 },
+    { id: 'sps-t4', title: 'Tag @spotify in your social posts for featured content', sort_order: 3 }
+  ]
 };
