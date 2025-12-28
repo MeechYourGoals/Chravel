@@ -2,238 +2,236 @@ import { ProTripData } from '../../types/pro';
 import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const yCombinatorCohort: ProTripData = {
-  id: 'a16z-speedrun-2026',
-  title: 'a16z Speedrun • 2026 Accelerator Cohort',
-  description: 'Participation in Andreessen Horowitz Speedrun 2026 accelerator program in Menlo Park.',
-  location: 'Menlo Park, CA',
-  dateRange: 'Jan 15 - Mar 30, 2026',
-  proTripCategory: 'Business Travel',
-  tags: ['Startup', 'Accelerator', 'Andreessen Horowitz'],
-  basecamp_name: 'Andreessen Horowitz HQ',
-  basecamp_address: '2865 Sand Hill Rd, Menlo Park, CA 94025',
+  id: 'creator-house-content-shoot-2026',
+  title: 'Creator House — Multi-Day Content Shoot',
+  description: 'Multi-day content production shoot with crew, talent, tight schedules, locations, releases, shoot times, payments, logistics, and file management.',
+  location: 'Miami, FL',
+  dateRange: 'Aug 3 - Aug 8, 2026',
+  proTripCategory: 'Content',
+  tags: ['Content Creation', 'Streaming', 'Production', 'Creator'],
+  basecamp_name: 'Miami Creator House',
+  basecamp_address: '1200 Ocean Dr, Miami Beach, FL 33139',
   tasks: [
     {
-      id: 'task-yc-1',
-      title: 'Submit Demo Day pitch deck for review',
-      description: 'Final pitch deck due for partner review by Friday EOD',
+      id: 'task-creator-1',
+      title: 'Finalize content release forms',
+      description: 'All talent must sign content release agreements before shooting',
       completed: true,
-      due_at: '2026-03-22',
-      assigned_to: 'founders',
+      due_at: '2026-08-02',
+      assigned_to: 'production-manager',
       created_at: new Date(Date.now() - 604800000).toISOString()
     },
     {
-      id: 'task-yc-2',
-      title: 'Schedule 1-on-1 with assigned partner',
-      description: 'Book weekly office hours slot with investment partner',
+      id: 'task-creator-2',
+      title: 'Confirm camera equipment delivery',
+      description: 'Verify all camera gear and lighting equipment arrives on site',
       completed: false,
-      due_at: '2026-02-01',
-      assigned_to: 'all-founders',
+      due_at: '2026-08-03',
+      assigned_to: 'camera-lead',
       created_at: new Date().toISOString()
     }
   ],
   polls: [
     {
-      id: 'poll-yc-1',
-      question: 'Best time for weekly cohort dinner?',
+      id: 'poll-creator-1',
+      question: 'Preferred shoot schedule for Day 3?',
       options: [
-        { id: 'opt1', text: 'Tuesday 6 PM', votes: 12 },
-        { id: 'opt2', text: 'Wednesday 7 PM', votes: 18 },
-        { id: 'opt3', text: 'Thursday 6 PM', votes: 5 }
+        { id: 'opt1', text: 'Morning (8 AM - 12 PM)', votes: 3 },
+        { id: 'opt2', text: 'Afternoon (1 PM - 5 PM)', votes: 5 },
+        { id: 'opt3', text: 'Evening (6 PM - 10 PM)', votes: 1 }
       ],
-      total_votes: 35,
+      total_votes: 9,
       status: 'closed',
       created_at: new Date(Date.now() - 86400000).toISOString()
     }
   ],
   links: [
     {
-      id: 'link-yc-1',
-      url: 'https://a16z.com/portfolio-resources',
-      title: 'a16z Portfolio Resources',
-      description: 'Access to exclusive partner resources and tools',
-      domain: 'a16z.com',
+      id: 'link-creator-1',
+      url: 'https://www.miamibeach.com',
+      title: 'Miami Beach Tourist Info',
+      description: 'Local attractions and filming locations',
+      domain: 'miamibeach.com',
       created_at: new Date().toISOString(),
       source: 'places'
     },
     {
-      id: 'link-yc-2',
-      url: 'https://www.figma.com/community/file/demo-day-template',
-      title: 'Demo Day Presentation Template',
-      description: 'Recommended slide deck template for final pitch',
-      domain: 'figma.com',
+      id: 'link-creator-2',
+      url: 'https://www.dropbox.com/shared/content-files',
+      title: 'Shared Content Drive',
+      description: 'Cloud storage for all shoot footage and files',
+      domain: 'dropbox.com',
       created_at: new Date(Date.now() - 172800000).toISOString(),
       source: 'manual'
     }
   ],
   broadcasts: [
     {
-      id: 'bc-yc-1',
-      senderId: '24',
-      message: 'Office hours this week canceled. Rescheduling to next Monday same time.',
-      targetTrips: ['a16z-speedrun-2026'],
-      priority: 'normal',
+      id: 'bc-creator-1',
+      senderId: '1',
+      message: 'Beach shoot moved to 3 PM due to weather. Talent please be ready by 2:30 PM.',
+      targetTrips: ['creator-house-content-shoot-2026'],
+      priority: 'urgent',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
-      readBy: ['25', '26', '27']
+      readBy: ['2', '3', '4', '5']
     },
     {
-      id: 'bc-yc-2',
-      senderId: '25',
-      message: 'URGENT: Demo Day rehearsal moved to 10 AM tomorrow. Please arrive 15 minutes early.',
-      targetTrips: ['a16z-speedrun-2026'],
-      priority: 'urgent',
+      id: 'bc-creator-2',
+      senderId: '4',
+      message: 'Great work today everyone! Tomorrow's call time is 9 AM for indoor studio setup.',
+      targetTrips: ['creator-house-content-shoot-2026'],
+      priority: 'normal',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
-      readBy: ['24', '26']
+      readBy: ['1', '2', '3']
     }
   ],
-  participants: Array.from({ length: 35 }, (_, i) => {
-    const id = String(24 + i);
-    
-    if (i < 5) {
-      const partners = ['Marc Andreessen', 'Chris Dixon', 'Ben Horowitz', 'Jeff Jordan', 'Scott Weiss'];
-      const name = partners[i] || `Partner ${i + 1}`;
-      return { id, name, avatar: getMockAvatar(name), role: 'Partners' };
-    } else if (i < 25) {
-      const founderNames = ['Alexis Rivera', 'Priya Krishnan', 'David Chen', 'Sarah Johnson', 'Michael Torres', 'Jessica Wang', 'Ryan Martinez', 'Emily Davis', 'Kevin Liu', 'Amanda Rodriguez'];
-      const founderIndex = (i - 5) % founderNames.length;
-      const companyNumber = Math.floor((i - 5) / 10) + 1;
-      const name = `${founderNames[founderIndex]} (Startup ${companyNumber})`;
-      return { id, name, avatar: getMockAvatar(name), role: 'Founders' };
-    } else {
-      const staff = ['Program Director', 'Venture Partner 1', 'Venture Partner 2', 'EIR 1', 'EIR 2', 'Operations Manager', 'Event Coordinator', 'Technical Advisor', 'Legal Counsel', 'Finance Manager'];
-      const name = staff[i - 25] || `Staff ${i - 24}`;
-      return { id, name, avatar: getMockAvatar(name), role: 'Staff' };
-    }
-  }),
+  participants: [
+    { id: '1', name: 'Darren Watkins Jr.', avatar: getMockAvatar('Darren Watkins Jr.'), role: 'Talent' },
+    { id: '2', name: 'Kai Cenat', avatar: getMockAvatar('Kai Cenat'), role: 'Talent' },
+    { id: '3', name: 'Adin Ross', avatar: getMockAvatar('Adin Ross'), role: 'Talent' },
+    { id: '4', name: 'Nicole Perez', avatar: getMockAvatar('Nicole Perez'), role: 'Production Manager' },
+    { id: '5', name: 'Trevor Mills', avatar: getMockAvatar('Trevor Mills'), role: 'Camera & Editing' },
+    { id: '6', name: 'Jamal Wright', avatar: getMockAvatar('Jamal Wright'), role: 'Logistics & Security' }
+  ],
   budget: {
-    total: 120000,
-    spent: 30000,
+    total: 85000,
+    spent: 55000,
     categories: [
-      { name: 'Accommodation', budgeted: 25000, spent: 8000 },
-      { name: 'Living Expenses', budgeted: 15000, spent: 5000 },
-      { name: 'Transportation', budgeted: 3000, spent: 1500 },
-      { name: 'Program Fees', budgeted: 2000, spent: 500 }
+      { name: 'Talent Fees', budgeted: 45000, spent: 30000 },
+      { name: 'Production & Equipment', budgeted: 25000, spent: 18000 },
+      { name: 'Lodging & Meals', budgeted: 10000, spent: 5000 },
+      { name: 'Logistics & Security', budgeted: 5000, spent: 2000 }
     ]
   },
   itinerary: [
     {
-      date: '2025-02-01',
+      date: '2026-08-03',
       events: [
-        { time: '09:00', title: 'a16z Orientation', location: 'Andreessen Horowitz HQ', type: 'meeting' },
-        { time: '11:00', title: 'Founder Introductions', location: 'a16z Auditorium', type: 'meeting' },
-        { time: '14:00', title: 'First Partner Meeting', location: 'Conference Room A', type: 'meeting' },
-        { time: '17:00', title: 'Cohort Mixer', location: 'a16z Common Area', type: 'meeting' }
+        { time: '09:00', title: 'Crew Arrival & Equipment Setup', location: 'Miami Creator House', type: 'meeting' },
+        { time: '11:00', title: 'First Shoot — Outdoor Beach Scene', location: 'South Beach', type: 'meeting' },
+        { time: '14:00', title: 'Studio Shoot — Indoor Content', location: 'Creator House Studio', type: 'meeting' },
+        { time: '18:00', title: 'Dailies Review & Editing', location: 'Production Room', type: 'meeting' }
       ]
     }
   ],
   roster: [
     {
-      id: '24',
-      name: 'Marc Andreessen',
-      email: 'marc@a16z.com',
-      avatar: '/images/avatars/blank-05.png',
-      role: 'Partners',
+      id: '1',
+      name: 'Darren Watkins Jr.',
+      email: 'darren@talent.com',
+      avatar: getMockAvatar('Darren Watkins Jr.'),
+      role: 'Talent',
       credentialLevel: 'AllAccess',
-      permissions: ['partner-access', 'a16z-facilities'],
-      roomPreferences: ['shared-housing', 'san-francisco'],
-      dietaryRestrictions: ['vegetarian']
-    },
-    {
-      id: '25',
-      name: 'Chris Dixon',
-      email: 'chris@a16z.com',
-      avatar: '/images/avatars/blank-06.png',
-      role: 'Partners',
-      credentialLevel: 'AllAccess',
-      permissions: ['partner-access', 'a16z-facilities'],
-      roomPreferences: ['shared-housing', 'san-francisco'],
+      permissions: ['admin'],
+      roomPreferences: [],
       dietaryRestrictions: []
     },
     {
-      id: '26',
-      name: 'Alexis Rivera',
-      email: 'alexis@synthai.com',
-      avatar: '/images/avatars/blank-07.png',
-      role: 'Founders',
+      id: '2',
+      name: 'Kai Cenat',
+      email: 'kai@talent.com',
+      avatar: getMockAvatar('Kai Cenat'),
+      role: 'Talent',
       credentialLevel: 'AllAccess',
-      permissions: ['founder-access', 'a16z-facilities'],
-      roomPreferences: ['shared-housing', 'san-francisco'],
-      dietaryRestrictions: ['gluten-free']
+      permissions: ['admin'],
+      roomPreferences: [],
+      dietaryRestrictions: []
     },
     {
-      id: '27',
-      name: 'Priya Krishnan',
-      email: 'priya@loomworks.com',
-      avatar: '/images/avatars/blank-08.png',
-      role: 'Founders',
+      id: '3',
+      name: 'Adin Ross',
+      email: 'adin@talent.com',
+      avatar: getMockAvatar('Adin Ross'),
+      role: 'Talent',
       credentialLevel: 'AllAccess',
-      permissions: ['founder-access', 'a16z-facilities'],
-      roomPreferences: ['shared-housing', 'menlo-park'],
+      permissions: ['admin'],
+      roomPreferences: [],
+      dietaryRestrictions: []
+    },
+    {
+      id: '4',
+      name: 'Nicole Perez',
+      email: 'nicole@production.com',
+      avatar: getMockAvatar('Nicole Perez'),
+      role: 'Production Manager',
+      credentialLevel: 'AllAccess',
+      permissions: ['admin'],
+      roomPreferences: [],
+      dietaryRestrictions: []
+    },
+    {
+      id: '5',
+      name: 'Trevor Mills',
+      email: 'trevor@camera.com',
+      avatar: getMockAvatar('Trevor Mills'),
+      role: 'Camera & Editing',
+      credentialLevel: 'Crew',
+      permissions: ['editor'],
+      roomPreferences: [],
+      dietaryRestrictions: []
+    },
+    {
+      id: '6',
+      name: 'Jamal Wright',
+      email: 'jamal@logistics.com',
+      avatar: getMockAvatar('Jamal Wright'),
+      role: 'Logistics & Security',
+      credentialLevel: 'Crew',
+      permissions: ['editor'],
+      roomPreferences: [],
       dietaryRestrictions: []
     }
   ],
   roomAssignments: [
     {
-      id: 'room-yc1',
-      room: '3BR Apartment',
-      hotel: 'Mission District Housing',
-      occupants: ['24', '25', '26', '27'],
-      checkIn: '2025-02-01T14:00:00Z',
-      checkOut: '2025-03-31T12:00:00Z',
-      roomType: 'suite',
-      specialRequests: ['startup-workspace', 'high-speed-internet']
+      id: 'room-creator1',
+      room: 'Master Suite',
+      hotel: 'Miami Creator House',
+      occupants: ['1', '2', '3'],
+      checkIn: '2026-08-03T12:00:00Z',
+      checkOut: '2026-08-08T11:00:00Z',
+      roomType: 'shared',
+      specialRequests: ['streaming-setup', 'soundproofing']
     }
   ],
   schedule: [
     {
-      id: 'sched-yc1',
-      type: 'meeting',
-      title: 'Demo Day Preparation',
-      startTime: '2025-03-25T10:00:00Z',
-      endTime: '2025-03-25T18:00:00Z',
-      location: 'Andreessen Horowitz HQ',
-      participants: ['24', '25', '26', '27'],
-      priority: 'critical',
-      notes: 'Final pitch preparation and rehearsal'
+      id: 'sched-creator1',
+      type: 'show',
+      title: 'Beach Content Shoot',
+      startTime: '2026-08-03T11:00:00Z',
+      endTime: '2026-08-03T15:00:00Z',
+      location: 'South Beach, Miami',
+      participants: ['1', '2', '3', '4', '5'],
+      priority: 'high',
+      notes: 'Main outdoor content shoot with all talent'
     }
   ],
   perDiem: {
-    dailyRate: 75,
+    dailyRate: 150,
     currency: 'USD',
-    startDate: '2025-02-01',
-    endDate: '2025-03-31',
+    startDate: '2026-08-03',
+    endDate: '2026-08-08',
     participants: [
-      { participantId: '24', customRate: 75, advances: 0, deductions: 0, balance: 4425 },
-      { participantId: '25', customRate: 75, advances: 0, deductions: 0, balance: 4425 },
-      { participantId: '26', customRate: 75, advances: 0, deductions: 0, balance: 4425 },
-      { participantId: '27', customRate: 75, advances: 0, deductions: 0, balance: 4425 }
+      { participantId: '4', customRate: 200, advances: 0, deductions: 0, balance: 1200 },
+      { participantId: '5', customRate: 175, advances: 0, deductions: 0, balance: 1050 },
+      { participantId: '6', customRate: 150, advances: 0, deductions: 0, balance: 900 }
     ]
   },
   settlement: [],
   medical: [],
   compliance: [
     {
-      id: 'comp-yc1',
-      type: 'safety',
-      title: 'a16z Program Compliance',
-      description: 'Participants must attend required sessions and meet milestones',
-      deadline: '2025-03-31',
+      id: 'comp-creator1',
+      type: 'legal',
+      title: 'Content Release Agreements',
+      description: 'All talent must sign content release forms and location permits secured',
+      deadline: '2026-08-02',
       status: 'compliant',
-      assignedTo: '24',
-      documents: ['a16z-requirements.pdf']
+      assignedTo: '4',
+      documents: ['talent-releases.pdf', 'location-permits.pdf']
     }
   ],
-  media: [
-    {
-      id: 'media-yc1',
-      type: 'interview',
-      outlet: 'TechCrunch',
-      contactPerson: 'Sarah Perez',
-      scheduledTime: '2025-03-28T14:00:00Z',
-      duration: 30,
-      location: 'a16z Demo Day',
-      participants: ['24', '25'],
-      status: 'scheduled'
-    }
-  ],
+  media: [],
   sponsors: []
 };
