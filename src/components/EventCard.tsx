@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, Settings, MoreHorizontal, Archive, EyeOff, UserPlus } from 'lucide-react';
+import { Calendar, MapPin, Users, Settings, MoreHorizontal, Archive, EyeOff, UserPlus, Trash2 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { EventData } from '../types/events';
 import { useTripVariant } from '../contexts/TripVariantContext';
