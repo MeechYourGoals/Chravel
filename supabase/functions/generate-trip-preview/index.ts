@@ -50,12 +50,12 @@ const demoTrips: Record<string, {
     participantCount: 3
   },
   '3': {
-    title: "Jack and Jill's Destination Wedding",
+    title: "The Tyler's Tie The Knot",
     location: 'Bali, Indonesia',
     dateRange: 'Dec 10 - Dec 20, 2025',
     description: 'Romantic destination wedding celebration with family and friends in paradise',
     coverPhoto: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=1200&h=630&fit=crop',
-    participantCount: 4
+    participantCount: 112
   },
   '4': {
     title: "Kristen's Bachelorette Party",

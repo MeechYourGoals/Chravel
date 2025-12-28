@@ -73,7 +73,7 @@ export const mockPendingRequests: Record<string, JoinRequest[]> = {
       }
     }
   ],
-  '4': [ // Jack and Jill's Destination Wedding
+  '4': [ // The Tyler's Tie The Knot
     {
       id: 'demo-request-wedding-1',
       trip_id: '4',

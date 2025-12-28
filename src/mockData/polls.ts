@@ -67,7 +67,7 @@ export const mockPolls = [
     version: 1
   },
 
-  // Trip 3: Jack and Jill's destination wedding
+  // Trip 3: The Tyler's Tie The Knot
   {
     id: 'mock-poll-3-1',
     trip_id: '3',

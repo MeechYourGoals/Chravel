@@ -43,7 +43,7 @@ export const mockNotifications: MockNotification[] = [
   {
     id: 'notif-join-request-1',
     type: 'join_request',
-    title: "Join Request - Jack and Jill's Wedding",
+    title: "Join Request - The Tyler's Tie The Knot",
     message: 'Emily Rodriguez would like to join your trip',
     timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 mins ago
     read: false,
@@ -52,7 +52,7 @@ export const mockNotifications: MockNotification[] = [
     focusTab: 'collaborators',
     data: {
       trip_id: '3',
-      trip_name: "Jack and Jill's destination wedding",
+      trip_name: "The Tyler's Tie The Knot",
       requester_id: 'demo-user-emily',
       requester_name: 'Emily Rodriguez',
       request_id: 'demo-request-1',

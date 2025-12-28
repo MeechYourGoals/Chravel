@@ -93,13 +93,13 @@ export const tripsData: Trip[] = [
   },
   {
     id: 3,
-    title: "Jack and Jill's destination wedding",
+    title: "The Tyler's Tie The Knot",
     location: "Bali, Indonesia",
     dateRange: "Dec 10 - Dec 12, 2026",
     description: "Romantic destination wedding celebration with family and friends in paradise, featuring welcome dinner, ceremony, and reception",
     coverPhoto: baliDestinationWedding,
     placesCount: 4,
-    participants: Array.from({ length: 200 }, (_, i) => {
+    participants: Array.from({ length: 112 }, (_, i) => {
       if (i === 0) return { id: i + 1, name: "Jack", avatar: getMockAvatar("Jack") };
       if (i === 1) return { id: i + 1, name: "Jill", avatar: getMockAvatar("Jill") };
       if (i < 12) {
