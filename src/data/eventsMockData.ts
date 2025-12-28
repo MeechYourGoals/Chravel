@@ -36,7 +36,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: true,
-    attendanceExpected: 128400,
+    attendanceExpected: 128437,
     capacity: 150000,
     registrationStatus: 'open',
     checkedInCount: 45000,
@@ -90,7 +90,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: false,
-    attendanceExpected: 74850,
+    attendanceExpected: 74819,
     capacity: 75000,
     registrationStatus: 'open',
     checkedInCount: 22500,
@@ -143,7 +143,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: false,
-    attendanceExpected: 2750,
+    attendanceExpected: 1957,
     capacity: 3000,
     registrationStatus: 'open',
     checkedInCount: 900,
@@ -195,7 +195,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: false,
-    attendanceExpected: 51200,
+    attendanceExpected: 51204,
     capacity: 51200,
     registrationStatus: 'open',
     checkedInCount: 12500,
@@ -295,7 +295,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: false,
-    attendanceExpected: 12800,
+    attendanceExpected: 12395,
     capacity: 12800,
     registrationStatus: 'open',
     checkedInCount: 3600,
@@ -348,7 +348,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: true,
-    attendanceExpected: 180,
+    attendanceExpected: 221,
     capacity: 320,
     registrationStatus: 'open',
     checkedInCount: 0,
@@ -400,7 +400,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: false,
-    attendanceExpected: 11600,
+    attendanceExpected: 11450,
     capacity: 25000,
     registrationStatus: 'open',
     checkedInCount: 7500,
@@ -451,7 +451,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: true,
-    attendanceExpected: 8400,
+    attendanceExpected: 8193,
     capacity: 8400,
     registrationStatus: 'open',
     checkedInCount: 225,
@@ -502,7 +502,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: true,
-    attendanceExpected: 420,
+    attendanceExpected: 152,
     capacity: 500,
     registrationStatus: 'open',
     checkedInCount: 120,
@@ -552,7 +552,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: true,
-    attendanceExpected: 780,
+    attendanceExpected: 432,
     capacity: 800,
     registrationStatus: 'open',
     checkedInCount: 60,
@@ -603,7 +603,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: true,
-    attendanceExpected: 4300,
+    attendanceExpected: 4215,
     capacity: 5000,
     registrationStatus: 'open',
     checkedInCount: 0,
@@ -658,7 +658,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: true,
-    attendanceExpected: 1150,
+    attendanceExpected: 1128,
     capacity: 1200,
     registrationStatus: 'open',
     checkedInCount: 0,

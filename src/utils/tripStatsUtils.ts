@@ -26,10 +26,7 @@ export const getPeopleCountValue = (
 // Format people count for display
 export const formatPeopleCount = (count: number): string => {
   if (count === 0) return "—";
-  if (count >= 10000) return `${Math.floor(count / 1000)}K+`;
-  if (count >= 1000) return `${Math.floor(count / 1000)}K+`;
-  if (count > 99) return "99+";
-  return count.toString();
+  return count.toLocaleString();
 };
 
 // Calculate number of people (Legacy wrapper)
