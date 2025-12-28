@@ -3,11 +3,66 @@ import { googleIO2026Event } from './events/googleIO2026';
 import { getMockAvatar } from '../utils/mockAvatars';
 
 export const eventsMockData: Record<string, EventData> = {
-  'sxsw-2025': {
-    id: 'sxsw-2025',
-    title: 'SXSW 2025',
+  // Netflix Is a Joke Festival - FIRST in grid (flagship event)
+  'netflix-joke-fest-2026': {
+    id: 'netflix-joke-fest-2026',
+    title: 'Netflix Is a Joke Festival 2026',
+    location: 'Los Angeles, CA',
+    dateRange: 'Apr 28 - May 6, 2026',
+    category: 'Comedy Festival',
+    description: 'Multi-day comedy festival featuring stand-up, live podcasts, and exclusive Netflix specials across LA venues',
+    tags: ['Comedy', 'Entertainment', 'Live Shows', 'Netflix', 'Stand-up'],
+    participants: [
+      { id: 1, name: 'Sarah Chen', avatar: getMockAvatar('Sarah Chen'), role: 'Festival Director' },
+      { id: 2, name: 'Marcus Rodriguez', avatar: getMockAvatar('Marcus Rodriguez'), role: 'Talent Coordinator' },
+      { id: 3, name: 'Jessica Kim', avatar: getMockAvatar('Jessica Kim'), role: 'Venue Manager' },
+      { id: 4, name: 'David Thompson', avatar: getMockAvatar('David Thompson'), role: 'Production Lead' }
+    ],
+    itinerary: [
+      {
+        date: '2026-04-28',
+        events: [
+          { title: 'Opening Night Gala', location: 'The Forum', time: '19:00' },
+          { title: 'Headliner Comedy Show', location: 'Hollywood Bowl', time: '21:00' }
+        ]
+      }
+    ],
+    budget: {
+      total: 15000000,
+      spent: 8500000,
+      categories: [
+        { name: 'Venues', allocated: 5000000, spent: 3500000 },
+        { name: 'Talent', allocated: 7000000, spent: 4000000 },
+        { name: 'Production', allocated: 3000000, spent: 1000000 }
+      ]
+    },
+    groupChatEnabled: true,
+    attendanceExpected: 100000,
+    capacity: 150000,
+    registrationStatus: 'open',
+    checkedInCount: 45000,
+    userRole: 'attendee',
+    tracks: [],
+    speakers: [],
+    sessions: [],
+    sponsors: [],
+    exhibitors: [],
+    agenda: [
+      { id: 'njf-a1', title: 'Opening Night Gala', start_time: '19:00', end_time: '22:00', location: 'The Forum' },
+      { id: 'njf-a2', title: 'Stand-Up Marathon', start_time: '14:00', end_time: '23:00', location: 'Multiple Venues' },
+      { id: 'njf-a3', title: 'Closing Night Spectacular', start_time: '20:00', end_time: '23:30', location: 'Hollywood Bowl' }
+    ],
+    tasks: [
+      { id: 'njf-t1', title: 'Download the Netflix Is a Joke app', sort_order: 0 },
+      { id: 'njf-t2', title: 'Pick up your wristband at will-call', sort_order: 1 },
+      { id: 'njf-t3', title: 'Check venue-specific entry requirements', sort_order: 2 }
+    ]
+  },
+  'sxsw-2026': {
+    id: 'sxsw-2026',
+    title: 'SXSW 2026',
     location: 'Austin, TX',
-    dateRange: 'Mar 7 - Mar 16, 2025',
+    dateRange: 'Mar 13 - Mar 22, 2026',
     category: 'Technology & Culture',
     description: 'Interactive technology, film, and music festival and conference',
     tags: ['Technology', 'Music', 'Film', 'Interactive', 'Networking'],
@@ -19,7 +74,7 @@ export const eventsMockData: Record<string, EventData> = {
     ],
     itinerary: [
       {
-        date: '2025-03-07',
+        date: '2026-03-13',
         events: [
           { title: 'Registration & Welcome', location: 'Austin Convention Center', time: '09:00' },
           { title: 'Opening Keynote', location: 'Main Stage', time: '11:00' }
@@ -36,7 +91,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: false,
-    attendanceExpected: 2000,
+    attendanceExpected: 75000,
     capacity: 75000,
     registrationStatus: 'open',
     checkedInCount: 22500,
@@ -57,11 +112,11 @@ export const eventsMockData: Record<string, EventData> = {
       { id: 't3', title: 'Visit the welcome lounge for orientation', sort_order: 2 }
     ]
   },
-  'wef-2025': {
-    id: 'wef-2025',
-    title: 'World Economic Forum 2025',
+  'wef-2026': {
+    id: 'wef-2026',
+    title: 'World Economic Forum 2026',
     location: 'Davos, Switzerland',
-    dateRange: 'Jan 20 - Jan 24, 2025',
+    dateRange: 'Jan 19 - Jan 23, 2026',
     category: 'Economics & Policy',
     description: 'Annual meeting of global leaders discussing world economic issues',
     tags: ['Economics', 'Policy', 'Leadership', 'Global Issues', 'Networking'],
@@ -72,7 +127,7 @@ export const eventsMockData: Record<string, EventData> = {
     ],
     itinerary: [
       {
-        date: '2025-01-20',
+        date: '2026-01-19',
         events: [
           { title: 'Opening Ceremony', location: 'Congress Centre', time: '09:00' },
           { title: 'Global Economic Outlook', location: 'Main Hall', time: '10:30' }
@@ -89,7 +144,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: false,
-    attendanceExpected: 800,
+    attendanceExpected: 2800,
     capacity: 3000,
     registrationStatus: 'open',
     checkedInCount: 900,
@@ -110,11 +165,110 @@ export const eventsMockData: Record<string, EventData> = {
       { id: 'wef-t3', title: 'Review the session schedule in your app', sort_order: 2 }
     ]
   },
-  'money2020-2025': {
-    id: 'money2020-2025',
-    title: 'Money20/20 Las Vegas 2025',
+  'invest-fest-2026': {
+    id: 'invest-fest-2026',
+    title: 'Invest Fest 2026',
+    location: 'Atlanta, GA (GWCC)',
+    dateRange: 'Aug 22 - Aug 24, 2026',
+    category: 'Personal Finance',
+    description: 'Personal finance mega-expo for building generational wealth',
+    tags: ['Finance', 'Investing', 'Wealth Building', 'Education', 'Community'],
+    participants: [
+      { id: 15, name: 'Jamal Washington', avatar: getMockAvatar('Jamal Washington'), role: 'Finance Director' },
+      { id: 16, name: 'Keisha Davis', avatar: getMockAvatar('Keisha Davis'), role: 'Community Lead' }
+    ],
+    itinerary: [
+      {
+        date: '2026-08-22',
+        events: [
+          { title: 'Opening Ceremony', location: 'Georgia World Congress Center', time: '09:00' },
+          { title: 'Wealth Building Basics', location: 'Hall A', time: '10:30' }
+        ]
+      }
+    ],
+    budget: {
+      total: 8000000,
+      spent: 4500000,
+      categories: [
+        { name: 'Venue', allocated: 3000000, spent: 2000000 },
+        { name: 'Speakers', allocated: 2500000, spent: 1500000 },
+        { name: 'Marketing', allocated: 2500000, spent: 1000000 }
+      ]
+    },
+    groupChatEnabled: false,
+    attendanceExpected: 50000,
+    capacity: 50000,
+    registrationStatus: 'open',
+    checkedInCount: 12500,
+    userRole: 'attendee',
+    tracks: [
+      { id: 'main-stage', name: 'Main Stage', color: '#10B981', location: 'Hall A' },
+      { id: 'workshops', name: 'Workshops', color: '#3B82F6', location: 'Hall B' },
+      { id: 'networking', name: 'Networking', color: '#8B5CF6', location: 'Expo Hall' },
+      { id: 'panels', name: 'Expert Panels', color: '#F59E0B', location: 'Hall C' }
+    ],
+    agenda: [
+      { id: 'if-a1', title: 'Opening Ceremony', start_time: '09:00', end_time: '09:30', location: 'Hall A - Main Stage' },
+      { id: 'if-a2', title: 'The Future of Financial Education', start_time: '09:30', end_time: '10:30', location: 'Hall A - Main Stage', speakers: ['Robert Kiyosaki'] },
+      { id: 'if-a3', title: 'Women & Wealth: Breaking Barriers', start_time: '11:00', end_time: '12:00', location: 'Hall B - Workshop Area', speakers: ['Suze Orman'] },
+      { id: 'if-a4', title: 'Investing in Volatile Times', start_time: '14:00', end_time: '15:00', location: 'Hall C - Panel Stage' }
+    ],
+    tasks: [
+      { id: 'if-t1', title: 'Pick up your badge and welcome kit at registration', description: 'Located in the main lobby, opens at 7:30 AM', sort_order: 0 },
+      { id: 'if-t2', title: 'Complete the attendee survey for a chance to win prizes', sort_order: 1 },
+      { id: 'if-t3', title: 'Visit sponsor booths to collect exclusive offers', sort_order: 2 },
+      { id: 'if-t4', title: 'Download the Invest Fest app for real-time updates', sort_order: 3 }
+    ],
+    speakers: [
+      {
+        id: 'speaker-1',
+        name: 'Robert Kiyosaki',
+        title: 'Author & Investor',
+        company: 'Rich Dad Company',
+        bio: 'Best-selling author of "Rich Dad Poor Dad" and internationally recognized financial educator.',
+        avatar: getMockAvatar('Robert Kiyosaki'),
+        sessions: ['keynote-1', 'panel-1']
+      },
+      {
+        id: 'speaker-2',
+        name: 'Suze Orman',
+        title: 'Financial Advisor & Author',
+        company: 'Suze Orman Media',
+        bio: 'New York Times bestselling author and personal finance expert.',
+        avatar: getMockAvatar('Suze Orman'),
+        sessions: ['keynote-2', 'workshop-1']
+      }
+    ],
+    sessions: [
+      {
+        id: 'keynote-1',
+        title: 'The Future of Financial Education',
+        description: 'Exploring how financial literacy will evolve in the digital age.',
+        speaker: 'speaker-1',
+        track: 'main-stage',
+        startTime: '09:30',
+        endTime: '10:30',
+        location: 'Hall A - Main Stage'
+      }
+    ],
+    sponsors: [
+      {
+        id: 'sponsor-1',
+        name: 'Fidelity Investments',
+        tier: 'platinum',
+        logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=120&h=60&fit=crop',
+        website: 'https://fidelity.com',
+        description: 'Leading financial services company',
+        booth: 'A1'
+      }
+    ],
+    exhibitors: []
+  },
+  'money2020-2026': {
+    id: 'money2020-2026',
+    title: 'Money20/20 Las Vegas 2026',
     location: 'Las Vegas, NV',
-    dateRange: 'Oct 26 - Oct 29, 2025',
+    dateRange: 'Oct 25 - Oct 28, 2026',
     category: 'Fintech',
     description: 'The largest global fintech event connecting the money ecosystem',
     tags: ['Fintech', 'Payments', 'Banking', 'Innovation', 'Blockchain'],
@@ -125,7 +279,7 @@ export const eventsMockData: Record<string, EventData> = {
     ],
     itinerary: [
       {
-        date: '2025-10-26',
+        date: '2026-10-25',
         events: [
           { title: 'Registration & Networking', location: 'Venetian Expo', time: '08:00' },
           { title: 'Future of Payments Keynote', location: 'Palazzo Ballroom', time: '09:30' }
@@ -142,7 +296,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: false,
-    attendanceExpected: 1500,
+    attendanceExpected: 12000,
     capacity: 12000,
     registrationStatus: 'open',
     checkedInCount: 3600,
@@ -220,7 +374,7 @@ export const eventsMockData: Record<string, EventData> = {
     id: 'inbound-2025',
     title: 'INBOUND by HubSpot 2025',
     location: 'San Francisco, CA',
-    dateRange: 'Sep 9 - Sep 12, 2025',
+    dateRange: 'Sep 8 - Sep 11, 2026',
     category: 'Marketing & CX',
     description: 'Marketing, sales, and customer success conference',
     tags: ['Marketing', 'Sales', 'Customer Experience', 'Digital', 'Growth'],
@@ -230,7 +384,7 @@ export const eventsMockData: Record<string, EventData> = {
     ],
     itinerary: [
       {
-        date: '2025-09-09',
+        date: '2026-09-08',
         events: [
           { title: 'Welcome & Networking', location: 'Moscone Center', time: '08:30' },
           { title: 'Future of Marketing Keynote', location: 'Main Stage', time: '10:00' }
@@ -247,7 +401,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: false,
-    attendanceExpected: 1500,
+    attendanceExpected: 11000,
     capacity: 25000,
     registrationStatus: 'open',
     checkedInCount: 7500,
@@ -267,160 +421,62 @@ export const eventsMockData: Record<string, EventData> = {
       { id: 'inb-t2', title: 'Download HubSpot event app', sort_order: 1 }
     ]
   },
-  'invest-fest-2025': {
-    id: 'invest-fest-2025',
-    title: 'Invest Fest 2025',
-    location: 'Atlanta, GA (GWCC)',
-    dateRange: 'Aug 23 - Aug 25, 2025',
-    category: 'Personal Finance',
-    description: 'Personal finance mega-expo for building generational wealth',
-    tags: ['Finance', 'Investing', 'Wealth Building', 'Education', 'Community'],
+  'bloomberg-screentime-2026': {
+    id: 'bloomberg-screentime-2026',
+    title: 'Bloomberg Screentime 2026',
+    location: 'Los Angeles, CA',
+    dateRange: 'May 14 - May 16, 2026',
+    category: 'Media & Entertainment',
+    description: 'Premier media and entertainment industry summit',
+    tags: ['Media', 'Entertainment', 'Streaming', 'Content', 'Hollywood'],
     participants: [
-      { id: 15, name: 'Jamal Washington', avatar: getMockAvatar('Jamal Washington'), role: 'Finance Director' },
-      { id: 16, name: 'Keisha Davis', avatar: getMockAvatar('Keisha Davis'), role: 'Community Lead' }
+      { id: 11, name: 'Jordan Park', avatar: getMockAvatar('Jordan Park'), role: 'Media Producer' },
+      { id: 12, name: 'Taylor Mitchell', avatar: getMockAvatar('Taylor Mitchell'), role: 'Content Director' }
     ],
     itinerary: [
       {
-        date: '2025-08-23',
+        date: '2026-05-14',
         events: [
-          { title: 'Opening Ceremony', location: 'Georgia World Congress Center', time: '09:00' },
-          { title: 'Wealth Building Basics', location: 'Hall A', time: '10:30' }
+          { title: 'Industry Welcome Reception', location: 'Beverly Hills Hotel', time: '18:00' },
+          { title: 'Streaming Wars Panel', location: 'Conference Center', time: '09:00' }
         ]
       }
     ],
     budget: {
-      total: 8000000,
-      spent: 4500000,
+      total: 1800000,
+      spent: 900000,
       categories: [
-        { name: 'Venue', allocated: 3000000, spent: 2000000 },
-        { name: 'Speakers', allocated: 2500000, spent: 1500000 },
-        { name: 'Marketing', allocated: 2500000, spent: 1000000 }
+        { name: 'Venue', allocated: 600000, spent: 400000 },
+        { name: 'Speakers', allocated: 500000, spent: 300000 },
+        { name: 'Catering', allocated: 700000, spent: 200000 }
       ]
     },
-    groupChatEnabled: false,
-    attendanceExpected: 50000,
-    capacity: 50000,
+    groupChatEnabled: true,
+    attendanceExpected: 450,
+    capacity: 800,
     registrationStatus: 'open',
-    checkedInCount: 12500,
+    checkedInCount: 240,
     userRole: 'attendee',
-    tracks: [
-      { id: 'main-stage', name: 'Main Stage', color: '#10B981', location: 'Hall A' },
-      { id: 'workshops', name: 'Workshops', color: '#3B82F6', location: 'Hall B' },
-      { id: 'networking', name: 'Networking', color: '#8B5CF6', location: 'Expo Hall' },
-      { id: 'panels', name: 'Expert Panels', color: '#F59E0B', location: 'Hall C' }
-    ],
+    tracks: [],
+    speakers: [],
+    sessions: [],
+    sponsors: [],
+    exhibitors: [],
     agenda: [
-      { id: 'if-a1', title: 'Opening Ceremony', start_time: '09:00', end_time: '09:30', location: 'Hall A - Main Stage' },
-      { id: 'if-a2', title: 'The Future of Financial Education', start_time: '09:30', end_time: '10:30', location: 'Hall A - Main Stage', speakers: ['Robert Kiyosaki'] },
-      { id: 'if-a3', title: 'Women & Wealth: Breaking Barriers', start_time: '11:00', end_time: '12:00', location: 'Hall B - Workshop Area', speakers: ['Suze Orman'] },
-      { id: 'if-a4', title: 'Investing in Volatile Times', start_time: '14:00', end_time: '15:00', location: 'Hall C - Panel Stage' }
+      { id: 'bst-a1', title: 'Industry Welcome Reception', start_time: '18:00', end_time: '21:00', location: 'Beverly Hills Hotel' },
+      { id: 'bst-a2', title: 'Streaming Wars Panel', start_time: '09:00', end_time: '10:30', location: 'Conference Center' },
+      { id: 'bst-a3', title: 'Content Monetization Masterclass', start_time: '11:00', end_time: '12:30', location: 'Workshop Room' }
     ],
     tasks: [
-      { id: 'if-t1', title: 'Pick up your badge and welcome kit at registration', description: 'Located in the main lobby, opens at 7:30 AM', sort_order: 0 },
-      { id: 'if-t2', title: 'Complete the attendee survey for a chance to win prizes', sort_order: 1 },
-      { id: 'if-t3', title: 'Visit sponsor booths to collect exclusive offers', sort_order: 2 },
-      { id: 'if-t4', title: 'Download the Invest Fest app for real-time updates', sort_order: 3 }
-    ],
-    speakers: [
-      {
-        id: 'speaker-1',
-        name: 'Robert Kiyosaki',
-        title: 'Author & Investor',
-        company: 'Rich Dad Company',
-        bio: 'Best-selling author of "Rich Dad Poor Dad" and internationally recognized financial educator who has challenged the way people think about money and investing.',
-        avatar: getMockAvatar('Robert Kiyosaki'),
-        sessions: ['keynote-1', 'panel-1']
-      },
-      {
-        id: 'speaker-2',
-        name: 'Suze Orman',
-        title: 'Financial Advisor & Author',
-        company: 'Suze Orman Media',
-        bio: 'New York Times bestselling author and personal finance expert who has transformed the way Americans think about personal finance, money, and life.',
-        avatar: getMockAvatar('Suze Orman'),
-        sessions: ['keynote-2', 'workshop-1']
-      },
-      {
-        id: 'speaker-3',
-        name: 'Dave Ramsey',
-        title: 'Radio Host & Author',
-        company: 'Ramsey Solutions',
-        bio: 'Radio host, author, and financial expert who has helped millions of people get out of debt and build wealth through his proven money principles.',
-        avatar: getMockAvatar('Dave Ramsey'),
-        sessions: ['workshop-2', 'panel-2']
-      }
-    ],
-    sessions: [
-      {
-        id: 'keynote-1',
-        title: 'The Future of Financial Education',
-        description: 'Exploring how financial literacy will evolve in the digital age and what it means for building generational wealth.',
-        speaker: 'speaker-1',
-        track: 'main-stage',
-        startTime: '09:30',
-        endTime: '10:30',
-        location: 'Hall A - Main Stage'
-      },
-      {
-        id: 'workshop-1',
-        title: 'Women & Wealth: Breaking Barriers',
-        description: 'Addressing the unique financial challenges women face and providing actionable strategies for building wealth.',
-        speaker: 'speaker-2',
-        track: 'workshops',
-        startTime: '11:00',
-        endTime: '12:00',
-        location: 'Hall B - Workshop Area'
-      },
-      {
-        id: 'panel-1',
-        title: 'Investing in Volatile Times',
-        description: 'Expert panel discussion on navigating market uncertainty and making smart investment decisions.',
-        speaker: 'speaker-1',
-        track: 'panels',
-        startTime: '14:00',
-        endTime: '15:00',
-        location: 'Hall C - Panel Stage'
-      }
-    ],
-    sponsors: [
-      {
-        id: 'sponsor-1',
-        name: 'Fidelity Investments',
-        tier: 'platinum',
-        logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=120&h=60&fit=crop',
-        website: 'https://fidelity.com',
-        description: 'Leading financial services company',
-        booth: 'A1'
-      },
-      {
-        id: 'sponsor-2',
-        name: 'Charles Schwab',
-        tier: 'gold',
-        logo: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=120&h=60&fit=crop',
-        website: 'https://schwab.com',
-        description: 'Investment and advisory services',
-        booth: 'B2'
-      }
-    ],
-    exhibitors: [
-      {
-        id: 'exhibitor-1',
-        name: 'Financial Planning Solutions',
-        description: 'Comprehensive financial planning services for individuals and families',
-        booth: 'E1',
-        logo: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=80&h=80&fit=crop',
-        website: 'https://fppsolutions.com',
-        contacts: [
-          { name: 'Michael Johnson', role: 'Senior Advisor', email: 'michael@fppsolutions.com' }
-        ]
-      }
+      { id: 'bst-t1', title: 'Check in at the registration desk', sort_order: 0 },
+      { id: 'bst-t2', title: 'Pick up your media credentials', sort_order: 1 }
     ]
   },
-  'grammys-2025': {
-    id: 'grammys-2025',
-    title: 'The 67th Grammy Awards',
+  'grammys-2026': {
+    id: 'grammys-2026',
+    title: 'The 68th Grammy Awards 2026',
     location: 'Los Angeles, CA',
-    dateRange: 'Feb 2, 2025',
+    dateRange: 'Feb 8, 2026',
     category: 'Music Awards',
     description: 'Music industry\'s most prestigious awards ceremony',
     tags: ['Music', 'Awards', 'Entertainment', 'Industry', 'Celebration'],
@@ -430,7 +486,7 @@ export const eventsMockData: Record<string, EventData> = {
     ],
     itinerary: [
       {
-        date: '2025-02-02',
+        date: '2026-02-08',
         events: [
           { title: 'Red Carpet Arrivals', location: 'Crypto.com Arena', time: '17:00' },
           { title: 'Grammy Awards Ceremony', location: 'Main Arena', time: '20:00' }
@@ -467,13 +523,13 @@ export const eventsMockData: Record<string, EventData> = {
       { id: 'gr-t2', title: 'Collect your seating assignment', sort_order: 1 }
     ]
   },
-  'yc-demo-day-2025': {
-    id: 'yc-demo-day-2025',
-    title: 'Y Combinator W25 Demo Day',
-    location: 'Mountain View, CA',
-    dateRange: 'Mar 25 - Mar 26, 2025',
+  'yc-demo-day-2026': {
+    id: 'yc-demo-day-2026',
+    title: 'Y Combinator W26 Demo Day',
+    location: 'San Francisco, CA',
+    dateRange: 'Mar 24 - Mar 25, 2026',
     category: 'Startup Showcase',
-    description: 'Startup showcase for Y Combinator Winter 2025 batch',
+    description: 'Startup showcase for Y Combinator Winter 2026 batch',
     tags: ['Startups', 'Venture Capital', 'Innovation', 'Technology', 'Pitching'],
     participants: [
       { id: 19, name: 'Amanda Liu', avatar: getMockAvatar('Amanda Liu'), role: 'Program Director' },
@@ -481,9 +537,9 @@ export const eventsMockData: Record<string, EventData> = {
     ],
     itinerary: [
       {
-        date: '2025-03-25',
+        date: '2026-03-24',
         events: [
-          { title: 'Investor Registration', location: 'Computer History Museum', time: '08:00' },
+          { title: 'Investor Registration', location: 'Masonic Auditorium', time: '08:00' },
           { title: 'Startup Presentations Day 1', location: 'Main Auditorium', time: '09:00' }
         ]
       }
@@ -498,7 +554,7 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: true,
-    attendanceExpected: 400,
+    attendanceExpected: 189,
     capacity: 400,
     registrationStatus: 'open',
     checkedInCount: 120,
@@ -509,11 +565,11 @@ export const eventsMockData: Record<string, EventData> = {
     sponsors: [],
     exhibitors: []
   },
-  'tiktok-summit-2025': {
-    id: 'tiktok-summit-2025',
-    title: 'TikTok Creator Accelerator Summit',
+  'tiktok-summit-2026': {
+    id: 'tiktok-summit-2026',
+    title: 'TikTok Creator Summit 2026',
     location: 'Los Angeles, CA',
-    dateRange: 'Jun 18 - Jun 20, 2025',
+    dateRange: 'Jun 17 - Jun 19, 2026',
     category: 'Creator Economy',
     description: 'Summit for content creators and digital marketing professionals',
     tags: ['Creator Economy', 'Social Media', 'Content Creation', 'Digital Marketing', 'Influencers'],
@@ -523,7 +579,7 @@ export const eventsMockData: Record<string, EventData> = {
     ],
     itinerary: [
       {
-        date: '2025-06-18',
+        date: '2026-06-17',
         events: [
           { title: 'Creator Welcome Brunch', location: 'Beverly Hills Hotel', time: '10:00' },
           { title: 'Content Strategy Workshop', location: 'Conference Room A', time: '14:00' }
@@ -540,52 +596,10 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: true,
-    attendanceExpected: 600,
-    capacity: 200,
-    registrationStatus: 'open',
-    checkedInCount: 60,
-    userRole: 'attendee',
-    tracks: [],
-    speakers: [],
-    sessions: [],
-    sponsors: [],
-    exhibitors: []
-  },
-  'oscars-2025': {
-    id: 'oscars-2025',
-    title: 'The 97th Academy Awards',
-    location: 'Hollywood, CA',
-    dateRange: 'Mar 2, 2025',
-    category: 'Film Awards',
-    description: 'Film industry\'s most prestigious awards ceremony',
-    tags: ['Film', 'Awards', 'Hollywood', 'Entertainment', 'Ceremony'],
-    participants: [
-      { id: 23, name: 'Rachel Green', avatar: getMockAvatar('Rachel Green'), role: 'Awards Producer' },
-      { id: 24, name: 'James Wilson', avatar: getMockAvatar('James Wilson'), role: 'Film Coordinator' }
-    ],
-    itinerary: [
-      {
-        date: '2025-03-02',
-        events: [
-          { title: 'Red Carpet Arrivals', location: 'Dolby Theatre', time: '17:30' },
-          { title: 'Academy Awards Ceremony', location: 'Main Theatre', time: '20:00' }
-        ]
-      }
-    ],
-    budget: {
-      total: 25000000,
-      spent: 20000000,
-      categories: [
-        { name: 'Production', allocated: 15000000, spent: 12000000 },
-        { name: 'Venue', allocated: 5000000, spent: 4000000 },
-        { name: 'Talent', allocated: 5000000, spent: 4000000 }
-      ]
-    },
-    groupChatEnabled: true,
-    attendanceExpected: 500,
+    attendanceExpected: 325,
     capacity: 500,
     registrationStatus: 'open',
-    checkedInCount: 150,
+    checkedInCount: 60,
     userRole: 'attendee',
     tracks: [],
     speakers: [],
@@ -601,13 +615,21 @@ export const eventsMockData: Record<string, EventData> = {
     category: 'Public Sporting Event',
     description: 'The iconic French Riviera Marathon running along the Mediterranean coastline from Nice to Cannes. A globally recognized race welcoming elite athletes and amateur runners alike, ending with a festival-style finish on the Croisette.',
     tags: ['Marathon', 'Running', 'Sports', 'Mediterranean', 'Fitness'],
+  'nba-hof-2026': {
+    id: 'nba-hof-2026',
+    title: 'NBA Hall of Fame Induction 2026',
+    location: 'Springfield, MA',
+    dateRange: 'Sep 11 - Sep 13, 2026',
+    category: 'Sports Ceremony',
+    description: 'Basketball Hall of Fame induction ceremony and celebration',
+    tags: ['Basketball', 'Sports', 'Hall of Fame', 'Ceremony', 'Legacy'],
     participants: [
       { id: 25, name: 'Marc Dupont', avatar: getMockAvatar('Marc Dupont'), role: 'Race Director' },
       { id: 26, name: 'Sophie Laurent', avatar: getMockAvatar('Sophie Laurent'), role: 'Logistics Coordinator' }
     ],
     itinerary: [
       {
-        date: '2026-04-19',
+        date: '2026-09-11',
         events: [
           { title: 'Race Check-in & Bib Pickup', location: 'Promenade des Anglais, Nice', time: '06:00' },
           { title: 'Marathon Start', location: 'Nice Beachfront', time: '07:30' },
@@ -624,9 +646,9 @@ export const eventsMockData: Record<string, EventData> = {
         { name: 'Finish Festival & Awards', allocated: 350000, spent: 220000 }
       ]
     },
-    groupChatEnabled: false,
-    attendanceExpected: 14500,
-    capacity: 15000,
+    groupChatEnabled: true,
+    attendanceExpected: 275,
+    capacity: 300,
     registrationStatus: 'open',
     checkedInCount: 0,
     userRole: 'attendee',

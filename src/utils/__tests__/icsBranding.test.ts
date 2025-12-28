@@ -55,10 +55,8 @@ describe('icsBranding', () => {
     it('should handle empty or null titles with fallback', () => {
       expect(brandEventTitleForIcs('')).toBe('ChravelApp: Chravel Event');
       expect(brandEventTitleForIcs('   ')).toBe('ChravelApp: Chravel Event');
-      // @ts-expect-error: Testing null handling
-      expect(brandEventTitleForIcs(null)).toBe('ChravelApp: Chravel Event');
-      // @ts-expect-error: Testing undefined handling
-      expect(brandEventTitleForIcs(undefined)).toBe('ChravelApp: Chravel Event');
+      expect(brandEventTitleForIcs(null as unknown as string)).toBe('ChravelApp: Chravel Event');
+      expect(brandEventTitleForIcs(undefined as unknown as string)).toBe('ChravelApp: Chravel Event');
     });
 
     it('should handle titles with special characters', () => {
@@ -118,10 +116,8 @@ describe('icsBranding', () => {
     it('should return false for empty or null titles', () => {
       expect(shouldSkipBranding('')).toBe(false);
       expect(shouldSkipBranding('   ')).toBe(false);
-      // @ts-expect-error: Testing null handling
-      expect(shouldSkipBranding(null)).toBe(false);
-      // @ts-expect-error: Testing undefined handling
-      expect(shouldSkipBranding(undefined)).toBe(false);
+      expect(shouldSkipBranding(null as unknown as string)).toBe(false);
+      expect(shouldSkipBranding(undefined as unknown as string)).toBe(false);
     });
 
     it('should return false for titles containing but not starting with platform names', () => {
