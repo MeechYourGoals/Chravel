@@ -2,135 +2,142 @@ import { ProTripData } from '../../types/pro';
 import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const nvidiaBowlingNight: ProTripData = {
-  id: 'nvidia-bowling-2025',
-  title: 'NVIDIA Santa Clara — Employee Bowling Night',
-  description: 'Team building bowling event for NVIDIA employees with dinner and prizes.',
-  location: 'Santa Clara, CA',
-  dateRange: 'Dec 8, 2025',
+  id: 'la-tech-week-venture-2026',
+  title: 'LA Tech Week Venture Team Trip',
+  description: 'Venture capital team attending LA Tech Week conferences, networking events, and startup showcases.',
+  location: 'Los Angeles, CA',
+  dateRange: 'October 20 - October 28, 2026',
   proTripCategory: 'Business Travel',
-  tags: ['Corporate Event', 'Tech', 'Entertainment', 'Employee Engagement'],
-  basecamp_name: 'NVIDIA Headquarters',
-  basecamp_address: '2788 San Tomas Expressway, Santa Clara, CA 95051',
+  tags: ['Tech', 'Venture Capital', 'Startups', 'Networking'],
+  basecamp_name: 'Hotel Figueroa',
+  basecamp_address: '939 S Figueroa St, Los Angeles, CA 90015',
   tasks: [
     {
-      id: 'task-nvidia-1',
-      title: 'Reserve bowling lanes and equipment',
-      description: 'Book 10 lanes at AMF Moonlite for 100+ attendees',
+      id: 'task-tech-1',
+      title: 'Schedule founder meetings',
+      description: 'Coordinate 1-on-1 meetings with 15 portfolio companies during Tech Week',
       completed: true,
-      due_at: '2025-12-01',
-      assigned_to: 'event-planner',
+      due_at: '2026-10-19',
+      assigned_to: 'partner',
       created_at: new Date(Date.now() - 604800000).toISOString()
     },
     {
-      id: 'task-nvidia-2',
-      title: 'Order team building prizes and awards',
-      description: 'Purchase trophies and NVIDIA swag for tournament winners',
+      id: 'task-tech-2',
+      title: 'Register for key conferences',
+      description: 'Secure passes for AI Summit, Web3 Expo, and Startup Showcase',
       completed: false,
-      due_at: '2025-12-07',
-      assigned_to: 'people-ops',
+      due_at: '2026-10-15',
+      assigned_to: 'associate',
       created_at: new Date().toISOString()
     }
   ],
   polls: [
     {
-      id: 'poll-nvidia-1',
-      question: 'Dinner menu preference?',
+      id: 'poll-tech-1',
+      question: 'Preferred sector focus sessions?',
       options: [
-        { id: 'opt1', text: 'Pizza & Wings', votes: 48 },
-        { id: 'opt2', text: 'Burgers & Fries', votes: 32 },
-        { id: 'opt3', text: 'Mexican Buffet', votes: 20 }
+        { id: 'opt1', text: 'AI/ML Companies', votes: 6 },
+        { id: 'opt2', text: 'Web3/Crypto', votes: 3 },
+        { id: 'opt3', text: 'Climate Tech', votes: 2 }
       ],
-      total_votes: 100,
+      total_votes: 11,
       status: 'closed',
       created_at: new Date(Date.now() - 86400000).toISOString()
     }
   ],
   links: [
     {
-      id: 'link-nvidia-1',
-      url: 'https://www.amf.com/moonlite-lanes',
-      title: 'AMF Moonlite Lanes',
-      description: 'Bowling venue with food and full bar',
-      domain: 'amf.com',
+      id: 'link-tech-1',
+      url: 'https://www.latechweek.com',
+      title: 'LA Tech Week Official Schedule',
+      description: 'Complete event calendar and venue information',
+      domain: 'latechweek.com',
       created_at: new Date().toISOString(),
       source: 'places'
     },
     {
-      id: 'link-nvidia-2',
-      url: 'https://www.nvidia.com/en-us/about-nvidia/culture',
-      title: 'NVIDIA Company Culture',
-      description: 'Team building and employee engagement programs',
-      domain: 'nvidia.com',
+      id: 'link-tech-2',
+      url: 'https://www.hotelfigueroa.com',
+      title: 'Hotel Figueroa - Basecamp',
+      description: 'Team accommodation in Downtown LA',
+      domain: 'hotelfigueroa.com',
       created_at: new Date(Date.now() - 172800000).toISOString(),
       source: 'manual'
     }
   ],
   broadcasts: [
     {
-      id: 'bc-nvidia-1',
+      id: 'bc-tech-1',
       senderId: '1',
-      message: 'Looking forward to seeing everyone tonight! Let\'s have some fun! 🎳',
-      targetTrips: ['nvidia-bowling-2025'],
+      message: 'Great AI startup pitch at 3 PM today - all partners should attend!',
+      targetTrips: ['la-tech-week-venture-2026'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
       readBy: ['2', '3', '4']
     },
     {
-      id: 'bc-nvidia-2',
+      id: 'bc-tech-2',
       senderId: '4',
-      message: 'REMINDER: Event starts at 6 PM. Carpool from HQ leaves at 5:45 PM.',
-      targetTrips: ['nvidia-bowling-2025'],
+      message: 'URGENT: Portfolio company presenting at Web3 Summit in 1 hour. Meet at booth 47.',
+      targetTrips: ['la-tech-week-venture-2026'],
       priority: 'urgent',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
       readBy: ['1', '2']
     }
   ],
   participants: [
-    { id: '1', name: 'Jensen Huang', avatar: getMockAvatar('Jensen Huang'), role: 'Host' },
-    { id: '2', name: 'Colette Kress', avatar: getMockAvatar('Colette Kress'), role: 'CFO' },
-    { id: '3', name: 'Mark Stevens', avatar: getMockAvatar('Mark Stevens'), role: 'People Ops' },
-    { id: '4', name: 'Lena Ko', avatar: getMockAvatar('Lena Ko'), role: 'Event Planner' }
+    { id: '1', name: 'Managing Partner', avatar: getMockAvatar('Managing Partner'), role: 'Investment Team' },
+    { id: '2', name: 'Senior Partner', avatar: getMockAvatar('Senior Partner'), role: 'Investment Team' },
+    { id: '3', name: 'Associate 1', avatar: getMockAvatar('Associate 1'), role: 'Investment Team' },
+    { id: '4', name: 'Associate 2', avatar: getMockAvatar('Associate 2'), role: 'Investment Team' },
+    { id: '5', name: 'Principal', avatar: getMockAvatar('Principal'), role: 'Investment Team' },
+    { id: '6', name: 'Analyst 1', avatar: getMockAvatar('Analyst 1'), role: 'Investment Team' },
+    { id: '7', name: 'Analyst 2', avatar: getMockAvatar('Analyst 2'), role: 'Investment Team' },
+    { id: '8', name: 'Analyst 3', avatar: getMockAvatar('Analyst 3'), role: 'Investment Team' },
+    { id: '9', name: 'Venture Partner', avatar: getMockAvatar('Venture Partner'), role: 'Investment Team' },
+    { id: '10', name: 'Operations Lead', avatar: getMockAvatar('Operations Lead'), role: 'Support Staff' },
+    { id: '11', name: 'Fund Admin', avatar: getMockAvatar('Fund Admin'), role: 'Support Staff' }
   ],
   roster: [
-    { id: '1', name: 'Jensen Huang', role: 'Host', email: 'jensen@nvidia.com', avatar: getMockAvatar('Jensen Huang'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '2', name: 'Colette Kress', role: 'CFO', email: 'colette@nvidia.com', avatar: getMockAvatar('Colette Kress'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '3', name: 'Mark Stevens', role: 'People Ops', email: 'mark@nvidia.com', avatar: getMockAvatar('Mark Stevens'), credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '4', name: 'Lena Ko', role: 'Event Planner', email: 'lena@nvidia.com', avatar: getMockAvatar('Lena Ko'), credentialLevel: 'Guest', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' }
+    { id: '1', name: 'Managing Partner', role: 'Investment Team', email: 'mp@fundvc.com', avatar: getMockAvatar('Managing Partner'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '2', name: 'Senior Partner', role: 'Investment Team', email: 'sp@fundvc.com', avatar: getMockAvatar('Senior Partner'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '3', name: 'Associate 1', role: 'Investment Team', email: 'assoc1@fundvc.com', avatar: getMockAvatar('Associate 1'), credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '4', name: 'Associate 2', role: 'Investment Team', email: 'assoc2@fundvc.com', avatar: getMockAvatar('Associate 2'), credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' }
   ],
   itinerary: [
     {
-      date: '2025-12-08',
+      date: '2026-10-20',
       events: [
-        { title: 'Team Check-in', location: 'AMF Moonlite Lanes', time: '18:00', type: 'event' },
-        { title: 'Bowling Tournament', location: 'AMF Moonlite Lanes', time: '18:30', type: 'event' },
-        { title: 'Awards & Dinner', location: 'AMF Moonlite Lanes', time: '21:00', type: 'event' }
+        { title: 'LA Tech Week Kickoff Reception', location: 'Downtown LA Arts District', time: '18:00', type: 'event' },
+        { title: 'AI Summit Day 1', location: 'LA Convention Center', time: '09:00', type: 'event' },
+        { title: 'Portfolio Company Dinner', location: 'Bestia Restaurant', time: '19:00', type: 'event' }
       ]
     }
   ],
   budget: {
-    total: 12000,
-    spent: 8500,
+    total: 55000,
+    spent: 22000,
     categories: [
-      { name: 'Venue', budgeted: 5000, spent: 4000 },
-      { name: 'Food & Drinks', budgeted: 4000, spent: 3000 },
-      { name: 'Prizes', budgeted: 2000, spent: 1000 },
-      { name: 'Transportation', budgeted: 1000, spent: 500 }
+      { name: 'Travel & Accommodation', budgeted: 25000, spent: 12000 },
+      { name: 'Conference Passes', budgeted: 15000, spent: 5000 },
+      { name: 'Meals & Entertainment', budgeted: 10000, spent: 3500 },
+      { name: 'Networking Events', budgeted: 5000, spent: 1500 }
     ]
   },
   schedule: [
     {
-      id: 'bowling-1',
-      title: 'Team Bowling Tournament',
-      location: 'AMF Moonlite Lanes',
-      startTime: '2025-12-08T18:30:00Z',
-      endTime: '2025-12-08T21:00:00Z',
+      id: 'tech-week-1',
+      title: 'AI Summit & Founder Meetings',
+      location: 'LA Convention Center',
+      startTime: '2026-10-21T09:00:00Z',
+      endTime: '2026-10-21T18:00:00Z',
       type: 'meeting',
       participants: ['1', '2', '3', '4'],
-      priority: 'medium'
+      priority: 'high'
     }
   ],
   roomAssignments: [],
-  perDiem: { dailyRate: 75, currency: 'USD', startDate: '2025-12-08', endDate: '2025-12-08', participants: [] },
+  perDiem: { dailyRate: 200, currency: 'USD', startDate: '2026-10-20', endDate: '2026-10-28', participants: [] },
   settlement: [],
   medical: [],
   compliance: [],
