@@ -99,7 +99,7 @@ export const tripsData: Trip[] = [
     description: "Romantic destination wedding celebration with family and friends in paradise, featuring welcome dinner, ceremony, and reception",
     coverPhoto: baliDestinationWedding,
     placesCount: 4,
-    participants: Array.from({ length: 112 }, (_, i) => {
+    participants: Array.from({ length: 200 }, (_, i) => {
       if (i === 0) return { id: i + 1, name: "Jack", avatar: getMockAvatar("Jack") };
       if (i === 1) return { id: i + 1, name: "Jill", avatar: getMockAvatar("Jill") };
       if (i < 12) {
