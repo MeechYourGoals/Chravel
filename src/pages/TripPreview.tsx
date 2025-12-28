@@ -44,11 +44,11 @@ const TripPreview = () => {
 
   // Set document head for rich link previews (social media cards)
   useEffect(() => {
-    const tripName = tripData?.name || 'an Amazing Trip';
+    const tripName = tripData?.name || 'Plan Trips Better';
     const destination = tripData?.destination || 'an exciting destination';
     const imageUrl = tripData?.cover_image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop';
 
-    document.title = `${tripName} - Chravel`;
+    document.title = tripData?.name ? `${tripName} - Chravel` : 'Plan Trips Better - Chravel';
 
     const updateMetaTag = (property: string, content: string) => {
       let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;

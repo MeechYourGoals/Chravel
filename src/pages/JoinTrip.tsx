@@ -79,11 +79,11 @@ const JoinTrip = () => {
 
   // Set document head for rich link previews
   useEffect(() => {
-    const tripName = inviteData?.trip.name || 'an Amazing Trip';
+    const tripName = inviteData?.trip.name || 'Plan Trips Better';
     const destination = inviteData?.trip.destination || 'an exciting destination';
     const imageUrl = inviteData?.trip.cover_image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop';
 
-    document.title = `Join ${tripName} - Chravel`;
+    document.title = inviteData?.trip.name ? `Join ${tripName} - Chravel` : 'Plan Trips Better - Chravel';
 
     const updateMetaTag = (property: string, content: string) => {
       let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
