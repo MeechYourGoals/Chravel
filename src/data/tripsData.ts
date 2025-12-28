@@ -413,17 +413,17 @@ export const generateTripMockData = (trip: Trip) => {
       address: `123 Main Street, ${trip.location}`
     },
     broadcasts: [
-      { 
-        id: 1, 
-        senderName: participantNames[0] || "Organizer", 
-        content: `Looking forward to ${trip.title}! Everything is confirmed and ready to go.`, 
-        timestamp: "2025-01-15T15:30:00Z" 
+      {
+        id: 1,
+        senderName: participantNames[0] || "Organizer",
+        content: `Looking forward to ${trip.title}! Everything is confirmed and ready to go.`,
+        timestamp: "2026-01-15T15:30:00Z"
       },
-      { 
-        id: 2, 
-        senderName: participantNames[1] || "Coordinator", 
-        content: `Just confirmed all arrangements for ${trip.location}. This is going to be amazing!`, 
-        timestamp: "2025-01-15T10:00:00Z" 
+      {
+        id: 2,
+        senderName: participantNames[1] || "Coordinator",
+        content: `Just confirmed all arrangements for ${trip.location}. This is going to be amazing!`,
+        timestamp: "2026-01-15T10:00:00Z"
       }
     ],
     links: cityLinks.map((link, index) => ({
@@ -436,7 +436,7 @@ export const generateTripMockData = (trip: Trip) => {
     })),
     itinerary: [
       {
-        date: trip.dateRange.split(' - ')[0].replace(/\w{3} /, '2025-03-'),
+        date: trip.dateRange.split(' - ')[0].replace(/\w{3} /, '2026-03-'),
         events: [
           { title: "Arrival & Check-in", location: `${trip.location.split(',')[0]} Base Hotel`, time: "14:00" },
           { title: "Welcome Dinner", location: `Local Restaurant in ${trip.location.split(',')[0]}`, time: "19:30" }
