@@ -45,15 +45,15 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const sections = [
-    { id: 'calendar' as ExportSection, label: 'Calendar', icon: '📅' },
-    { id: 'payments' as ExportSection, label: 'Payments', icon: '💰' },
-    { id: 'polls' as ExportSection, label: 'Polls', icon: '📊' },
-    { id: 'places' as ExportSection, label: 'Places', icon: '📍' },
-    { id: 'tasks' as ExportSection, label: 'Tasks', icon: '✅' },
-    { id: 'broadcasts' as ExportSection, label: 'Broadcast Log', icon: '📢', proOnly: true },
-    { id: 'roster' as ExportSection, label: 'Roster & Contacts', icon: '👥', proOnly: true },
+    { id: 'calendar' as ExportSection, label: 'Calendar' },
+    { id: 'payments' as ExportSection, label: 'Payments' },
+    { id: 'polls' as ExportSection, label: 'Polls' },
+    { id: 'places' as ExportSection, label: 'Places' },
+    { id: 'tasks' as ExportSection, label: 'Tasks' },
+    { id: 'broadcasts' as ExportSection, label: 'Broadcast Log', proOnly: true },
+    { id: 'roster' as ExportSection, label: 'Roster & Contacts', proOnly: true },
     // Attachments are available for both consumer + pro trips (content still respects RLS).
-    { id: 'attachments' as ExportSection, label: 'Attachments', icon: '📎' },
+    { id: 'attachments' as ExportSection, label: 'Attachments' },
   ];
 
   const toggleSection = (sectionId: ExportSection) => {
@@ -104,10 +104,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
             <div className="bg-blue-600 p-1.5 rounded-lg">
               <FileText size={16} />
             </div>
-            <div>
-              <h2 className="text-base font-bold text-white">Create Trip Recap</h2>
-              <p className="text-[10px] text-gray-400">Build a memory book PDF</p>
-            </div>
+            <h2 className="text-base font-bold text-white">Create Trip Recap</h2>
           </div>
           <button
             onClick={onClose}
@@ -154,14 +151,14 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
             <>
               {/* Free export banner for free users */}
               {showFreeExportBanner && (
-                <div className="bg-gradient-to-r from-green-900/40 to-emerald-900/40 border border-green-500/30 rounded-lg p-2.5 mb-3">
+                <div className="bg-gradient-to-r from-green-900/40 to-emerald-900/40 border border-green-500/30 rounded-lg py-1 px-2.5 mb-2">
                   <div className="flex items-center gap-2">
-                    <Gift size={16} className="text-green-400" />
+                    <Gift size={12} className="text-green-400" />
                     <div className="flex-1">
-                      <span className="text-green-300 text-xs font-medium">1 Free Export</span>
-                      <span className="text-green-400/70 text-[10px] ml-1">per trip</span>
+                      <span className="text-green-300 text-[10px] font-medium">1 Free Export</span>
+                      <span className="text-green-400/70 text-[9px] ml-1">per trip</span>
                     </div>
-                    <Badge variant="secondary" className="bg-green-500/20 text-green-300 text-[10px]">
+                    <Badge variant="secondary" className="bg-green-500/20 text-green-300 text-[9px] py-0 px-1.5 h-5">
                       Sample it!
                     </Badge>
                   </div>
@@ -193,7 +190,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                   return (
                     <label
                       key={section.id}
-                      className={`flex items-center gap-1.5 p-1.5 rounded-lg border transition-all ${
+                      className={`flex items-center gap-1.5 py-2 px-2.5 rounded-lg border transition-all h-10 ${
                         disabled
                           ? 'bg-gray-800/50 border-gray-700/50 opacity-50 cursor-not-allowed'
                           : selectedSections.includes(section.id)
@@ -206,17 +203,14 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                         checked={selectedSections.includes(section.id) && !disabled}
                         onChange={() => !disabled && toggleSection(section.id)}
                         disabled={disabled}
-                        className="w-3 h-3 rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900 disabled:cursor-not-allowed"
+                        className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900 disabled:cursor-not-allowed flex-shrink-0"
                       />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-white text-[11px] font-medium flex items-center gap-1">
-                          <span>{section.icon}</span>
-                          <span className="truncate">{section.label}</span>
-                        </div>
-                        {disabled && (
-                          <div className="text-[9px] text-gray-500">Pro only</div>
-                        )}
-                      </div>
+                      <span className={`text-[11px] font-medium truncate ${disabled ? 'text-gray-400' : 'text-white'}`}>
+                        {section.label}
+                      </span>
+                      {disabled && (
+                        <span className="text-[9px] text-gray-500 ml-auto flex-shrink-0">PRO</span>
+                      )}
                     </label>
                   );
                 })}
