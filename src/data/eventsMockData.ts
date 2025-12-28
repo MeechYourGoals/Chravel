@@ -1,5 +1,4 @@
 import { EventData } from '../types/events';
-import { googleIO2026Event } from './events/googleIO2026';
 import { getMockAvatar } from '../utils/mockAvatars';
 
 export const eventsMockData: Record<string, EventData> = {
@@ -370,9 +369,9 @@ export const eventsMockData: Record<string, EventData> = {
       { id: 'elan-t3', title: 'Explore the restaurant and bar areas', sort_order: 2 }
     ]
   },
-  'inbound-2025': {
-    id: 'inbound-2025',
-    title: 'INBOUND by HubSpot 2025',
+  'inbound-2026': {
+    id: 'inbound-2026',
+    title: 'INBOUND by HubSpot 2026',
     location: 'San Francisco, CA',
     dateRange: 'Sep 8 - Sep 11, 2026',
     category: 'Marketing & CX',
@@ -419,57 +418,6 @@ export const eventsMockData: Record<string, EventData> = {
     tasks: [
       { id: 'inb-t1', title: 'Register at the welcome desk', sort_order: 0 },
       { id: 'inb-t2', title: 'Download HubSpot event app', sort_order: 1 }
-    ]
-  },
-  'bloomberg-screentime-2026': {
-    id: 'bloomberg-screentime-2026',
-    title: 'Bloomberg Screentime 2026',
-    location: 'Los Angeles, CA',
-    dateRange: 'May 14 - May 16, 2026',
-    category: 'Media & Entertainment',
-    description: 'Premier media and entertainment industry summit',
-    tags: ['Media', 'Entertainment', 'Streaming', 'Content', 'Hollywood'],
-    participants: [
-      { id: 11, name: 'Jordan Park', avatar: getMockAvatar('Jordan Park'), role: 'Media Producer' },
-      { id: 12, name: 'Taylor Mitchell', avatar: getMockAvatar('Taylor Mitchell'), role: 'Content Director' }
-    ],
-    itinerary: [
-      {
-        date: '2026-05-14',
-        events: [
-          { title: 'Industry Welcome Reception', location: 'Beverly Hills Hotel', time: '18:00' },
-          { title: 'Streaming Wars Panel', location: 'Conference Center', time: '09:00' }
-        ]
-      }
-    ],
-    budget: {
-      total: 1800000,
-      spent: 900000,
-      categories: [
-        { name: 'Venue', allocated: 600000, spent: 400000 },
-        { name: 'Speakers', allocated: 500000, spent: 300000 },
-        { name: 'Catering', allocated: 700000, spent: 200000 }
-      ]
-    },
-    groupChatEnabled: true,
-    attendanceExpected: 450,
-    capacity: 800,
-    registrationStatus: 'open',
-    checkedInCount: 240,
-    userRole: 'attendee',
-    tracks: [],
-    speakers: [],
-    sessions: [],
-    sponsors: [],
-    exhibitors: [],
-    agenda: [
-      { id: 'bst-a1', title: 'Industry Welcome Reception', start_time: '18:00', end_time: '21:00', location: 'Beverly Hills Hotel' },
-      { id: 'bst-a2', title: 'Streaming Wars Panel', start_time: '09:00', end_time: '10:30', location: 'Conference Center' },
-      { id: 'bst-a3', title: 'Content Monetization Masterclass', start_time: '11:00', end_time: '12:30', location: 'Workshop Room' }
-    ],
-    tasks: [
-      { id: 'bst-t1', title: 'Check in at the registration desk', sort_order: 0 },
-      { id: 'bst-t2', title: 'Pick up your media credentials', sort_order: 1 }
     ]
   },
   'grammys-2026': {
@@ -563,7 +511,15 @@ export const eventsMockData: Record<string, EventData> = {
     speakers: [],
     sessions: [],
     sponsors: [],
-    exhibitors: []
+    exhibitors: [],
+    agenda: [
+      { id: 'yc-a1', title: 'Investor Registration', start_time: '08:00', end_time: '09:00', location: 'Masonic Auditorium' },
+      { id: 'yc-a2', title: 'Startup Presentations Day 1', start_time: '09:00', end_time: '17:00', location: 'Main Auditorium' }
+    ],
+    tasks: [
+      { id: 'yc-t1', title: 'Check in at the investor desk', sort_order: 0 },
+      { id: 'yc-t2', title: 'Download the YC Demo Day app', sort_order: 1 }
+    ]
   },
   'tiktok-summit-2026': {
     id: 'tiktok-summit-2026',
@@ -605,7 +561,15 @@ export const eventsMockData: Record<string, EventData> = {
     speakers: [],
     sessions: [],
     sponsors: [],
-    exhibitors: []
+    exhibitors: [],
+    agenda: [
+      { id: 'tt-a1', title: 'Creator Welcome Brunch', start_time: '10:00', end_time: '12:00', location: 'Beverly Hills Hotel' },
+      { id: 'tt-a2', title: 'Content Strategy Workshop', start_time: '14:00', end_time: '16:00', location: 'Conference Room A' }
+    ],
+    tasks: [
+      { id: 'tt-t1', title: 'Pick up your creator badge', sort_order: 0 },
+      { id: 'tt-t2', title: 'Download the TikTok Creator app', sort_order: 1 }
+    ]
   },
   'french-riviera-marathon-2026': {
     id: 'french-riviera-marathon-2026',
@@ -615,21 +579,13 @@ export const eventsMockData: Record<string, EventData> = {
     category: 'Public Sporting Event',
     description: 'The iconic French Riviera Marathon running along the Mediterranean coastline from Nice to Cannes. A globally recognized race welcoming elite athletes and amateur runners alike, ending with a festival-style finish on the Croisette.',
     tags: ['Marathon', 'Running', 'Sports', 'Mediterranean', 'Fitness'],
-  'nba-hof-2026': {
-    id: 'nba-hof-2026',
-    title: 'NBA Hall of Fame Induction 2026',
-    location: 'Springfield, MA',
-    dateRange: 'Sep 11 - Sep 13, 2026',
-    category: 'Sports Ceremony',
-    description: 'Basketball Hall of Fame induction ceremony and celebration',
-    tags: ['Basketball', 'Sports', 'Hall of Fame', 'Ceremony', 'Legacy'],
     participants: [
       { id: 25, name: 'Marc Dupont', avatar: getMockAvatar('Marc Dupont'), role: 'Race Director' },
       { id: 26, name: 'Sophie Laurent', avatar: getMockAvatar('Sophie Laurent'), role: 'Logistics Coordinator' }
     ],
     itinerary: [
       {
-        date: '2026-09-11',
+        date: '2026-04-19',
         events: [
           { title: 'Race Check-in & Bib Pickup', location: 'Promenade des Anglais, Nice', time: '06:00' },
           { title: 'Marathon Start', location: 'Nice Beachfront', time: '07:30' },
@@ -647,8 +603,8 @@ export const eventsMockData: Record<string, EventData> = {
       ]
     },
     groupChatEnabled: true,
-    attendanceExpected: 275,
-    capacity: 300,
+    attendanceExpected: 4572,
+    capacity: 5000,
     registrationStatus: 'open',
     checkedInCount: 0,
     userRole: 'attendee',
@@ -668,5 +624,115 @@ export const eventsMockData: Record<string, EventData> = {
       { id: 'frm-t3', title: 'Download the race tracker app for live timing', sort_order: 2 }
     ]
   },
-  'spotify-house-seoul-2026': googleIO2026Event
+  'spotify-house-seoul-2026': {
+    id: 'spotify-house-seoul-2026',
+    title: 'Spotify House Holiday Party — Seoul',
+    location: 'Seoul, South Korea',
+    dateRange: 'Dec 12, 2026',
+    category: 'Brand / Music / Creator Event',
+    description: 'Spotify\'s annual holiday celebration in Seoul bringing together artists, creators, industry leaders, and tastemakers. Featuring live performances, DJ sets, immersive brand activations, and curated experiences.',
+    tags: ['Music', 'Creators', 'Brand Activation', 'Nightlife', 'Seoul'],
+    participants: [
+      { id: 1, name: 'DJ SODA', avatar: getMockAvatar('DJ SODA'), role: 'Headliner DJ' },
+      { id: 2, name: 'Jay Park', avatar: getMockAvatar('Jay Park'), role: 'Special Guest Artist' },
+      { id: 3, name: 'Min-ji Kim', avatar: getMockAvatar('Min-ji Kim'), role: 'Event Producer' },
+      { id: 4, name: 'Alex Chen', avatar: getMockAvatar('Alex Chen'), role: 'Spotify Partnerships' }
+    ],
+    itinerary: [
+      {
+        date: '2026-12-12',
+        events: [
+          { title: 'VIP Check-In & Welcome Cocktails', location: 'Spotify House Seoul', time: '19:00' },
+          { title: 'Opening Performance & Brand Activation', location: 'Main Stage', time: '20:00' },
+          { title: 'DJ Sets & Late Night Party', location: 'Club Level', time: '22:00' }
+        ]
+      }
+    ],
+    budget: {
+      total: 650000,
+      spent: 420000,
+      categories: [
+        { name: 'Venue & Production', allocated: 280000, spent: 200000 },
+        { name: 'Talent & Artists', allocated: 250000, spent: 150000 },
+        { name: 'Hospitality & Catering', allocated: 120000, spent: 70000 }
+      ]
+    },
+    groupChatEnabled: true,
+    attendanceExpected: 1200,
+    capacity: 1200,
+    registrationStatus: 'open',
+    checkedInCount: 0,
+    userRole: 'attendee',
+    tracks: [
+      { id: 'main-stage', name: 'Main Stage', color: '#1DB954', location: 'Ground Floor' },
+      { id: 'lounge', name: 'Creator Lounge', color: '#191414', location: '2nd Floor' },
+      { id: 'club', name: 'Club Level', color: '#535353', location: 'Basement' }
+    ],
+    speakers: [
+      {
+        id: 'dj-soda',
+        name: 'DJ SODA',
+        title: 'International DJ & Producer',
+        company: 'Independent',
+        bio: 'World-renowned Korean DJ known for electrifying performances and massive social media following, bringing high-energy EDM to global audiences.',
+        avatar: getMockAvatar('DJ SODA'),
+        sessions: ['main-performance']
+      },
+      {
+        id: 'jay-park',
+        name: 'Jay Park',
+        title: 'Artist & CEO',
+        company: 'H1GHR Music & AOMG',
+        bio: 'Korean-American rapper, singer, songwriter, and entrepreneur. Founder of two influential hip-hop labels and pioneer of Korean R&B.',
+        avatar: getMockAvatar('Jay Park'),
+        sessions: ['special-guest-set']
+      }
+    ],
+    sessions: [
+      {
+        id: 'main-performance',
+        title: 'Opening Performance & Brand Showcase',
+        description: 'Spotify\'s immersive brand experience featuring live performances, artist collaborations, and exclusive music previews.',
+        speaker: 'dj-soda',
+        track: 'main-stage',
+        startTime: '20:00',
+        endTime: '22:00',
+        location: 'Main Stage'
+      },
+      {
+        id: 'special-guest-set',
+        title: 'Jay Park Special Performance',
+        description: 'Exclusive live set from Jay Park featuring unreleased tracks and surprise guest collaborations.',
+        speaker: 'jay-park',
+        track: 'main-stage',
+        startTime: '21:00',
+        endTime: '21:45',
+        location: 'Main Stage'
+      }
+    ],
+    sponsors: [
+      {
+        id: 'sponsor-1',
+        name: 'Samsung',
+        tier: 'platinum',
+        logo: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=120&h=60&fit=crop',
+        website: 'https://samsung.com',
+        description: 'Premium audio and mobile technology partner',
+        booth: 'Activation Zone A'
+      }
+    ],
+    exhibitors: [],
+    agenda: [
+      { id: 'sps-a1', title: 'VIP Check-In & Welcome Cocktails', start_time: '19:00', end_time: '20:00', location: 'Entrance Lounge' },
+      { id: 'sps-a2', title: 'Opening Performance', start_time: '20:00', end_time: '21:00', location: 'Main Stage' },
+      { id: 'sps-a3', title: 'Jay Park Special Set', start_time: '21:00', end_time: '21:45', location: 'Main Stage' },
+      { id: 'sps-a4', title: 'DJ Sets & Late Night Party', start_time: '22:00', end_time: '03:00', location: 'Club Level' }
+    ],
+    tasks: [
+      { id: 'sps-t1', title: 'Download your digital invitation QR code', sort_order: 0 },
+      { id: 'sps-t2', title: 'Arrive before 8 PM for priority entry', sort_order: 1 },
+      { id: 'sps-t3', title: 'Check out the brand activations on the 2nd floor', sort_order: 2 },
+      { id: 'sps-t4', title: 'Tag @spotify in your social posts for featured content', sort_order: 3 }
+    ]
+  }
 };
