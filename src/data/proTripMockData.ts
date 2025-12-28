@@ -21,9 +21,9 @@ export const proTripMockData: Record<string, ProTripData> = {
   'paul-george-elite-aau-nationals-2026': paulGeorgeEliteAau,
   'unc-lax-2025': uncMensLacrosse,
   'a16z-speedrun-2026': yCombinatorCohort,
-  'jake-paul-anthony-joshua-netflix': kaiDruskiStream,
+  'amazon-prime-sports-broadcast-miami': kaiDruskiStream,
   'tesla-cybertruck-roadshow-2025': teslaCybertruckRoadshow,
-  'postmalone-jellyroll-tour-2026': postMaloneJellyRollTour,
+  'shane-gillis-comedy-tour-2026': postMaloneJellyRollTour,
   'gs-campus-gt-2025': goldmanSachsRecruiting,
   'la-tech-week-venture-2026': nvidiaBowlingNight
 };

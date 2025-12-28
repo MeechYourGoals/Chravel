@@ -2,234 +2,246 @@ import { ProTripData } from '../../types/pro';
 import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const kaiDruskiStream: ProTripData = {
-  id: 'jake-paul-anthony-joshua-netflix',
-  title: 'Jake Paul vs Anthony Joshua Netflix Fight Production',
-  description: 'Major boxing event production for Netflix, featuring Jake Paul vs Anthony Joshua in Miami.',
+  id: 'amazon-prime-sports-broadcast-miami',
+  title: 'Amazon Prime — Live Sports Broadcast Crew',
+  description: 'On-site production and broadcast operations for live-streamed sports programming.',
   location: 'Miami, FL',
-  dateRange: 'March 15 - March 18, 2025',
+  dateRange: 'March 12 - March 17, 2026',
   proTripCategory: 'Content',
-  tags: ['Content', 'Boxing', 'Sports Entertainment', 'Netflix Production'],
-  basecamp_name: 'Kaseya Center',
-  basecamp_address: '601 Biscayne Blvd, Miami, FL 33132',
+  tags: ['Content', 'Live Sports', 'Broadcast', 'Amazon Prime'],
+  basecamp_name: 'Hard Rock Stadium',
+  basecamp_address: '347 Don Shula Dr, Miami Gardens, FL 33056',
   tasks: [
     {
-      id: 'task-fight-1',
-      title: 'Verify ring setup and safety protocols',
-      description: 'Complete inspection of boxing ring installation and safety equipment',
+      id: 'task-broadcast-1',
+      title: 'Verify camera rig installation',
+      description: 'Complete inspection of all camera positions and broadcast equipment',
       completed: true,
-      due_at: '2025-03-14',
-      assigned_to: 'production-director',
+      due_at: '2026-03-11',
+      assigned_to: 'technical-director',
       created_at: new Date(Date.now() - 604800000).toISOString()
     },
     {
-      id: 'task-fight-2',
-      title: 'Coordinate broadcast equipment setup',
-      description: 'Netflix streaming infrastructure and camera positioning',
+      id: 'task-broadcast-2',
+      title: 'Test streaming infrastructure',
+      description: 'Amazon Prime Video streaming setup and connectivity testing',
       completed: false,
-      due_at: '2025-03-15',
-      assigned_to: 'technical-director',
+      due_at: '2026-03-12',
+      assigned_to: 'broadcast-ops',
       created_at: new Date().toISOString()
     }
   ],
   polls: [
     {
-      id: 'poll-fight-1',
-      question: 'Fight week media schedule preference?',
+      id: 'poll-broadcast-1',
+      question: 'Preferred crew call time for broadcast day?',
       options: [
-        { id: 'opt1', text: 'Morning Press Events', votes: 18 },
-        { id: 'opt2', text: 'Afternoon Sessions', votes: 25 },
-        { id: 'opt3', text: 'Evening Only', votes: 12 }
+        { id: 'opt1', text: '5:00 AM (Early Setup)', votes: 12 },
+        { id: 'opt2', text: '7:00 AM (Standard)', votes: 15 },
+        { id: 'opt3', text: '9:00 AM (Late Start)', votes: 4 }
       ],
-      total_votes: 55,
+      total_votes: 31,
       status: 'closed',
       created_at: new Date(Date.now() - 86400000).toISOString()
     }
   ],
   links: [
     {
-      id: 'link-fight-1',
-      url: 'https://www.netflix.com/sports',
-      title: 'Netflix Sports Live Events',
-      description: 'Official broadcast platform for fight event',
-      domain: 'netflix.com',
+      id: 'link-broadcast-1',
+      url: 'https://www.amazon.com/primevideo/sports',
+      title: 'Amazon Prime Video Sports',
+      description: 'Official broadcast platform for live sports',
+      domain: 'amazon.com',
       created_at: new Date().toISOString(),
       source: 'places'
     },
     {
-      id: 'link-fight-2',
-      url: 'https://www.fourseasons.com/miami',
-      title: 'Four Seasons Miami - Team Hotel',
-      description: 'Production crew and talent accommodation',
-      domain: 'fourseasons.com',
+      id: 'link-broadcast-2',
+      url: 'https://www.hardrockstadium.com',
+      title: 'Hard Rock Stadium - Broadcast Venue',
+      description: 'Venue information and crew access details',
+      domain: 'hardrockstadium.com',
       created_at: new Date(Date.now() - 172800000).toISOString(),
       source: 'manual'
     }
   ],
   broadcasts: [
     {
-      id: 'bc-fight-1',
+      id: 'bc-broadcast-1',
       senderId: '1',
-      message: 'Final production meeting at 3 PM. All crew leads must attend.',
-      targetTrips: ['jake-paul-anthony-joshua-netflix'],
+      message: 'Final broadcast prep meeting at 2 PM. All department heads required.',
+      targetTrips: ['amazon-prime-sports-broadcast-miami'],
       priority: 'urgent',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
       readBy: ['2', '3', '4']
     },
     {
-      id: 'bc-fight-2',
-      senderId: '3',
-      message: 'Weigh-in scheduled for tomorrow at noon. Camera crews ready by 11 AM.',
-      targetTrips: ['jake-paul-anthony-joshua-netflix'],
+      id: 'bc-broadcast-2',
+      senderId: '2',
+      message: 'Camera test scheduled for 10 AM tomorrow. All camera ops on standby.',
+      targetTrips: ['amazon-prime-sports-broadcast-miami'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
-      readBy: ['1', '2']
+      readBy: ['1', '3']
     }
   ],
   participants: [
-    { id: '1', name: 'Jake Paul', avatar: getMockAvatar('Jake Paul'), role: 'Fighters' },
-    { id: '2', name: 'Anthony Joshua', avatar: getMockAvatar('Anthony Joshua'), role: 'Fighters' },
-    { id: '3', name: 'Production Director', avatar: getMockAvatar('Production Director'), role: 'Production Crew' },
-    { id: '4', name: 'Netflix Executive Producer', avatar: getMockAvatar('Netflix Executive Producer'), role: 'Production Crew' }
+    { id: '1', name: 'Dana Schultz', avatar: getMockAvatar('Dana Schultz'), role: 'Executive Producer' },
+    { id: '2', name: 'Ramon Alvarez', avatar: getMockAvatar('Ramon Alvarez'), role: 'Technical Director' },
+    { id: '3', name: 'Sophie Chen', avatar: getMockAvatar('Sophie Chen'), role: 'Broadcast Ops' },
+    { id: '4', name: 'Luke Matthews', avatar: getMockAvatar('Luke Matthews'), role: 'Camera Lead' },
+    { id: '5', name: 'Priya Nair', avatar: getMockAvatar('Priya Nair'), role: 'Talent Coordination' }
   ],
   budget: {
-    total: 2500000,
-    spent: 850000,
+    total: 1800000,
+    spent: 750000,
     categories: [
-      { name: 'Venue & Production', budgeted: 1200000, spent: 450000 },
-      { name: 'Broadcast Equipment', budgeted: 600000, spent: 200000 },
-      { name: 'Crew & Talent', budgeted: 500000, spent: 150000 },
-      { name: 'Logistics', budgeted: 200000, spent: 50000 }
+      { name: 'Broadcast Equipment', budgeted: 800000, spent: 350000 },
+      { name: 'Crew & Staff', budgeted: 600000, spent: 250000 },
+      { name: 'Venue & Facilities', budgeted: 300000, spent: 120000 },
+      { name: 'Logistics & Travel', budgeted: 100000, spent: 30000 }
     ]
   },
   itinerary: [
     {
-      date: '2025-03-15',
+      date: '2026-03-12',
       events: [
-        { time: '08:00', title: 'Production Crew Setup', location: 'Kaseya Center', type: 'meeting' },
-        { time: '12:00', title: 'Official Weigh-In Ceremony', location: 'Main Stage', type: 'meeting' },
-        { time: '15:00', title: 'Press Conference', location: 'Media Room', type: 'meeting' },
-        { time: '19:00', title: 'Fight Night Begins', location: 'Main Arena', type: 'meeting' }
+        { time: '07:00', title: 'Broadcast Equipment Setup', location: 'Hard Rock Stadium', type: 'meeting' },
+        { time: '10:00', title: 'Camera Test & Positioning', location: 'Broadcast Booth', type: 'meeting' },
+        { time: '14:00', title: 'Technical Rehearsal', location: 'Production Truck', type: 'meeting' },
+        { time: '18:00', title: 'Pre-Broadcast Final Check', location: 'Control Room', type: 'meeting' }
       ]
     }
   ],
   roster: [
     {
       id: '1',
-      name: 'Jake Paul',
-      email: 'jake@paulpromotions.com',
-      avatar: getMockAvatar('Jake Paul'),
-      role: 'Fighters',
+      name: 'Dana Schultz',
+      email: 'dana@amazonprime.com',
+      avatar: getMockAvatar('Dana Schultz'),
+      role: 'Executive Producer',
       credentialLevel: 'AllAccess',
-      permissions: ['all-areas', 'fighter-exclusive'],
+      permissions: ['all-areas', 'executive-access'],
       roomPreferences: ['suite', 'high-floor'],
       dietaryRestrictions: []
     },
     {
       id: '2',
-      name: 'Anthony Joshua',
-      email: 'aj@joshuaboxing.com',
-      avatar: getMockAvatar('Anthony Joshua'),
-      role: 'Fighters',
+      name: 'Ramon Alvarez',
+      email: 'ramon@amazonprime.com',
+      avatar: getMockAvatar('Ramon Alvarez'),
+      role: 'Technical Director',
       credentialLevel: 'AllAccess',
-      permissions: ['all-areas', 'fighter-exclusive'],
-      roomPreferences: ['suite', 'high-floor'],
+      permissions: ['all-areas', 'technical-control'],
+      roomPreferences: ['standard', 'mid-floor'],
       dietaryRestrictions: []
     },
     {
       id: '3',
-      name: 'Production Director',
-      email: 'production@netflix.com',
-      avatar: getMockAvatar('Production Director'),
-      role: 'Production Crew',
-      credentialLevel: 'AllAccess',
-      permissions: ['all-areas', 'production-control'],
-      roomPreferences: ['suite', 'high-floor'],
+      name: 'Sophie Chen',
+      email: 'sophie@amazonprime.com',
+      avatar: getMockAvatar('Sophie Chen'),
+      role: 'Broadcast Ops',
+      credentialLevel: 'Backstage',
+      permissions: ['broadcast-area', 'control-room'],
+      roomPreferences: ['standard', 'mid-floor'],
       dietaryRestrictions: []
     },
     {
       id: '4',
-      name: 'Netflix Executive Producer',
-      email: 'exec@netflix.com',
-      avatar: getMockAvatar('Netflix Executive Producer'),
-      role: 'Production Crew',
-      credentialLevel: 'AllAccess',
-      permissions: ['all-areas', 'executive-access'],
-      roomPreferences: ['suite', 'high-floor'],
+      name: 'Luke Matthews',
+      email: 'luke@amazonprime.com',
+      avatar: getMockAvatar('Luke Matthews'),
+      role: 'Camera Lead',
+      credentialLevel: 'Crew',
+      permissions: ['field-access', 'camera-positions'],
+      roomPreferences: ['standard', 'any-floor'],
+      dietaryRestrictions: []
+    },
+    {
+      id: '5',
+      name: 'Priya Nair',
+      email: 'priya@amazonprime.com',
+      avatar: getMockAvatar('Priya Nair'),
+      role: 'Talent Coordination',
+      credentialLevel: 'Backstage',
+      permissions: ['talent-area', 'backstage'],
+      roomPreferences: ['standard', 'mid-floor'],
       dietaryRestrictions: []
     }
   ],
   roomAssignments: [
     {
-      id: 'room-fight1',
-      room: 'Presidential Suite A',
-      hotel: 'Four Seasons Miami',
+      id: 'room-broadcast1',
+      room: 'Executive Suite 501',
+      hotel: 'Miami Marriott Biscayne Bay',
       occupants: ['1'],
-      checkIn: '2025-03-15T14:00:00Z',
-      checkOut: '2025-03-18T12:00:00Z',
+      checkIn: '2026-03-12T14:00:00Z',
+      checkOut: '2026-03-17T12:00:00Z',
       roomType: 'suite',
-      specialRequests: ['late-checkout', 'fighter-security']
+      specialRequests: ['early-checkin', 'quiet-floor']
     }
   ],
   schedule: [
     {
-      id: 'sched-fight1',
+      id: 'sched-broadcast1',
       type: 'show',
-      title: 'Main Event Fight',
-      startTime: '2025-03-15T23:00:00Z',
-      endTime: '2025-03-16T02:00:00Z',
-      location: 'Kaseya Center Main Arena',
-      participants: ['1', '2', '3', '4'],
+      title: 'Live Sports Broadcast',
+      startTime: '2026-03-12T19:00:00Z',
+      endTime: '2026-03-12T23:00:00Z',
+      location: 'Hard Rock Stadium',
+      participants: ['1', '2', '3', '4', '5'],
       priority: 'critical',
-      notes: 'Live Netflix broadcast of Paul vs Joshua main event'
+      notes: 'Live Amazon Prime Video sports broadcast'
     }
   ],
   perDiem: {
-    dailyRate: 500,
+    dailyRate: 400,
     currency: 'USD',
-    startDate: '2025-03-15',
-    endDate: '2025-03-18',
+    startDate: '2026-03-12',
+    endDate: '2026-03-17',
     participants: [
-      { participantId: '3', customRate: 750, advances: 0, deductions: 0, balance: 2250 },
-      { participantId: '4', customRate: 650, advances: 0, deductions: 0, balance: 1950 }
+      { participantId: '1', customRate: 650, advances: 0, deductions: 0, balance: 3250 },
+      { participantId: '2', customRate: 550, advances: 0, deductions: 0, balance: 2750 }
     ]
   },
   settlement: [],
   medical: [],
   compliance: [
     {
-      id: 'comp-fight1',
+      id: 'comp-broadcast1',
       type: 'safety',
-      title: 'Boxing Commission Regulations',
-      description: 'All fight operations must comply with Florida Athletic Commission rules',
-      deadline: '2025-03-14',
+      title: 'FCC Broadcast Regulations',
+      description: 'All broadcast operations must comply with FCC standards and streaming protocols',
+      deadline: '2026-03-11',
       status: 'compliant',
-      assignedTo: '3',
-      documents: ['commission-approval.pdf', 'safety-protocols.pdf']
+      assignedTo: '2',
+      documents: ['fcc-approval.pdf', 'broadcast-protocols.pdf']
     }
   ],
   media: [
     {
-      id: 'media-fight1',
+      id: 'media-broadcast1',
       type: 'press-conference',
-      outlet: 'Netflix Global Sports',
-      contactPerson: 'Media Relations Director',
-      scheduledTime: '2025-03-15T15:00:00Z',
-      duration: 120,
-      location: 'Kaseya Center Media Room',
-      participants: ['1', '2', '3', '4'],
+      outlet: 'Amazon Prime Video Sports',
+      contactPerson: 'Broadcast Media Coordinator',
+      scheduledTime: '2026-03-12T14:00:00Z',
+      duration: 90,
+      location: 'Hard Rock Stadium Media Center',
+      participants: ['1', '2', '5'],
       status: 'confirmed'
     }
   ],
   sponsors: [
     {
-      id: 'sponsor-fight1',
-      sponsor: 'Netflix',
-      activation: 'Exclusive broadcast rights and promotion',
-      deadline: '2025-03-15',
-      assignedTo: '4',
+      id: 'sponsor-broadcast1',
+      sponsor: 'Amazon Prime Video',
+      activation: 'Exclusive broadcast rights and streaming platform',
+      deadline: '2026-03-12',
+      assignedTo: '1',
       status: 'completed',
-      deliverables: ['live-broadcast', 'documentary-series', 'marketing-campaign'],
-      notes: 'Netflix exclusive streaming partner for fight event'
+      deliverables: ['live-broadcast', 'pre-show-coverage', 'post-game-highlights'],
+      notes: 'Amazon Prime Video exclusive streaming partner for live sports'
     }
   ]
 };
