@@ -317,9 +317,62 @@ export const eventsMockData: Record<string, EventData> = {
       { id: 'm20-t3', title: 'Visit the expo floor for demo booths', sort_order: 2 }
     ]
   },
-  'inbound-2026': {
-    id: 'inbound-2026',
-    title: 'INBOUND by HubSpot 2026',
+  'elan-steakhouse-opening-2026': {
+    id: 'elan-steakhouse-opening-2026',
+    title: 'Élan Steakhouse — Grand Opening Night',
+    location: 'Chicago, IL',
+    dateRange: 'Oct 3, 2026',
+    category: 'Restaurant Grand Opening',
+    description: 'Invitation-only grand opening celebration for Élan Steakhouse, a new luxury dining destination in Chicago. Guests enjoy chef-led tastings, signature cocktails, live jazz, and a first look at the space.',
+    tags: ['Fine Dining', 'Steakhouse', 'Grand Opening', 'Chicago', 'Hospitality'],
+    participants: [
+      { id: 11, name: 'Chef Antoine Rousseau', avatar: getMockAvatar('Chef Antoine Rousseau'), role: 'Executive Chef' },
+      { id: 12, name: 'Emily Carter', avatar: getMockAvatar('Emily Carter'), role: 'General Manager' }
+    ],
+    itinerary: [
+      {
+        date: '2026-10-03',
+        events: [
+          { title: 'VIP Welcome Reception', location: 'Élan Steakhouse Main Dining Room', time: '18:00' },
+          { title: 'Chef-Led Tasting Experience', location: 'Private Dining Room', time: '19:00' },
+          { title: 'Live Jazz & Cocktails', location: 'Lounge', time: '21:00' }
+        ]
+      }
+    ],
+    budget: {
+      total: 180000,
+      spent: 135000,
+      categories: [
+        { name: 'Catering & Beverages', allocated: 80000, spent: 65000 },
+        { name: 'Entertainment', allocated: 40000, spent: 30000 },
+        { name: 'Marketing & PR', allocated: 60000, spent: 40000 }
+      ]
+    },
+    groupChatEnabled: true,
+    attendanceExpected: 320,
+    capacity: 320,
+    registrationStatus: 'open',
+    checkedInCount: 0,
+    userRole: 'attendee',
+    tracks: [],
+    speakers: [],
+    sessions: [],
+    sponsors: [],
+    exhibitors: [],
+    agenda: [
+      { id: 'elan-a1', title: 'VIP Welcome Reception', start_time: '18:00', end_time: '19:00', location: 'Main Dining Room' },
+      { id: 'elan-a2', title: 'Chef-Led Tasting Experience', start_time: '19:00', end_time: '21:00', location: 'Private Dining Room' },
+      { id: 'elan-a3', title: 'Live Jazz & Cocktails', start_time: '21:00', end_time: '23:00', location: 'Lounge' }
+    ],
+    tasks: [
+      { id: 'elan-t1', title: 'Present your RSVP confirmation at the entrance', sort_order: 0 },
+      { id: 'elan-t2', title: 'Meet the chef during the welcome reception', sort_order: 1 },
+      { id: 'elan-t3', title: 'Explore the restaurant and bar areas', sort_order: 2 }
+    ]
+  },
+  'inbound-2025': {
+    id: 'inbound-2025',
+    title: 'INBOUND by HubSpot 2025',
     location: 'San Francisco, CA',
     dateRange: 'Sep 8 - Sep 11, 2026',
     category: 'Marketing & CX',
@@ -554,6 +607,14 @@ export const eventsMockData: Record<string, EventData> = {
     sponsors: [],
     exhibitors: []
   },
+  'french-riviera-marathon-2026': {
+    id: 'french-riviera-marathon-2026',
+    title: 'French Riviera Marathon: Nice–Cannes 2026',
+    location: 'Nice → Cannes, France',
+    dateRange: 'Apr 19, 2026',
+    category: 'Public Sporting Event',
+    description: 'The iconic French Riviera Marathon running along the Mediterranean coastline from Nice to Cannes. A globally recognized race welcoming elite athletes and amateur runners alike, ending with a festival-style finish on the Croisette.',
+    tags: ['Marathon', 'Running', 'Sports', 'Mediterranean', 'Fitness'],
   'nba-hof-2026': {
     id: 'nba-hof-2026',
     title: 'NBA Hall of Fame Induction 2026',
@@ -563,38 +624,49 @@ export const eventsMockData: Record<string, EventData> = {
     description: 'Basketball Hall of Fame induction ceremony and celebration',
     tags: ['Basketball', 'Sports', 'Hall of Fame', 'Ceremony', 'Legacy'],
     participants: [
-      { id: 25, name: 'Marcus Thompson', avatar: getMockAvatar('Marcus Thompson'), role: 'Sports Coordinator' },
-      { id: 26, name: 'Lisa Rodriguez', avatar: getMockAvatar('Lisa Rodriguez'), role: 'Event Director' }
+      { id: 25, name: 'Marc Dupont', avatar: getMockAvatar('Marc Dupont'), role: 'Race Director' },
+      { id: 26, name: 'Sophie Laurent', avatar: getMockAvatar('Sophie Laurent'), role: 'Logistics Coordinator' }
     ],
     itinerary: [
       {
         date: '2026-09-11',
         events: [
-          { title: 'Hall of Fame Welcome Reception', location: 'Basketball Hall of Fame', time: '18:00' },
-          { title: 'Induction Ceremony', location: 'Symphony Hall', time: '19:30' }
+          { title: 'Race Check-in & Bib Pickup', location: 'Promenade des Anglais, Nice', time: '06:00' },
+          { title: 'Marathon Start', location: 'Nice Beachfront', time: '07:30' },
+          { title: 'Finish Line Festival', location: 'La Croisette, Cannes', time: '12:00' }
         ]
       }
     ],
     budget: {
-      total: 2000000,
-      spent: 1200000,
+      total: 850000,
+      spent: 620000,
       categories: [
-        { name: 'Venue', allocated: 600000, spent: 400000 },
-        { name: 'Catering', allocated: 500000, spent: 300000 },
-        { name: 'Media Production', allocated: 900000, spent: 500000 }
+        { name: 'Course Setup & Safety', allocated: 300000, spent: 250000 },
+        { name: 'Medical & Support', allocated: 200000, spent: 150000 },
+        { name: 'Finish Festival & Awards', allocated: 350000, spent: 220000 }
       ]
     },
     groupChatEnabled: true,
     attendanceExpected: 275,
     capacity: 300,
     registrationStatus: 'open',
-    checkedInCount: 90,
+    checkedInCount: 0,
     userRole: 'attendee',
     tracks: [],
     speakers: [],
     sessions: [],
     sponsors: [],
-    exhibitors: []
+    exhibitors: [],
+    agenda: [
+      { id: 'frm-a1', title: 'Race Check-in & Bib Pickup', start_time: '06:00', end_time: '07:15', location: 'Promenade des Anglais, Nice' },
+      { id: 'frm-a2', title: 'Marathon Start', start_time: '07:30', end_time: '07:45', location: 'Nice Beachfront' },
+      { id: 'frm-a3', title: 'Finish Line Festival', start_time: '12:00', end_time: '16:00', location: 'La Croisette, Cannes' }
+    ],
+    tasks: [
+      { id: 'frm-t1', title: 'Pick up your race bib and timing chip', sort_order: 0 },
+      { id: 'frm-t2', title: 'Arrive at the start line 30 minutes early', sort_order: 1 },
+      { id: 'frm-t3', title: 'Download the race tracker app for live timing', sort_order: 2 }
+    ]
   },
-  'google-io-2026': googleIO2026Event
+  'spotify-house-seoul-2026': googleIO2026Event
 };
