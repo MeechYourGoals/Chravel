@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, Settings, UserPlus } from 'lucide-react';
+import { Calendar, MapPin, Users, Settings, UserPlus, MoreHorizontal, Archive, EyeOff, Trash2 } from 'lucide-react';
 import { useIsMobile } from '../hooks/use-mobile';
 import { EventData } from '../types/events';
 import { useTripVariant } from '../contexts/TripVariantContext';
@@ -9,19 +9,104 @@ import { calculatePeopleCount, calculateDaysCount, calculateEventPlacesCount } f
 import { getInitials } from '../utils/avatarUtils';
 import { TravelerTooltip } from './ui/traveler-tooltip';
 import { InviteModal } from './InviteModal';
+import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
+import { DeleteTripConfirmDialog } from './DeleteTripConfirmDialog';
+import { useEvents } from '../hooks/useEvents';
+import { useToast } from '../hooks/use-toast';
+import { useAuth } from '../hooks/useAuth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 
 interface MobileEventCardProps {
   event: EventData;
+  onArchiveSuccess?: () => void;
+  onHideSuccess?: () => void;
+  onDeleteSuccess?: () => void;
 }
 
-export const MobileEventCard = ({ event }: MobileEventCardProps) => {
+export const MobileEventCard = ({ event, onArchiveSuccess, onHideSuccess, onDeleteSuccess }: MobileEventCardProps) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { accentColors } = useTripVariant();
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { archiveTrip, hideTrip, deleteTripForMe } = useEvents();
 
   const handleViewEvent = () => {
     navigate(`/event/${event.id}`);
+  };
+
+  const handleArchiveEvent = async () => {
+    try {
+      await archiveTrip(event.id);
+      toast({
+        title: "Event archived",
+        description: `"${event.title}" has been archived. View it in the Archived tab.`,
+      });
+      setShowArchiveDialog(false);
+      onArchiveSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Failed to archive event",
+        description: "There was an error archiving your event. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleHideEvent = async () => {
+    try {
+      await hideTrip(event.id);
+      toast({
+        title: "Event hidden",
+        description: `"${event.title}" is now hidden. Enable "Show Hidden Trips" in Settings to view it.`,
+      });
+      onHideSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Failed to hide event",
+        description: "There was an error hiding your event. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteEventForMe = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Not logged in",
+        description: "You must be logged in to manage trips.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteTripForMe({ tripId: event.id.toString(), userId: user.id });
+      toast({
+        title: "Event removed",
+        description: `"${event.title}" has been removed from your account.`,
+      });
+      setShowDeleteDialog(false);
+      onDeleteSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Failed to remove event",
+        description: "There was an error removing the event. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (!isMobile) return null;
@@ -44,11 +129,30 @@ export const MobileEventCard = ({ event }: MobileEventCardProps) => {
   };
 
   return (
-    <div className={`bg-gradient-to-br ${getCategoryColor(event.category)} backdrop-blur-xl border rounded-2xl overflow-hidden transition-all duration-300 shadow-lg hover:scale-[1.02]`}>
-      {/* Events Badge */}
-      <div className={`absolute top-3 right-3 z-10 bg-gradient-to-r ${accentColors.gradient} px-2 py-1 rounded-full flex items-center gap-1`}>
-        <Calendar size={12} className="text-white" />
-        <span className="text-xs font-bold text-white">EVENTS</span>
+    <div className={`bg-gradient-to-br ${getCategoryColor(event.category)} backdrop-blur-xl border rounded-2xl overflow-hidden transition-all duration-300 shadow-lg hover:scale-[1.02] group`}>
+      {/* Menu */}
+      <div className="absolute top-2 right-2 z-10">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="text-white/60 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-xl">
+              <MoreHorizontal size={16} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-background border-border">
+            <DropdownMenuItem onClick={() => setShowArchiveDialog(true)}>
+              <Archive className="mr-2 h-4 w-4" />
+              Archive
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleHideEvent}>
+              <EyeOff className="mr-2 h-4 w-4" />
+              Hide
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete for me
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Mobile Header */}
@@ -180,6 +284,22 @@ export const MobileEventCard = ({ event }: MobileEventCardProps) => {
         onClose={() => setShowInviteModal(false)}
         tripName={event.title}
         tripId={event.id}
+      />
+
+      <ArchiveConfirmDialog
+        isOpen={showArchiveDialog}
+        onClose={() => setShowArchiveDialog(false)}
+        onConfirm={handleArchiveEvent}
+        tripTitle={event.title}
+        isArchiving
+      />
+
+      <DeleteTripConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteEventForMe}
+        tripTitle={event.title}
+        isLoading={isDeleting}
       />
     </div>
   );

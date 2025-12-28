@@ -6,9 +6,11 @@ import { useShallow } from 'zustand/react/shallow';
 import { EventData } from '../types/events';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
+import { DeleteTripConfirmDialog } from './DeleteTripConfirmDialog';
 import { InviteModal } from './InviteModal';
-import { archiveTrip, hideTrip } from '../services/archiveService';
+import { useEvents } from '../hooks/useEvents';
 import { useToast } from '../hooks/use-toast';
+import { useAuth } from '../hooks/useAuth';
 import { getPeopleCountValue, formatPeopleCount, calculateDaysCount, calculateEventPlacesCount } from '../utils/tripStatsUtils';
 import { getInitials } from '../utils/avatarUtils';
 import { TravelerTooltip } from './ui/traveler-tooltip';
@@ -27,15 +29,22 @@ const EMPTY_PARTICIPANTS: Array<{id: number | string; name: string; avatar?: str
 
 interface EventCardProps {
   event: EventData;
+  onArchiveSuccess?: () => void;
+  onHideSuccess?: () => void;
+  onDeleteSuccess?: () => void;
 }
 
-export const EventCard = ({ event }: EventCardProps) => {
+export const EventCard = ({ event, onArchiveSuccess, onHideSuccess, onDeleteSuccess }: EventCardProps) => {
   const navigate = useNavigate();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
+  const { archiveTrip, hideTrip, deleteTripForMe } = useEvents();
   
   // Get added members from the demo store - use stable empty array reference with shallow comparison
   const eventIdStr = event.id.toString();
@@ -58,12 +67,22 @@ export const EventCard = ({ event }: EventCardProps) => {
     navigate(`/event/${event.id}`);
   };
 
-  const handleArchiveEvent = () => {
-    archiveTrip(event.id, 'event');
-    toast({
-      title: "Event archived",
-      description: `"${event.title}" has been archived. View it in the Archived tab.`,
-    });
+  const handleArchiveEvent = async () => {
+    try {
+      await archiveTrip(event.id);
+      toast({
+        title: "Event archived",
+        description: `"${event.title}" has been archived. View it in the Archived tab.`,
+      });
+      setShowArchiveDialog(false);
+      onArchiveSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Failed to archive event",
+        description: "There was an error archiving your event. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleHideEvent = async () => {
@@ -73,12 +92,43 @@ export const EventCard = ({ event }: EventCardProps) => {
         title: "Event hidden",
         description: `"${event.title}" is now hidden. Enable "Show Hidden Trips" in Settings to view it.`,
       });
+      onHideSuccess?.();
     } catch (error) {
       toast({
         title: "Failed to hide event",
         description: "There was an error hiding your event. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleDeleteEventForMe = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Not logged in",
+        description: "You must be logged in to manage trips.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteTripForMe({ tripId: event.id.toString(), userId: user.id });
+      toast({
+        title: "Event removed",
+        description: `"${event.title}" has been removed from your account.`,
+      });
+      setShowDeleteDialog(false);
+      onDeleteSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Failed to remove event",
+        description: "There was an error removing the event. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -110,7 +160,7 @@ export const EventCard = ({ event }: EventCardProps) => {
             </button>
           </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-background border-border">
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => setShowArchiveDialog(true)}
                 className="text-muted-foreground hover:text-foreground"
               >
@@ -118,12 +168,20 @@ export const EventCard = ({ event }: EventCardProps) => {
                 Archive Event
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={handleHideEvent}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <EyeOff className="mr-2 h-4 w-4" />
                 Hide Event
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete for me
               </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
@@ -231,6 +289,14 @@ export const EventCard = ({ event }: EventCardProps) => {
         onConfirm={handleArchiveEvent}
         tripTitle={event.title}
         isArchiving={true}
+      />
+
+      <DeleteTripConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteEventForMe}
+        tripTitle={event.title}
+        isLoading={isDeleting}
       />
 
       <InviteModal

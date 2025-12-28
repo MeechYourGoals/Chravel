@@ -8,23 +8,6 @@ type TripType = 'consumer' | 'pro' | 'event';
  * @throws Error if user is the trip creator (creators cannot delete for themselves)
  */
 export const deleteTripForMe = async (tripId: string, userId: string): Promise<void> => {
-  // First check if user is the trip creator
-  const { data: tripData, error: tripError } = await supabase
-    .from('trips')
-    .select('created_by')
-    .eq('id', tripId)
-    .single();
-
-  if (tripError) {
-    console.error('Failed to fetch trip:', tripError);
-    throw new Error('TRIP_NOT_FOUND');
-  }
-
-  // Trip creators cannot "delete for me" - they own the trip
-  if (tripData.created_by === userId) {
-    throw new Error('CREATOR_CANNOT_DELETE');
-  }
-
   // Remove user from trip_members
   const { error: deleteError } = await supabase
     .from('trip_members')
@@ -334,4 +317,23 @@ export const getArchiveAnalytics = async (userId?: string) => {
       events: archived.events.length / totalEvents
     }
   };
+};
+
+export const archiveService = {
+  deleteTripForMe,
+  hideTrip,
+  unhideTrip,
+  isTripHidden,
+  getHiddenTrips,
+  getArchivedTripCount,
+  archiveTrip,
+  restoreTrip,
+  isTripArchived,
+  getArchivedTrips,
+  filterActiveTrips,
+  getTripArchiveStatus,
+  bulkArchiveTrips,
+  bulkRestoreTrips,
+  clearAllArchivedTrips,
+  getArchiveAnalytics,
 };
