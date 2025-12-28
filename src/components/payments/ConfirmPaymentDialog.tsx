@@ -13,6 +13,8 @@ import { supabase } from '../../integrations/supabase/client';
 import { toast } from '../ui/use-toast';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import * as haptics from '@/native/haptics';
+import { Checkbox } from '../ui/checkbox';
+import { Label } from '../ui/label';
 
 interface ConfirmPaymentDialogProps {
   open: boolean;
@@ -29,6 +31,7 @@ export const ConfirmPaymentDialog = ({
 }: ConfirmPaymentDialogProps) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [acknowledged, setAcknowledged] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -45,18 +48,49 @@ export const ConfirmPaymentDialog = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Update all unsettled payment splits for this user pair
+      if (!acknowledged) {
+        throw new Error('Please confirm you have received the payment.');
+      }
+
+      // Scope confirmation strictly to this trip + current creditor (prevents cross-trip confirmations).
+      const { data: paymentMessages, error: paymentsError } = await supabase
+        .from('trip_payment_messages')
+        .select('id')
+        .eq('trip_id', tripId)
+        .eq('created_by', user.id);
+
+      if (paymentsError) throw paymentsError;
+
+      const paymentMessageIds = (paymentMessages ?? []).map(p => p.id);
+      if (paymentMessageIds.length === 0) {
+        throw new Error('No payments found to confirm for this trip.');
+      }
+
+      const { data: pendingSplits, error: splitsError } = await supabase
+        .from('payment_splits')
+        .select('id')
+        .in('payment_message_id', paymentMessageIds)
+        .eq('debtor_user_id', balance.userId)
+        .eq('confirmation_status', 'pending');
+
+      if (splitsError) throw splitsError;
+
+      const splitIds = (pendingSplits ?? []).map(s => s.id);
+      if (splitIds.length === 0) {
+        throw new Error('No pending payment confirmations found.');
+      }
+
+      const now = new Date().toISOString();
       const { error: updateError } = await supabase
         .from('payment_splits')
         .update({
           confirmation_status: 'confirmed',
           confirmed_by: user.id,
-          confirmed_at: new Date().toISOString(),
+          confirmed_at: now,
           is_settled: true,
-          settled_at: new Date().toISOString()
+          settled_at: now,
         })
-        .eq('debtor_user_id', balance.userId)
-        .eq('confirmation_status', 'pending');
+        .in('id', splitIds);
 
       if (updateError) throw updateError;
 
@@ -127,6 +161,17 @@ export const ConfirmPaymentDialog = ({
             )}
           </div>
 
+          <div className="mt-4 flex items-start gap-2">
+            <Checkbox
+              id="acknowledge-received"
+              checked={acknowledged}
+              onCheckedChange={checked => setAcknowledged(checked === true)}
+            />
+            <Label htmlFor="acknowledge-received" className="text-sm leading-5">
+              I confirm I have received this payment.
+            </Label>
+          </div>
+
           <div className="mt-4 text-sm text-muted-foreground">
             By confirming, you're acknowledging that you've received this payment and the transaction will be marked as complete.
           </div>
@@ -138,7 +183,7 @@ export const ConfirmPaymentDialog = ({
                 variant="outline"
                 size="sm"
                 onClick={handleConfirm}
-                disabled={isConfirming}
+                disabled={isConfirming || !acknowledged}
                 className="mt-2 w-full"
               >
                 Retry Confirmation
@@ -159,7 +204,7 @@ export const ConfirmPaymentDialog = ({
           <Button
             type="button"
             onClick={handleConfirm}
-            disabled={isConfirming}
+            disabled={isConfirming || !acknowledged}
             className="bg-green-600 hover:bg-green-700"
           >
             {isConfirming ? (

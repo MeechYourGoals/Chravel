@@ -26,7 +26,7 @@ export const paymentService = {
     try {
       const { data, error } = await supabase
         .from('user_payment_methods')
-        .select('*')
+        .select('id, method_type, identifier, display_name, is_preferred, is_visible, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
