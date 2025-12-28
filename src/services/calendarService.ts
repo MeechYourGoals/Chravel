@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { CalendarEvent } from '@/types/calendar';
 import { demoModeService } from './demoModeService';
+import { demoTripEventsByTripId } from '@/mockData/demoTripEvents';
 import { calendarStorageService } from './calendarStorageService';
 import { calendarOfflineQueue } from './calendarOfflineQueue';
 import { offlineSyncService } from './offlineSyncService';
@@ -308,8 +309,15 @@ export const calendarService = {
       const isDemoMode = await demoModeService.isDemoModeEnabled();
       
       if (isDemoMode) {
-        // Use localStorage for demo mode
-        return await calendarStorageService.getEvents(tripId);
+        const storedEvents = await calendarStorageService.getEvents(tripId);
+        const seededEvents = demoTripEventsByTripId[tripId] || [];
+
+        if (storedEvents.length === 0 && seededEvents.length > 0) {
+          await calendarStorageService.setEvents(tripId, seededEvents);
+          return seededEvents;
+        }
+
+        return storedEvents;
       }
 
       // Try to load from cache first for instant display

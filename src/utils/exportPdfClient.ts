@@ -188,6 +188,35 @@ function hexToRgb(hex: string): [number, number, number] {
     : [66, 139, 202]; // Default blue
 }
 
+function sanitizePdfText(value: string): string {
+  if (!value) return '';
+  return value
+    .normalize('NFKC')
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+    .replace(/\p{Extended_Pictographic}/gu, '')
+    .replace(/\s+/g, ' ');
+}
+
+function formatEventDateTime(start?: string, end?: string): string {
+  if (!start) return 'N/A';
+  const startDate = new Date(start);
+  if (Number.isNaN(startDate.getTime())) return 'N/A';
+
+  const startText = startDate.toLocaleString();
+  if (!end) return startText;
+
+  const endDate = new Date(end);
+  if (Number.isNaN(endDate.getTime())) return startText;
+
+  const sameDay = startDate.toDateString() === endDate.toDateString();
+  const endText = sameDay
+    ? endDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : endDate.toLocaleString();
+
+  return `${startText} - ${endText}`;
+}
+
+
 /**
  * Enhanced PDF generation with pagination, progress, and customization
  */
@@ -235,27 +264,28 @@ export async function generateClientPDF(
   // Header
   doc.setFontSize(24);
   doc.setFont('NotoSans', 'bold');
-  doc.text(data.tripTitle, margin, yPos);
+  doc.text(sanitizePdfText(data.tripTitle), margin, yPos);
   yPos += 30;
 
   if (data.destination) {
     doc.setFontSize(12);
     doc.setFont('NotoSans', 'normal');
-    doc.text(data.destination, margin, yPos);
+    doc.text(sanitizePdfText(data.destination), margin, yPos);
     yPos += 20;
   }
 
   if (data.dateRange) {
     doc.setFontSize(11);
     doc.setTextColor(100);
-    doc.text(data.dateRange, margin, yPos);
+    doc.text(sanitizePdfText(data.dateRange), margin, yPos);
     yPos += 20;
   }
 
   if (data.description) {
     doc.setFontSize(10);
     doc.setTextColor(80);
-    const splitDesc = doc.splitTextToSize(data.description, contentWidth);
+    const descriptionText = sanitizePdfText(data.description);
+    const splitDesc = doc.splitTextToSize(descriptionText, contentWidth);
     doc.text(splitDesc, margin, yPos);
     yPos += splitDesc.length * 14 + 10;
   }
@@ -283,7 +313,11 @@ export async function generateClientPDF(
     if (section === 'calendar') {
       yPos = checkPageBreak(doc, yPos, 60);
       
-      const events = data.calendar || [];
+      const events = (data.calendar || []).slice().sort((a, b) => {
+        const aTime = a.start_time ? new Date(a.start_time).getTime() : Number.POSITIVE_INFINITY;
+        const bTime = b.start_time ? new Date(b.start_time).getTime() : Number.POSITIVE_INFINITY;
+        return aTime - bTime;
+      });
       if (events.length > 0) {
         // Paginate if too many events
         const eventChunks = events.length > maxItems 
@@ -305,12 +339,19 @@ export async function generateClientPDF(
             yPos += 20;
           }
 
-          const eventRows = chunk.map((event: any) => [
-            event.title || 'Untitled Event',
-            event.start_time ? new Date(event.start_time).toLocaleString() : 'N/A',
-            event.location || 'N/A',
-            event.description ? event.description.substring(0, 50) + '...' : ''
-          ]);
+          const eventRows = chunk.map((event: any) => {
+            const description = event.description ? sanitizePdfText(event.description) : '';
+            const truncatedDescription = description.length > 60
+              ? `${description.slice(0, 60)}...`
+              : description;
+
+            return [
+              sanitizePdfText(event.title || 'Untitled Event'),
+              formatEventDateTime(event.start_time, event.end_time),
+              sanitizePdfText(event.location || 'N/A'),
+              truncatedDescription || ' '
+            ];
+          });
 
           autoTable(doc, {
             startY: yPos,
@@ -370,7 +411,7 @@ export async function generateClientPDF(
           }
 
           const paymentRows = chunk.map((p: any) => [
-            p.description || 'N/A',
+            sanitizePdfText(p.description || 'N/A'),
             `${p.currency || 'USD'} ${p.amount?.toFixed(2) || '0.00'}`,
             `${p.split_count || 0} people`,
             p.is_settled ? 'Settled' : 'Pending'
@@ -447,14 +488,14 @@ export async function generateClientPDF(
             doc.setFont('NotoSans', 'bold');
             doc.setTextColor(0);
             const pollNumber = chunkIndex * maxItems + index + 1;
-            doc.text(`${pollNumber}. ${poll.question}`, margin, yPos);
+            doc.text(`${pollNumber}. ${sanitizePdfText(poll.question)}`, margin, yPos);
             yPos += 15;
 
             if (poll.options && poll.options.length > 0) {
               const pollRows = poll.options.map((opt: any) => {
                 const percentage = poll.total_votes > 0 ? ((opt.votes / poll.total_votes) * 100).toFixed(1) : '0.0';
                 return [
-                  opt.text || 'N/A',
+                  sanitizePdfText(opt.text || 'N/A'),
                   `${opt.votes || 0} votes`,
                   `${percentage}%`
                 ];
@@ -536,8 +577,8 @@ export async function generateClientPDF(
           };
 
           const placeRows = chunk.map((place: any) => [
-            place.name || 'N/A',
-            shortenUrl(place.url || 'N/A'),
+            sanitizePdfText(place.name || 'N/A'),
+            sanitizePdfText(shortenUrl(place.url || 'N/A')),
             place.votes?.toString() || '0'
           ]);
 
@@ -606,7 +647,7 @@ export async function generateClientPDF(
           }
 
           const taskRows = chunk.map((task: any) => [
-            task.title || task.description || 'N/A',
+            sanitizePdfText(task.title || task.description || 'N/A'),
             task.completed ? '[x] Done' : '[ ] Pending'
           ]);
 
@@ -686,7 +727,7 @@ export async function generateClientPDF(
             doc.setFontSize(10);
             doc.setFont('NotoSans', 'normal');
             doc.setTextColor(0);
-            const messageLines = doc.splitTextToSize(broadcast.message, contentWidth - 20);
+            const messageLines = doc.splitTextToSize(sanitizePdfText(broadcast.message), contentWidth - 20);
             doc.text(messageLines, margin + 10, yPos);
             yPos += messageLines.length * 14 + 5;
 
@@ -694,7 +735,7 @@ export async function generateClientPDF(
             doc.setFontSize(9);
             doc.setFont('NotoSans', 'italic');
             doc.setTextColor(120);
-            doc.text(`Sent by: ${broadcast.sender}  •  ${broadcast.read_count} read`, margin + 10, yPos);
+            doc.text(`Sent by: ${sanitizePdfText(broadcast.sender)}  •  ${broadcast.read_count} read`, margin + 10, yPos);
             yPos += 20;
           });
 
@@ -742,9 +783,9 @@ export async function generateClientPDF(
           }
 
           const rosterRows = chunk.map((member: any) => [
-            member.name || 'N/A',
-            member.email || 'Not shared',
-            member.role || 'member'
+            sanitizePdfText(member.name || 'N/A'),
+            sanitizePdfText(member.email || 'Not shared'),
+            sanitizePdfText(member.role || 'member')
           ]);
 
           autoTable(doc, {
@@ -804,9 +845,9 @@ export async function generateClientPDF(
           }
 
           const attachmentRows = chunk.map((att: any) => [
-            att.name || 'Unnamed file',
-            att.type || 'Unknown',
-            att.uploaded_by || 'Unknown',
+            sanitizePdfText(att.name || 'Unnamed file'),
+            sanitizePdfText(att.type || 'Unknown'),
+            sanitizePdfText(att.uploaded_by || 'Unknown'),
             att.uploaded_at ? new Date(att.uploaded_at).toLocaleDateString() : 'N/A'
           ]);
 

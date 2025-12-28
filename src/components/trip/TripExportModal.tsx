@@ -39,6 +39,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     'payments',
     'polls',
     'places',
+    'attachments',
     'tasks',
   ]);
   const [isExporting, setIsExporting] = useState(false);
@@ -49,11 +50,11 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     { id: 'payments' as ExportSection, label: 'Payments' },
     { id: 'polls' as ExportSection, label: 'Polls' },
     { id: 'places' as ExportSection, label: 'Places' },
+    // Attachments are available for both consumer + pro trips (content still respects RLS).
+    { id: 'attachments' as ExportSection, label: 'Attachments' },
     { id: 'tasks' as ExportSection, label: 'Tasks' },
     { id: 'broadcasts' as ExportSection, label: 'Broadcast Log', proOnly: true },
     { id: 'roster' as ExportSection, label: 'Roster & Contacts', proOnly: true },
-    // Attachments are available for both consumer + pro trips (content still respects RLS).
-    { id: 'attachments' as ExportSection, label: 'Attachments' },
   ];
 
   const toggleSection = (sectionId: ExportSection) => {

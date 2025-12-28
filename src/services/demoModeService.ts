@@ -2,6 +2,9 @@
 import { secureStorageService } from './secureStorageService';
 import { mockPolls } from '@/mockData/polls';
 import TripSpecificMockDataService from './tripSpecificMockDataService';
+import { demoTripEventsByTripId } from '@/mockData/demoTripEvents';
+import { demoTripFilesByTripId, type DemoTripFile } from '@/mockData/demoTripFiles';
+import type { TripEvent } from './calendarService';
 
 interface MockMessage {
   id: string;
@@ -971,6 +974,27 @@ class DemoModeService {
       url: link.url,
       description: link.description,
       votes: 0
+    }));
+  }
+
+  // ============================================
+  // Demo Calendar Events + Files (Demo Mode)
+  // ============================================
+
+  getMockCalendarEvents(tripId: string): TripEvent[] {
+    return demoTripEventsByTripId[tripId] || [];
+  }
+
+  getMockFiles(tripId: string): DemoTripFile[] {
+    return demoTripFilesByTripId[tripId] || [];
+  }
+
+  getMockAttachments(tripId: string): Array<{ name: string; type: string; uploaded_at: string; uploaded_by?: string }> {
+    return this.getMockFiles(tripId).map(file => ({
+      name: file.name,
+      type: file.file_type,
+      uploaded_at: file.created_at,
+      uploaded_by: file.uploaded_by
     }));
   }
 

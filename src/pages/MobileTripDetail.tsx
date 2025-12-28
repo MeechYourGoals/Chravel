@@ -19,6 +19,7 @@ import { convertSupabaseTripsToMock } from '../utils/tripConverter';
 import { tripsData, generateTripMockData } from '../data/tripsData';
 import { ExportSection } from '../types/tripExport';
 import { openOrDownloadBlob } from '../utils/download';
+import { orderExportSections } from '../utils/exportSectionOrder';
 import { demoModeService } from '../services/demoModeService';
 import { toast } from 'sonner';
 
@@ -126,6 +127,7 @@ export const MobileTripDetail = () => {
 
   // PDF Export handler - same logic as TripCard
   const handleExport = useCallback(async (sections: ExportSection[]) => {
+    const orderedSections = orderExportSections(sections);
     const tripIdStr = tripId || '1';
     const isNumericId = !tripIdStr.includes('-');
     
@@ -137,6 +139,8 @@ export const MobileTripDetail = () => {
       let blob: Blob;
 
       if (isDemoMode || isNumericId) {
+        const mockCalendar = demoModeService.getMockCalendarEvents(tripIdStr);
+        const mockAttachments = demoModeService.getMockAttachments(tripIdStr);
         // Demo mode - use mock data
         const mockPayments = demoModeService.getMockPayments(tripIdStr);
         const mockPolls = demoModeService.getMockPolls(tripIdStr);
@@ -150,27 +154,28 @@ export const MobileTripDetail = () => {
             tripTitle: tripWithUpdatedDescription?.title || 'Trip',
             destination: tripWithUpdatedDescription?.location,
             dateRange: tripWithUpdatedDescription?.dateRange,
-            calendar: sections.includes('calendar') ? [] : undefined,
-            payments: sections.includes('payments') && mockPayments.length > 0 ? {
+            calendar: orderedSections.includes('calendar') ? mockCalendar : undefined,
+            payments: orderedSections.includes('payments') && mockPayments.length > 0 ? {
               items: mockPayments,
               total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
               currency: mockPayments[0]?.currency || 'USD'
             } : undefined,
-            polls: sections.includes('polls') ? mockPolls : undefined,
-            tasks: sections.includes('tasks') ? mockTasks.map(task => ({
+            polls: orderedSections.includes('polls') ? mockPolls : undefined,
+            tasks: orderedSections.includes('tasks') ? mockTasks.map(task => ({
               title: task.title,
               description: task.description,
               completed: task.completed
             })) : undefined,
-            places: sections.includes('places') ? mockPlaces : undefined,
+            places: orderedSections.includes('places') ? mockPlaces : undefined,
+            attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
           },
-          sections,
+          orderedSections,
           { customization: { compress: true, maxItemsPerSection: 100 } }
         );
       } else {
         // Authenticated mode - fetch real data from Supabase
         const { getExportData } = await import('../services/tripExportDataService');
-        const realData = await getExportData(tripIdStr, sections);
+        const realData = await getExportData(tripIdStr, orderedSections);
         
         if (!realData) {
           throw new Error('Could not fetch trip data for export');
@@ -190,8 +195,10 @@ export const MobileTripDetail = () => {
             tasks: realData.tasks,
             places: realData.places,
             roster: realData.roster,
+            attachments: realData.attachments,
+
           },
-          sections,
+          orderedSections,
           { customization: { compress: true, maxItemsPerSection: 100 } }
         );
       }
