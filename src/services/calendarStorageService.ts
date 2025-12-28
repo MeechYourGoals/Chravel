@@ -25,6 +25,12 @@ class CalendarStorageService {
     }
   }
 
+  // Seed events for a trip (demo mode)
+  async setEvents(tripId: string, events: TripEvent[]): Promise<void> {
+    const sorted = [...events].sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+    await this.saveEvents(tripId, sorted);
+  }
+
   // Create a new event
   async createEvent(eventData: CreateEventData): Promise<TripEvent> {
     const events = await this.getEvents(eventData.trip_id);

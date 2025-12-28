@@ -19,6 +19,7 @@ import { convertSupabaseTripToEvent } from '../utils/tripConverter';
 import { eventsMockData } from '../data/eventsMockData';
 import { ExportSection } from '../types/tripExport';
 import { openOrDownloadBlob } from '../utils/download';
+import { orderExportSections } from '../utils/exportSectionOrder';
 import { demoModeService } from '../services/demoModeService';
 import { toast } from 'sonner';
 
@@ -111,6 +112,7 @@ export const MobileEventDetail = () => {
 
   // PDF Export handler
   const handleExport = useCallback(async (sections: ExportSection[]) => {
+    const orderedSections = orderExportSections(sections);
     const tripIdStr = eventId || '1';
     const isNumericId = !tripIdStr.includes('-');
     
@@ -122,6 +124,8 @@ export const MobileEventDetail = () => {
       let blob: Blob;
 
       if (isDemoMode || isNumericId) {
+        const mockCalendar = demoModeService.getMockCalendarEvents(tripIdStr);
+        const mockAttachments = demoModeService.getMockAttachments(tripIdStr);
         const mockPayments = demoModeService.getMockPayments(tripIdStr);
         const mockPolls = demoModeService.getMockPolls(tripIdStr);
         const mockTasks = demoModeService.getMockTasks(tripIdStr);
@@ -134,26 +138,27 @@ export const MobileEventDetail = () => {
             tripTitle: eventData?.title || 'Event',
             destination: eventData?.location,
             dateRange: eventData?.dateRange,
-            calendar: sections.includes('calendar') ? [] : undefined,
-            payments: sections.includes('payments') && mockPayments.length > 0 ? {
+            calendar: orderedSections.includes('calendar') ? mockCalendar : undefined,
+            payments: orderedSections.includes('payments') && mockPayments.length > 0 ? {
               items: mockPayments,
               total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
               currency: mockPayments[0]?.currency || 'USD'
             } : undefined,
-            polls: sections.includes('polls') ? mockPolls : undefined,
-            tasks: sections.includes('tasks') ? mockTasks.map(task => ({
+            polls: orderedSections.includes('polls') ? mockPolls : undefined,
+            tasks: orderedSections.includes('tasks') ? mockTasks.map(task => ({
               title: task.title,
               description: task.description,
               completed: task.completed
             })) : undefined,
-            places: sections.includes('places') ? mockPlaces : undefined,
+            places: orderedSections.includes('places') ? mockPlaces : undefined,
+            attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
           },
-          sections,
+          orderedSections,
           { customization: { compress: true, maxItemsPerSection: 100 } }
         );
       } else {
         const { getExportData } = await import('../services/tripExportDataService');
-        const realData = await getExportData(tripIdStr, sections);
+        const realData = await getExportData(tripIdStr, orderedSections);
         
         if (!realData) {
           throw new Error('Could not fetch event data for export');
@@ -173,8 +178,10 @@ export const MobileEventDetail = () => {
             tasks: realData.tasks,
             places: realData.places,
             roster: realData.roster,
+            attachments: realData.attachments,
+
           },
-          sections,
+          orderedSections,
           { customization: { compress: true, maxItemsPerSection: 100 } }
         );
       }

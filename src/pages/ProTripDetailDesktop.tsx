@@ -15,6 +15,7 @@ import { ProTripCategory } from '../types/proCategories';
 import { ExportSection } from '../types/tripExport';
 // ⚡ OPTIMIZATION: PDF generation lazy loaded in handleExport for faster initial render
 import { openOrDownloadBlob } from '../utils/download';
+import { orderExportSections } from '../utils/exportSectionOrder';
 import { toast } from 'sonner';
 import { supabase } from '../integrations/supabase/client';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -251,6 +252,7 @@ export const ProTripDetailDesktop = () => {
   const links = tripData.links || [];
 
   const handleExport = async (sections: ExportSection[]) => {
+    const orderedSections = orderExportSections(sections);
     try {
       // Pre-open a window on iOS Safari to avoid popup blocking for blob URLs
       let preOpenedWindow: Window | null = null;
@@ -288,7 +290,7 @@ export const ProTripDetailDesktop = () => {
         };
 
         // Map Calendar if selected
-        if (sections.includes('calendar')) {
+        if (orderedSections.includes('calendar')) {
           exportData.calendar = tripData.schedule?.map((s) => ({
             title: s.title || 'Event',
             start_time: s.startTime || new Date().toISOString(),
@@ -298,7 +300,7 @@ export const ProTripDetailDesktop = () => {
         }
 
         // Map Payments if selected
-        if (sections.includes('payments')) {
+        if (orderedSections.includes('payments')) {
           if (tripData.settlement && tripData.settlement.length > 0) {
             exportData.payments = {
               items: tripData.settlement.map((p) => ({
@@ -316,7 +318,7 @@ export const ProTripDetailDesktop = () => {
         }
 
         // Map Tasks if selected
-        if (sections.includes('tasks')) {
+        if (orderedSections.includes('tasks')) {
           exportData.tasks = tripData.tasks?.map((t) => ({
             title: t.title,
             description: t.description,
@@ -327,7 +329,7 @@ export const ProTripDetailDesktop = () => {
         }
 
         // Map Polls if selected
-        if (sections.includes('polls')) {
+        if (orderedSections.includes('polls')) {
           exportData.polls = tripData.polls?.map((p) => ({
             question: p.question,
             options: p.options,
@@ -337,7 +339,7 @@ export const ProTripDetailDesktop = () => {
         }
 
         // Map Places/Links if selected
-        if (sections.includes('places')) {
+        if (orderedSections.includes('places')) {
           exportData.places = tripData.links?.map((link) => ({
             name: link.title,
             url: link.url,
@@ -347,7 +349,7 @@ export const ProTripDetailDesktop = () => {
         }
 
         // Map Broadcasts if selected (Pro/Events only)
-        if (sections.includes('broadcasts')) {
+        if (orderedSections.includes('broadcasts')) {
           exportData.broadcasts = tripData.broadcasts?.map((b) => ({
             message: b.message,
             priority: b.priority,
@@ -358,7 +360,7 @@ export const ProTripDetailDesktop = () => {
         }
 
         // Map Roster if selected
-        if (sections.includes('roster')) {
+        if (orderedSections.includes('roster')) {
           exportData.roster = tripData.roster?.map((r) => ({
             name: r.name,
             email: r.email,
@@ -366,7 +368,11 @@ export const ProTripDetailDesktop = () => {
           })) || [];
         }
 
-        blob = await generateClientPDF(exportData, sections);
+        if (orderedSections.includes('attachments')) {
+          exportData.attachments = demoModeService.getMockAttachments(proTripId || '1');
+        }
+
+        blob = await generateClientPDF(exportData, orderedSections);
       } else {
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData?.session?.access_token || '';
@@ -382,7 +388,7 @@ export const ProTripDetailDesktop = () => {
             },
             body: JSON.stringify({
               tripId: proTripId,
-              sections,
+              sections: orderedSections,
               layout: 'pro',
               paper: 'letter',
               privacyRedaction: true,
@@ -435,7 +441,7 @@ export const ProTripDetailDesktop = () => {
                 role: r.role
               })) || [],
             },
-            sections
+            orderedSections
           );
         } else {
           blob = await response.blob();
