@@ -18,19 +18,19 @@ export const ReplacesGrid = () => {
           className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white break-words"
           style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}
         >
-          Problems Solved: No more juggling 10+ apps to plan every trip
+          Problems Solved: Stop Juggling 10+ apps every trip
         </h2>
         <p 
           className="text-lg sm:text-xl md:text-2xl text-white font-medium max-w-4xl mx-auto"
           style={{ textShadow: '0 2px 6px rgba(0,0,0,0.6)' }}
         >
-          Your group already has download overload. ChravelApp consolidates dozens of scattered tools into 8 focused tabs — built for groups on the go.
+          Have Download Overload? ChravelApp consolidates dozens of scattered Apps into 8 ChravelTabs
         </p>
         <p 
           className="text-lg sm:text-xl text-white font-medium italic underline mt-4"
           style={{ textShadow: '0 2px 6px rgba(0,0,0,0.7)' }}
         >
-          Click below to see how many apps &amp; sites are simplified with ChravelTabs
+          Click each ChravelTab below to see your App Arsenal Simplified
         </p>
       </div>
 
