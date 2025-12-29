@@ -8,7 +8,7 @@
 import { create } from 'zustand';
 import type { SubscriptionTier, EntitlementId } from '@/billing/types';
 import { supabase } from '@/integrations/supabase/client';
-import { TIER_ENTITLEMENTS } from '@/billing/entitlements';
+import { TIER_ENTITLEMENTS } from '@/billing/config';
 
 export type EntitlementSource = 'revenuecat' | 'stripe' | 'admin' | 'demo' | 'none';
 export type EntitlementStatus = 'active' | 'trialing' | 'expired' | 'canceled';

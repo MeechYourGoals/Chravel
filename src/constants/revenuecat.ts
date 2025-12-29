@@ -105,3 +105,13 @@ export function isRevenueCatConfigured(platform: 'ios' | 'android' | 'web'): boo
   const apiKey = getRevenueCatApiKey(platform);
   return !!apiKey && apiKey.length > 0;
 }
+
+/**
+ * Full config object for convenience
+ */
+export const REVENUECAT_CONFIG = {
+  enabled: REVENUECAT_ENABLED,
+  entitlements: REVENUECAT_ENTITLEMENTS,
+  products: REVENUECAT_PRODUCTS,
+  pricing: REVENUECAT_PRICING,
+} as const;
