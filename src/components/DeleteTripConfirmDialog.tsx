@@ -17,6 +17,7 @@ interface DeleteTripConfirmDialogProps {
   onConfirm: () => void;
   tripTitle: string;
   isLoading?: boolean;
+  isCreator?: boolean;
 }
 
 export const DeleteTripConfirmDialog = ({
@@ -24,7 +25,8 @@ export const DeleteTripConfirmDialog = ({
   onClose,
   onConfirm,
   tripTitle,
-  isLoading = false
+  isLoading = false,
+  isCreator = false
 }: DeleteTripConfirmDialogProps) => {
   const handleConfirm = () => {
     onConfirm();
@@ -39,9 +41,22 @@ export const DeleteTripConfirmDialog = ({
             <AlertDialogTitle>Delete Trip For Me</AlertDialogTitle>
           </div>
           <AlertDialogDescription className="text-muted-foreground">
-            Are you sure you want to delete "<strong>{tripTitle}</strong>" from your account?
-            <br />
-            <br />
+            {isCreator ? (
+              <>
+                <span className="text-yellow-500 font-medium">You created this trip.</span> Are you sure you want to remove it from your account?
+                <br />
+                <br />
+                Consider archiving instead if you might want to access it later.
+                <br />
+                <br />
+              </>
+            ) : (
+              <>
+                Are you sure you want to delete "<strong>{tripTitle}</strong>" from your account?
+                <br />
+                <br />
+              </>
+            )}
             <span className="text-destructive/80">This action cannot be undone.</span> You will lose access to this trip and all its content. The trip will still exist for other members.
             <br />
             <br />
