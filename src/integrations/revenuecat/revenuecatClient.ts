@@ -37,6 +37,13 @@ export function getPlatform(): RevenueCatPlatform {
 }
 
 /**
+ * Check if we're on a native platform (iOS/Android)
+ */
+export function isNativePlatform(): boolean {
+  return getPlatform() !== 'web';
+}
+
+/**
  * Check if RevenueCat is available on this platform
  */
 export function isRevenueCatAvailable(): boolean {

@@ -274,3 +274,15 @@ export function requiresIAPOnIOS(productKey: string): boolean {
   const product = BILLING_PRODUCTS[productKey];
   return product?.requiresIAPOnIOS ?? true;
 }
+
+/**
+ * Map of tiers to their entitlements (for unified store)
+ */
+export const TIER_ENTITLEMENTS: Record<SubscriptionTier, EntitlementId[]> = {
+  'free': FREE_ENTITLEMENTS,
+  'explorer': BILLING_PRODUCTS['consumer-explorer'].entitlements,
+  'frequent-chraveler': BILLING_PRODUCTS['consumer-frequent-chraveler'].entitlements,
+  'pro-starter': BILLING_PRODUCTS['pro-starter'].entitlements,
+  'pro-growth': BILLING_PRODUCTS['pro-growth'].entitlements,
+  'pro-enterprise': BILLING_PRODUCTS['pro-enterprise'].entitlements,
+};
