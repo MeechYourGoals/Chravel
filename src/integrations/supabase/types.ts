@@ -2986,6 +2986,45 @@ export type Database = {
           },
         ]
       }
+      user_entitlements: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          entitlements: Json
+          plan: string
+          revenuecat_customer_id: string | null
+          source: string
+          status: string
+          stripe_customer_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          entitlements?: Json
+          plan?: string
+          revenuecat_customer_id?: string | null
+          source: string
+          status?: string
+          stripe_customer_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          entitlements?: Json
+          plan?: string
+          revenuecat_customer_id?: string | null
+          source?: string
+          status?: string
+          stripe_customer_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_payment_methods: {
         Row: {
           created_at: string
