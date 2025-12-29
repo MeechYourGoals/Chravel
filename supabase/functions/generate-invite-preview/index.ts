@@ -22,6 +22,7 @@ const escapeHtml = (str: string): string => {
 };
 
 // Demo trip data with public Unsplash images for OG tags
+// IMPORTANT: Keep in sync with src/data/tripsData.ts - this is the source of truth for OG previews
 const demoTrips: Record<string, {
   title: string;
   location: string;
@@ -33,37 +34,38 @@ const demoTrips: Record<string, {
   themeColor?: string; // For events only
 }> = {
   // Consumer Trips (1-12) - Using Unsplash images for reliable OG previews
+  // Synced with src/data/tripsData.ts on 2025-12-29
   '1': {
-    title: 'Spring Break Cancun 2026 Kappa Alpha Psi Trip',
+    title: 'Spring Break Cancun 2026 – Fraternity Trip',
     location: 'Cancun, Mexico',
     dateRange: 'Mar 15 - Mar 22, 2026',
     description: 'Brotherhood spring break getaway with beach activities, nightlife, and bonding experiences',
     coverPhoto: 'https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=1200&h=630&fit=crop',
-    participantCount: 5
+    participantCount: 14
   },
   '2': {
     title: 'Tokyo Adventure',
     location: 'Tokyo, Japan',
-    dateRange: 'Oct 5 - Oct 15, 2025',
+    dateRange: 'Oct 5 - Oct 15, 2026',
     description: "Cultural exploration of Japan's capital with temples, modern tech districts, and amazing cuisine",
     coverPhoto: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200&h=630&fit=crop',
-    participantCount: 3
+    participantCount: 12
   },
   '3': {
     title: "The Tyler's Tie The Knot",
     location: 'Bali, Indonesia',
-    dateRange: 'Dec 10 - Dec 20, 2025',
-    description: 'Romantic destination wedding celebration with family and friends in paradise',
+    dateRange: 'Dec 10 - Dec 12, 2026',
+    description: 'Romantic destination wedding celebration with family and friends in paradise, featuring welcome dinner, ceremony, and reception',
     coverPhoto: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=1200&h=630&fit=crop',
-    participantCount: 112
+    participantCount: 63
   },
   '4': {
-    title: "Kristen's Bachelorette Party",
+    title: "Kristen Goldberg's Bachelorette Party",
     location: 'Nashville, TN',
-    dateRange: 'Nov 8 - Nov 10, 2025',
-    description: 'Epic bachelorette celebration with honky-tonk bars, live music, and unforgettable memories',
+    dateRange: 'Nov 8 - Nov 10, 2026',
+    description: 'Epic bachelorette celebration with honky-tonk bars, live music, spa day, karaoke, and unforgettable memories across multiple Nashville venues',
     coverPhoto: 'https://images.unsplash.com/photo-1570749467898-1f10f0082f09?w=1200&h=630&fit=crop',
-    participantCount: 6
+    participantCount: 22
   },
   '5': {
     title: 'Coachella Squad 2026',
@@ -71,20 +73,20 @@ const demoTrips: Record<string, {
     dateRange: 'Apr 10 - Apr 13, 2026',
     description: 'Music festival adventure with top artists, desert vibes, and group camping',
     coverPhoto: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&h=630&fit=crop',
-    participantCount: 5
+    participantCount: 22
   },
   '6': {
-    title: 'Johnson Family Summer Vacay',
-    location: 'Saratoga Springs, NY',
-    dateRange: 'Jul 20 - Jul 28, 2025',
-    description: 'Multi-generational family retreat with horse racing, spa time, and quality family bonding',
-    coverPhoto: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=1200&h=630&fit=crop',
-    participantCount: 5
+    title: "Cameron Knight's Dubai Birthday",
+    location: 'Dubai, UAE',
+    dateRange: 'Jul 5 - Jul 9, 2026',
+    description: 'Luxury birthday celebration in Dubai featuring Burj Khalifa, desert safari, yacht party, and fine dining',
+    coverPhoto: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200&h=630&fit=crop',
+    participantCount: 8
   },
   '7': {
     title: "Fantasy Football Chat's Annual Golf Outing",
     location: 'Phoenix, Arizona',
-    dateRange: 'Feb 20 - Feb 23, 2025',
+    dateRange: 'Feb 20 - Feb 23, 2026',
     description: "Annual guys' golf trip with tournaments, poker nights, and fantasy football draft",
     coverPhoto: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=1200&h=630&fit=crop',
     participantCount: 6
@@ -92,31 +94,31 @@ const demoTrips: Record<string, {
   '8': {
     title: 'Tulum Wellness Retreat',
     location: 'Tulum, Mexico',
-    dateRange: 'Nov 10 - Nov 16, 2025',
+    dateRange: 'Nov 10 - Nov 23, 2026',
     description: 'Yoga and wellness focused retreat with breathwork, meditation, and spa treatments',
     coverPhoto: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=1200&h=630&fit=crop',
-    participantCount: 8
+    participantCount: 34
   },
   '9': {
-    title: 'Newly Divorced Wine-Tasting Getaway',
+    title: "Sarah Gardelin's Promotion Celebration",
     location: 'Napa Valley, CA',
-    dateRange: 'May 2 - May 5, 2025',
-    description: 'Celebratory wine country escape with tastings, spa treatments, and new beginnings',
+    dateRange: 'May 2 - May 5, 2026',
+    description: 'Celebratory wine country escape with close friends to mark a major career milestone, featuring tastings, spa treatments, and new adventures',
     coverPhoto: 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=1200&h=630&fit=crop',
     participantCount: 6
   },
   '10': {
     title: 'Corporate Holiday Ski Trip – Aspen',
     location: 'Aspen, CO',
-    dateRange: 'Dec 12 - Dec 17, 2025',
-    description: 'Company holiday celebration with skiing, team building, and winter activities',
+    dateRange: 'Dec 12 - Dec 15, 2026',
+    description: 'Company holiday celebration with skiing, team building, and winter activities featuring corporate lodging, group ski lessons, and team dinners',
     coverPhoto: 'https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&h=630&fit=crop',
-    participantCount: 10
+    participantCount: 44
   },
   '11': {
     title: 'Disney Cruise Family Vacation',
     location: 'Port Canaveral, FL',
-    dateRange: 'Jun 15 - Jun 22, 2025',
+    dateRange: 'Jun 15 - Jun 22, 2026',
     description: 'Magical family cruise with Disney characters, activities, and island adventures',
     coverPhoto: 'https://images.unsplash.com/photo-1599640842225-85d111c60e6b?w=1200&h=630&fit=crop',
     participantCount: 7
@@ -124,7 +126,7 @@ const demoTrips: Record<string, {
   '12': {
     title: 'Yellowstone National-Park Hiking Adventure',
     location: 'Yellowstone, WY',
-    dateRange: 'Jul 10 - Jul 17, 2025',
+    dateRange: 'Jul 10 - Jul 17, 2026',
     description: 'Outdoor adventure exploring geysers, wildlife, and backcountry hiking trails',
     coverPhoto: 'https://images.unsplash.com/photo-1527489377706-5bf97e608852?w=1200&h=630&fit=crop',
     participantCount: 5
