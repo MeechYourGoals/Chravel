@@ -29,11 +29,17 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
     <section
       id={id}
       className={cn(
-        'relative w-full flex items-center justify-center',
+        'relative w-full flex landing-section',
+        // Center content on desktop, align to start on mobile for proper scrolling
+        'items-start md:items-center justify-center',
+        // Add top padding on mobile to account for header and safe areas
+        'pt-16 md:pt-0',
         enableSnapScroll && 'snap-start snap-always',
         className
       )}
-      style={{ minHeight }}
+      style={{
+        ['--section-desktop-min-height' as string]: minHeight,
+      }}
     >
       {/* Background Video/Image */}
       {(videoSrc || imageFallback) && (
