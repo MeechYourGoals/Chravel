@@ -87,7 +87,7 @@ export function SubscriptionSettings({ className }: { className?: string }) {
   const handleWebUpgrade = async (tier: 'explorer' | 'frequent-chraveler') => {
     setIsPurchasing(true);
     try {
-      await upgradeToTier(tier);
+      await upgradeToTier(tier, 'monthly');
     } finally {
       setIsPurchasing(false);
     }
