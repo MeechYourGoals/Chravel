@@ -4,28 +4,9 @@ type TripType = 'consumer' | 'pro' | 'event';
 
 /**
  * Delete a trip "for me" - removes user's access to the trip without deleting it for others.
- * This removes the user from trip_members table.
- * @throws Error with message 'CREATOR_CANNOT_DELETE' if user is the trip creator
+ * This removes the user from trip_members table. The trip itself persists for other members.
  */
 export const deleteTripForMe = async (tripId: string, userId: string): Promise<void> => {
-  // First, check if the user is the trip creator
-  const { data: trip, error: tripError } = await supabase
-    .from('trips')
-    .select('created_by')
-    .eq('id', tripId)
-    .single();
-
-  if (tripError) {
-    console.error('Failed to fetch trip:', tripError);
-    throw tripError;
-  }
-
-  // Creators cannot delete themselves from trips - they must archive instead
-  if (trip?.created_by === userId) {
-    const error = new Error('CREATOR_CANNOT_DELETE');
-    throw error;
-  }
-
   // Check if the user has a membership row before attempting deletion
   const { data: membership, error: membershipError } = await supabase
     .from('trip_members')

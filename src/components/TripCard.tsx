@@ -49,6 +49,7 @@ interface Trip {
   coverPhoto?: string;
   placesCount?: number;
   peopleCount?: number;
+  created_by?: string;
 }
 
 interface TripCardProps {
@@ -147,6 +148,9 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
     }
   };
 
+  // Check if current user is the trip creator
+  const isCreator = user?.id === trip.created_by;
+
   const handleDeleteTripForMe = async () => {
     // Demo mode: block delete with toast - demo trips are deletion-proof
     if (isDemoMode) {
@@ -167,6 +171,32 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
       return;
     }
 
+    // For free users who are creators, auto-archive instead of delete
+    if (isCreator && isFreeUser) {
+      try {
+        await archiveTrip(trip.id.toString(), 'consumer');
+        toast({
+          title: "Trip archived",
+          description: `"${trip.title}" has been archived. Upgrade to restore it anytime!`,
+          action: (
+            <ToastAction altText="View Plans" onClick={() => { window.location.href = '/settings'; }}>
+              View Plans
+            </ToastAction>
+          )
+        });
+        setShowDeleteDialog(false);
+        onArchiveSuccess?.();
+      } catch (archiveError) {
+        toast({
+          title: "Failed to archive trip",
+          description: "There was an error archiving your trip. Please try again.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    // For paid creators and regular members, proceed with deletion
     setIsDeleting(true);
     try {
       await deleteTripForMe(trip.id.toString(), user.id);
@@ -177,44 +207,11 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
       setShowDeleteDialog(false);
       onDeleteSuccess?.();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      if (errorMessage === 'CREATOR_CANNOT_DELETE') {
-        // For free users (trip creators), archive instead of blocking
-        if (isFreeUser) {
-          try {
-            await archiveTrip(trip.id.toString(), 'consumer');
-            toast({
-              title: "Trip archived",
-              description: `"${trip.title}" has been archived. Upgrade to restore it anytime!`,
-              action: (
-                <ToastAction altText="View Plans" onClick={() => { window.location.href = '/settings'; }}>
-                  View Plans
-                </ToastAction>
-              )
-            });
-            setShowDeleteDialog(false);
-            onArchiveSuccess?.();
-          } catch (archiveError) {
-            toast({
-              title: "Failed to archive trip",
-              description: "There was an error archiving your trip. Please try again.",
-              variant: "destructive",
-            });
-          }
-        } else {
-          toast({
-            title: "Cannot delete trip",
-            description: "As the trip creator, you can archive this trip instead.",
-            variant: "destructive",
-          });
-        }
-      } else {
-        toast({
-          title: "Failed to remove trip",
-          description: "There was an error removing the trip. Please try again.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Failed to remove trip",
+        description: "There was an error removing the trip. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsDeleting(false);
     }
@@ -537,6 +534,7 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
         onConfirm={handleDeleteTripForMe}
         tripTitle={trip.title}
         isLoading={isDeleting}
+        isCreator={isCreator && !isFreeUser}
       />
 
       <TripExportModal
