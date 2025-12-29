@@ -79,10 +79,18 @@ async function embedNotoSansFont(doc: jsPDF): Promise<void> {
   try {
     // Load fonts in parallel for faster loading (especially on mobile)
     const [fontNormal, fontBold, fontItalic, fontBoldItalic] = await Promise.all([
-      getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-400-normal.ttf'),
-      getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-700-normal.ttf'),
-      getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-400-italic.ttf'),
-      getFontAsBase64('https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-700-italic.ttf'),
+      getFontAsBase64(
+        'https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-400-normal.ttf',
+      ),
+      getFontAsBase64(
+        'https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-700-normal.ttf',
+      ),
+      getFontAsBase64(
+        'https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-400-italic.ttf',
+      ),
+      getFontAsBase64(
+        'https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-700-italic.ttf',
+      ),
     ]);
 
     doc.addFileToVFS('NotoSans-Regular.ttf', fontNormal);
@@ -180,21 +188,20 @@ function chunkArray<T>(array: T[], chunkSize: number): T[][] {
 function hexToRgb(hex: string): [number, number, number] {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
-    ? [
-        parseInt(result[1], 16),
-        parseInt(result[2], 16),
-        parseInt(result[3], 16),
-      ]
+    ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
     : [66, 139, 202]; // Default blue
 }
 
 function sanitizePdfText(value: string): string {
   if (!value) return '';
-  return value
-    .normalize('NFKC')
-    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
-    .replace(/\p{Extended_Pictographic}/gu, '')
-    .replace(/\s+/g, ' ');
+  return (
+    value
+      .normalize('NFKC')
+      // eslint-disable-next-line no-control-regex -- Intentionally removing control characters from PDF text
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+      .replace(/\p{Extended_Pictographic}/gu, '')
+      .replace(/\s+/g, ' ')
+  );
 }
 
 function formatEventDateTime(start?: string, end?: string): string {
@@ -216,7 +223,6 @@ function formatEventDateTime(start?: string, end?: string): string {
   return `${startText} - ${endText}`;
 }
 
-
 /**
  * Enhanced PDF generation with pagination, progress, and customization
  */
@@ -226,7 +232,7 @@ export async function generateClientPDF(
   options?: {
     customization?: PDFCustomizationOptions;
     onProgress?: PDFProgressCallback;
-  }
+  },
 ): Promise<Blob> {
   const { customization, onProgress } = options || {};
   // Clamp maxItemsPerSection to ensure it's always >= 1 to prevent infinite loops
@@ -238,7 +244,12 @@ export async function generateClientPDF(
   const [secondaryR, secondaryG, secondaryB] = hexToRgb(secondaryColor);
 
   // Report progress
-  const reportProgress = (stage: 'preparing' | 'rendering' | 'finalizing', current: number, total: number, message: string) => {
+  const reportProgress = (
+    stage: 'preparing' | 'rendering' | 'finalizing',
+    current: number,
+    total: number,
+    message: string,
+  ) => {
     onProgress?.({ stage, current, total, message });
   };
 
@@ -307,12 +318,17 @@ export async function generateClientPDF(
   let sectionIndex = 0;
   for (const section of orderedSections) {
     sectionIndex++;
-    reportProgress('rendering', sectionIndex, orderedSections.length + 2, `Rendering ${section}...`);
+    reportProgress(
+      'rendering',
+      sectionIndex,
+      orderedSections.length + 2,
+      `Rendering ${section}...`,
+    );
 
     // Calendar section
     if (section === 'calendar') {
       yPos = checkPageBreak(doc, yPos, 60);
-      
+
       const events = (data.calendar || []).slice().sort((a, b) => {
         const aTime = a.start_time ? new Date(a.start_time).getTime() : Number.POSITIVE_INFINITY;
         const bTime = b.start_time ? new Date(b.start_time).getTime() : Number.POSITIVE_INFINITY;
@@ -320,16 +336,14 @@ export async function generateClientPDF(
       });
       if (events.length > 0) {
         // Paginate if too many events
-        const eventChunks = events.length > maxItems 
-          ? chunkArray(events, maxItems)
-          : [events];
+        const eventChunks = events.length > maxItems ? chunkArray(events, maxItems) : [events];
 
         for (let chunkIndex = 0; chunkIndex < eventChunks.length; chunkIndex++) {
           const chunk = eventChunks[chunkIndex];
-          
+
           // Add page break if needed
           yPos = checkPageBreak(doc, yPos, 60);
-          
+
           // Add section header only on first chunk
           if (chunkIndex === 0) {
             doc.setFontSize(14);
@@ -341,15 +355,14 @@ export async function generateClientPDF(
 
           const eventRows = chunk.map((event: any) => {
             const description = event.description ? sanitizePdfText(event.description) : '';
-            const truncatedDescription = description.length > 60
-              ? `${description.slice(0, 60)}...`
-              : description;
+            const truncatedDescription =
+              description.length > 60 ? `${description.slice(0, 60)}...` : description;
 
             return [
               sanitizePdfText(event.title || 'Untitled Event'),
               formatEventDateTime(event.start_time, event.end_time),
               sanitizePdfText(event.location || 'N/A'),
-              truncatedDescription || ' '
+              truncatedDescription || ' ',
             ];
           });
 
@@ -360,7 +373,7 @@ export async function generateClientPDF(
             theme: 'striped',
             headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
             margin: { left: margin, right: margin },
-            styles: { fontSize: 9 }
+            styles: { fontSize: 9 },
           });
 
           yPos = getFinalY(doc, yPos) + 10;
@@ -371,7 +384,11 @@ export async function generateClientPDF(
             doc.setFontSize(9);
             doc.setFont('NotoSans', 'italic');
             doc.setTextColor(120);
-            doc.text(`(Continued on next page - showing ${(chunkIndex + 1) * maxItems} of ${events.length} events)`, margin, yPos);
+            doc.text(
+              `(Continued on next page - showing ${(chunkIndex + 1) * maxItems} of ${events.length} events)`,
+              margin,
+              yPos,
+            );
             yPos += 20;
             doc.addPage();
             yPos = margin;
@@ -385,23 +402,22 @@ export async function generateClientPDF(
         yPos += 30;
       }
     }
-    
+
     // Payments section
     if (section === 'payments') {
       yPos = checkPageBreak(doc, yPos, 60);
-      
+
       const payments = data.payments?.items || [];
       if (payments.length > 0) {
         // Paginate if too many payments
-        const paymentChunks = payments.length > maxItems 
-          ? chunkArray(payments, maxItems)
-          : [payments];
+        const paymentChunks =
+          payments.length > maxItems ? chunkArray(payments, maxItems) : [payments];
 
         for (let chunkIndex = 0; chunkIndex < paymentChunks.length; chunkIndex++) {
           const chunk = paymentChunks[chunkIndex];
-          
+
           yPos = checkPageBreak(doc, yPos, 60);
-          
+
           if (chunkIndex === 0) {
             doc.setFontSize(14);
             doc.setFont('NotoSans', 'bold');
@@ -414,7 +430,7 @@ export async function generateClientPDF(
             sanitizePdfText(p.description || 'N/A'),
             `${p.currency || 'USD'} ${p.amount?.toFixed(2) || '0.00'}`,
             `${p.split_count || 0} people`,
-            p.is_settled ? 'Settled' : 'Pending'
+            p.is_settled ? 'Settled' : 'Pending',
           ]);
 
           autoTable(doc, {
@@ -424,7 +440,7 @@ export async function generateClientPDF(
             theme: 'striped',
             headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
             margin: { left: margin, right: margin },
-            styles: { fontSize: 9 }
+            styles: { fontSize: 9 },
           });
 
           yPos = getFinalY(doc, yPos) + 10;
@@ -433,7 +449,11 @@ export async function generateClientPDF(
           if (chunkIndex === paymentChunks.length - 1) {
             doc.setFontSize(10);
             doc.setFont('NotoSans', 'bold');
-            doc.text(`Total: ${data.payments?.currency || 'USD'} ${(data.payments?.total || 0).toFixed(2)}`, margin, yPos);
+            doc.text(
+              `Total: ${data.payments?.currency || 'USD'} ${(data.payments?.total || 0).toFixed(2)}`,
+              margin,
+              yPos,
+            );
             yPos += 30;
           }
 
@@ -442,7 +462,11 @@ export async function generateClientPDF(
             doc.setFontSize(9);
             doc.setFont('NotoSans', 'italic');
             doc.setTextColor(120);
-            doc.text(`(Continued - showing ${(chunkIndex + 1) * maxItems} of ${payments.length} payments)`, margin, yPos);
+            doc.text(
+              `(Continued - showing ${(chunkIndex + 1) * maxItems} of ${payments.length} payments)`,
+              margin,
+              yPos,
+            );
             yPos += 20;
             doc.addPage();
             yPos = margin;
@@ -456,23 +480,21 @@ export async function generateClientPDF(
         yPos += 30;
       }
     }
-    
+
     // Polls section
     if (section === 'polls') {
       yPos = checkPageBreak(doc, yPos, 60);
-      
+
       const polls = data.polls || [];
       if (polls.length > 0) {
         // Paginate polls if too many
-        const pollChunks = polls.length > maxItems 
-          ? chunkArray(polls, maxItems)
-          : [polls];
+        const pollChunks = polls.length > maxItems ? chunkArray(polls, maxItems) : [polls];
 
         for (let chunkIndex = 0; chunkIndex < pollChunks.length; chunkIndex++) {
           const chunk = pollChunks[chunkIndex];
-          
+
           yPos = checkPageBreak(doc, yPos, 60);
-          
+
           if (chunkIndex === 0) {
             doc.setFontSize(14);
             doc.setFont('NotoSans', 'bold');
@@ -493,11 +515,12 @@ export async function generateClientPDF(
 
             if (poll.options && poll.options.length > 0) {
               const pollRows = poll.options.map((opt: any) => {
-                const percentage = poll.total_votes > 0 ? ((opt.votes / poll.total_votes) * 100).toFixed(1) : '0.0';
+                const percentage =
+                  poll.total_votes > 0 ? ((opt.votes / poll.total_votes) * 100).toFixed(1) : '0.0';
                 return [
                   sanitizePdfText(opt.text || 'N/A'),
                   `${opt.votes || 0} votes`,
-                  `${percentage}%`
+                  `${percentage}%`,
                 ];
               });
 
@@ -506,7 +529,7 @@ export async function generateClientPDF(
                 body: pollRows,
                 theme: 'plain',
                 margin: { left: margin + 20, right: margin },
-                styles: { fontSize: 9, cellPadding: 3 }
+                styles: { fontSize: 9, cellPadding: 3 },
               });
 
               yPos = getFinalY(doc, yPos) + 5;
@@ -525,7 +548,11 @@ export async function generateClientPDF(
             doc.setFontSize(9);
             doc.setFont('NotoSans', 'italic');
             doc.setTextColor(120);
-            doc.text(`(Continued - showing ${(chunkIndex + 1) * maxItems} of ${polls.length} polls)`, margin, yPos);
+            doc.text(
+              `(Continued - showing ${(chunkIndex + 1) * maxItems} of ${polls.length} polls)`,
+              margin,
+              yPos,
+            );
             yPos += 20;
             doc.addPage();
             yPos = margin;
@@ -539,22 +566,20 @@ export async function generateClientPDF(
         yPos += 30;
       }
     }
-    
+
     // Places section
     if (section === 'places') {
       yPos = checkPageBreak(doc, yPos, 60);
-      
+
       const places = data.places || [];
       if (places.length > 0) {
-        const placeChunks = places.length > maxItems 
-          ? chunkArray(places, maxItems)
-          : [places];
+        const placeChunks = places.length > maxItems ? chunkArray(places, maxItems) : [places];
 
         for (let chunkIndex = 0; chunkIndex < placeChunks.length; chunkIndex++) {
           const chunk = placeChunks[chunkIndex];
-          
+
           yPos = checkPageBreak(doc, yPos, 60);
-          
+
           if (chunkIndex === 0) {
             doc.setFontSize(14);
             doc.setFont('NotoSans', 'bold');
@@ -579,7 +604,7 @@ export async function generateClientPDF(
           const placeRows = chunk.map((place: any) => [
             sanitizePdfText(place.name || 'N/A'),
             sanitizePdfText(shortenUrl(place.url || 'N/A')),
-            place.votes?.toString() || '0'
+            place.votes?.toString() || '0',
           ]);
 
           autoTable(doc, {
@@ -589,16 +614,16 @@ export async function generateClientPDF(
             theme: 'striped',
             headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
             margin: { left: margin, right: margin },
-            styles: { 
-              fontSize: 9, 
+            styles: {
+              fontSize: 9,
               cellPadding: 4,
               overflow: 'linebreak',
             },
             columnStyles: {
-              0: { cellWidth: contentWidth * 0.40 },  // Name - 40%
-              1: { cellWidth: contentWidth * 0.48 },  // URL - 48%
-              2: { cellWidth: contentWidth * 0.12, halign: 'center' }  // Votes - 12%
-            }
+              0: { cellWidth: contentWidth * 0.4 }, // Name - 40%
+              1: { cellWidth: contentWidth * 0.48 }, // URL - 48%
+              2: { cellWidth: contentWidth * 0.12, halign: 'center' }, // Votes - 12%
+            },
           });
 
           yPos = getFinalY(doc, yPos) + 10;
@@ -608,7 +633,11 @@ export async function generateClientPDF(
             doc.setFontSize(9);
             doc.setFont('NotoSans', 'italic');
             doc.setTextColor(120);
-            doc.text(`(Continued - showing ${(chunkIndex + 1) * maxItems} of ${places.length} places)`, margin, yPos);
+            doc.text(
+              `(Continued - showing ${(chunkIndex + 1) * maxItems} of ${places.length} places)`,
+              margin,
+              yPos,
+            );
             yPos += 20;
             doc.addPage();
             yPos = margin;
@@ -622,22 +651,20 @@ export async function generateClientPDF(
         yPos += 30;
       }
     }
-    
+
     // Tasks section
     if (section === 'tasks') {
       yPos = checkPageBreak(doc, yPos, 60);
-      
+
       const tasks = data.tasks || [];
       if (tasks.length > 0) {
-        const taskChunks = tasks.length > maxItems 
-          ? chunkArray(tasks, maxItems)
-          : [tasks];
+        const taskChunks = tasks.length > maxItems ? chunkArray(tasks, maxItems) : [tasks];
 
         for (let chunkIndex = 0; chunkIndex < taskChunks.length; chunkIndex++) {
           const chunk = taskChunks[chunkIndex];
-          
+
           yPos = checkPageBreak(doc, yPos, 60);
-          
+
           if (chunkIndex === 0) {
             doc.setFontSize(14);
             doc.setFont('NotoSans', 'bold');
@@ -648,7 +675,7 @@ export async function generateClientPDF(
 
           const taskRows = chunk.map((task: any) => [
             sanitizePdfText(task.title || task.description || 'N/A'),
-            task.completed ? '[x] Done' : '[ ] Pending'
+            task.completed ? '[x] Done' : '[ ] Pending',
           ]);
 
           autoTable(doc, {
@@ -658,7 +685,7 @@ export async function generateClientPDF(
             theme: 'striped',
             headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
             margin: { left: margin, right: margin },
-            styles: { fontSize: 9 }
+            styles: { fontSize: 9 },
           });
 
           yPos = getFinalY(doc, yPos) + 10;
@@ -668,7 +695,11 @@ export async function generateClientPDF(
             doc.setFontSize(9);
             doc.setFont('NotoSans', 'italic');
             doc.setTextColor(120);
-            doc.text(`(Continued - showing ${(chunkIndex + 1) * maxItems} of ${tasks.length} tasks)`, margin, yPos);
+            doc.text(
+              `(Continued - showing ${(chunkIndex + 1) * maxItems} of ${tasks.length} tasks)`,
+              margin,
+              yPos,
+            );
             yPos += 20;
             doc.addPage();
             yPos = margin;
@@ -682,22 +713,21 @@ export async function generateClientPDF(
         yPos += 30;
       }
     }
-    
+
     // Broadcasts section (Pro/Events only)
     if (section === 'broadcasts') {
       yPos = checkPageBreak(doc, yPos, 60);
-      
+
       const broadcasts = data.broadcasts || [];
       if (broadcasts.length > 0) {
-        const broadcastChunks = broadcasts.length > maxItems 
-          ? chunkArray(broadcasts, maxItems)
-          : [broadcasts];
+        const broadcastChunks =
+          broadcasts.length > maxItems ? chunkArray(broadcasts, maxItems) : [broadcasts];
 
         for (let chunkIndex = 0; chunkIndex < broadcastChunks.length; chunkIndex++) {
           const chunk = broadcastChunks[chunkIndex];
-          
+
           yPos = checkPageBreak(doc, yPos, 60);
-          
+
           if (chunkIndex === 0) {
             doc.setFontSize(14);
             doc.setFont('NotoSans', 'bold');
@@ -715,7 +745,7 @@ export async function generateClientPDF(
             doc.setFontSize(9);
             doc.setFont('NotoSans', 'bold');
             doc.text(broadcast.priority.toUpperCase(), margin, yPos);
-            
+
             // Timestamp
             doc.setTextColor(100);
             doc.setFont('NotoSans', 'normal');
@@ -727,7 +757,10 @@ export async function generateClientPDF(
             doc.setFontSize(10);
             doc.setFont('NotoSans', 'normal');
             doc.setTextColor(0);
-            const messageLines = doc.splitTextToSize(sanitizePdfText(broadcast.message), contentWidth - 20);
+            const messageLines = doc.splitTextToSize(
+              sanitizePdfText(broadcast.message),
+              contentWidth - 20,
+            );
             doc.text(messageLines, margin + 10, yPos);
             yPos += messageLines.length * 14 + 5;
 
@@ -735,7 +768,11 @@ export async function generateClientPDF(
             doc.setFontSize(9);
             doc.setFont('NotoSans', 'italic');
             doc.setTextColor(120);
-            doc.text(`Sent by: ${sanitizePdfText(broadcast.sender)}  •  ${broadcast.read_count} read`, margin + 10, yPos);
+            doc.text(
+              `Sent by: ${sanitizePdfText(broadcast.sender)}  •  ${broadcast.read_count} read`,
+              margin + 10,
+              yPos,
+            );
             yPos += 20;
           });
 
@@ -744,7 +781,11 @@ export async function generateClientPDF(
             doc.setFontSize(9);
             doc.setFont('NotoSans', 'italic');
             doc.setTextColor(120);
-            doc.text(`(Continued - showing ${(chunkIndex + 1) * maxItems} of ${broadcasts.length} broadcasts)`, margin, yPos);
+            doc.text(
+              `(Continued - showing ${(chunkIndex + 1) * maxItems} of ${broadcasts.length} broadcasts)`,
+              margin,
+              yPos,
+            );
             yPos += 20;
             doc.addPage();
             yPos = margin;
@@ -758,22 +799,20 @@ export async function generateClientPDF(
         yPos += 30;
       }
     }
-    
+
     // Pro sections (always available if selected)
     if (section === 'roster') {
       yPos = checkPageBreak(doc, yPos, 60);
-      
+
       const roster = data.roster || [];
       if (roster.length > 0) {
-        const rosterChunks = roster.length > maxItems 
-          ? chunkArray(roster, maxItems)
-          : [roster];
+        const rosterChunks = roster.length > maxItems ? chunkArray(roster, maxItems) : [roster];
 
         for (let chunkIndex = 0; chunkIndex < rosterChunks.length; chunkIndex++) {
           const chunk = rosterChunks[chunkIndex];
-          
+
           yPos = checkPageBreak(doc, yPos, 60);
-          
+
           if (chunkIndex === 0) {
             doc.setFontSize(14);
             doc.setFont('NotoSans', 'bold');
@@ -785,7 +824,7 @@ export async function generateClientPDF(
           const rosterRows = chunk.map((member: any) => [
             sanitizePdfText(member.name || 'N/A'),
             sanitizePdfText(member.email || 'Not shared'),
-            sanitizePdfText(member.role || 'member')
+            sanitizePdfText(member.role || 'member'),
           ]);
 
           autoTable(doc, {
@@ -795,7 +834,7 @@ export async function generateClientPDF(
             theme: 'striped',
             headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
             margin: { left: margin, right: margin },
-            styles: { fontSize: 9 }
+            styles: { fontSize: 9 },
           });
 
           yPos = getFinalY(doc, yPos) + 10;
@@ -805,7 +844,11 @@ export async function generateClientPDF(
             doc.setFontSize(9);
             doc.setFont('NotoSans', 'italic');
             doc.setTextColor(120);
-            doc.text(`(Continued - showing ${(chunkIndex + 1) * maxItems} of ${roster.length} members)`, margin, yPos);
+            doc.text(
+              `(Continued - showing ${(chunkIndex + 1) * maxItems} of ${roster.length} members)`,
+              margin,
+              yPos,
+            );
             yPos += 20;
             doc.addPage();
             yPos = margin;
@@ -823,19 +866,18 @@ export async function generateClientPDF(
     // Attachments section
     if (section === 'attachments') {
       yPos = checkPageBreak(doc, yPos, 60);
-      
+
       const attachments = data.attachments || [];
       // Match server behavior: if no attachments exist, omit the section entirely.
       if (attachments.length > 0) {
-        const attachmentChunks = attachments.length > maxItems 
-          ? chunkArray(attachments, maxItems)
-          : [attachments];
+        const attachmentChunks =
+          attachments.length > maxItems ? chunkArray(attachments, maxItems) : [attachments];
 
         for (let chunkIndex = 0; chunkIndex < attachmentChunks.length; chunkIndex++) {
           const chunk = attachmentChunks[chunkIndex];
-          
+
           yPos = checkPageBreak(doc, yPos, 60);
-          
+
           if (chunkIndex === 0) {
             doc.setFontSize(14);
             doc.setFont('NotoSans', 'bold');
@@ -848,7 +890,7 @@ export async function generateClientPDF(
             sanitizePdfText(att.name || 'Unnamed file'),
             sanitizePdfText(att.type || 'Unknown'),
             sanitizePdfText(att.uploaded_by || 'Unknown'),
-            att.uploaded_at ? new Date(att.uploaded_at).toLocaleDateString() : 'N/A'
+            att.uploaded_at ? new Date(att.uploaded_at).toLocaleDateString() : 'N/A',
           ]);
 
           autoTable(doc, {
@@ -858,7 +900,7 @@ export async function generateClientPDF(
             theme: 'striped',
             headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
             margin: { left: margin, right: margin },
-            styles: { fontSize: 9 }
+            styles: { fontSize: 9 },
           });
 
           yPos = getFinalY(doc, yPos) + 10;
@@ -868,7 +910,11 @@ export async function generateClientPDF(
             doc.setFontSize(9);
             doc.setFont('NotoSans', 'italic');
             doc.setTextColor(120);
-            doc.text(`(Continued - showing ${(chunkIndex + 1) * maxItems} of ${attachments.length} attachments)`, margin, yPos);
+            doc.text(
+              `(Continued - showing ${(chunkIndex + 1) * maxItems} of ${attachments.length} attachments)`,
+              margin,
+              yPos,
+            );
             yPos += 20;
             doc.addPage();
             yPos = margin;
@@ -887,13 +933,18 @@ export async function generateClientPDF(
   }
 
   // Footer
-  reportProgress('finalizing', orderedSections.length + 1, orderedSections.length + 2, 'Finalizing PDF...');
-  
+  reportProgress(
+    'finalizing',
+    orderedSections.length + 1,
+    orderedSections.length + 2,
+    'Finalizing PDF...',
+  );
+
   const footerText = customization?.footerText || 'From www.Chravel.App';
   const brandTitle = 'ChravelApp Recap';
   const brandTagline = 'The Group Chat Travel App';
   const brandGold: [number, number, number] = [212, 175, 55]; // #D4AF37
-  
+
   // Add footer to all pages
   const totalPages = doc.internal.pages.length - 1; // jsPDF uses 1-indexed pages but array is 0-indexed
   for (let i = 1; i <= totalPages; i++) {
@@ -917,8 +968,13 @@ export async function generateClientPDF(
     doc.text(footerText, margin, pageHeight - 20);
   }
 
-  reportProgress('finalizing', orderedSections.length + 2, orderedSections.length + 2, 'PDF ready!');
-  
+  reportProgress(
+    'finalizing',
+    orderedSections.length + 2,
+    orderedSections.length + 2,
+    'PDF ready!',
+  );
+
   return doc.output('blob');
 }
 
