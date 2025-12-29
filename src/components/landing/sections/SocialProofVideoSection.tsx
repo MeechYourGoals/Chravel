@@ -31,7 +31,7 @@ const metrics = [
 
 export const SocialProofVideoSection = () => {
   return (
-    <div className="container mx-auto px-4 py-8 md:py-0 flex flex-col items-center justify-center min-h-screen space-y-8">
+    <div className="container mx-auto px-4 py-8 md:py-0 flex flex-col items-center justify-start md:justify-center min-h-screen space-y-6 md:space-y-8">
       {/* Headline - positioned at top with contrast for concert/festival background */}
       <div className="text-center space-y-3 max-w-4xl pt-8">
         <h2
