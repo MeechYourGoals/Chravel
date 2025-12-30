@@ -1,8 +1,8 @@
 /**
  * Billing Configuration
- * 
+ *
  * Single source of truth for product IDs, entitlements, and feature flags.
- * 
+ *
  * APPLE APP STORE COMPLIANCE:
  * - Consumer subscriptions (digital goods) MUST use IAP on iOS
  * - B2B/Enterprise (Pro plans) CAN use external payment (Reader Rule exception)
@@ -36,7 +36,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
   // ============================================
   // CONSUMER PLANS - MUST use IAP on iOS
   // ============================================
-  
+
   'consumer-explorer': {
     name: 'Explorer',
     stripeProductId: 'prod_Tc0SWNhLkoCDIi',
@@ -47,8 +47,8 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
     googleProductIdMonthly: 'com.chravel.explorer.monthly',
     googleProductIdAnnual: 'com.chravel.explorer.annual',
     requiresIAPOnIOS: true,
-    priceMonthly: 4.99,
-    priceAnnual: 49.99,
+    priceMonthly: 9.99,
+    priceAnnual: 99,
     entitlements: [
       'ai_queries_extended',
       'trips_extended',
@@ -58,7 +58,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'calendar_sync',
     ],
   },
-  
+
   'consumer-frequent-chraveler': {
     name: 'Frequent Chraveler',
     stripeProductId: 'prod_Tc0WEzRDTCkfPM',
@@ -69,8 +69,8 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
     googleProductIdMonthly: 'com.chravel.frequentchraveler.monthly',
     googleProductIdAnnual: 'com.chravel.frequentchraveler.annual',
     requiresIAPOnIOS: true,
-    priceMonthly: 9.99,
-    priceAnnual: 99.99,
+    priceMonthly: 19.99,
+    priceAnnual: 199,
     entitlements: [
       'ai_queries_unlimited',
       'trips_unlimited',
@@ -83,7 +83,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'events_attendees_100',
     ],
   },
-  
+
   // Legacy Plus tier (maps to Explorer)
   'consumer-plus': {
     name: 'Plus (Legacy)',
@@ -98,19 +98,19 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'payments_extended',
     ],
   },
-  
+
   // ============================================
   // PRO PLANS - CAN use web checkout (B2B exception)
   // ============================================
-  
+
   'pro-starter': {
-    name: 'Pro Starter',
+    name: 'Starter Pro',
     stripeProductId: 'prod_Tc0YVR1N0fmtDG',
     stripePriceIdMonthly: 'price_1RXK1sAedhHV8iZ8S74oKAqG',
     stripePriceIdAnnual: 'price_1RXK1sAedhHV8iZ80l3YE1kv',
     requiresIAPOnIOS: false, // B2B exception
-    priceMonthly: 29,
-    priceAnnual: 290,
+    priceMonthly: 49,
+    priceAnnual: 490,
     entitlements: [
       'ai_queries_unlimited',
       'trips_unlimited',
@@ -124,15 +124,15 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'roster_management',
     ],
   },
-  
+
   'pro-growth': {
-    name: 'Pro Growth',
+    name: 'Growth Pro',
     stripeProductId: 'prod_Tc0afc0pIUt87D',
     stripePriceIdMonthly: 'price_1RXK3dAedhHV8iZ8dn9vGqWN',
     stripePriceIdAnnual: 'price_1RXK3dAedhHV8iZ8S7m10o6j',
     requiresIAPOnIOS: false,
-    priceMonthly: 79,
-    priceAnnual: 790,
+    priceMonthly: 99,
+    priceAnnual: 990,
     entitlements: [
       'ai_queries_unlimited',
       'trips_unlimited',
@@ -149,7 +149,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'events_attendees_200',
     ],
   },
-  
+
   'pro-enterprise': {
     name: 'Pro Enterprise',
     stripeProductId: 'prod_Tc0cJshKNpvxV0',
@@ -183,8 +183,8 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
  * Map tier names to product keys
  */
 export const TIER_TO_PRODUCT: Record<SubscriptionTier, string | null> = {
-  'free': null,
-  'explorer': 'consumer-explorer',
+  free: null,
+  explorer: 'consumer-explorer',
   'frequent-chraveler': 'consumer-frequent-chraveler',
   'pro-starter': 'pro-starter',
   'pro-growth': 'pro-growth',
@@ -210,22 +210,22 @@ export const BILLING_FLAGS = {
    * When false, iOS users will see "Subscribe on web" prompt.
    */
   APPLE_IAP_ENABLED: false,
-  
+
   /**
    * Set to true when Google Play Billing is implemented.
    */
   GOOGLE_BILLING_ENABLED: false,
-  
+
   /**
    * Allow fallback to web checkout when native billing fails.
    */
   FALLBACK_TO_WEB: true,
-  
+
   /**
    * Show "Subscribe on web" message on iOS when IAP not ready.
    */
   SHOW_WEB_SUBSCRIBE_PROMPT: true,
-  
+
   /**
    * Enable subscription management via Stripe Customer Portal.
    */
@@ -245,9 +245,7 @@ export function getProductByTier(tier: SubscriptionTier): ProductConfig | null {
  * Get product configuration by Stripe product ID
  */
 export function getProductByStripeId(stripeProductId: string): ProductConfig | null {
-  return Object.values(BILLING_PRODUCTS).find(
-    p => p.stripeProductId === stripeProductId
-  ) || null;
+  return Object.values(BILLING_PRODUCTS).find(p => p.stripeProductId === stripeProductId) || null;
 }
 
 /**

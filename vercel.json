@@ -6,8 +6,7 @@
   "installCommand": "npm install --no-audit --no-fund",
   "framework": "vite",
   "outputDirectory": "dist",
-  "build": {
-  },
+  "build": {},
   "headers": [
     {
       "source": "/",
@@ -110,6 +109,10 @@
     {
       "source": "/.well-known/apple-app-site-association",
       "destination": "/api/aasa"
+    },
+    {
+      "source": "/.well-known/assetlinks.json",
+      "destination": "/api/assetlinks"
     },
     {
       "source": "/join/:code",
