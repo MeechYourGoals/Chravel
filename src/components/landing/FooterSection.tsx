@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useDemoModeStore } from '@/store/demoModeStore';
 
 const scrollToSection = (id: string) => {
   const element = document.getElementById(id);
@@ -60,12 +59,9 @@ export const FooterSection = () => {
                 </Link>
               </li>
               <li>
-                <button
-                  onClick={() => useDemoModeStore.getState().enable()}
-                  className="text-foreground hover:text-primary transition-colors text-left"
-                >
+                <Link to="/demo" className="text-foreground hover:text-primary transition-colors">
                   Demo
-                </button>
+                </Link>
               </li>
             </ul>
           </div>

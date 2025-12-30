@@ -76,6 +76,7 @@ const AdvertiserDashboard = lazy(() => retryImport(() => import("./pages/Adverti
 const Healthz = lazy(() => retryImport(() => import("./pages/Healthz")));
 const PrivacyPolicy = lazy(() => retryImport(() => import("./pages/PrivacyPolicy")));
 const TermsOfService = lazy(() => retryImport(() => import("./pages/TermsOfService")));
+const DemoEntry = lazy(() => retryImport(() => import("./pages/DemoEntry")));
 const TripPreview = lazy(() => retryImport(() => import("./pages/TripPreview")));
 const AuthPage = lazy(() => retryImport(() => import("./pages/AuthPage")));
 
@@ -326,6 +327,11 @@ const App = () => {
                     <Route path="/demo/trip/:demoTripId" element={
                       <LazyRoute>
                         <DemoTripGate />
+                      </LazyRoute>
+                    } />
+                    <Route path="/demo" element={
+                      <LazyRoute>
+                        <DemoEntry />
                       </LazyRoute>
                     } />
                     <Route path="/auth" element={
