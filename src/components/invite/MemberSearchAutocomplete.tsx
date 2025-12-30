@@ -4,11 +4,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface UserProfile {
-  user_id: string;
+  id: string;
   email: string | null;
   display_name: string | null;
   avatar_url: string | null;
 }
+
+type RpcError = { message: string } | null;
+type RpcResponse<T> = Promise<{ data: T | null; error: RpcError }>;
+type RpcClient = { rpc<T>(fn: string, args: Record<string, unknown>): RpcResponse<T> };
 
 interface MemberSearchAutocompleteProps {
   tripId: string;
@@ -38,6 +42,7 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
   onSelect,
   onRemove,
   selectedUsers = [],
+  placeholder = 'Search by name (email only if shared/visible)...',
   placeholder = 'Search by email or name...',
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -87,22 +92,24 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
     setIsOpen(true);
 
     try {
-      // Search by email or display name.
-      // Email is only returned when explicitly shared (show_email) or self.
-      const { data, error } = await supabase.rpc('search_profiles_public', {
-        p_query: query,
-        p_limit: 10,
+      // Use a DB-side, rate-limited RPC to reduce harvesting risk.
+      // We intentionally keep this RPC call "loosely typed" because this repo's
+      // `src/integrations/supabase/types.ts` is generated from the remote DB and
+      // won't automatically include newly-added SQL functions in CI.
+      const rpc = supabase as unknown as RpcClient;
+      const { data, error } = await rpc.rpc<UserProfile[]>('search_profiles_public', {
+        query_text: query,
+        limit_count: 10,
       });
 
       if (error) throw error;
 
       // Filter out existing members and already selected users
-      const filtered = (data || []).filter(user => {
-        return (
-          !existingMemberIds.includes(user.user_id) &&
-          !selectedUsers.some(selected => selected.user_id === user.user_id)
-        );
-      });
+      const filtered = (data || []).filter(
+        user =>
+          !existingMemberIds.includes(user.id) &&
+          !selectedUsers.some(selected => selected.id === user.id),
+      );
 
       setSearchResults(filtered);
     } catch (error) {
@@ -169,7 +176,11 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-white font-medium truncate">{user.display_name || 'No name'}</p>
-                <p className="text-gray-400 text-sm truncate">{user.email || 'Email hidden'}</p>
+                {user.email ? (
+                  <p className="text-gray-400 text-sm truncate">{user.email}</p>
+                ) : (
+                  <p className="text-gray-500 text-sm truncate">Email hidden</p>
+                )}
               </div>
               <UserPlus className="h-5 w-5 text-blue-400" />
             </button>
