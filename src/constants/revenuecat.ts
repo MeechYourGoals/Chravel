@@ -44,11 +44,11 @@ export const REVENUECAT_ENTITLEMENTS = {
  * See: src/billing/config.ts for Apple product ID format (com.chravel.*.monthly/annual)
  */
 export const REVENUECAT_PRODUCTS = {
-  // Explorer tier - $4.99/month, $49.99/year (matches billing/config.ts)
+  // Explorer tier - $9.99/month, $99/year (matches billing/config.ts)
   explorerMonthly: 'com.chravel.explorer.monthly',
   explorerAnnual: 'com.chravel.explorer.annual',
 
-  // Frequent Chraveler tier - $9.99/month, $99.99/year (matches billing/config.ts)
+  // Frequent Chraveler tier - $19.99/month, $199/year (matches billing/config.ts)
   frequentChravelerMonthly: 'com.chravel.frequentchraveler.monthly',
   frequentChravelerAnnual: 'com.chravel.frequentchraveler.annual',
 } as const;
@@ -79,18 +79,18 @@ export const TIER_TO_ENTITLEMENT: Partial<Record<SubscriptionTier, string>> = {
  * Pricing display (for UI)
  *
  * IMPORTANT: These values MUST match src/billing/config.ts
- * - Explorer: $4.99/month, $49.99/year
- * - Frequent Chraveler: $9.99/month, $99.99/year
+ * - Explorer: $9.99/month, $99/year
+ * - Frequent Chraveler: $19.99/month, $199/year
  */
 export const REVENUECAT_PRICING = {
   explorer: {
-    monthly: 4.99,
-    annual: 49.99, // Matches billing/config.ts
+    monthly: 9.99,
+    annual: 99, // Matches billing/config.ts
     currency: 'USD',
   },
   frequentChraveler: {
-    monthly: 9.99,
-    annual: 99.99, // Matches billing/config.ts
+    monthly: 19.99,
+    annual: 199, // Matches billing/config.ts
     currency: 'USD',
   },
 } as const;
