@@ -49,11 +49,7 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
         return; // Keep modal open to show success message (sign-up confirmation)
       }
       
-      // For sign-in: Don't close immediately - let auth state change handle redirect
-      if (mode === 'signin') {
-        return;
-      }
-      
+      // Close modal on success - Index.tsx will now render authenticated UI
       onClose();
     } catch (error) {
       console.error('Auth error:', error);
