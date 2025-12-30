@@ -40,7 +40,7 @@ export const FAQSection = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
-    <div className="container mx-auto px-4 py-8 md:py-16 flex flex-col items-center justify-start md:justify-center min-h-screen space-y-8 md:space-y-12">
+    <div className="container mx-auto px-4 py-8 md:py-16 flex flex-col items-center justify-start md:justify-center min-h-0 md:min-h-screen space-y-8 md:space-y-12">
       {/* Header with bold white text and shadow for contrast */}
       <div className="text-center space-y-4 max-w-4xl">
         <h2 

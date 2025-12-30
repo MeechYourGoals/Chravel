@@ -26,7 +26,7 @@ export const ProblemSolutionSection = () => {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8 md:py-16 flex flex-col items-center justify-start md:justify-center min-h-screen space-y-6 md:space-y-10">
+    <div className="container mx-auto px-4 py-8 md:py-16 flex flex-col items-center justify-start md:justify-center min-h-0 md:min-h-screen space-y-6 md:space-y-10">
       {/* Headline */}
       <div className="text-center space-y-4 max-w-4xl">
         <h2 

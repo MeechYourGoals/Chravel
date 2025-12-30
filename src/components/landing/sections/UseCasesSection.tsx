@@ -73,7 +73,7 @@ export const UseCasesSection = () => {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col items-center justify-start pt-4 md:pt-8 pb-12 md:pb-16 space-y-4 md:space-y-6"
+      className="relative min-h-0 md:min-h-screen flex flex-col items-center justify-start pt-4 md:pt-8 pb-12 md:pb-16 space-y-4 md:space-y-6"
       style={{
         backgroundImage: `url(${useCasesBackground})`,
         backgroundSize: 'cover',

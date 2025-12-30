@@ -71,18 +71,7 @@
     }
   }
 
-  /* Landing section height handling - mobile vs desktop */
-  .landing-section {
-    /* Mobile: force 100vh to prevent showing next section */
-    min-height: 100vh;
-  }
-
-  @media (min-width: 768px) {
-    .landing-section {
-      /* Desktop: use the passed minHeight via CSS variable */
-      min-height: var(--section-desktop-min-height, 100vh);
-    }
-  }
+  /* Landing section height is now handled via Tailwind classes in FullPageLandingSection.tsx */
 
   /* PWA Standalone Mode - Safe Area Handling */
   @media (display-mode: standalone) {
