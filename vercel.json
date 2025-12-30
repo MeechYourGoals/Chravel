@@ -89,6 +89,18 @@
   ],
   "redirects": [
     {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "chravelapp.com" }],
+      "destination": "https://chravel.app/demo",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.chravelapp.com" }],
+      "destination": "https://chravel.app/demo",
+      "permanent": true
+    },
+    {
       "source": "/healthz",
       "destination": "/healthz",
       "permanent": false
