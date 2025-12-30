@@ -109,8 +109,8 @@ export const ProblemSolutionSection = () => {
 
       {/* Screenshots Row - Two cards centered and staggered */}
       <div className="w-full max-w-4xl">
-        {/* Desktop: Side by side with equal height */}
-        <div className="hidden md:flex justify-center items-start gap-8">
+        {/* Desktop: Side by side with equal height (lg breakpoint for tablets to show stacked) */}
+        <div className="hidden lg:flex justify-center items-start gap-8">
           <div className="flex flex-col items-center">
             <span 
               className="text-white font-semibold text-lg mb-3"
@@ -143,8 +143,8 @@ export const ProblemSolutionSection = () => {
           </div>
         </div>
 
-        {/* Mobile: Stacked */}
-        <div className="md:hidden flex flex-col items-center gap-6">
+        {/* Mobile/Tablet: Stacked (shows on screens < 1024px) */}
+        <div className="lg:hidden flex flex-col items-center gap-6">
           <div className="flex flex-col items-center">
             <span 
               className="text-white font-semibold text-base mb-2"

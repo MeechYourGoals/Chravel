@@ -12,8 +12,7 @@ export const mockPendingRequests: Record<string, JoinRequest[]> = {
       requested_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
       profile: {
         display_name: 'Alex Johnson',
-        avatar_url: undefined,
-        email: 'alex@example.com'
+        avatar_url: undefined
       }
     },
     {
@@ -25,8 +24,7 @@ export const mockPendingRequests: Record<string, JoinRequest[]> = {
       requested_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
       profile: {
         display_name: 'Jordan Smith',
-        avatar_url: undefined,
-        email: 'jordan@example.com'
+        avatar_url: undefined
       }
     }
   ],
@@ -40,8 +38,7 @@ export const mockPendingRequests: Record<string, JoinRequest[]> = {
       requested_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
       profile: {
         display_name: 'Taylor Williams',
-        avatar_url: undefined,
-        email: 'taylor@example.com'
+        avatar_url: undefined
       }
     }
   ],
@@ -55,8 +52,7 @@ export const mockPendingRequests: Record<string, JoinRequest[]> = {
       requested_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(), // 45 minutes ago
       profile: {
         display_name: 'Kenji Watanabe',
-        avatar_url: undefined,
-        email: 'kenji@example.com'
+        avatar_url: undefined
       }
     },
     {
@@ -68,8 +64,7 @@ export const mockPendingRequests: Record<string, JoinRequest[]> = {
       requested_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(), // 2 hours ago
       profile: {
         display_name: 'Yuki Tanaka',
-        avatar_url: undefined,
-        email: 'yuki@example.com'
+        avatar_url: undefined
       }
     }
   ],
@@ -83,8 +78,7 @@ export const mockPendingRequests: Record<string, JoinRequest[]> = {
       requested_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
       profile: {
         display_name: 'Michael Chen',
-        avatar_url: undefined,
-        email: 'michael@example.com'
+        avatar_url: undefined
       }
     },
     {
@@ -96,8 +90,7 @@ export const mockPendingRequests: Record<string, JoinRequest[]> = {
       requested_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // 1 hour ago
       profile: {
         display_name: 'Emma Rodriguez',
-        avatar_url: undefined,
-        email: 'emma@example.com'
+        avatar_url: undefined
       }
     },
     {
@@ -109,8 +102,7 @@ export const mockPendingRequests: Record<string, JoinRequest[]> = {
       requested_at: new Date(Date.now() - 1000 * 60 * 180).toISOString(), // 3 hours ago
       profile: {
         display_name: 'David Park',
-        avatar_url: undefined,
-        email: 'david@example.com'
+        avatar_url: undefined
       }
     }
   ],
@@ -124,8 +116,7 @@ export const mockPendingRequests: Record<string, JoinRequest[]> = {
       requested_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
       profile: {
         display_name: 'Chris Martinez',
-        avatar_url: undefined,
-        email: 'chris@example.com'
+        avatar_url: undefined
       }
     }
   ]
