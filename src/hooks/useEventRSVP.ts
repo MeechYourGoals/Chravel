@@ -144,13 +144,16 @@ export const useEventRSVP = (eventId: string) => {
 
       // Get user profile
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, email')
-        .eq('id', user.id)
+        .from('profiles_public')
+        .select('display_name, first_name, last_name, email')
+        .eq('user_id', user.id)
         .single();
 
-      const userName = (profile as any)?.full_name || user.email || 'Unknown';
-      const userEmail = (profile as any)?.email || user.email || '';
+      const derivedName =
+        profile?.display_name ||
+        [profile?.first_name, profile?.last_name].filter(Boolean).join(' ');
+      const userName = derivedName || user.email || 'Unknown';
+      const userEmail = profile?.email || user.email || '';
 
       // Determine waitlist position if needed
       let waitlistPosition: number | undefined;

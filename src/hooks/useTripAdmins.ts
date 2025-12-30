@@ -18,7 +18,6 @@ export interface TripAdmin {
   profile?: {
     display_name: string;
     avatar_url?: string;
-    email?: string;
   };
 }
 
@@ -59,7 +58,6 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
           profile: {
             display_name: user.email?.split('@')[0] || 'Demo User',
             avatar_url: undefined,
-            email: user.email,
           }
         }]);
         setIsLoading(false);
@@ -79,7 +77,7 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
         (data || []).map(async (admin) => {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('display_name, avatar_url, email')
+            .select('display_name, avatar_url')
             .eq('user_id', admin.user_id)
             .single();
 

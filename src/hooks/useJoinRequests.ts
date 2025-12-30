@@ -19,7 +19,6 @@ export interface JoinRequest {
   profile?: {
     display_name: string;
     avatar_url?: string;
-    email?: string;
     first_name?: string;
     last_name?: string;
   };
@@ -63,12 +62,12 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
 
       if (error) throw error;
 
-      // Fetch profiles for user info (name, avatar, email)
+      // Fetch profiles for user info (name, avatar)
       const requestsWithProfiles = await Promise.all(
         (data || []).map(async (request) => {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('display_name, avatar_url, email, first_name, last_name')
+            .select('display_name, avatar_url, first_name, last_name')
             .eq('user_id', request.user_id)
             .maybeSingle();
 
@@ -79,8 +78,7 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
           // Name resolution priority:
           // 1. Profile display_name
           // 2. Profile first/last name combination
-          // 3. Profile email
-          // 4. "Unknown User" as last resort
+          // 3. "Unknown User" as last resort
           let finalDisplayName: string | null = null;
 
           if (profile) {
@@ -92,8 +90,6 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
                 finalDisplayName = profile.first_name;
               } else if (profile.last_name) {
                 finalDisplayName = profile.last_name;
-              } else {
-                finalDisplayName = profile.email;
               }
             }
           }
@@ -105,7 +101,6 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
             profile: {
               display_name: finalDisplayName,
               avatar_url: profile?.avatar_url,
-              email: profile?.email,
               first_name: profile?.first_name,
               last_name: profile?.last_name
             }
@@ -164,8 +159,7 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
         addMember(tripId, {
           id: request.user_id,
           name: request.profile?.display_name || 'New Member',
-          avatar: request.profile?.avatar_url,
-          email: request.profile?.email
+          avatar: request.profile?.avatar_url
         });
       }
       

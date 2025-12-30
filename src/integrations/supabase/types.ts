@@ -3159,7 +3159,26 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_public: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone: string | null
+          show_email: boolean | null
+          show_phone: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
     }
     Functions: {
       approve_join_request: { Args: { _request_id: string }; Returns: Json }

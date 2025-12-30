@@ -53,7 +53,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
           .from('trip_members')
           .select(`
             user_id,
-            profiles:user_id(display_name, avatar_url, email)
+            profiles:user_id(display_name, avatar_url)
           `)
           .eq('trip_id', tripId);
 
@@ -132,16 +132,14 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
                 <Avatar className="h-10 w-10 border-2 border-white/10">
                   <AvatarImage src={admin.profile?.avatar_url} />
                   <AvatarFallback className="bg-blue-500/20 text-blue-500 text-sm">
-                    {admin.profile?.display_name?.[0]?.toUpperCase() || 
-                     admin.profile?.email?.[0]?.toUpperCase() || 
-                     'A'}
+                    {admin.profile?.display_name?.[0]?.toUpperCase() || 'A'}
                   </AvatarFallback>
                 </Avatar>
 
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground text-sm">
-                      {admin.profile?.display_name || admin.profile?.email || 'Unknown User'}
+                      {admin.profile?.display_name || 'Unknown User'}
                     </span>
                     {isCreator && (
                       <Crown className="w-4 h-4 text-yellow-500" />
@@ -160,7 +158,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
                   onClick={() =>
                     setConfirmDemote({
                       userId: admin.user_id,
-                      userName: admin.profile?.display_name || admin.profile?.email || 'Unknown User',
+                      userName: admin.profile?.display_name || 'Unknown User',
                       isCreator: false
                     })
                   }
@@ -195,7 +193,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
             <SelectContent>
               {members.map((member) => (
                 <SelectItem key={member.user_id} value={member.user_id}>
-                  {member.profiles?.display_name || member.profiles?.email || 'Unknown User'}
+                  {member.profiles?.display_name || 'Unknown User'}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -207,7 +205,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
               if (member) {
                 setConfirmPromote({
                   userId: selectedMember,
-                  userName: member.profiles?.display_name || member.profiles?.email || 'Unknown User'
+                  userName: member.profiles?.display_name || 'Unknown User'
                 });
               }
             }}

@@ -317,20 +317,32 @@ export async function getExportData(
         .from('trip_members')
         .select(`
           role,
-          profiles:user_id (
-            display_name,
-            email,
-            avatar_url
-          )
+          user_id
         `)
         .eq('trip_id', tripId);
 
-      result.roster = members?.map(m => ({
-        name: (m.profiles as any)?.display_name || 'Unknown',
-        email: (m.profiles as any)?.email,
-        role: m.role || 'member',
-        avatar_url: (m.profiles as any)?.avatar_url
-      })) || [];
+      const memberIds = (members || []).map(m => m.user_id);
+      let profilesMap = new Map<string, any>();
+
+      if (memberIds.length) {
+        const { data: profiles } = await supabase
+          .from('profiles_public')
+          .select('user_id, display_name, avatar_url, email')
+          .in('user_id', memberIds);
+
+        profilesMap = new Map((profiles || []).map(p => [p.user_id, p]));
+      }
+
+      result.roster =
+        members?.map(m => {
+          const profile = profilesMap.get(m.user_id);
+          return {
+            name: profile?.display_name || 'Unknown',
+            email: profile?.email,
+            role: m.role || 'member',
+            avatar_url: profile?.avatar_url
+          };
+        }) || [];
     }
 
     // Fetch broadcasts if requested

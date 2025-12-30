@@ -15,7 +15,6 @@ export interface RoleAssignment {
   user_profile?: {
     display_name: string;
     avatar_url?: string;
-    email?: string;
   };
   role?: {
     id: string;
@@ -67,8 +66,8 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
         (data || []).map(async (assignment) => {
           const [profileResult, roleResult] = await Promise.all([
             supabase
-              .from('profiles')
-              .select('display_name, avatar_url, email')
+              .from('profiles_public')
+              .select('display_name, avatar_url')
               .eq('user_id', assignment.user_id)
               .single(),
             supabase

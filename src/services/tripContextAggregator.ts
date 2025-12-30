@@ -270,19 +270,38 @@ export class TripContextAggregator {
         .from('trip_members')
         .select(`
           user_id,
-          role,
-          profiles:user_id (full_name, email)
+          role
         `)
         .eq('trip_id', tripId) as any;
 
       if (error) throw error;
 
-      return data?.map((m: any) => ({
-        id: m.user_id,
-        name: m.profiles?.full_name || 'Unknown',
-        role: m.role || 'participant',
-        email: m.profiles?.email
-      })) || [];
+      const memberIds = (data || []).map((m: any) => m.user_id);
+      if (!memberIds.length) return [];
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles_public')
+        .select('user_id, display_name, first_name, last_name, email')
+        .in('user_id', memberIds);
+
+      if (profilesError) throw profilesError;
+
+      const profilesMap = new Map((profiles || []).map(p => [p.user_id, p]));
+
+      return (data || []).map((m: any) => {
+        const profile = profilesMap.get(m.user_id);
+        const name =
+          profile?.display_name ||
+          [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') ||
+          'Unknown';
+
+        return {
+          id: m.user_id,
+          name,
+          role: m.role || 'participant',
+          email: profile?.email ?? null
+        };
+      });
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching collaborators:', error);
