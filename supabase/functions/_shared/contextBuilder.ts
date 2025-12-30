@@ -201,14 +201,24 @@ export class TripContextBuilder {
       const memberIds = (data || []).map((m: any) => m.user_id);
       if (!memberIds.length) return [];
 
+      // profiles_public view doesn't expose email
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles_public')
-        .select('user_id, display_name, first_name, last_name, email')
+        .select('user_id, display_name, first_name, last_name')
         .in('user_id', memberIds);
 
       if (profilesError) throw profilesError;
 
-      const profilesMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
+      interface ProfileRow {
+        user_id: string;
+        display_name: string | null;
+        first_name: string | null;
+        last_name: string | null;
+      }
+
+      const profilesMap = new Map<string, ProfileRow>(
+        (profiles || []).map((p: ProfileRow) => [p.user_id, p])
+      );
 
       return (data || []).map((m: any) => {
         const profile = profilesMap.get(m.user_id);
@@ -220,8 +230,7 @@ export class TripContextBuilder {
         return {
           id: m.user_id,
           name,
-          role: m.role || 'participant',
-          email: profile?.email ?? null
+          role: m.role || 'participant'
         };
       });
     } catch (error) {

@@ -14,9 +14,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)'
       }}
     >
-      {/* Top-right Sign up / Log in button - visible on ALL screen sizes */}
+      {/* Top-right Sign up / Log in button - responsive positioning */}
       <div
-        className="flex flex-col items-end gap-2 absolute right-4 z-10"
+        className="w-full flex justify-end mb-4 sm:absolute sm:right-4 sm:w-auto sm:mb-0 z-10"
         style={{
           top: 'calc(env(safe-area-inset-top, 0px) + 16px)'
         }}
