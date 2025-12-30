@@ -1,9 +1,6 @@
 import React from 'react';
 import { Button } from '../../ui/button';
 
-// Mobile/tablet header height constant (matches MobileAuthHeader.tsx)
-const HEADER_HEIGHT = 52;
-
 interface HeroSectionProps {
   onSignUp: () => void;
 }
@@ -13,14 +10,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
     <div
       className="relative container mx-auto px-4 flex flex-col items-center min-h-[85vh] md:min-h-[90vh] text-center pb-12 md:pb-0"
       style={{
-        // Account for fixed header on mobile/tablet (safe area + header height + spacing)
-        // On desktop (lg+): just safe area + small offset since StickyLandingNav only shows after scroll
-        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${HEADER_HEIGHT}px + 16px)`
+        // Safe area for PWA + small spacing
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)'
       }}
     >
-      {/* Top-right Sign up / Log in button - only visible on desktop (lg+) where MobileAuthHeader is hidden */}
+      {/* Top-right Sign up / Log in button - visible on ALL screen sizes */}
       <div
-        className="hidden lg:flex flex-col items-end gap-2 absolute right-4 z-10"
+        className="flex flex-col items-end gap-2 absolute right-4 z-10"
         style={{
           top: 'calc(env(safe-area-inset-top, 0px) + 16px)'
         }}
