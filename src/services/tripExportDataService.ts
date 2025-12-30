@@ -55,9 +55,7 @@ export interface ExportTripData {
   }>;
   roster?: Array<{
     name: string;
-    email?: string;
     role?: string;
-    avatar_url?: string;
   }>;
   broadcasts?: Array<{
     message: string;
@@ -172,9 +170,7 @@ export async function getExportData(
     if (sections.includes('roster') && mockProTrip.roster) {
       result.roster = mockProTrip.roster.map(r => ({
         name: r.name,
-        email: r.email,
         role: r.role,
-        avatar_url: r.avatar,
       }));
     }
 
@@ -353,9 +349,7 @@ export async function getExportData(
           const profile = profilesMap.get(m.user_id);
           return {
             name: profile?.display_name || 'Unknown',
-            email: undefined,
             role: m.role || 'member',
-            avatar_url: profile?.avatar_url,
           };
         }) || [];
     }

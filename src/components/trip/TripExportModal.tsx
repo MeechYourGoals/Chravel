@@ -23,17 +23,11 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 }) => {
   const isConsumer = isConsumerTrip(tripId);
   const { upgradeToTier, isLoading: isUpgrading } = useConsumerSubscription();
-  const {
-    usage,
-    recordExport,
-    getUsageStatus,
-    isPaidUser,
-    canExport,
-  } = usePdfExportUsage(tripId);
+  const { usage, recordExport, getUsageStatus, isPaidUser, canExport } = usePdfExportUsage(tripId);
 
   // Free users get 1 export per trip, paid users get unlimited
   const hasExportAccess = isPaidUser || canExport;
-  
+
   const [selectedSections, setSelectedSections] = useState<ExportSection[]>([
     'calendar',
     'payments',
@@ -54,14 +48,12 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     { id: 'attachments' as ExportSection, label: 'Attachments' },
     { id: 'tasks' as ExportSection, label: 'Tasks' },
     { id: 'broadcasts' as ExportSection, label: 'Broadcast Log', proOnly: true },
-    { id: 'roster' as ExportSection, label: 'Roster & Contacts', proOnly: true },
+    { id: 'roster' as ExportSection, label: 'Roster', proOnly: true },
   ];
 
   const toggleSection = (sectionId: ExportSection) => {
-    setSelectedSections((prev) =>
-      prev.includes(sectionId)
-        ? prev.filter((id) => id !== sectionId)
-        : [...prev, sectionId]
+    setSelectedSections(prev =>
+      prev.includes(sectionId) ? prev.filter(id => id !== sectionId) : [...prev, sectionId],
     );
   };
 
@@ -126,7 +118,8 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                 <h3 className="text-sm font-semibold text-white">Upgrade for Unlimited Exports</h3>
               </div>
               <p className="text-gray-300 text-xs mb-3">
-                You've used your free export for this trip. Upgrade to create unlimited PDF recaps and share your adventures with everyone!
+                You've used your free export for this trip. Upgrade to create unlimited PDF recaps
+                and share your adventures with everyone!
               </p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <button
@@ -159,7 +152,10 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                       <span className="text-green-300 text-[10px] font-medium">1 Free Export</span>
                       <span className="text-green-400/70 text-[9px] ml-1">per trip</span>
                     </div>
-                    <Badge variant="secondary" className="bg-green-500/20 text-green-300 text-[9px] py-0 px-1.5 h-5">
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-500/20 text-green-300 text-[9px] py-0 px-1.5 h-5"
+                    >
                       Sample it!
                     </Badge>
                   </div>
@@ -169,7 +165,10 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
               {/* Unlimited badge for paid users */}
               {isPaidUser && (
                 <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="secondary" className="bg-purple-500/20 text-purple-300 text-[10px]">
+                  <Badge
+                    variant="secondary"
+                    className="bg-purple-500/20 text-purple-300 text-[10px]"
+                  >
                     <Sparkles size={10} className="mr-1" />
                     Unlimited Exports
                   </Badge>
@@ -185,9 +184,9 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
               {/* Section Selection */}
               <div className="grid grid-cols-2 gap-1.5 mb-2">
-                {sections.map((section) => {
+                {sections.map(section => {
                   const disabled = section.proOnly && isConsumer;
-                  
+
                   return (
                     <label
                       key={section.id}
@@ -195,8 +194,8 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                         disabled
                           ? 'bg-gray-800/50 border-gray-700/50 opacity-50 cursor-not-allowed'
                           : selectedSections.includes(section.id)
-                          ? 'bg-blue-900/30 border-blue-500 cursor-pointer hover:border-blue-400'
-                          : 'bg-gray-800 border-gray-700 cursor-pointer hover:border-gray-600'
+                            ? 'bg-blue-900/30 border-blue-500 cursor-pointer hover:border-blue-400'
+                            : 'bg-gray-800 border-gray-700 cursor-pointer hover:border-gray-600'
                       }`}
                     >
                       <input
@@ -206,7 +205,9 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                         disabled={disabled}
                         className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900 disabled:cursor-not-allowed flex-shrink-0"
                       />
-                      <span className={`text-[11px] font-medium truncate ${disabled ? 'text-gray-400' : 'text-white'}`}>
+                      <span
+                        className={`text-[11px] font-medium truncate ${disabled ? 'text-gray-400' : 'text-white'}`}
+                      >
                         {section.label}
                       </span>
                       {disabled && (
@@ -226,7 +227,8 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
               {/* Info Banner */}
               <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-1.5">
                 <p className="text-gray-300 text-[10px]">
-                  <strong>🔒</strong> Emails and phone numbers hidden. Chat and AI history never included.
+                  <strong>🔒</strong> Emails and phone numbers hidden. Chat and AI history never
+                  included.
                 </p>
               </div>
             </>
