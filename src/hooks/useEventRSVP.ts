@@ -1,11 +1,11 @@
 /**
  * Event RSVP Hook
- * 
+ *
  * Manages RSVP/registration system for Events including:
  * - RSVP status tracking (going, maybe, not-going, not-answered)
  * - Capacity limit enforcement
  * - Waitlist management
- * 
+ *
  * Database: event_rsvps table (to be created in migration)
  */
 
@@ -92,7 +92,8 @@ export const useEventRSVP = (eventId: string) => {
         .eq('user_id', user.id)
         .single();
 
-      if (rsvpError && rsvpError.code !== 'PGRST116') { // PGRST116 = no rows returned
+      if (rsvpError && rsvpError.code !== 'PGRST116') {
+        // PGRST116 = no rows returned
         console.error('Failed to load RSVP:', rsvpError);
       }
 
@@ -106,7 +107,7 @@ export const useEventRSVP = (eventId: string) => {
         available: Math.max(0, totalCapacity - currentCount),
         waitlistCount: waitlist,
         isFull: currentCount >= totalCapacity,
-        isWaitlistEnabled: (eventData as any)?.registration_status === 'waitlist'
+        isWaitlistEnabled: (eventData as any)?.registration_status === 'waitlist',
       });
 
       if (userRsvp) {
@@ -120,7 +121,7 @@ export const useEventRSVP = (eventId: string) => {
           rsvpedAt: (userRsvp as any).rsvped_at,
           checkedIn: (userRsvp as any).checked_in || false,
           checkedInAt: (userRsvp as any).checked_in_at,
-          waitlistPosition: (userRsvp as any).waitlist_position
+          waitlistPosition: (userRsvp as any).waitlist_position,
         });
       }
     } catch (error) {
@@ -131,73 +132,82 @@ export const useEventRSVP = (eventId: string) => {
   }, [user?.id, eventId]);
 
   // Submit RSVP
-  const submitRSVP = useCallback(async (status: RSVPStatus): Promise<boolean> => {
-    if (!user?.id || !eventId) return false;
+  const submitRSVP = useCallback(
+    async (status: RSVPStatus): Promise<boolean> => {
+      if (!user?.id || !eventId) return false;
 
-    try {
-      setIsSubmitting(true);
+      try {
+        setIsSubmitting(true);
 
-      // Check capacity if status is 'going'
-      if (status === 'going' && capacity?.isFull && !capacity.isWaitlistEnabled) {
-        throw new Error('Event is at full capacity');
-      }
+        // Check capacity if status is 'going'
+        if (status === 'going' && capacity?.isFull && !capacity.isWaitlistEnabled) {
+          throw new Error('Event is at full capacity');
+        }
 
-      // Get user profile
-      const { data: profile } = await supabase
-        .from('profiles_public')
-        .select('display_name, first_name, last_name, email')
-        .eq('user_id', user.id)
-        .single();
+        // Get user profile
+        const { data: profile } = await supabase
+          .from('profiles_public')
+          .select('display_name, first_name, last_name')
+          .eq('user_id', user.id)
+          .single();
 
-      const derivedName =
-        profile?.display_name ||
-        [profile?.first_name, profile?.last_name].filter(Boolean).join(' ');
-      const userName = derivedName || user.email || 'Unknown';
-      const userEmail = profile?.email || user.email || '';
+        const derivedName =
+          profile?.display_name ||
+          [profile?.first_name, profile?.last_name].filter(Boolean).join(' ');
+        const userName = derivedName || user.email || 'Unknown';
+        const userEmail = user.email || '';
 
-      // Determine waitlist position if needed
-      let waitlistPosition: number | undefined;
-      if (status === 'going' && capacity?.isFull && capacity.isWaitlistEnabled) {
-        const { count } = await supabase
+        // Determine waitlist position if needed
+        let waitlistPosition: number | undefined;
+        if (status === 'going' && capacity?.isFull && capacity.isWaitlistEnabled) {
+          const { count } = await supabase
+            .from('event_rsvps' as any)
+            .select('*', { count: 'exact', head: true })
+            .eq('event_id', eventId)
+            .eq('status', 'waitlist');
+          waitlistPosition = (count || 0) + 1;
+        }
+
+        // Upsert RSVP
+        const { data, error } = await supabase
           .from('event_rsvps' as any)
-          .select('*', { count: 'exact', head: true })
-          .eq('event_id', eventId)
-          .eq('status', 'waitlist');
-        waitlistPosition = (count || 0) + 1;
-      }
+          .upsert(
+            {
+              event_id: eventId,
+              user_id: user.id,
+              user_name: userName,
+              user_email: userEmail,
+              status:
+                status === 'going' && capacity?.isFull && capacity.isWaitlistEnabled
+                  ? 'waitlist'
+                  : status,
+              rsvped_at: new Date().toISOString(),
+              waitlist_position: waitlistPosition,
+            },
+            {
+              onConflict: 'event_id,user_id',
+            },
+          )
+          .select()
+          .single();
 
-      // Upsert RSVP
-      const { data, error } = await supabase
-        .from('event_rsvps' as any)
-        .upsert({
-          event_id: eventId,
-          user_id: user.id,
-          user_name: userName,
-          user_email: userEmail,
-          status: status === 'going' && capacity?.isFull && capacity.isWaitlistEnabled ? 'waitlist' : status,
-          rsvped_at: new Date().toISOString(),
-          waitlist_position: waitlistPosition
-        }, {
-          onConflict: 'event_id,user_id'
-        })
-        .select()
-        .single();
+        if (error) {
+          console.error('Failed to submit RSVP:', error);
+          return false;
+        }
 
-      if (error) {
-        console.error('Failed to submit RSVP:', error);
+        // Reload RSVP and capacity
+        await loadRSVP();
+        return true;
+      } catch (error) {
+        console.error('Error submitting RSVP:', error);
         return false;
+      } finally {
+        setIsSubmitting(false);
       }
-
-      // Reload RSVP and capacity
-      await loadRSVP();
-      return true;
-    } catch (error) {
-      console.error('Error submitting RSVP:', error);
-      return false;
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [user?.id, eventId, capacity, loadRSVP]);
+    },
+    [user?.id, eventId, capacity, loadRSVP],
+  );
 
   useEffect(() => {
     loadRSVP();
@@ -209,6 +219,6 @@ export const useEventRSVP = (eventId: string) => {
     isLoading,
     isSubmitting,
     submitRSVP,
-    refreshRSVP: loadRSVP
+    refreshRSVP: loadRSVP,
   };
 };
