@@ -411,6 +411,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
+      // Success path: clear loading state (auth state listener will update user)
+      setIsLoading(false);
       return {};
     } catch (error) {
       if (import.meta.env.DEV) {

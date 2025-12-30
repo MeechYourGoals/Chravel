@@ -420,8 +420,8 @@ const Index = () => {
     }
   }, [user, navigate]);
 
-  // MRKTING toggle: Always show marketing page regardless of auth state
-  if (demoView === 'off') {
+  // MRKTING toggle: Show marketing page only for unauthenticated users
+  if (demoView === 'off' && !user) {
     return (
       <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
         <FullPageLanding 
