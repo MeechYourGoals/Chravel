@@ -117,7 +117,7 @@ export const ProTripDetailDesktop = () => {
             name: m.profiles?.display_name || 'Unknown',
             avatar: m.profiles?.avatar_url,
             role: m.role || 'member',
-            email: m.profiles?.email || '',
+            email: '', // Email not available in member profiles view
             credentialLevel: 'Guest',
             permissions: []
           } as ProParticipant)));
