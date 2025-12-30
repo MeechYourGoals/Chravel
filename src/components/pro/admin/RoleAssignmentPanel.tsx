@@ -101,15 +101,13 @@ export const RoleAssignmentPanel: React.FC<RoleAssignmentPanelProps> = ({ tripId
                   <Avatar className="h-10 w-10 border-2 border-white/10">
                     <AvatarImage src={data.profile?.avatar_url} />
                     <AvatarFallback className="bg-green-500/20 text-green-500 text-sm">
-                      {data.profile?.display_name?.[0]?.toUpperCase() || 
-                       data.profile?.email?.[0]?.toUpperCase() || 
-                       'U'}
+                      {data.profile?.display_name?.[0]?.toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
 
                   <div className="flex-1">
                     <div className="font-medium text-foreground text-sm">
-                      {data.profile?.display_name || data.profile?.email || 'Unknown User'}
+                      {data.profile?.display_name || 'Unknown User'}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {currentRole?.role?.roleName || 'No role assigned'}

@@ -92,16 +92,17 @@ export const tripService = {
       // Check active trip limit for free users
       const { data: profile } = await supabase
         .from('profiles')
-        .select('subscription_status, subscription_product_id, email')
+        .select('subscription_status, subscription_product_id')
         .eq('user_id', user.id)
         .single();
 
       // Super admin bypass - ccamechi@gmail.com has unlimited access
       const { SUPER_ADMIN_EMAILS } = await import('@/constants/admins');
-      const isSuperAdmin = profile?.email && SUPER_ADMIN_EMAILS.includes(profile.email.toLowerCase().trim());
+      const authEmail = user.email?.toLowerCase().trim();
+      const isSuperAdmin = authEmail ? SUPER_ADMIN_EMAILS.includes(authEmail) : false;
       
       if (isSuperAdmin) {
-        console.log('[tripService] Super admin bypass for:', profile.email);
+        console.log('[tripService] Super admin bypass for:', authEmail);
       } else {
         const tier = profile?.subscription_status === 'active' 
           ? (profile.subscription_product_id?.includes('explorer') ? 'explorer' : 'frequent-chraveler')
@@ -389,7 +390,7 @@ export const tripService = {
       
       const userIds = data.map(m => m.user_id);
       const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('user_id, display_name, avatar_url, email')
         .in('user_id', userIds);
       

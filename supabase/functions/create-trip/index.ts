@@ -47,16 +47,17 @@ serve(async (req) => {
     // Get user's subscription tier, taste test usage, and email
     const { data: profile } = await supabase
       .from('profiles')
-      .select('subscription_status, subscription_product_id, free_pro_trips_used, free_events_used, free_pro_trip_limit, free_event_limit, email')
+      .select('subscription_status, subscription_product_id, free_pro_trips_used, free_events_used, free_pro_trip_limit, free_event_limit')
       .eq('user_id', user.id)
       .single();
 
     // Super admin bypass - ccamechi@gmail.com has unlimited access
     const SUPER_ADMIN_EMAILS = ['ccamechi@gmail.com'];
-    const isSuperAdmin = profile?.email && SUPER_ADMIN_EMAILS.includes(profile.email.toLowerCase());
+    const authEmail = user.email?.toLowerCase();
+    const isSuperAdmin = authEmail ? SUPER_ADMIN_EMAILS.includes(authEmail) : false;
 
     if (isSuperAdmin) {
-      console.log(`[create-trip] Super admin bypass for: ${profile.email}`);
+      console.log(`[create-trip] Super admin bypass for: ${authEmail}`);
     } else {
       const subscriptionStatus = profile?.subscription_status;
       const productId = profile?.subscription_product_id;

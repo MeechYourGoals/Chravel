@@ -127,7 +127,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(
+          'id, user_id, display_name, first_name, last_name, avatar_url, bio, show_email, show_phone, ' +
+            'notification_settings, timezone, app_role, role, subscription_status, subscription_product_id, ' +
+            'subscription_end, free_pro_trips_used, free_pro_trip_limit, free_events_used, free_event_limit, ' +
+            'created_at, updated_at',
+        )
         .eq('user_id', userId)
         .single();
 

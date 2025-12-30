@@ -53,8 +53,8 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
       if (requestsData && requestsData.length > 0) {
         const userIds = requestsData.map(r => r.user_id);
         const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id, display_name, email, avatar_url')
+          .from('profiles_public')
+          .select('user_id, display_name, avatar_url')
           .in('user_id', userIds);
 
         if (profilesError) throw profilesError;
@@ -64,13 +64,12 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
           const profile = profilesData?.find(p => p.user_id === request.user_id);
           
           // Determine display name from profile
-          const displayName = profile?.display_name || profile?.email || 'Unknown User';
+          const displayName = profile?.display_name || 'Unknown User';
           
           return {
             ...request,
             profiles: {
               display_name: displayName,
-              email: profile?.email || null,
               avatar_url: profile?.avatar_url || null
             }
           };
@@ -169,13 +168,13 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
             ) : (
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <span className="text-sm font-medium text-primary">
-                  {request.profiles?.display_name?.[0] || request.profiles?.email?.[0] || 'U'}
+                  {request.profiles?.display_name?.[0] || 'U'}
                 </span>
               </div>
             )}
             <div>
               <p className="font-medium">
-                {request.profiles?.display_name || request.profiles?.email || 'Unknown User'}
+                {request.profiles?.display_name || 'Unknown User'}
               </p>
               <p className="text-sm text-muted-foreground">
                 Requested {new Date(request.requested_at).toLocaleDateString()}

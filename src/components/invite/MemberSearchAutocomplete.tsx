@@ -87,9 +87,9 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
     setIsOpen(true);
 
     try {
-      // Search profiles by email or display name
+      // Search profiles by email or display name (email only when shared)
       const { data, error } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('id, email, display_name, avatar_url')
         .or(`email.ilike.%${query}%,display_name.ilike.%${query}%`)
         .limit(10);

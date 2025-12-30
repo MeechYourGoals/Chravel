@@ -234,7 +234,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                 pendingRequests.length > 0 ? (
                   pendingRequests.map((request) => {
                     const isProcessing = processingRequestId === request.id;
-                    const displayName = request.profile?.display_name || request.profile?.email || 'Unknown User';
+                    const displayName = request.profile?.display_name || 'Unknown User';
                     const timeAgo = formatDistanceToNow(new Date(request.requested_at), { addSuffix: true });
 
                     return (

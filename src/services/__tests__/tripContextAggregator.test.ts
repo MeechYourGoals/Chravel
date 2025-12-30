@@ -37,9 +37,14 @@ describe('TripContextAggregator', () => {
         trip_type: 'consumer'
       };
 
-      const mockCollaborators = [
-        { user_id: 'user1', role: 'organizer', profiles: { full_name: 'John Doe', email: 'john@example.com' } },
-        { user_id: 'user2', role: 'participant', profiles: { full_name: 'Jane Smith', email: 'jane@example.com' } }
+      const mockCollaboratorMembers = [
+        { user_id: 'user1', role: 'organizer' },
+        { user_id: 'user2', role: 'participant' }
+      ];
+
+      const mockCollaboratorProfiles = [
+        { user_id: 'user1', display_name: 'John Doe', email: 'john@example.com' },
+        { user_id: 'user2', display_name: 'Jane Smith', email: 'jane@example.com' }
       ];
 
       const mockMessages = [
@@ -90,10 +95,17 @@ describe('TripContextAggregator', () => {
         })
       } as any);
 
-      // Mock collaborators
+      // Mock collaborator members
       mockSupabase.from.mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ data: mockCollaborators, error: null })
+          eq: vi.fn().mockResolvedValue({ data: mockCollaboratorMembers, error: null })
+        })
+      } as any);
+
+      // Mock collaborator profiles
+      mockSupabase.from.mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          in: vi.fn().mockResolvedValue({ data: mockCollaboratorProfiles, error: null })
         })
       } as any);
 

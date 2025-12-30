@@ -34,7 +34,6 @@ interface TripMember {
   profile?: {
     display_name?: string;
     avatar_url?: string;
-    email?: string;
   };
 }
 
@@ -65,8 +64,7 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
           user_id,
           profile:profiles!inner(
             display_name,
-            avatar_url,
-            email
+            avatar_url
           )
         `)
         .eq('trip_id', tripId);
@@ -208,17 +206,12 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
                         <Avatar className="h-10 w-10 border-2 border-white/10">
                           <AvatarImage src={profile?.avatar_url} />
                           <AvatarFallback className="bg-primary/20 text-primary text-sm">
-                            {profile?.display_name?.[0]?.toUpperCase() || 
-                             profile?.email?.[0]?.toUpperCase() || 
-                             '?'}
+                            {profile?.display_name?.[0]?.toUpperCase() || '?'}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">
                             {profile?.display_name || 'Unknown User'}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {profile?.email}
                           </p>
                         </div>
                       </div>

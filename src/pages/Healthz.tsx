@@ -41,7 +41,7 @@ export default function Healthz() {
       }
 
       try {
-        const { error } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+        const { error } = await supabase.from('profiles').select('id', { count: 'exact', head: true });
         dbReachable = !error;
       } catch {
         dbReachable = false;

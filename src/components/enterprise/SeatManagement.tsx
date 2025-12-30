@@ -16,7 +16,6 @@ interface MemberWithProfile {
   joined_at: string;
   profile?: {
     display_name?: string;
-    email?: string;
     avatar_url?: string;
   };
 }
@@ -43,8 +42,8 @@ export const SeatManagement = () => {
 
       const userIds = members.map(m => m.user_id);
       const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, display_name, email, avatar_url')
+        .from('profiles_public')
+        .select('user_id, display_name, avatar_url')
         .in('user_id', userIds);
 
       const enriched = members.map(member => ({
@@ -135,7 +134,7 @@ export const SeatManagement = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-white font-medium">
-                          {member.profile?.display_name || member.profile?.email || 'Unknown'}
+                          {member.profile?.display_name || 'Unknown'}
                         </span>
                         <Badge variant="outline" className="flex items-center gap-1 border-white/20">
                           {getRoleIcon(member.role)}

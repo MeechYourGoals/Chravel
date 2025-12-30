@@ -112,8 +112,8 @@ export const useTripMembers = (tripId?: string) => {
           
           // 2. Fetch profile for local display
           const { data: creatorProfile } = await supabase
-            .from('profiles')
-            .select('user_id, display_name, avatar_url, email')
+            .from('profiles_public')
+            .select('user_id, display_name, avatar_url')
             .eq('user_id', tripData.created_by)
             .single();
 
