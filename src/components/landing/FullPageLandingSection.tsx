@@ -32,8 +32,8 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
         'relative w-full flex',
         // Mobile: content flows from top naturally. Desktop: vertically centered
         'items-start md:items-center justify-center',
-        // Mobile: auto height for natural flow. Desktop: use CSS variable for min-height
-        'min-h-0 md:min-h-[var(--section-desktop-min-height,100vh)]',
+        // Mobile: fill viewport so content starts at top. Desktop: use CSS variable for min-height
+        'min-h-screen md:min-h-[var(--section-desktop-min-height,100vh)]',
         // Add top padding on mobile to account for header and safe areas
         'pt-20 md:pt-0',
         // Only enable snap scrolling on desktop

@@ -11,7 +11,7 @@ import {
 
 export const ReplacesGrid = () => {
   return (
-    <section className="w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 sm:pb-16">
+    <section className="w-full mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-6 pb-12 sm:pb-16">
       {/* Header */}
       <div className="text-center mb-6 sm:mb-8 md:mb-12 space-y-3">
         <h2 
