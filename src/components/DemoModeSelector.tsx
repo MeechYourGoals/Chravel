@@ -2,16 +2,22 @@ import React from 'react';
 import { Eye, EyeOff, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useAuth } from '@/hooks/useAuth';
 import { DemoView } from '@/store/demoModeStore';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from './ui/tooltip';
+import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 export const DemoModeSelector = () => {
   const { demoView, setDemoView, isLoading } = useDemoMode();
+  const { user } = useAuth();
+
+  // Hide for authenticated users except super admin
+  const isSuperAdmin = user?.email && SUPER_ADMIN_EMAILS.includes(user.email);
+  const shouldHide = user && !isSuperAdmin;
+
+  if (shouldHide) {
+    return null;
+  }
 
   const handleViewChange = async (view: DemoView) => {
     if (isLoading) return;
@@ -30,7 +36,7 @@ export const DemoModeSelector = () => {
                 'px-2 py-1.5 sm:px-2.5 rounded-md text-[9px] sm:text-[10px] font-medium transition-all duration-200 flex items-center gap-0.5 sm:gap-1 min-h-[32px] sm:min-h-[28px]',
                 demoView === 'off'
                   ? 'bg-muted text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
               )}
               aria-label="Marketing landing page"
             >
@@ -44,7 +50,7 @@ export const DemoModeSelector = () => {
                 'px-2 py-1.5 sm:px-2.5 rounded-md text-[9px] sm:text-[10px] font-medium transition-all duration-200 flex items-center gap-0.5 sm:gap-1 min-h-[32px] sm:min-h-[28px]',
                 demoView === 'marketing'
                   ? 'bg-primary/30 text-primary shadow-sm border border-primary/20'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
               )}
               aria-label="Home view"
             >
@@ -58,7 +64,7 @@ export const DemoModeSelector = () => {
                 'px-2 py-1.5 sm:px-2.5 rounded-md text-[9px] sm:text-[10px] font-medium transition-all duration-200 flex items-center gap-0.5 sm:gap-1 min-h-[32px] sm:min-h-[28px]',
                 demoView === 'app-preview'
                   ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
               )}
               aria-label="Demo data mode"
             >
@@ -69,9 +75,15 @@ export const DemoModeSelector = () => {
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-xs">
           <div className="space-y-2 text-xs">
-            <p><strong>info:</strong> marketing landing page</p>
-            <p><strong>Home:</strong> Authenticated user dashboard</p>
-            <p><strong>Demo:</strong> Demo data preview</p>
+            <p>
+              <strong>info:</strong> marketing landing page
+            </p>
+            <p>
+              <strong>Home:</strong> Authenticated user dashboard
+            </p>
+            <p>
+              <strong>Demo:</strong> Demo data preview
+            </p>
           </div>
         </TooltipContent>
       </Tooltip>
