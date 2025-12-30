@@ -10,6 +10,10 @@ interface UserProfile {
   avatar_url: string | null;
 }
 
+type RpcError = { message: string } | null;
+type RpcResponse<T> = Promise<{ data: T | null; error: RpcError }>;
+type RpcClient = { rpc<T>(fn: string, args: Record<string, unknown>): RpcResponse<T> };
+
 interface MemberSearchAutocompleteProps {
   tripId: string;
   existingMemberIds: string[];
@@ -87,18 +91,15 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
     setIsOpen(true);
 
     try {
-      // Privacy note:
-      // - `profiles_public.email` is NULL unless the user opted-in (show_email) or it's your own profile.
-      // - We only include email search when the query looks like an email to reduce accidental enumeration.
-      const searchFilter = query.includes('@')
-        ? `email.ilike.%${query}%,display_name.ilike.%${query}%`
-        : `display_name.ilike.%${query}%`;
-
-      const { data, error } = await supabase
-        .from('profiles_public')
-        .select('id, email, display_name, avatar_url')
-        .or(searchFilter)
-        .limit(10);
+      // Use a DB-side, rate-limited RPC to reduce harvesting risk.
+      // We intentionally keep this RPC call "loosely typed" because this repo's
+      // `src/integrations/supabase/types.ts` is generated from the remote DB and
+      // won't automatically include newly-added SQL functions in CI.
+      const rpc = supabase as unknown as RpcClient;
+      const { data, error } = await rpc.rpc<UserProfile[]>('search_profiles_public', {
+        query_text: query,
+        limit_count: 10,
+      });
 
       if (error) throw error;
 
