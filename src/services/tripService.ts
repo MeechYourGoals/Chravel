@@ -51,7 +51,7 @@ export interface Trip {
   trip_type: string;
   basecamp_name?: string;
   basecamp_address?: string;
-  enabled_features?: string[];  // ✅ Phase 2: Feature toggles for Pro/Event trips
+  enabled_features?: string[]; // ✅ Phase 2: Feature toggles for Pro/Event trips
   membership_status?: 'owner' | 'member' | 'pending' | 'rejected'; // Membership status for current user
 }
 
@@ -66,14 +66,16 @@ export interface CreateTripData {
   trip_type?: string;
   basecamp_name?: string;
   basecamp_address?: string;
-  enabled_features?: string[];  // ✅ Phase 2: Feature toggles for Pro/Event trips
+  enabled_features?: string[]; // ✅ Phase 2: Feature toggles for Pro/Event trips
 }
 
 export const tripService = {
   async createTrip(tripData: CreateTripData): Promise<Trip | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       // Enhanced validation with detailed error logging
       if (!user) {
         if (import.meta.env.DEV) {
@@ -100,13 +102,16 @@ export const tripService = {
       const { SUPER_ADMIN_EMAILS } = await import('@/constants/admins');
       const authEmail = user.email?.toLowerCase().trim();
       const isSuperAdmin = authEmail ? SUPER_ADMIN_EMAILS.includes(authEmail) : false;
-      
+
       if (isSuperAdmin) {
         console.log('[tripService] Super admin bypass for:', authEmail);
       } else {
-        const tier = profile?.subscription_status === 'active' 
-          ? (profile.subscription_product_id?.includes('explorer') ? 'explorer' : 'frequent-chraveler')
-          : 'free';
+        const tier =
+          profile?.subscription_status === 'active'
+            ? profile.subscription_product_id?.includes('explorer')
+              ? 'explorer'
+              : 'frequent-chraveler'
+            : 'free';
 
         // Count active (non-archived) trips OF THE SAME TYPE being created
         const tripTypeToCheck = tripData.trip_type || 'consumer';
@@ -132,7 +137,7 @@ export const tripService = {
         start_date: tripData.start_date,
         end_date: tripData.end_date,
         trip_type: tripData.trip_type,
-        user_id: user.id
+        user_id: user.id,
       });
 
       // Use edge function for server-side validation and Pro tier enforcement
@@ -145,8 +150,8 @@ export const tripService = {
           end_date: tripData.end_date,
           trip_type: tripData.trip_type || 'consumer',
           cover_image_url: tripData.cover_image_url,
-          enabled_features: tripData.enabled_features  // ✅ Phase 2: Pass feature toggles
-        }
+          enabled_features: tripData.enabled_features, // ✅ Phase 2: Pass feature toggles
+        },
       });
 
       console.log('[tripService] Edge function response:', { success: data?.success, error });
@@ -172,9 +177,12 @@ export const tripService = {
     }
   },
 
-  async getUserTrips(isDemoMode?: boolean, tripType?: 'consumer' | 'pro' | 'event'): Promise<Trip[]> {
+  async getUserTrips(
+    isDemoMode?: boolean,
+    tripType?: 'consumer' | 'pro' | 'event',
+  ): Promise<Trip[]> {
     try {
-      const demoEnabled = isDemoMode ?? await demoModeService.isDemoModeEnabled();
+      const demoEnabled = isDemoMode ?? (await demoModeService.isDemoModeEnabled());
       if (demoEnabled) {
         if (tripType === 'pro') return [];
         if (tripType === 'event') return [];
@@ -182,7 +190,9 @@ export const tripService = {
         return adaptedTrips;
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return [];
 
       let query = supabase
@@ -216,7 +226,7 @@ export const tripService = {
       // Fetch trip details for pending requests
       const pendingTripIds = pendingRequests?.map(r => r.trip_id) || [];
       let pendingTrips: Trip[] = [];
-      
+
       if (pendingTripIds.length > 0) {
         const { data: pendingTripsData, error: pendingTripsError } = await supabase
           .from('trips')
@@ -228,7 +238,7 @@ export const tripService = {
         if (!pendingTripsError && pendingTripsData) {
           pendingTrips = pendingTripsData.map(trip => ({
             ...trip,
-            membership_status: 'pending' as const
+            membership_status: 'pending' as const,
           }));
         }
       }
@@ -237,9 +247,9 @@ export const tripService = {
       const allTrips = [
         ...(createdTrips || []).map(trip => ({
           ...trip,
-          membership_status: 'owner' as const
+          membership_status: 'owner' as const,
         })),
-        ...pendingTrips
+        ...pendingTrips,
       ];
 
       // Also fetch trips where user is a member (not creator)
@@ -262,10 +272,12 @@ export const tripService = {
             .eq('is_hidden', false);
 
           if (!memberTripsError && memberTripsData) {
-            allTrips.push(...memberTripsData.map(trip => ({
-              ...trip,
-              membership_status: 'member' as const
-            })));
+            allTrips.push(
+              ...memberTripsData.map(trip => ({
+                ...trip,
+                membership_status: 'member' as const,
+              })),
+            );
           }
         }
       }
@@ -277,7 +289,7 @@ export const tripService = {
 
       const [membersResult, linksResult] = await Promise.all([
         supabase.from('trip_members').select('trip_id').in('trip_id', tripIds),
-        supabase.from('trip_links').select('trip_id').in('trip_id', tripIds)
+        supabase.from('trip_links').select('trip_id').in('trip_id', tripIds),
       ]);
 
       // Count occurrences per trip
@@ -296,7 +308,7 @@ export const tripService = {
       return allTrips.map(trip => ({
         ...trip,
         trip_members: [{ count: memberCountMap.get(trip.id) || 0 }],
-        trip_links: [{ count: linkCountMap.get(trip.id) || 0 }]
+        trip_links: [{ count: linkCountMap.get(trip.id) || 0 }],
       }));
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -308,11 +320,7 @@ export const tripService = {
 
   async getTripById(tripId: string): Promise<Trip | null> {
     try {
-      const { data, error } = await supabase
-        .from('trips')
-        .select('*')
-        .eq('id', tripId)
-        .single();
+      const { data, error } = await supabase.from('trips').select('*').eq('id', tripId).single();
 
       if (error) throw error;
       return data;
@@ -342,7 +350,10 @@ export const tripService = {
 
       // Check if any row was actually updated
       if (!data) {
-        console.error('[tripService] No rows updated - user may not have permission to update trip:', tripId);
+        console.error(
+          '[tripService] No rows updated - user may not have permission to update trip:',
+          tripId,
+        );
         return false;
       }
 
@@ -357,10 +368,7 @@ export const tripService = {
 
   async archiveTrip(tripId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('trips')
-        .update({ is_archived: true })
-        .eq('id', tripId);
+      const { error } = await supabase.from('trips').update({ is_archived: true }).eq('id', tripId);
 
       return !error;
     } catch (error) {
@@ -375,35 +383,37 @@ export const tripService = {
     try {
       const { data, error } = await supabase
         .from('trip_members')
-        .select(`
+        .select(
+          `
           id,
           user_id,
           role,
           created_at
-        `)
+        `,
+        )
         .eq('trip_id', tripId);
 
       if (error) throw error;
-      
+
       // Fetch profiles separately since there's no foreign key
       if (!data || data.length === 0) return [];
-      
+
       const userIds = data.map(m => m.user_id);
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles_public')
-        .select('user_id, display_name, avatar_url, email')
+        .select('user_id, display_name, avatar_url')
         .in('user_id', userIds);
-      
+
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
       }
-      
+
       // Merge trip_members with profiles
       const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
-      
+
       return data.map(m => ({
         ...m,
-        profiles: profilesMap.get(m.user_id) || null
+        profiles: profilesMap.get(m.user_id) || null,
       }));
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -415,13 +425,11 @@ export const tripService = {
 
   async addTripMember(tripId: string, userId: string, role: string = 'member'): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('trip_members')
-        .insert({
-          trip_id: tripId,
-          user_id: userId,
-          role: role
-        });
+      const { error } = await supabase.from('trip_members').insert({
+        trip_id: tripId,
+        user_id: userId,
+        role: role,
+      });
 
       return !error;
     } catch (error) {
@@ -430,5 +438,5 @@ export const tripService = {
       }
       return false;
     }
-  }
+  },
 };

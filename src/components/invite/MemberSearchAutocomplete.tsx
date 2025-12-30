@@ -43,6 +43,7 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
   onRemove,
   selectedUsers = [],
   placeholder = 'Search by name (email only if shared/visible)...',
+  placeholder = 'Search by email or name...',
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
@@ -158,7 +159,7 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
         <div className="absolute z-50 w-full mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-xl max-h-60 overflow-y-auto">
           {searchResults.map(user => (
             <button
-              key={user.id}
+              key={user.user_id}
               onClick={() => handleSelect(user)}
               className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-700 transition-colors text-left"
             >
@@ -192,7 +193,7 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
         <div className="mt-3 flex flex-wrap gap-2">
           {selectedUsers.map(user => (
             <div
-              key={user.id}
+              key={user.user_id}
               className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-lg"
             >
               {user.avatar_url ? (
@@ -211,7 +212,7 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
               </span>
               {onRemove && (
                 <button
-                  onClick={() => handleRemove(user.id)}
+                  onClick={() => handleRemove(user.user_id)}
                   className="text-gray-400 hover:text-white transition-colors"
                 >
                   <X className="h-4 w-4" />
