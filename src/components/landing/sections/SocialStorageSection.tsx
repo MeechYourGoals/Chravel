@@ -37,7 +37,7 @@ const storageTypes = [
 
 export const SocialStorageSection = () => {
   return (
-    <div className="container mx-auto px-4 py-8 md:py-16 flex flex-col items-center justify-start md:justify-center min-h-screen space-y-8 md:space-y-12">
+    <div className="container mx-auto px-4 py-8 md:py-16 flex flex-col items-center justify-start md:justify-center min-h-0 md:min-h-screen space-y-8 md:space-y-12">
       {/* Headline - positioned at top with white text for contrast */}
       <div className="text-center space-y-4 max-w-4xl pt-8">
         <h2

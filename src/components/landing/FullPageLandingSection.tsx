@@ -29,12 +29,15 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
     <section
       id={id}
       className={cn(
-        'relative w-full flex landing-section',
-        // Center content on desktop, align to start on mobile for proper scrolling
+        'relative w-full flex',
+        // Mobile: content flows from top naturally. Desktop: vertically centered
         'items-start md:items-center justify-center',
+        // Mobile: auto height for natural flow. Desktop: use CSS variable for min-height
+        'min-h-0 md:min-h-[var(--section-desktop-min-height,100vh)]',
         // Add top padding on mobile to account for header and safe areas
-        'pt-16 md:pt-0',
-        enableSnapScroll && 'snap-start snap-always',
+        'pt-20 md:pt-0',
+        // Only enable snap scrolling on desktop
+        enableSnapScroll && 'md:snap-start md:snap-always',
         className
       )}
       style={{
