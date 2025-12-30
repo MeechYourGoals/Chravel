@@ -1,7 +1,6 @@
 import React, { Suspense, lazy, useRef } from 'react';
 import { FullPageLandingSection } from './FullPageLandingSection';
 import { StickyLandingNav } from './StickyLandingNav';
-import { MobileAuthHeader } from './MobileAuthHeader';
 import { HeroSection } from './sections/HeroSection';
 import { ProblemSolutionSection } from './sections/ProblemSolutionSection';
 
@@ -40,10 +39,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
 
   return (
     <>
-      {/* Mobile Auth Header - Shows only on mobile, hides on scroll */}
-      <MobileAuthHeader onSignUp={onSignUp} scrollContainerRef={scrollContainerRef} />
-
-      {/* Sticky Navigation */}
+      {/* Sticky Navigation - desktop only */}
       <StickyLandingNav onSignUp={onSignUp} />
 
       {/* Full-Page Scrolling Container with PWA safe-area support */}
