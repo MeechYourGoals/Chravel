@@ -72,6 +72,8 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ onSignUp }) 
     <nav
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-transform duration-300 bg-background/80 backdrop-blur-lg border-b border-border/50',
+        // Hide on mobile and tablet - only show on desktop (lg and up)
+        'hidden lg:block',
         isVisible ? 'translate-y-0' : '-translate-y-full'
       )}
     >

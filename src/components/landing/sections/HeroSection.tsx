@@ -1,45 +1,38 @@
 import React from 'react';
 import { Button } from '../../ui/button';
-import { useIsMobile } from '@/hooks/use-mobile';
 
-// Mobile header height constant (matches MobileAuthHeader.tsx)
-const MOBILE_HEADER_HEIGHT = 52;
+// Mobile/tablet header height constant (matches MobileAuthHeader.tsx)
+const HEADER_HEIGHT = 52;
 
 interface HeroSectionProps {
   onSignUp: () => void;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
-  const isMobile = useIsMobile();
-
   return (
     <div
       className="relative container mx-auto px-4 flex flex-col items-center min-h-[85vh] md:min-h-[90vh] text-center pb-12 md:pb-0"
       style={{
-        // On mobile: account for fixed MobileAuthHeader (safe area + header height + spacing)
-        // On desktop: just safe area + small offset
-        paddingTop: isMobile
-          ? `calc(env(safe-area-inset-top, 0px) + ${MOBILE_HEADER_HEIGHT}px + 16px)`
-          : 'calc(env(safe-area-inset-top, 0px) + 16px)'
+        // Account for fixed header on mobile/tablet (safe area + header height + spacing)
+        // On desktop (lg+): just safe area + small offset since StickyLandingNav only shows after scroll
+        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${HEADER_HEIGHT}px + 16px)`
       }}
     >
-      {/* Top-right controls - CTA above Demo toggle on desktop - Only show if NOT mobile (avoids duplication with MobileAuthHeader) */}
-      {!isMobile && (
-        <div
-          className="hidden md:flex flex-col items-end gap-2 absolute right-4 z-10"
-          style={{
-            top: 'calc(env(safe-area-inset-top, 0px) + 16px)'
-          }}
+      {/* Top-right Sign up / Log in button - only visible on desktop (lg+) where MobileAuthHeader is hidden */}
+      <div
+        className="hidden lg:flex flex-col items-end gap-2 absolute right-4 z-10"
+        style={{
+          top: 'calc(env(safe-area-inset-top, 0px) + 16px)'
+        }}
+      >
+        <Button
+          size="default"
+          onClick={onSignUp}
+          className="text-sm px-4 py-2 bg-black/40 hover:bg-black/50 backdrop-blur-md border border-white/10 text-white shadow-lg"
         >
-          <Button
-            size="default"
-            onClick={onSignUp}
-            className="text-sm px-4 py-2 bg-black/40 hover:bg-black/50 backdrop-blur-md border border-white/10 text-white shadow-lg"
-          >
-            Log in
-          </Button>
-        </div>
-      )}
+          Sign up / Log in
+        </Button>
+      </div>
 
       {/* Brand Name - Centered, aligned with Demo toggle */}
       <div className="w-full flex items-center justify-center px-2 md:px-4 mb-4 md:mb-6">
