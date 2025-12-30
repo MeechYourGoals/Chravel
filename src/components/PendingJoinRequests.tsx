@@ -16,7 +16,6 @@ interface JoinRequest {
   requester_email?: string;
   profiles?: {
     display_name: string | null;
-    email: string | null;
     avatar_url: string | null;
   };
 }

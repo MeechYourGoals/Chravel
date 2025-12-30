@@ -143,7 +143,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return null;
       }
 
-      return data;
+      if (!data) {
+        return null;
+      }
+
+      return data as unknown as UserProfile;
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching profile:', error);
