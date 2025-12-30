@@ -4,8 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface UserProfile {
-  id: string;
-  email: string;
+  user_id: string;
+  email: string | null;
   display_name: string | null;
   avatar_url: string | null;
 }
@@ -21,10 +21,10 @@ interface MemberSearchAutocompleteProps {
 
 /**
  * MemberSearchAutocomplete Component
- * 
+ *
  * Provides autocomplete search for users to invite to trips.
  * Searches by email and display name, excludes existing members.
- * 
+ *
  * Features:
  * - Real-time search as user types
  * - Debounced API calls to reduce load
@@ -38,7 +38,7 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
   onSelect,
   onRemove,
   selectedUsers = [],
-  placeholder = 'Search by email or name...'
+  placeholder = 'Search by email or name...',
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
@@ -87,21 +87,22 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
     setIsOpen(true);
 
     try {
-      // Search profiles by email or display name (email only when shared)
-      const { data, error } = await supabase
-        .from('profiles_public')
-        .select('id, email, display_name, avatar_url')
-        .or(`email.ilike.%${query}%,display_name.ilike.%${query}%`)
-        .limit(10);
+      // Search by email or display name.
+      // Email is only returned when explicitly shared (show_email) or self.
+      const { data, error } = await supabase.rpc('search_profiles_public', {
+        p_query: query,
+        p_limit: 10,
+      });
 
       if (error) throw error;
 
       // Filter out existing members and already selected users
-      const filtered = (data || []).filter(
-        (user) =>
-          !existingMemberIds.includes(user.id) &&
-          !selectedUsers.some((selected) => selected.id === user.id)
-      );
+      const filtered = (data || []).filter(user => {
+        return (
+          !existingMemberIds.includes(user.user_id) &&
+          !selectedUsers.some(selected => selected.user_id === user.user_id)
+        );
+      });
 
       setSearchResults(filtered);
     } catch (error) {
@@ -134,7 +135,7 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
         <input
           type="text"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={e => setSearchQuery(e.target.value)}
           onFocus={() => searchQuery.length >= 2 && setIsOpen(true)}
           placeholder={placeholder}
           className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -149,28 +150,26 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
       {/* Search Results Dropdown */}
       {isOpen && searchResults.length > 0 && (
         <div className="absolute z-50 w-full mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-xl max-h-60 overflow-y-auto">
-          {searchResults.map((user) => (
+          {searchResults.map(user => (
             <button
-              key={user.id}
+              key={user.user_id}
               onClick={() => handleSelect(user)}
               className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-700 transition-colors text-left"
             >
               {user.avatar_url ? (
                 <img
                   src={user.avatar_url}
-                  alt={user.display_name || user.email}
+                  alt={user.display_name || user.email || 'User'}
                   className="h-10 w-10 rounded-full object-cover"
                 />
               ) : (
                 <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
-                  {(user.display_name || user.email)[0].toUpperCase()}
+                  {(user.display_name || user.email || '?')[0].toUpperCase()}
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-white font-medium truncate">
-                  {user.display_name || 'No name'}
-                </p>
-                <p className="text-gray-400 text-sm truncate">{user.email}</p>
+                <p className="text-white font-medium truncate">{user.display_name || 'No name'}</p>
+                <p className="text-gray-400 text-sm truncate">{user.email || 'Email hidden'}</p>
               </div>
               <UserPlus className="h-5 w-5 text-blue-400" />
             </button>
@@ -181,28 +180,28 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
       {/* Selected Users */}
       {selectedUsers.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
-          {selectedUsers.map((user) => (
+          {selectedUsers.map(user => (
             <div
-              key={user.id}
+              key={user.user_id}
               className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-lg"
             >
               {user.avatar_url ? (
                 <img
                   src={user.avatar_url}
-                  alt={user.display_name || user.email}
+                  alt={user.display_name || user.email || 'User'}
                   className="h-6 w-6 rounded-full object-cover"
                 />
               ) : (
                 <div className="h-6 w-6 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">
-                  {(user.display_name || user.email)[0].toUpperCase()}
+                  {(user.display_name || user.email || '?')[0].toUpperCase()}
                 </div>
               )}
               <span className="text-white text-sm">
-                {user.display_name || user.email}
+                {user.display_name || user.email || 'User'}
               </span>
               {onRemove && (
                 <button
-                  onClick={() => handleRemove(user.id)}
+                  onClick={() => handleRemove(user.user_id)}
                   className="text-gray-400 hover:text-white transition-colors"
                 >
                   <X className="h-4 w-4" />

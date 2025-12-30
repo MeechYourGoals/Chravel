@@ -52,25 +52,25 @@ export interface ComprehensiveTripContext {
     options: Array<{ text: string; votes: number }>;
     status: 'active' | 'closed';
   }>;
-      places: {
-        basecamp?: {
-          name: string;
-          address: string;
-          lat?: number;
-          lng?: number;
-        };
-        userAccommodation?: {
-          label: string;
-          address: string;
-          lat?: number;
-          lng?: number;
-        };
-        savedPlaces: Array<{
-          name: string;
-          address: string;
-          category: string;
-        }>;
-      };
+  places: {
+    basecamp?: {
+      name: string;
+      address: string;
+      lat?: number;
+      lng?: number;
+    };
+    userAccommodation?: {
+      label: string;
+      address: string;
+      lat?: number;
+      lng?: number;
+    };
+    savedPlaces: Array<{
+      name: string;
+      address: string;
+      category: string;
+    }>;
+  };
   media: {
     files: Array<{
       id: string;
@@ -91,7 +91,10 @@ export interface ComprehensiveTripContext {
 }
 
 export class TripContextAggregator {
-  static async buildContext(tripId: string, isDemoMode: boolean = false): Promise<ComprehensiveTripContext> {
+  static async buildContext(
+    tripId: string,
+    isDemoMode: boolean = false,
+  ): Promise<ComprehensiveTripContext> {
     try {
       // Return mock context in demo mode
       if (isDemoMode) {
@@ -109,7 +112,7 @@ export class TripContextAggregator {
         polls,
         places,
         files,
-        links
+        links,
       ] = await Promise.all([
         this.fetchTripMetadata(tripId),
         this.fetchCollaborators(tripId),
@@ -120,7 +123,7 @@ export class TripContextAggregator {
         this.fetchPolls(tripId),
         this.fetchPlaces(tripId),
         this.fetchFiles(tripId),
-        this.fetchLinks(tripId)
+        this.fetchLinks(tripId),
       ]);
 
       return {
@@ -132,7 +135,7 @@ export class TripContextAggregator {
         payments,
         polls,
         places,
-        media: { files, links }
+        media: { files, links },
       };
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -150,23 +153,27 @@ export class TripContextAggregator {
     const mockPolls = demoModeService.getMockPolls(tripId);
     const mockPayments = demoModeService.getMockPayments(tripId);
     const mockMembers = demoModeService.getMockMembers(tripId);
-    
+
     // Transform messages to include broadcasts with proper typing
     const allMessages = [
       ...mockMessages.map(m => ({
         id: m.id,
         content: m.message_content,
         authorName: m.sender_name,
-        timestamp: new Date(Date.now() - (m.timestamp_offset_days || 0) * 24 * 60 * 60 * 1000).toISOString(),
-        type: (m.tags?.includes('broadcast') ? 'broadcast' : 'message') as 'broadcast' | 'message'
+        timestamp: new Date(
+          Date.now() - (m.timestamp_offset_days || 0) * 24 * 60 * 60 * 1000,
+        ).toISOString(),
+        type: (m.tags?.includes('broadcast') ? 'broadcast' : 'message') as 'broadcast' | 'message',
       })),
       ...mockBroadcasts.map(b => ({
         id: b.id,
         content: b.content,
         authorName: b.sender_name,
-        timestamp: new Date(Date.now() - (b.timestamp_offset_hours || 0) * 60 * 60 * 1000).toISOString(),
-        type: 'broadcast' as const
-      }))
+        timestamp: new Date(
+          Date.now() - (b.timestamp_offset_hours || 0) * 60 * 60 * 1000,
+        ).toISOString(),
+        type: 'broadcast' as const,
+      })),
     ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
     // Return comprehensive mock data for demo trips
@@ -177,13 +184,13 @@ export class TripContextAggregator {
         destination: 'Aspen, Colorado',
         startDate: '2025-01-15',
         endDate: '2025-01-20',
-        type: 'consumer' as const
+        type: 'consumer' as const,
       },
       collaborators: mockMembers.map(m => ({
         id: m.user_id,
         name: m.display_name,
         role: m.role,
-        email: m.user_id === 'user1' ? 'sarah@example.com' : undefined
+        email: m.user_id === 'user1' ? 'sarah@example.com' : undefined,
       })),
       messages: allMessages,
       // Calendar events are fetched dynamically from calendarService/calendarStorageService
@@ -191,8 +198,13 @@ export class TripContextAggregator {
       calendar: [],
       tasks: [
         { id: '1', content: 'Pack snorkeling gear', assignee: 'Sarah Chen', isComplete: false },
-        { id: '2', content: 'Confirm dinner reservations', assignee: 'Priya Patel', isComplete: false },
-        { id: '3', content: 'Buy sunscreen', isComplete: false }
+        {
+          id: '2',
+          content: 'Confirm dinner reservations',
+          assignee: 'Priya Patel',
+          isComplete: false,
+        },
+        { id: '3', content: 'Buy sunscreen', isComplete: false },
       ],
       payments: mockPayments.map(p => ({
         id: p.id,
@@ -200,34 +212,51 @@ export class TripContextAggregator {
         amount: p.amount,
         paidBy: mockMembers.find(m => m.user_id === p.created_by)?.display_name || 'Unknown',
         participants: p.split_participants,
-        isSettled: p.is_settled
+        isSettled: p.is_settled,
       })),
       polls: mockPolls.map(poll => ({
         id: poll.id,
         question: poll.question,
         options: poll.options.map(opt => ({ text: opt.text, votes: opt.votes })),
-        status: poll.status as 'active' | 'closed'
+        status: poll.status as 'active' | 'closed',
       })),
       places: {
         basecamp: {
           name: 'The Little Nell',
           address: '675 E Durant Ave, Aspen, CO 81611',
           lat: 39.1911,
-          lng: -106.8175
+          lng: -106.8175,
         },
         savedPlaces: [
           { name: 'Aspen Mountain', address: 'Aspen Mountain, Aspen, CO', category: 'activity' },
-          { name: 'The Little Nell Restaurant', address: '675 E Durant Ave, Aspen, CO 81611', category: 'dining' }
-        ]
+          {
+            name: 'The Little Nell Restaurant',
+            address: '675 E Durant Ave, Aspen, CO 81611',
+            category: 'dining',
+          },
+        ],
       },
       media: {
         files: [
-          { id: '1', name: 'trip_itinerary.pdf', type: 'application/pdf', url: '#', uploadedBy: 'Sarah Chen', uploadedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() }
+          {
+            id: '1',
+            name: 'trip_itinerary.pdf',
+            type: 'application/pdf',
+            url: '#',
+            uploadedBy: 'Sarah Chen',
+            uploadedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          },
         ],
         links: [
-          { id: '1', url: 'https://weather.com/aspen', title: 'Aspen Weather Forecast', category: 'weather', addedBy: 'Alex Kim' }
-        ]
-      }
+          {
+            id: '1',
+            url: 'https://weather.com/aspen',
+            title: 'Aspen Weather Forecast',
+            category: 'weather',
+            addedBy: 'Alex Kim',
+          },
+        ],
+      },
     };
   }
 
@@ -238,16 +267,16 @@ export class TripContextAggregator {
         .select('id, name, destination, start_date, end_date, trip_type')
         .eq('id', tripId)
         .single();
-      
+
       if (error) throw error;
-      
+
       return {
         id: data.id,
         name: data.name,
         destination: data.destination,
         startDate: data.start_date,
         endDate: data.end_date,
-        type: (data.trip_type || 'consumer') as 'consumer' | 'pro' | 'event'
+        type: (data.trip_type || 'consumer') as 'consumer' | 'pro' | 'event',
       };
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -259,20 +288,22 @@ export class TripContextAggregator {
         destination: 'Unknown',
         startDate: '',
         endDate: '',
-        type: 'consumer' as const
+        type: 'consumer' as const,
       };
     }
   }
 
   private static async fetchCollaborators(tripId: string) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = (await supabase
         .from('trip_members')
-        .select(`
+        .select(
+          `
           user_id,
           role
-        `)
-        .eq('trip_id', tripId) as any;
+        `,
+        )
+        .eq('trip_id', tripId)) as any;
 
       if (error) throw error;
 
@@ -281,7 +312,7 @@ export class TripContextAggregator {
 
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles_public')
-        .select('user_id, display_name, first_name, last_name, email')
+        .select('user_id, display_name, first_name, last_name')
         .in('user_id', memberIds);
 
       if (profilesError) throw profilesError;
@@ -299,7 +330,7 @@ export class TripContextAggregator {
           id: m.user_id,
           name,
           role: m.role || 'participant',
-          email: profile?.email ?? null
+          email: null,
         };
       });
     } catch (error) {
@@ -312,22 +343,28 @@ export class TripContextAggregator {
 
   private static async fetchMessages(tripId: string) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = (await supabase
         .from('trip_chat_messages')
         .select('id, content, author_name, created_at, message_type')
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false })
-        .limit(50) as any;
+        .limit(50)) as any;
 
       if (error) throw error;
 
-      return data?.map((m: any) => ({
-        id: m.id,
-        content: m.content,
-        authorName: m.author_name,
-        timestamp: m.created_at,
-        type: (m.message_type === 'broadcast' ? 'broadcast' : 'message') as 'broadcast' | 'message'
-      })).reverse() || [];
+      return (
+        data
+          ?.map((m: any) => ({
+            id: m.id,
+            content: m.content,
+            authorName: m.author_name,
+            timestamp: m.created_at,
+            type: (m.message_type === 'broadcast' ? 'broadcast' : 'message') as
+              | 'broadcast'
+              | 'message',
+          }))
+          .reverse() || []
+      );
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching messages:', error);
@@ -346,14 +383,16 @@ export class TripContextAggregator {
 
       if (error) throw error;
 
-      return data?.map(e => ({
-        id: e.id,
-        title: e.title,
-        startTime: e.start_time,
-        endTime: e.end_time,
-        location: e.location,
-        description: e.description
-      })) || [];
+      return (
+        data?.map(e => ({
+          id: e.id,
+          title: e.title,
+          startTime: e.start_time,
+          endTime: e.end_time,
+          location: e.location,
+          description: e.description,
+        })) || []
+      );
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching calendar:', error);
@@ -364,20 +403,22 @@ export class TripContextAggregator {
 
   private static async fetchTasks(tripId: string) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = (await supabase
         .from('trip_tasks')
         .select('id, content, assignee_id, due_date, is_complete, profiles:assignee_id(full_name)')
-        .eq('trip_id', tripId) as any;
+        .eq('trip_id', tripId)) as any;
 
       if (error) throw error;
 
-      return data?.map((t: any) => ({
-        id: t.id,
-        content: t.content,
-        assignee: t.profiles?.full_name,
-        dueDate: t.due_date,
-        isComplete: t.is_complete
-      })) || [];
+      return (
+        data?.map((t: any) => ({
+          id: t.id,
+          content: t.content,
+          assignee: t.profiles?.full_name,
+          dueDate: t.due_date,
+          isComplete: t.is_complete,
+        })) || []
+      );
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching tasks:', error);
@@ -388,21 +429,25 @@ export class TripContextAggregator {
 
   private static async fetchPayments(tripId: string) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = (await supabase
         .from('trip_payment_messages')
-        .select('id, description, amount, created_by, split_participants, is_settled, profiles:created_by(full_name)')
-        .eq('trip_id', tripId) as any;
+        .select(
+          'id, description, amount, created_by, split_participants, is_settled, profiles:created_by(full_name)',
+        )
+        .eq('trip_id', tripId)) as any;
 
       if (error) throw error;
 
-      return data?.map((p: any) => ({
-        id: p.id,
-        description: p.description,
-        amount: p.amount,
-        paidBy: p.profiles?.full_name || 'Unknown',
-        participants: p.split_participants as string[],
-        isSettled: p.is_settled
-      })) || [];
+      return (
+        data?.map((p: any) => ({
+          id: p.id,
+          description: p.description,
+          amount: p.amount,
+          paidBy: p.profiles?.full_name || 'Unknown',
+          participants: p.split_participants as string[],
+          isSettled: p.is_settled,
+        })) || []
+      );
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching payments:', error);
@@ -413,19 +458,21 @@ export class TripContextAggregator {
 
   private static async fetchPolls(tripId: string) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = (await supabase
         .from('trip_polls')
         .select('id, question, options, status')
-        .eq('trip_id', tripId) as any;
+        .eq('trip_id', tripId)) as any;
 
       if (error) throw error;
 
-      return data?.map((p: any) => ({
-        id: p.id,
-        question: p.question,
-        options: p.options as Array<{ text: string; votes: number }>,
-        status: p.status as 'active' | 'closed'
-      })) || [];
+      return (
+        data?.map((p: any) => ({
+          id: p.id,
+          question: p.question,
+          options: p.options as Array<{ text: string; votes: number }>,
+          status: p.status as 'active' | 'closed',
+        })) || []
+      );
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching polls:', error);
@@ -451,7 +498,9 @@ export class TripContextAggregator {
 
       // Get user's personal accommodation
       let userAccommodation;
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         const { data: accommodation } = await supabase
           .from('user_accommodations')
@@ -465,23 +514,26 @@ export class TripContextAggregator {
             label: accommodation.accommodation_name,
             address: accommodation.address,
             lat: accommodation.latitude,
-            lng: accommodation.longitude
+            lng: accommodation.longitude,
           };
         }
       }
 
       return {
-        basecamp: trip?.basecamp_name ? {
-          name: trip.basecamp_name,
-          address: trip.basecamp_address,
-          lat: places?.find((p: any) => p.name === trip.basecamp_name)?.lat,
-          lng: places?.find((p: any) => p.name === trip.basecamp_name)?.lng
-        } : undefined,
-        savedPlaces: places?.map((p: any) => ({
-          name: p.name,
-          address: p.address,
-          category: p.category
-        })) || []
+        basecamp: trip?.basecamp_name
+          ? {
+              name: trip.basecamp_name,
+              address: trip.basecamp_address,
+              lat: places?.find((p: any) => p.name === trip.basecamp_name)?.lat,
+              lng: places?.find((p: any) => p.name === trip.basecamp_name)?.lng,
+            }
+          : undefined,
+        savedPlaces:
+          places?.map((p: any) => ({
+            name: p.name,
+            address: p.address,
+            category: p.category,
+          })) || [],
       };
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -490,28 +542,32 @@ export class TripContextAggregator {
       return {
         basecamp: undefined,
         userAccommodation: undefined,
-        savedPlaces: []
+        savedPlaces: [],
       };
     }
   }
 
   private static async fetchFiles(tripId: string) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = (await supabase
         .from('trip_files')
-        .select('id, file_name, file_type, file_url, uploaded_by, created_at, profiles:uploaded_by(full_name)')
-        .eq('trip_id', tripId) as any;
+        .select(
+          'id, file_name, file_type, file_url, uploaded_by, created_at, profiles:uploaded_by(full_name)',
+        )
+        .eq('trip_id', tripId)) as any;
 
       if (error) throw error;
 
-      return data?.map((f: any) => ({
-        id: f.id,
-        name: f.file_name,
-        type: f.file_type,
-        url: f.file_url,
-        uploadedBy: f.profiles?.full_name || 'Unknown',
-        uploadedAt: f.created_at
-      })) || [];
+      return (
+        data?.map((f: any) => ({
+          id: f.id,
+          name: f.file_name,
+          type: f.file_type,
+          url: f.file_url,
+          uploadedBy: f.profiles?.full_name || 'Unknown',
+          uploadedAt: f.created_at,
+        })) || []
+      );
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching files:', error);
@@ -522,20 +578,22 @@ export class TripContextAggregator {
 
   private static async fetchLinks(tripId: string) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = (await supabase
         .from('trip_links')
         .select('id, url, title, category, added_by, profiles:added_by(full_name)')
-        .eq('trip_id', tripId) as any;
+        .eq('trip_id', tripId)) as any;
 
       if (error) throw error;
 
-      return data?.map((l: any) => ({
-        id: l.id,
-        url: l.url,
-        title: l.title,
-        category: l.category,
-        addedBy: l.profiles?.full_name || 'Unknown'
-      })) || [];
+      return (
+        data?.map((l: any) => ({
+          id: l.id,
+          url: l.url,
+          title: l.title,
+          category: l.category,
+          addedBy: l.profiles?.full_name || 'Unknown',
+        })) || []
+      );
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching links:', error);

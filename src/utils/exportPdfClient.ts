@@ -153,7 +153,6 @@ interface ExportData {
   }>;
   roster?: Array<{
     name: string;
-    email?: string;
     role?: string;
   }>;
   broadcasts?: Array<{
@@ -817,19 +816,18 @@ export async function generateClientPDF(
             doc.setFontSize(14);
             doc.setFont('NotoSans', 'bold');
             doc.setTextColor(0);
-            doc.text('Roster & Contacts', margin, yPos);
+            doc.text('Roster', margin, yPos);
             yPos += 20;
           }
 
           const rosterRows = chunk.map((member: any) => [
             sanitizePdfText(member.name || 'N/A'),
-            sanitizePdfText(member.email || 'Not shared'),
             sanitizePdfText(member.role || 'member'),
           ]);
 
           autoTable(doc, {
             startY: yPos,
-            head: [['Name', 'Email', 'Role']],
+            head: [['Name', 'Role']],
             body: rosterRows,
             theme: 'striped',
             headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
