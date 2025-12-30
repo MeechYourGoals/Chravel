@@ -5,6 +5,10 @@
  * Import from '@/native' for clean access to all native features.
  */
 
+// Despia environment detection & utilities
+export * from './despia';
+export * as despiaUtils from './despia';
+
 // Haptics - tactile feedback
 export * from './haptics';
 export * as haptics from './haptics';

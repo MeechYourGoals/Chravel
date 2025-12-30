@@ -1,8 +1,10 @@
 /**
  * RevenueCat Configuration
- * 
+ *
  * Maps RevenueCat entitlements to Chravel subscription tiers.
- * Ensures parity with Stripe pricing/naming.
+ * Ensures parity with Stripe pricing/naming from billing/config.ts.
+ *
+ * IMPORTANT: Pricing MUST match src/billing/config.ts (source of truth)
  */
 
 import type { SubscriptionTier } from '@/billing/types';
@@ -11,19 +13,24 @@ import type { SubscriptionTier } from '@/billing/types';
 export const REVENUECAT_ENABLED = import.meta.env.VITE_REVENUECAT_ENABLED === 'true';
 
 // Platform-specific API keys (set via env vars, never committed)
+// PLACEHOLDER: Set these in your environment variables
 export const REVENUECAT_IOS_API_KEY = import.meta.env.VITE_REVENUECAT_IOS_API_KEY || '';
 export const REVENUECAT_ANDROID_API_KEY = import.meta.env.VITE_REVENUECAT_ANDROID_API_KEY || '';
 
 /**
  * RevenueCat entitlement IDs - MUST match RevenueCat dashboard
  * These map to our Stripe product names for consistency
+ *
+ * PLACEHOLDER: Update these IDs after creating entitlements in RevenueCat dashboard
  */
 export const REVENUECAT_ENTITLEMENTS = {
   // Consumer tiers (match Stripe CONSUMER_PLANS)
   explorer: import.meta.env.VITE_REVENUECAT_EXPLORER_ENTITLEMENT_ID || 'chravel_explorer',
-  frequentChraveler: import.meta.env.VITE_REVENUECAT_FREQUENT_CHRAVELER_ENTITLEMENT_ID || 'chravel_frequent_chraveler',
-  
-  // Pro tiers (for future use)
+  frequentChraveler:
+    import.meta.env.VITE_REVENUECAT_FREQUENT_CHRAVELER_ENTITLEMENT_ID ||
+    'chravel_frequent_chraveler',
+
+  // Pro tiers (for future use - B2B uses web checkout, not RevenueCat)
   proStarter: 'chravel_pro_starter',
   proGrowth: 'chravel_pro_growth',
   proEnterprise: 'chravel_pro_enterprise',
@@ -32,15 +39,18 @@ export const REVENUECAT_ENTITLEMENTS = {
 /**
  * Product IDs for RevenueCat offerings
  * These should match the product identifiers in App Store Connect / Google Play Console
+ *
+ * PLACEHOLDER: Update after creating products in App Store Connect
+ * See: src/billing/config.ts for Apple product ID format (com.chravel.*.monthly/annual)
  */
 export const REVENUECAT_PRODUCTS = {
-  // Explorer tier - $4.99/month, $39.99/year (matches Stripe)
-  explorerMonthly: 'chravel_explorer_monthly',
-  explorerAnnual: 'chravel_explorer_annual',
-  
-  // Frequent Chraveler tier - $9.99/month, $79.99/year (matches Stripe)
-  frequentChravelerMonthly: 'chravel_frequent_chraveler_monthly',
-  frequentChravelerAnnual: 'chravel_frequent_chraveler_annual',
+  // Explorer tier - $4.99/month, $49.99/year (matches billing/config.ts)
+  explorerMonthly: 'com.chravel.explorer.monthly',
+  explorerAnnual: 'com.chravel.explorer.annual',
+
+  // Frequent Chraveler tier - $9.99/month, $99.99/year (matches billing/config.ts)
+  frequentChravelerMonthly: 'com.chravel.frequentchraveler.monthly',
+  frequentChravelerAnnual: 'com.chravel.frequentchraveler.annual',
 } as const;
 
 /**
@@ -58,7 +68,7 @@ export const ENTITLEMENT_TO_TIER: Record<string, SubscriptionTier> = {
  * Maps our internal tiers to RevenueCat entitlement IDs
  */
 export const TIER_TO_ENTITLEMENT: Partial<Record<SubscriptionTier, string>> = {
-  'explorer': REVENUECAT_ENTITLEMENTS.explorer,
+  explorer: REVENUECAT_ENTITLEMENTS.explorer,
   'frequent-chraveler': REVENUECAT_ENTITLEMENTS.frequentChraveler,
   'pro-starter': REVENUECAT_ENTITLEMENTS.proStarter,
   'pro-growth': REVENUECAT_ENTITLEMENTS.proGrowth,
@@ -66,17 +76,21 @@ export const TIER_TO_ENTITLEMENT: Partial<Record<SubscriptionTier, string>> = {
 };
 
 /**
- * Pricing display (for UI - matches Stripe pricing)
+ * Pricing display (for UI)
+ *
+ * IMPORTANT: These values MUST match src/billing/config.ts
+ * - Explorer: $4.99/month, $49.99/year
+ * - Frequent Chraveler: $9.99/month, $99.99/year
  */
 export const REVENUECAT_PRICING = {
   explorer: {
     monthly: 4.99,
-    annual: 39.99,
+    annual: 49.99, // Matches billing/config.ts
     currency: 'USD',
   },
   frequentChraveler: {
     monthly: 9.99,
-    annual: 79.99,
+    annual: 99.99, // Matches billing/config.ts
     currency: 'USD',
   },
 } as const;
@@ -101,7 +115,7 @@ export function getRevenueCatApiKey(platform: 'ios' | 'android' | 'web'): string
 export function isRevenueCatConfigured(platform: 'ios' | 'android' | 'web'): boolean {
   if (!REVENUECAT_ENABLED) return false;
   if (platform === 'web') return false;
-  
+
   const apiKey = getRevenueCatApiKey(platform);
   return !!apiKey && apiKey.length > 0;
 }
