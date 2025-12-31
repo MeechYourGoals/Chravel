@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
-import { AuthPromptBanner } from '../components/mobile/AuthPromptBanner';
 import { CreateTripModal } from '../components/CreateTripModal';
 import { UpgradeModal } from '../components/UpgradeModal';
 import { SettingsMenu } from '../components/SettingsMenu';
@@ -16,9 +15,7 @@ import { UnauthenticatedLanding } from '../components/UnauthenticatedLanding';
 import { FullPageLanding } from '../components/landing/FullPageLanding';
 import { DemoModeSelector } from '../components/DemoModeSelector';
 import { SearchOverlay } from '../components/home/SearchOverlay';
-import { HeaderAuthButton } from '../components/HeaderAuthButton';
 import { MobileSettingsSheet } from '../components/mobile/MobileSettingsSheet';
-import { MobileTopBar } from '../components/mobile/MobileTopBar';
 
 // New conversion components
 import { PersistentCTABar } from '../components/conversion/PersistentCTABar';
@@ -463,9 +460,6 @@ const Index = () => {
               />
             )}
 
-          {/* Mobile floating auth button */}
-          {isMobile && <MobileTopBar onSettingsPress={() => setIsMobileSettingsOpen(true)} />}
-
           <div className="max-w-[1500px] mx-auto">
             {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}
             <div className="w-full flex flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
@@ -612,9 +606,6 @@ const Index = () => {
               }}
             />
           )}
-
-          {/* Mobile floating auth button */}
-          {isMobile && <MobileTopBar onSettingsPress={() => setIsMobileSettingsOpen(true)} />}
 
           <div className="max-w-[1500px] mx-auto">
                 {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}

@@ -389,11 +389,9 @@ export const TripActionBar = ({
           {/* Settings */}
           <button
             onClick={() => {
-              if (requireAuth) {
-                onAuthRequired?.();
-              } else {
-                onSettings();
-              }
+              // Settings is the dedicated entry point for auth when logged out.
+              // Keep it accessible even when other actions are gated behind authentication.
+              onSettings();
             }}
             aria-label="Settings"
             className={cn(

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { LogIn, LogOut, User, Crown, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
 import { AuthModal } from './AuthModal';
 import { SettingsMenu } from './SettingsMenu';
 import {
@@ -15,10 +14,16 @@ import {
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback } from './ui/avatar';
 
-export const HeaderAuthButton = () => {
+interface HeaderAuthButtonProps {
+  /**
+   * When false, the signed-out "Log In" CTA is hidden.
+   * Useful for keeping app surfaces visually clean while still allowing auth via Settings.
+   */
+  showLoggedOut?: boolean;
+}
+
+export const HeaderAuthButton = ({ showLoggedOut = true }: HeaderAuthButtonProps) => {
   const { user, signOut } = useAuth();
-  // Reserved for navigation enhancements
-  const _navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsSection, setSettingsSection] = useState<string>('profile');
@@ -91,6 +96,10 @@ export const HeaderAuthButton = () => {
         />
       </>
     );
+  }
+
+  if (!showLoggedOut) {
+    return null;
   }
 
   return (
