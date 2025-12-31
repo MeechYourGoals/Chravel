@@ -11,11 +11,10 @@ export const DemoModeSelector = () => {
   const { demoView, setDemoView, isLoading } = useDemoMode();
   const { user } = useAuth();
 
-  // Hide for authenticated users except super admin
+  // Only show for super admin - hide for everyone else (authenticated or not)
   const isSuperAdmin = user?.email && SUPER_ADMIN_EMAILS.includes(user.email);
-  const shouldHide = user && !isSuperAdmin;
 
-  if (shouldHide) {
+  if (!isSuperAdmin) {
     return null;
   }
 
