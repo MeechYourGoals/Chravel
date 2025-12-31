@@ -148,9 +148,9 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
       {/* Charts */}
       <Tabs defaultValue="performance" className="space-y-4">
         <TabsList className="bg-gray-800 border-gray-700">
-          <TabsTrigger value="performance" className="data-[state=active]:bg-red-600">Performance</TabsTrigger>
-          <TabsTrigger value="engagement" className="data-[state=active]:bg-red-600">Engagement</TabsTrigger>
-          <TabsTrigger value="campaigns" className="data-[state=active]:bg-red-600">Top Campaigns</TabsTrigger>
+          <TabsTrigger value="performance" className="data-[state=active]:bg-yellow-600">Performance</TabsTrigger>
+          <TabsTrigger value="engagement" className="data-[state=active]:bg-yellow-600">Engagement</TabsTrigger>
+          <TabsTrigger value="campaigns" className="data-[state=active]:bg-yellow-600">Top Campaigns</TabsTrigger>
         </TabsList>
 
         <TabsContent value="performance" className="space-y-4">
@@ -249,7 +249,7 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
-              <BarChart3 className="h-8 w-8 mx-auto mb-2 text-red-500" />
+              <BarChart3 className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
               <p className="text-2xl font-bold text-white">{activeCampaigns.length}</p>
               <p className="text-sm text-gray-400">Active Campaigns</p>
             </div>

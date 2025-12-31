@@ -181,7 +181,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
                 <Button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 w-full sm:w-auto"
+                  className="bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700 w-full sm:w-auto"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {isSaving ? 'Saving...' : 'Save Changes'}
@@ -226,11 +226,11 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
                   <p className="text-sm text-gray-400">Website</p>
                   <p className="font-medium text-white">
                     {advertiser.website ? (
-                      <a 
-                        href={advertiser.website} 
-                        target="_blank" 
+                      <a
+                        href={advertiser.website}
+                        target="_blank"
                         rel="noopener noreferrer"
-                        className="text-red-400 hover:underline"
+                        className="text-yellow-400 hover:underline"
                       >
                         {advertiser.website}
                       </a>

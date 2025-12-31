@@ -226,8 +226,8 @@ export const CampaignEditor = ({ campaign, onClose, onSuccess }: CampaignEditorP
                           key={tag.value}
                           className={cn(
                             "flex items-center space-x-2 p-2 rounded border cursor-pointer transition-colors",
-                            isSelected 
-                              ? "bg-red-600/20 border-red-500" 
+                            isSelected
+                              ? "bg-yellow-600/20 border-yellow-500"
                               : isDisabled
                               ? "bg-gray-800/30 border-gray-700 opacity-50 cursor-not-allowed"
                               : "bg-gray-800/50 border-gray-700 hover:bg-gray-800"
@@ -274,7 +274,7 @@ export const CampaignEditor = ({ campaign, onClose, onSuccess }: CampaignEditorP
             <Button
               onClick={handleSave}
               disabled={isLoading || !formData.name || !formData.description}
-              className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
+              className="bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700"
             >
               {isLoading ? 'Saving...' : 'Save Changes'}
             </Button>

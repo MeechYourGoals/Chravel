@@ -238,7 +238,7 @@ export const AdvertiserDashboard = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
       </div>
     );
   }
@@ -274,7 +274,7 @@ export const AdvertiserDashboard = () => {
     <div className="min-h-screen bg-gray-900">
       {/* Preview Mode Banner */}
       {isPreviewMode && (
-        <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white py-2 px-4 text-center">
+        <div className="bg-gradient-to-r from-yellow-600 to-amber-600 text-white py-2 px-4 text-center">
           <p className="text-sm font-medium">
             {isDemoMode
               ? '🎭 Demo Mode Active - This is a preview of the Chravel Advertiser Hub'
@@ -324,21 +324,21 @@ export const AdvertiserDashboard = () => {
           <TabsList className="mb-8 bg-gray-800 border-gray-700">
             <TabsTrigger
               value="campaigns"
-              className="flex items-center gap-2 data-[state=active]:bg-red-600"
+              className="flex items-center gap-2 data-[state=active]:bg-yellow-600"
             >
               <Plus className="h-4 w-4" />
               Campaigns
             </TabsTrigger>
             <TabsTrigger
               value="analytics"
-              className="flex items-center gap-2 data-[state=active]:bg-red-600"
+              className="flex items-center gap-2 data-[state=active]:bg-yellow-600"
             >
               <BarChart3 className="h-4 w-4" />
               Analytics
             </TabsTrigger>
             <TabsTrigger
               value="settings"
-              className="flex items-center gap-2 data-[state=active]:bg-red-600"
+              className="flex items-center gap-2 data-[state=active]:bg-yellow-600"
             >
               <Settings className="h-4 w-4" />
               Settings
@@ -353,7 +353,7 @@ export const AdvertiserDashboard = () => {
               <div className="flex justify-center md:justify-start">
                 <Button
                   onClick={() => setShowCampaignCreator(true)}
-                  className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 w-full sm:w-auto"
+                  className="bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700 w-full sm:w-auto"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Campaign

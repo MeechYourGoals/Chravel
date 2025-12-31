@@ -314,7 +314,7 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
                   {formData.tags.map((tag, index) => (
                     <Badge
                       key={index}
-                      className="bg-red-600/20 border-red-500 text-white flex items-center gap-1 px-3 py-1"
+                      className="bg-yellow-600/20 border-yellow-500 text-white flex items-center gap-1 px-3 py-1"
                     >
                       {tag}
                       <button
@@ -325,7 +325,7 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
                             tags: formData.tags.filter((_, i) => i !== index),
                           });
                         }}
-                        className="ml-1 hover:text-red-300"
+                        className="ml-1 hover:text-yellow-300"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -498,7 +498,7 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
                     className={cn(
                       'p-4 rounded-lg border-2 text-left transition-all',
                       formData.duration === option.value
-                        ? 'border-red-500 bg-red-600/10'
+                        ? 'border-yellow-500 bg-yellow-600/10'
                         : 'border-gray-600 hover:border-gray-500 bg-gray-800/50',
                     )}
                   >
