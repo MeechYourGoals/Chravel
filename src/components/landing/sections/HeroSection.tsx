@@ -30,9 +30,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         </Button>
       </div>
 
-      {/* Brand Name - Centered, with top padding to clear floating button */}
-      <div className="w-full flex items-center justify-center px-2 md:px-4 mb-6 md:mb-8 pt-16 sm:pt-12">
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight animate-fade-in text-center w-full">
+      {/* Brand Name - Centered, with padding to clear floating button (vertical + horizontal) */}
+      <div className="w-full flex items-center justify-center px-2 md:px-4 mb-6 md:mb-8 pt-24 sm:pt-16 pr-36 sm:pr-4">
+        <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight animate-fade-in text-center w-full">
           ChravelApp
         </h1>
       </div>
