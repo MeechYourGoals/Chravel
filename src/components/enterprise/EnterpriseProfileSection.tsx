@@ -1,8 +1,13 @@
 
 import React from 'react';
-import { User, Camera, Upload } from 'lucide-react';
+import { User, Camera, Upload, LogOut } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
+import { Button } from '../ui/button';
 
-export const EnterpriseProfileSection = () => (
+export const EnterpriseProfileSection = () => {
+  const { user, signOut } = useAuth();
+  
+  return (
   <div className="space-y-6">
     <div className="flex items-center gap-3 mb-6">
       <div className="w-12 h-12 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-xl flex items-center justify-center">
@@ -87,5 +92,21 @@ export const EnterpriseProfileSection = () => (
         Save Changes
       </button>
     </div>
+
+    {/* Sign Out */}
+    {user && (
+      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-lg font-semibold text-white">Sign Out</h4>
+            <p className="text-sm text-gray-400">Sign out of your account</p>
+          </div>
+          <Button onClick={signOut} variant="destructive" size="sm">
+            <LogOut className="h-4 w-4 mr-1" /> Sign Out
+          </Button>
+        </div>
+      </div>
+    )}
   </div>
-);
+  );
+};

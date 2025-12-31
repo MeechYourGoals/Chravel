@@ -1,13 +1,14 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Camera, Upload, Loader2, Phone } from 'lucide-react';
+import { User, Camera, Upload, Loader2, Phone, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
 import { getConsistentAvatar } from '../../utils/avatarUtils';
+import { Button } from '../ui/button';
 
 export const ConsumerProfileSection = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, signOut } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -276,6 +277,21 @@ export const ConsumerProfileSection = () => {
           </button>
         </div>
       </div>
+
+      {/* Sign Out */}
+      {user && (
+        <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-base font-semibold text-white">Sign Out</h4>
+              <p className="text-sm text-gray-400">Sign out of your account</p>
+            </div>
+            <Button onClick={signOut} variant="destructive" size="sm">
+              <LogOut className="h-4 w-4 mr-1" /> Sign Out
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
