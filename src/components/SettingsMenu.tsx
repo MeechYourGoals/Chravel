@@ -10,6 +10,7 @@ import { ProUpgradeModal } from './ProUpgradeModal';
 import { EnterpriseSettings } from './EnterpriseSettings';
 import { ConsumerSettings } from './ConsumerSettings';
 import { EventsSettings } from './EventsSettings';
+import { ErrorBoundary } from './ErrorBoundary';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { AuthModal } from './AuthModal';
 import { useDemoMode } from '../hooks/useDemoMode';
@@ -37,7 +38,6 @@ export const SettingsMenu = ({
   const isMobile = useIsMobile();
   const [showProModal, setShowProModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [_activeSection, _setActiveSection] = useState('profile');
   const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events'>(
     initialSettingsType || 'consumer',
   );
@@ -112,39 +112,14 @@ export const SettingsMenu = ({
     );
   }
 
-  // Mock organization data - would come from your auth context
+  // Mock organization data - would come from your auth/org context.
+  // Note: Settings should never hard-crash if org data is missing; we provide safe fallbacks.
   const userOrganization = {
     id: 'org-123',
     name: 'Acme Entertainment Group',
     role: 'owner',
     hasProAccess: true,
   };
-
-  // If enterprise section is active and user has pro access, show full enterprise settings
-  if (activeSection === 'enterprise' && userOrganization?.hasProAccess) {
-    return (
-      <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-0 md:p-4"
-        onClick={onClose}
-      >
-        <div
-          className="w-full h-full md:h-[85vh] md:max-w-6xl bg-black/90 md:bg-white/10 md:backdrop-blur-md md:border md:border-white/20 md:rounded-2xl shadow-2xl flex flex-col animate-fade-in overflow-hidden"
-          onClick={e => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between p-4 md:p-6 border-b border-white/20">
-            <h2 className="text-xl font-semibold text-white">Enterprise Settings</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
-            >
-              <X size={24} />
-            </button>
-          </div>
-          <EnterpriseSettings organizationId={userOrganization.id} currentUserId={currentUser.id} />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -255,23 +230,29 @@ export const SettingsMenu = ({
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {settingsType === 'consumer' ? (
               <div className="flex-1 min-h-0">
-                <ConsumerSettings
-                  currentUserId={currentUser.id}
-                  initialSection={initialConsumerSection}
-                  onClose={onClose}
-                  onTripStateChange={onTripStateChange}
-                />
+                <ErrorBoundary compact>
+                  <ConsumerSettings
+                    currentUserId={currentUser.id}
+                    initialSection={initialConsumerSection}
+                    onClose={onClose}
+                    onTripStateChange={onTripStateChange}
+                  />
+                </ErrorBoundary>
               </div>
             ) : settingsType === 'enterprise' ? (
               <div className="flex-1 min-h-0">
-                <EnterpriseSettings
-                  organizationId={userOrganization?.id || 'default-org'}
-                  currentUserId={currentUser.id}
-                />
+                <ErrorBoundary compact>
+                  <EnterpriseSettings
+                    organizationId={userOrganization?.id || 'default-org'}
+                    currentUserId={currentUser.id}
+                  />
+                </ErrorBoundary>
               </div>
             ) : settingsType === 'events' ? (
               <div className="flex-1 min-h-0">
-                <EventsSettings currentUserId={currentUser?.id || ''} />
+                <ErrorBoundary compact>
+                  <EventsSettings currentUserId={currentUser?.id || ''} />
+                </ErrorBoundary>
               </div>
             ) : null}
           </div>
