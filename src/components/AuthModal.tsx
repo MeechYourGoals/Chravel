@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -23,39 +23,14 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [resetEmailSent, setResetEmailSent] = useState(false);
-  // Track when we're waiting for auth state to update after successful sign-in
-  const [awaitingAuth, setAwaitingAuth] = useState(false);
-  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Close modal when user becomes authenticated after sign-in attempt
+  // Auto-close modal when user becomes authenticated
+  // This handles cases where auth state updates after modal render
   useEffect(() => {
-    if (awaitingAuth && user) {
-      // User is now authenticated, close the modal
-      if (closeTimeoutRef.current) {
-        clearTimeout(closeTimeoutRef.current);
-      }
-      setAwaitingAuth(false);
+    if (isOpen && user) {
       onClose();
     }
-  }, [awaitingAuth, user, onClose]);
-
-  // Safety timeout: if auth takes too long, still close the modal
-  useEffect(() => {
-    if (awaitingAuth) {
-      closeTimeoutRef.current = setTimeout(() => {
-        // Force close after 5 seconds even if user state hasn't updated
-        // (defensive measure - auth state listener should have fired by now)
-        setAwaitingAuth(false);
-        onClose();
-      }, 5000);
-
-      return () => {
-        if (closeTimeoutRef.current) {
-          clearTimeout(closeTimeoutRef.current);
-        }
-      };
-    }
-  }, [awaitingAuth, onClose]);
+  }, [isOpen, user, onClose]);
 
   if (!isOpen) return null;
 
@@ -81,9 +56,9 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
         return; // Keep modal open to show success message (sign-up confirmation)
       }
 
-      // Sign-in successful - wait for auth state to update before closing
-      // This prevents the "nothing happens" issue where modal closes before user state updates
-      setAwaitingAuth(true);
+      // Sign-in successful - close modal immediately
+      // The useEffect will also close if user state updates while modal is open
+      onClose();
     } catch (error) {
       console.error('Auth error:', error);
       setError('An unexpected error occurred');
@@ -267,16 +242,10 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
 
       <button
         type="submit"
-        disabled={isLoading || awaitingAuth}
+        disabled={isLoading}
         className="w-full bg-gradient-to-r from-glass-orange to-glass-yellow text-white font-medium py-3 rounded-xl hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 min-h-[44px]"
       >
-        {awaitingAuth
-          ? 'Signing you in...'
-          : isLoading
-            ? 'Loading...'
-            : mode === 'signup'
-              ? 'Create Account'
-              : 'Sign In'}
+        {isLoading ? 'Loading...' : mode === 'signup' ? 'Create Account' : 'Sign In'}
       </button>
     </form>
   );
