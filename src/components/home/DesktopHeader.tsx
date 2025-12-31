@@ -11,10 +11,10 @@ interface DesktopHeaderProps {
   ) => void;
 }
 
-export const DesktopHeader = ({ viewMode }: DesktopHeaderProps) => {
+export const DesktopHeader = (_props: DesktopHeaderProps) => {
   return (
     <div className="fixed top-4 right-4 z-50">
-      <HeaderAuthButton />
+      <HeaderAuthButton showLoggedOut={false} />
     </div>
   );
 };
