@@ -4,17 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { 
-  X, 
-  Upload, 
+import {
+  X,
+  Upload,
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
@@ -23,9 +21,15 @@ import {
   Tag,
   Users,
   DollarSign,
-  Check
+  Check,
 } from 'lucide-react';
-import { CampaignFormData, CampaignImage, MAX_CAMPAIGN_TAGS, MAX_CAMPAIGN_IMAGES, CAMPAIGN_TAG_CATEGORIES } from '@/types/advertiser';
+import {
+  CampaignFormData,
+  CampaignImage,
+  MAX_CAMPAIGN_TAGS,
+  MAX_CAMPAIGN_IMAGES,
+  CAMPAIGN_DURATION_OPTIONS,
+} from '@/types/advertiser';
 import { AdvertiserService } from '@/services/advertiserService';
 import { useToast } from '@/hooks/use-toast';
 import { CampaignPreview } from './CampaignPreview';
@@ -49,7 +53,7 @@ const INTERESTS = [
   'beach',
   'cultural',
   'luxury',
-  'budget_travel'
+  'budget_travel',
 ];
 
 const TRIP_TYPES = ['leisure', 'business', 'group', 'family', 'solo', 'romantic'];
@@ -59,7 +63,8 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  
+  const [customTagInput, setCustomTagInput] = useState('');
+
   const [formData, setFormData] = useState<CampaignFormData>({
     name: '',
     description: '',
@@ -68,12 +73,14 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
     destination_info: {},
     tags: [],
     status: 'draft',
+    website_url: '',
+    duration: '1_month',
     targeting: {
       genders: ['all'],
       interests: [],
       locations: [],
-      trip_types: []
-    }
+      trip_types: [],
+    },
   });
 
   const steps = [
@@ -81,7 +88,7 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
     { id: 2, title: 'Images & Media', icon: ImageIcon },
     { id: 3, title: 'Targeting', icon: Users },
     { id: 4, title: 'Schedule & Budget', icon: DollarSign },
-    { id: 5, title: 'Review & Launch', icon: Check }
+    { id: 5, title: 'Review & Launch', icon: Check },
   ];
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,9 +99,9 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
     const remainingSlots = MAX_CAMPAIGN_IMAGES - formData.images.length;
     if (files.length > remainingSlots) {
       toast({
-        title: "Too Many Images",
+        title: 'Too Many Images',
         description: `You can only upload ${remainingSlots} more image(s). Maximum is ${MAX_CAMPAIGN_IMAGES}.`,
-        variant: "destructive"
+        variant: 'destructive',
       });
       e.target.value = ''; // Reset input
       return;
@@ -106,22 +113,22 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const url = await AdvertiserService.uploadCampaignImage(file);
-      
+
       if (url) {
         newImages.push({
           url,
           alt: file.name,
-          order: formData.images.length + i
+          order: formData.images.length + i,
         });
       }
     }
 
     setFormData({
       ...formData,
-      images: [...formData.images, ...newImages]
+      images: [...formData.images, ...newImages],
     });
     setUploadingImage(false);
-    
+
     // Reset the input so the same file can be selected again
     e.target.value = '';
   };
@@ -135,20 +142,20 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
     try {
       setIsLoading(true);
       const campaign = await AdvertiserService.createCampaign(formData);
-      
+
       if (campaign) {
         toast({
-          title: "Campaign Created!",
-          description: `"${campaign.name}" has been created successfully`
+          title: 'Campaign Created!',
+          description: `"${campaign.name}" has been created successfully`,
         });
         onSuccess();
       }
     } catch (error) {
       console.error('Error creating campaign:', error);
       toast({
-        title: "Error",
-        description: "Failed to create campaign. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to create campaign. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -165,7 +172,7 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Summer Beach Getaway Special"
                 className="mt-1"
               />
@@ -176,7 +183,7 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Describe your offer and what makes it special..."
                 className="mt-1"
                 rows={4}
@@ -188,7 +195,7 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
               <Input
                 id="discount"
                 value={formData.discount_details || ''}
-                onChange={(e) => setFormData({ ...formData, discount_details: e.target.value })}
+                onChange={e => setFormData({ ...formData, discount_details: e.target.value })}
                 placeholder="20% off first booking"
                 className="mt-1"
               />
@@ -202,21 +209,40 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
                   <Input
                     placeholder="City"
                     value={formData.destination_info?.city || ''}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      destination_info: { ...formData.destination_info, city: e.target.value }
-                    })}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        destination_info: { ...formData.destination_info, city: e.target.value },
+                      })
+                    }
                   />
                   <Input
                     placeholder="Country"
                     value={formData.destination_info?.country || ''}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      destination_info: { ...formData.destination_info, country: e.target.value }
-                    })}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        destination_info: { ...formData.destination_info, country: e.target.value },
+                      })
+                    }
                   />
                 </div>
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="website_url">Website URL (for Book Now button)</Label>
+              <Input
+                id="website_url"
+                type="url"
+                value={formData.website_url || ''}
+                onChange={e => setFormData({ ...formData, website_url: e.target.value })}
+                placeholder="https://www.yourcompany.com/booking"
+                className="mt-1"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                This URL will be used for the "Book Now" button on your campaign card
+              </p>
             </div>
           </div>
         );
@@ -227,9 +253,10 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
             <div>
               <Label>Campaign Images</Label>
               <p className="text-sm text-gray-500 mb-2">
-                Upload carousel images for your campaign ({formData.images.length}/{MAX_CAMPAIGN_IMAGES})
+                Upload carousel images for your campaign ({formData.images.length}/
+                {MAX_CAMPAIGN_IMAGES})
               </p>
-              
+
               <div className="grid grid-cols-2 gap-4 mb-4">
                 {formData.images.map((image, index) => (
                   <div key={index} className="relative group">
@@ -266,7 +293,9 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
                   >
                     <Upload className="h-8 w-8 text-gray-400 mb-2" />
                     <span className="text-sm text-gray-600">
-                      {uploadingImage ? 'Uploading...' : `Click to upload (${MAX_CAMPAIGN_IMAGES - formData.images.length} slots remaining)`}
+                      {uploadingImage
+                        ? 'Uploading...'
+                        : `Click to upload (${MAX_CAMPAIGN_IMAGES - formData.images.length} slots remaining)`}
                     </span>
                   </label>
                 </div>
@@ -274,59 +303,83 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
             </div>
 
             <div>
-              <Label>Campaign Tags (Select up to {MAX_CAMPAIGN_TAGS})</Label>
+              <Label>Campaign Tags (Up to {MAX_CAMPAIGN_TAGS} custom tags)</Label>
               <p className="text-sm text-gray-400 mb-3">
-                Choose tags that best describe your campaign
+                Add custom tags that best describe your campaign (e.g., Luxury, Beachfront, Spa)
               </p>
-              
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {Object.entries(CAMPAIGN_TAG_CATEGORIES).map(([categoryKey, tags]) => (
-                  <div key={categoryKey}>
-                    <h4 className="text-sm font-semibold text-gray-300 mb-2 capitalize">
-                      {categoryKey.replace(/([A-Z])/g, ' $1').trim()}
-                    </h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      {tags.map((tag) => {
-                        const isSelected = formData.tags.includes(tag.value);
-                        const isDisabled = !isSelected && formData.tags.length >= MAX_CAMPAIGN_TAGS;
-                        
-                        return (
-                          <label
-                            key={tag.value}
-                            className={cn(
-                              "flex items-center space-x-2 p-2 rounded border cursor-pointer transition-colors",
-                              isSelected 
-                                ? "bg-red-600/20 border-red-500" 
-                                : isDisabled
-                                ? "bg-gray-800/30 border-gray-700 opacity-50 cursor-not-allowed"
-                                : "bg-gray-800/50 border-gray-700 hover:bg-gray-800"
-                            )}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              disabled={isDisabled}
-                              onChange={(e) => {
-                                setFormData({
-                                  ...formData,
-                                  tags: e.target.checked
-                                    ? [...formData.tags, tag.value]
-                                    : formData.tags.filter(t => t !== tag.value)
-                                });
-                              }}
-                              className="rounded border-gray-600"
-                            />
-                            <span className="text-sm text-gray-300">{tag.label}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
+
+              {/* Current Tags Display */}
+              {formData.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {formData.tags.map((tag, index) => (
+                    <Badge
+                      key={index}
+                      className="bg-red-600/20 border-red-500 text-white flex items-center gap-1 px-3 py-1"
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            tags: formData.tags.filter((_, i) => i !== index),
+                          });
+                        }}
+                        className="ml-1 hover:text-red-300"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* Custom Tag Input */}
+              {formData.tags.length < MAX_CAMPAIGN_TAGS && (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter a custom tag (e.g., Beachfront)"
+                    value={customTagInput}
+                    onChange={e => setCustomTagInput(e.target.value)}
+                    onKeyPress={e => {
+                      if (e.key === 'Enter' && customTagInput.trim()) {
+                        e.preventDefault();
+                        const newTag = customTagInput.trim();
+                        if (!formData.tags.includes(newTag)) {
+                          setFormData({
+                            ...formData,
+                            tags: [...formData.tags, newTag],
+                          });
+                          setCustomTagInput('');
+                        }
+                      }
+                    }}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (customTagInput.trim()) {
+                        const newTag = customTagInput.trim();
+                        if (!formData.tags.includes(newTag)) {
+                          setFormData({
+                            ...formData,
+                            tags: [...formData.tags, newTag],
+                          });
+                          setCustomTagInput('');
+                        }
+                      }
+                    }}
+                    disabled={!customTagInput.trim() || formData.tags.length >= MAX_CAMPAIGN_TAGS}
+                  >
+                    Add Tag
+                  </Button>
+                </div>
+              )}
+
               <div className="mt-2 text-sm text-gray-400">
-                {formData.tags.length} / {MAX_CAMPAIGN_TAGS} tags selected
+                {formData.tags.length} / {MAX_CAMPAIGN_TAGS} tags added
               </div>
             </div>
           </div>
@@ -342,10 +395,12 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
                   type="number"
                   placeholder="Min"
                   value={formData.targeting.age_min || ''}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    targeting: { ...formData.targeting, age_min: parseInt(e.target.value) }
-                  })}
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      targeting: { ...formData.targeting, age_min: parseInt(e.target.value) },
+                    })
+                  }
                   className="w-20"
                 />
                 <span>to</span>
@@ -353,10 +408,12 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
                   type="number"
                   placeholder="Max"
                   value={formData.targeting.age_max || ''}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    targeting: { ...formData.targeting, age_max: parseInt(e.target.value) }
-                  })}
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      targeting: { ...formData.targeting, age_max: parseInt(e.target.value) },
+                    })
+                  }
                   className="w-20"
                 />
               </div>
@@ -365,18 +422,18 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
             <div>
               <Label>Interests</Label>
               <div className="grid grid-cols-2 gap-2 mt-2">
-                {INTERESTS.map((interest) => (
+                {INTERESTS.map(interest => (
                   <label key={interest} className="flex items-center space-x-2">
                     <input
                       type="checkbox"
                       checked={formData.targeting.interests.includes(interest)}
-                      onChange={(e) => {
+                      onChange={e => {
                         const interests = e.target.checked
                           ? [...formData.targeting.interests, interest]
                           : formData.targeting.interests.filter(i => i !== interest);
                         setFormData({
                           ...formData,
-                          targeting: { ...formData.targeting, interests }
+                          targeting: { ...formData.targeting, interests },
                         });
                       }}
                       className="rounded border-gray-300"
@@ -390,7 +447,7 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
             <div>
               <Label>Trip Types</Label>
               <div className="flex flex-wrap gap-2 mt-2">
-                {TRIP_TYPES.map((type) => (
+                {TRIP_TYPES.map(type => (
                   <Badge
                     key={type}
                     variant={formData.targeting.trip_types.includes(type) ? 'default' : 'outline'}
@@ -401,7 +458,7 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
                         : [...formData.targeting.trip_types, type];
                       setFormData({
                         ...formData,
-                        targeting: { ...formData.targeting, trip_types }
+                        targeting: { ...formData.targeting, trip_types },
                       });
                     }}
                   >
@@ -416,79 +473,116 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
       case 4:
         return (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Start Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal mt-1",
-                        !formData.start_date && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.start_date ? format(new Date(formData.start_date), "PPP") : "Select date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={formData.start_date ? new Date(formData.start_date) : undefined}
-                      onSelect={(date) => setFormData({
+            {/* Campaign Duration Selection */}
+            <div>
+              <Label>Campaign Duration</Label>
+              <p className="text-sm text-gray-400 mb-3">
+                Select how long you want your campaign to run
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {CAMPAIGN_DURATION_OPTIONS.map(option => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      const startDate = new Date();
+                      const endDate = new Date();
+                      endDate.setDate(endDate.getDate() + option.days);
+                      setFormData({
                         ...formData,
-                        start_date: date?.toISOString()
-                      })}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div>
-                <Label>End Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal mt-1",
-                        !formData.end_date && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.end_date ? format(new Date(formData.end_date), "PPP") : "Select date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={formData.end_date ? new Date(formData.end_date) : undefined}
-                      onSelect={(date) => setFormData({
-                        ...formData,
-                        end_date: date?.toISOString()
-                      })}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                        duration: option.value,
+                        start_date: startDate.toISOString(),
+                        end_date: endDate.toISOString(),
+                      });
+                    }}
+                    className={cn(
+                      'p-4 rounded-lg border-2 text-left transition-all',
+                      formData.duration === option.value
+                        ? 'border-red-500 bg-red-600/10'
+                        : 'border-gray-600 hover:border-gray-500 bg-gray-800/50',
+                    )}
+                  >
+                    <span className="font-semibold text-white">{option.label}</span>
+                    <p className="text-sm text-gray-400 mt-1">{option.days} days</p>
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <Label>Launch Campaign Immediately</Label>
-                <p className="text-sm text-gray-500">
-                  Set campaign status to active
+            {/* Start Date Selection */}
+            <div>
+              <Label>Start Date</Label>
+              <p className="text-sm text-gray-400 mb-2">When should your campaign begin?</p>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      'w-full justify-start text-left font-normal',
+                      !formData.start_date && 'text-muted-foreground',
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.start_date
+                      ? format(new Date(formData.start_date), 'PPP')
+                      : 'Select start date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={formData.start_date ? new Date(formData.start_date) : undefined}
+                    onSelect={date => {
+                      if (date && formData.duration) {
+                        const durationOption = CAMPAIGN_DURATION_OPTIONS.find(
+                          opt => opt.value === formData.duration,
+                        );
+                        const endDate = new Date(date);
+                        endDate.setDate(endDate.getDate() + (durationOption?.days || 30));
+                        setFormData({
+                          ...formData,
+                          start_date: date.toISOString(),
+                          end_date: endDate.toISOString(),
+                        });
+                      } else {
+                        setFormData({
+                          ...formData,
+                          start_date: date?.toISOString(),
+                        });
+                      }
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* End Date Display */}
+            {formData.start_date && formData.end_date && (
+              <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm text-gray-400">Campaign will run until:</span>
+                </div>
+                <p className="font-semibold text-white mt-1">
+                  {format(new Date(formData.end_date), 'PPPP')}
                 </p>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+              <div>
+                <Label className="text-white">Launch Campaign Immediately</Label>
+                <p className="text-sm text-gray-400">Set campaign status to active on start date</p>
               </div>
               <Switch
                 checked={formData.status === 'active'}
-                onCheckedChange={(checked) => setFormData({
-                  ...formData,
-                  status: checked ? 'active' : 'draft'
-                })}
+                onCheckedChange={checked =>
+                  setFormData({
+                    ...formData,
+                    status: checked ? 'active' : 'draft',
+                  })
+                }
               />
             </div>
           </div>
@@ -498,7 +592,7 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Review Your Campaign</h3>
-            
+
             {/* Live Preview */}
             <div>
               <p className="text-sm text-gray-500 mb-2">Preview (as it will appear to users):</p>
@@ -521,12 +615,12 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
             <div>
               <p className="text-sm text-gray-500 mb-2">Targeting</p>
               <div className="flex flex-wrap gap-2">
-                {formData.targeting.interests.map((interest) => (
+                {formData.targeting.interests.map(interest => (
                   <Badge key={interest} variant="outline">
                     {interest.replace('_', ' ')}
                   </Badge>
                 ))}
-                {formData.targeting.trip_types.map((type) => (
+                {formData.targeting.trip_types.map(type => (
                   <Badge key={type} variant="outline">
                     {type}
                   </Badge>
@@ -536,10 +630,9 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
 
             <div className="p-4 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-800">
-                {formData.status === 'active' 
+                {formData.status === 'active'
                   ? '✅ Your campaign will go live immediately after creation'
-                  : '📝 Your campaign will be saved as a draft'
-                }
+                  : '📝 Your campaign will be saved as a draft'}
               </p>
             </div>
           </div>
@@ -582,10 +675,10 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
               <div key={step.id} className="flex items-center">
                 <div
                   className={cn(
-                    "flex items-center justify-center w-10 h-10 rounded-full",
+                    'flex items-center justify-center w-10 h-10 rounded-full',
                     currentStep >= step.id
-                      ? "bg-purple-600 text-white"
-                      : "bg-gray-200 text-gray-400"
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-200 text-gray-400',
                   )}
                 >
                   <Icon className="h-5 w-5" />
@@ -593,8 +686,8 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
                 {index < steps.length - 1 && (
                   <div
                     className={cn(
-                      "w-16 h-1 mx-2",
-                      currentStep > step.id ? "bg-purple-600" : "bg-gray-200"
+                      'w-16 h-1 mx-2',
+                      currentStep > step.id ? 'bg-purple-600' : 'bg-gray-200',
                     )}
                   />
                 )}
@@ -604,9 +697,7 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
         </div>
 
         {/* Step Content */}
-        <div className="min-h-[300px]">
-          {renderStep()}
-        </div>
+        <div className="min-h-[300px]">{renderStep()}</div>
 
         {/* Navigation */}
         <div className="flex justify-between mt-6">
@@ -620,18 +711,12 @@ export const CampaignCreator = ({ onClose, onSuccess }: CampaignCreatorProps) =>
           </Button>
 
           {currentStep < 5 ? (
-            <Button
-              onClick={() => setCurrentStep(currentStep + 1)}
-              disabled={!canProceed()}
-            >
+            <Button onClick={() => setCurrentStep(currentStep + 1)} disabled={!canProceed()}>
               Next
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={isLoading || !canProceed()}
-            >
+            <Button onClick={handleSubmit} disabled={isLoading || !canProceed()}>
               {isLoading ? 'Creating...' : 'Create Campaign'}
             </Button>
           )}

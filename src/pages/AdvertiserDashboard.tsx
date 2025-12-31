@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, BarChart3, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,16 +12,21 @@ import { CampaignCreator } from '@/components/advertiser/CampaignCreator';
 import { CampaignAnalytics } from '@/components/advertiser/CampaignAnalytics';
 import { AdvertiserSettings } from '@/components/advertiser/AdvertiserSettings';
 import { useDemoModeStore } from '@/store/demoModeStore';
+import { useSuperAdmin } from '@/hooks/useSuperAdmin';
 
 export const AdvertiserDashboard = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const isDemoMode = useDemoModeStore((state) => state.isDemoMode);
+  const isDemoMode = useDemoModeStore(state => state.isDemoMode);
+  const { isSuperAdmin } = useSuperAdmin();
   const [advertiser, setAdvertiser] = useState<Advertiser | null>(null);
   const [campaigns, setCampaigns] = useState<CampaignWithTargeting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCampaignCreator, setShowCampaignCreator] = useState(false);
   const [selectedTab, setSelectedTab] = useState('campaigns');
+
+  // Super admin gets full demo functionality to showcase the feature
+  const isPreviewMode = isDemoMode || isSuperAdmin;
 
   // Demo mode mock data
   const mockAdvertiser: Advertiser = {
@@ -33,7 +37,7 @@ export const AdvertiserDashboard = () => {
     website: 'https://www.paradiseresorts.com',
     status: 'active',
     created_at: new Date('2024-01-15').toISOString(),
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   };
 
   const mockCampaigns: CampaignWithTargeting[] = [
@@ -41,15 +45,28 @@ export const AdvertiserDashboard = () => {
       id: 'demo-campaign-uber',
       advertiser_id: 'demo-advertiser-1',
       name: 'Uber - Premium Airport Rides',
-      description: 'Flat $10 off airport rides for Chravel users. Choose from Uber Comfort or Uber Black for luxury travel.',
+      description:
+        'Flat $10 off airport rides for Chravel users. Choose from Uber Comfort or Uber Black for luxury travel.',
       discount_details: '$10 off airport rides',
       images: [
-        { url: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800', alt: 'Airport terminal', order: 0 },
-        { url: 'https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=800', alt: 'Luxury car interior', order: 1 },
-        { url: 'https://images.unsplash.com/photo-1606768666853-403c90a981ad?w=800', alt: 'City skyline', order: 2 }
+        {
+          url: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800',
+          alt: 'Airport terminal',
+          order: 0,
+        },
+        {
+          url: 'https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=800',
+          alt: 'Luxury car interior',
+          order: 1,
+        },
+        {
+          url: 'https://images.unsplash.com/photo-1606768666853-403c90a981ad?w=800',
+          alt: 'City skyline',
+          order: 2,
+        },
       ],
       destination_info: {
-        location: 'Miami, FL'
+        location: 'Miami, FL',
       },
       tags: ['rideshare', 'airport-transfer', 'premium-service', 'city-travel'],
       status: 'active',
@@ -70,21 +87,30 @@ export const AdvertiserDashboard = () => {
         locations: ['United States', 'Canada'],
         trip_types: ['business', 'leisure', 'group'],
         created_at: new Date('2024-01-01').toISOString(),
-        updated_at: new Date('2024-01-01').toISOString()
-      }
+        updated_at: new Date('2024-01-01').toISOString(),
+      },
     },
     {
       id: 'demo-campaign-lyft',
       advertiser_id: 'demo-advertiser-1',
       name: 'Lyft - Reliable City Rides',
-      description: 'Safe, friendly rides when you need them. New user discount for Chravel members available citywide.',
+      description:
+        'Safe, friendly rides when you need them. New user discount for Chravel members available citywide.',
       discount_details: 'New user discount for Chravel',
       images: [
-        { url: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800', alt: 'City street view', order: 0 },
-        { url: 'https://images.unsplash.com/photo-1502489597346-dad15683d4c2?w=800', alt: 'Happy passenger', order: 1 }
+        {
+          url: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800',
+          alt: 'City street view',
+          order: 0,
+        },
+        {
+          url: 'https://images.unsplash.com/photo-1502489597346-dad15683d4c2?w=800',
+          alt: 'Happy passenger',
+          order: 1,
+        },
       ],
       destination_info: {
-        location: 'Major Cities Nationwide'
+        location: 'Major Cities Nationwide',
       },
       tags: ['rideshare', 'city-travel', 'new-user-offer', 'budget-friendly'],
       status: 'active',
@@ -105,22 +131,35 @@ export const AdvertiserDashboard = () => {
         locations: ['United States', 'Canada'],
         trip_types: ['leisure', 'group', 'solo'],
         created_at: new Date('2024-02-01').toISOString(),
-        updated_at: new Date('2024-02-01').toISOString()
-      }
+        updated_at: new Date('2024-02-01').toISOString(),
+      },
     },
     {
       id: 'demo-campaign-hotels',
       advertiser_id: 'demo-advertiser-1',
       name: 'Hotels.com - Compare & Save',
-      description: 'Compare hotel prices and earn rewards. Get one night free for every 10 nights booked.',
+      description:
+        'Compare hotel prices and earn rewards. Get one night free for every 10 nights booked.',
       discount_details: 'Collect 10 nights, get 1 free',
       images: [
-        { url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800', alt: 'Luxury hotel exterior', order: 0 },
-        { url: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800', alt: 'Hotel pool view', order: 1 },
-        { url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800', alt: 'Comfortable hotel room', order: 2 }
+        {
+          url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800',
+          alt: 'Luxury hotel exterior',
+          order: 0,
+        },
+        {
+          url: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800',
+          alt: 'Hotel pool view',
+          order: 1,
+        },
+        {
+          url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800',
+          alt: 'Comfortable hotel room',
+          order: 2,
+        },
       ],
       destination_info: {
-        location: 'Global Hotel Network'
+        location: 'Global Hotel Network',
       },
       tags: ['lodging', 'price-comparison', 'rewards-program', 'travel-booking'],
       status: 'active',
@@ -141,28 +180,29 @@ export const AdvertiserDashboard = () => {
         locations: ['United States', 'Canada', 'United Kingdom', 'Australia'],
         trip_types: ['leisure', 'business', 'family', 'romantic'],
         created_at: new Date('2024-01-15').toISOString(),
-        updated_at: new Date('2024-01-15').toISOString()
-      }
-    }
+        updated_at: new Date('2024-01-15').toISOString(),
+      },
+    },
   ];
 
   useEffect(() => {
-    if (isDemoMode) {
-      // In demo mode, bypass authentication and load mock data immediately
+    if (isPreviewMode) {
+      // In preview mode (demo or super admin), bypass authentication and load mock data immediately
       setAdvertiser(mockAdvertiser);
       setCampaigns(mockCampaigns);
       setIsLoading(false);
     } else {
       loadAdvertiserData();
     }
-  }, [isDemoMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPreviewMode]);
 
   const loadAdvertiserData = async () => {
     try {
       setIsLoading(true);
       const profile = await AdvertiserService.getAdvertiserProfile();
       setAdvertiser(profile);
-      
+
       if (profile) {
         const campaignData = await AdvertiserService.getCampaigns();
         setCampaigns(campaignData);
@@ -197,34 +237,38 @@ export const AdvertiserDashboard = () => {
     );
   }
 
-  // NEVER show onboarding in demo mode - bypass authentication wall for investors/demos
-  if (!isDemoMode && !advertiser) {
+  // NEVER show onboarding in preview mode - bypass authentication wall for demos
+  if (!isPreviewMode && !advertiser) {
     return <AdvertiserOnboarding onComplete={handleOnboardingComplete} />;
   }
 
-  // Use mock data directly in demo mode if advertiser isn't set yet
-  const activeAdvertiser = isDemoMode ? (advertiser || mockAdvertiser) : advertiser;
-  const activeCampaigns = isDemoMode ? (campaigns.length > 0 ? campaigns : mockCampaigns) : campaigns;
+  // Use mock data directly in preview mode if advertiser isn't set yet
+  const activeAdvertiser = isPreviewMode ? advertiser || mockAdvertiser : advertiser;
+  const activeCampaigns = isPreviewMode
+    ? campaigns.length > 0
+      ? campaigns
+      : mockCampaigns
+    : campaigns;
 
   return (
     <div className="min-h-screen bg-gray-900">
-      {/* Demo Mode Banner */}
-      {isDemoMode && (
+      {/* Preview Mode Banner */}
+      {isPreviewMode && (
         <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white py-2 px-4 text-center">
           <p className="text-sm font-medium">
-            🎭 Demo Mode Active - This is a preview of the Chravel Advertiser Hub
+            {isDemoMode
+              ? '🎭 Demo Mode Active - This is a preview of the Chravel Advertiser Hub'
+              : '👑 Super Admin Preview - Full access to Chravel Advertiser Hub'}
           </p>
         </div>
       )}
-      
+
       {/* Header - Mobile Optimized */}
       <header className="bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 h-auto sm:h-16 py-3 sm:py-0">
             <div className="flex items-center space-x-3 sm:space-x-4">
-              <h1 className="text-lg sm:text-2xl font-bold text-white">
-                Chravel Advertiser Hub
-              </h1>
+              <h1 className="text-lg sm:text-2xl font-bold text-white">Chravel Advertiser Hub</h1>
               <span className="text-xs sm:text-sm text-gray-400 truncate max-w-[120px] sm:max-w-none">
                 {activeAdvertiser?.company_name || 'Loading...'}
               </span>
@@ -238,7 +282,7 @@ export const AdvertiserDashboard = () => {
               >
                 Back to Chravel
               </Button>
-              {!isDemoMode && (
+              {!isDemoMode && user && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -258,15 +302,24 @@ export const AdvertiserDashboard = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
           <TabsList className="mb-8 bg-gray-800 border-gray-700">
-            <TabsTrigger value="campaigns" className="flex items-center gap-2 data-[state=active]:bg-red-600">
+            <TabsTrigger
+              value="campaigns"
+              className="flex items-center gap-2 data-[state=active]:bg-red-600"
+            >
               <Plus className="h-4 w-4" />
               Campaigns
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2 data-[state=active]:bg-red-600">
+            <TabsTrigger
+              value="analytics"
+              className="flex items-center gap-2 data-[state=active]:bg-red-600"
+            >
               <BarChart3 className="h-4 w-4" />
               Analytics
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2 data-[state=active]:bg-red-600">
+            <TabsTrigger
+              value="settings"
+              className="flex items-center gap-2 data-[state=active]:bg-red-600"
+            >
               <Settings className="h-4 w-4" />
               Settings
             </TabsTrigger>
@@ -274,9 +327,11 @@ export const AdvertiserDashboard = () => {
 
           <TabsContent value="campaigns" className="space-y-6 mobile-safe-scroll overflow-y-auto">
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-white text-center md:text-left">Your Campaigns</h2>
+              <h2 className="text-xl font-semibold text-white text-center md:text-left">
+                Your Campaigns
+              </h2>
               <div className="flex justify-center md:justify-start">
-                <Button 
+                <Button
                   onClick={() => setShowCampaignCreator(true)}
                   className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 w-full sm:w-auto"
                 >
@@ -286,10 +341,7 @@ export const AdvertiserDashboard = () => {
               </div>
             </div>
 
-            <CampaignList 
-              campaigns={activeCampaigns} 
-              onRefresh={loadAdvertiserData}
-            />
+            <CampaignList campaigns={activeCampaigns} onRefresh={loadAdvertiserData} />
           </TabsContent>
 
           <TabsContent value="analytics" className="mobile-safe-scroll overflow-y-auto">
@@ -297,10 +349,7 @@ export const AdvertiserDashboard = () => {
           </TabsContent>
 
           <TabsContent value="settings" className="mobile-safe-scroll overflow-y-auto">
-            <AdvertiserSettings 
-              advertiser={activeAdvertiser} 
-              onUpdate={setAdvertiser}
-            />
+            <AdvertiserSettings advertiser={activeAdvertiser} onUpdate={setAdvertiser} />
           </TabsContent>
         </Tabs>
       </main>

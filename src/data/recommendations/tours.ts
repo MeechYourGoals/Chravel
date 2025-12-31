@@ -1,4 +1,3 @@
-
 import { Recommendation } from './types';
 import evergladesBoat from '@/assets/recommendations/everglades-boat.png';
 import evergladesWildlife from '@/assets/recommendations/everglades-wildlife.png';
@@ -13,27 +12,25 @@ export const tourRecommendations: Recommendation[] = [
     location: 'Everglades National Park, FL',
     city: 'Miami',
     coordinates: { lat: 25.7617, lng: -80.1918 },
-    description: 'Thrilling airboat ride through the Everglades with wildlife viewing and gator encounters.',
+    description:
+      'Thrilling airboat ride through the Everglades with wildlife viewing and gator encounters.',
     rating: 4.6,
     priceLevel: 2,
-    images: [
-      evergladesBoat,
-      evergladesWildlife
-    ],
+    images: [evergladesBoat, evergladesWildlife],
     tags: ['Wildlife', 'Adventure', 'Nature', 'Airboat'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     ctaButton: {
       text: 'Book Adventure',
-      action: 'book'
+      action: 'book',
     },
     externalLink: 'https://www.evergladesairboat.com/',
     userRecommendations: {
       count: 9,
-      names: ['Kevin Z.', 'Emily C.', 'Ryan M.', 'Nicole S.']
+      names: ['Kevin Z.', 'Emily C.', 'Ryan M.', 'Nicole S.'],
     },
     distance: '45 minutes from Miami',
-    isAvailable: true
+    isAvailable: true,
   },
   {
     id: 10,
@@ -42,27 +39,25 @@ export const tourRecommendations: Recommendation[] = [
     location: 'Little Havana, Miami, FL',
     city: 'Miami',
     coordinates: { lat: 25.7617, lng: -80.1918 },
-    description: 'Authentic culinary journey through Little Havana with Cuban coffee, traditional pastries, and live music.',
+    description:
+      'Authentic culinary journey through Little Havana with Cuban coffee, traditional pastries, and live music.',
     rating: 4.8,
     priceLevel: 2,
-    images: [
-      littleHavanaFood,
-      littleHavanaStreet
-    ],
+    images: [littleHavanaFood, littleHavanaStreet],
     tags: ['Cuban Culture', 'Food Tour', 'Live Music', 'Authentic'],
     isSponsored: true,
     sponsorBadge: 'Featured',
     promoText: 'Free cafecito with every tour!',
     ctaButton: {
       text: 'Join Tour',
-      action: 'book'
+      action: 'book',
     },
     externalLink: 'https://www.miamifoodtours.com/',
     userRecommendations: {
       count: 18,
-      names: ['Maria C.', 'Jose R.', 'Cuban A.', 'Food B.']
+      names: ['Maria C.', 'Jose R.', 'Cuban A.', 'Food B.'],
     },
-    distance: '6.1 miles from your location',
-    isAvailable: true
-  }
+    distance: "6.1 miles from trip's base camp",
+    isAvailable: true,
+  },
 ];

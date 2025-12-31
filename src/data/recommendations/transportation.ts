@@ -22,23 +22,22 @@ export const transportationRecommendations: Recommendation[] = [
     location: 'Miami International Airport, FL',
     city: 'Miami',
     coordinates: { lat: 25.7617, lng: -80.1918 },
-    description: 'Earn 5,000 bonus AAdvantage miles on your next Miami flight. Premium cabin upgrades available.',
+    description:
+      'Earn 5,000 bonus AAdvantage miles on your next Miami flight. Premium cabin upgrades available.',
     rating: 4.6,
     priceLevel: 3,
-    images: [
-      americanAirlines
-    ],
+    images: [americanAirlines],
     tags: ['Airline', 'Miles Rewards', 'Premium Service'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     promoText: '5,000 bonus miles for Chravel users!',
     ctaButton: {
       text: 'Book Flight',
-      action: 'book'
+      action: 'book',
     },
     externalLink: 'https://www.aa.com/',
-    distance: '12 miles from your location',
-    isAvailable: true
+    distance: "12 miles from trip's base camp",
+    isAvailable: true,
   },
   {
     id: 102,
@@ -46,26 +45,25 @@ export const transportationRecommendations: Recommendation[] = [
     title: 'TripAdvisor - Experience Discovery',
     location: 'Worldwide Travel Experiences',
     city: 'Global',
-    coordinates: { lat: 40.7128, lng: -74.0060 },
-    description: 'Discover and compare top experiences worldwide. Read millions of reviews from real travelers.',
+    coordinates: { lat: 40.7128, lng: -74.006 },
+    description:
+      'Discover and compare top experiences worldwide. Read millions of reviews from real travelers.',
     rating: 4.6,
     priceLevel: 2,
-    images: [
-      tripadvisorExperiences
-    ],
+    images: [tripadvisorExperiences],
     tags: ['Travel Planning', 'Reviews', 'Experiences'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     promoText: 'Compare top experiences worldwide',
     ctaButton: {
       text: 'Discover Experiences',
-      action: 'view'
+      action: 'view',
     },
     externalLink: 'https://www.tripadvisor.com/',
     distance: 'Worldwide coverage',
-    isAvailable: true
+    isAvailable: true,
   },
-  
+
   // Delta Airlines
   {
     id: 103,
@@ -73,24 +71,23 @@ export const transportationRecommendations: Recommendation[] = [
     title: 'Delta Airlines - SkyMiles Accelerator',
     location: 'John F. Kennedy International Airport, NY',
     city: 'New York',
-    coordinates: { lat: 40.7128, lng: -74.0060 },
-    description: 'Double SkyMiles on all domestic flights booked through Chravel. Premium seat selection included.',
+    coordinates: { lat: 40.7128, lng: -74.006 },
+    description:
+      'Double SkyMiles on all domestic flights booked through Chravel. Premium seat selection included.',
     rating: 4.8,
     priceLevel: 3,
-    images: [
-      deltaAirlines
-    ],
+    images: [deltaAirlines],
     tags: ['Airline', 'SkyMiles', 'Domestic Flights'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     promoText: 'Double SkyMiles for Chravel users!',
     ctaButton: {
       text: 'Earn Miles',
-      action: 'book'
+      action: 'book',
     },
     externalLink: 'https://www.delta.com/',
-    distance: '15 miles from your location',
-    isAvailable: true
+    distance: "15 miles from trip's base camp",
+    isAvailable: true,
   },
   {
     id: 104,
@@ -99,23 +96,22 @@ export const transportationRecommendations: Recommendation[] = [
     location: 'Heathrow Airport, London',
     city: 'London',
     coordinates: { lat: 51.5074, lng: -0.1278 },
-    description: 'Fly Virgin to London and beyond with award-winning service, premium entertainment, and luxury amenities.',
+    description:
+      'Fly Virgin to London and beyond with award-winning service, premium entertainment, and luxury amenities.',
     rating: 4.7,
     priceLevel: 3,
-    images: [
-      virginAtlantic
-    ],
+    images: [virginAtlantic],
     tags: ['Airline', 'International', 'Premium Service'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     promoText: 'Fly Virgin to London for less',
     ctaButton: {
       text: 'Book Flight',
-      action: 'book'
+      action: 'book',
     },
     externalLink: 'https://www.virgin-atlantic.com/',
     distance: 'International routes',
-    isAvailable: true
+    isAvailable: true,
   },
 
   // Hertz
@@ -126,23 +122,22 @@ export const transportationRecommendations: Recommendation[] = [
     location: 'Miami Beach, FL',
     city: 'Miami',
     coordinates: { lat: 25.7617, lng: -80.1918 },
-    description: 'Chravel Exclusive: 20% off all luxury and premium vehicle rentals. Free additional driver included.',
+    description:
+      'Chravel Exclusive: 20% off all luxury and premium vehicle rentals. Free additional driver included.',
     rating: 4.4,
     priceLevel: 3,
-    images: [
-      luxuryCarRental
-    ],
+    images: [luxuryCarRental],
     tags: ['Car Rental', 'Luxury Vehicles', 'Premium Service'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     promoText: '20% off luxury rentals',
     ctaButton: {
       text: 'Reserve Car',
-      action: 'reserve'
+      action: 'reserve',
     },
     externalLink: 'https://www.hertz.com/',
-    distance: '0.8 miles from your hotel',
-    isAvailable: true
+    distance: "0.8 miles from trip's base camp",
+    isAvailable: true,
   },
 
   // Uber
@@ -153,23 +148,22 @@ export const transportationRecommendations: Recommendation[] = [
     location: 'Miami, FL',
     city: 'Miami',
     coordinates: { lat: 25.7617, lng: -80.1918 },
-    description: 'Flat $10 off airport rides for Chravel users. Choose from Uber Black, Uber Comfort, or UberX.',
+    description:
+      'Flat $10 off airport rides for Chravel users. Choose from Uber Black, Uber Comfort, or UberX.',
     rating: 4.5,
     priceLevel: 2,
-    images: [
-      uberBlack
-    ],
+    images: [uberBlack],
     tags: ['Rideshare', 'Airport Transfer', 'Premium Service'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     promoText: '$10 off airport rides',
     ctaButton: {
       text: 'Get Ride',
-      action: 'book'
+      action: 'book',
     },
     externalLink: 'https://www.uber.com/',
     distance: 'Available citywide',
-    isAvailable: true
+    isAvailable: true,
   },
   {
     id: 108,
@@ -177,24 +171,23 @@ export const transportationRecommendations: Recommendation[] = [
     title: 'Lyft - Reliable City Rides',
     location: 'Major Cities Nationwide',
     city: 'Multiple Cities',
-    coordinates: { lat: 40.7128, lng: -74.0060 },
-    description: 'Safe, friendly rides when you need them. New user discount available for Chravel members.',
+    coordinates: { lat: 40.7128, lng: -74.006 },
+    description:
+      'Safe, friendly rides when you need them. New user discount available for Chravel members.',
     rating: 4.5,
     priceLevel: 2,
-    images: [
-      lyftCar
-    ],
+    images: [lyftCar],
     tags: ['Rideshare', 'City Travel', 'New User Offer'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     promoText: 'New user discount for Chravel',
     ctaButton: {
       text: 'Get Ride',
-      action: 'book'
+      action: 'book',
     },
     externalLink: 'https://www.lyft.com/',
     distance: 'Available citywide',
-    isAvailable: true
+    isAvailable: true,
   },
 
   // Waymo
@@ -205,23 +198,22 @@ export const transportationRecommendations: Recommendation[] = [
     location: 'San Francisco, CA',
     city: 'San Francisco',
     coordinates: { lat: 37.7749, lng: -122.4194 },
-    description: 'Experience the future of transportation with Waymo\'s self-driving vehicles. Safe, reliable, and innovative.',
+    description:
+      "Experience the future of transportation with Waymo's self-driving vehicles. Safe, reliable, and innovative.",
     rating: 4.3,
     priceLevel: 2,
-    images: [
-      waymoAutonomous
-    ],
+    images: [waymoAutonomous],
     tags: ['Autonomous', 'Self-Driving', 'Innovation'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     promoText: 'First ride free for new users',
     ctaButton: {
       text: 'Try Waymo',
-      action: 'book'
+      action: 'book',
     },
     externalLink: 'https://waymo.com/',
     distance: 'Available in select areas',
-    isAvailable: true
+    isAvailable: true,
   },
   {
     id: 110,
@@ -229,24 +221,23 @@ export const transportationRecommendations: Recommendation[] = [
     title: 'Hotels.com - Compare & Save',
     location: 'Global Hotel Network',
     city: 'Worldwide',
-    coordinates: { lat: 40.7128, lng: -74.0060 },
-    description: 'Compare hotel prices and earn rewards. Get one night free for every 10 nights booked.',
+    coordinates: { lat: 40.7128, lng: -74.006 },
+    description:
+      'Compare hotel prices and earn rewards. Get one night free for every 10 nights booked.',
     rating: 4.4,
     priceLevel: 2,
-    images: [
-      hotelsCom
-    ],
+    images: [hotelsCom],
     tags: ['Lodging', 'Price Comparison', 'Rewards Program'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     promoText: 'Collect 10 nights, get 1 free',
     ctaButton: {
       text: 'Find Hotels',
-      action: 'view'
+      action: 'view',
     },
     externalLink: 'https://www.hotels.com/',
     distance: 'Global coverage',
-    isAvailable: true
+    isAvailable: true,
   },
 
   // Orbitz
@@ -257,23 +248,22 @@ export const transportationRecommendations: Recommendation[] = [
     location: 'Multiple Cities',
     city: 'Miami',
     coordinates: { lat: 25.7617, lng: -80.1918 },
-    description: 'Bundle flights, hotels, and car rentals for maximum savings. Exclusive Chravel member discounts available.',
+    description:
+      'Bundle flights, hotels, and car rentals for maximum savings. Exclusive Chravel member discounts available.',
     rating: 4.2,
     priceLevel: 2,
-    images: [
-      orbitzPackages
-    ],
+    images: [orbitzPackages],
     tags: ['Travel Booking', 'Package Deals', 'Multi-Service'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     promoText: 'Save more when you bundle',
     ctaButton: {
       text: 'View Packages',
-      action: 'view'
+      action: 'view',
     },
     externalLink: 'https://www.orbitz.com/',
     distance: 'Worldwide availability',
-    isAvailable: true
+    isAvailable: true,
   },
   {
     id: 112,
@@ -282,23 +272,22 @@ export const transportationRecommendations: Recommendation[] = [
     location: 'Unique Homes Worldwide',
     city: 'Global',
     coordinates: { lat: 37.7749, lng: -122.4194 },
-    description: 'Stay in unique homes and experiences around the world. First-time booking discount available.',
+    description:
+      'Stay in unique homes and experiences around the world. First-time booking discount available.',
     rating: 4.6,
     priceLevel: 2,
-    images: [
-      airbnbHome
-    ],
+    images: [airbnbHome],
     tags: ['Lodging', 'Unique Stays', 'Local Experiences'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     promoText: 'First booking discount available',
     ctaButton: {
       text: 'Find Stay',
-      action: 'view'
+      action: 'view',
     },
     externalLink: 'https://www.airbnb.com/',
     distance: 'Worldwide availability',
-    isAvailable: true
+    isAvailable: true,
   },
 
   // Navan
@@ -308,24 +297,23 @@ export const transportationRecommendations: Recommendation[] = [
     title: 'Navan - Corporate Travel Management',
     location: 'Business Travel Worldwide',
     city: 'New York',
-    coordinates: { lat: 40.7128, lng: -74.0060 },
-    description: 'Streamline your business travel with Navan\'s integrated booking platform. Policy compliance and expense tracking included.',
+    coordinates: { lat: 40.7128, lng: -74.006 },
+    description:
+      "Streamline your business travel with Navan's integrated booking platform. Policy compliance and expense tracking included.",
     rating: 4.6,
     priceLevel: 3,
-    images: [
-      navanBusiness
-    ],
+    images: [navanBusiness],
     tags: ['Corporate Travel', 'Business Management', 'Expense Tracking'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     promoText: 'Enterprise-grade travel solution',
     ctaButton: {
       text: 'Get Quote',
-      action: 'view'
+      action: 'view',
     },
     externalLink: 'https://navan.com/',
     distance: 'Global coverage',
-    isAvailable: true
+    isAvailable: true,
   },
   {
     id: 114,
@@ -334,22 +322,21 @@ export const transportationRecommendations: Recommendation[] = [
     location: 'Hotels & Accommodations Worldwide',
     city: 'Global',
     coordinates: { lat: 52.3676, lng: 4.9041 },
-    description: 'Book accommodations worldwide with free cancellation. Genius member benefits available.',
+    description:
+      'Book accommodations worldwide with free cancellation. Genius member benefits available.',
     rating: 4.5,
     priceLevel: 2,
-    images: [
-      bookingInterface
-    ],
+    images: [bookingInterface],
     tags: ['Lodging', 'Global Booking', 'Free Cancellation'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     promoText: 'Free cancellation on most stays',
     ctaButton: {
       text: 'Book Stay',
-      action: 'view'
+      action: 'view',
     },
     externalLink: 'https://www.booking.com/',
     distance: 'Global coverage',
-    isAvailable: true
-  }
+    isAvailable: true,
+  },
 ];
