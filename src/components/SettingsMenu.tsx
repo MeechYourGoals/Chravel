@@ -10,6 +10,7 @@ import { ProUpgradeModal } from './ProUpgradeModal';
 import { EnterpriseSettings } from './EnterpriseSettings';
 import { ConsumerSettings } from './ConsumerSettings';
 import { EventsSettings } from './EventsSettings';
+import { ErrorBoundary } from './ErrorBoundary';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { AuthModal } from './AuthModal';
 import { useDemoMode } from '../hooks/useDemoMode';
@@ -229,23 +230,29 @@ export const SettingsMenu = ({
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {settingsType === 'consumer' ? (
               <div className="flex-1 min-h-0">
-                <ConsumerSettings
-                  currentUserId={currentUser.id}
-                  initialSection={initialConsumerSection}
-                  onClose={onClose}
-                  onTripStateChange={onTripStateChange}
-                />
+                <ErrorBoundary compact>
+                  <ConsumerSettings
+                    currentUserId={currentUser.id}
+                    initialSection={initialConsumerSection}
+                    onClose={onClose}
+                    onTripStateChange={onTripStateChange}
+                  />
+                </ErrorBoundary>
               </div>
             ) : settingsType === 'enterprise' ? (
               <div className="flex-1 min-h-0">
-                <EnterpriseSettings
-                  organizationId={userOrganization?.id || 'default-org'}
-                  currentUserId={currentUser.id}
-                />
+                <ErrorBoundary compact>
+                  <EnterpriseSettings
+                    organizationId={userOrganization?.id || 'default-org'}
+                    currentUserId={currentUser.id}
+                  />
+                </ErrorBoundary>
               </div>
             ) : settingsType === 'events' ? (
               <div className="flex-1 min-h-0">
-                <EventsSettings currentUserId={currentUser?.id || ''} />
+                <ErrorBoundary compact>
+                  <EventsSettings currentUserId={currentUser?.id || ''} />
+                </ErrorBoundary>
               </div>
             ) : null}
           </div>
