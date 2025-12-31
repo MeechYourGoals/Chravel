@@ -777,8 +777,7 @@ const Index = () => {
           />
         )}
 
-        {/* Mobile floating auth button */}
-        {isMobile && <MobileTopBar onSettingsPress={() => setIsMobileSettingsOpen(true)} />}
+        {/* Mobile auth moved to Settings menu - no floating button needed */}
 
         {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}
         <div className="w-full flex flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">

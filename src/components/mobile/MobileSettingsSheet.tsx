@@ -50,19 +50,7 @@ export const MobileSettingsSheet = ({
           </SheetHeader>
 
           <div className="space-y-4 pb-6">
-            {/* Demo Mode Toggle - only show for super admin */}
-            {isSuperAdmin && (
-              <>
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground px-1">Demo Mode</p>
-                  <div className="flex justify-center">
-                    <DemoModeSelector />
-                  </div>
-                </div>
-
-                <Separator className="my-4" />
-              </>
-            )}
+            {/* Demo Mode Toggle removed - not shown in authenticated user experience */}
 
             {/* Auth Section */}
             <div className="space-y-3">
