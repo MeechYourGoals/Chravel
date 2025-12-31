@@ -3201,11 +3201,11 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           display_name?: string | null
-          email?: string | null
+          email?: never
           first_name?: string | null
           id?: string | null
           last_name?: string | null
-          phone?: string | null
+          phone?: never
           show_email?: boolean | null
           show_phone?: boolean | null
           updated_at?: string | null
@@ -3216,11 +3216,11 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           display_name?: string | null
-          email?: string | null
+          email?: never
           first_name?: string | null
           id?: string | null
           last_name?: string | null
-          phone?: string | null
+          phone?: never
           show_email?: boolean | null
           show_phone?: boolean | null
           updated_at?: string | null
