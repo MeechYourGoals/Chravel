@@ -14,9 +14,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)'
       }}
     >
-      {/* Top-right Sign up / Log in button - responsive positioning */}
+      {/* Top-right Sign up / Log in button - absolutely positioned on all screen sizes to prevent overlap */}
       <div
-        className="w-full flex justify-end mb-8 sm:absolute sm:right-4 sm:w-auto sm:mb-0 z-10"
+        className="absolute right-4 w-auto z-10"
         style={{
           top: 'calc(env(safe-area-inset-top, 0px) + 16px)'
         }}
@@ -30,8 +30,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         </Button>
       </div>
 
-      {/* Brand Name - Centered, with increased top margin on mobile to prevent overlap */}
-      <div className="w-full flex items-center justify-center px-2 md:px-4 mb-6 md:mb-8 mt-4 sm:mt-0">
+      {/* Brand Name - Centered, with top padding to clear floating button */}
+      <div className="w-full flex items-center justify-center px-2 md:px-4 mb-6 md:mb-8 pt-16 sm:pt-12">
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight animate-fade-in text-center w-full">
           ChravelApp
         </h1>
