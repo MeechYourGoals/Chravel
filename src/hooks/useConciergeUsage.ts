@@ -55,7 +55,7 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
       const { data, error } = await supabase
         .from('profiles')
         .select('app_role')
-        .eq('id', targetUserId)
+        .eq('user_id', targetUserId)
         .single();
 
       if (error) {
