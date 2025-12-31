@@ -3,6 +3,8 @@ import { cn } from '@/lib/utils';
 import { DemoModeSelector } from '../DemoModeSelector';
 import { HeaderAuthButton } from '../HeaderAuthButton';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 
 interface NavSection {
   id: string;
@@ -19,7 +21,7 @@ const sections: NavSection[] = [
   { id: 'proof', label: 'Reviews' },
   { id: 'replaces', label: 'Compare' },
   { id: 'faq', label: 'FAQ' },
-  { id: 'pricing', label: 'Pricing' }
+  { id: 'pricing', label: 'Pricing' },
 ];
 
 interface StickyLandingNavProps {
@@ -30,6 +32,8 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ onSignUp }) 
   const [activeSection, setActiveSection] = useState('hero');
   const [isVisible, setIsVisible] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const { user } = useAuth();
+  const isSuperAdmin = user?.email && SUPER_ADMIN_EMAILS.includes(user.email);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -46,14 +50,14 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ onSignUp }) 
       // Update active section based on scroll position
       const sections = document.querySelectorAll('[id^="section-"]');
       let current = 'hero';
-      
-      sections.forEach((section) => {
+
+      sections.forEach(section => {
         const rect = section.getBoundingClientRect();
         if (rect.top <= window.innerHeight / 3 && rect.bottom >= window.innerHeight / 3) {
           current = section.id.replace('section-', '');
         }
       });
-      
+
       setActiveSection(current);
     };
 
@@ -74,11 +78,14 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ onSignUp }) 
         'fixed top-0 left-0 right-0 z-50 transition-transform duration-300 bg-background/80 backdrop-blur-lg border-b border-border/50',
         // Hide on mobile and tablet - only show on desktop (lg and up)
         'hidden lg:block',
-        isVisible ? 'translate-y-0' : '-translate-y-full'
+        isVisible ? 'translate-y-0' : '-translate-y-full',
       )}
     >
       {/* Progress Bar */}
-      <div className="absolute top-0 left-0 h-0.5 bg-primary transition-all duration-300" style={{ width: `${scrollProgress}%` }} />
+      <div
+        className="absolute top-0 left-0 h-0.5 bg-primary transition-all duration-300"
+        style={{ width: `${scrollProgress}%` }}
+      />
 
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo */}
@@ -88,8 +95,8 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ onSignUp }) 
 
         {/* For Teams Link (Desktop) */}
         <div className="hidden lg:flex items-center">
-          <Link 
-            to="/teams" 
+          <Link
+            to="/teams"
             className="text-sm font-medium text-foreground hover:text-primary transition-colors px-4 py-2 rounded-md hover:bg-accent/10"
           >
             For Teams
@@ -98,7 +105,7 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ onSignUp }) 
 
         {/* Section Dots (Desktop) */}
         <div className="hidden md:flex items-center gap-2">
-          {sections.map((section) => (
+          {sections.map(section => (
             <button
               key={section.id}
               onClick={() => scrollToSection(section.id)}
@@ -106,7 +113,7 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ onSignUp }) 
                 'group relative h-2 rounded-full transition-all duration-300',
                 activeSection === section.id
                   ? 'w-8 bg-primary'
-                  : 'w-2 bg-muted hover:bg-muted-foreground'
+                  : 'w-2 bg-muted hover:bg-muted-foreground',
               )}
               aria-label={`Go to ${section.label}`}
             >
@@ -125,7 +132,7 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ onSignUp }) 
 
         {/* Right: Demo Selector + Auth Button */}
         <div className="flex items-center gap-2">
-          <DemoModeSelector />
+          {isSuperAdmin && <DemoModeSelector />}
           <HeaderAuthButton />
         </div>
       </div>

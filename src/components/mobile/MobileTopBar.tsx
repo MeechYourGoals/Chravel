@@ -5,6 +5,7 @@ import { DemoModeSelector } from '../DemoModeSelector';
 import { AuthModal } from '../AuthModal';
 import { useAuth } from '@/hooks/useAuth';
 import { useScrollDirection } from '@/hooks/useScrollDirection';
+import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,16 +22,16 @@ interface MobileTopBarProps {
 // Header content height (without safe area)
 const HEADER_HEIGHT = 52;
 
-export const MobileTopBar: React.FC<MobileTopBarProps> = ({ 
-  className,
-  onSettingsPress 
-}) => {
+export const MobileTopBar: React.FC<MobileTopBarProps> = ({ className, onSettingsPress }) => {
   const { user, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { scrollDirection, isAtTop } = useScrollDirection(10);
 
   // Hide header when scrolling down, show when scrolling up or at top
   const isHidden = scrollDirection === 'down' && !isAtTop;
+
+  // Check if user is super admin
+  const isSuperAdmin = user?.email && SUPER_ADMIN_EMAILS.includes(user.email);
 
   const handleAuthClick = () => {
     setShowAuthModal(true);
@@ -42,7 +43,12 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
 
   const getInitials = (name?: string | null, email?: string | null) => {
     if (name) {
-      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      return name
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
     }
     if (email) {
       return email[0].toUpperCase();
@@ -53,14 +59,14 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
   return (
     <>
       {/* Header wrapper - extends through safe area with background */}
-      <div 
+      <div
         className={cn(
-          "fixed top-0 left-0 right-0 z-50",
-          "bg-background/95 backdrop-blur-md border-b border-border/50",
-          "block lg:hidden",
-          "transition-transform duration-200 ease-out",
-          isHidden ? "-translate-y-full" : "translate-y-0",
-          className
+          'fixed top-0 left-0 right-0 z-50',
+          'bg-background/95 backdrop-blur-md border-b border-border/50',
+          'block lg:hidden',
+          'transition-transform duration-200 ease-out',
+          isHidden ? '-translate-y-full' : 'translate-y-0',
+          className,
         )}
         style={{
           // Extend background through entire safe area
@@ -70,7 +76,7 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
         }}
       >
         {/* Actual header content with fixed height */}
-        <div 
+        <div
           className="flex items-center justify-between px-3 gap-2"
           style={{ height: `${HEADER_HEIGHT}px` }}
         >
@@ -81,10 +87,12 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
             </span>
           </div>
 
-          {/* Center: Demo Mode Toggle */}
-          <div className="flex-1 flex justify-center min-w-0">
-            <DemoModeSelector />
-          </div>
+          {/* Center: Demo Mode Toggle - only render wrapper if super admin */}
+          {isSuperAdmin && (
+            <div className="flex-1 flex justify-center min-w-0">
+              <DemoModeSelector />
+            </div>
+          )}
 
           {/* Right: Login/Account Pill */}
           <div className="flex-shrink-0">
@@ -102,13 +110,10 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem 
-                    onClick={onSettingsPress}
-                    className="cursor-pointer"
-                  >
+                  <DropdownMenuItem onClick={onSettingsPress} className="cursor-pointer">
                     Settings
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={handleSignOut}
                     className="cursor-pointer text-destructive"
                   >
@@ -130,10 +135,7 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
       </div>
 
       {/* Auth Modal */}
-      <AuthModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
-      />
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
   );
 };
