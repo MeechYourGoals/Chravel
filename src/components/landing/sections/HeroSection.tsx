@@ -10,13 +10,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
     <div
       className="relative container mx-auto px-4 flex flex-col items-center min-h-[85vh] md:min-h-[90vh] text-center pb-12 md:pb-0"
       style={{
-        // Safe area for PWA + small spacing
+        // Safe area for PWA + increased spacing on mobile to prevent overlap
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)'
       }}
     >
       {/* Top-right Sign up / Log in button - responsive positioning */}
       <div
-        className="w-full flex justify-end mb-4 sm:absolute sm:right-4 sm:w-auto sm:mb-0 z-10"
+        className="w-full flex justify-end mb-8 sm:absolute sm:right-4 sm:w-auto sm:mb-0 z-10"
         style={{
           top: 'calc(env(safe-area-inset-top, 0px) + 16px)'
         }}
@@ -30,8 +30,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         </Button>
       </div>
 
-      {/* Brand Name - Centered, aligned with Demo toggle */}
-      <div className="w-full flex items-center justify-center px-2 md:px-4 mb-4 md:mb-6">
+      {/* Brand Name - Centered, with increased top margin on mobile to prevent overlap */}
+      <div className="w-full flex items-center justify-center px-2 md:px-4 mb-6 md:mb-8 mt-4 sm:mt-0">
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight animate-fade-in text-center w-full">
           ChravelApp
         </h1>
