@@ -11,14 +11,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       className="relative container mx-auto px-4 flex flex-col items-center min-h-[85vh] md:min-h-[90vh] text-center pb-12 md:pb-0"
       style={{
         // Safe area for PWA + increased spacing on mobile to prevent overlap
-        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)'
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)',
       }}
     >
-      {/* Top-right Sign up / Log in button - small, compact, top-right corner */}
+      {/* Top-right Sign up / Log in button - hidden on mobile, visible on md+ */}
       <div
-        className="absolute right-2 w-auto z-10"
+        className="absolute right-2 w-auto z-10 hidden md:block"
         style={{
-          top: 'calc(env(safe-area-inset-top, 0px) + 8px)'
+          top: 'calc(env(safe-area-inset-top, 0px) + 8px)',
         }}
       >
         <Button
@@ -43,12 +43,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         <h2
           className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight animate-fade-in"
           style={{
-            background: 'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
+            background:
+              'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
             textShadow: '0 2px 20px rgba(74, 144, 226, 0.3), 0 4px 40px rgba(245, 166, 35, 0.2)',
-            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
           }}
         >
           The Group Chat Travel App
@@ -59,13 +60,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white font-bold max-w-4xl animate-fade-in"
           style={{
             animationDelay: '0.1s',
-            textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)'
+            textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           }}
         >
           One Shared Space for Chat, Calendar, Photos, Payments, & More
         </p>
 
-        {/* Mobile CTA removed - MobileAuthHeader provides the single prominent "Log in / Sign up" CTA on mobile */}
+        {/* Mobile CTA - centered below text, visible only on mobile */}
+        <Button
+          onClick={onSignUp}
+          className="md:hidden mt-8 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-base font-semibold shadow-lg animate-fade-in"
+          style={{ animationDelay: '0.2s' }}
+        >
+          Sign up / Log in
+        </Button>
       </div>
     </div>
   );
