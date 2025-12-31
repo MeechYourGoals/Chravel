@@ -26,7 +26,7 @@ export const TripViewToggle = ({
   const isMobile = useIsMobile();
 
   return (
-    <div className={cn("w-full pr-20 lg:pr-0", className)}>
+    <div className={cn("w-full pr-24 lg:pr-0", className)}>
       <ScrollFadeContainer className="h-full contents md:contents lg:block">
           <ToggleGroup
           type="single"
