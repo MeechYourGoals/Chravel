@@ -69,7 +69,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         {/* Mobile CTA - centered below text, visible only on mobile */}
         <Button
           onClick={onSignUp}
-          className="md:hidden mt-8 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-base font-semibold shadow-lg animate-fade-in"
+          className="md:hidden mt-8 px-6 py-3 bg-black/40 hover:bg-black/50 backdrop-blur-md border border-white/10 text-white rounded-lg text-base font-semibold shadow-lg animate-fade-in"
           style={{ animationDelay: '0.2s' }}
         >
           Sign up / Log in
