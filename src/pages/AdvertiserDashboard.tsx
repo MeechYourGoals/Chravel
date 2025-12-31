@@ -186,21 +186,27 @@ export const AdvertiserDashboard = () => {
   ];
 
   useEffect(() => {
-    if (isPreviewMode) {
-      // In preview mode (demo or super admin), bypass authentication and load mock data immediately
+    if (isDemoMode) {
+      // In demo mode, use mock data for demonstration
       setAdvertiser(mockAdvertiser);
       setCampaigns(mockCampaigns);
       setIsLoading(false);
+    } else if (isSuperAdmin) {
+      // Super admin gets real data - full functionality without mock data
+      loadAdvertiserData();
     } else {
       loadAdvertiserData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPreviewMode]);
+  }, [isDemoMode, isSuperAdmin]);
 
   const loadAdvertiserData = async () => {
     try {
       setIsLoading(true);
-      const profile = await AdvertiserService.getAdvertiserProfile();
+      // Use getOrCreateAdvertiserProfile for super admin to auto-create profile
+      const profile = isSuperAdmin
+        ? await AdvertiserService.getOrCreateAdvertiserProfile()
+        : await AdvertiserService.getAdvertiserProfile();
       setAdvertiser(profile);
 
       if (profile) {
@@ -237,18 +243,32 @@ export const AdvertiserDashboard = () => {
     );
   }
 
-  // NEVER show onboarding in preview mode - bypass authentication wall for demos
-  if (!isPreviewMode && !advertiser) {
+  // Show onboarding for regular users without an advertiser profile
+  // Skip onboarding for demo mode (mock data) and super admin (they can create directly)
+  if (!isDemoMode && !isSuperAdmin && !advertiser) {
     return <AdvertiserOnboarding onComplete={handleOnboardingComplete} />;
   }
 
-  // Use mock data directly in preview mode if advertiser isn't set yet
-  const activeAdvertiser = isPreviewMode ? advertiser || mockAdvertiser : advertiser;
-  const activeCampaigns = isPreviewMode
-    ? campaigns.length > 0
-      ? campaigns
-      : mockCampaigns
-    : campaigns;
+  // For super admin without an advertiser profile, create a default one
+  const superAdminAdvertiser: Advertiser = {
+    id: 'super-admin-advertiser',
+    user_id: user?.id || 'super-admin',
+    company_name: 'Chravel Admin',
+    company_email: user?.email || 'admin@chravel.com',
+    website: 'https://chravel.com',
+    status: 'active',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  // Determine active advertiser and campaigns based on mode
+  // Demo mode: always use mock data
+  // Super admin: use real data (empty campaigns to start fresh)
+  // Regular users: use real data
+  const activeAdvertiser = isDemoMode
+    ? mockAdvertiser
+    : advertiser || (isSuperAdmin ? superAdminAdvertiser : advertiser);
+  const activeCampaigns = isDemoMode ? mockCampaigns : campaigns;
 
   return (
     <div className="min-h-screen bg-gray-900">
