@@ -37,6 +37,7 @@ export interface Campaign {
   start_date?: string;
   end_date?: string;
   website_url?: string;
+  duration?: '1_week' | '1_month' | '3_months' | '6_months';
   budget_total?: number;
   budget_daily?: number;
   impressions: number;
