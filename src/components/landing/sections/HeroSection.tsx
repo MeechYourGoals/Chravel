@@ -14,25 +14,25 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)'
       }}
     >
-      {/* Top-right Sign up / Log in button - absolutely positioned on all screen sizes to prevent overlap */}
+      {/* Top-right Sign up / Log in button - small, compact, top-right corner */}
       <div
-        className="absolute right-4 w-auto z-10"
+        className="absolute right-2 w-auto z-10"
         style={{
-          top: 'calc(env(safe-area-inset-top, 0px) + 16px)'
+          top: 'calc(env(safe-area-inset-top, 0px) + 8px)'
         }}
       >
         <Button
-          size="default"
+          size="sm"
           onClick={onSignUp}
-          className="text-sm px-4 py-2 bg-black/40 hover:bg-black/50 backdrop-blur-md border border-white/10 text-white shadow-lg"
+          className="text-xs px-2 py-1 bg-black/40 hover:bg-black/50 backdrop-blur-md border border-white/10 text-white shadow-lg h-7"
         >
           Sign up / Log in
         </Button>
       </div>
 
-      {/* Brand Name - Centered, with padding to clear floating button (vertical + horizontal) */}
-      <div className="w-full flex items-center justify-center px-2 md:px-4 mb-6 md:mb-8 pt-24 sm:pt-16 pr-36 sm:pr-4">
-        <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight animate-fade-in text-center w-full">
+      {/* Brand Name - Centered, no padding shifts */}
+      <div className="w-full flex items-center justify-center px-2 md:px-4 mb-6 md:mb-8">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight animate-fade-in text-center w-full">
           ChravelApp
         </h1>
       </div>
