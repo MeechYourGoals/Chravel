@@ -38,7 +38,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       </div>
 
       {/* Main Content - Starts immediately after brand name, not centered vertically */}
-      <div className="flex flex-col items-center space-y-6">
+      <div className="flex flex-col items-center">
         {/* Tagline - High contrast gradient with text shadow for readability */}
         <h2
           className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight animate-fade-in"
@@ -55,11 +55,28 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           The Group Chat Travel App
         </h2>
 
-        {/* Subheadline with bold white text and shadow for contrast */}
-        <p
-          className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white font-bold max-w-4xl animate-fade-in"
+        {/* Secondary tagline with same gradient */}
+        <h3
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight animate-fade-in mt-12 md:mt-16"
           style={{
             animationDelay: '0.1s',
+            background:
+              'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            textShadow: '0 2px 20px rgba(74, 144, 226, 0.3), 0 4px 40px rgba(245, 166, 35, 0.2)',
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+          }}
+        >
+          Less Chaos, More Coordinated
+        </h3>
+
+        {/* Subheadline with bold white text and shadow for contrast */}
+        <p
+          className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white font-bold max-w-4xl animate-fade-in mt-6 md:mt-8"
+          style={{
+            animationDelay: '0.15s',
             textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           }}
         >
