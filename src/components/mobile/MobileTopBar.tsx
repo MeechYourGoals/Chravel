@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { LogIn, ChevronDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { DemoModeSelector } from '../DemoModeSelector';
 import { AuthModal } from '../AuthModal';
 import { useAuth } from '@/hooks/useAuth';
-import { useScrollDirection } from '@/hooks/useScrollDirection';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,19 +15,9 @@ interface MobileTopBarProps {
   onSettingsPress?: () => void;
 }
 
-// Header content height (without safe area)
-const HEADER_HEIGHT = 52;
-
-export const MobileTopBar: React.FC<MobileTopBarProps> = ({ 
-  className,
-  onSettingsPress 
-}) => {
+export const MobileTopBar: React.FC<MobileTopBarProps> = ({ onSettingsPress }) => {
   const { user, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { scrollDirection, isAtTop } = useScrollDirection(10);
-
-  // Hide header when scrolling down, show when scrolling up or at top
-  const isHidden = scrollDirection === 'down' && !isAtTop;
 
   const handleAuthClick = () => {
     setShowAuthModal(true);
@@ -42,7 +29,12 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
 
   const getInitials = (name?: string | null, email?: string | null) => {
     if (name) {
-      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      return name
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
     }
     if (email) {
       return email[0].toUpperCase();
@@ -52,91 +44,52 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
 
   return (
     <>
-      {/* Header wrapper - extends through safe area with background */}
-      <div 
-        className={cn(
-          "fixed top-0 left-0 right-0 z-50",
-          "bg-background/95 backdrop-blur-md border-b border-border/50",
-          "block lg:hidden",
-          "transition-transform duration-200 ease-out",
-          isHidden ? "-translate-y-full" : "translate-y-0",
-          className
-        )}
+      {/* Minimal floating auth button */}
+      <div
+        className="fixed top-3 right-3 z-50 block lg:hidden"
         style={{
-          // Extend background through entire safe area
-          paddingTop: 'env(safe-area-inset-top, 0px)',
-          paddingLeft: 'env(safe-area-inset-left, 0px)',
-          paddingRight: 'env(safe-area-inset-right, 0px)',
+          top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+          right: 'calc(env(safe-area-inset-right, 0px) + 12px)',
         }}
       >
-        {/* Actual header content with fixed height */}
-        <div 
-          className="flex items-center justify-between px-3 gap-2"
-          style={{ height: `${HEADER_HEIGHT}px` }}
-        >
-          {/* Left: ChravelApp Pill */}
-          <div className="flex items-center flex-shrink-0">
-            <span className="px-3 py-1.5 bg-muted text-foreground rounded-lg text-sm font-semibold min-h-[36px] flex items-center border border-border/30">
-              ChravelApp
-            </span>
-          </div>
-
-          {/* Center: Demo Mode Toggle */}
-          <div className="flex-1 flex justify-center min-w-0">
-            <DemoModeSelector />
-          </div>
-
-          {/* Right: Login/Account Pill */}
-          <div className="flex-shrink-0">
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1.5 px-2 py-1.5 bg-muted hover:bg-muted/80 rounded-lg transition-colors min-h-[36px] border border-border/30">
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={user.avatar || undefined} />
-                      <AvatarFallback className="text-xs bg-primary/20 text-primary">
-                        {getInitials(user.displayName, user.email)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <ChevronDown size={14} className="text-muted-foreground" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem 
-                    onClick={onSettingsPress}
-                    className="cursor-pointer"
-                  >
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={handleSignOut}
-                    className="cursor-pointer text-destructive"
-                  >
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <button
-                onClick={handleAuthClick}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm font-medium min-h-[36px]"
-              >
-                <LogIn size={16} />
-                <span>Log In</span>
+        {user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-1.5 px-2 py-1.5 bg-background/95 hover:bg-background backdrop-blur-md rounded-lg transition-colors min-h-[36px] border border-border/50 shadow-lg">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={user.avatar || undefined} />
+                  <AvatarFallback className="text-xs bg-primary/20 text-primary">
+                    {getInitials(user.displayName, user.email)}
+                  </AvatarFallback>
+                </Avatar>
+                <ChevronDown size={14} className="text-muted-foreground" />
               </button>
-            )}
-          </div>
-        </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={onSettingsPress} className="cursor-pointer">
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <button
+            onClick={handleAuthClick}
+            className="flex items-center gap-1 px-3 py-1.5 bg-primary/90 hover:bg-primary text-primary-foreground rounded-lg transition-colors min-h-[36px] shadow-lg"
+          >
+            <LogIn size={14} />
+            <span className="text-xs font-semibold">Log In</span>
+          </button>
+        )}
       </div>
 
       {/* Auth Modal */}
-      <AuthModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
-      />
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
   );
 };
 
-// Export header height for use in content offset calculations
-export const MOBILE_HEADER_HEIGHT = HEADER_HEIGHT;
+// Export header height for use in content offset calculations (now 0 since no full bar)
+export const MOBILE_HEADER_HEIGHT = 0;

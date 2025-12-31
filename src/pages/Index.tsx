@@ -445,30 +445,28 @@ const Index = () => {
       return (
         <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
           <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
-            {/* Desktop Header */}
+            {/* Desktop floating auth button */}
             {!isMobile && (
-              <div className="w-full">
-                <DesktopHeader
-                  viewMode={viewMode}
-                  onCreateTrip={handleCreateTrip}
-                  onUpgrade={() => setIsUpgradeModalOpen(true)}
-                  onSettings={(settingsType, activeSection) => {
-                    if (settingsType === 'advertiser') {
-                      navigate('/advertiser');
-                    } else {
-                      if (settingsType) setSettingsInitialType(settingsType);
-                      if (activeSection) setSettingsInitialConsumerSection(activeSection);
-                      setIsSettingsOpen(true);
-                    }
-                  }}
-                />
-              </div>
+              <DesktopHeader
+                viewMode={viewMode}
+                onCreateTrip={handleCreateTrip}
+                onUpgrade={() => setIsUpgradeModalOpen(true)}
+                onSettings={(settingsType, activeSection) => {
+                  if (settingsType === 'advertiser') {
+                    navigate('/advertiser');
+                  } else {
+                    if (settingsType) setSettingsInitialType(settingsType);
+                    if (activeSection) setSettingsInitialConsumerSection(activeSection);
+                    setIsSettingsOpen(true);
+                  }
+                }}
+              />
             )}
 
-          {/* Mobile Top Bar for login/demo controls */}
+          {/* Mobile floating auth button */}
           {isMobile && <MobileTopBar onSettingsPress={() => setIsMobileSettingsOpen(true)} />}
 
-          <div className="max-w-[1500px] mx-auto" style={{ paddingTop: isMobile ? 'calc(env(safe-area-inset-top, 0px) + 60px)' : '0' }}>
+          <div className="max-w-[1500px] mx-auto">
             {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}
             <div className="w-full flex flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
               <TripViewToggle 
@@ -597,30 +595,28 @@ const Index = () => {
     return (
       <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
         <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
-          {/* Desktop Header */}
+          {/* Desktop floating auth button */}
           {!isMobile && (
-            <div className="w-full">
-              <DesktopHeader
-                viewMode={viewMode}
-                onCreateTrip={handleCreateTrip}
-                onUpgrade={() => setIsUpgradeModalOpen(true)}
-                onSettings={(settingsType, activeSection) => {
-                  if (settingsType === 'advertiser') {
-                    navigate('/advertiser');
-                  } else {
-                    if (settingsType) setSettingsInitialType(settingsType);
-                    if (activeSection) setSettingsInitialConsumerSection(activeSection);
-                    setIsSettingsOpen(true);
-                  }
-                }}
-              />
-            </div>
+            <DesktopHeader
+              viewMode={viewMode}
+              onCreateTrip={handleCreateTrip}
+              onUpgrade={() => setIsUpgradeModalOpen(true)}
+              onSettings={(settingsType, activeSection) => {
+                if (settingsType === 'advertiser') {
+                  navigate('/advertiser');
+                } else {
+                  if (settingsType) setSettingsInitialType(settingsType);
+                  if (activeSection) setSettingsInitialConsumerSection(activeSection);
+                  setIsSettingsOpen(true);
+                }
+              }}
+            />
           )}
 
-          {/* Mobile Top Bar for login/demo controls */}
+          {/* Mobile floating auth button */}
           {isMobile && <MobileTopBar onSettingsPress={() => setIsMobileSettingsOpen(true)} />}
 
-          <div className="max-w-[1500px] mx-auto" style={{ paddingTop: isMobile ? 'calc(env(safe-area-inset-top, 0px) + 60px)' : '0' }}>
+          <div className="max-w-[1500px] mx-auto">
                 {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}
                 <div className="w-full flex flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
                   <TripViewToggle 
@@ -763,35 +759,29 @@ const Index = () => {
         </div>
       )}
       <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
-        {/* Desktop Header - only show on desktop */}
+        {/* Desktop floating auth button */}
         {!isMobile && (
-          <div className="w-full mb-4">
-            <DesktopHeader
-              viewMode={viewMode}
-              onCreateTrip={handleCreateTrip}
-              onUpgrade={() => setIsUpgradeModalOpen(true)}
-              onSettings={(settingsType, activeSection) => {
-                if (settingsType === 'advertiser') {
-                  navigate('/advertiser');
-                } else {
-                  if (settingsType) setSettingsInitialType(settingsType);
-                  if (activeSection) setSettingsInitialConsumerSection(activeSection);
-                  setIsSettingsOpen(true);
-                }
-              }}
-            />
-          </div>
+          <DesktopHeader
+            viewMode={viewMode}
+            onCreateTrip={handleCreateTrip}
+            onUpgrade={() => setIsUpgradeModalOpen(true)}
+            onSettings={(settingsType, activeSection) => {
+              if (settingsType === 'advertiser') {
+                navigate('/advertiser');
+              } else {
+                if (settingsType) setSettingsInitialType(settingsType);
+                if (activeSection) setSettingsInitialConsumerSection(activeSection);
+                setIsSettingsOpen(true);
+              }
+            }}
+          />
         )}
 
-        {/* Mobile Top Bar for login/demo controls - shows in portrait AND landscape */}
+        {/* Mobile floating auth button */}
         {isMobile && <MobileTopBar onSettingsPress={() => setIsMobileSettingsOpen(true)} />}
 
         {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}
-        {/* Mobile: dynamic padding accounts for fixed MobileTopBar + safe area */}
-        <div 
-          className="w-full flex flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6"
-          style={{ paddingTop: isMobile ? 'calc(env(safe-area-inset-top, 0px) + 60px)' : '0' }}
-        >
+        <div className="w-full flex flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
           <TripViewToggle 
             viewMode={viewMode} 
             onViewModeChange={handleViewModeChange}
