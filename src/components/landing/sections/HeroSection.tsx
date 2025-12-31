@@ -17,9 +17,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       }}
     >
       {/* Header Row - Brand Name + Demo Toggle aligned on same row */}
-      <div className="w-full flex items-center justify-center md:justify-between px-2 md:px-4 mb-4 md:mb-6">
-        {/* Brand Name - Centered on mobile, left-aligned on desktop */}
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight animate-fade-in">
+      <div className="w-full flex items-center justify-center md:justify-between px-2 md:px-4 mb-2 md:mb-4">
+        {/* Brand Name - Category label style (75% of original size) */}
+        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight animate-fade-in">
           ChravelApp
         </h1>
 
@@ -30,10 +30,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       </div>
 
       {/* Main Content - Centered vertically in remaining space */}
-      <div className="flex-1 flex flex-col items-center justify-center space-y-6">
-        {/* Tagline - High contrast gradient with text shadow for readability */}
+      <div className="flex-1 flex flex-col items-center justify-center space-y-4">
+        {/* Tagline - Primary headline (50% of original size) */}
         <h2
-          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight animate-fade-in"
+          className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold leading-tight animate-fade-in"
           style={{
             background: 'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
             WebkitBackgroundClip: 'text',
@@ -46,8 +46,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           Plan Together.<br />Travel Better.
         </h2>
 
-        {/* Subheadline */}
-        <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-foreground max-w-3xl animate-fade-in" style={{ animationDelay: '0.1s' }}>
+        {/* Subheadline - Supporting value prop (reduced ~33% from original) */}
+        <p className="text-xs sm:text-sm md:text-base lg:text-lg text-foreground max-w-2xl animate-fade-in" style={{ animationDelay: '0.1s' }}>
           The Group Chat Travel App for Shared Calendars, Messages, Media, Payments, and more
         </p>
 

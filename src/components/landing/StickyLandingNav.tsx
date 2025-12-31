@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { DemoModeSelector } from '../DemoModeSelector';
-import { HeaderAuthButton } from '../HeaderAuthButton';
 import { Link } from 'react-router-dom';
 
 interface NavSection {
@@ -121,10 +120,9 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ onSignUp }) 
           {sections.find(s => s.id === activeSection)?.label || 'Home'}
         </div>
 
-        {/* Right: Demo Selector + Auth Button */}
+        {/* Right: Demo Selector Only (Auth CTA is centered in hero content) */}
         <div className="flex items-center gap-2">
           <DemoModeSelector />
-          <HeaderAuthButton />
         </div>
       </div>
     </nav>
