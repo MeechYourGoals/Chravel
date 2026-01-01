@@ -20,6 +20,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { markMessagesAsRead } from '@/services/readReceiptService';
 import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { TripChannel } from '@/types/roleChannels';
+import { useEffectiveSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
+import { isConsumerTrip } from '@/utils/tripTierDetector';
 
 interface MobileTripChatProps {
   tripId: string;
@@ -30,13 +32,16 @@ interface MobileTripChatProps {
 
 export const MobileTripChat = ({ tripId, isEvent = false, isPro = false, userRole = 'member' }: MobileTripChatProps) => {
   const orientation = useOrientation();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const chatPaneRef = useRef<HTMLDivElement>(null);
   const [reactions, setReactions] = useState<{ [messageId: string]: { [reaction: string]: { count: number; userReacted: boolean } } }>({});
   const [messageFilter, setMessageFilter] = useState<'all' | 'broadcasts' | 'channels'>('all');
   const [userId, setUserId] = useState<string | null>(null);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
   const [profileByUserId, setProfileByUserId] = useState<Record<string, { display_name: string | null; avatar_url: string | null }>>({});
+
+  // System message preferences - only for consumer trips
+  const isConsumer = isConsumerTrip(tripId);
+  const { data: systemMessagePrefs } = useEffectiveSystemMessagePreferences(isConsumer ? tripId : '');
 
   // Initialize role channels hook for Pro/Enterprise trips
   const {
@@ -156,18 +161,23 @@ export const MobileTripChat = ({ tripId, isEvent = false, isPro = false, userRol
     preventZoom: true,
     adjustViewport: true,
     onShow: () => {
+      // After the viewport resizes, keep the user pinned to the bottom (chat-app behavior).
+      // We intentionally target the scroll container inside the chat pane, not the whole page.
       setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 300);
+        const scroller = chatPaneRef.current?.querySelector<HTMLElement>('.chat-scroll-container');
+        if (!scroller) return;
+        scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
+      }, 150);
     }
   });
 
   const handleMobileSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: any) => {
-    await hapticService.light();
-    if (inputMessage.trim()) {
-      await sendUnifiedMessage(inputMessage, isBroadcast ? 'broadcast' : 'standard');
-      setInputMessage('');
-    }
+    if (!inputMessage.trim()) return;
+
+    // Message send: light haptic (native-only, hard-gated).
+    void hapticService.light();
+    await sendUnifiedMessage(inputMessage, isBroadcast ? 'broadcast' : 'standard');
+    setInputMessage('');
   };
 
   const handleReaction = async (messageId: string, reactionType: string) => {
@@ -237,7 +247,10 @@ export const MobileTripChat = ({ tripId, isEvent = false, isPro = false, userRol
       
       {/* Chat Container - Messages with Filter Tabs (flex-1 to fill available space) */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col mx-4 mt-4 mb-2">
+        <div
+          ref={chatPaneRef}
+          className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col mx-4 mt-4 mb-2"
+        >
           {/* Filter Tabs - Sticky Inside Chat Pane */}
           <ChatFilterTabs
             activeFilter={messageFilter}
@@ -270,6 +283,7 @@ export const MobileTripChat = ({ tripId, isEvent = false, isPro = false, userRol
                   message={message}
                   reactions={reactions[message.id]}
                   onReaction={handleReaction}
+                  systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
                 />
               )}
               onLoadMore={loadMore}
@@ -309,6 +323,7 @@ export const MobileTripChat = ({ tripId, isEvent = false, isPro = false, userRol
             isTyping={false}
             tripMembers={[]}
             hidePayments={true}
+            safeAreaBottom={false}
             tripId={tripId}
           />
         </div>

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tripService, Trip, CreateTripData } from '@/services/tripService';
+import { archiveService } from '@/services/archiveService';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 import { useEffect } from 'react';
@@ -126,7 +127,55 @@ export const useTrips = () => {
 
   const archiveTripMutation = useMutation({
     mutationFn: (id: string) => tripService.archiveTrip(id),
-    onSuccess: () => {
+    onMutate: async (tripId) => {
+      await queryClient.cancelQueries({ queryKey: [TRIPS_QUERY_KEY] });
+      const previousTrips = queryClient.getQueryData([TRIPS_QUERY_KEY, user?.id, isDemoMode]);
+      queryClient.setQueryData([TRIPS_QUERY_KEY, user?.id, isDemoMode], (old: Trip[] | undefined) =>
+        old ? old.filter((trip) => trip.id !== tripId) : []
+      );
+      return { previousTrips };
+    },
+    onError: (err, tripId, context) => {
+      queryClient.setQueryData([TRIPS_QUERY_KEY, user?.id, isDemoMode], context?.previousTrips);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: [TRIPS_QUERY_KEY] });
+    },
+  });
+
+  const hideTripMutation = useMutation({
+    mutationFn: (id: string) => archiveService.hideTrip(id),
+    onMutate: async (tripId) => {
+      await queryClient.cancelQueries({ queryKey: [TRIPS_QUERY_KEY] });
+      const previousTrips = queryClient.getQueryData([TRIPS_QUERY_KEY, user?.id, isDemoMode]);
+      queryClient.setQueryData([TRIPS_QUERY_KEY, user?.id, isDemoMode], (old: Trip[] | undefined) =>
+        old ? old.filter((trip) => trip.id !== tripId) : []
+      );
+      return { previousTrips };
+    },
+    onError: (err, tripId, context) => {
+      queryClient.setQueryData([TRIPS_QUERY_KEY, user?.id, isDemoMode], context?.previousTrips);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: [TRIPS_QUERY_KEY] });
+    },
+  });
+
+  const deleteTripForMeMutation = useMutation({
+    mutationFn: ({ tripId, userId }: { tripId: string; userId: string }) =>
+      archiveService.deleteTripForMe(tripId, userId),
+    onMutate: async ({ tripId }) => {
+      await queryClient.cancelQueries({ queryKey: [TRIPS_QUERY_KEY] });
+      const previousTrips = queryClient.getQueryData([TRIPS_QUERY_KEY, user?.id, isDemoMode]);
+      queryClient.setQueryData([TRIPS_QUERY_KEY, user?.id, isDemoMode], (old: Trip[] | undefined) =>
+        old ? old.filter((trip) => trip.id !== tripId) : []
+      );
+      return { previousTrips };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData([TRIPS_QUERY_KEY, user?.id, isDemoMode], context?.previousTrips);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: [TRIPS_QUERY_KEY] });
     },
   });
@@ -161,13 +210,35 @@ export const useTrips = () => {
     }
   };
 
+  const hideTrip = async (tripId: string): Promise<boolean> => {
+    try {
+      await hideTripMutation.mutateAsync(tripId);
+      return true;
+    } catch (e) {
+      console.error("Hide trip failed", e);
+      return false;
+    }
+  };
+
+  const deleteTripForMe = async (tripId: string, userId: string): Promise<boolean> => {
+    try {
+      await deleteTripForMeMutation.mutateAsync({ tripId, userId });
+      return true;
+    } catch (e) {
+      console.error("Delete trip for me failed", e);
+      return false;
+    }
+  };
+
   return {
     trips,
     loading: isLoading,
-    initializing: isLoading, 
+    initializing: isLoading,
     createTrip,
     updateTrip,
     archiveTrip,
-    refreshTrips: refetch
+    hideTrip,
+    deleteTripForMe,
+    refreshTrips: refetch,
   };
 };

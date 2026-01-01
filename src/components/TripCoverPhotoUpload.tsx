@@ -66,20 +66,43 @@ export const TripCoverPhotoUpload = ({
         return;
       }
 
-      // Authenticated mode: Upload to Supabase Storage
+      // Authenticated mode: Upload to Supabase Storage with retry logic
       const croppedFile = new File([croppedBlob], `cover-${Date.now()}.jpg`, { type: 'image/jpeg' });
       const formData = new FormData();
       formData.append('file', croppedFile);
       formData.append('folder', `trips/${tripId}`);
 
-      const { data, error } = await supabase.functions.invoke('image-upload', {
-        body: formData
-      });
+      const MAX_RETRIES = 3;
+      let lastError: Error | null = null;
+      let data: { url?: string } | null = null;
 
-      if (error) throw error;
-      
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          const response = await supabase.functions.invoke('image-upload', {
+            body: formData
+          });
+
+          if (response.error) {
+            lastError = new Error(response.error.message);
+            if (attempt < MAX_RETRIES) {
+              await new Promise(r => setTimeout(r, 1000 * attempt)); // Exponential backoff
+              continue;
+            }
+          } else {
+            data = response.data;
+            break;
+          }
+        } catch (e) {
+          lastError = e instanceof Error ? e : new Error(String(e));
+          if (attempt < MAX_RETRIES) {
+            await new Promise(r => setTimeout(r, 1000 * attempt));
+            continue;
+          }
+        }
+      }
+
       if (!data?.url) {
-        throw new Error('No URL returned from upload');
+        throw lastError || new Error('No URL returned from upload');
       }
 
       // Add cache-busting param for re-crops

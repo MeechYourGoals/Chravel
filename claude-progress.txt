@@ -148,7 +148,7 @@ Status Key: ✅ Done | ⏳ In Progress | ❌ Broken | 🔜 Not Started
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Event RSVPs | ✅ | CRUD working |
-| Check-in system | ✅ | QR codes + check-in tracking |
+| Check-in system | ✅ | Manual check-in + check-in tracking |
 | Q&A sessions | ✅ | Live questions + upvotes |
 | Waitlist | ⏳ | Schema present, UI needed |
 | Dietary restrictions | ✅ | Tracked in RSVP |

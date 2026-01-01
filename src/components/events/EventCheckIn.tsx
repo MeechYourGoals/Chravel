@@ -2,7 +2,6 @@
  * Event Check-In Component
  * 
  * Provides check-in functionality for event organizers:
- * - QR code scanner for ticket verification
  * - Manual check-in by attendee name/email
  * - Check-in status display
  * - Real-time check-in count
@@ -10,11 +9,11 @@
  * Used by: Event organizers/admins for attendee check-in
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useEventPermissions } from '@/hooks/useEventPermissions';
-import { CheckCircle2, Search, QrCode, Users, AlertCircle, XCircle } from 'lucide-react';
+import { CheckCircle2, Search, Users, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -36,16 +35,13 @@ interface AttendeeRSVP {
 
 export const EventCheckIn: React.FC<EventCheckInProps> = ({ eventId }) => {
   const { user } = useAuth();
-  const { isAdmin, hasAdminPermission } = useEventPermissions(eventId);
+  const { isAdmin } = useEventPermissions(eventId);
   const [searchQuery, setSearchQuery] = useState('');
   const [attendees, setAttendees] = useState<AttendeeRSVP[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [checkedInCount, setCheckedInCount] = useState(0);
   const [totalAttendees, setTotalAttendees] = useState(0);
-  const [showQRScanner, setShowQRScanner] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [scanResult, setScanResult] = useState<string | null>(null);
 
   // Load attendees
   const loadAttendees = async () => {
@@ -113,46 +109,6 @@ export const EventCheckIn: React.FC<EventCheckInProps> = ({ eventId }) => {
     }
   };
 
-  // Verify QR code ticket
-  const verifyQRCode = async (qrData: string) => {
-    try {
-      const ticketData = JSON.parse(qrData);
-      const { eventId: ticketEventId, userId } = ticketData;
-
-      if (ticketEventId !== eventId) {
-        alert('Invalid ticket for this event');
-        return;
-      }
-
-      // Find RSVP by user_id
-      const { data: rsvp, error } = await supabase
-        .from('event_rsvps' as any)
-        .select('id, user_name, checked_in')
-        .eq('event_id', eventId)
-        .eq('user_id', userId)
-        .single();
-
-      if (error || !rsvp) {
-        alert('Ticket not found');
-        return;
-      }
-
-      if ((rsvp as any).checked_in) {
-        alert(`${(rsvp as any).user_name} is already checked in`);
-        return;
-      }
-
-      const success = await checkInAttendee((rsvp as any).id);
-      if (success) {
-        alert(`Checked in: ${(rsvp as any).user_name}`);
-        setScanResult(null);
-      }
-    } catch (error) {
-      console.error('Error verifying QR code:', error);
-      alert('Invalid QR code format');
-    }
-  };
-
   // Filter attendees by search query
   const filteredAttendees = attendees.filter(attendee =>
     attendee.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -198,50 +154,6 @@ export const EventCheckIn: React.FC<EventCheckInProps> = ({ eventId }) => {
               <div className="text-sm text-gray-400">Remaining</div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* QR Code Scanner */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <QrCode className="h-5 w-5" />
-            QR Code Scanner
-          </CardTitle>
-          <CardDescription>Scan attendee tickets to check them in</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {showQRScanner ? (
-            <div className="space-y-4">
-              <div className="relative w-full aspect-square bg-black rounded-lg overflow-hidden">
-                <video
-                  ref={videoRef}
-                  className="w-full h-full object-cover"
-                  autoPlay
-                  playsInline
-                />
-                {/* TODO: Integrate with QR code scanner library (e.g., @zxing/library) */}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                  <p className="text-white text-sm">QR Scanner UI - Requires @zxing/library integration</p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setShowQRScanner(false)}
-                className="w-full"
-              >
-                Close Scanner
-              </Button>
-            </div>
-          ) : (
-            <Button
-              onClick={() => setShowQRScanner(true)}
-              className="w-full"
-            >
-              <QrCode className="h-4 w-4 mr-2" />
-              Open QR Scanner
-            </Button>
-          )}
         </CardContent>
       </Card>
 

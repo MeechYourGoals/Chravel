@@ -2,7 +2,7 @@
  * Stripe Webhook Handler
  * 
  * Processes Stripe webhook events to sync subscription status with database.
- * Handles: subscription updates, cancellations, payment failures, invoice payments
+ * Account: christian@chravelapp.com (TEST MODE)
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
@@ -14,6 +14,20 @@ import { sanitizeErrorForClient, logError } from "../_shared/errorHandling.ts";
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
+};
+
+// ============================================================
+// PRODUCT IDS - ChravelApp Stripe Products
+// ============================================================
+const PRODUCT_TO_TIER: Record<string, string> = {
+  // Consumer Plans - ChravelApp Plus
+  'prod_Tc0SWNhLkoCDIi': 'explorer',
+  'prod_Tc0WEzRDTCkfPM': 'frequent-chraveler',
+  
+  // Pro Plans - ChravelApp Pro
+  'prod_Tc0YVR1N0fmtDG': 'pro-starter',
+  'prod_Tc0afc0pIUt87D': 'pro-growth',
+  'prod_Tc0cJshKNpvxV0': 'pro-enterprise',
 };
 
 serve(async (req) => {
@@ -58,6 +72,10 @@ serve(async (req) => {
 
     // Handle different event types
     switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session, supabaseClient, stripe);
+        break;
+        
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
         await handleSubscriptionUpdated(event.data.object as Stripe.Subscription, supabaseClient);
@@ -86,93 +104,110 @@ serve(async (req) => {
   }
 });
 
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session, supabase: any, stripe: Stripe) {
+  logStep("Processing checkout.session.completed", { sessionId: session.id });
+  
+  const userId = session.metadata?.user_id;
+  const customerEmail = session.customer_email;
+  const customerId = session.customer as string;
+  
+  if (!userId) {
+    logStep("No user_id in session metadata");
+    return;
+  }
+
+  // Update private_profiles with customer ID
+  await supabase
+    .from('private_profiles')
+    .upsert({ id: userId, stripe_customer_id: customerId })
+    .select();
+
+  logStep("Checkout completed, customer linked", { userId, customerId });
+}
+
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supabase: any) {
   logStep("Processing subscription update", { id: subscription.id, status: subscription.status });
 
   const customerId = subscription.customer as string;
   const productId = subscription.items.data[0]?.price.product as string;
   const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+  const tier = PRODUCT_TO_TIER[productId] || 'free';
 
-  // Get customer to find user
-  const { data: customers } = await supabase
-    .from('profiles')
-    .select('user_id')
+  // Find user by customer ID
+  const { data: profiles } = await supabase
+    .from('private_profiles')
+    .select('id')
     .eq('stripe_customer_id', customerId)
     .limit(1);
 
-  if (!customers || customers.length === 0) {
-    logStep("Customer not found in profiles", { customerId });
+  if (!profiles || profiles.length === 0) {
+    logStep("Customer not found in private_profiles", { customerId });
     return;
   }
 
-  const userId = customers[0].user_id;
+  const userId = profiles[0].id;
 
-  // Update profile with subscription details
+  // Update private_profiles with subscription details
+  await supabase
+    .from('private_profiles')
+    .update({
+      stripe_subscription_id: subscription.id,
+    })
+    .eq('id', userId);
+
+  // Update public profile with subscription status
   const { error: profileError } = await supabase
     .from('profiles')
     .update({
-      stripe_customer_id: customerId,
-      stripe_subscription_id: subscription.id,
       subscription_product_id: productId,
       subscription_status: subscription.status,
       subscription_end: subscriptionEnd
     })
-    .eq('user_id', userId);
+    .eq('id', userId);
 
   if (profileError) {
     logError('STRIPE_WEBHOOK', profileError);
     return;
   }
 
-  // Grant pro role if subscription is active
-  if (subscription.status === 'active') {
-    await supabase
-      .from('user_roles')
-      .insert({ user_id: userId, role: 'pro' })
-      .onConflict('user_id,role')
-      .ignore();
-  }
-
-  // Send realtime notification to user
+  // Create notification for user
   await supabase
     .from('notifications')
     .insert({
       user_id: userId,
       type: 'subscription',
-      title: getSubscriptionNotificationTitle(subscription.status),
-      message: getSubscriptionNotificationMessage(subscription.status, subscriptionEnd),
+      title: getNotificationTitle(subscription.status),
+      message: getNotificationMessage(subscription.status, tier, subscriptionEnd),
       metadata: {
         subscription_id: subscription.id,
         product_id: productId,
+        tier: tier,
         status: subscription.status,
-        action: 'subscription_updated'
       }
     });
 
-  logStep("Subscription updated successfully with notification", { userId, status: subscription.status });
+  logStep("Subscription updated", { userId, tier, status: subscription.status });
 }
 
-function getSubscriptionNotificationTitle(status: string): string {
+function getNotificationTitle(status: string): string {
   switch (status) {
-    case 'active':
-      return '✅ Subscription Activated';
-    case 'past_due':
-      return '⚠️ Payment Issue';
-    case 'canceled':
-      return 'Subscription Canceled';
-    case 'trialing':
-      return '🎉 Trial Started';
-    default:
-      return 'Subscription Updated';
+    case 'active': return '✅ Subscription Activated';
+    case 'past_due': return '⚠️ Payment Issue';
+    case 'canceled': return 'Subscription Canceled';
+    case 'trialing': return '🎉 Trial Started';
+    default: return 'Subscription Updated';
   }
 }
 
-function getSubscriptionNotificationMessage(status: string, subscriptionEnd: string): string {
+function getNotificationMessage(status: string, tier: string, subscriptionEnd: string): string {
   const endDate = new Date(subscriptionEnd).toLocaleDateString();
+  const tierName = tier === 'explorer' ? 'Explorer' : 
+                   tier === 'frequent-chraveler' ? 'Frequent Chraveler' : 
+                   tier.replace('pro-', 'Pro ');
   
   switch (status) {
     case 'active':
-      return `Your Chravel Pro subscription is now active until ${endDate}.`;
+      return `Your ${tierName} subscription is now active until ${endDate}.`;
     case 'past_due':
       return 'We had trouble processing your payment. Please update your payment method.';
     case 'canceled':
@@ -189,47 +224,41 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supa
 
   const customerId = subscription.customer as string;
 
-  // Get user from customer ID
-  const { data: customers } = await supabase
-    .from('profiles')
-    .select('user_id')
+  const { data: profiles } = await supabase
+    .from('private_profiles')
+    .select('id')
     .eq('stripe_customer_id', customerId)
     .limit(1);
 
-  if (!customers || customers.length === 0) {
+  if (!profiles || profiles.length === 0) {
     logStep("Customer not found", { customerId });
     return;
   }
 
-  const userId = customers[0].user_id;
+  const userId = profiles[0].id;
 
-  // Update profile to remove subscription
+  await supabase
+    .from('private_profiles')
+    .update({
+      stripe_subscription_id: null
+    })
+    .eq('id', userId);
+
   await supabase
     .from('profiles')
     .update({
-      stripe_subscription_id: null,
       subscription_product_id: null,
       subscription_status: 'canceled',
       subscription_end: null
     })
-    .eq('user_id', userId);
+    .eq('id', userId);
 
-  // Remove pro role
-  await supabase
-    .from('user_roles')
-    .delete()
-    .eq('user_id', userId)
-    .eq('role', 'pro');
-
-  logStep("Subscription deleted successfully", { userId });
+  logStep("Subscription deleted", { userId });
 }
 
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, supabase: any) {
-  logStep("Processing successful payment", { id: invoice.id });
-  
-  // Invoice payments are handled by subscription events
-  // This is mainly for logging/analytics
   logStep("Payment succeeded", { 
+    invoiceId: invoice.id,
     customerId: invoice.customer,
     amount: invoice.amount_paid / 100,
     currency: invoice.currency
@@ -241,24 +270,31 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any
 
   const customerId = invoice.customer as string;
 
-  // Get user from customer ID
-  const { data: customers } = await supabase
-    .from('profiles')
-    .select('user_id')
+  const { data: profiles } = await supabase
+    .from('private_profiles')
+    .select('id')
     .eq('stripe_customer_id', customerId)
     .limit(1);
 
-  if (!customers || customers.length === 0) {
-    return;
-  }
+  if (!profiles || profiles.length === 0) return;
 
-  const userId = customers[0].user_id;
+  const userId = profiles[0].id;
 
-  // Update subscription status to past_due
   await supabase
     .from('profiles')
     .update({ subscription_status: 'past_due' })
-    .eq('user_id', userId);
+    .eq('id', userId);
+
+  // Notify user of payment failure
+  await supabase
+    .from('notifications')
+    .insert({
+      user_id: userId,
+      type: 'payment',
+      title: '⚠️ Payment Failed',
+      message: 'We had trouble processing your subscription payment. Please update your payment method to avoid service interruption.',
+      metadata: { invoice_id: invoice.id }
+    });
 
   logStep("Payment failure recorded", { userId });
 }

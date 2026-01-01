@@ -2,234 +2,246 @@ import { ProTripData } from '../../types/pro';
 import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const kaiDruskiStream: ProTripData = {
-  id: 'kai-druski-jake-adin-24hr-atl',
-  title: 'Kai Cenat × Druski × Jake Paul × Adin Ross – 24-Hour Live-Stream',
-  description: '24-hour collaborative live-stream event featuring top content creators in Atlanta.',
-  location: 'Atlanta, GA',
-  dateRange: 'Aug 7 - Aug 8, 2025',
+  id: 'amazon-prime-sports-broadcast-miami',
+  title: 'Amazon Prime — Live Sports Broadcast Crew',
+  description: 'On-site production and broadcast operations for live-streamed sports programming.',
+  location: 'Miami, FL',
+  dateRange: 'March 12 - March 17, 2026',
   proTripCategory: 'Content',
-  tags: ['Content', 'Live Stream', 'Gaming'],
-  basecamp_name: 'State Farm Arena',
-  basecamp_address: '1 State Farm Drive, Atlanta, GA 30303',
+  tags: ['Content', 'Live Sports', 'Broadcast', 'Amazon Prime'],
+  basecamp_name: 'Hard Rock Stadium',
+  basecamp_address: '347 Don Shula Dr, Miami Gardens, FL 33056',
   tasks: [
     {
-      id: 'task-stream-1',
-      title: 'Test all camera angles and lighting',
-      description: 'Run full tech check on all 8 camera setups before go-live',
+      id: 'task-broadcast-1',
+      title: 'Verify camera rig installation',
+      description: 'Complete inspection of all camera positions and broadcast equipment',
       completed: true,
-      due_at: '2025-08-07',
-      assigned_to: 'production-director',
+      due_at: '2026-03-11',
+      assigned_to: 'technical-director',
       created_at: new Date(Date.now() - 604800000).toISOString()
     },
     {
-      id: 'task-stream-2',
-      title: 'Coordinate guest appearance schedule',
-      description: 'Finalize arrival times for all surprise guest appearances',
+      id: 'task-broadcast-2',
+      title: 'Test streaming infrastructure',
+      description: 'Amazon Prime Video streaming setup and connectivity testing',
       completed: false,
-      due_at: '2025-08-07',
-      assigned_to: 'talent-coordinator',
+      due_at: '2026-03-12',
+      assigned_to: 'broadcast-ops',
       created_at: new Date().toISOString()
     }
   ],
   polls: [
     {
-      id: 'poll-stream-1',
-      question: 'Which challenge should we do first?',
+      id: 'poll-broadcast-1',
+      question: 'Preferred crew call time for broadcast day?',
       options: [
-        { id: 'opt1', text: 'Gaming Marathon', votes: 245 },
-        { id: 'opt2', text: 'Food Challenge', votes: 189 },
-        { id: 'opt3', text: 'Prank Wars', votes: 412 }
+        { id: 'opt1', text: '5:00 AM (Early Setup)', votes: 12 },
+        { id: 'opt2', text: '7:00 AM (Standard)', votes: 15 },
+        { id: 'opt3', text: '9:00 AM (Late Start)', votes: 4 }
       ],
-      total_votes: 846,
+      total_votes: 31,
       status: 'closed',
       created_at: new Date(Date.now() - 86400000).toISOString()
     }
   ],
   links: [
     {
-      id: 'link-stream-1',
-      url: 'https://www.twitch.tv/kaicenat',
-      title: 'Kai Cenat Twitch Channel',
-      description: 'Primary streaming platform for 24-hour event',
-      domain: 'twitch.tv',
+      id: 'link-broadcast-1',
+      url: 'https://www.amazon.com/primevideo/sports',
+      title: 'Amazon Prime Video Sports',
+      description: 'Official broadcast platform for live sports',
+      domain: 'amazon.com',
       created_at: new Date().toISOString(),
       source: 'places'
     },
     {
-      id: 'link-stream-2',
-      url: 'https://www.watlanta.com',
-      title: 'W Atlanta Downtown Hotel',
-      description: 'Creator accommodation and green room setup',
-      domain: 'watlanta.com',
+      id: 'link-broadcast-2',
+      url: 'https://www.hardrockstadium.com',
+      title: 'Hard Rock Stadium - Broadcast Venue',
+      description: 'Venue information and crew access details',
+      domain: 'hardrockstadium.com',
       created_at: new Date(Date.now() - 172800000).toISOString(),
       source: 'manual'
     }
   ],
   broadcasts: [
     {
-      id: 'bc-stream-1',
+      id: 'bc-broadcast-1',
       senderId: '1',
-      message: 'GOING LIVE IN 30 MINUTES! Everyone get to your positions!',
-      targetTrips: ['kai-druski-jake-adin-24hr-atl'],
+      message: 'Final broadcast prep meeting at 2 PM. All department heads required.',
+      targetTrips: ['amazon-prime-sports-broadcast-miami'],
       priority: 'urgent',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
       readBy: ['2', '3', '4']
     },
     {
-      id: 'bc-stream-2',
-      senderId: '3',
-      message: 'Stream hit 500K concurrent viewers! Let\'s keep the energy high!',
-      targetTrips: ['kai-druski-jake-adin-24hr-atl'],
+      id: 'bc-broadcast-2',
+      senderId: '2',
+      message: 'Camera test scheduled for 10 AM tomorrow. All camera ops on standby.',
+      targetTrips: ['amazon-prime-sports-broadcast-miami'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
-      readBy: ['1', '2']
+      readBy: ['1', '3']
     }
   ],
   participants: [
-    { id: '1', name: 'Kai Cenat', avatar: getMockAvatar('Kai Cenat'), role: 'Content Creators' },
-    { id: '2', name: 'Druski', avatar: getMockAvatar('Druski'), role: 'Content Creators' },
-    { id: '3', name: 'Jake Paul', avatar: getMockAvatar('Jake Paul'), role: 'Content Creators' },
-    { id: '4', name: 'Adin Ross', avatar: getMockAvatar('Adin Ross'), role: 'Content Creators' }
+    { id: '1', name: 'Dana Schultz', avatar: getMockAvatar('Dana Schultz'), role: 'Executive Producer' },
+    { id: '2', name: 'Ramon Alvarez', avatar: getMockAvatar('Ramon Alvarez'), role: 'Technical Director' },
+    { id: '3', name: 'Sophie Chen', avatar: getMockAvatar('Sophie Chen'), role: 'Broadcast Ops' },
+    { id: '4', name: 'Luke Matthews', avatar: getMockAvatar('Luke Matthews'), role: 'Camera Lead' },
+    { id: '5', name: 'Priya Nair', avatar: getMockAvatar('Priya Nair'), role: 'Talent Coordination' }
   ],
   budget: {
-    total: 150000,
-    spent: 45000,
+    total: 1800000,
+    spent: 750000,
     categories: [
-      { name: 'Production', budgeted: 75000, spent: 25000 },
-      { name: 'Accommodation', budgeted: 30000, spent: 10000 },
-      { name: 'Catering', budgeted: 25000, spent: 7000 },
-      { name: 'Production Rental', budgeted: 20000, spent: 3000 }
+      { name: 'Broadcast Equipment', budgeted: 800000, spent: 350000 },
+      { name: 'Crew & Staff', budgeted: 600000, spent: 250000 },
+      { name: 'Venue & Facilities', budgeted: 300000, spent: 120000 },
+      { name: 'Logistics & Travel', budgeted: 100000, spent: 30000 }
     ]
   },
   itinerary: [
     {
-      date: '2025-08-07',
+      date: '2026-03-12',
       events: [
-        { time: '10:00', title: 'Crew Call & Setup', location: 'Atlanta Studio Complex', type: 'meeting' },
-        { time: '12:00', title: 'Tech Rehearsal', location: 'Main Studio', type: 'meeting' },
-        { time: '14:00', title: 'Creator Arrival & Briefing', location: 'Green Room', type: 'meeting' },
-        { time: '16:00', title: 'Stream Goes Live', location: 'Main Studio', type: 'meeting' }
+        { time: '07:00', title: 'Broadcast Equipment Setup', location: 'Hard Rock Stadium', type: 'meeting' },
+        { time: '10:00', title: 'Camera Test & Positioning', location: 'Broadcast Booth', type: 'meeting' },
+        { time: '14:00', title: 'Technical Rehearsal', location: 'Production Truck', type: 'meeting' },
+        { time: '18:00', title: 'Pre-Broadcast Final Check', location: 'Control Room', type: 'meeting' }
       ]
     }
   ],
   roster: [
     {
       id: '1',
-      name: 'Kai Cenat',
-      email: 'kai@streamteam.com',
-      avatar: getMockAvatar('Kai Cenat'),
-      role: 'Content Creators',
+      name: 'Dana Schultz',
+      email: 'dana@amazonprime.com',
+      avatar: getMockAvatar('Dana Schultz'),
+      role: 'Executive Producer',
       credentialLevel: 'AllAccess',
-      permissions: ['all-areas', 'stream-control'],
+      permissions: ['all-areas', 'executive-access'],
       roomPreferences: ['suite', 'high-floor'],
       dietaryRestrictions: []
     },
     {
       id: '2',
-      name: 'Druski',
-      email: 'druski@streamteam.com',
-      avatar: getMockAvatar('Druski'),
-      role: 'Content Creators',
+      name: 'Ramon Alvarez',
+      email: 'ramon@amazonprime.com',
+      avatar: getMockAvatar('Ramon Alvarez'),
+      role: 'Technical Director',
       credentialLevel: 'AllAccess',
-      permissions: ['all-areas', 'stream-control'],
-      roomPreferences: ['suite', 'high-floor'],
+      permissions: ['all-areas', 'technical-control'],
+      roomPreferences: ['standard', 'mid-floor'],
       dietaryRestrictions: []
     },
     {
       id: '3',
-      name: 'Jake Paul',
-      email: 'jake@streamteam.com',
-      avatar: getMockAvatar('Jake Paul'),
-      role: 'Content Creators',
-      credentialLevel: 'AllAccess',
-      permissions: ['all-areas', 'stream-control'],
-      roomPreferences: ['suite', 'high-floor'],
+      name: 'Sophie Chen',
+      email: 'sophie@amazonprime.com',
+      avatar: getMockAvatar('Sophie Chen'),
+      role: 'Broadcast Ops',
+      credentialLevel: 'Backstage',
+      permissions: ['broadcast-area', 'control-room'],
+      roomPreferences: ['standard', 'mid-floor'],
       dietaryRestrictions: []
     },
     {
       id: '4',
-      name: 'Adin Ross',
-      email: 'adin@streamteam.com',
-      avatar: getMockAvatar('Adin Ross'),
-      role: 'Content Creators',
-      credentialLevel: 'AllAccess',
-      permissions: ['all-areas', 'stream-control'],
-      roomPreferences: ['suite', 'high-floor'],
-      dietaryRestrictions: ['no-dairy']
+      name: 'Luke Matthews',
+      email: 'luke@amazonprime.com',
+      avatar: getMockAvatar('Luke Matthews'),
+      role: 'Camera Lead',
+      credentialLevel: 'Backstage',
+      permissions: ['field-access', 'camera-positions'],
+      roomPreferences: ['standard', 'any-floor'],
+      dietaryRestrictions: []
+    },
+    {
+      id: '5',
+      name: 'Priya Nair',
+      email: 'priya@amazonprime.com',
+      avatar: getMockAvatar('Priya Nair'),
+      role: 'Talent Coordination',
+      credentialLevel: 'Backstage',
+      permissions: ['talent-area', 'backstage'],
+      roomPreferences: ['standard', 'mid-floor'],
+      dietaryRestrictions: []
     }
   ],
   roomAssignments: [
     {
-      id: 'room-stream1',
-      room: 'Penthouse Suite A',
-      hotel: 'W Atlanta Downtown',
+      id: 'room-broadcast1',
+      room: 'Executive Suite 501',
+      hotel: 'Miami Marriott Biscayne Bay',
       occupants: ['1'],
-      checkIn: '2025-08-07T12:00:00Z',
-      checkOut: '2025-08-08T14:00:00Z',
+      checkIn: '2026-03-12T14:00:00Z',
+      checkOut: '2026-03-17T12:00:00Z',
       roomType: 'suite',
-      specialRequests: ['late-checkout', 'soundproofing']
+      specialRequests: ['early-checkin', 'quiet-floor']
     }
   ],
   schedule: [
     {
-      id: 'sched-stream1',
+      id: 'sched-broadcast1',
       type: 'show',
-      title: '24-Hour Live Stream',
-      startTime: '2025-08-07T16:00:00Z',
-      endTime: '2025-08-08T16:00:00Z',
-      location: 'Atlanta Studio Complex',
-      participants: ['1', '2', '3', '4'],
+      title: 'Live Sports Broadcast',
+      startTime: '2026-03-12T19:00:00Z',
+      endTime: '2026-03-12T23:00:00Z',
+      location: 'Hard Rock Stadium',
+      participants: ['1', '2', '3', '4', '5'],
       priority: 'critical',
-      notes: 'Continuous 24-hour stream with rotating host segments'
+      notes: 'Live Amazon Prime Video sports broadcast'
     }
   ],
   perDiem: {
-    dailyRate: 300,
+    dailyRate: 400,
     currency: 'USD',
-    startDate: '2025-08-07',
-    endDate: '2025-08-08',
+    startDate: '2026-03-12',
+    endDate: '2026-03-17',
     participants: [
-      { participantId: '1', customRate: 500, advances: 0, deductions: 0, balance: 1000 },
-      { participantId: '2', customRate: 400, advances: 0, deductions: 0, balance: 800 }
+      { participantId: '1', customRate: 650, advances: 0, deductions: 0, balance: 3250 },
+      { participantId: '2', customRate: 550, advances: 0, deductions: 0, balance: 2750 }
     ]
   },
   settlement: [],
   medical: [],
   compliance: [
     {
-      id: 'comp-stream1',
+      id: 'comp-broadcast1',
       type: 'safety',
-      title: 'Platform Content Guidelines',
-      description: 'All content must comply with Twitch and YouTube ToS',
-      deadline: '2025-08-07',
+      title: 'FCC Broadcast Regulations',
+      description: 'All broadcast operations must comply with FCC standards and streaming protocols',
+      deadline: '2026-03-11',
       status: 'compliant',
-      assignedTo: '1',
-      documents: ['platform-guidelines.pdf']
+      assignedTo: '2',
+      documents: ['fcc-approval.pdf', 'broadcast-protocols.pdf']
     }
   ],
   media: [
     {
-      id: 'media-stream1',
+      id: 'media-broadcast1',
       type: 'press-conference',
-      outlet: 'Twitch & YouTube',
-      contactPerson: 'Production Manager',
-      scheduledTime: '2025-08-07T16:00:00Z',
-      duration: 1440,
-      location: 'Atlanta Studio Complex',
-      participants: ['1', '2', '3', '4'],
+      outlet: 'Amazon Prime Video Sports',
+      contactPerson: 'Broadcast Media Coordinator',
+      scheduledTime: '2026-03-12T14:00:00Z',
+      duration: 90,
+      location: 'Hard Rock Stadium Media Center',
+      participants: ['1', '2', '5'],
       status: 'confirmed'
     }
   ],
   sponsors: [
     {
-      id: 'sponsor-stream1',
-      sponsor: 'Red Bull',
-      activation: 'Energy drink sponsorship',
-      deadline: '2025-08-07',
+      id: 'sponsor-broadcast1',
+      sponsor: 'Amazon Prime Video',
+      activation: 'Exclusive broadcast rights and streaming platform',
+      deadline: '2026-03-12',
       assignedTo: '1',
-      status: 'in-progress',
-      deliverables: ['product-placement', 'branded-segments'],
-      notes: 'Exclusive energy drink partner for 24-hour stream'
+      status: 'completed',
+      deliverables: ['live-broadcast', 'pre-show-coverage', 'post-game-highlights'],
+      notes: 'Amazon Prime Video exclusive streaming partner for live sports'
     }
   ]
 };

@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, MapPin, Users, Plus, Settings, Edit, FileDown, Camera, Loader2, Crop, LogOut, AlertTriangle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { InviteModal } from './InviteModal';
 import { CoverPhotoCropModal } from './CoverPhotoCropModal';
 import { EditableDescription } from './EditableDescription';
@@ -55,12 +55,37 @@ interface TripHeaderProps {
 
 export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpdate, onShowExport, category, tags = [], onCategoryChange: _onCategoryChange }: TripHeaderProps) => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showInvite, setShowInvite] = useState(false);
   const [showAllCollaborators, setShowAllCollaborators] = useState(false);
+  const [collaboratorsInitialTab, setCollaboratorsInitialTab] = useState<'members' | 'requests'>('members');
   const [showEditModal, setShowEditModal] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [descEditTick, setDescEditTick] = useState(0);
+
+  // Handle URL param to open collaborators modal on specific tab
+  // This runs on mount and whenever searchParams changes
+  useEffect(() => {
+    const showCollaboratorsParam = searchParams.get('showCollaborators');
+    if (showCollaboratorsParam === 'requests' || showCollaboratorsParam === 'members') {
+      // Set the tab and open modal
+      setCollaboratorsInitialTab(showCollaboratorsParam);
+      setShowAllCollaborators(true);
+
+      // Clear the URL param after a small delay to ensure state is applied
+      // This prevents the param from interfering with other navigation
+      const timeoutId = setTimeout(() => {
+        const newParams = new URLSearchParams(window.location.search);
+        if (newParams.get('showCollaborators')) {
+          newParams.delete('showCollaborators');
+          setSearchParams(newParams, { replace: true });
+        }
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [searchParams, setSearchParams]);
   const { variant, accentColors } = useTripVariant();
   const { coverPhoto, updateCoverPhoto, isUpdating } = useTripCoverPhoto(
     trip.id.toString(), 
@@ -318,7 +343,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       {!isProOrEvent && (
         <div className="relative mb-8 rounded-3xl overflow-hidden">
           <div 
-            className="h-64 bg-cover bg-center relative"
+            className="aspect-[3/1] w-full bg-cover bg-center relative"
             style={{ 
               backgroundImage: coverPhoto ? `url(${coverPhoto})` : undefined,
               backgroundColor: !coverPhoto ? '#1a1a2e' : undefined
@@ -559,11 +584,11 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                     ? `bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white hover:scale-105`
                     : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/50'
                 )}
-                title={canExport ? 'Export Trip to PDF' : 'Upgrade for PDF export'}
-                aria-label="Export Trip to PDF"
+                title={canExport ? 'Create PDF Recap' : 'Upgrade for PDF recap'}
+                aria-label="Create PDF Recap"
               >
                 <FileDown size={14} />
-                <span>Export to PDF</span>
+                <span>PDF Recap</span>
               </button>
             </div>
           </div>
@@ -613,7 +638,13 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
 
       <CollaboratorsModal
         open={showAllCollaborators}
-        onOpenChange={setShowAllCollaborators}
+        onOpenChange={(open) => {
+          setShowAllCollaborators(open);
+          // Reset to members tab when closing
+          if (!open) {
+            setCollaboratorsInitialTab('members');
+          }
+        }}
         participants={mergedParticipants}
         tripType={trip.trip_type || 'consumer'}
         currentUserId={user?.id}
@@ -624,6 +655,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
         onApproveRequest={approveRequest}
         onRejectRequest={rejectRequest}
         isProcessingRequest={isProcessingRequest}
+        initialTab={collaboratorsInitialTab}
       />
 
       <EditTripModal

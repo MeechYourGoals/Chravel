@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Plus, Search, Bell, MessageCircle, Calendar, Radio, BarChart2, FilePlus, Image, X } from 'lucide-react';
+import { Settings, Plus, Search, Bell, MessageCircle, Calendar, Radio, BarChart2, FilePlus, Image, X, CheckSquare, DollarSign, UserPlus, MapPin } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +16,7 @@ import {
 
 interface Notification {
   id: string;
-  type: 'message' | 'broadcast' | 'calendar' | 'poll' | 'files' | 'photos' | 'chat' | 'mention' | 'task' | 'payment' | 'invite' | 'join_request' | 'system';
+  type: 'message' | 'broadcast' | 'calendar' | 'poll' | 'files' | 'photos' | 'chat' | 'mention' | 'task' | 'payment' | 'invite' | 'join_request' | 'basecamp' | 'system';
   title: string;
   description: string;
   tripId: string;
@@ -127,17 +127,35 @@ export const TripActionBar = ({
       fetchUnreadCount();
     }
 
-    // Navigate based on notification type
-    if (notification.type === 'message' || notification.type === 'chat' || notification.type === 'mention') {
-      navigate(`/trip/${notification.tripId}?tab=chat`);
-    } else if (notification.type === 'calendar') {
-      navigate(`/trip/${notification.tripId}?tab=calendar`);
-    } else if (notification.type === 'task') {
-      navigate(`/trip/${notification.tripId}?tab=tasks`);
-    } else if (notification.type === 'payment') {
-      navigate(`/trip/${notification.tripId}?tab=payments`);
+    // Determine base route based on trip type
+    const tripType = notification.data?.tripType || notification.data?.trip_type;
+    let baseRoute = `/trip/${notification.tripId}`;
+    if (tripType === 'pro') {
+      baseRoute = `/pro-trip/${notification.tripId}`;
+    } else if (tripType === 'event') {
+      baseRoute = `/events/${notification.tripId}`;
+    }
+
+    // Navigate based on notification type with appropriate tab
+    const tabMap: Record<string, string> = {
+      message: 'chat',
+      chat: 'chat',
+      mention: 'chat',
+      broadcast: 'broadcasts',
+      calendar: 'calendar',
+      task: 'tasks',
+      payment: 'payments',
+      poll: 'polls',
+      photos: 'media',
+      join_request: 'collaborators',
+      basecamp: 'places'
+    };
+
+    const tab = tabMap[notification.type];
+    if (tab) {
+      navigate(`${baseRoute}?tab=${tab}`);
     } else {
-      navigate(`/trip/${notification.tripId}`);
+      navigate(baseRoute);
     }
 
     setIsNotificationsOpen?.(false);
@@ -165,17 +183,26 @@ export const TripActionBar = ({
     
     switch (type) {
       case 'message':
-        return <MessageCircle size={16} className={iconClass} />;
+      case 'chat':
+        return <MessageCircle size={16} className="text-blue-400" />;
       case 'broadcast':
-        return <Radio size={16} className={iconClass} />;
+        return <Radio size={16} className="text-red-400" />;
       case 'calendar':
-        return <Calendar size={16} className={iconClass} />;
+        return <Calendar size={16} className="text-purple-400" />;
       case 'poll':
-        return <BarChart2 size={16} className={iconClass} />;
+        return <BarChart2 size={16} className="text-cyan-400" />;
+      case 'task':
+        return <CheckSquare size={16} className="text-yellow-400" />;
+      case 'payment':
+        return <DollarSign size={16} className="text-green-400" />;
       case 'files':
         return <FilePlus size={16} className={iconClass} />;
       case 'photos':
-        return <Image size={16} className={iconClass} />;
+        return <Image size={16} className="text-pink-400" />;
+      case 'join_request':
+        return <UserPlus size={16} className="text-orange-400" />;
+      case 'basecamp':
+        return <MapPin size={16} className="text-pink-400" />;
       default:
         return <Bell size={16} className={iconClass} />;
     }
@@ -230,10 +257,11 @@ export const TripActionBar = ({
         title: n.title,
         description: n.message,
         tripId: n.tripId,
-        tripName: 'Spring Break Cancun',
-        timestamp: '2 minutes ago',
+        tripName: n.data?.trip_name || 'Demo Trip',
+        timestamp: formatDistanceToNow(new Date(n.timestamp), { addSuffix: true }),
         isRead: n.read,
-        isHighPriority: n.type === 'broadcast'
+        isHighPriority: n.type === 'broadcast',
+        data: { ...n.data, tripType: n.tripType }
       }));
       setNotifications(mockNotifs);
       setUnreadCount(mockNotifications.filter(n => !n.read).length);
@@ -241,29 +269,30 @@ export const TripActionBar = ({
   }, [isDemoMode, user]);
   
   return (
-    <div className={cn("bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 w-full h-16 gap-1.5 min-w-0", className)}>
+    <div className={cn("bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid grid-cols-4 w-full h-12 sm:h-16 gap-1 sm:gap-1.5 min-w-0", className)}>
           
-          {/* Settings */}
+          {/* New Trip */}
           <button
             onClick={() => {
               if (requireAuth) {
                 onAuthRequired?.();
               } else {
-                onSettings();
+                onCreateTrip();
               }
             }}
-            aria-label="Settings"
+            aria-label="Create New Trip"
             className={cn(
-              "h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap min-w-0 overflow-hidden",
-              isSettingsActive
+              "h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap",
+              isNewTripActive
                 ? "bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] text-black shadow-lg shadow-primary/30"
                 : "text-white hover:text-foreground"
             )}
           >
-            <span className="text-sm md:text-base truncate">Settings</span>
+            <span className="inline md:hidden text-sm">+ Trip</span>
+            <span className="hidden md:inline text-base">New Trip</span>
           </button>
 
-          {/* Notifications with Badge */}
+          {/* Alerts with Badge */}
           <button
             onClick={() => {
               if (requireAuth) {
@@ -273,7 +302,7 @@ export const TripActionBar = ({
                 _onNotifications();
               }
             }}
-            aria-label="Notifications"
+            aria-label="Alerts"
             className={cn(
               "relative h-full w-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap",
               isNotificationsActive
@@ -281,8 +310,7 @@ export const TripActionBar = ({
                 : "text-white hover:text-foreground"
             )}
           >
-            <span className="inline md:hidden text-sm">Alerts</span>
-            <span className="hidden md:inline text-base">Notifications</span>
+            <span className="text-sm md:text-base">Alerts</span>
             {unreadCount > 0 && (
               <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -358,28 +386,25 @@ export const TripActionBar = ({
             </DialogContent>
           </Dialog>
 
-          {/* New Trip */}
+          {/* Settings */}
           <button
             onClick={() => {
-              if (requireAuth) {
-                onAuthRequired?.();
-              } else {
-                onCreateTrip();
-              }
+              // Settings is the dedicated entry point for auth when logged out.
+              // Keep it accessible even when other actions are gated behind authentication.
+              onSettings();
             }}
-            aria-label="Create New Trip"
+            aria-label="Settings"
             className={cn(
-              "h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap",
-              isNewTripActive
+              "h-full flex items-center justify-center gap-2 px-2 sm:px-3 lg:px-4 py-0 rounded-xl transition-all duration-300 font-bold text-base tracking-wide whitespace-nowrap min-w-0 overflow-hidden",
+              isSettingsActive
                 ? "bg-gradient-to-r from-[hsl(45,95%,58%)] to-[hsl(45,90%,65%)] text-black shadow-lg shadow-primary/30"
                 : "text-white hover:text-foreground"
             )}
           >
-            <span className="inline md:hidden text-sm">+ Trip</span>
-            <span className="hidden md:inline text-base">New Trip</span>
+            <span className="text-sm md:text-base truncate">Settings</span>
           </button>
 
-          {/* Search - Fixed Height & Padding */}
+          {/* Search */}
           <div className={cn(
             "h-full flex items-center px-2 rounded-xl transition-all duration-300",
             isSearchActive 

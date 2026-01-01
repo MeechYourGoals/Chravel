@@ -4,7 +4,7 @@ import { lakersRoadTrip } from './pro-trips/lakersRoadTrip';
 import { beyonceCowboyCarterTour } from './pro-trips/beyonceCowboyCarterTour';
 import { eliLillyCsuiteRetreat } from './pro-trips/eliLillyCsuiteRetreat';
 import { paulGeorgeEliteAau } from './pro-trips/paulGeorgeEliteAau';
-import { ohioStateNotreDame } from './pro-trips/ohioStateNotreDame';
+import { roseBowlIndianaAlabama } from './pro-trips/roseBowlIndianaAlabama';
 import { uncMensLacrosse } from './pro-trips/uncMensLacrosse';
 import { yCombinatorCohort } from './pro-trips/yCombinatorCohort';
 import { kaiDruskiStream } from './pro-trips/kaiDruskiStream';
@@ -14,16 +14,16 @@ import { goldmanSachsRecruiting } from './pro-trips/goldmanSachsRecruiting';
 import { nvidiaBowlingNight } from './pro-trips/nvidiaBowlingNight';
 
 export const proTripMockData: Record<string, ProTripData> = {
+  'rose-bowl-indiana-alabama-2025': roseBowlIndianaAlabama,
   'lakers-road-trip': lakersRoadTrip,
   'beyonce-cowboy-carter-tour': beyonceCowboyCarterTour,
   'eli-lilly-c-suite-retreat-2026': eliLillyCsuiteRetreat,
-  'paul-george-elite-aau-nationals-2025': paulGeorgeEliteAau,
-  'osu-notredame-2025': ohioStateNotreDame,
+  'paul-george-elite-aau-nationals-2026': paulGeorgeEliteAau,
   'unc-lax-2025': uncMensLacrosse,
-  'a16z-speedrun-2026': yCombinatorCohort,
-  'kai-druski-jake-adin-24hr-atl': kaiDruskiStream,
-  'tesla-cybertruck-roadshow-2025': teslaCybertruckRoadshow,
-  'postmalone-jellyroll-tour-2026': postMaloneJellyRollTour,
+  'creator-house-content-shoot-2026': yCombinatorCohort,
+  'amazon-prime-sports-broadcast-miami': kaiDruskiStream,
+  'chravel-first-company-offsite-2026': teslaCybertruckRoadshow,
+  'shane-gillis-comedy-tour-2026': postMaloneJellyRollTour,
   'gs-campus-gt-2025': goldmanSachsRecruiting,
-  'nvidia-bowling-2025': nvidiaBowlingNight
+  'la-tech-week-venture-2026': nvidiaBowlingNight
 };

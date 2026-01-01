@@ -3,7 +3,7 @@
  *
  * This component provides a single source of truth for rendering videos
  * and images across the app. It includes all iOS-required attributes
- * for reliable playback on Safari, PWA, and Capacitor WebViews.
+ * for reliable playback on Safari and PWA (and future native shells).
  *
  * iOS WebKit Requirements:
  * - `playsInline` - Required for inline playback (vs fullscreen takeover)
@@ -12,7 +12,7 @@
  * - `preload="metadata"` - Load poster frame without full download
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Play, AlertCircle, Download } from 'lucide-react';
 
 interface TripMediaRendererProps {
@@ -45,6 +45,29 @@ function getMediaCategory(mimeType: string): 'video' | 'image' | 'document' {
   return 'document';
 }
 
+function isBlobOrDataUrl(url: string): boolean {
+  return url.startsWith('blob:') || url.startsWith('data:');
+}
+
+function describeMediaError(target: EventTarget | null): string | undefined {
+  const el = target as HTMLMediaElement | null;
+  const code = el?.error?.code;
+  if (!code) return undefined;
+  // https://developer.mozilla.org/en-US/docs/Web/API/MediaError/code
+  switch (code) {
+    case 1:
+      return 'MEDIA_ERR_ABORTED';
+    case 2:
+      return 'MEDIA_ERR_NETWORK';
+    case 3:
+      return 'MEDIA_ERR_DECODE';
+    case 4:
+      return 'MEDIA_ERR_SRC_NOT_SUPPORTED';
+    default:
+      return `MEDIA_ERR_${code}`;
+  }
+}
+
 export const TripMediaRenderer: React.FC<TripMediaRendererProps> = ({
   url,
   mimeType,
@@ -57,19 +80,72 @@ export const TripMediaRenderer: React.FC<TripMediaRendererProps> = ({
   onError,
 }) => {
   const [hasError, setHasError] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [_isLoaded, setIsLoaded] = useState(false);
+  const [blobFallbackUrl, setBlobFallbackUrl] = useState<string | null>(null);
+  const [didAttemptBlobFallback, setDidAttemptBlobFallback] = useState(false);
 
   const category = getMediaCategory(mimeType);
+  const effectiveUrl = useMemo(() => blobFallbackUrl ?? url, [blobFallbackUrl, url]);
 
-  const handleError = useCallback((e: React.SyntheticEvent) => {
+  useEffect(() => {
+    // Reset error state when the source URL changes.
+    setHasError(false);
+    setDidAttemptBlobFallback(false);
+    setBlobFallbackUrl(null);
+  }, [url]);
+
+  useEffect(() => {
+    return () => {
+      if (blobFallbackUrl) {
+        try {
+          URL.revokeObjectURL(blobFallbackUrl);
+        } catch {
+          // no-op
+        }
+      }
+    };
+  }, [blobFallbackUrl]);
+
+  const tryBlobFallback = useCallback(async () => {
+    // This is a last-resort fallback for files that were uploaded with the wrong Content-Type
+    // (commonly `application/octet-stream` with `nosniff`), which makes <video> refuse to play.
+    // It forces the browser to treat the bytes as the expected mimeType by creating a typed Blob URL.
+    if (didAttemptBlobFallback) return false;
+    if (isBlobOrDataUrl(url)) return false;
+    if (!mimeType.startsWith('video/')) return false;
+
+    setDidAttemptBlobFallback(true);
+    try {
+      const resp = await fetch(url, { mode: 'cors' });
+      if (!resp.ok) return false;
+      const blob = await resp.blob();
+      const typedBlob =
+        blob.type && blob.type !== 'application/octet-stream'
+          ? blob
+          : new Blob([blob], { type: mimeType });
+      const objectUrl = URL.createObjectURL(typedBlob);
+      setBlobFallbackUrl(objectUrl);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [didAttemptBlobFallback, mimeType, url]);
+
+  const handleError = useCallback(async (e: React.SyntheticEvent) => {
+    const mediaError = describeMediaError(e.currentTarget);
     console.error('[TripMediaRenderer] Media failed to load:', {
       url,
       mimeType,
-      error: e,
+      mediaError,
     });
+    // If this is a video, try the typed-blob fallback once (fixes wrong storage Content-Type).
+    if (category === 'video') {
+      const recovered = await tryBlobFallback();
+      if (recovered) return;
+    }
     setHasError(true);
     onError?.(e);
-  }, [url, mimeType, onError]);
+  }, [url, mimeType, onError, category, tryBlobFallback]);
 
   const handleLoad = useCallback(() => {
     setIsLoaded(true);
@@ -109,15 +185,16 @@ export const TripMediaRenderer: React.FC<TripMediaRendererProps> = ({
           onClick={onClick}
         >
           <video
-            src={url}
-            className="w-full h-full object-cover"
+            preload="metadata"
             muted
             playsInline
-            preload="metadata"
             poster={poster}
             onError={handleError}
             onLoadedData={handleLoad}
-          />
+            className="w-full h-full object-cover"
+          >
+            <source src={effectiveUrl} type={mimeType} />
+          </video>
           <div className="absolute inset-0 flex items-center justify-center bg-black/30">
             <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
               <Play className="w-8 h-8 text-white drop-shadow-lg" fill="white" />
@@ -135,7 +212,6 @@ export const TripMediaRenderer: React.FC<TripMediaRendererProps> = ({
     // - preload="metadata": loads poster frame
     return (
       <video
-        src={url}
         controls
         playsInline
         muted={autoPlay} // Muted for autoplay, user can unmute
@@ -150,7 +226,9 @@ export const TripMediaRenderer: React.FC<TripMediaRendererProps> = ({
         onError={handleError}
         onLoadedData={handleLoad}
         onClick={(e) => e.stopPropagation()}
-      />
+      >
+        <source src={effectiveUrl} type={mimeType} />
+      </video>
     );
   }
 
@@ -262,5 +340,10 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
     </div>
   );
 };
+
+// MediaViewerModal has been moved to ./MediaViewerModal.tsx with enhanced features:
+// - iOS safe area insets for buttons
+// - Swipe navigation between photos
+// - Image counter
 
 export default TripMediaRenderer;

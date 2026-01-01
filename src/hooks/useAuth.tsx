@@ -1,14 +1,23 @@
-import { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
+import {
+  useState,
+  useEffect,
+  createContext,
+  useContext,
+  useCallback,
+  useRef,
+  useMemo,
+} from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Trip } from '@/services/tripService';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
+import { useDemoModeStore } from '@/store/demoModeStore';
 
 // Timeout utility to prevent indefinite hanging on database queries
 const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
   return Promise.race([
     promise,
-    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs))
+    new Promise<T>(resolve => setTimeout(() => resolve(fallback), timeoutMs)),
   ]);
 };
 
@@ -71,7 +80,12 @@ interface AuthContextType {
   signInWithPhone: (phone: string) => Promise<{ error?: string }>;
   signInWithGoogle: () => Promise<{ error?: string }>;
   signInWithApple: () => Promise<{ error?: string }>;
-  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error?: string; success?: string }>;
+  signUp: (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+  ) => Promise<{ error?: string; success?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string }>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error?: any }>;
@@ -82,52 +96,102 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const demoView = useDemoModeStore(state => state.demoView);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isLoadingRef = useRef(true);
+
+  /**
+   * App-preview mode should behave like "full demo access" even when there is no real auth session.
+   * Many settings panels (and other UI) assume `useAuth().user` exists; returning null in app-preview
+   * can cause runtime crashes/blank screens.
+   *
+   * We provide a stable, UUID-shaped demo user so code paths expecting UUIDs don't throw.
+   */
+  const demoUser: User = useMemo(
+    () => ({
+      id: '3f2504e0-4f89-11d3-9a0c-0305e82c3301',
+      email: 'demo@chravel.com',
+      phone: undefined,
+      displayName: 'Demo User',
+      hasCompletedProfileSetup: true,
+      firstName: 'Demo',
+      lastName: 'User',
+      avatar: '',
+      bio: 'Exploring Chravel in app preview mode.',
+      // For app-preview we want feature access, but still rely on demo-mode gating
+      // to prevent real server-side mutations.
+      isPro: true,
+      showEmail: true,
+      showPhone: true,
+      proRole: 'admin',
+      organizationId: undefined,
+      permissions: ['read', 'write'],
+      notificationSettings: {
+        messages: true,
+        broadcasts: true,
+        tripUpdates: true,
+        email: true,
+        push: true,
+      },
+    }),
+    [],
+  );
+
+  const shouldUseDemoUser = demoView === 'app-preview';
+  const shouldUseDemoUserRef = useRef<boolean>(shouldUseDemoUser);
+
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
+
+  useEffect(() => {
+    shouldUseDemoUserRef.current = shouldUseDemoUser;
+  }, [shouldUseDemoUser]);
 
   /**
    * Canonical identity model:
    * - `public.profiles` row keyed by `user_id` is the source of truth for display name + avatar.
    * - We defensively "self-heal" by creating the profile row if the DB trigger didn't run.
    */
-  const ensureProfileExists = useCallback(
-    async (supabaseUser: SupabaseUser): Promise<void> => {
-      try {
-        const displayName =
-          (supabaseUser.user_metadata?.display_name as string | undefined) ||
-          (supabaseUser.user_metadata?.full_name as string | undefined) ||
-          (supabaseUser.user_metadata?.name as string | undefined) ||
-          supabaseUser.email?.split('@')[0] ||
-          'User';
+  const ensureProfileExists = useCallback(async (supabaseUser: SupabaseUser): Promise<void> => {
+    try {
+      const displayName =
+        (supabaseUser.user_metadata?.display_name as string | undefined) ||
+        (supabaseUser.user_metadata?.full_name as string | undefined) ||
+        (supabaseUser.user_metadata?.name as string | undefined) ||
+        supabaseUser.email?.split('@')[0] ||
+        'User';
 
-        await supabase
-          .from('profiles')
-          .upsert(
-            {
-              user_id: supabaseUser.id,
-              display_name: displayName,
-              email: supabaseUser.email ?? null,
-              phone: supabaseUser.phone ?? null,
-            },
-            { onConflict: 'user_id' },
-          );
-      } catch (error) {
-        // Never block auth on profile creation failures.
-        if (import.meta.env.DEV) {
-          console.warn('[Auth] Failed to ensure profile exists:', error);
-        }
+      await supabase.from('profiles').upsert(
+        {
+          user_id: supabaseUser.id,
+          display_name: displayName,
+          email: supabaseUser.email ?? null,
+          phone: supabaseUser.phone ?? null,
+        },
+        { onConflict: 'user_id' },
+      );
+    } catch (error) {
+      // Never block auth on profile creation failures.
+      if (import.meta.env.DEV) {
+        console.warn('[Auth] Failed to ensure profile exists:', error);
       }
-    },
-    [],
-  );
+    }
+  }, []);
 
   // Helper function to fetch user profile
   const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(
+          'id, user_id, display_name, first_name, last_name, avatar_url, bio, show_email, show_phone, ' +
+            'notification_settings, timezone, app_role, role, subscription_status, subscription_product_id, ' +
+            'subscription_end, free_pro_trips_used, free_pro_trip_limit, free_events_used, free_event_limit, ' +
+            'created_at, updated_at',
+        )
         .eq('user_id', userId)
         .single();
 
@@ -138,7 +202,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return null;
       }
 
-      return data;
+      if (!data) {
+        return null;
+      }
+
+      return data as unknown as UserProfile;
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching profile:', error);
@@ -148,60 +216,88 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   // Helper function to transform Supabase user to app User
-  const transformUser = useCallback(async (supabaseUser: SupabaseUser, profile?: UserProfile | null): Promise<User | null> => {
-    // CRITICAL: Validate that we have a valid user ID before proceeding
-    if (!supabaseUser || !supabaseUser.id) {
-      if (import.meta.env.DEV) {
-        console.error('[transformUser] Invalid Supabase user - missing ID', { supabaseUser });
+  const transformUser = useCallback(
+    async (supabaseUser: SupabaseUser, profile?: UserProfile | null): Promise<User | null> => {
+      // CRITICAL: Validate that we have a valid user ID before proceeding
+      if (!supabaseUser || !supabaseUser.id) {
+        if (import.meta.env.DEV) {
+          console.error('[transformUser] Invalid Supabase user - missing ID', { supabaseUser });
+        }
+        return null;
       }
-      return null;
-    }
 
-    // NOTE: Demo mode check REMOVED here - authenticated users should ALWAYS get their real data
-    // Demo mode is for unauthenticated users browsing the app-preview, not for overriding real user data
-    
-    // ⚡ PERFORMANCE: Parallelize all database queries (was 2-3s sequential, now <1s parallel)
-    const [userProfile, userRolesResult, orgMemberResult, notifPrefs] = await Promise.all([
-      // Fetch profile with 2s timeout (reduced from 3s)
-      profile || withTimeout(
-        fetchUserProfile(supabaseUser.id),
-        2000,
-        null
-      ),
-      
-      // Query user_roles table with 2s timeout
-      withTimeout(
+      // NOTE: Demo mode check REMOVED here - authenticated users should ALWAYS get their real data
+      // Demo mode is for unauthenticated users browsing the app-preview, not for overriding real user data
+
+      // ⚡ PERFORMANCE: Parallelize all database queries (was 2-3s sequential, now <1s parallel)
+      const [userProfile, userRolesResult, orgMemberResult, notifPrefs] = await Promise.all([
+        // Fetch profile with 2s timeout (reduced from 3s)
+        profile || withTimeout(fetchUserProfile(supabaseUser.id), 2000, null),
+
+        // Query user_roles table with 2s timeout
+        withTimeout(
+          (async () => {
+            const { data, error } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', supabaseUser.id);
+            return { data, error };
+          })(),
+          2000,
+          { data: [], error: null },
+        ),
+
+        // Query org membership with 2s timeout
+        withTimeout(
+          (async () => {
+            const { data, error } = await supabase
+              .from('organization_members')
+              .select('organization_id, role')
+              .eq('user_id', supabaseUser.id)
+              .eq('status', 'active')
+              .single();
+            return { data, error };
+          })(),
+          2000,
+          { data: null, error: null },
+        ),
+
+        // Load notification prefs with 2s timeout
         (async () => {
-          const { data, error } = await supabase.from('user_roles').select('role').eq('user_id', supabaseUser.id);
-          return { data, error };
-        })(),
-        2000,
-        { data: [], error: null }
-      ),
-      
-      // Query org membership with 2s timeout
-      withTimeout(
-        (async () => {
-          const { data, error } = await supabase
-            .from('organization_members')
-            .select('organization_id, role')
-            .eq('user_id', supabaseUser.id)
-            .eq('status', 'active')
-            .single();
-          return { data, error };
-        })(),
-        2000,
-        { data: null, error: null }
-      ),
-      
-      // Load notification prefs with 2s timeout
-      (async () => {
-        try {
-          const { userPreferencesService } = await import('@/services/userPreferencesService');
-          return await withTimeout(
-            userPreferencesService.getNotificationPreferences(supabaseUser.id),
-            2000,
-            {
+          try {
+            const { userPreferencesService } = await import('@/services/userPreferencesService');
+            return await withTimeout(
+              userPreferencesService.getNotificationPreferences(supabaseUser.id),
+              2000,
+              {
+                push_enabled: false,
+                email_enabled: true,
+                sms_enabled: false,
+                chat_messages: true,
+                mentions_only: false,
+                broadcasts: true,
+                tasks: false,
+                payments: false,
+                calendar_events: true,
+                calendar_reminders: true,
+                polls: true,
+                trip_invites: true,
+                join_requests: false,
+                basecamp_updates: true,
+                quiet_hours_enabled: false,
+                quiet_start: '22:00',
+                quiet_end: '08:00',
+                timezone: 'America/New_York',
+              },
+            );
+          } catch (err) {
+            if (import.meta.env.DEV) {
+              console.warn(
+                '[transformUser] Failed to load notification prefs, using defaults:',
+                err,
+              );
+            }
+            return {
               push_enabled: false,
               email_enabled: true,
               sms_enabled: false,
@@ -210,109 +306,97 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               broadcasts: true,
               tasks: false,
               payments: false,
-              calendar_events: true,
               calendar_reminders: true,
-              polls: true,
               trip_invites: true,
               join_requests: false,
-              basecamp_updates: true,
               quiet_hours_enabled: false,
               quiet_start: '22:00',
               quiet_end: '08:00',
-              timezone: 'America/New_York'
-            }
-          );
-        } catch (err) {
-          if (import.meta.env.DEV) {
-            console.warn('[transformUser] Failed to load notification prefs, using defaults:', err);
+              timezone: 'America/New_York',
+            };
           }
-          return {
-            push_enabled: false,
-            email_enabled: true,
-            sms_enabled: false,
-            chat_messages: true,
-            mentions_only: false,
-            broadcasts: true,
-            tasks: false,
-            payments: false,
-            calendar_reminders: true,
-            trip_invites: true,
-            join_requests: false,
-            quiet_hours_enabled: false,
-            quiet_start: '22:00',
-            quiet_end: '08:00',
-            timezone: 'America/New_York'
-          };
-        }
-      })()
-    ]);
+        })(),
+      ]);
 
-    // Self-heal missing profiles row (trigger can fail in some Supabase projects/environments).
-    if (!userProfile) {
-      await ensureProfileExists(supabaseUser);
-    }
-    
-    const roles = userRolesResult.data?.map((r: any) => r.role) || [];
-    const isPro = roles.includes('pro');
-    const isSystemAdmin = roles.includes('enterprise_admin');
-    const isSuperAdminEmail = SUPER_ADMIN_EMAILS.includes(supabaseUser.email?.toLowerCase().trim() || '');
-    
-    // Map roles to permissions - only grant what user actually has
-    const permissions: string[] = ['read'];
-    if (isPro || isSystemAdmin || isSuperAdminEmail) {
-      permissions.push('write');
-    }
-    if (isSystemAdmin || isSuperAdminEmail) {
-      permissions.push('admin', 'finance', 'compliance');
-    }
-    
-    // Map org member role to proRole type (owner/admin maps to admin, otherwise undefined)
-    let proRole: User['proRole'] = undefined;
-    if (orgMemberResult.data?.role === 'owner' || orgMemberResult.data?.role === 'admin' || isSuperAdminEmail) {
-      proRole = 'admin';
-    }
-    
-    // Check if profile has been properly set up (display_name exists and is not empty)
-    const hasCompletedProfileSetup = !!(userProfile?.display_name && userProfile.display_name.trim() !== '');
-    
-    return {
-      id: supabaseUser.id,
-      email: supabaseUser.email,
-      phone: supabaseUser.phone,
-      displayName: userProfile?.display_name || supabaseUser.email || 'User',
-      hasCompletedProfileSetup,
-      firstName: userProfile?.first_name || '',
-      lastName: userProfile?.last_name || '',
-      avatar: userProfile?.avatar_url || '',
-      bio: userProfile?.bio || '',
-      isPro,
-      showEmail: userProfile?.show_email || false,
-      showPhone: userProfile?.show_phone || false,
-      proRole,
-      organizationId: orgMemberResult.data?.organization_id || undefined,
-      permissions,
-      notificationSettings: {
-        messages: notifPrefs.chat_messages,
-        broadcasts: notifPrefs.broadcasts,
-        tripUpdates: notifPrefs.calendar_reminders,
-        email: notifPrefs.email_enabled,
-        push: notifPrefs.push_enabled
+      // Self-heal missing profiles row (trigger can fail in some Supabase projects/environments).
+      if (!userProfile) {
+        await ensureProfileExists(supabaseUser);
       }
-    };
-  }, [ensureProfileExists]);
+
+      const roles = userRolesResult.data?.map((r: any) => r.role) || [];
+      const isPro = roles.includes('pro');
+      const isSystemAdmin = roles.includes('enterprise_admin');
+      const isSuperAdminEmail = SUPER_ADMIN_EMAILS.includes(
+        supabaseUser.email?.toLowerCase().trim() || '',
+      );
+
+      // Map roles to permissions - only grant what user actually has
+      const permissions: string[] = ['read'];
+      if (isPro || isSystemAdmin || isSuperAdminEmail) {
+        permissions.push('write');
+      }
+      if (isSystemAdmin || isSuperAdminEmail) {
+        permissions.push('admin', 'finance', 'compliance');
+      }
+
+      // Map org member role to proRole type (owner/admin maps to admin, otherwise undefined)
+      let proRole: User['proRole'] = undefined;
+      if (
+        orgMemberResult.data?.role === 'owner' ||
+        orgMemberResult.data?.role === 'admin' ||
+        isSuperAdminEmail
+      ) {
+        proRole = 'admin';
+      }
+
+      // Check if profile has been properly set up (display_name exists and is not empty)
+      const hasCompletedProfileSetup = !!(
+        userProfile?.display_name && userProfile.display_name.trim() !== ''
+      );
+
+      return {
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        phone: supabaseUser.phone,
+        displayName: userProfile?.display_name || supabaseUser.email || 'User',
+        hasCompletedProfileSetup,
+        firstName: userProfile?.first_name || '',
+        lastName: userProfile?.last_name || '',
+        avatar: userProfile?.avatar_url || '',
+        bio: userProfile?.bio || '',
+        isPro,
+        showEmail: userProfile?.show_email || false,
+        showPhone: userProfile?.show_phone || false,
+        proRole,
+        organizationId: orgMemberResult.data?.organization_id || undefined,
+        permissions,
+        notificationSettings: {
+          messages: notifPrefs.chat_messages,
+          broadcasts: notifPrefs.broadcasts,
+          tripUpdates: notifPrefs.calendar_reminders,
+          email: notifPrefs.email_enabled,
+          push: notifPrefs.push_enabled,
+        },
+      };
+    },
+    [ensureProfileExists],
+  );
 
   // Initialize auth state
   useEffect(() => {
     // Safety timeout: force loading to false after 10 seconds to prevent infinite loading
     const loadingTimeout = setTimeout(() => {
-      if (isLoading) {
+      if (isLoadingRef.current) {
         console.error('[Auth] Loading timeout exceeded (10s), forcing completion');
         setIsLoading(false);
       }
     }, 10000);
 
     const getSessionAndUser = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
 
       if (error) {
         if (import.meta.env.DEV) {
@@ -335,46 +419,54 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(null);
         }
       } else {
-        setUser(null);
+        // App-preview: provide a demo user even when not authenticated.
+        setUser(shouldUseDemoUserRef.current ? demoUser : null);
       }
       setIsLoading(false);
     };
 
     getSessionAndUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        // CRITICAL: Only synchronous state updates in callback to prevent deadlock
-        setSession(session);
-        
-        if (session?.user) {
-          // Defer async work with setTimeout(0) to avoid Supabase auth deadlock
-          setTimeout(() => {
-            transformUser(session.user)
-              .then((transformedUser) => {
-                setUser(transformedUser);
-                setIsLoading(false);
-              })
-              .catch((err) => {
-                if (import.meta.env.DEV) {
-                  console.error('[Auth] Error transforming user:', err);
-                }
-                setUser(null);
-                setIsLoading(false);
-              });
-          }, 0);
-        } else {
-          setUser(null);
-          setIsLoading(false);
-        }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // CRITICAL: Only synchronous state updates in callback to prevent deadlock
+      setSession(session);
+
+      if (session?.user) {
+        // Defer async work with setTimeout(0) to avoid Supabase auth deadlock
+        setTimeout(() => {
+          transformUser(session.user)
+            .then(transformedUser => {
+              setUser(transformedUser);
+              setIsLoading(false);
+            })
+            .catch(err => {
+              if (import.meta.env.DEV) {
+                console.error('[Auth] Error transforming user:', err);
+              }
+              setUser(null);
+              setIsLoading(false);
+            });
+        }, 0);
+      } else {
+        // App-preview: keep demo user when logged out.
+        setUser(shouldUseDemoUserRef.current ? demoUser : null);
+        setIsLoading(false);
       }
-    );
+    });
 
     return () => {
       clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
-  }, [transformUser]);
+  }, [transformUser, demoUser]);
+
+  // Respond to demo mode toggles while logged out (no session).
+  useEffect(() => {
+    if (session?.user) return;
+    setUser(shouldUseDemoUser ? demoUser : null);
+  }, [demoUser, session, shouldUseDemoUser]);
 
   const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
     try {
@@ -393,15 +485,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Provide more specific error messages
         if (error.message.includes('Invalid login credentials')) {
-          return { error: 'Invalid email or password. Please check your credentials and try again.' };
+          return {
+            error: 'Invalid email or password. Please check your credentials and try again.',
+          };
         }
         if (error.message.includes('Email not confirmed')) {
-          return { error: 'Please confirm your email address before signing in. Check your inbox for the confirmation link.' };
+          return {
+            error:
+              'Please confirm your email address before signing in. Check your inbox for the confirmation link.',
+          };
         }
 
         return { error: error.message };
       }
 
+      // Success path: clear loading state (auth state listener will update user)
+      setIsLoading(false);
       return {};
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -431,7 +530,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return { error: 'Phone authentication is not configured. Please use email to sign in.' };
         }
         if (error.message.includes('Invalid phone number')) {
-          return { error: 'Please enter a valid phone number with country code (e.g., +1234567890).' };
+          return {
+            error: 'Please enter a valid phone number with country code (e.g., +1234567890).',
+          };
         }
 
         return { error: error.message };
@@ -453,8 +554,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`
-        }
+          redirectTo: `${window.location.origin}/`,
+        },
       });
 
       if (error) {
@@ -464,7 +565,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Provide more specific error messages
         if (error.message.includes('not configured') || error.message.includes('OAuth')) {
-          return { error: 'Google sign-in is not configured. Please use email to sign in or contact support.' };
+          return {
+            error:
+              'Google sign-in is not configured. Please use email to sign in or contact support.',
+          };
         }
 
         return { error: error.message };
@@ -484,8 +588,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
-          redirectTo: `${window.location.origin}/`
-        }
+          redirectTo: `${window.location.origin}/`,
+        },
       });
 
       if (error) {
@@ -495,7 +599,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Provide more specific error messages
         if (error.message.includes('not configured') || error.message.includes('OAuth')) {
-          return { error: 'Apple sign-in is not configured. Please use email to sign in or contact support.' };
+          return {
+            error:
+              'Apple sign-in is not configured. Please use email to sign in or contact support.',
+          };
         }
 
         return { error: error.message };
@@ -510,7 +617,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string): Promise<{ error?: string; success?: string }> => {
+  const signUp = async (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+  ): Promise<{ error?: string; success?: string }> => {
     try {
       setIsLoading(true);
 
@@ -522,9 +634,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           data: {
             first_name: firstName,
             last_name: lastName,
-            full_name: `${firstName} ${lastName}`.trim()
-          }
-        }
+            full_name: `${firstName} ${lastName}`.trim(),
+          },
+        },
       });
 
       if (error) {
@@ -572,14 +684,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
-      
+
       if (error) {
         if (import.meta.env.DEV) {
           console.error('[Auth] Reset password error:', error);
         }
         return { error: error.message };
       }
-      
+
       return {};
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -645,7 +757,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const updateNotificationSettings = async (updates: Partial<User['notificationSettings']>): Promise<void> => {
+  const updateNotificationSettings = async (
+    updates: Partial<User['notificationSettings']>,
+  ): Promise<void> => {
     if (!user) return;
 
     try {
@@ -655,7 +769,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         broadcasts: updates.broadcasts,
         calendar_reminders: updates.tripUpdates,
         email_enabled: updates.email,
-        push_enabled: updates.push
+        push_enabled: updates.push,
       };
 
       // Save to database using userPreferencesService
@@ -667,8 +781,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         ...user,
         notificationSettings: {
           ...user.notificationSettings,
-          ...updates
-        }
+          ...updates,
+        },
       };
 
       setUser(updatedUser);
@@ -694,33 +808,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         guests: ['read'],
         coordinators: ['read', 'write'],
         logistics: ['read', 'write'],
-        press: ['read', 'write']
+        press: ['read', 'write'],
       };
-      
+
       setUser({
         ...user,
         proRole: role as User['proRole'],
-        permissions: rolePermissions[role] || ['read']
+        permissions: rolePermissions[role] || ['read'],
       });
     }
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      isLoading,
-      signIn,
-      signInWithPhone,
-      signInWithGoogle,
-      signInWithApple,
-      signUp,
-      signOut,
-      resetPassword,
-      updateProfile,
-      updateNotificationSettings,
-      switchRole
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        isLoading,
+        signIn,
+        signInWithPhone,
+        signInWithGoogle,
+        signInWithApple,
+        signUp,
+        signOut,
+        resetPassword,
+        updateProfile,
+        updateNotificationSettings,
+        switchRole,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -1,11 +1,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import { retryWithBackoff } from '@/utils/retry';
-
+import type { RichChatAttachment, RichLinkPreview } from '@/types/chatAttachment';
+import { notifyTripOfChatMessage } from './pushNotificationTrigger';
 type Row = Database['public']['Tables']['trip_chat_messages']['Row'];
 type Insert = Database['public']['Tables']['trip_chat_messages']['Insert'];
 
 export type AttachmentType = 'image' | 'video' | 'file' | 'link';
+export type RichMessageType = 'text' | 'image' | 'video' | 'file' | 'link' | 'broadcast' | 'payment' | 'system';
 
 export interface ChatMessageInsert extends Omit<Insert, 'attachments'> {
   attachments?: {
@@ -14,6 +16,21 @@ export interface ChatMessageInsert extends Omit<Insert, 'attachments'> {
     url?: string;
   }[];
   message_type?: 'text' | 'broadcast' | 'payment' | 'system';
+}
+
+/** Enhanced insert with rich media support */
+export interface RichChatMessageInsert {
+  trip_id: string;
+  content: string;
+  author_name: string;
+  user_id?: string;
+  client_message_id?: string;
+  message_type?: RichMessageType;
+  media_type?: string;
+  media_url?: string;
+  attachments?: RichChatAttachment[];
+  link_preview?: RichLinkPreview | null;
+  privacy_mode?: string;
 }
 
 export async function sendChatMessage(msg: ChatMessageInsert) {
@@ -30,6 +47,19 @@ export async function sendChatMessage(msg: ChatMessageInsert) {
         .select()
         .single();
       if (error) throw error;
+      
+      // TODO: Trigger push notification after successful message creation
+      // Fire and forget - don't block message return
+      if (data && msg.user_id && msg.message_type !== 'system') {
+        notifyTripOfChatMessage({
+          tripId: data.trip_id,
+          senderId: msg.user_id,
+          senderName: data.author_name,
+          messageContent: data.content,
+          messageId: data.id,
+        });
+      }
+      
       return data;
     },
     {
@@ -37,6 +67,85 @@ export async function sendChatMessage(msg: ChatMessageInsert) {
       onRetry: (attempt, error) => {
         if (import.meta.env.DEV) {
           console.warn(`Retry attempt ${attempt}/3 for sending chat message:`, error.message);
+        }
+      }
+    }
+  );
+}
+
+/**
+ * Send a rich media chat message with client_message_id for deduplication
+ */
+export async function sendRichChatMessage(msg: RichChatMessageInsert) {
+  return retryWithBackoff(
+    async () => {
+      const insertPayload: any = {
+        trip_id: msg.trip_id,
+        content: msg.content,
+        author_name: msg.author_name,
+        user_id: msg.user_id,
+        privacy_mode: msg.privacy_mode || 'standard',
+        message_type: msg.message_type || 'text',
+      };
+      
+      // Add optional fields only if present
+      if (msg.client_message_id) {
+        insertPayload.client_message_id = msg.client_message_id;
+      }
+      if (msg.media_type) {
+        insertPayload.media_type = msg.media_type;
+      }
+      if (msg.media_url) {
+        insertPayload.media_url = msg.media_url;
+      }
+      if (msg.attachments && msg.attachments.length > 0) {
+        insertPayload.attachments = msg.attachments;
+      }
+      if (msg.link_preview) {
+        insertPayload.link_preview = msg.link_preview;
+      }
+      
+      const { data, error } = await supabase
+        .from('trip_chat_messages')
+        .insert(insertPayload)
+        .select()
+        .single();
+        
+      if (error) {
+        // Handle unique constraint violation (duplicate client_message_id)
+        if (error.code === '23505' && error.message.includes('client_message_id')) {
+          console.warn('[chatService] Duplicate message detected, fetching existing:', msg.client_message_id);
+          // Fetch the existing message instead
+          const { data: existing } = await supabase
+            .from('trip_chat_messages')
+            .select()
+            .eq('trip_id', msg.trip_id)
+            .eq('client_message_id', msg.client_message_id)
+            .single();
+          if (existing) return existing;
+        }
+        throw error;
+      }
+      
+      // TODO: Trigger push notification after successful message creation
+      // Fire and forget - don't block message return
+      if (data && msg.user_id && msg.message_type !== 'system') {
+        notifyTripOfChatMessage({
+          tripId: data.trip_id,
+          senderId: msg.user_id,
+          senderName: data.author_name,
+          messageContent: data.content,
+          messageId: data.id,
+        });
+      }
+      
+      return data;
+    },
+    {
+      maxRetries: 3,
+      onRetry: (attempt, error) => {
+        if (import.meta.env.DEV) {
+          console.warn(`Retry attempt ${attempt}/3 for sending rich chat message:`, error.message);
         }
       }
     }

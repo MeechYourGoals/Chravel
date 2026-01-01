@@ -34,20 +34,20 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto pb-[max(2rem,env(safe-area-inset-bottom))]">
+        <div className="flex items-start justify-between mb-6 gap-4">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
               selectedTier === 'explorer' ? 'bg-gradient-to-r from-glass-orange to-glass-yellow' :
               'bg-gradient-to-r from-purple-500 to-purple-600'
             }`}>
-              {selectedTier === 'explorer' && <Globe size={24} className="text-white" />}
-              {selectedTier === 'frequent-chraveler' && <Sparkles size={24} className="text-white" />}
+              {selectedTier === 'explorer' && <Globe size={20} className="text-white sm:w-6 sm:h-6" />}
+              {selectedTier === 'frequent-chraveler' && <Sparkles size={20} className="text-white sm:w-6 sm:h-6" />}
             </div>
-            <div>
-              <h2 className="text-3xl font-bold text-white capitalize">Upgrade to {selectedTier}</h2>
-              <p className="text-gray-400">
+            <div className="min-w-0">
+              <h2 className="text-xl sm:text-3xl font-bold text-white capitalize truncate">Upgrade to {selectedTier === 'frequent-chraveler' ? 'Frequent Chraveler' : 'Explorer'}</h2>
+              <p className="text-gray-400 text-sm sm:text-base">
                 {selectedTier === 'explorer' && 'Never lose a trip memory'}
                 {selectedTier === 'frequent-chraveler' && 'For travel pros and adventure enthusiasts'}
               </p>
@@ -55,7 +55,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-white transition-colors p-2 -m-2 min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0"
           >
             <X size={24} />
           </button>
@@ -128,19 +128,22 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
             <div>
               <h4 className="text-white font-medium mb-3">Free Plan</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>• Up to 3 active trips</li>
+                <li>• Up to 3 active trips (archive to save more)</li>
                 <li>• Basic group chat</li>
                 <li>• Shared calendar (manual)</li>
                 <li>• Photo & video sharing</li>
                 <li>• 5 AI queries per user per trip</li>
+                <li>• 1 PDF export per trip</li>
+                <li>• ICS calendar download</li>
               </ul>
             </div>
             <div>
               <h4 className="text-white font-medium mb-3">{selectedTier === 'explorer' ? 'Explorer' : 'Frequent Chraveler'}</h4>
               {selectedTier === 'explorer' ? (
                 <ul className="space-y-2 text-sm text-green-300">
-                  <li>• Unlimited saved trips</li>
-                  <li>• 10 AI queries per trip</li>
+                  <li>• Unlimited saved trips + restore archived</li>
+                  <li>• 10 AI queries per user per trip</li>
+                  <li>• Unlimited PDF exports</li>
                   <li>• Location-aware AI</li>
                   <li>• Custom trip categories</li>
                   <li>• Smart notifications</li>
@@ -203,17 +206,17 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
             </div>
           </div>
 
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 justify-center">
             <button
               onClick={onClose}
-              className="px-8 py-3 bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 text-white rounded-2xl transition-all duration-200 font-medium"
+              className="px-8 py-3 bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 text-white rounded-2xl transition-all duration-200 font-medium min-h-[48px]"
             >
               Maybe Later
             </button>
             <button
               onClick={handleUpgrade}
               disabled={isLoading}
-              className="px-8 py-3 bg-gradient-to-r from-glass-orange to-glass-yellow hover:from-glass-orange/80 hover:to-glass-yellow/80 text-white font-medium rounded-2xl transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50"
+              className="px-8 py-3 bg-gradient-to-r from-glass-orange to-glass-yellow hover:from-glass-orange/80 hover:to-glass-yellow/80 text-white font-medium rounded-2xl transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 min-h-[48px]"
             >
               {isLoading ? 'Processing...' : 'Start Free Trial'}
             </button>

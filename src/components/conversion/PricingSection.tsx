@@ -57,21 +57,22 @@ const consumerTiers: PricingTier[] = [
     description: 'Perfect for trying ChravelApp with your crew',
     icon: <Users size={24} />,
     features: [
-      'Create unlimited trip participants',
-      'Core group chat & collaboration',
+      'Core group chat',
       'Shared calendar (manual entry)',
       'Photo & video sharing',
       'Basic itinerary planning',
-      'Expense tracking',
-      'Polls & decision making',
+      'Payment tracking',
+      'Polls & group decisions',
       'AI Trip Assistant (5 queries per user per trip)',
+      '1 PDF export per trip (sample it!)',
+      'ICS calendar export',
       'Save up to 3 active trips',
-      '🎁 1 Free ChravelApp Pro trip to try',
-      '🎁 1 Free Event to try'
+      '🎁 1 free Pro trip to try',
+      '🎁 1 free Event to try'
     ],
-    cta: 'Get Started Free · Log In or Sign Up',
+    cta: 'Try It Free',
     category: 'consumer',
-    limitation: 'To create a new trip after 3, you\'ll need to delete an old one'
+    limitation: 'Archive trips to make room for new ones. Upgrade to restore anytime!'
   },
   {
     id: 'explorer',
@@ -79,20 +80,17 @@ const consumerTiers: PricingTier[] = [
     price: '$9.99',
     annualPrice: '$99',
     originalPrice: '$119.88',
-    description: 'Never lose a trip memory',
+    description: 'For people who travel often and want smarter planning',
     icon: <Globe size={24} />,
     features: [
-      'Unlimited saved trips - keep every memory forever',
-      '10 AI queries per trip - double the free tier',
-      'Location-aware AI suggestions - personalized recs based on where you are',
-      'Smart notifications - never miss important updates',
-      'Search past trips - find that perfect restaurant again',
-      'Priority support - we\'ve got your back',
-      'Custom trip categories - tag trips by type',
-      '🎉 Unlimited Events included (up to 100 guests each)',
-      '🎁 Your first Pro Trip + Event included free'
+      'Everything in Free',
+      'Unlimited saved trips + restore archived',
+      '10 AI queries per user per trip',
+      'Unlimited PDF exports',
+      'Location-aware AI recommendations',
+      'Search past trips and memories'
     ],
-    cta: 'Get Started Free · Log In or Sign Up',
+    cta: 'Upgrade My Trips',
     popular: true,
     category: 'consumer',
     badge: 'Most Popular',
@@ -104,21 +102,18 @@ const consumerTiers: PricingTier[] = [
     price: '$19.99',
     annualPrice: '$199',
     originalPrice: '$239.88',
-    description: 'For travel pros and adventure enthusiasts',
+    description: 'For power users, organizers, and travel pros',
     icon: <Sparkles size={24} />,
     features: [
       'Everything in Explorer',
-      'Unlimited AI queries - your 24/7 concierge with no limits',
-      'Calendar sync - Google, Apple, Outlook integration',
-      'PDF trip export - one-click beautiful itineraries',
-      'Create 1 ChravelApp Pro trip per month - invite up to 50 people',
-      'Role-based channels & pro features on your Pro trip',
-      'Custom trip categories - tag by type (work/leisure/family/etc.)',
-      'Early feature access - shape the future of ChravelApp',
-      '🎉 Unlimited Events included (up to 200 guests each)',
-      '🎁 Your first Pro Trip + Event included free'
+      'Unlimited AI queries (24/7 concierge)',
+      'Calendar sync (Google, Apple, Outlook)',
+      'One-click PDF trip exports',
+      'Role-based channels & Pro features',
+      'Custom trip categories',
+      'Early feature access'
     ],
-    cta: 'Get Started Free · Log In or Sign Up',
+    cta: 'Upgrade My Trips',
     category: 'consumer',
     savings: 'Save $40/year'
   }
@@ -220,9 +215,19 @@ const valuePropItems = [
     description: 'Your trips, automatically in your calendar'
   },
   {
+    icon: <Users size={20} />,
+    title: 'Pro Trips with Role-Based Channels',
+    description: 'Filter chat convos to just who needs to be involved'
+  },
+  {
     icon: <FileText size={20} />,
     title: 'Professional PDF exports',
     description: 'Share beautiful itineraries with one click'
+  },
+  {
+    icon: <Zap size={20} />,
+    title: 'Early Access Features',
+    description: 'Get early access to our latest features and updates before they roll wide'
   },
   {
     icon: <Users size={20} />,
@@ -234,11 +239,11 @@ const valuePropItems = [
 const faqItems = [
   {
     question: "What happens when I hit my 3-trip limit?",
-    answer: "You'll need to delete an old trip to create a new one. Or upgrade to Explorer to keep unlimited trips!"
+    answer: "Your trips are never deleted! Just archive a trip to make room for new ones. Archived trips are safely stored and can be restored anytime after upgrading to Explorer or Frequent Chraveler."
   },
   {
-    question: "How do AI queries work on the free plan?",
-    answer: "Each user gets 5 AI queries per trip. A counter shows how many you have left. Resets with each new trip."
+    question: "How do AI queries work on each plan?",
+    answer: "Free users get 5 AI queries per user per trip. Explorer gets 10 AI queries per user per trip. Frequent Chraveler gets unlimited AI queries. A counter shows how many you have left. Each new trip starts fresh with your full query limit."
   },
   {
     question: "Can I change plans anytime?",
@@ -284,7 +289,7 @@ const testimonials = [
 ];
 
 export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [activeTab, setActiveTab] = useState<'consumer' | 'pro'>('consumer');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -324,15 +329,19 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
 
   return (
     <div className="w-full space-y-16">
-      {/* Header with Value Prop */}
+      {/* Header with Value Prop - High contrast with background */}
       <div className="text-center space-y-6">
         <div className="space-y-4">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
-            Start planning better trips today
-          </h2>
-          <p className="text-sm sm:text-base md:text-lg text-foreground max-w-3xl mx-auto leading-relaxed break-words">
-            Ensuring the next trip makes it out of the group chat. <span className="text-accent font-semibold">Save 23 hours per trip</span> with the world's first AI-native group collaboration platform for trips and events.
-          </p>
+          <div className="inline-block bg-primary px-6 py-3 rounded-lg">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
+              Upgrade your travel experience today
+            </h2>
+          </div>
+          <div className="bg-primary backdrop-blur-sm px-4 py-3 rounded-lg max-w-3xl mx-auto">
+            <p className="text-sm sm:text-base md:text-lg text-white font-bold leading-relaxed break-words">
+              Make sure your next trip makes it out of the group chat. <span className="text-white font-bold">Save more time, money, and headaches with ChravelApp.</span>
+            </p>
+          </div>
         </div>
 
         {/* Why Upgrade Section */}
@@ -500,16 +509,16 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
 
             <CardContent className="space-y-3 md:space-y-4 px-4 md:px-6 pb-4 md:pb-6 flex-1">
               {tier.limitation && (
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2.5 md:p-3 text-xs sm:text-sm text-yellow-400 break-words">
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2.5 md:p-3 text-sm text-yellow-400 break-words font-medium">
                   {tier.limitation}
                 </div>
               )}
               
-              <ul className="space-y-2 md:space-y-3">
+              <ul className="space-y-2.5 md:space-y-3">
                 {tier.features.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <Check size={14} className="text-green-400 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-foreground break-words">{feature}</span>
+                  <li key={index} className="flex items-start gap-2.5">
+                    <Check size={16} className="text-green-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-base font-semibold text-foreground break-words">{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -533,31 +542,6 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
           </div>
         ))}
       </div>
-
-      {/* FAQ Section */}
-      <div className="max-w-3xl mx-auto">
-        <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground text-center mb-6 md:mb-8">Frequently Asked Questions</h3>
-        <div className="space-y-2 md:space-y-3">
-          {faqItems.map((item, index) => (
-            <Collapsible key={index} open={openFaq === index} onOpenChange={() => setOpenFaq(openFaq === index ? null : index)}>
-              <CollapsibleTrigger className="w-full">
-                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-3 md:p-4 hover:bg-card/70 transition-colors">
-                  <div className="flex items-center justify-between gap-3">
-                    <h4 className="text-left font-semibold text-foreground text-sm sm:text-base md:text-lg break-words">{item.question}</h4>
-                    <ChevronDown className={`text-foreground transition-transform flex-shrink-0 ${openFaq === index ? 'rotate-180' : ''}`} size={18} />
-                  </div>
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="bg-card/30 border border-border/30 border-t-0 rounded-b-lg p-3 md:p-4 -mt-1">
-                  <p className="text-foreground text-xs sm:text-sm md:text-base break-words">{item.answer}</p>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          ))}
-        </div>
-      </div>
-
     </div>
   );
 };

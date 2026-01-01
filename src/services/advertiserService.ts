@@ -1,20 +1,56 @@
 import { supabase } from '../integrations/supabase/client';
-import { 
-  Advertiser, 
-  Campaign, 
-  CampaignTargeting, 
+import {
+  Advertiser,
+  Campaign,
+  CampaignTargeting,
   CampaignAnalytics,
   CampaignFormData,
   CampaignWithTargeting,
-  CampaignStats 
+  CampaignStats,
 } from '../types/advertiser';
 import { useDemoModeStore } from '../store/demoModeStore';
+import { SUPER_ADMIN_EMAILS } from '../constants/admins';
 
 export class AdvertiserService {
+  // Helper to check if current user is super admin
+  static async isSuperAdmin(): Promise<boolean> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.email) return false;
+    return SUPER_ADMIN_EMAILS.includes(user.email);
+  }
+
+  // Get or create advertiser profile (auto-creates for super admin)
+  static async getOrCreateAdvertiserProfile(): Promise<Advertiser | null> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    // Try to get existing profile first
+    const existingProfile = await this.getAdvertiserProfile();
+    if (existingProfile) return existingProfile;
+
+    // If super admin and no profile, auto-create one
+    const isSuperAdmin = user.email && SUPER_ADMIN_EMAILS.includes(user.email);
+    if (isSuperAdmin) {
+      return this.createAdvertiserProfile({
+        company_name: 'Chravel Admin',
+        company_email: user.email || 'admin@chravel.com',
+        website: 'https://chravel.com',
+      });
+    }
+
+    return null;
+  }
+
   // Advertiser Management
   static async getAdvertiserProfile(): Promise<Advertiser | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -40,7 +76,7 @@ export class AdvertiserService {
   }): Promise<Advertiser | null> {
     try {
       const isDemoMode = useDemoModeStore.getState().isDemoMode;
-      
+
       if (isDemoMode) {
         // Return mock advertiser in demo mode
         return {
@@ -51,18 +87,20 @@ export class AdvertiserService {
           website: profile.website,
           status: 'active',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         };
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
         .from('advertisers')
         .insert({
           user_id: user.id,
-          ...profile
+          ...profile,
         })
         .select()
         .single();
@@ -85,10 +123,12 @@ export class AdvertiserService {
 
       const { data, error } = await supabase
         .from('campaigns')
-        .select(`
+        .select(
+          `
           *,
           targeting:campaign_targeting(*)
-        `)
+        `,
+        )
         .eq('advertiser_id', advertiser.id)
         .order('created_at', { ascending: false });
 
@@ -106,10 +146,12 @@ export class AdvertiserService {
     try {
       const { data, error } = await supabase
         .from('campaigns')
-        .select(`
+        .select(
+          `
           *,
           targeting:campaign_targeting(*)
-        `)
+        `,
+        )
         .eq('id', campaignId)
         .single();
 
@@ -125,6 +167,33 @@ export class AdvertiserService {
 
   static async createCampaign(formData: CampaignFormData): Promise<Campaign | null> {
     try {
+      const isDemoMode = useDemoModeStore.getState().isDemoMode;
+
+      // In demo mode, return a mock campaign without saving to database
+      if (isDemoMode) {
+        const mockCampaign: Campaign = {
+          id: 'demo-campaign-' + Date.now(),
+          advertiser_id: 'demo-advertiser',
+          name: formData.name,
+          description: formData.description,
+          discount_details: formData.discount_details,
+          images: formData.images,
+          destination_info: formData.destination_info,
+          tags: formData.tags,
+          status: formData.status || 'draft',
+          website_url: formData.website_url,
+          duration: formData.duration,
+          impressions: 0,
+          clicks: 0,
+          conversions: 0,
+          start_date: formData.start_date,
+          end_date: formData.end_date,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        return mockCampaign;
+      }
+
       const advertiser = await this.getAdvertiserProfile();
       if (!advertiser) throw new Error('No advertiser profile found');
 
@@ -140,8 +209,10 @@ export class AdvertiserService {
           destination_info: formData.destination_info as any,
           tags: formData.tags,
           status: formData.status,
+          website_url: formData.website_url,
+          duration: formData.duration,
           start_date: formData.start_date,
-          end_date: formData.end_date
+          end_date: formData.end_date,
         })
         .select()
         .single();
@@ -150,12 +221,10 @@ export class AdvertiserService {
 
       // Create targeting data
       if (campaign && formData.targeting) {
-        const { error: targetingError } = await supabase
-          .from('campaign_targeting')
-          .insert({
-            campaign_id: campaign.id,
-            ...formData.targeting
-          });
+        const { error: targetingError } = await supabase.from('campaign_targeting').insert({
+          campaign_id: campaign.id,
+          ...formData.targeting,
+        });
 
         if (targetingError) {
           // Rollback by deleting campaign
@@ -174,8 +243,8 @@ export class AdvertiserService {
   }
 
   static async updateCampaign(
-    campaignId: string, 
-    updates: Partial<CampaignFormData>
+    campaignId: string,
+    updates: Partial<CampaignFormData>,
   ): Promise<Campaign | null> {
     try {
       const { targeting, ...campaignUpdates } = updates;
@@ -192,12 +261,10 @@ export class AdvertiserService {
 
       // Update targeting if provided
       if (targeting) {
-        const { error: targetingError } = await supabase
-          .from('campaign_targeting')
-          .upsert({
-            campaign_id: campaignId,
-            ...targeting
-          });
+        const { error: targetingError } = await supabase.from('campaign_targeting').upsert({
+          campaign_id: campaignId,
+          ...targeting,
+        });
 
         if (targetingError) throw targetingError;
       }
@@ -213,10 +280,7 @@ export class AdvertiserService {
 
   static async deleteCampaign(campaignId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('campaigns')
-        .delete()
-        .eq('id', campaignId);
+      const { error } = await supabase.from('campaigns').delete().eq('id', campaignId);
 
       if (error) throw error;
       return true;
@@ -230,14 +294,11 @@ export class AdvertiserService {
 
   // Campaign Status Management
   static async updateCampaignStatus(
-    campaignId: string, 
-    status: Campaign['status']
+    campaignId: string,
+    status: Campaign['status'],
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('campaigns')
-        .update({ status })
-        .eq('id', campaignId);
+      const { error } = await supabase.from('campaigns').update({ status }).eq('id', campaignId);
 
       if (error) throw error;
       return true;
@@ -259,12 +320,8 @@ export class AdvertiserService {
         impressions: campaign.impressions || 0,
         clicks: campaign.clicks || 0,
         conversions: campaign.conversions || 0,
-        ctr: campaign.impressions > 0 
-          ? (campaign.clicks / campaign.impressions) * 100 
-          : 0,
-        conversionRate: campaign.clicks > 0 
-          ? (campaign.conversions / campaign.clicks) * 100 
-          : 0
+        ctr: campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0,
+        conversionRate: campaign.clicks > 0 ? (campaign.conversions / campaign.clicks) * 100 : 0,
       };
 
       return stats;
@@ -277,27 +334,27 @@ export class AdvertiserService {
   }
 
   static async trackEvent(
-    campaignId: string, 
+    campaignId: string,
     eventType: CampaignAnalytics['event_type'],
-    eventData?: Record<string, any>
+    eventData?: Record<string, any>,
   ): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       // Insert analytics event
-      await supabase
-        .from('campaign_analytics')
-        .insert({
-          campaign_id: campaignId,
-          user_id: user?.id,
-          event_type: eventType,
-          event_data: eventData
-        });
+      await supabase.from('campaign_analytics').insert({
+        campaign_id: campaignId,
+        user_id: user?.id,
+        event_type: eventType,
+        event_data: eventData,
+      });
 
       // Increment campaign stats
       await supabase.rpc('increment_campaign_stat', {
         p_campaign_id: campaignId,
-        p_stat_type: eventType
+        p_stat_type: eventType,
       });
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -307,20 +364,20 @@ export class AdvertiserService {
   }
 
   // Get active campaigns for display
-  static async getActiveCampaigns(
-    filters?: {
-      interests?: string[];
-      location?: string;
-      trip_type?: string;
-    }
-  ): Promise<CampaignWithTargeting[]> {
+  static async getActiveCampaigns(filters?: {
+    interests?: string[];
+    location?: string;
+    trip_type?: string;
+  }): Promise<CampaignWithTargeting[]> {
     try {
       const query = supabase
         .from('campaigns')
-        .select(`
+        .select(
+          `
           *,
           targeting:campaign_targeting(*)
-        `)
+        `,
+        )
         .eq('status', 'active')
         .or(`start_date.is.null,start_date.lte.${new Date().toISOString()}`)
         .or(`end_date.is.null,end_date.gte.${new Date().toISOString()}`);
@@ -330,7 +387,7 @@ export class AdvertiserService {
 
       // Client-side filtering based on targeting
       let filteredCampaigns = data || [];
-      
+
       if (filters) {
         filteredCampaigns = filteredCampaigns.filter(campaign => {
           const targeting = campaign.targeting;
@@ -338,8 +395,8 @@ export class AdvertiserService {
 
           // Check interests
           if (filters.interests?.length && targeting.interests?.length) {
-            const hasMatchingInterest = filters.interests.some(interest => 
-              targeting.interests.includes(interest)
+            const hasMatchingInterest = filters.interests.some(interest =>
+              targeting.interests.includes(interest),
             );
             if (!hasMatchingInterest) return false;
           }
@@ -380,9 +437,7 @@ export class AdvertiserService {
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage
-        .from('advertiser-assets')
-        .getPublicUrl(filePath);
+      const { data } = supabase.storage.from('advertiser-assets').getPublicUrl(filePath);
 
       return data.publicUrl;
     } catch (error) {

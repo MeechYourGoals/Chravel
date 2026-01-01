@@ -5,6 +5,9 @@ import { useDemoMode } from './useDemoMode';
 import { mockPolls } from '@/mockData/polls';
 import { pollStorageService } from '@/services/pollStorageService';
 import { getStorageItem, setStorageItem } from '@/platform/storage';
+import { offlineSyncService } from '@/services/offlineSyncService';
+import { cacheEntity, getCachedEntities } from '@/offline/cache';
+import * as haptics from '@/native/haptics';
 
 interface TripPoll {
   id: string;
@@ -125,22 +128,53 @@ export const useTripPolls = (tripId: string) => {
         return [...storagePolls, ...formattedMockPolls];
       }
 
+      // Offline-first: read cached polls for fallback.
+      const cachedEntities = await getCachedEntities({ tripId, entityType: 'trip_polls' });
+      const cachedPolls = cachedEntities
+        .map(c => c.data as TripPoll)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      if (navigator.onLine === false && cachedPolls.length > 0) {
+        return cachedPolls;
+      }
+
       const { data, error } = await supabase
         .from('trip_polls')
         .select('*')
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // If fetch fails, return cached polls if available.
+        if (cachedPolls.length > 0) return cachedPolls;
+        throw error;
+      }
 
       // Transform the data to handle JSON types
-      return (data || []).map(poll => ({
+      const transformed = (data || []).map(poll => ({
         ...poll,
         options: Array.isArray(poll.options) ? (poll.options as any[]).filter(o => o && typeof o === 'object') as PollOption[] : [],
         status: poll.status as 'active' | 'closed'
       }));
+
+      // Cache polls for offline access (best-effort)
+      await Promise.all(
+        transformed.map(p =>
+          cacheEntity({
+            entityType: 'trip_polls',
+            entityId: p.id,
+            tripId,
+            data: p,
+            version: (p as any).version ?? undefined,
+          }),
+        ),
+      );
+
+      return transformed;
     },
-    enabled: !!tripId
+    enabled: !!tripId,
+    // Ensure we reconcile server state after connectivity is restored.
+    refetchOnReconnect: true,
   });
 
   // Create poll mutation
@@ -223,6 +257,19 @@ export const useTripPolls = (tripId: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Offline: queue vote for replay on reconnect.
+      if (navigator.onLine === false) {
+        await offlineSyncService.queueOperation(
+          'poll_vote',
+          'create',
+          tripId,
+          { optionIds: optionIdsArray },
+          pollId,
+        );
+
+        throw new Error('OFFLINE: Vote queued for sync when connection is restored.');
+      }
+
       const { data: poll, error: fetchError } = await supabase
         .from('trip_polls')
         .select('version, allow_multiple, allow_vote_change')
@@ -263,14 +310,86 @@ export const useTripPolls = (tripId: string) => {
 
       return { pollId, optionIds: optionIdsArray };
     },
+    onMutate: async ({ pollId, optionIds }) => {
+      const optionIdsArray = Array.isArray(optionIds) ? optionIds : [optionIds];
+
+      await queryClient.cancelQueries({ queryKey: ['tripPolls', tripId] });
+      const previous = queryClient.getQueryData<TripPoll[]>(['tripPolls', tripId]);
+
+      // Minimal optimistic update: increment selected option vote counts + total.
+      queryClient.setQueryData<TripPoll[]>(['tripPolls', tripId], old => {
+        if (!old) return old;
+        return old.map(p => {
+          if (p.id !== pollId) return p;
+          const nextOptions = p.options.map(opt => {
+            if (!optionIdsArray.includes(opt.id)) return opt;
+            return {
+              ...opt,
+              votes: (opt.votes ?? 0) + 1,
+            };
+          });
+          return {
+            ...p,
+            options: nextOptions,
+            total_votes: (p.total_votes ?? 0) + optionIdsArray.length,
+          };
+        });
+      });
+
+      // Persist the optimistic update into the offline snapshot so refetches while offline
+      // cannot overwrite the optimistic state with stale IndexedDB data.
+      try {
+        const next = queryClient.getQueryData<TripPoll[]>(['tripPolls', tripId]);
+        const updatedPoll = next?.find(p => p.id === pollId);
+        if (updatedPoll) {
+          void cacheEntity({
+            entityType: 'trip_polls',
+            entityId: updatedPoll.id,
+            tripId,
+            data: updatedPoll,
+            version: (updatedPoll as any).version ?? undefined,
+          });
+        }
+      } catch {
+        // Best-effort only; UI state is already updated in React Query cache.
+      }
+
+      return { previous };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+      void haptics.medium();
       toast({
         title: 'Vote recorded',
         description: 'Your vote has been saved.'
       });
     },
-    onError: (error: any) => {
+    onError: (error: any, vars, context) => {
+      // Keep optimistic update when offline (queued).
+      if (!error?.message?.includes('OFFLINE:') && context?.previous) {
+        queryClient.setQueryData(['tripPolls', tripId], context.previous);
+
+        // Also rollback the offline snapshot if we applied an optimistic write.
+        const previousPoll = context.previous.find(p => p.id === vars.pollId);
+        if (previousPoll) {
+          void cacheEntity({
+            entityType: 'trip_polls',
+            entityId: previousPoll.id,
+            tripId,
+            data: previousPoll,
+            version: (previousPoll as any).version ?? undefined,
+          });
+        }
+      }
+
+      if (error?.message?.includes('OFFLINE:')) {
+        toast({
+          title: 'Vote queued',
+          description: "We'll sync your vote when you're back online.",
+        });
+        return;
+      }
+
       if (!error.message?.includes('modified by another user')) {
         toast({
           title: 'Error',
@@ -278,7 +397,10 @@ export const useTripPolls = (tripId: string) => {
           variant: 'destructive'
         });
       }
-    }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+    },
   });
 
   // Remove vote mutation
@@ -362,6 +484,7 @@ export const useTripPolls = (tripId: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+      void haptics.success();
       toast({
         title: 'Poll closed',
         description: 'No more votes will be accepted.'

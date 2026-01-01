@@ -32,7 +32,6 @@ export async function renderTemplate(data: TripExportData): Promise<string> {
     destination,
     startDate,
     endDate,
-    deeplinkQrSvg,
     generatedAtLocal,
     layout,
     totals,
@@ -67,7 +66,7 @@ export async function renderTemplate(data: TripExportData): Promise<string> {
   ${tasks && tasks.length > 0 ? renderTasks(tasks) : ''}
   ${places && places.length > 0 ? renderPlaces(places) : ''}
   ${broadcasts && broadcasts.length > 0 && layout === 'pro' ? renderBroadcasts(broadcasts) : ''}
-  ${attachments && attachments.length > 0 && layout === 'pro' ? renderAttachments(attachments) : ''}
+  ${attachments && attachments.length > 0 ? renderAttachments(attachments) : ''}
 
   <div class="footer-text">
     Generated on ${escapeHtml(generatedAtLocal)} &nbsp;•&nbsp; ${layoutName} &nbsp;•&nbsp; Trip ID: ${escapeHtml(tripId)}
@@ -80,7 +79,7 @@ export async function renderTemplate(data: TripExportData): Promise<string> {
  * Simple Text Header (No Cover Image)
  */
 function renderHeader(data: TripExportData): string {
-  const { tripTitle, subtitle, destination, startDate, endDate, deeplinkQrSvg } = data;
+  const { tripTitle, subtitle, destination, startDate, endDate } = data;
   
   const hasMeta = destination || (startDate && endDate);
   const metaText = [
@@ -95,11 +94,6 @@ function renderHeader(data: TripExportData): string {
       ${subtitle ? `<p class="subtitle">${escapeHtml(subtitle)}</p>` : ''}
       ${hasMeta ? `<div class="meta">${metaText}</div>` : ''}
     </div>
-    ${deeplinkQrSvg ? `
-    <div class="header-qr">
-      ${deeplinkQrSvg}
-      <div class="qr-label">Scan to open live trip</div>
-    </div>` : ''}
   </div>`;
 }
 
@@ -272,7 +266,6 @@ function renderPlaces(places: any[]): string {
             <strong>${escapeHtml(place.title)}</strong>
             <span class="small"> (${escapeHtml(place.domain)})</span>
           </div>
-          ${place.qrSvg ? `<div class="qr-small">${place.qrSvg}</div>` : ''}
         </div>
         ${place.category ? `<div class="small"><strong>Category:</strong> ${escapeHtml(place.category)}</div>` : ''}
         ${place.notes ? `<div class="small">${escapeHtml(place.notes)}</div>` : ''}
@@ -314,29 +307,22 @@ function renderBroadcasts(broadcasts: any[]): string {
 }
 
 function renderAttachments(attachments: any[]): string {
+  // Plain-text index only (no embeds in the body). Actual file pages are appended after
+  // the main recap in the PDF post-processing step.
   return `
   <section class="section">
     <h2>Attachments</h2>
-    <table class="table">
-      <thead>
-        <tr>
-          <th>File</th>
-          <th>Type</th>
-          <th>Uploaded by</th>
-          <th>Date</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${attachments.map(a => `
-          <tr>
-            <td>${escapeHtml(a.name)}</td>
-            <td>${escapeHtml(a.type)}</td>
-            <td>${escapeHtml(a.uploaded_by || '—')}</td>
-            <td>${escapeHtml(a.date || '—')}</td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
+    <ul class="bullet-list">
+      ${attachments.map(a => {
+        const meta = [a.type ? escapeHtml(a.type) : null, a.date ? escapeHtml(a.date) : null].filter(Boolean).join(' • ');
+        return `
+          <li>
+            <span class="file-name">${escapeHtml(a.name)}</span>
+            ${meta ? `<span class="file-meta"> (${meta})</span>` : ''}
+          </li>
+        `;
+      }).join('')}
+    </ul>
   </section>`;
 }
 

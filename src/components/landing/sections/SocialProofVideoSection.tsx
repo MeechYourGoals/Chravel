@@ -6,57 +6,71 @@ const metrics = [
   { 
     value: "Instantly See", 
     label: "Schedule Conflicts", 
-    icon: <MapPin size={20} />, 
+    icon: <MapPin size={18} />, 
     trend: "Automatically flags double-bookings before they happen" 
   },
   { 
     value: "Automatic", 
     label: "Payment Tracking", 
-    icon: <Clock size={20} />, 
+    icon: <Clock size={18} />, 
     trend: "See who's paid and who hasn't, all in one place" 
   },
   { 
     value: "Real-Time", 
     label: "Updates", 
-    icon: <Star size={20} />, 
+    icon: <Star size={18} />, 
     trend: "Everyone stays in sync when plans change" 
   },
   { 
     value: "Proven", 
     label: "Complex Group Logistics", 
-    icon: <TrendingUp size={20} />, 
+    icon: <TrendingUp size={18} />, 
     trend: "Successfully handles sports teams, tours, and family reunions" 
   }
 ];
 
 export const SocialProofVideoSection = () => {
   return (
-    <div className="container mx-auto px-4 py-12 md:py-0 flex flex-col items-center justify-center min-h-screen space-y-12">
-      {/* Headline */}
-      <div className="text-center space-y-4 max-w-4xl">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
+    <div className="container mx-auto px-4 py-8 md:py-0 flex flex-col items-center justify-start md:justify-center min-h-0 md:min-h-screen space-y-6 md:space-y-8">
+      {/* Headline - positioned at top with contrast for concert/festival background */}
+      <div className="text-center space-y-3 max-w-4xl pt-8">
+        <h2
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold"
+          style={{ color: '#0A1E3D', textShadow: '0 2px 4px rgba(255,255,255,0.3)' }}
+        >
           Built for Groups Worldwide
         </h2>
-        <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
+        <p
+          className="text-lg sm:text-xl md:text-2xl px-4 py-2 rounded-xl inline-block"
+          style={{
+            color: '#0A1E3D',
+            fontWeight: 600,
+            backgroundColor: 'rgba(156,163,175,0.85)',
+            backdropFilter: 'blur(8px)'
+          }}
+        >
           ChravelApp removes the Chaos from Coordinating.
         </p>
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6 max-w-6xl w-full px-2">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-6xl w-full px-2">
         {metrics.map((metric, index) => (
           <Card key={index} className="bg-card/50 backdrop-blur-sm border border-border/50 hover:border-primary/50 transition-all duration-300 w-full overflow-hidden">
-            <CardContent className="p-5 sm:p-6 lg:p-8 text-center space-y-3">
-              <div className="flex items-center justify-center text-primary">
-                {React.cloneElement(metric.icon as React.ReactElement, { size: 28 })}
+            <CardContent className="p-3 sm:p-4 space-y-1">
+              {/* Inline icon + value */}
+              <div className="flex items-center justify-center gap-2">
+                <div className="text-primary flex-shrink-0">
+                  {metric.icon}
+                </div>
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-primary leading-tight">
+                  {metric.value}
+                </div>
               </div>
-              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground leading-tight break-words">
-                {metric.value}
-              </div>
-              <div className="text-base lg:text-lg text-foreground leading-tight break-words">
+              <div className="text-sm sm:text-base text-primary text-center leading-tight">
                 {metric.label}
               </div>
-              <div className="text-sm text-accent leading-normal break-words">
+              <div className="text-xs sm:text-sm text-accent text-center leading-snug line-clamp-2">
                 {metric.trend}
               </div>
             </CardContent>

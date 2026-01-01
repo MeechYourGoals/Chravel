@@ -6,13 +6,15 @@ interface VideoBackgroundProps {
   imageFallback: string;
   opacity?: number;
   className?: string;
+  imagePosition?: string;
 }
 
 export const VideoBackground: React.FC<VideoBackgroundProps> = ({
   videoSrc,
   imageFallback,
   opacity = 0.4,
-  className
+  className,
+  imagePosition = 'center'
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isInView, setIsInView] = useState(false);
@@ -84,6 +86,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
             src={imageFallback}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: imagePosition }}
             loading="lazy"
           />
           <div 

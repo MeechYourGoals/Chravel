@@ -96,7 +96,18 @@ export async function processQueue(): Promise<{ success: number; failed: number 
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // If a newer client already sent this message via the unified queue, the DB will reject
+        // the legacy insert due to the unique `(trip_id, client_message_id)` index. Treat that
+        // as success and remove the legacy item to avoid false failure toasts.
+        const err = error as unknown as { code?: string; message?: string };
+        if (err.code === '23505' && err.message?.includes('client_message_id')) {
+          await db.delete('queue', queued.id);
+          success++;
+          continue;
+        }
+        throw error;
+      }
 
       // Success - remove from queue
       await db.delete('queue', queued.id);

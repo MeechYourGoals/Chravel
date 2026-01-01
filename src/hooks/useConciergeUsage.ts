@@ -2,8 +2,16 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from './useAuth';
 
-// Per-trip AI query limits for freemium model
-const FREE_TIER_LIMIT = 10; // 10 queries per trip
+/**
+ * Per-trip AI query limits for freemium model
+ * 
+ * IMPORTANT: These are per user, per trip limits (NO daily reset):
+ * - Free: 5 queries per user per trip
+ * - Explorer: 10 queries per user per trip
+ * - Frequent Chraveler/Pro: Unlimited
+ */
+const FREE_TIER_LIMIT = 5; // 5 queries per user per trip
+const EXPLORER_TIER_LIMIT = 10; // 10 queries per user per trip
 const PAID_TIER_LIMIT = -1; // Unlimited
 
 type UserTier = 'free' | 'explorer' | 'frequent-chraveler' | 'pro';
@@ -18,12 +26,13 @@ const getTierFromRole = (appRole?: string): UserTier => {
 
 const getLimitForTier = (tier: UserTier): number => {
   if (tier === 'free') return FREE_TIER_LIMIT;
-  return PAID_TIER_LIMIT; // Unlimited for all paid tiers
+  if (tier === 'explorer') return EXPLORER_TIER_LIMIT;
+  return PAID_TIER_LIMIT; // Unlimited for Frequent Chraveler and Pro
 };
 
 const getUpgradeUrlForTier = (tier: UserTier): string => {
-  if (tier === 'free') return '/settings/billing?plan=explorer';
-  return '/settings/billing';
+  // All upgrade actions go to settings - the billing section handles tier selection
+  return '/settings';
 };
 
 export interface ConciergeUsage {
@@ -162,7 +171,7 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
     if (usage.isLimitReached) {
       return {
         status: 'limit_reached',
-        message: `Trip limit reached (${usage.dailyCount}/${usage.limit})`,
+        message: `Trip limit reached (${usage.dailyCount}/${usage.limit} used)`,
         color: 'text-red-500'
       };
     }
@@ -190,6 +199,7 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
     formatTimeUntilReset,
     getUsageStatus,
     isFreeUser: userTier === 'free',
+    isExplorerUser: userTier === 'explorer',
     userTier,
     upgradeUrl: getUpgradeUrlForTier(userTier)
   };

@@ -62,11 +62,11 @@ serve(async (req) => {
     const user = userData.user;
     logStep("User authenticated", { userId: user.id });
 
-    // Get user's Stripe customer ID
+    // Get user's Stripe customer ID from private_profiles
     const { data: profile, error: profileError } = await supabaseClient
-      .from('profiles')
+      .from('private_profiles')
       .select('stripe_customer_id')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .single();
 
     if (profileError || !profile?.stripe_customer_id) {

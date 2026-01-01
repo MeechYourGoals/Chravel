@@ -1,4 +1,4 @@
-import { CalendarEvent } from '../types/calendar';
+import { brandEventTitleForIcs } from './icsBranding';
 
 export interface ICSEvent {
   title: string;
@@ -7,6 +7,18 @@ export interface ICSEvent {
   location?: string;
   description?: string;
   uid: string;
+}
+
+/**
+ * Minimal event data required for ICS export.
+ * This allows components to export events without needing all CalendarEvent properties.
+ */
+export interface ICSExportEvent {
+  id: string;
+  title: string;
+  date: Date;
+  location?: string;
+  description?: string;
 }
 
 export class CalendarExporter {
@@ -22,11 +34,11 @@ export class CalendarExporter {
       .replace(/\r?\n/g, '\\n');
   }
 
-  exportToICS(events: CalendarEvent[], tripName: string): string {
+  exportToICS(events: ICSExportEvent[], tripName: string): string {
     const icsEvents = events.map(event => ({
-      title: event.title,
-      start: event.date,
-      end: new Date(event.date.getTime() + (2 * 60 * 60 * 1000)), // 2 hours default
+      title: brandEventTitleForIcs(event.title), // Apply ChravelApp branding
+      start: event.date instanceof Date ? event.date : new Date(event.date),
+      end: new Date((event.date instanceof Date ? event.date : new Date(event.date)).getTime() + (2 * 60 * 60 * 1000)), // 2 hours default
       location: event.location,
       description: event.description,
       uid: event.id
@@ -39,7 +51,7 @@ export class CalendarExporter {
     const lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Ravel//Trip Planning//EN',
+      'PRODID:-//Chravel//Trip Planning//EN',
       `X-WR-CALNAME:${this.escapeText(calendarName)}`,
       'X-WR-TIMEZONE:UTC',
       'CALSCALE:GREGORIAN',
@@ -48,7 +60,7 @@ export class CalendarExporter {
 
     events.forEach(event => {
       lines.push('BEGIN:VEVENT');
-      lines.push(`UID:${event.uid}@ravel.app`);
+      lines.push(`UID:${event.uid}@chravel.app`);
       lines.push(`DTSTART:${this.formatDate(event.start)}`);
       lines.push(`DTEND:${this.formatDate(event.end)}`);
       lines.push(`SUMMARY:${this.escapeText(event.title)}`);
@@ -69,11 +81,11 @@ export class CalendarExporter {
     return lines.join('\r\n');
   }
 
-  downloadICS(events: CalendarEvent[], tripName: string): void {
+  downloadICS(events: ICSExportEvent[], tripName: string): void {
     const icsContent = this.exportToICS(events, tripName);
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    
+
     const link = document.createElement('a');
     link.href = url;
     link.download = `${tripName.replace(/[^a-zA-Z0-9]/g, '_')}.ics`;
@@ -83,13 +95,14 @@ export class CalendarExporter {
     URL.revokeObjectURL(url);
   }
 
-  generateCalendarUrls(event: CalendarEvent): {
+  generateCalendarUrls(event: ICSExportEvent): {
     google: string;
     outlook: string;
     apple: string;
   } {
-    const startDate = event.date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-    const endDate = new Date(event.date.getTime() + (2 * 60 * 60 * 1000))
+    const eventDate = event.date instanceof Date ? event.date : new Date(event.date);
+    const startDate = eventDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const endDate = new Date(eventDate.getTime() + (2 * 60 * 60 * 1000))
       .toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 
     const params = {
@@ -104,9 +117,9 @@ export class CalendarExporter {
       google: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${params.title}&dates=${params.start}/${params.end}&location=${params.location}&details=${params.description}`,
       outlook: `https://outlook.live.com/calendar/0/deeplink/compose?subject=${params.title}&startdt=${params.start}&enddt=${params.end}&location=${params.location}&body=${params.description}`,
       apple: `data:text/calendar;charset=utf8,${encodeURIComponent(this.generateICS([{
-        title: event.title,
-        start: event.date,
-        end: new Date(event.date.getTime() + (2 * 60 * 60 * 1000)),
+        title: brandEventTitleForIcs(event.title), // Apply ChravelApp branding
+        start: eventDate,
+        end: new Date(eventDate.getTime() + (2 * 60 * 60 * 1000)),
         location: event.location,
         description: event.description,
         uid: event.id

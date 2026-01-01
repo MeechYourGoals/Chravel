@@ -29,17 +29,54 @@ CREATE INDEX IF NOT EXISTS idx_read_receipts_lookup
 -- Enable Row Level Security
 ALTER TABLE message_read_receipts ENABLE ROW LEVEL SECURITY;
 
--- Policy: Users can read all receipts for messages they have access to
+-- Policy: Users can read receipts only for messages they can access
 CREATE POLICY "Users can view read receipts"
   ON message_read_receipts
   FOR SELECT
-  USING (true);
+  USING (
+    (
+      message_type = 'trip'
+      AND EXISTS (
+        SELECT 1
+        FROM trip_chat_messages tcm
+        WHERE tcm.id = message_id
+      )
+    )
+    OR (
+      message_type = 'channel'
+      AND EXISTS (
+        SELECT 1
+        FROM channel_messages cm
+        WHERE cm.id = message_id
+      )
+    )
+  );
 
--- Policy: Users can only create their own read receipts
+-- Policy: Users can only create their own read receipts (for messages they can access)
 CREATE POLICY "Users can create own read receipts"
   ON message_read_receipts
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (
+    auth.uid() = user_id
+    AND (
+      (
+        message_type = 'trip'
+        AND EXISTS (
+          SELECT 1
+          FROM trip_chat_messages tcm
+          WHERE tcm.id = message_id
+        )
+      )
+      OR (
+        message_type = 'channel'
+        AND EXISTS (
+          SELECT 1
+          FROM channel_messages cm
+          WHERE cm.id = message_id
+        )
+      )
+    )
+  );
 
 -- Policy: Users cannot update read receipts (they're immutable)
 -- (No UPDATE policy = no updates allowed)
@@ -48,7 +85,27 @@ CREATE POLICY "Users can create own read receipts"
 CREATE POLICY "Users can delete own read receipts"
   ON message_read_receipts
   FOR DELETE
-  USING (auth.uid() = user_id);
+  USING (
+    auth.uid() = user_id
+    AND (
+      (
+        message_type = 'trip'
+        AND EXISTS (
+          SELECT 1
+          FROM trip_chat_messages tcm
+          WHERE tcm.id = message_id
+        )
+      )
+      OR (
+        message_type = 'channel'
+        AND EXISTS (
+          SELECT 1
+          FROM channel_messages cm
+          WHERE cm.id = message_id
+        )
+      )
+    )
+  );
 
 -- Add comment
 COMMENT ON TABLE message_read_receipts IS 'Tracks which users have read which messages for read receipt functionality';

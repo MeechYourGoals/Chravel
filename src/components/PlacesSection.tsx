@@ -8,12 +8,13 @@ import { useTripVariant } from '../contexts/TripVariantContext';
 import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { useBasecamp } from '@/contexts/BasecampContext';
+import { useTripBasecamp, useUpdateTripBasecamp } from '@/hooks/useTripBasecamp';
 import { supabase } from '@/integrations/supabase/client';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
 import { getTripById, generateTripMockData } from '@/data/tripsData';
 import { toast } from 'sonner';
+import { cacheEntity, getCachedEntity } from '@/offline/cache';
 
 interface PlacesSectionProps {
   tripId?: string;
@@ -27,7 +28,11 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
   const { variant: _variant } = useTripVariant();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
-  const { basecamp: contextBasecamp, setBasecamp: setContextBasecamp, isBasecampSet } = useBasecamp();
+  
+  // Use TanStack Query for trip basecamp (canonical source of truth)
+  const { data: tripBasecamp, isLoading: isBasecampLoading } = useTripBasecamp(tripId);
+  const updateBasecampMutation = useUpdateTripBasecamp(tripId);
+  
   const mapRef = useRef<MapCanvasRef>(null);
 
   // State
@@ -108,6 +113,10 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
   // Load places data on mount
   useEffect(() => {
     const loadPlaces = async () => {
+      const cacheKey = `${tripId}:places`;
+      const cached = await getCachedEntity({ entityType: 'trip_links', entityId: cacheKey });
+      const cachedPlaces = (cached?.data as PlaceWithDistance[] | undefined) ?? [];
+
       // Helper to load trip links from tripsData.ts
       const loadDemoPlacesFromTripsData = async (): Promise<PlaceWithDistance[]> => {
         const trip = getTripById(Number(tripId));
@@ -143,6 +152,12 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
           }
         }
       } else {
+        // If offline, prefer cached.
+        if (navigator.onLine === false && cachedPlaces.length > 0) {
+          setPlaces(cachedPlaces);
+          return;
+        }
+
         // Load real data for authenticated users
         const { data, error } = await supabase
           .from('trip_link_index')
@@ -152,6 +167,9 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
         if (error) {
           if (import.meta.env.DEV) {
             console.error('Failed to load places:', error);
+          }
+          if (cachedPlaces.length > 0) {
+            setPlaces(cachedPlaces);
           }
           return;
         }
@@ -188,11 +206,22 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
             };
           });
         setPlaces(placesWithDistance);
+
+        // Cache for offline access (best-effort).
+        await cacheEntity({
+          entityType: 'trip_links',
+          entityId: cacheKey,
+          tripId,
+          data: placesWithDistance,
+        });
       }
     };
 
     loadPlaces();
   }, [tripId, isDemoMode]);
+
+  // Trip basecamp is now loaded by useTripBasecamp hook - no manual loading needed
+  // The hook handles both demo mode and authenticated mode automatically
 
   // Load personal basecamp
   useEffect(() => {
@@ -219,7 +248,7 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
   const lastLocalUpdateRef = useRef<{ timestamp: number; address: string } | null>(null);
   const UPDATE_DEBOUNCE_MS = 2000; // 2 second window to detect local vs remote updates
 
-  // Realtime sync for trip basecamp updates
+  // Realtime sync for trip basecamp updates - invalidate TanStack Query cache
   useEffect(() => {
     if (isDemoMode || !tripId) return;
 
@@ -245,16 +274,14 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
             now - lastLocalUpdateRef.current.timestamp < UPDATE_DEBOUNCE_MS &&
             updatedBasecamp.address === lastLocalUpdateRef.current.address;
 
-          if (isLocalUpdate) {
-            // Still update the context silently
-            setContextBasecamp(updatedBasecamp);
-          } else {
+          if (!isLocalUpdate) {
             // Remote update - show notification
-            setContextBasecamp(updatedBasecamp);
             toast.success('Trip Base Camp updated by another member!', {
               description: updatedBasecamp.name || updatedBasecamp.address
             });
           }
+          
+          // TanStack Query will handle refetch via invalidation in the mutation
         }
       )
       .subscribe();
@@ -262,7 +289,7 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tripId, isDemoMode, setContextBasecamp]);
+  }, [tripId, isDemoMode]);
 
   // Note: Search origin and distance calculations are no longer tied to basecamps
   // Basecamps are now simple text references without coordinates
@@ -275,11 +302,24 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
       address: newBasecamp.address
     };
     
-    setContextBasecamp(newBasecamp);
-    
-    // Note: Map centering is now disconnected from basecamp saving
-    // Basecamps are simple text references without coordinates
-    // The map is for browsing only and is not affected by basecamp changes
+    // Use the mutation hook which handles optimistic updates, rollback, and cache invalidation
+    try {
+      await updateBasecampMutation.mutateAsync({
+        name: newBasecamp.name,
+        address: newBasecamp.address,
+        latitude: newBasecamp.coordinates?.lat,
+        longitude: newBasecamp.coordinates?.lng
+      });
+      
+      if (import.meta.env.DEV) {
+        console.log('[PlacesSection] Trip basecamp persisted:', newBasecamp.address);
+      }
+    } catch (error) {
+      // Error handling is done in the mutation hook
+      if (import.meta.env.DEV) {
+        console.error('[PlacesSection] Error saving trip basecamp:', error);
+      }
+    }
   };
 
   const handleCenterMap = (coords: { lat: number; lng: number }, type?: 'trip' | 'personal' | 'search') => {
@@ -432,7 +472,7 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
             {activeTab === 'basecamps' && (
               <BasecampsPanel
                 tripId={tripId}
-                tripBasecamp={contextBasecamp}
+                tripBasecamp={tripBasecamp || null}
                 onTripBasecampSet={handleBasecampSet}
                 onCenterMap={handleCenterMap}
                 activeContext={searchContext}
@@ -446,7 +486,7 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
               <LinksPanel
                 tripId={tripId}
                 places={places}
-                basecamp={contextBasecamp}
+                basecamp={tripBasecamp || null}
                 personalBasecamp={personalBasecamp}
                 onPlaceAdded={(place) => {
                   setPlaces(prev => [...prev, place]);
@@ -482,7 +522,7 @@ export const PlacesSection = ({ tripId = '1', tripName: _tripName = 'Your Trip' 
             <MapCanvas
               ref={mapRef}
               activeContext={searchContext}
-              tripBasecamp={contextBasecamp}
+              tripBasecamp={tripBasecamp || null}
               personalBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : null}
               className="w-full h-full"
               onMapReady={handleMapReady}

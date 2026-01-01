@@ -2,45 +2,45 @@ import { ProTripData } from '../../types/pro';
 import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const postMaloneJellyRollTour: ProTripData = {
-  id: 'postmalone-jellyroll-tour-2026',
-  title: 'Post Malone × Jelly Roll — Stadium Tour 2026',
-  description: 'Major stadium tour featuring Post Malone and Jelly Roll across North America with full production crew.',
-  location: 'Multiple Cities, USA',
-  dateRange: 'Jun 1 - Sep 30, 2026',
+  id: 'shane-gillis-comedy-tour-2026',
+  title: 'Shane Gillis — Live Comedy Tour 2026',
+  description: 'Multi-city stand-up comedy tour covering major U.S. markets with full touring crew, production, merch, and talent operations.',
+  location: 'Chicago, Boston, New York, Philadelphia, Atlanta, Austin, Los Angeles',
+  dateRange: 'May 8 - Jul 19, 2026',
   proTripCategory: 'Tour – Music, Comedy, etc.',
-  tags: ['Stadium', 'North America', 'Hip-Hop', 'Country Rock'],
-  basecamp_name: 'AT&T Stadium',
-  basecamp_address: '1 AT&T Way, Arlington, TX 76011',
+  tags: ['Comedy', 'Stand-Up', 'North America', 'Multi-City'],
+  basecamp_name: 'United Center',
+  basecamp_address: '1901 W Madison St, Chicago, IL 60612',
   tasks: [
     {
       id: 'task-tour-1',
-      title: 'Load-in schedule confirmed with all venues',
-      description: 'Verify load-in times and crew access for next 5 tour stops',
+      title: 'Venue load-in confirmed for Chicago show',
+      description: 'Verify audio equipment and stage setup for United Center',
       completed: true,
-      due_at: '2026-05-28',
-      assigned_to: 'production-director',
+      due_at: '2026-05-07',
+      assigned_to: 'production-manager',
       created_at: new Date(Date.now() - 604800000).toISOString()
     },
     {
       id: 'task-tour-2',
-      title: 'Soundcheck rehearsal with full band',
-      description: 'Complete soundcheck and stage positioning rehearsal',
+      title: 'Merch inventory check for Boston & NYC',
+      description: 'Confirm merch stock levels and shipment tracking',
       completed: false,
-      due_at: '2026-06-01',
-      assigned_to: 'tour-manager',
+      due_at: '2026-05-15',
+      assigned_to: 'merch-director',
       created_at: new Date().toISOString()
     }
   ],
   polls: [
     {
       id: 'poll-tour-1',
-      question: 'Which new song should we add to the setlist?',
+      question: 'Preferred tour bus departure time for Austin leg?',
       options: [
-        { id: 'opt1', text: 'Chemical', votes: 1240 },
-        { id: 'opt2', text: 'Mourning', votes: 890 },
-        { id: 'opt3', text: 'Overdrive', votes: 2150 }
+        { id: 'opt1', text: '6:00 AM (Early Start)', votes: 8 },
+        { id: 'opt2', text: '9:00 AM (Standard)', votes: 18 },
+        { id: 'opt3', text: '12:00 PM (Late Start)', votes: 2 }
       ],
-      total_votes: 4280,
+      total_votes: 28,
       status: 'closed',
       created_at: new Date(Date.now() - 86400000).toISOString()
     }
@@ -48,19 +48,19 @@ export const postMaloneJellyRollTour: ProTripData = {
   links: [
     {
       id: 'link-tour-1',
-      url: 'https://www.attstadium.com/events',
-      title: 'AT&T Stadium - Tour Kickoff Venue',
-      description: 'Stadium information and load-in procedures',
-      domain: 'attstadium.com',
+      url: 'https://www.unitedcenter.com',
+      title: 'United Center - Chicago Tour Kickoff',
+      description: 'Venue information and load-in procedures',
+      domain: 'unitedcenter.com',
       created_at: new Date().toISOString(),
       source: 'places'
     },
     {
       id: 'link-tour-2',
-      url: 'https://www.soldierfield.com',
-      title: 'Soldier Field Chicago - Tour Stop 2',
-      description: 'Chicago venue details and logistics',
-      domain: 'soldierfield.com',
+      url: 'https://www.tdgarden.com',
+      title: 'TD Garden Boston - Tour Stop 2',
+      description: 'Boston venue details and logistics',
+      domain: 'tdgarden.com',
       created_at: new Date(Date.now() - 172800000).toISOString(),
       source: 'manual'
     }
@@ -68,68 +68,74 @@ export const postMaloneJellyRollTour: ProTripData = {
   broadcasts: [
     {
       id: 'bc-tour-1',
-      senderId: '3',
-      message: 'Tour bus call time: 9 AM tomorrow. Breakfast served on bus starting 8:30 AM.',
-      targetTrips: ['postmalone-jellyroll-tour-2026'],
+      senderId: '2',
+      message: 'Bus call time: 9 AM tomorrow for Boston. Breakfast on bus starting 8:30 AM.',
+      targetTrips: ['shane-gillis-comedy-tour-2026'],
       priority: 'urgent',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
-      readBy: ['1', '2', '4']
+      readBy: ['1', '3', '4']
     },
     {
       id: 'bc-tour-2',
       senderId: '1',
-      message: 'Amazing show tonight fam! Chicago you were incredible! 🔥',
-      targetTrips: ['postmalone-jellyroll-tour-2026'],
+      message: 'Chicago was insane tonight. Thanks to the crew for crushing it.',
+      targetTrips: ['shane-gillis-comedy-tour-2026'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
       readBy: ['2', '3']
     }
   ],
   participants: [
-    { id: '1', name: 'Post Malone', avatar: getMockAvatar('Post Malone'), role: 'Headliner' },
-    { id: '2', name: 'Jelly Roll', avatar: getMockAvatar('Jelly Roll'), role: 'Co-Headliner' },
-    { id: '3', name: 'Dre London', avatar: getMockAvatar('Dre London'), role: 'Tour Manager' },
-    { id: '4', name: 'Marissa Jones', avatar: getMockAvatar('Marissa Jones'), role: 'Production Director' }
+    { id: '1', name: 'Shane Gillis', avatar: getMockAvatar('Shane Gillis'), role: 'Headliner' },
+    { id: '2', name: 'Logan Kimstein', avatar: getMockAvatar('Logan Kimstein'), role: 'Tour Manager' },
+    { id: '3', name: 'Erik Kennedy', avatar: getMockAvatar('Erik Kennedy'), role: 'Agent' },
+    { id: '4', name: 'Ryan O\'Connor', avatar: getMockAvatar('Ryan O\'Connor'), role: 'Production Manager' },
+    { id: '5', name: 'Lena Morales', avatar: getMockAvatar('Lena Morales'), role: 'Merch Director' },
+    { id: '6', name: 'Tom Reeves', avatar: getMockAvatar('Tom Reeves'), role: 'FOH Audio' },
+    { id: '7', name: 'Chris Dalton', avatar: getMockAvatar('Chris Dalton'), role: 'Security Lead' }
   ],
   roster: [
-    { id: '1', name: 'Post Malone', role: 'Headliner', email: 'postmalone@tour.com', avatar: getMockAvatar('Post Malone'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '2', name: 'Jelly Roll', role: 'Co-Headliner', email: 'jellyroll@tour.com', avatar: getMockAvatar('Jelly Roll'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '3', name: 'Dre London', role: 'Tour Manager', email: 'dre@tour.com', avatar: getMockAvatar('Dre London'), credentialLevel: 'Backstage', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '4', name: 'Marissa Jones', role: 'Production Director', email: 'marissa@tour.com', avatar: getMockAvatar('Marissa Jones'), credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' }
+    { id: '1', name: 'Shane Gillis', role: 'Headliner', email: 'shane@gilliscomedy.com', avatar: getMockAvatar('Shane Gillis'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '2', name: 'Logan Kimstein', role: 'Tour Manager', email: 'logan@tourmanagement.com', avatar: getMockAvatar('Logan Kimstein'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '3', name: 'Erik Kennedy', role: 'Agent', email: 'erik@talentmanagement.com', avatar: getMockAvatar('Erik Kennedy'), credentialLevel: 'Backstage', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '4', name: 'Ryan O\'Connor', role: 'Production Manager', email: 'ryan@production.com', avatar: getMockAvatar('Ryan O\'Connor'), credentialLevel: 'AllAccess', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '5', name: 'Lena Morales', role: 'Merch Director', email: 'lena@merch.com', avatar: getMockAvatar('Lena Morales'), credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '6', name: 'Tom Reeves', role: 'FOH Audio', email: 'tom@audio.com', avatar: getMockAvatar('Tom Reeves'), credentialLevel: 'Backstage', permissions: ['viewer'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
+    { id: '7', name: 'Chris Dalton', role: 'Security Lead', email: 'chris@security.com', avatar: getMockAvatar('Chris Dalton'), credentialLevel: 'Backstage', permissions: ['viewer'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' }
   ],
   itinerary: [
     {
-      date: '2026-06-01',
+      date: '2026-05-08',
       events: [
-        { title: 'Tour Kickoff - Chicago', location: 'Soldier Field', time: '19:00', type: 'event' },
-        { title: 'Sound Check', location: 'Soldier Field', time: '16:00', type: 'event' }
+        { title: 'Tour Kickoff - Chicago', location: 'United Center', time: '20:00', type: 'event' },
+        { title: 'Sound Check', location: 'United Center', time: '17:00', type: 'event' }
       ]
     }
   ],
   budget: {
-    total: 15000000,
-    spent: 8500000,
+    total: 3500000,
+    spent: 1800000,
     categories: [
-      { name: 'Venues', budgeted: 6000000, spent: 3500000 },
-      { name: 'Production', budgeted: 4000000, spent: 2800000 },
-      { name: 'Crew', budgeted: 3000000, spent: 1200000 },
-      { name: 'Marketing', budgeted: 2000000, spent: 1000000 }
+      { name: 'Venues', budgeted: 1500000, spent: 750000 },
+      { name: 'Production & Audio', budgeted: 800000, spent: 450000 },
+      { name: 'Crew & Tour Staff', budgeted: 700000, spent: 350000 },
+      { name: 'Marketing & Merch', budgeted: 500000, spent: 250000 }
     ]
   },
   schedule: [
     {
       id: 'show-1',
-      title: 'Chicago Stadium Show',
-      location: 'Soldier Field, Chicago',
-      startTime: '2026-06-01T19:00:00Z',
-      endTime: '2026-06-01T22:00:00Z',
+      title: 'Chicago Comedy Show',
+      location: 'United Center, Chicago',
+      startTime: '2026-05-08T20:00:00Z',
+      endTime: '2026-05-08T22:30:00Z',
       type: 'show',
-      participants: ['1', '2'],
+      participants: ['1', '2', '4', '6'],
       priority: 'high'
     }
   ],
   roomAssignments: [],
-  perDiem: { dailyRate: 150, currency: 'USD', startDate: '2026-06-01', endDate: '2026-09-30', participants: [] },
+  perDiem: { dailyRate: 125, currency: 'USD', startDate: '2026-05-08', endDate: '2026-07-19', participants: [] },
   settlement: [],
   medical: [],
   compliance: [],

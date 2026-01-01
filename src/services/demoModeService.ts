@@ -2,6 +2,9 @@
 import { secureStorageService } from './secureStorageService';
 import { mockPolls } from '@/mockData/polls';
 import TripSpecificMockDataService from './tripSpecificMockDataService';
+import { demoTripEventsByTripId } from '@/mockData/demoTripEvents';
+import { demoTripFilesByTripId, type DemoTripFile } from '@/mockData/demoTripFiles';
+import type { TripEvent } from './calendarService';
 
 interface MockMessage {
   id: string;
@@ -12,6 +15,10 @@ interface MockMessage {
   delay_seconds?: number;
   timestamp_offset_days?: number;
   tags?: string[];
+  // System message fields
+  message_type?: 'text' | 'system';
+  system_event_type?: string;
+  payload?: Record<string, any>;
 }
 
 export type { MockMessage };
@@ -107,6 +114,10 @@ class DemoModeService {
   private sessionPayments: Map<string, SessionPayment[]> = new Map();
   private sessionPersonalBasecamps: Map<string, SessionPersonalBasecamp> = new Map();
   private sessionTripBasecamps: Map<string, { name?: string; address: string }> = new Map();
+
+  // Session-scoped archived/hidden trips (ephemeral demo state - reset on refresh)
+  private sessionArchivedTripIds: Set<string> = new Set();
+  private sessionHiddenTripIds: Set<string> = new Set();
   getTripType(trip: any): string {
     if (!trip) return 'demo';
     if (trip.category === 'pro') return 'pro-trip';
@@ -297,7 +308,10 @@ class DemoModeService {
     // Add trip-specific messages based on type
     const tripSpecificMessages = this.getTripSpecificMessages(tripType, currentUserId);
     
-    let allMessages = [...baseMessages, ...tripSpecificMessages];
+    // Add system messages for consumer trips (demo timeline events)
+    const systemMessages = this.getDemoSystemMessages();
+    
+    let allMessages = [...baseMessages, ...tripSpecificMessages, ...systemMessages];
     
     // Filter out payment messages if excludePayments is true (for events)
     if (excludePayments) {
@@ -307,6 +321,115 @@ class DemoModeService {
     return allMessages.sort((a, b) => 
       (b.timestamp_offset_days || 0) - (a.timestamp_offset_days || 0)
     );
+  }
+
+  /**
+   * Get demo system messages for consumer trip timeline
+   * These appear as centered muted text in the chat
+   */
+  getDemoSystemMessages(): MockMessage[] {
+    return [
+      {
+        id: 'sys_1',
+        sender_name: 'System',
+        message_content: 'Marcus Johnson joined the trip',
+        timestamp_offset_days: 5,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'member_joined',
+        payload: { memberName: 'Marcus Johnson' }
+      },
+      {
+        id: 'sys_2',
+        sender_name: 'System',
+        message_content: 'Sarah Chen joined the trip',
+        timestamp_offset_days: 5,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'member_joined',
+        payload: { memberName: 'Sarah Chen' }
+      },
+      {
+        id: 'sys_3',
+        sender_name: 'System',
+        message_content: 'Base camp set to The Hermitage Hotel, Nashville',
+        timestamp_offset_days: 4,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'trip_base_camp_updated',
+        payload: { newAddress: 'The Hermitage Hotel, Nashville' }
+      },
+      {
+        id: 'sys_4',
+        sender_name: 'System',
+        message_content: 'Emma Rodriguez created a poll: "What time should we meet for dinner?"',
+        timestamp_offset_days: 3,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'poll_created',
+        payload: { pollQuestion: 'What time should we meet for dinner?', actorName: 'Emma Rodriguez' }
+      },
+      {
+        id: 'sys_5',
+        sender_name: 'System',
+        message_content: 'Alex Kim added a task: "Book airport transfers"',
+        timestamp_offset_days: 3,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'task_created',
+        payload: { taskTitle: 'Book airport transfers', actorName: 'Alex Kim' }
+      },
+      {
+        id: 'sys_6',
+        sender_name: 'System',
+        message_content: 'Priya Patel uploaded 4 photos',
+        timestamp_offset_days: 2,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'photos_uploaded',
+        payload: { mediaCount: 4, actorName: 'Priya Patel' }
+      },
+      {
+        id: 'sys_7',
+        sender_name: 'System',
+        message_content: 'Poll closed - "7:30 PM" won',
+        timestamp_offset_days: 2,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'poll_closed',
+        payload: { winningOption: '7:30 PM' }
+      },
+      {
+        id: 'sys_8',
+        sender_name: 'System',
+        message_content: 'Sarah Chen added an expense: Dinner at Sakura ($240.00)',
+        timestamp_offset_days: 1,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'payment_recorded',
+        payload: { amount: 240, currency: 'USD', description: 'Dinner at Sakura', actorName: 'Sarah Chen' }
+      },
+      {
+        id: 'sys_9',
+        sender_name: 'System',
+        message_content: 'Alex Kim completed: "Book airport transfers"',
+        timestamp_offset_days: 1,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'task_completed',
+        payload: { taskTitle: 'Book airport transfers', actorName: 'Alex Kim' }
+      },
+      {
+        id: 'sys_10',
+        sender_name: 'System',
+        message_content: 'Base camp changed from The Hermitage Hotel → The Grand Hyatt Nashville',
+        timestamp_offset_days: 0,
+        tags: ['system'],
+        message_type: 'system',
+        system_event_type: 'trip_base_camp_updated',
+        payload: { previousAddress: 'The Hermitage Hotel', newAddress: 'The Grand Hyatt Nashville' }
+      }
+    ];
   }
 
   getProMockMessages(tripType: 'pro' | 'event', currentUserId: string): MockMessage[] {
@@ -841,17 +964,127 @@ class DemoModeService {
   getMockPlaces(tripId: string): Array<{ name: string; url: string; description?: string; votes: number }> {
     const numericTripId = parseInt(tripId);
     const tripData = TripSpecificMockDataService.getTripMockData(numericTripId);
-    
+
     if (!tripData?.links) {
       return [];
     }
-    
+
     return tripData.links.map(link => ({
       name: link.title,
       url: link.url,
       description: link.description,
       votes: 0
     }));
+  }
+
+  // ============================================
+  // Demo Calendar Events + Files (Demo Mode)
+  // ============================================
+
+  getMockCalendarEvents(tripId: string): TripEvent[] {
+    return demoTripEventsByTripId[tripId] || [];
+  }
+
+  getMockFiles(tripId: string): DemoTripFile[] {
+    return demoTripFilesByTripId[tripId] || [];
+  }
+
+  getMockAttachments(tripId: string): Array<{ name: string; type: string; uploaded_at: string; uploaded_by?: string }> {
+    return this.getMockFiles(tripId).map(file => ({
+      name: file.name,
+      type: file.file_type,
+      uploaded_at: file.created_at,
+      uploaded_by: file.uploaded_by
+    }));
+  }
+
+  // ============================================
+  // Session-Scoped Archive/Hide (Demo Mode)
+  // These mutations are ephemeral - they reset on page refresh or demo mode exit
+  // ============================================
+
+  /**
+   * Archive a trip in session (demo mode only)
+   * Does NOT persist to database - UI state only
+   */
+  archiveTripSession(tripId: string): void {
+    this.sessionArchivedTripIds.add(tripId);
+    // A trip can only be in one state - remove from hidden if it was hidden
+    this.sessionHiddenTripIds.delete(tripId);
+  }
+
+  /**
+   * Unarchive (restore) a trip in session (demo mode only)
+   */
+  unarchiveTripSession(tripId: string): void {
+    this.sessionArchivedTripIds.delete(tripId);
+  }
+
+  /**
+   * Hide a trip in session (demo mode only)
+   * Does NOT persist to database - UI state only
+   */
+  hideTripSession(tripId: string): void {
+    this.sessionHiddenTripIds.add(tripId);
+    // A trip can only be in one state - remove from archived if it was archived
+    this.sessionArchivedTripIds.delete(tripId);
+  }
+
+  /**
+   * Unhide a trip in session (demo mode only)
+   */
+  unhideTripSession(tripId: string): void {
+    this.sessionHiddenTripIds.delete(tripId);
+  }
+
+  /**
+   * Check if a trip is archived in the current session
+   */
+  isTripArchivedInSession(tripId: string): boolean {
+    return this.sessionArchivedTripIds.has(tripId);
+  }
+
+  /**
+   * Check if a trip is hidden in the current session
+   */
+  isTripHiddenInSession(tripId: string): boolean {
+    return this.sessionHiddenTripIds.has(tripId);
+  }
+
+  /**
+   * Get all session-archived trip IDs
+   */
+  getSessionArchivedTripIds(): string[] {
+    return Array.from(this.sessionArchivedTripIds);
+  }
+
+  /**
+   * Get all session-hidden trip IDs
+   */
+  getSessionHiddenTripIds(): string[] {
+    return Array.from(this.sessionHiddenTripIds);
+  }
+
+  /**
+   * Clear all session archived/hidden state (called when demo mode is toggled off)
+   */
+  clearSessionArchivedTrips(): void {
+    this.sessionArchivedTripIds.clear();
+  }
+
+  clearSessionHiddenTrips(): void {
+    this.sessionHiddenTripIds.clear();
+  }
+
+  /**
+   * Clear all session-scoped demo mutations (archive, hide, payments, basecamps)
+   */
+  clearAllSessionState(): void {
+    this.sessionArchivedTripIds.clear();
+    this.sessionHiddenTripIds.clear();
+    this.sessionPayments.clear();
+    this.sessionPersonalBasecamps.clear();
+    this.sessionTripBasecamps.clear();
   }
 }
 

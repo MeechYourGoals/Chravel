@@ -1,7 +1,6 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
-import { AuthPromptBanner } from '../components/mobile/AuthPromptBanner';
 import { CreateTripModal } from '../components/CreateTripModal';
 import { UpgradeModal } from '../components/UpgradeModal';
 import { SettingsMenu } from '../components/SettingsMenu';
@@ -16,9 +15,7 @@ import { UnauthenticatedLanding } from '../components/UnauthenticatedLanding';
 import { FullPageLanding } from '../components/landing/FullPageLanding';
 import { DemoModeSelector } from '../components/DemoModeSelector';
 import { SearchOverlay } from '../components/home/SearchOverlay';
-import { HeaderAuthButton } from '../components/HeaderAuthButton';
 import { MobileSettingsSheet } from '../components/mobile/MobileSettingsSheet';
-import { MobileTopBar } from '../components/mobile/MobileTopBar';
 
 // New conversion components
 import { PersistentCTABar } from '../components/conversion/PersistentCTABar';
@@ -36,6 +33,7 @@ import { useMyPendingTrips } from '../hooks/useMyPendingTrips';
 import { proTripMockData } from '../data/proTripMockData';
 import { eventsMockData } from '../data/eventsMockData';
 import { tripsData } from '../data/tripsData';
+import { demoModeService } from '../services/demoModeService';
 import { mockMyPendingRequests } from '../mockData/pendingRequestsMock';
 import { calculateTripStats, calculateProTripStats, calculateEventStats, filterItemsByStatus } from '../utils/tripStatsCalculator';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -71,6 +69,16 @@ const Index = () => {
   const { demoView, isDemoMode } = useDemoMode();
   const isMobilePortrait = useMobilePortrait();
 
+  // Counter to force re-renders when demo session state changes (archive/hide)
+  const [demoRefreshCounter, setDemoRefreshCounter] = useState(0);
+
+  // Callback to refresh trip list when a trip is archived/hidden in demo mode
+  const handleTripStateChange = useCallback(() => {
+    if (isDemoMode) {
+      setDemoRefreshCounter(prev => prev + 1);
+    }
+  }, [isDemoMode]);
+
   // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
   // The hook handles demo mode internally, returning empty arrays when in demo mode
   const { trips: userTripsRaw, loading: tripsLoading } = useTrips();
@@ -84,16 +92,28 @@ const Index = () => {
   // Use centralized trip data - demo data or real user data converted to mock format
   // ✅ FILTER: Only consumer trips in allTrips (Pro/Event filtered separately below)
   // ✅ FILTER: Exclude archived trips from main list (they have their own section)
+  // ✅ FILTER: In demo mode, also exclude session-archived/hidden trips
   // ✅ SEPARATE: Pending trips from active trips
   const { activeTrips: allTrips, pendingTrips } = useMemo(() => {
     if (isDemoMode) {
+      // Get session-scoped archived/hidden trip IDs
+      const archivedIds = demoModeService.getSessionArchivedTripIds();
+      const hiddenIds = demoModeService.getSessionHiddenTripIds();
+
+      // Filter out trips that have been archived or hidden in this session
+      const filteredTrips = tripsData.filter(t =>
+        !t.archived &&
+        !archivedIds.includes(t.id.toString()) &&
+        !hiddenIds.includes(t.id.toString())
+      );
+
       return {
-        activeTrips: tripsData.filter(t => !t.archived),
+        activeTrips: filteredTrips,
         pendingTrips: []
       };
     }
     const converted = convertSupabaseTripsToMock(
-      userTripsRaw.filter(t => 
+      userTripsRaw.filter(t =>
         (t.trip_type === 'consumer' || !t.trip_type) && !t.is_archived
       )
     );
@@ -104,7 +124,8 @@ const Index = () => {
       activeTrips: active,
       pendingTrips: pending
     };
-  }, [isDemoMode, userTripsRaw]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemoMode, userTripsRaw, demoRefreshCounter]);
   
   // Unified semantic search + date facet filtering
   const trips = useMemo(() => {
@@ -114,38 +135,74 @@ const Index = () => {
   // Count total results for current view mode
   const searchResultCount = useMemo(() => {
     if (!searchQuery.trim()) return 0;
-    
-    // Get appropriate data based on demo mode
+
+    // Filter based on current view mode
+    if (viewMode === 'myTrips') {
+      // Only count consumer trips
+      return trips.length;
+    } else if (viewMode === 'pro') {
+      // Only count pro trips
+      const safeProTrips = isDemoMode ? proTripMockData : {};
+
+      if (!isDemoMode && userTripsRaw) {
+        const proTripsFromDB = userTripsRaw.filter(t => t.trip_type === 'pro');
+        const proCount = proTripsFromDB.reduce((acc, trip) => {
+          acc[trip.id] = convertSupabaseTripToProTrip(trip);
+          return acc;
+        }, {} as Record<string, any>);
+        const filteredPro = filterProTrips(proCount, searchQuery, activeFilter as DateFacet | '');
+        return Object.keys(filteredPro).length;
+      }
+
+      const filteredPro = filterProTrips(safeProTrips, searchQuery, activeFilter as DateFacet | '');
+      return Object.keys(filteredPro).length;
+    } else if (viewMode === 'events') {
+      // Only count events
+      const safeEvents = isDemoMode ? eventsMockData : {};
+
+      if (!isDemoMode && userTripsRaw) {
+        const eventsFromDB = userTripsRaw.filter(t => t.trip_type === 'event');
+        const eventCount = eventsFromDB.reduce((acc, trip) => {
+          acc[trip.id] = convertSupabaseTripToEvent(trip);
+          return acc;
+        }, {} as Record<string, any>);
+        const filteredEvents = filterEvents(eventCount, searchQuery, activeFilter as DateFacet | '');
+        return Object.keys(filteredEvents).length;
+      }
+
+      const filteredEvents = filterEvents(safeEvents, searchQuery, activeFilter as DateFacet | '');
+      return Object.keys(filteredEvents).length;
+    }
+
+    // For travelRecs or other modes, count all
     const safeProTrips = isDemoMode ? proTripMockData : {};
     const safeEvents = isDemoMode ? eventsMockData : {};
-    
-    // For authenticated users, populate from userTripsRaw
+
     if (!isDemoMode && userTripsRaw) {
       const proTripsFromDB = userTripsRaw.filter(t => t.trip_type === 'pro');
       const eventsFromDB = userTripsRaw.filter(t => t.trip_type === 'event');
-      
+
       const proCount = proTripsFromDB.reduce((acc, trip) => {
         acc[trip.id] = convertSupabaseTripToProTrip(trip);
         return acc;
       }, {} as Record<string, any>);
-      
+
       const eventCount = eventsFromDB.reduce((acc, trip) => {
         acc[trip.id] = convertSupabaseTripToEvent(trip);
         return acc;
       }, {} as Record<string, any>);
-      
+
       const filteredPro = filterProTrips(proCount, searchQuery, activeFilter as DateFacet | '');
       const filteredEvents = filterEvents(eventCount, searchQuery, activeFilter as DateFacet | '');
-      
+
       return trips.length + Object.keys(filteredPro).length + Object.keys(filteredEvents).length;
     }
-    
-    // Demo mode counts
+
     const filteredPro = filterProTrips(safeProTrips, searchQuery, activeFilter as DateFacet | '');
     const filteredEvents = filterEvents(safeEvents, searchQuery, activeFilter as DateFacet | '');
-    
+
     return trips.length + Object.keys(filteredPro).length + Object.keys(filteredEvents).length;
-  }, [searchQuery, trips.length, isDemoMode, userTripsRaw, activeFilter]);
+  }, [searchQuery, trips.length, isDemoMode, userTripsRaw, activeFilter, viewMode]);
 
   // Development diagnostics available via console when needed
 
@@ -360,8 +417,8 @@ const Index = () => {
     }
   }, [user, navigate]);
 
-  // MRKTING toggle: Always show marketing page regardless of auth state
-  if (demoView === 'off') {
+  // MRKTING toggle: Show marketing page only for unauthenticated users
+  if (demoView === 'off' && !user) {
     return (
       <div className="min-h-screen min-h-mobile-screen bg-background font-outfit">
         <FullPageLanding 
@@ -385,38 +442,33 @@ const Index = () => {
       return (
         <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
           <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
-            {/* Desktop Header */}
+            {/* Desktop floating auth button */}
             {!isMobile && (
-              <div className="w-full">
-                <DesktopHeader
-                  viewMode={viewMode}
-                  onCreateTrip={handleCreateTrip}
-                  onUpgrade={() => setIsUpgradeModalOpen(true)}
-                  onSettings={(settingsType, activeSection) => {
-                    if (settingsType === 'advertiser') {
-                      navigate('/advertiser');
-                    } else {
-                      if (settingsType) setSettingsInitialType(settingsType);
-                      if (activeSection) setSettingsInitialConsumerSection(activeSection);
-                      setIsSettingsOpen(true);
-                    }
-                  }}
-                />
-              </div>
+              <DesktopHeader
+                viewMode={viewMode}
+                onCreateTrip={handleCreateTrip}
+                onUpgrade={() => setIsUpgradeModalOpen(true)}
+                onSettings={(settingsType, activeSection) => {
+                  if (settingsType === 'advertiser') {
+                    navigate('/advertiser');
+                  } else {
+                    if (settingsType) setSettingsInitialType(settingsType);
+                    if (activeSection) setSettingsInitialConsumerSection(activeSection);
+                    setIsSettingsOpen(true);
+                  }
+                }}
+              />
             )}
 
-          {/* Mobile Top Bar for login/demo controls */}
-          {isMobile && <MobileTopBar onSettingsPress={() => setIsMobileSettingsOpen(true)} />}
-
-          <div className="max-w-[1500px] mx-auto" style={{ paddingTop: isMobile ? '64px' : '0' }}>
+          <div className="max-w-[1500px] mx-auto">
             {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}
-            <div className="w-full flex flex-col lg:flex-row gap-3 lg:gap-6 items-stretch mb-6">
+            <div className="w-full flex flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
               <TripViewToggle 
                 viewMode={viewMode} 
                 onViewModeChange={handleViewModeChange}
                 showRecsTab={true}
                 recsTabDisabled={true}
-                className="w-full lg:flex-1 h-16"
+                className="w-full lg:flex-1 h-12 sm:h-16"
                 requireAuth={true}
                 onAuthRequired={() => setIsAuthModalOpen(true)}
               />
@@ -427,22 +479,20 @@ const Index = () => {
                 onNotifications={() => {}}
                 isNotificationsOpen={isNotificationsOpen}
                 setIsNotificationsOpen={setIsNotificationsOpen}
-                className="w-full lg:flex-1 h-16"
+                className="w-full lg:flex-1 h-12 sm:h-16"
                 requireAuth={true}
                 onAuthRequired={() => setIsAuthModalOpen(true)}
               />
             </div>
 
-              {!isMobile && (
-                <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                  <TripStatsOverview 
-                    stats={getCurrentStats()} 
-                    viewMode={viewMode} 
-                    activeFilter={activeFilter}
-                    onFilterClick={handleFilterClick}
-                  />
-                </div>
-              )}
+              <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                <TripStatsOverview 
+                  stats={getCurrentStats()} 
+                  viewMode={viewMode} 
+                  activeFilter={activeFilter}
+                  onFilterClick={handleFilterClick}
+                />
+              </div>
 
               {viewMode === 'travelRecs' && (
                 <div className="mb-6">
@@ -463,6 +513,7 @@ const Index = () => {
                   loading={isLoading}
                   onCreateTrip={handleCreateTrip}
                   activeFilter={recsFilter}
+                  onTripStateChange={handleTripStateChange}
                 />
               </div>
             </div>
@@ -483,11 +534,12 @@ const Index = () => {
             onClose={() => setIsUpgradeModalOpen(false)} 
           />
 
-          <SettingsMenu 
-            isOpen={isSettingsOpen} 
-            onClose={() => setIsSettingsOpen(false)} 
+          <SettingsMenu
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
             initialConsumerSection={settingsInitialConsumerSection}
             initialSettingsType={settingsInitialType}
+            onTripStateChange={handleTripStateChange}
           />
 
           {/* Search indicator when active */}
@@ -537,38 +589,33 @@ const Index = () => {
     return (
       <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
         <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
-          {/* Desktop Header */}
+          {/* Desktop floating auth button */}
           {!isMobile && (
-            <div className="w-full">
-              <DesktopHeader
-                viewMode={viewMode}
-                onCreateTrip={handleCreateTrip}
-                onUpgrade={() => setIsUpgradeModalOpen(true)}
-                onSettings={(settingsType, activeSection) => {
-                  if (settingsType === 'advertiser') {
-                    navigate('/advertiser');
-                  } else {
-                    if (settingsType) setSettingsInitialType(settingsType);
-                    if (activeSection) setSettingsInitialConsumerSection(activeSection);
-                    setIsSettingsOpen(true);
-                  }
-                }}
-              />
-            </div>
+            <DesktopHeader
+              viewMode={viewMode}
+              onCreateTrip={handleCreateTrip}
+              onUpgrade={() => setIsUpgradeModalOpen(true)}
+              onSettings={(settingsType, activeSection) => {
+                if (settingsType === 'advertiser') {
+                  navigate('/advertiser');
+                } else {
+                  if (settingsType) setSettingsInitialType(settingsType);
+                  if (activeSection) setSettingsInitialConsumerSection(activeSection);
+                  setIsSettingsOpen(true);
+                }
+              }}
+            />
           )}
 
-          {/* Mobile Top Bar for login/demo controls */}
-          {isMobile && <MobileTopBar onSettingsPress={() => setIsMobileSettingsOpen(true)} />}
-
-          <div className="max-w-[1500px] mx-auto" style={{ paddingTop: isMobile ? '64px' : '0' }}>
+          <div className="max-w-[1500px] mx-auto">
                 {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}
-                <div className="w-full flex flex-col lg:flex-row gap-3 lg:gap-6 items-stretch mb-6">
+                <div className="w-full flex flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
                   <TripViewToggle 
                     viewMode={viewMode} 
                     onViewModeChange={handleViewModeChange}
                     showRecsTab={true}
                     recsTabDisabled={!isDemoMode}
-                    className="w-full lg:flex-1 h-16"
+                    className="w-full lg:flex-1 h-12 sm:h-16"
                   />
                   <TripActionBar
                     onSettings={() => isMobile ? setIsMobileSettingsOpen(true) : setIsSettingsOpen(true)}
@@ -577,20 +624,18 @@ const Index = () => {
                     onNotifications={() => {}}
                     isNotificationsOpen={isNotificationsOpen}
                     setIsNotificationsOpen={setIsNotificationsOpen}
-                    className="w-full lg:flex-1 h-16"
+                    className="w-full lg:flex-1 h-12 sm:h-16"
                   />
                 </div>
 
-                {!isMobile && (
-                  <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                    <TripStatsOverview 
-                      stats={getCurrentStats()} 
-                      viewMode={viewMode} 
-                      activeFilter={activeFilter}
-                      onFilterClick={handleFilterClick}
-                    />
-                  </div>
-                )}
+                <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                  <TripStatsOverview 
+                    stats={getCurrentStats()} 
+                    viewMode={viewMode} 
+                    activeFilter={activeFilter}
+                    onFilterClick={handleFilterClick}
+                  />
+                </div>
 
                 {viewMode === 'travelRecs' && (
                   <div className="mb-6">
@@ -612,6 +657,7 @@ const Index = () => {
                     loading={isLoading}
                     onCreateTrip={handleCreateTrip}
                     activeFilter={recsFilter}
+                    onTripStateChange={handleTripStateChange}
                   />
                 </div>
               </div>
@@ -634,11 +680,12 @@ const Index = () => {
             onClose={() => setIsUpgradeModalOpen(false)} 
           />
 
-          <SettingsMenu 
-            isOpen={isSettingsOpen} 
-            onClose={() => setIsSettingsOpen(false)} 
+          <SettingsMenu
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
             initialConsumerSection={settingsInitialConsumerSection}
             initialSettingsType={settingsInitialType}
+            onTripStateChange={handleTripStateChange}
           />
 
           <DemoModal
@@ -703,65 +750,58 @@ const Index = () => {
         </div>
       )}
       <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
-        {/* Desktop Header - only show on desktop */}
+        {/* Desktop floating auth button */}
         {!isMobile && (
-          <div className="w-full mb-4">
-            <DesktopHeader
-              viewMode={viewMode}
-              onCreateTrip={handleCreateTrip}
-              onUpgrade={() => setIsUpgradeModalOpen(true)}
-              onSettings={(settingsType, activeSection) => {
-                if (settingsType === 'advertiser') {
-                  navigate('/advertiser');
-                } else {
-                  if (settingsType) setSettingsInitialType(settingsType);
-                  if (activeSection) setSettingsInitialConsumerSection(activeSection);
-                  setIsSettingsOpen(true);
-                }
-              }}
-            />
-          </div>
+          <DesktopHeader
+            viewMode={viewMode}
+            onCreateTrip={handleCreateTrip}
+            onUpgrade={() => setIsUpgradeModalOpen(true)}
+            onSettings={(settingsType, activeSection) => {
+              if (settingsType === 'advertiser') {
+                navigate('/advertiser');
+              } else {
+                if (settingsType) setSettingsInitialType(settingsType);
+                if (activeSection) setSettingsInitialConsumerSection(activeSection);
+                setIsSettingsOpen(true);
+              }
+            }}
+          />
         )}
 
-        {/* Mobile Top Bar for login/demo controls - shows in portrait AND landscape */}
-        {isMobile && <MobileTopBar onSettingsPress={() => setIsMobileSettingsOpen(true)} />}
+        {/* Mobile auth moved to Settings menu - no floating button needed */}
 
         {/* CSS-first responsive: stacks on mobile, side-by-side on lg+ */}
-        {/* pt-16 on mobile accounts for fixed MobileTopBar height */}
-        <div className={`w-full flex flex-col lg:flex-row gap-3 lg:gap-6 items-stretch mb-6 ${isMobile ? 'pt-16' : ''}`}>
+        <div className="w-full flex flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
           <TripViewToggle 
             viewMode={viewMode} 
             onViewModeChange={handleViewModeChange}
             showRecsTab={true}
             recsTabDisabled={!isDemoMode}
-            className="w-full lg:flex-1 h-16"
+            className="w-full lg:flex-1 h-12 sm:h-16"
           />
           <TripActionBar
             onSettings={() => isMobile ? setIsMobileSettingsOpen(true) : (setSettingsInitialType('consumer'), setIsSettingsOpen(true))}
             onCreateTrip={handleCreateTrip}
             onSearch={(query: string) => {
-              if (query) {
-                setIsSearchOpen(true);
-              }
+              setSearchQuery(query);
+              setIsSearchOpen(true);
             }}
             onNotifications={() => {}}
             isNotificationsOpen={isNotificationsOpen}
             setIsNotificationsOpen={setIsNotificationsOpen}
-            className="w-full lg:flex-1 h-16"
+            className="w-full lg:flex-1 h-12 sm:h-16"
           />
         </div>
 
         {/* Trip Stats Overview with loading state - moved above filters for travel recs */}
-        {!isMobile && (
-          <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            <TripStatsOverview 
-              stats={getCurrentStats()} 
-              viewMode={viewMode} 
-              activeFilter={activeFilter}
-              onFilterClick={handleFilterClick}
-            />
-          </div>
-        )}
+        <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <TripStatsOverview 
+            stats={getCurrentStats()} 
+            viewMode={viewMode} 
+            activeFilter={activeFilter}
+            onFilterClick={handleFilterClick}
+          />
+        </div>
 
         {/* Travel Recommendations Filters with inline search */}
         {viewMode === 'travelRecs' && (
@@ -809,6 +849,7 @@ const Index = () => {
             onCreateTrip={handleCreateTrip}
             activeFilter={activeFilter}
             myPendingRequests={isDemoMode ? mockMyPendingRequests : myPendingRequests}
+            onTripStateChange={handleTripStateChange}
           />
         </div>
 
@@ -828,11 +869,12 @@ const Index = () => {
         onClose={() => setIsUpgradeModalOpen(false)} 
       />
 
-      <SettingsMenu 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
+      <SettingsMenu
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
         initialConsumerSection={settingsInitialConsumerSection}
         initialSettingsType={settingsInitialType}
+        onTripStateChange={handleTripStateChange}
       />
 
       <DemoModal
@@ -844,6 +886,14 @@ const Index = () => {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
+      />
+
+      <SearchOverlay
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        resultCount={searchResultCount}
       />
 
       <MobileSettingsSheet

@@ -1,4 +1,3 @@
-
 import { Recommendation } from './types';
 import joesExterior from '@/assets/recommendations/joes-exterior.png';
 import joesStonecrab from '@/assets/recommendations/joes-stonecrab.png';
@@ -15,27 +14,25 @@ export const restaurantRecommendations: Recommendation[] = [
     location: 'Miami Beach, FL',
     city: 'Miami',
     coordinates: { lat: 25.7617, lng: -80.1918 },
-    description: 'Iconic Miami dining institution serving the finest stone crab since 1913. Seasonal menu with fresh seafood.',
+    description:
+      'Iconic Miami dining institution serving the finest stone crab since 1913. Seasonal menu with fresh seafood.',
     rating: 4.6,
     priceLevel: 3,
-    images: [
-      joesExterior,
-      joesStonecrab
-    ],
+    images: [joesExterior, joesStonecrab],
     tags: ['Seafood', 'Historic', 'Fine Dining', 'Stone Crab'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     ctaButton: {
       text: 'Reserve',
-      action: 'reserve'
+      action: 'reserve',
     },
     externalLink: 'https://www.joesstonecrab.com/',
     userRecommendations: {
       count: 8,
-      names: ['Tom R.', 'Maria S.', 'Alex P.', 'Jennifer L.']
+      names: ['Tom R.', 'Maria S.', 'Alex P.', 'Jennifer L.'],
     },
-    distance: '1.2 miles from your location',
-    isAvailable: true
+    distance: "1.2 miles from trip's base camp",
+    isAvailable: true,
   },
   {
     id: 5,
@@ -44,28 +41,26 @@ export const restaurantRecommendations: Recommendation[] = [
     location: 'Brickell, FL',
     city: 'Miami',
     coordinates: { lat: 25.7617, lng: -80.1918 },
-    description: 'Southeast Asian cuisine in a stunning multi-level venue with indoor and outdoor dining.',
+    description:
+      'Southeast Asian cuisine in a stunning multi-level venue with indoor and outdoor dining.',
     rating: 4.5,
     priceLevel: 3,
-    images: [
-      komodoExterior,
-      komodoInterior
-    ],
+    images: [komodoExterior, komodoInterior],
     tags: ['Asian Fusion', 'Trendy', 'Outdoor Dining', 'Nightlife'],
     isSponsored: true,
     sponsorBadge: 'Featured',
     promoText: 'Complimentary appetizer with reservation',
     ctaButton: {
       text: 'Reserve Table',
-      action: 'reserve'
+      action: 'reserve',
     },
     externalLink: 'https://komodomiami.com/',
     userRecommendations: {
       count: 6,
-      names: ['Sophia C.', 'Marcus T.', 'Isabella R.']
+      names: ['Sophia C.', 'Marcus T.', 'Isabella R.'],
     },
-    distance: '3.2 miles from your hotel',
-    isAvailable: true
+    distance: "3.2 miles from trip's base camp",
+    isAvailable: true,
   },
   {
     id: 8,
@@ -74,27 +69,25 @@ export const restaurantRecommendations: Recommendation[] = [
     location: 'Downtown Miami, FL',
     city: 'Miami',
     coordinates: { lat: 25.7617, lng: -80.1918 },
-    description: 'Contemporary Japanese robatayaki cuisine with stunning Biscayne Bay views and premium sake selection.',
+    description:
+      'Contemporary Japanese robatayaki cuisine with stunning Biscayne Bay views and premium sake selection.',
     rating: 4.7,
     priceLevel: 4,
-    images: [
-      zumaExterior,
-      zumaRobata
-    ],
+    images: [zumaExterior, zumaRobata],
     tags: ['Japanese', 'Robatayaki', 'Waterfront', 'Premium'],
     isSponsored: true,
     sponsorBadge: 'Promoted',
     promoText: 'Complimentary sake tasting with dinner',
     ctaButton: {
       text: 'Reserve',
-      action: 'reserve'
+      action: 'reserve',
     },
     externalLink: 'https://zumarestaurant.com/locations/miami/',
     userRecommendations: {
       count: 11,
-      names: ['Carlos M.', 'Elena V.', 'Robert K.', 'Diana S.']
+      names: ['Carlos M.', 'Elena V.', 'Robert K.', 'Diana S.'],
     },
-    distance: '2.8 miles from your location',
-    isAvailable: true
-  }
+    distance: "2.8 miles from trip's base camp",
+    isAvailable: true,
+  },
 ];

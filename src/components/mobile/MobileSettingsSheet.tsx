@@ -3,12 +3,8 @@ import { Settings, LogIn, LogOut, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { DemoModeSelector } from '@/components/DemoModeSelector';
 import { AuthModal } from '@/components/AuthModal';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
@@ -25,6 +21,7 @@ export const MobileSettingsSheet = ({
 }: MobileSettingsSheetProps) => {
   const { user, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const isSuperAdmin = user?.email && SUPER_ADMIN_EMAILS.includes(user.email);
 
   const handleSignOut = async () => {
     await signOut();
@@ -44,8 +41,8 @@ export const MobileSettingsSheet = ({
   return (
     <>
       <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent 
-          side="bottom" 
+        <SheetContent
+          side="bottom"
           className="h-auto max-h-[85vh] rounded-t-3xl border-t-2 border-border/50 bg-background/95 backdrop-blur-xl"
         >
           <SheetHeader className="pb-4">
@@ -53,20 +50,12 @@ export const MobileSettingsSheet = ({
           </SheetHeader>
 
           <div className="space-y-4 pb-6">
-            {/* Demo Mode Toggle */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground px-1">Demo Mode</p>
-              <div className="flex justify-center">
-                <DemoModeSelector />
-              </div>
-            </div>
-
-            <Separator className="my-4" />
+            {/* Demo Mode Toggle removed - not shown in authenticated user experience */}
 
             {/* Auth Section */}
             <div className="space-y-3">
               <p className="text-xs font-medium text-muted-foreground px-1">Account</p>
-              
+
               {user ? (
                 <div className="space-y-3">
                   {/* Logged In: Show Email + Sign Out */}
@@ -79,7 +68,7 @@ export const MobileSettingsSheet = ({
                       <p className="text-sm font-medium truncate">{user.email}</p>
                     </div>
                   </div>
-                  
+
                   <Button
                     onClick={handleSignOut}
                     variant="outline"

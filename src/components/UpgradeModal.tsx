@@ -198,7 +198,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Unlimited AI queries - your 24/7 travel concierge
+                      10 AI queries per user per trip - double the free tier
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
@@ -206,11 +206,11 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      Calendar sync (Google, Apple, Outlook)
+                      Smart notifications - never miss important updates
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
-                      PDF trip export
+                      Search past trips - find that perfect restaurant again
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
@@ -406,7 +406,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   <Ticket size={24} className="text-indigo-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Professional Invitations & Ticketing</h4>
-                <p className="text-gray-300 text-sm">Generate custom invitations, integrate with ticketing platforms, and QR code ticket management.</p>
+                <p className="text-gray-300 text-sm">Generate custom invitations, integrate with ticketing platforms, and manage attendee ticketing.</p>
               </div>
 
               <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6 relative">

@@ -1,0 +1,386 @@
+# Chravel iOS Fastlane Configuration
+# https://docs.fastlane.tools
+
+default_platform(:ios)
+
+# Constants
+APP_IDENTIFIER = "com.chravel.app"
+APP_NAME = "Chravel"
+TEAM_ID = ENV["APPLE_TEAM_ID"] || "YOUR_TEAM_ID"
+ITC_TEAM_ID = ENV["ITC_TEAM_ID"] || "YOUR_ITC_TEAM_ID"
+
+platform :ios do
+
+  # ============================================================================
+  # Setup & Configuration
+  # ============================================================================
+
+  before_all do
+    setup_ci if ENV['CI']
+  end
+
+  desc "Setup certificates and provisioning profiles"
+  lane :setup_certs do
+    match(
+      type: "appstore",
+      app_identifier: APP_IDENTIFIER,
+      team_id: TEAM_ID,
+      readonly: is_ci
+    )
+  end
+
+  # ============================================================================
+  # Build Lanes
+  # ============================================================================
+
+  desc "Build the app for App Store submission"
+  lane :build do |options|
+    # Increment build number (optional)
+    if options[:increment_build]
+      increment_build_number(
+        xcodeproj: "ios/App/App.xcodeproj"
+      )
+    end
+
+    # Build web assets first
+    sh("cd ../.. && npm run build")
+
+    # Sync Capacitor
+    sh("cd ../.. && npx cap sync ios")
+
+    # Setup certificates
+    setup_certs
+
+    # Build the app
+    build_ios_app(
+      workspace: "ios/App/App.xcworkspace",
+      scheme: "App",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "./build",
+      output_name: "Chravel.ipa",
+      clean: true,
+      export_options: {
+        provisioningProfiles: {
+          APP_IDENTIFIER => "match AppStore #{APP_IDENTIFIER}"
+        }
+      }
+    )
+  end
+
+  desc "Build for TestFlight"
+  lane :build_testflight do
+    build(increment_build: true)
+  end
+
+  # ============================================================================
+  # Deployment Lanes
+  # ============================================================================
+
+  desc "Upload to TestFlight"
+  lane :testflight_upload do |options|
+    # Build if not already built
+    build(increment_build: true) unless options[:skip_build]
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      app_identifier: APP_IDENTIFIER,
+      team_id: TEAM_ID,
+      itc_provider: ITC_TEAM_ID,
+      skip_waiting_for_build_processing: true,
+      changelog: options[:changelog] || "Bug fixes and improvements"
+    )
+
+    # Notify
+    if ENV['SLACK_URL']
+      slack(
+        message: "Chravel iOS build uploaded to TestFlight!",
+        success: true
+      )
+    end
+  end
+
+  desc "Submit to App Store"
+  lane :submit_for_review do
+    deliver(
+      app_identifier: APP_IDENTIFIER,
+      team_id: TEAM_ID,
+      submit_for_review: true,
+      automatic_release: false,
+      force: true,
+      skip_screenshots: true,
+      skip_metadata: false,
+      metadata_path: "../appstore/metadata",
+      precheck_include_in_app_purchases: false,
+      submission_information: {
+        add_id_info_uses_idfa: false,
+        content_rights_contains_third_party_content: false,
+        content_rights_has_rights: true,
+        export_compliance_uses_encryption: true,
+        export_compliance_is_exempt: true,
+        export_compliance_encryption_updated: false
+      }
+    )
+  end
+
+  # ============================================================================
+  # Metadata & Screenshots
+  # ============================================================================
+
+  desc "Upload metadata to App Store Connect"
+  lane :upload_metadata do
+    deliver(
+      app_identifier: APP_IDENTIFIER,
+      team_id: TEAM_ID,
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      metadata_path: "../appstore/metadata",
+      force: true
+    )
+  end
+
+  desc "Upload screenshots to App Store Connect"
+  lane :upload_screenshots do
+    deliver(
+      app_identifier: APP_IDENTIFIER,
+      team_id: TEAM_ID,
+      skip_binary_upload: true,
+      skip_metadata: true,
+      screenshots_path: "../appstore/screenshots",
+      force: true,
+      overwrite_screenshots: true
+    )
+  end
+
+  desc "Capture screenshots using Fastlane Snapshot"
+  lane :capture_screenshots do
+    snapshot(
+      workspace: "ios/App/App.xcworkspace",
+      scheme: "ChravelUITests",
+      devices: [
+        "iPhone 15 Pro Max",
+        "iPhone 14 Plus",
+        "iPhone 8 Plus"
+      ],
+      output_directory: "../appstore/screenshots",
+      clear_previous_screenshots: true,
+      stop_after_first_error: false,
+      skip_open_summary: ENV['CI']
+    )
+  end
+
+  # ============================================================================
+  # Versioning
+  # ============================================================================
+
+  desc "Increment version number"
+  lane :bump_version do |options|
+    bump_type = options[:type] || "patch" # major, minor, patch
+
+    increment_version_number(
+      xcodeproj: "ios/App/App.xcodeproj",
+      bump_type: bump_type
+    )
+
+    version = get_version_number(xcodeproj: "ios/App/App.xcodeproj")
+    UI.success("Version bumped to #{version}")
+  end
+
+  desc "Increment build number"
+  lane :bump_build do
+    increment_build_number(
+      xcodeproj: "ios/App/App.xcodeproj"
+    )
+
+    build = get_build_number(xcodeproj: "ios/App/App.xcodeproj")
+    UI.success("Build number bumped to #{build}")
+  end
+
+  desc "Set version and build number"
+  lane :set_version do |options|
+    if options[:version]
+      increment_version_number(
+        xcodeproj: "ios/App/App.xcodeproj",
+        version_number: options[:version]
+      )
+    end
+
+    if options[:build]
+      increment_build_number(
+        xcodeproj: "ios/App/App.xcodeproj",
+        build_number: options[:build]
+      )
+    end
+  end
+
+  # ============================================================================
+  # Utility Lanes
+  # ============================================================================
+
+  desc "Download dSYMs from App Store Connect"
+  lane :download_dsyms do
+    download_dsyms(
+      app_identifier: APP_IDENTIFIER,
+      team_id: TEAM_ID,
+      version: "latest"
+    )
+
+    # Upload to Sentry if configured
+    if ENV['SENTRY_AUTH_TOKEN']
+      sentry_upload_dsym(
+        auth_token: ENV['SENTRY_AUTH_TOKEN'],
+        org_slug: ENV['SENTRY_ORG'],
+        project_slug: ENV['SENTRY_PROJECT']
+      )
+    end
+  end
+
+  desc "Run tests"
+  lane :test do
+    run_tests(
+      workspace: "ios/App/App.xcworkspace",
+      scheme: "App",
+      devices: ["iPhone 15 Pro"],
+      clean: true
+    )
+  end
+
+  desc "Validate build for App Store"
+  lane :validate do
+    build_ios_app(
+      workspace: "ios/App/App.xcworkspace",
+      scheme: "App",
+      configuration: "Release",
+      export_method: "app-store",
+      skip_archive: false,
+      skip_codesigning: false
+    )
+
+    # Validate the archive
+    validate_app(
+      build_path: lane_context[SharedValues::IPA_OUTPUT_PATH]
+    )
+  end
+
+  desc "Sync certificates with match"
+  lane :sync_certs do
+    match(
+      type: "appstore",
+      app_identifier: APP_IDENTIFIER,
+      team_id: TEAM_ID,
+      force_for_new_devices: true
+    )
+  end
+
+  desc "Register new device"
+  lane :register_device do |options|
+    device_name = options[:name] || UI.input("Device name: ")
+    device_udid = options[:udid] || UI.input("Device UDID: ")
+
+    register_device(
+      name: device_name,
+      udid: device_udid,
+      team_id: TEAM_ID
+    )
+
+    # Regenerate provisioning profiles
+    match(
+      type: "development",
+      app_identifier: APP_IDENTIFIER,
+      team_id: TEAM_ID,
+      force_for_new_devices: true
+    )
+  end
+
+  # ============================================================================
+  # Combined Release Lane
+  # ============================================================================
+
+  desc "Complete release to TestFlight"
+  lane :release_testflight do |options|
+    # 1. Bump version if specified
+    if options[:bump]
+      bump_version(type: options[:bump])
+    end
+
+    # 2. Bump build number
+    bump_build
+
+    # 3. Build
+    build
+
+    # 4. Upload to TestFlight
+    testflight_upload(
+      skip_build: true,
+      changelog: options[:changelog]
+    )
+
+    # 5. Commit version bump
+    version = get_version_number(xcodeproj: "ios/App/App.xcodeproj")
+    build_num = get_build_number(xcodeproj: "ios/App/App.xcodeproj")
+
+    git_commit(
+      path: ["ios/App/App.xcodeproj"],
+      message: "Release v#{version} (#{build_num}) to TestFlight"
+    )
+
+    # 6. Tag release
+    add_git_tag(tag: "v#{version}-#{build_num}")
+
+    UI.success("Released v#{version} (#{build_num}) to TestFlight!")
+  end
+
+  desc "Complete release to App Store"
+  lane :release_appstore do |options|
+    # 1. Bump version
+    bump_type = options[:bump] || "patch"
+    bump_version(type: bump_type)
+
+    # 2. Bump build number
+    bump_build
+
+    # 3. Build
+    build
+
+    # 4. Upload to TestFlight first
+    testflight_upload(
+      skip_build: true,
+      changelog: options[:changelog]
+    )
+
+    # 5. Submit for review (after TestFlight testing)
+    if options[:submit]
+      submit_for_review
+    end
+
+    # 6. Commit and tag
+    version = get_version_number(xcodeproj: "ios/App/App.xcodeproj")
+    build_num = get_build_number(xcodeproj: "ios/App/App.xcodeproj")
+
+    git_commit(
+      path: ["ios/App/App.xcodeproj"],
+      message: "Release v#{version} to App Store"
+    )
+
+    add_git_tag(tag: "v#{version}")
+
+    UI.success("Released v#{version} to App Store!")
+  end
+
+  # ============================================================================
+  # Error Handling
+  # ============================================================================
+
+  error do |lane, exception, options|
+    if ENV['SLACK_URL']
+      slack(
+        message: "Fastlane failed in lane: #{lane}",
+        success: false,
+        payload: {
+          "Error" => exception.message
+        }
+      )
+    end
+  end
+
+end

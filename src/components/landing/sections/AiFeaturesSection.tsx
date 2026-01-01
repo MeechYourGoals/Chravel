@@ -1,93 +1,127 @@
 import React from 'react';
-import { Sparkles, MapPin, Bell, FileText } from 'lucide-react';
+import { Wand2, Compass, BellRing, ScrollText, DollarSign, BarChart3 } from 'lucide-react';
 import aiConcierge from '@/assets/app-screenshots/ai-concierge.png';
 import placesMaps from '@/assets/app-screenshots/places-maps.png';
 
 export const AiFeaturesSection = () => {
-  const aiFeatures = [
+  // Group 1 - aligned with AI Concierge screenshot
+  const aiFeatures1 = [
     {
-      icon: <Sparkles className="text-accent" size={32} />,
+      icon: <Wand2 className="text-accent" size={28} />,
       title: 'AI Concierge',
-      description: 'Chat with AI for personalized recommendations based on your location, preferences, and trip context. From finding the perfect restaurant to planning activities, your AI assistant knows your trip inside-out.',
-      badge: 'Smart'
+      description: 'AI that understands your trip — not just your question.'
     },
     {
-      icon: <MapPin className="text-primary" size={32} />,
-      title: 'Smart Basecamp',
-      description: 'Get location-aware recommendations within perfect travel distance from your home base. AI understands where you\'re staying and suggests venues, activities, and restaurants in your ideal radius.',
-      badge: 'Location-Aware'
+      icon: <DollarSign className="text-primary" size={28} />,
+      title: 'Payment Summaries',
+      description: 'Payment tracking made easy.'
     },
     {
-      icon: <Bell className="text-accent" size={32} />,
+      icon: <BarChart3 className="text-accent" size={28} />,
+      title: 'Polls',
+      description: 'Group decisions, locked in — no scrolling, no second-guessing.'
+    }
+  ];
+
+  // Group 2 - aligned with Places screenshot
+  const aiFeatures2 = [
+    {
+      icon: <Compass className="text-primary" size={28} />,
+      title: 'BaseCamps',
+      description: 'No more fumbling to find the Airbnb or hotel address. Store it once for all trip members.'
+    },
+    {
+      icon: <BellRing className="text-accent" size={28} />,
       title: 'Smart Notifications',
-      description: 'Context-aware alerts for schedule conflicts, important chat messages, and group itineraries. Never miss what matters without notification overload.',
-      badge: 'Context-Aware'
+      description: 'Important updates without the message overload.'
     },
     {
-      icon: <FileText className="text-primary" size={32} />,
+      icon: <ScrollText className="text-primary" size={28} />,
       title: 'AI Trip Summaries',
-      description: 'Get daily or weekly digests of what\'s happening with your group — upcoming events, pending payments, and recent photos, all in one smart briefing.',
-      badge: 'Automated'
+      description: 'Export clean PDF trip summaries to share off-app.'
     }
   ];
 
   return (
-    <div className="container mx-auto px-4 py-12 md:py-0 flex flex-col items-center justify-center min-h-screen space-y-12">
-      {/* Headline */}
+    <div className="container mx-auto px-4 py-8 md:py-0 flex flex-col items-center justify-start md:justify-center min-h-screen space-y-8 md:space-y-12">
+      {/* Headline - bold white text with shadow for contrast */}
       <div className="text-center space-y-4 max-w-4xl">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
-          AI-Powered Intelligence
+        <h2
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
+        >
+          Travel Intelligence
         </h2>
-        <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-          Your personal travel assistant with verified data and real-world context
-        </p>
       </div>
 
-      {/* Split Layout: Screenshots + Features */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 max-w-7xl w-full items-center">
-        {/* Left: Screenshots */}
-        <div className="space-y-6">
+      {/* Split Layout: 2 Rows with Screenshot + 3 Pills each */}
+      <div className="max-w-7xl w-full space-y-6 md:space-y-8">
+        {/* Row 1: AI Concierge Screenshot + 3 Pills */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-stretch">
+          {/* Left: AI Concierge Screenshot */}
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300">
             <img 
               src={aiConcierge} 
               alt="AI Concierge providing personalized recommendations" 
-              className="w-full h-auto"
+              className="w-full h-full object-cover"
             />
           </div>
+
+          {/* Right: 3 Pills matching screenshot height */}
+          <div className="grid grid-rows-3 gap-3 sm:gap-4">
+            {aiFeatures1.map((feature, index) => (
+              <div
+                key={index}
+                className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 hover:border-accent/50 transition-all duration-300 group flex items-center"
+              >
+                <div className="flex items-center gap-4 w-full">
+                  <div className="bg-accent/10 p-3 rounded-xl group-hover:bg-accent/20 transition-colors flex-shrink-0">
+                    {feature.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-lg sm:text-xl mb-1 leading-tight">{feature.title}</h3>
+                    <p className="text-sm sm:text-base text-foreground leading-relaxed font-medium">
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Row 2: Places Screenshot + 3 Pills */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-stretch">
+          {/* Left: Places Screenshot */}
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-accent/30 transition-all duration-300">
             <img 
               src={placesMaps} 
               alt="Interactive maps and places discovery" 
-              className="w-full h-auto"
+              className="w-full h-full object-cover"
             />
           </div>
-        </div>
 
-        {/* Right: AI Features Grid */}
-        <div className="grid grid-cols-1 gap-4 sm:gap-6">
-          {aiFeatures.map((feature, index) => (
-            <div
-              key={index}
-              className="bg-card/50 backdrop-blur-sm border border-border rounded-3xl p-4 sm:p-6 hover:border-accent/50 transition-all duration-300 group"
-            >
-              <div className="flex items-start gap-4">
-                <div className="bg-accent/10 p-3 rounded-2xl group-hover:bg-accent/20 transition-colors flex-shrink-0">
-                  {feature.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <h3 className="font-bold text-lg sm:text-xl leading-tight">{feature.title}</h3>
-                    <span className="text-xs px-2 py-1 bg-accent/20 text-accent rounded-full whitespace-nowrap">
-                      {feature.badge}
-                    </span>
+          {/* Right: 3 Pills matching screenshot height */}
+          <div className="grid grid-rows-3 gap-3 sm:gap-4">
+            {aiFeatures2.map((feature, index) => (
+              <div
+                key={index}
+                className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 hover:border-accent/50 transition-all duration-300 group flex items-center"
+              >
+                <div className="flex items-center gap-4 w-full">
+                  <div className="bg-accent/10 p-3 rounded-xl group-hover:bg-accent/20 transition-colors flex-shrink-0">
+                    {feature.icon}
                   </div>
-                  <p className="text-sm sm:text-base text-foreground leading-relaxed">
-                    {feature.description}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-lg sm:text-xl mb-1 leading-tight">{feature.title}</h3>
+                    <p className="text-sm sm:text-base text-foreground leading-relaxed font-medium">
+                      {feature.description}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -134,7 +134,15 @@ serve(async (req) => {
 
     // Perform OCR
     const provider = payload.provider || 'google-vision';
-    const imageData = payload.imageBase64 || (await fetchImageAsBase64(payload.imageUrl || receipt.image_url));
+    
+    let imageUrlToFetch = payload.imageUrl || receipt.image_url;
+    // Handle relative paths by generating a signed URL (assuming trip-files bucket)
+    if (imageUrlToFetch && !imageUrlToFetch.startsWith('http')) {
+       const { data } = await supabase.storage.from('trip-files').createSignedUrl(imageUrlToFetch, 60);
+       if (data?.signedUrl) imageUrlToFetch = data.signedUrl;
+    }
+    
+    const imageData = payload.imageBase64 || (await fetchImageAsBase64(imageUrlToFetch));
 
     let ocrResult: OCRResult;
 

@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import WebKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -7,34 +8,53 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Register for push notifications
-        PushNotificationService.shared.requestAuthorization { granted in
-            if granted {
-                PushNotificationService.shared.registerForRemoteNotifications()
-            }
+        // iOS polish: tune the Capacitor WebView scroll behavior (reduce rubber-band/overscroll artifacts).
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.applyWebViewPolish()
         }
-        
-        // Register background fetch
-        BackgroundFetchService.shared.registerBackgroundTask()
-        BackgroundFetchService.shared.scheduleBackgroundFetch()
-        
         return true
     }
-    
-    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        // Send device token to backend/Supabase
-        let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
-        let token = tokenParts.joined()
-        print("Device Token: \(token)")
-        // TODO: Send token to Supabase for push notification delivery
+
+    private func applyWebViewPolish() {
+        guard let bridgeVC = findBridgeViewController(startingAt: window?.rootViewController) else {
+            return
+        }
+
+        // Disable the "rubber band" overscroll bounce that can show a white/gray background
+        // above/below the web content (especially noticeable on dark UIs).
+        let scrollView = bridgeVC.webView.scrollView
+        scrollView.bounces = false
+        scrollView.alwaysBounceVertical = false
+        scrollView.alwaysBounceHorizontal = false
+
+        // Match the app theme behind the web content to avoid flashing.
+        scrollView.backgroundColor = UIColor.black
+        bridgeVC.webView.isOpaque = false
+        bridgeVC.webView.backgroundColor = UIColor.clear
     }
-    
-    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-        print("Failed to register for remote notifications: \(error.localizedDescription)")
-    }
-    
-    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-        PushNotificationService.shared.handleRemoteNotification(userInfo: userInfo, completionHandler: completionHandler)
+
+    private func findBridgeViewController(startingAt viewController: UIViewController?) -> CAPBridgeViewController? {
+        guard let viewController else { return nil }
+
+        if let bridge = viewController as? CAPBridgeViewController {
+            return bridge
+        }
+
+        // Search children (common if embedded in container/navigation controllers).
+        for child in viewController.children {
+            if let found = findBridgeViewController(startingAt: child) {
+                return found
+            }
+        }
+
+        // Search presented view controller.
+        if let presented = viewController.presentedViewController {
+            if let found = findBridgeViewController(startingAt: presented) {
+                return found
+            }
+        }
+
+        return nil
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
@@ -66,38 +86,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
-        // Handle Universal Links for trip invitations
-        if userActivity.activityType == NSUserActivityTypeBrowsingWeb,
-           let url = userActivity.webpageURL {
-            handleUniversalLink(url: url)
-        }
-        
         // Called when the app was launched with an activity, including Universal Links.
         // Feel free to add additional processing here, but if you want the App API to support
         // tracking app url opens, make sure to keep this call
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
-    }
-    
-    /**
-     * Handle Universal Links for trip invitations
-     * Routes /join/{token} URLs to the appropriate view controller
-     */
-    private func handleUniversalLink(url: URL) {
-        // Extract invite token from URL path like /join/{token}
-        let pathComponents = url.pathComponents
-        
-        if pathComponents.count >= 2 && pathComponents[1] == "join" && pathComponents.count >= 3 {
-            let inviteToken = pathComponents[2]
-            
-            // Post notification to handle in view controllers
-            NotificationCenter.default.post(
-                name: NSNotification.Name("ChravelUniversalLinkInvite"),
-                object: nil,
-                userInfo: ["inviteToken": inviteToken, "url": url.absoluteString]
-            )
-            
-            print("📱 Universal Link handled - Invite token: \(inviteToken)")
-        }
     }
 
 }

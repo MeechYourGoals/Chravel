@@ -11,6 +11,7 @@ interface FullPageLandingSectionProps {
   minHeight?: string;
   children: React.ReactNode;
   className?: string;
+  imagePosition?: string;
 }
 
 export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
@@ -21,17 +22,27 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
   enableSnapScroll = true,
   minHeight = '100vh',
   children,
-  className
+  className,
+  imagePosition = 'center'
 }) => {
   return (
     <section
       id={id}
       className={cn(
-        'relative w-full flex items-center justify-center',
-        enableSnapScroll && 'snap-start snap-always',
+        'relative w-full flex',
+        // Mobile: content flows from top naturally. Desktop: vertically centered
+        'items-start md:items-center justify-center',
+        // Mobile: fill viewport so content starts at top. Desktop: use CSS variable for min-height
+        'min-h-screen md:min-h-[var(--section-desktop-min-height,100vh)]',
+        // Add top padding on mobile to account for header and safe areas
+        'pt-20 md:pt-0',
+        // Only enable snap scrolling on desktop
+        enableSnapScroll && 'md:snap-start md:snap-always',
         className
       )}
-      style={{ minHeight }}
+      style={{
+        ['--section-desktop-min-height' as string]: minHeight,
+      }}
     >
       {/* Background Video/Image */}
       {(videoSrc || imageFallback) && (
@@ -39,6 +50,7 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
           videoSrc={videoSrc}
           imageFallback={imageFallback || ''}
           opacity={videoOpacity}
+          imagePosition={imagePosition}
         />
       )}
 

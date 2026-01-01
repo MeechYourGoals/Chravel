@@ -1,67 +1,80 @@
 import { Trash2 } from 'lucide-react';
+import { TripMediaRenderer } from './TripMediaRenderer';
 
 interface MediaTileProps {
   id: string;
   url: string;
   mimeType: string;
   fileName?: string | null;
+  metadata?: unknown;
   onDelete: (id: string) => void;
+  onView?: (media: { id: string; url: string; mimeType: string; fileName?: string | null }) => void;
 }
 
 /**
  * Canonical MediaTile - USED EVERYWHERE
  *
- * Single source of truth for rendering media:
- * - MIME-based rendering (not extension-based)
- * - iOS-safe video attributes (controls, playsInline, muted, preload)
+ * Single source of truth for rendering media tiles in grids.
+ * Uses TripMediaRenderer for consistent iOS-safe rendering.
+ * 
+ * Features:
+ * - MIME-based rendering via TripMediaRenderer
+ * - iOS-safe video attributes (playsInline, muted, preload)
  * - Visible delete button (always accessible, no hidden gestures)
+ * - Click-to-view support via onView callback
  */
 export function MediaTile({
   id,
   url,
   mimeType,
   fileName,
+  metadata,
   onDelete,
+  onView,
 }: MediaTileProps) {
   const isVideo = mimeType.startsWith('video/');
   const isImage = mimeType.startsWith('image/');
+  const isMedia = isVideo || isImage;
+
+  const handleClick = () => {
+    if (onView && isMedia) {
+      onView({ id, url, mimeType, fileName });
+    }
+  };
 
   return (
-    <div className="relative rounded-xl overflow-hidden bg-neutral-900">
+    <div className="relative rounded-xl overflow-hidden bg-neutral-900 group">
       {/* DELETE BUTTON - Always visible, no hidden gestures */}
       <button
-        onClick={() => onDelete(id)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(id);
+        }}
         className="absolute top-2 right-2 z-10 rounded-full bg-black/70 p-2 text-white hover:bg-red-600 transition-colors"
         aria-label="Delete media"
       >
         <Trash2 size={16} />
       </button>
 
-      {/* VIDEO - iOS CRITICAL: controls, playsInline, muted, preload */}
-      {isVideo && (
-        <video
-          src={url}
-          controls
-          playsInline
-          muted
-          preload="metadata"
-          className="w-full max-h-[70vh] bg-black object-contain"
-          onError={(e) => console.error('[MediaTile] Video failed to play', e)}
-        />
-      )}
-
-      {/* IMAGE */}
-      {isImage && (
-        <img
-          src={url}
-          alt={fileName ?? 'Trip media'}
-          loading="lazy"
-          className="w-full h-auto object-cover"
-        />
+      {/* MEDIA (Image/Video) - Using canonical TripMediaRenderer */}
+      {isMedia && (
+        <button
+          onClick={handleClick}
+          className={`w-full cursor-pointer ${isVideo ? 'aspect-video' : ''}`}
+          aria-label={isVideo ? 'Play video' : 'View image'}
+        >
+          <TripMediaRenderer
+            url={url}
+            mimeType={mimeType}
+            mode="thumbnail"
+            alt={fileName ?? 'Trip media'}
+            className="w-full h-full"
+          />
+        </button>
       )}
 
       {/* FILE (non-image, non-video) */}
-      {!isVideo && !isImage && (
+      {!isMedia && (
         <div className="flex items-center justify-between p-4">
           <div className="truncate text-sm text-white">{fileName ?? 'File'}</div>
           <a

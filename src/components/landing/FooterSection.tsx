@@ -14,11 +14,11 @@ export const FooterSection = () => {
   return (
     <footer className="w-full bg-background/95 backdrop-blur-sm border-t border-border">
       <div className="container mx-auto px-4 py-12 md:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
+        <div className="grid grid-cols-3 tablet:grid-cols-4 gap-y-8 gap-x-4 tablet:gap-12">
           {/* Company Info */}
-          <div className="space-y-4">
+          <div className="space-y-4 col-span-3 tablet:col-span-1">
             <div className="text-2xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-              Chravel
+              ChravelApp
             </div>
             <p className="text-sm text-foreground max-w-xs">
               The AI-powered social storage platform for group plans, messages, and memories.
@@ -56,6 +56,11 @@ export const FooterSection = () => {
               <li>
                 <Link to="/teams" className="text-foreground hover:text-primary transition-colors">
                   For Teams
+                </Link>
+              </li>
+              <li>
+                <Link to="/demo" className="text-foreground hover:text-primary transition-colors">
+                  Demo
                 </Link>
               </li>
             </ul>

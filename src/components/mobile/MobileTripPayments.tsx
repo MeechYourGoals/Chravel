@@ -183,7 +183,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         // Format members
         const formattedMembers = membersData.map(m => ({
           id: m.user_id,
-          name: m.profiles?.display_name || m.profiles?.email?.split('@')[0] || 'Unknown User',
+          name: m.profiles?.display_name || 'Unknown User',
           avatar: m.profiles?.avatar_url || undefined
         }));
 

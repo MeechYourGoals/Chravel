@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MoreVertical, Info } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
+import { MobileHeaderOptionsSheet } from '../components/mobile/MobileHeaderOptionsSheet';
+import { TripExportModal } from '../components/trip/TripExportModal';
+import { InviteModal } from '../components/InviteModal';
+import { DeleteTripConfirmDialog } from '../components/DeleteTripConfirmDialog';
+import { deleteTripForMe } from '../services/archiveService';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
@@ -12,6 +17,11 @@ import { useDemoMode } from '../hooks/useDemoMode';
 import { useTripMembers } from '../hooks/useTripMembers';
 import { convertSupabaseTripsToMock } from '../utils/tripConverter';
 import { tripsData, generateTripMockData } from '../data/tripsData';
+import { ExportSection } from '../types/tripExport';
+import { openOrDownloadBlob } from '../utils/download';
+import { orderExportSections } from '../utils/exportSectionOrder';
+import { demoModeService } from '../services/demoModeService';
+import { toast } from 'sonner';
 
 export const MobileTripDetail = () => {
   const { tripId } = useParams();
@@ -35,6 +45,11 @@ export const MobileTripDetail = () => {
   const [activeTab, setActiveTab] = useState(getInitialTab);
   const [tripDescription, setTripDescription] = useState<string>('');
   const [showTripInfo, setShowTripInfo] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showOptionsSheet, setShowOptionsSheet] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const headerRef = React.useRef<HTMLDivElement>(null);
 
   // Persist activeTab changes to sessionStorage
@@ -110,7 +125,173 @@ export const MobileTripDetail = () => {
   
   const basecamp = mockData?.basecamp;
 
-  // ✅ NOW SAFE: All hooks called unconditionally, early returns come AFTER
+  // PDF Export handler - same logic as TripCard
+  const handleExport = useCallback(async (sections: ExportSection[]) => {
+    const orderedSections = orderExportSections(sections);
+    const tripIdStr = tripId || '1';
+    const isNumericId = !tripIdStr.includes('-');
+    
+    toast.info('Creating Recap', {
+      description: `Building your trip memories for "${tripWithUpdatedDescription?.title || 'Trip'}"...`,
+    });
+
+    try {
+      let blob: Blob;
+
+      if (isDemoMode || isNumericId) {
+        const mockCalendar = demoModeService.getMockCalendarEvents(tripIdStr);
+        const mockAttachments = demoModeService.getMockAttachments(tripIdStr);
+        // Demo mode - use mock data
+        const mockPayments = demoModeService.getMockPayments(tripIdStr);
+        const mockPolls = demoModeService.getMockPolls(tripIdStr);
+        const mockTasks = demoModeService.getMockTasks(tripIdStr);
+        const mockPlaces = demoModeService.getMockPlaces(tripIdStr);
+        
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
+        blob = await generateClientPDF(
+          {
+            tripId: tripIdStr,
+            tripTitle: tripWithUpdatedDescription?.title || 'Trip',
+            destination: tripWithUpdatedDescription?.location,
+            dateRange: tripWithUpdatedDescription?.dateRange,
+            calendar: orderedSections.includes('calendar') ? mockCalendar : undefined,
+            payments: orderedSections.includes('payments') && mockPayments.length > 0 ? {
+              items: mockPayments,
+              total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
+              currency: mockPayments[0]?.currency || 'USD'
+            } : undefined,
+            polls: orderedSections.includes('polls') ? mockPolls : undefined,
+            tasks: orderedSections.includes('tasks') ? mockTasks.map(task => ({
+              title: task.title,
+              description: task.description,
+              completed: task.completed
+            })) : undefined,
+            places: orderedSections.includes('places') ? mockPlaces : undefined,
+            attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
+          },
+          orderedSections,
+          { customization: { compress: true, maxItemsPerSection: 100 } }
+        );
+      } else {
+        // Authenticated mode - fetch real data from Supabase
+        const { getExportData } = await import('../services/tripExportDataService');
+        const realData = await getExportData(tripIdStr, orderedSections);
+        
+        if (!realData) {
+          throw new Error('Could not fetch trip data for export');
+        }
+        
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
+        blob = await generateClientPDF(
+          {
+            tripId: tripIdStr,
+            tripTitle: realData.trip.title,
+            destination: realData.trip.destination,
+            dateRange: realData.trip.dateRange,
+            description: realData.trip.description,
+            calendar: realData.calendar,
+            payments: realData.payments,
+            polls: realData.polls,
+            tasks: realData.tasks,
+            places: realData.places,
+            roster: realData.roster,
+            attachments: realData.attachments,
+
+          },
+          orderedSections,
+          { customization: { compress: true, maxItemsPerSection: 100 } }
+        );
+      }
+
+      // Generate filename
+      const sanitizedTitle = (tripWithUpdatedDescription?.title || 'Trip').replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `Trip_${sanitizedTitle}_${Date.now()}.pdf`;
+
+      // Use iOS-compatible download
+      await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
+
+      toast.success('Recap ready', {
+        description: `PDF ready: ${filename}`,
+      });
+    } catch (error) {
+      console.error('[MobileTripDetail Export] Error:', error);
+      toast.error('Recap failed', {
+        description: error instanceof Error ? error.message : 'Failed to generate PDF. Please try again.',
+      });
+      throw error;
+    }
+  }, [tripId, tripWithUpdatedDescription, isDemoMode]);
+
+  // Share Trip handler - uses native Web Share API with clipboard fallback
+  const handleShare = useCallback(async () => {
+    if (!tripWithUpdatedDescription) return;
+
+    const previewLink = `https://p.chravel.app/t/${encodeURIComponent(String(tripId))}`;
+    const shareText = `Check out ${tripWithUpdatedDescription.title} - a trip to ${tripWithUpdatedDescription.location}! ${tripWithUpdatedDescription.participants.length} Chravelers are going.`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: tripWithUpdatedDescription.title,
+          text: shareText,
+          url: previewLink
+        });
+        toast.success('Share sheet opened');
+      } catch (error) {
+        // User cancelled or error - only show error if not abort
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Share failed:', error);
+          // Fallback to copy
+          try {
+            await navigator.clipboard.writeText(previewLink);
+            toast.success('Share link copied to clipboard');
+          } catch {
+            toast.error('Failed to share');
+          }
+        }
+      }
+    } else {
+      // Fallback to clipboard copy
+      try {
+        await navigator.clipboard.writeText(previewLink);
+        toast.success('Share link copied to clipboard');
+      } catch {
+        toast.error('Failed to copy share link');
+      }
+    }
+  }, [tripId, tripWithUpdatedDescription]);
+
+  // Delete Trip For Me handler - removes user's access without deleting trip for others
+  const handleDeleteTripForMe = useCallback(async () => {
+    if (!user?.id || !tripId) {
+      toast.error('You must be logged in to delete a trip');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteTripForMe(tripId, user.id);
+      toast.success('Trip deleted', {
+        description: `"${tripWithUpdatedDescription?.title}" has been removed from your account.`,
+      });
+      setShowDeleteDialog(false);
+      navigate('/');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage === 'CREATOR_CANNOT_DELETE') {
+        toast.error('Cannot delete trip', {
+          description: 'As the trip creator, you cannot delete this trip for yourself. Consider archiving it instead.',
+        });
+      } else {
+        toast.error('Failed to delete trip', {
+          description: 'There was an error deleting your trip. Please try again.',
+        });
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [user?.id, tripId, tripWithUpdatedDescription?.title, navigate]);
+
   if (demoModeLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -169,43 +350,54 @@ export const MobileTripDetail = () => {
   return (
     <MobileErrorBoundary>
       <div className="flex flex-col min-h-screen bg-black">
-      {/* Mobile Header - Sticky */}
-      <div ref={headerRef} className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10">
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between mb-2">
+      {/* Mobile Header - Sticky with iOS safe area */}
+      <div
+        ref={headerRef}
+        className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 mobile-safe-header"
+      >
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between gap-2">
+            {/* Back button */}
             <button
               onClick={handleBack}
-              className="p-2 -ml-2 active:scale-95 transition-transform"
+              className="flex-shrink-0 min-w-[44px] min-h-[44px] p-2 -ml-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
+              style={{ touchAction: 'manipulation' }}
             >
-              <ArrowLeft size={24} className="text-white" />
+              <ArrowLeft size={22} className="text-white" />
             </button>
             
-            <button
-              onClick={() => hapticService.light()}
-              className="p-2 -mr-2 active:scale-95 transition-transform"
-            >
-              <MoreVertical size={24} className="text-white" />
-            </button>
-          </div>
-          
-          <div className="text-center px-2">
-            <h1 className="text-lg font-semibold text-white leading-tight mb-1.5 break-words">
-              {tripWithUpdatedDescription.title}
-            </h1>
-            <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
-              <span>{tripWithUpdatedDescription.location} • {tripWithUpdatedDescription.participants.length} Chravelers</span>
-              <button
-                onClick={() => {
-                  hapticService.light();
-                  setShowTripInfo(true);
-                }}
-                className="flex items-center gap-1 active:scale-95 transition-transform text-blue-400 hover:text-blue-300"
-                aria-label="View trip details"
-              >
-                <Info size={16} />
-                <span className="font-medium">More Details</span>
-              </button>
+            {/* Trip info - centered */}
+            <div className="flex-1 min-w-0 text-center">
+              <h1 className="text-base font-semibold text-white leading-tight truncate">
+                {tripWithUpdatedDescription.title}
+              </h1>
+              <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
+                <span className="truncate">{tripWithUpdatedDescription.location} • {tripWithUpdatedDescription.participants.length} Chravelers</span>
+                <button
+                  onClick={() => {
+                    hapticService.light();
+                    setShowTripInfo(true);
+                  }}
+                  className="flex-shrink-0 flex items-center gap-0.5 active:scale-95 transition-transform text-blue-400 hover:text-blue-300"
+                  aria-label="View trip details"
+                >
+                  <Info size={14} />
+                  <span className="font-medium">More</span>
+                </button>
+              </div>
             </div>
+            
+            {/* Options button */}
+            <button
+              onClick={() => {
+                hapticService.light();
+                setShowOptionsSheet(true);
+              }}
+              className="flex-shrink-0 min-w-[44px] min-h-[44px] p-2 -mr-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
+              style={{ touchAction: 'manipulation' }}
+            >
+              <MoreVertical size={22} className="text-white" />
+            </button>
           </div>
         </div>
       </div>
@@ -227,6 +419,48 @@ export const MobileTripDetail = () => {
           setShowTripInfo(false);
         }}
         onDescriptionUpdate={setTripDescription}
+        onShowExport={() => {
+          setShowTripInfo(false);
+          // Delay to let drawer close before opening modal
+          setTimeout(() => setShowExportModal(true), 200);
+        }}
+      />
+
+      {/* Options Sheet (Three-dot menu) */}
+      <MobileHeaderOptionsSheet
+        isOpen={showOptionsSheet}
+        onClose={() => setShowOptionsSheet(false)}
+        tripTitle={tripWithUpdatedDescription?.title}
+        onShare={handleShare}
+        onExport={() => setShowExportModal(true)}
+        onInvite={() => setShowInviteModal(true)}
+        onDelete={() => setShowDeleteDialog(true)}
+      />
+
+      {/* Export Modal */}
+      <TripExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+        tripName={tripWithUpdatedDescription?.title || 'Trip'}
+        tripId={tripId || '1'}
+      />
+
+      {/* Invite Modal */}
+      <InviteModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        tripName={tripWithUpdatedDescription?.title || 'Trip'}
+        tripId={tripId}
+      />
+
+      {/* Delete Trip Confirm Dialog */}
+      <DeleteTripConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteTripForMe}
+        tripTitle={tripWithUpdatedDescription?.title || 'Trip'}
+        isLoading={isDeleting}
       />
       </div>
     </MobileErrorBoundary>

@@ -2,10 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CAPACITOR_DEBUG</key>
+	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>chravel</string>
+	<string>Chravel</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -46,21 +48,13 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Chravel needs access to your camera to take and share photos during your trips.</string>
+	<string>Chravel uses the camera to capture photos and videos you choose to share with your trips.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Chravel needs access to your photo library to upload and share photos with your travel group.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Chravel needs permission to save photos to your library.</string>
+	<string>Chravel needs access to your photo library so you can upload photos and videos to trip chats and shared albums.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Chravel uses your location to show nearby places and help coordinate with your travel group.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Chravel uses your location to provide real-time location sharing with your travel companions.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Chravel uses your location to keep your travel group updated on your whereabouts.</string>
-	<key>NSContactsUsageDescription</key>
-	<string>Chravel needs access to your contacts to suggest people to invite to your trips.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Chravel needs access to your microphone to record voice messages for your travel group.</string>
+	<string>Chravel uses your location (only while you're using the app) for optional location sharing and to help coordinate meetups during a trip.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -69,16 +63,6 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>chravel</string>
-			</array>
-		</dict>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLName</key>
-			<string>com.chravel.app.universal</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>https</string>
 			</array>
 		</dict>
 	</array>

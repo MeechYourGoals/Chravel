@@ -76,8 +76,8 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
   };
 
   const upgradeToPlus = async () => {
-    // Legacy function - defaults to Explorer tier
-    await upgradeToTier('explorer', 'annual');
+    // Legacy function - defaults to Explorer tier with monthly billing
+    await upgradeToTier('explorer', 'monthly');
   };
 
   const upgradeToTier = async (tier: 'explorer' | 'frequent-chraveler', billingCycle: 'monthly' | 'annual') => {

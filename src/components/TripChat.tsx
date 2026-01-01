@@ -28,6 +28,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { parseMessage } from '@/services/chatContentParser';
 import { MessageTypeBar } from './chat/MessageTypeBar';
 import { ChatSearchOverlay } from './chat/ChatSearchOverlay';
+import { useEffectiveSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
+import { isConsumerTrip } from '@/utils/tripTierDetector';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -82,6 +84,10 @@ export const TripChat = ({
   
   const demoMode = useDemoMode();
   const { user } = useAuth();
+
+  // System message preferences - only for consumer trips
+  const isConsumer = isConsumerTrip(resolvedTripId);
+  const { data: systemMessagePrefs } = useEffectiveSystemMessagePreferences(isConsumer ? resolvedTripId : '');
 
   // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
   const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
@@ -225,14 +231,15 @@ export const TripChat = ({
       id: message.id,
       text: message.content,
       sender: {
-        // Prefer user_id for accurate ownership detection, fallback to author_name for display
-        id: message.user_id || message.author_name || 'unknown',
+        // Prefer user_id for accurate ownership detection, fallback to author_name for display.
+        // For system messages user_id may be null (by design).
+        id: message.user_id || message.author_name || 'system',
         name:
           tripMembers.find(m => m.id === (message.user_id || ''))?.name ||
           message.author_name ||
-          'Unknown',
+          'System',
         // Canonical avatar comes from `profiles.avatar_url` via `useTripMembers`.
-        // Real users without photos get generic silhouette, NOT mock AI avatars.
+        // System messages should render without avatar in MessageItem.
         avatar: tripMembers.find(m => m.id === (message.user_id || ''))?.avatar || defaultAvatar,
         // Store original user_id separately for ownership checks
         userId: message.user_id
@@ -242,7 +249,9 @@ export const TripChat = ({
       isPayment: message.message_type === 'payment',
       isEdited: message.is_edited || false,
       editedAt: message.edited_at,
-      tags: [] as string[]
+      // Ensure system messages are never filtered out by dedupe/memoization layers
+      // and can be rendered via the special system-message UI path.
+      tags: message.message_type === 'system' ? (['system'] as string[]) : ([] as string[])
     }));
   }, [liveMessages, demoMode.isDemoMode, tripMembers]);
 
@@ -269,6 +278,9 @@ export const TripChat = ({
     if (!message) {
       return;
     }
+
+    // Message send: light haptic (native-only, hard-gated).
+    void hapticService.light();
 
     if (demoMode.isDemoMode) {
       setDemoMessages(prev => [...prev, message as MockMessage]);
@@ -491,6 +503,7 @@ export const TripChat = ({
                         message={message}
                         reactions={reactions[message.id]}
                         onReaction={handleReaction}
+                        systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
                       />
                     </div>
                   )}

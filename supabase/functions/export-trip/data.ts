@@ -3,7 +3,6 @@
  */
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { generateQRSvg } from './qr.ts';
 import type {
   TripExportData,
   ExportLayout,
@@ -14,6 +13,7 @@ import type {
   TaskItem,
   LinkItem,
   Member,
+  AttachmentItem,
 } from './types.ts';
 
 export async function getTripData(
@@ -39,10 +39,6 @@ export async function getTripData(
   
   console.log('[EXPORT-DATA] Trip found:', trip.name, 'trip_type:', trip.trip_type);
 
-  // Generate deeplink QR
-  const deeplink = `https://chravelapp.com/trip/${tripId}`;
-  const deeplinkQrSvg = generateQRSvg(deeplink, 96);
-
   // Format dates
   const startDate = trip.start_date ? formatDate(trip.start_date) : '';
   const endDate = trip.end_date ? formatDate(trip.end_date) : '';
@@ -55,7 +51,6 @@ export async function getTripData(
     destination: trip.destination || undefined,
     startDate,
     endDate,
-    deeplinkQrSvg,
     generatedAtLocal,
     layout,
     privacyRedaction,
@@ -102,8 +97,9 @@ export async function getTripData(
     data.broadcasts = await fetchBroadcasts(supabase, tripId);
   }
 
-  if (sections.includes('attachments') && layout === 'pro') {
-    console.log('[EXPORT-DATA] Fetching attachments (Pro only)');
+  if (sections.includes('attachments')) {
+    // Attachments come from Media → Files/Attachments (trip_files), not chat history.
+    console.log('[EXPORT-DATA] Fetching attachments');
     data.attachments = await fetchAttachments(supabase, tripId);
   }
 
@@ -400,7 +396,6 @@ async function fetchPlaces(
         domain: 'maps.google.com',
         category: 'Basecamp',
         notes: trip.basecamp_address,
-        qrSvg: undefined, // Skip QR for basecamps
       });
     }
 
@@ -424,7 +419,6 @@ async function fetchPlaces(
           domain: 'maps.google.com',
           category: 'Personal Basecamp',
           notes: personalAccom.address,
-          qrSvg: undefined,
         });
       }
     }
@@ -458,7 +452,6 @@ async function fetchPlaces(
           domain,
           category: link.category || undefined,
           notes: link.description || undefined,
-          qrSvg: link.url ? generateQRSvg(link.url, 48) : undefined,
         });
       }
     }
@@ -486,19 +479,58 @@ async function fetchBroadcasts(supabase: SupabaseClient, tripId: string) {
   }));
 }
 
-async function fetchAttachments(supabase: SupabaseClient, tripId: string) {
-  const { data: files } = await supabase
-    .from('trip_files')
-    .select('filename, filetype, uploaded_by, created_at')
-    .eq('trip_id', tripId)
-    .order('created_at', { ascending: false });
+function classifyAttachmentType(opts: { filename?: string; mimeType?: string; rawType?: string }): string {
+  const mime = (opts.mimeType || '').toLowerCase();
+  const raw = (opts.rawType || '').toLowerCase();
+  const filename = (opts.filename || '').toLowerCase();
+  const ext = filename.includes('.') ? filename.split('.').pop() : '';
 
-  return (files || []).map((f: any) => ({
-    name: f.filename || 'Unknown',
-    type: f.filetype || 'file',
-    uploaded_by: f.uploaded_by || undefined,
-    date: f.created_at ? formatDateTime(f.created_at) : undefined,
-  }));
+  if (mime === 'application/pdf' || raw === 'pdf' || ext === 'pdf') return 'PDF';
+  if (mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '')) return 'Image';
+  if (['doc', 'docx'].includes(ext || '') || raw.includes('doc')) return 'DOC';
+  if (['xls', 'xlsx', 'csv'].includes(ext || '') || raw.includes('xls') || raw.includes('csv')) return 'Spreadsheet';
+  if (['ppt', 'pptx'].includes(ext || '') || raw.includes('ppt')) return 'Slides';
+  if (mime.startsWith('video/') || ['mp4', 'mov', 'webm'].includes(ext || '')) return 'Video';
+  if (mime.startsWith('audio/') || ['mp3', 'wav', 'm4a'].includes(ext || '')) return 'Audio';
+  return 'File';
+}
+
+async function fetchAttachments(supabase: SupabaseClient, tripId: string): Promise<AttachmentItem[]> {
+  // NOTE: trip_files schema has evolved over time. We select a superset of columns
+  // and normalize to a stable AttachmentItem shape.
+  const { data: files, error } = await supabase
+    .from('trip_files')
+    .select('id, created_at, uploaded_by, file_name, name, file_type, file_path, file_url, mime_type, file_size, size_bytes')
+    .eq('trip_id', tripId)
+    // Deterministic ordering: preserve upload order (oldest → newest)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('[EXPORT-DATA] Error fetching attachments:', error);
+    return [];
+  }
+
+  return (files || []).map((f: any) => {
+    const displayName: string =
+      f.file_name || f.name || f.filename || 'Unknown file';
+    const rawType: string =
+      f.file_type || f.filetype || f.mime_type || '';
+    const mimeType: string | undefined = f.mime_type || (rawType.includes('/') ? rawType : undefined);
+    const typeLabel = classifyAttachmentType({ filename: displayName, mimeType, rawType });
+
+    return {
+      name: displayName,
+      type: typeLabel,
+      // We intentionally do NOT resolve uploaded_by → profile/email/phone here.
+      // Privacy is enforced and uploader identity is optional in exports.
+      uploaded_by: undefined,
+      date: f.created_at ? formatDateTime(f.created_at) : undefined,
+      path: f.file_path || undefined,
+      url: f.file_url || undefined,
+      mime_type: mimeType,
+      size_bytes: Number(f.size_bytes ?? f.file_size ?? 0) || undefined,
+    } satisfies AttachmentItem;
+  });
 }
 
 // Date formatting helpers

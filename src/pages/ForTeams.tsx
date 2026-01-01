@@ -178,7 +178,7 @@ export const ForTeams = () => {
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-foreground mb-2">Starter Pro</h3>
                 <div className="text-4xl font-bold text-foreground mb-2">$49<span className="text-xl text-muted-foreground">/mo</span></div>
-                <p className="text-foreground">Up to 25 team members</p>
+                <p className="text-foreground">Up to 50 team members</p>
               </div>
               <Button 
                 className="w-full mb-6"
@@ -213,7 +213,7 @@ export const ForTeams = () => {
               </div>
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-foreground mb-2">Growth Pro</h3>
-                <div className="text-4xl font-bold text-foreground mb-2">$199<span className="text-xl text-muted-foreground">/mo</span></div>
+                <div className="text-4xl font-bold text-foreground mb-2">$99<span className="text-xl text-muted-foreground">/mo</span></div>
                 <p className="text-foreground">Up to 100 team members</p>
               </div>
               <Button 
@@ -250,8 +250,8 @@ export const ForTeams = () => {
             <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 md:p-8">
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-foreground mb-2">Enterprise</h3>
-                <div className="text-4xl font-bold text-foreground mb-2">$499<span className="text-xl text-muted-foreground">/mo</span></div>
-                <p className="text-foreground">Up to 500 team members</p>
+                <div className="text-4xl font-bold text-foreground mb-2">$199<span className="text-xl text-muted-foreground">/mo</span></div>
+                <p className="text-foreground">Up to 250 team members</p>
               </div>
               <Button 
                 className="w-full mb-6"

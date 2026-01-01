@@ -1,15 +1,18 @@
 
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, User, MoreHorizontal, Archive, Flame, TrendingUp, EyeOff, FileDown } from 'lucide-react';
+import { Calendar, MapPin, User, MoreHorizontal, Archive, Flame, TrendingUp, EyeOff, FileDown, Trash2, Crown } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { InviteModal } from './InviteModal';
 import { ShareTripModal } from './share/ShareTripModal';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
+import { DeleteTripConfirmDialog } from './DeleteTripConfirmDialog';
 import { TripExportModal } from './trip/TripExportModal';
 import { TravelerTooltip } from './ui/traveler-tooltip';
-import { archiveTrip, hideTrip } from '../services/archiveService';
+import { archiveTrip, hideTrip, deleteTripForMe } from '../services/archiveService';
+import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/use-toast';
+import { ToastAction } from './ui/toast';
 import { Badge } from './ui/badge';
 import { gamificationService } from '../services/gamificationService';
 import { isConsumerTrip } from '../utils/tripTierDetector';
@@ -18,6 +21,8 @@ import { useDemoMode } from '../hooks/useDemoMode';
 import { ExportSection } from '@/types/tripExport';
 import { demoModeService } from '../services/demoModeService';
 import { openOrDownloadBlob } from '../utils/download';
+import { orderExportSections } from '../utils/exportSectionOrder';
+import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,22 +49,31 @@ interface Trip {
   coverPhoto?: string;
   placesCount?: number;
   peopleCount?: number;
+  created_by?: string;
 }
 
 interface TripCardProps {
   trip: Trip;
   onArchiveSuccess?: () => void;
   onHideSuccess?: () => void;
+  onDeleteSuccess?: () => void;
 }
 
-export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProps) => {
+export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuccess }: TripCardProps) => {
   const navigate = useNavigate();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
+  const { user } = useAuth();
+  const { tier } = useConsumerSubscription();
+
+  // Free users use archive-first (no hard delete) to preserve their trips
+  const isFreeUser = tier === 'free';
   
   // Get added members from the demo store - use stable empty array reference with shallow comparison
   const tripIdStr = trip.id.toString();
@@ -75,6 +89,19 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
 
 
   const handleArchiveTrip = async () => {
+    // Demo mode: session-scoped, non-persistent archive
+    if (isDemoMode) {
+      demoModeService.archiveTripSession(trip.id.toString());
+      toast({
+        title: "Trip archived",
+        description: `"${trip.title}" has been archived. View it in the Archived tab.`,
+      });
+      setShowArchiveDialog(false);
+      onArchiveSuccess?.();
+      return;
+    }
+
+    // Authenticated mode: persist to database
     try {
       await archiveTrip(trip.id.toString(), 'consumer');
       toast({
@@ -93,6 +120,18 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
   };
 
   const handleHideTrip = async () => {
+    // Demo mode: session-scoped, non-persistent hide
+    if (isDemoMode) {
+      demoModeService.hideTripSession(trip.id.toString());
+      toast({
+        title: "Trip hidden",
+        description: `"${trip.title}" is now hidden. Enable "Show Hidden Trips" in Settings to view it.`,
+      });
+      onHideSuccess?.();
+      return;
+    }
+
+    // Authenticated mode: persist to database
     try {
       await hideTrip(trip.id.toString());
       toast({
@@ -109,8 +148,78 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
     }
   };
 
+  // Check if current user is the trip creator
+  const isCreator = user?.id === trip.created_by;
+
+  const handleDeleteTripForMe = async () => {
+    // Demo mode: block delete with toast - demo trips are deletion-proof
+    if (isDemoMode) {
+      toast({
+        title: "Demo trip",
+        description: "This is a demo trip and cannot be deleted.",
+      });
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    if (!user?.id) {
+      toast({
+        title: "Not logged in",
+        description: "You must be logged in to manage trips.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // For free users who are creators, auto-archive instead of delete
+    if (isCreator && isFreeUser) {
+      try {
+        await archiveTrip(trip.id.toString(), 'consumer');
+        toast({
+          title: "Trip archived",
+          description: `"${trip.title}" has been archived. Upgrade to restore it anytime!`,
+          action: (
+            <ToastAction altText="View Plans" onClick={() => { window.location.href = '/settings'; }}>
+              View Plans
+            </ToastAction>
+          )
+        });
+        setShowDeleteDialog(false);
+        onArchiveSuccess?.();
+      } catch (archiveError) {
+        toast({
+          title: "Failed to archive trip",
+          description: "There was an error archiving your trip. Please try again.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    // For paid creators and regular members, proceed with deletion
+    setIsDeleting(true);
+    try {
+      await deleteTripForMe(trip.id.toString(), user.id);
+      toast({
+        title: "Trip removed",
+        description: `"${trip.title}" has been removed from your account.`,
+      });
+      setShowDeleteDialog(false);
+      onDeleteSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Failed to remove trip",
+        description: "There was an error removing the trip. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Complete PDF export handler - same logic as in-trip export
   const handleExportPdf = useCallback(async (sections: ExportSection[]) => {
+    const orderedSections = orderExportSections(sections);
     const tripIdStr = trip.id.toString();
     const isNumericId = !tripIdStr.includes('-'); // UUIDs have dashes, demo IDs don't
     
@@ -119,14 +228,16 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
     }
 
     toast({
-      title: "Generating PDF",
-      description: `Creating summary for "${trip.title}"...`,
+      title: "Creating Recap",
+      description: `Building your trip memories for "${trip.title}"...`,
     });
 
     try {
       let blob: Blob;
 
       if (isDemoMode || isNumericId) {
+        const mockCalendar = demoModeService.getMockCalendarEvents(tripIdStr);
+        const mockAttachments = demoModeService.getMockAttachments(tripIdStr);
         // Demo mode - use mock data from services
         if (import.meta.env.DEV) console.log('[TripCard Export] Using demo mode data');
         
@@ -142,21 +253,22 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
             tripTitle: trip.title,
             destination: trip.location,
             dateRange: trip.dateRange,
-            calendar: sections.includes('calendar') ? [] : undefined, // Demo trips use in-trip calendar view
-            payments: sections.includes('payments') && mockPayments.length > 0 ? {
+            calendar: orderedSections.includes('calendar') ? mockCalendar : undefined, // Demo trips use in-trip calendar view
+            payments: orderedSections.includes('payments') && mockPayments.length > 0 ? {
               items: mockPayments,
               total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
               currency: mockPayments[0]?.currency || 'USD'
             } : undefined,
-            polls: sections.includes('polls') ? mockPolls : undefined,
-            tasks: sections.includes('tasks') ? mockTasks.map(task => ({
+            polls: orderedSections.includes('polls') ? mockPolls : undefined,
+            tasks: orderedSections.includes('tasks') ? mockTasks.map(task => ({
               title: task.title,
               description: task.description,
               completed: task.completed
             })) : undefined,
-            places: sections.includes('places') ? mockPlaces : undefined,
+            places: orderedSections.includes('places') ? mockPlaces : undefined,
+            attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
           },
-          sections,
+          orderedSections,
           { customization: { compress: true, maxItemsPerSection: 100 } }
         );
       } else {
@@ -164,7 +276,7 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
         if (import.meta.env.DEV) console.log('[TripCard Export] Fetching real data from Supabase');
         
         const { getExportData } = await import('../services/tripExportDataService');
-        const realData = await getExportData(tripIdStr, sections);
+        const realData = await getExportData(tripIdStr, orderedSections);
         
         if (!realData) {
           throw new Error('Could not fetch trip data for export');
@@ -184,8 +296,10 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
             tasks: realData.tasks,
             places: realData.places,
             roster: realData.roster,
+            attachments: realData.attachments,
+
           },
-          sections,
+          orderedSections,
           { customization: { compress: true, maxItemsPerSection: 100 } }
         );
       }
@@ -200,13 +314,13 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
       await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
 
       toast({
-        title: "Export complete",
+        title: "Recap ready",
         description: `PDF downloaded: ${filename}`,
       });
     } catch (error) {
       console.error('[TripCard Export] Error:', error);
       toast({
-        title: "Export failed",
+        title: "Recap failed",
         description: error instanceof Error ? error.message : "Failed to generate PDF. Please try again.",
         variant: "destructive",
       });
@@ -318,6 +432,14 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
                 <EyeOff className="mr-2 h-4 w-4" />
                 Hide Trip
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete for me
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -329,7 +451,7 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
         <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
           <div className="text-center">
             <div className="text-xl md:text-2xl font-bold text-white">
-              {trip.peopleCount ?? (trip.id === 3 ? 200 : participantsWithAvatars.length)}
+              {trip.peopleCount ?? participantsWithAvatars.length}
             </div>
             <div className="text-xs md:text-sm text-gray-400">People</div>
           </div>
@@ -352,7 +474,7 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
           >
             <FileDown size={14} className="md:hidden" />
             <FileDown size={16} className="hidden md:block" />
-            Export
+            Recap
           </button>
 
           <button
@@ -404,6 +526,15 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess }: TripCardProp
         onConfirm={handleArchiveTrip}
         tripTitle={trip.title}
         isArchiving={true}
+      />
+
+      <DeleteTripConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteTripForMe}
+        tripTitle={trip.title}
+        isLoading={isDeleting}
+        isCreator={isCreator && !isFreeUser}
       />
 
       <TripExportModal

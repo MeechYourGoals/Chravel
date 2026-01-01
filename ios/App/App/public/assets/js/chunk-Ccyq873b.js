@@ -1,1 +1,0 @@
-import{Z as e}from"../index-C69Cv9fm.js";import{d as o}from"./chunk-DGLf2uCM.js";import{r as s}from"./chunk-CHPtWMTz.js";const a=()=>{const{isDemoMode:a,isLoading:i,enable:n,disable:m,toggle:d}=e(),r=s.useCallback(()=>{const e=a;d(),e&&o.clearSessionPayments()},[a,d]);return{isDemoMode:a,isLoading:i,enableDemoMode:n,disableDemoMode:m,toggleDemoMode:r}};export{a as u};

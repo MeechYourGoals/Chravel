@@ -40,11 +40,13 @@ const generateBrandedCode = (): string => {
 
 // Check if a code already exists in the database
 const checkCodeExists = async (code: string): Promise<boolean> => {
+  // Direct query to check code existence
+  // Uses maybeSingle to avoid errors when no match found
   const { data } = await supabase
     .from('trip_invites')
     .select('id')
     .eq('code', code)
-    .single();
+    .maybeSingle();
   return !!data;
 };
 

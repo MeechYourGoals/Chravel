@@ -1,8 +1,8 @@
 
 import * as React from "react"
 
-// Updated to 768px for true tablet/desktop distinction (iPad mini and up)
-const MOBILE_BREAKPOINT = 768
+// Updated to 1024px to include iPad in mobile view for PWA consistency
+const MOBILE_BREAKPOINT = 1024
 
 export function useIsMobile() {
   // SSR-safe initial state - defaults to mobile-first for better initial render

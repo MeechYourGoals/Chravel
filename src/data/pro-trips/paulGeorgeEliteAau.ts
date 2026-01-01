@@ -2,11 +2,11 @@ import { ProTripData } from '../../types/pro';
 import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const paulGeorgeEliteAau: ProTripData = {
-  id: 'paul-george-elite-aau-nationals-2025',
-  title: "Paul George Elite AAU Nationals '25",
+  id: 'paul-george-elite-aau-nationals-2026',
+  title: "PG Elite AAU Nationals '26",
   description: 'AAU National Championship tournament for Paul George Elite 17U basketball team.',
   location: 'Orlando FL',
-  dateRange: 'Jul 8 - Jul 14, 2025',
+  dateRange: 'Jul 8 - Jul 14, 2026',
   proTripCategory: 'Sports – Pro, Collegiate, Youth',
   tags: ['Sports – Team Trip', 'Basketball', 'AAU', 'Nationals'],
   basecamp_name: 'Orange County Convention Center',
@@ -17,7 +17,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       title: 'Confirm all player AAU membership cards',
       description: 'Verify current AAU memberships and eligibility for all roster players',
       completed: true,
-      due_at: '2025-07-07',
+      due_at: '2026-07-07',
       assigned_to: 'team-manager',
       created_at: new Date(Date.now() - 604800000).toISOString()
     },
@@ -26,7 +26,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       title: 'Submit tournament roster to officials',
       description: 'Final roster submission with jersey numbers to tournament desk',
       completed: false,
-      due_at: '2025-07-09',
+      due_at: '2026-07-09',
       assigned_to: 'director',
       created_at: new Date().toISOString()
     }
@@ -70,7 +70,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: 'bc-pg-1',
       senderId: '101',
       message: 'Breakfast at 7 AM sharp tomorrow. Bus leaves hotel at 8:15 AM for tournament check-in.',
-      targetTrips: ['paul-george-elite-aau-nationals-2025'],
+      targetTrips: ['paul-george-elite-aau-nationals-2026'],
       priority: 'urgent',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
       readBy: ['102', '103', '104']
@@ -79,34 +79,28 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: 'bc-pg-2',
       senderId: '102',
       message: 'Great job today team! Pool play continues tomorrow at 2 PM on Court 5.',
-      targetTrips: ['paul-george-elite-aau-nationals-2025'],
+      targetTrips: ['paul-george-elite-aau-nationals-2026'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
       readBy: ['101', '103']
     }
   ],
-  participants: Array.from({ length: 120 }, (_, i) => {
+  participants: Array.from({ length: 27 }, (_, i) => {
     const id = String(101 + i);
     
-    if (i < 10) {
-      const coaches = ['Matt Barnes', 'Brandon Lincoln', 'Byron Joseph', 'Jerald Dickson', 'Dave McClure', 'Travis Oscar', 'Eddie Cruz', 'Paul George', 'Assistant Coach 1', 'Assistant Coach 2'];
+    if (i < 5) {
+      const coaches = ['Matt Barnes', 'Brandon Lincoln', 'Byron Joseph', 'Jerald Dickson', 'Dave McClure'];
       const name = coaches[i] || `Coach ${i + 1}`;
       return { id, name, avatar: getMockAvatar(name), role: 'Coaches' };
-    } else if (i < 20) {
-      const staff = ['Team Manager', 'Logistics Manager', 'Team Doctor', 'Athletic Trainer', 'Team Photographer', 'Video Coordinator', 'Nutrition Specialist', 'Transportation Coordinator', 'Team Administrator', 'Academic Advisor'];
-      const name = staff[i - 10] || `Staff ${i - 9}`;
+    } else if (i < 10) {
+      const staff = ['Team Manager', 'Team Doctor', 'Athletic Trainer', 'Video Coordinator', 'Transportation Coordinator'];
+      const name = staff[i - 5] || `Staff ${i - 4}`;
       return { id, name, avatar: getMockAvatar(name), role: 'Staff' };
-    } else if (i < 100) {
-      const playerNames = ['Carter Bryant', 'Jaden DePina', 'James Evans Jr.', 'Ifiok Peter', 'Michael Johnson', 'David Williams', 'Chris Brown', 'Kevin Davis', 'Anthony Miller', 'Brandon Wilson'];
-      const playerIndex = (i - 20) % playerNames.length;
-      const teamNumber = Math.floor((i - 20) / 10) + 1;
-      const name = `${playerNames[playerIndex]} (T${teamNumber})`;
-      return { id, name, avatar: getMockAvatar(name), role: 'Players' };
     } else {
-      const chaperones = ['Parent Chaperone', 'Team Volunteer', 'Guardian', 'Family Representative'];
-      const chaperoneIndex = (i - 100) % chaperones.length;
-      const name = `${chaperones[chaperoneIndex]} ${i - 99}`;
-      return { id, name, avatar: getMockAvatar(name), role: 'Chaperones' };
+      const playerNames = ['Carter Bryant', 'Jaden DePina', 'James Evans Jr.', 'Ifiok Peter', 'Michael Johnson', 'David Williams', 'Chris Brown', 'Kevin Davis', 'Anthony Miller', 'Brandon Wilson', 'Marcus Thompson', 'Jaylen Harris', 'Tyler Washington', 'Isaiah Robinson', 'Malik Jackson', 'Devon Sanders', 'Cameron White'];
+      const playerIndex = (i - 10);
+      const name = playerNames[playerIndex] || `Player ${playerIndex + 1}`;
+      return { id, name, avatar: getMockAvatar(name), role: 'Players' };
     }
   }),
   budget: {
@@ -121,7 +115,7 @@ export const paulGeorgeEliteAau: ProTripData = {
   },
   itinerary: [
     {
-      date: '2025-07-08',
+      date: '2026-07-08',
       events: [
         { time: '07:00', title: 'Team Bus Departure', location: 'PG Elite Training Facility', type: 'travel' },
         { time: '18:00', title: 'Arrival Orlando', location: 'Disney World Resort', type: 'travel' },
@@ -259,8 +253,8 @@ export const paulGeorgeEliteAau: ProTripData = {
       room: 'Room 301',
       hotel: 'Disney World Grand Floridian',
       occupants: ['108', '109'],
-      checkIn: '2025-07-08T18:00:00Z',
-      checkOut: '2025-07-14T11:00:00Z',
+      checkIn: '2026-07-08T18:00:00Z',
+      checkOut: '2026-07-14T11:00:00Z',
       roomType: 'double',
       specialRequests: ['connecting-rooms', 'ground-floor']
     },
@@ -269,8 +263,8 @@ export const paulGeorgeEliteAau: ProTripData = {
       room: 'Room 302',
       hotel: 'Disney World Grand Floridian',
       occupants: ['110', '111'],
-      checkIn: '2025-07-08T18:00:00Z',
-      checkOut: '2025-07-14T11:00:00Z',
+      checkIn: '2026-07-08T18:00:00Z',
+      checkOut: '2026-07-14T11:00:00Z',
       roomType: 'double',
       specialRequests: ['connecting-rooms']
     }
@@ -280,8 +274,8 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: 'sched-pg1',
       type: 'meeting',
       title: 'Tournament Check-in & Registration',
-      startTime: '2025-07-09T08:00:00Z',
-      endTime: '2025-07-09T10:00:00Z',
+      startTime: '2026-07-09T08:00:00Z',
+      endTime: '2026-07-09T10:00:00Z',
       location: 'ESPN Wide World of Sports',
       participants: ['102', '101'],
       priority: 'high',
@@ -291,8 +285,8 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: 'sched-pg2',
       type: 'meeting',
       title: 'Pool Play Game 1 vs Team Charlotte',
-      startTime: '2025-07-09T14:00:00Z',
-      endTime: '2025-07-09T16:00:00Z',
+      startTime: '2026-07-09T14:00:00Z',
+      endTime: '2026-07-09T16:00:00Z',
       location: 'Court 3 - ESPN WWOS',
       participants: ['101', '102', '108', '109', '110', '111'],
       priority: 'high',
@@ -302,8 +296,8 @@ export const paulGeorgeEliteAau: ProTripData = {
   perDiem: {
     dailyRate: 75,
     currency: 'USD',
-    startDate: '2025-07-08',
-    endDate: '2025-07-14',
+    startDate: '2026-07-08',
+    endDate: '2026-07-14',
     participants: [
       { participantId: '108', customRate: 75, advances: 0, deductions: 0, balance: 525 },
       { participantId: '109', customRate: 75, advances: 0, deductions: 0, balance: 525 },
@@ -319,7 +313,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       type: 'safety',
       title: 'AAU Eligibility & Registration',
       description: 'All players must have current AAU membership and eligibility',
-      deadline: '2025-07-07',
+      deadline: '2026-07-07',
       status: 'compliant',
       assignedTo: '102',
       documents: ['aau-cards.pdf', 'eligibility-forms.pdf']
@@ -329,7 +323,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       type: 'safety',
       title: 'Physical Clearance Forms',
       description: 'Current physical forms required for all players',
-      deadline: '2025-07-07',
+      deadline: '2026-07-07',
       status: 'compliant',
       assignedTo: '104',
       documents: ['physicals-2025.pdf']
@@ -341,7 +335,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       id: 'sponsor-pg1',
       sponsor: 'Nike Basketball',
       activation: 'Equipment and Apparel Partnership',
-      deadline: '2025-07-07',
+      deadline: '2026-07-07',
       assignedTo: '102',
       status: 'completed',
       deliverables: ['Team shoes', 'Practice gear', 'Tournament uniforms'],

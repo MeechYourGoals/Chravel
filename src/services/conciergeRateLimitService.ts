@@ -1,7 +1,12 @@
 /**
- * Concierge Rate Limiting Service for Events
+ * Concierge Rate Limiting Service for Trips/Events
  * Prevents API cost overruns while maintaining good UX
  * NOW WITH DATABASE-BACKED RATE LIMITING
+ * 
+ * IMPORTANT: Limits are per user, per trip (NOT daily reset):
+ * - Free: 5 queries per user per trip
+ * - Explorer (Plus): 10 queries per user per trip
+ * - Frequent Chraveler (Pro): Unlimited
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -11,24 +16,37 @@ export interface ConciergeUsage {
   userId: string;
   eventId: string;
   queriesUsed: number;
-  dailyLimit: number;
-  resetAt: string; // Timestamp when limit resets
+  tripLimit: number; // Per-trip limit (no daily reset)
+  resetAt: string; // Not used for per-trip model, kept for backwards compatibility
 }
 
 class ConciergeRateLimitService {
   private storageKey = 'concierge-usage';
 
   /**
-   * Get daily query limit based on user's subscription tier
+   * Get per-trip query limit based on user's subscription tier
+   * 
+   * Limits (per user, per trip - NO daily reset):
+   * - Free: 5 queries
+   * - Explorer/Plus: 10 queries
+   * - Frequent Chraveler/Pro: Unlimited
    */
-  getDailyLimit(userTier: 'free' | 'plus' | 'pro'): number {
+  getTripLimit(userTier: 'free' | 'plus' | 'pro'): number {
     if (userTier === 'pro') return Infinity;
-    if (userTier === 'plus') return 50;
-    return 5; // Free: 5 queries/day
+    if (userTier === 'plus') return 10; // Explorer tier: 10 queries per trip
+    return 5; // Free: 5 queries per trip
   }
 
   /**
-   * Get current usage for user in specific event - DATABASE-BACKED
+   * @deprecated Use getTripLimit instead. Kept for backwards compatibility.
+   */
+  getDailyLimit(userTier: 'free' | 'plus' | 'pro'): number {
+    return this.getTripLimit(userTier);
+  }
+
+  /**
+   * Get current usage for user in specific trip/event - DATABASE-BACKED
+   * Note: This counts ALL queries for the trip (no daily reset)
    */
   async getUsage(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro' = 'free'): Promise<ConciergeUsage> {
     // Check if in demo mode
@@ -38,17 +56,13 @@ class ConciergeRateLimitService {
       return this.getUsageFromStorage(userId, eventId, userTier);
     }
 
-    // Query database for usage
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
+    // Query database for ALL usage in this trip (no date filter - per-trip lifetime)
     const { data, error } = await supabase
       .from('concierge_usage')
       .select('id')
       .eq('user_id', userId)
       .eq('context_type', 'event')
-      .eq('context_id', eventId)
-      .gte('created_at', today.toISOString());
+      .eq('context_id', eventId);
 
     if (error) {
       console.error('Failed to fetch usage from database:', error);
@@ -57,38 +71,39 @@ class ConciergeRateLimitService {
     }
 
     const queriesUsed = data?.length || 0;
-    const resetAt = this.getNextMidnight();
 
     return {
       userId,
       eventId,
       queriesUsed,
-      dailyLimit: this.getDailyLimit(userTier),
-      resetAt
+      tripLimit: this.getTripLimit(userTier),
+      resetAt: '' // Not used for per-trip model
     };
   }
 
   /**
    * Get usage from localStorage (demo mode fallback)
+   * Note: Per-trip usage persists until trip ends (no daily reset)
    */
   private getUsageFromStorage(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro'): ConciergeUsage {
     const storageData = this.loadFromStorage();
     const key = `${userId}-${eventId}`;
     const existing = storageData[key];
 
-    // Check if usage data exists and hasn't expired
-    if (existing && new Date(existing.resetAt) > new Date()) {
+    // Check if usage data exists for this trip
+    if (existing) {
+      // Update the limit in case tier changed, but keep the usage count
+      existing.tripLimit = this.getTripLimit(userTier);
       return existing;
     }
 
-    // Create new usage record
-    const resetAt = this.getNextMidnight();
+    // Create new usage record for this trip
     const newUsage: ConciergeUsage = {
       userId,
       eventId,
       queriesUsed: 0,
-      dailyLimit: this.getDailyLimit(userTier),
-      resetAt
+      tripLimit: this.getTripLimit(userTier),
+      resetAt: '' // Not used for per-trip model
     };
 
     storageData[key] = newUsage;
@@ -103,8 +118,8 @@ class ConciergeRateLimitService {
   async incrementUsage(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro' = 'free'): Promise<ConciergeUsage> {
     const usage = await this.getUsage(userId, eventId, userTier);
 
-    if (userTier !== 'pro' && usage.queriesUsed >= usage.dailyLimit) {
-      throw new Error('Daily query limit reached');
+    if (userTier !== 'pro' && usage.queriesUsed >= usage.tripLimit) {
+      throw new Error('Trip query limit reached');
     }
 
     // Check if in demo mode
@@ -150,41 +165,26 @@ class ConciergeRateLimitService {
     if (userTier === 'pro') return true;
 
     const usage = await this.getUsage(userId, eventId, userTier);
-    return usage.queriesUsed < usage.dailyLimit;
+    return usage.queriesUsed < usage.tripLimit;
   }
 
   /**
-   * Get remaining queries for user
+   * Get remaining queries for user in this trip
    */
   async getRemainingQueries(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro'): Promise<number> {
     if (userTier === 'pro') return Infinity;
     
     const usage = await this.getUsage(userId, eventId, userTier);
-    return Math.max(0, usage.dailyLimit - usage.queriesUsed);
+    return Math.max(0, usage.tripLimit - usage.queriesUsed);
   }
 
   /**
    * Get time until limit resets
+   * @deprecated Per-trip limits do not reset. Returns empty string.
    */
-  async getTimeUntilReset(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro'): Promise<string> {
-    const usage = await this.getUsage(userId, eventId, userTier);
-    const now = new Date();
-    const reset = new Date(usage.resetAt);
-    const hoursLeft = Math.ceil((reset.getTime() - now.getTime()) / (1000 * 60 * 60));
-    
-    if (hoursLeft === 1) return '1 hour';
-    if (hoursLeft < 24) return `${hoursLeft} hours`;
-    return 'tomorrow';
-  }
-
-  /**
-   * Get next midnight timestamp
-   */
-  private getNextMidnight(): string {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
-    return tomorrow.toISOString();
+  async getTimeUntilReset(_userId: string, _eventId: string, _userTier: 'free' | 'plus' | 'pro'): Promise<string> {
+    // Per-trip limits do not reset - they persist for the lifetime of the trip
+    return '';
   }
 
   /**
@@ -201,19 +201,12 @@ class ConciergeRateLimitService {
 
   /**
    * Save usage data to localStorage
+   * Note: Per-trip usage persists (no expiration cleanup)
    */
   private saveToStorage(data: Record<string, ConciergeUsage>): void {
     try {
-      // Clean up expired entries before saving
-      const now = new Date();
-      const cleaned = Object.entries(data).reduce((acc, [key, value]) => {
-        if (new Date(value.resetAt) > now) {
-          acc[key] = value;
-        }
-        return acc;
-      }, {} as Record<string, ConciergeUsage>);
-
-      localStorage.setItem(this.storageKey, JSON.stringify(cleaned));
+      // No expiration cleanup for per-trip model - usage persists for trip lifetime
+      localStorage.setItem(this.storageKey, JSON.stringify(data));
     } catch (error) {
       console.error('Failed to save rate limit data:', error);
     }

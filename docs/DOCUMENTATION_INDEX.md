@@ -8,9 +8,9 @@ This index provides a comprehensive guide to all Chravel documentation.
 
 ## 📚 Getting Started
 
-- **[DEVELOPER_HANDBOOK.md](../DEVELOPER_HANDBOOK.md)** - Complete developer onboarding guide
-- **[ENVIRONMENT_SETUP_GUIDE.md](../ENVIRONMENT_SETUP_GUIDE.md)** - Local development setup
-- **[CODEBASE_MAP.md](../CODEBASE_MAP.md)** - High-level codebase overview
+- **[DEVELOPER_HANDBOOK.md](/docs/ACTIVE/DEVELOPER_HANDBOOK.md)** - Complete developer onboarding guide
+- **[ENVIRONMENT_SETUP_GUIDE.md](/docs/ACTIVE/ENVIRONMENT_SETUP_GUIDE.md)** - Local development setup
+- **[CODEBASE_MAP.md](/docs/ACTIVE/CODEBASE_MAP.md)** - High-level codebase overview
 
 ---
 
@@ -54,21 +54,21 @@ npm run docs:generate
 
 ### Production Deployment
 - **[PRODUCTION_DEPLOYMENT_CHECKLIST.md](PRODUCTION_DEPLOYMENT_CHECKLIST.md)** - Complete deployment checklist
-- **[DEPLOYMENT_READINESS_ASSESSMENT.md](../DEPLOYMENT_READINESS_ASSESSMENT.md)** - Pre-deployment assessment
+- **[DEPLOYMENT_READINESS_ASSESSMENT.md](/docs/_archive/root/DEPLOYMENT_READINESS_ASSESSMENT.md)** - Pre-deployment assessment (historical)
 
 ### iOS Deployment
-- **[IOS_DEPLOY_QUICKSTART.md](../IOS_DEPLOY_QUICKSTART.md)** - Quick iOS deployment guide
-- **[IOS_APP_STORE_GUIDE.md](../IOS_APP_STORE_GUIDE.md)** - App Store submission guide
-- **[IOS_TESTING_CHECKLIST.md](../IOS_TESTING_CHECKLIST.md)** - iOS testing checklist
+- **[IOS_DEPLOY_QUICKSTART.md](_archive/root/IOS_DEPLOY_QUICKSTART.md)** - Quick iOS deployment guide (historical)
+- **[IOS_APP_STORE_GUIDE.md](/docs/ACTIVE/IOS_APP_STORE_GUIDE.md)** - App Store submission guide
+- **[IOS_TESTING_CHECKLIST.md](/docs/ACTIVE/IOS_TESTING_CHECKLIST.md)** - iOS testing checklist
 
 ### Android Deployment
-- **[ANDROID_DEPLOY_QUICKSTART.md](../ANDROID_DEPLOY_QUICKSTART.md)** - Quick Android deployment guide
-- **[ANDROID_CAPACITOR_GUIDE.md](../ANDROID_CAPACITOR_GUIDE.md)** - Comprehensive Android guide
+- **[ANDROID_DEPLOY_QUICKSTART.md](_archive/root/ANDROID_DEPLOY_QUICKSTART.md)** - Quick Android deployment guide (historical)
+- **[ANDROID_CAPACITOR_GUIDE.md](_archive/root/ANDROID_CAPACITOR_GUIDE.md)** - Comprehensive Android guide (historical)
 
 ### Mobile Development
-- **[CAPACITOR_NATIVE_GUIDE.md](../CAPACITOR_NATIVE_GUIDE.md)** - Capacitor native features
-- **[MOBILE_IMPLEMENTATION.md](../MOBILE_IMPLEMENTATION.md)** - Mobile implementation details
-- **[MOBILE_READINESS.md](../MOBILE_READINESS.md)** - Mobile readiness checklist
+- **[CAPACITOR_NATIVE_GUIDE.md](_archive/root/CAPACITOR_NATIVE_GUIDE.md)** - Capacitor native features (historical)
+- **[MOBILE_IMPLEMENTATION.md](/docs/_archive/root/MOBILE_IMPLEMENTATION.md)** - Mobile implementation details (historical)
+- **[MOBILE_READINESS.md](_archive/root/MOBILE_READINESS.md)** - Mobile readiness checklist (historical)
 
 ---
 
@@ -87,12 +87,12 @@ npm run storybook
 
 ### Feature-Specific
 - **[AI_CONCIERGE_SETUP.md](AI_CONCIERGE_SETUP.md)** - AI concierge implementation
-- **[GOOGLE_MAPS_PLACES_INTEGRATION.md](../GOOGLE_MAPS_PLACES_INTEGRATION.md)** - Maps integration
-- **[AUTHENTICATION_SETUP.md](../AUTHENTICATION_SETUP.md)** - Auth setup guide
+- **[GOOGLE_MAPS_PLACES_INTEGRATION.md](/docs/ACTIVE/GOOGLE_MAPS_PLACES_INTEGRATION.md)** - Maps integration
+- **[AUTHENTICATION_SETUP.md](/docs/ACTIVE/AUTHENTICATION_SETUP.md)** - Auth setup guide
 
 ### Testing
 - **[CI_CD_SETUP.md](CI_CD_SETUP.md)** - CI/CD pipeline setup
-- **[IOS_TESTING_CHECKLIST.md](../IOS_TESTING_CHECKLIST.md)** - iOS testing
+- **[IOS_TESTING_CHECKLIST.md](/docs/ACTIVE/IOS_TESTING_CHECKLIST.md)** - iOS testing
 
 ---
 
@@ -105,7 +105,7 @@ npm run storybook
 
 ### Enterprise Features
 - **[ADVERTISER_SYSTEM.md](ADVERTISER_SYSTEM.md)** - Advertiser system
-- **[ENTERPRISE_TEAM_TAB_FEATURES.md](../ENTERPRISE_TEAM_TAB_FEATURES.md)** - Enterprise features
+- **[ENTERPRISE_TEAM_TAB_FEATURES.md](/docs/_archive/root/ENTERPRISE_TEAM_TAB_FEATURES.md)** - Enterprise features (historical)
 
 ---
 
@@ -113,11 +113,11 @@ npm run storybook
 
 ### Quick References
 - **[SUPABASE_QUICK_REFERENCE.md](SUPABASE_QUICK_REFERENCE.md)** - Supabase commands and patterns
-- **[CODEBASE_MAP.md](../CODEBASE_MAP.md)** - Codebase structure
+- **[CODEBASE_MAP.md](/docs/ACTIVE/CODEBASE_MAP.md)** - Codebase structure
 
 ### Handoff Documents
 - **[HANDOFF.md](HANDOFF.md)** - General handoff guide
-- **[DEVELOPER_HANDOFF_AVATAR.md](../DEVELOPER_HANDOFF_AVATAR.md)** - Avatar feature handoff
+- **[DEVELOPER_HANDOFF_AVATAR.md](/docs/_archive/root/DEVELOPER_HANDOFF_AVATAR.md)** - Avatar feature handoff (historical)
 
 ---
 

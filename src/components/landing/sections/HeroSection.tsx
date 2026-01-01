@@ -14,11 +14,25 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)',
       }}
     >
-      {/* NO top-right auth button - CTA is centered in hero content below */}
+      {/* Top-right Sign up / Log in button - hidden on mobile, visible on md+ */}
+      <div
+        className="absolute right-2 w-auto z-10 hidden md:block"
+        style={{
+          top: 'calc(env(safe-area-inset-top, 0px) + 8px)',
+        }}
+      >
+        <Button
+          size="sm"
+          onClick={onSignUp}
+          className="text-xs px-2 py-1 bg-black/40 hover:bg-black/50 backdrop-blur-md border border-white/10 text-white shadow-lg h-7"
+        >
+          Sign up / Log in
+        </Button>
+      </div>
 
-      {/* Brand Name - Category label style (75% of original size) */}
-      <div className="w-full flex items-center justify-center px-2 md:px-4 mb-4 md:mb-6">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-bold text-white leading-tight animate-fade-in text-center w-full">
+      {/* Brand Name - Centered, no padding shifts */}
+      <div className="w-full flex items-center justify-center px-2 md:px-4 mb-6 md:mb-8">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight animate-fade-in text-center w-full">
           ChravelApp
         </h1>
       </div>

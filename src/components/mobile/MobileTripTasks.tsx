@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Check, Trash2 } from 'lucide-react';
+import { Plus, Check } from 'lucide-react';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { TaskSkeleton } from './SkeletonLoader';
@@ -9,6 +9,7 @@ import { useTripTasks } from '../../hooks/useTripTasks';
 import { useAuth } from '../../hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDemoMode } from '../../hooks/useDemoMode';
+import { SwipeableListItem } from './SwipeableListItem';
 
 interface MobileTripTasksProps {
   tripId: string;
@@ -17,12 +18,11 @@ interface MobileTripTasksProps {
 export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showCompleted, setShowCompleted] = useState(true);
-  const [swipedTaskId, setSwipedTaskId] = useState<string | null>(null);
-  
+
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const queryClient = useQueryClient();
-  const { tasks, isLoading, toggleTaskMutation } = useTripTasks(tripId);
+  const { tasks, isLoading, toggleTaskMutation, deleteTaskMutation } = useTripTasks(tripId);
 
   const { isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: async () => {
@@ -52,9 +52,7 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
 
   const handleDeleteTask = async (taskId: string) => {
     await hapticService.heavy();
-    setSwipedTaskId(null);
-    // Note: Delete functionality would need to be added to useTripTasks hook
-    // For now, just close the swipe
+    deleteTaskMutation.mutate(taskId);
   };
 
   const activeTasks = tasks.filter(t => !isTaskCompleted(t));
@@ -98,78 +96,37 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
                 <p>No tasks yet. Tap + to add one!</p>
               </div>
             )}
-            {activeTasks.map((task) => {
-              const isSwiped = swipedTaskId === task.id;
-              
-              return (
-                <div
-                  key={task.id}
-                  className="relative overflow-hidden rounded-xl"
-                  onTouchStart={(e) => {
-                    const startX = e.touches[0].clientX;
-                    const handleTouchMove = (moveEvent: TouchEvent) => {
-                      const currentX = moveEvent.touches[0].clientX;
-                      const diff = startX - currentX;
-                      if (diff > 80) {
-                        setSwipedTaskId(task.id);
-                        hapticService.light();
-                      }
-                    };
-                    const handleTouchEnd = () => {
-                      document.removeEventListener('touchmove', handleTouchMove);
-                      document.removeEventListener('touchend', handleTouchEnd);
-                    };
-                    document.addEventListener('touchmove', handleTouchMove);
-                    document.addEventListener('touchend', handleTouchEnd);
-                  }}
-                  onClick={() => {
-                    if (isSwiped) setSwipedTaskId(null);
-                  }}
-                >
-                  {/* Delete button revealed on swipe */}
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 bg-red-500/20">
+            {activeTasks.map((task) => (
+              <SwipeableListItem
+                key={task.id}
+                onDelete={() => handleDeleteTask(task.id)}
+                className="rounded-xl"
+              >
+                <div className="bg-white/10 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteTask(task.id);
-                      }}
-                      className="p-3 bg-red-500 rounded-lg"
+                      onClick={() => handleToggleTask(task.id)}
+                      className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full border-2 border-gray-400 flex items-center justify-center active:scale-95 transition-transform"
                     >
-                      <Trash2 size={18} className="text-white" />
+                      {isTaskCompleted(task) && <Check size={14} className="text-white" />}
                     </button>
-                  </div>
-
-                  {/* Task content */}
-                  <div
-                    className={`bg-white/10 rounded-xl p-4 transition-transform ${
-                      isSwiped ? '-translate-x-24' : 'translate-x-0'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <button
-                        onClick={() => handleToggleTask(task.id)}
-                        className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full border-2 border-gray-400 flex items-center justify-center active:scale-95 transition-transform"
-                      >
-                        {isTaskCompleted(task) && <Check size={14} className="text-white" />}
-                      </button>
-                      <div className="flex-1">
-                        <h4 className="text-white font-medium">{task.title}</h4>
-                        <div className="flex items-center gap-3 mt-1">
-                          {task.description && (
-                            <span className="text-xs text-gray-400 line-clamp-1">{task.description}</span>
-                          )}
-                          {task.due_at && (
-                            <span className="text-xs text-orange-400">
-                              {new Date(task.due_at).toLocaleDateString()}
-                            </span>
-                          )}
-                        </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-white font-medium truncate">{task.title}</h4>
+                      <div className="flex items-center gap-3 mt-1 flex-wrap">
+                        {task.description && (
+                          <span className="text-xs text-gray-400 line-clamp-1 break-words min-w-0">{task.description}</span>
+                        )}
+                        {task.due_at && (
+                          <span className="text-xs text-orange-400 flex-shrink-0">
+                            {new Date(task.due_at).toLocaleDateString()}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
-              );
-            })}
+              </SwipeableListItem>
+            ))}
           </div>
         )}
 
@@ -203,10 +160,10 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
                       >
                         <Check size={14} className="text-white" />
                       </button>
-                      <div className="flex-1">
-                        <h4 className="text-gray-300 line-through">{task.title}</h4>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-gray-300 line-through break-words">{task.title}</h4>
                         {task.description && (
-                          <span className="text-xs text-gray-500 line-clamp-1">{task.description}</span>
+                          <span className="text-xs text-gray-500 line-clamp-1 break-words min-w-0">{task.description}</span>
                         )}
                       </div>
                     </div>

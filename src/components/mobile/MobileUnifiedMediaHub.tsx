@@ -8,10 +8,13 @@ import { useMediaManagement } from '../../hooks/useMediaManagement';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { MediaGridItem } from './MediaGridItem';
 import { SwipeableListItem } from './SwipeableListItem';
+import { MediaViewerModal, type MediaViewerItem } from '../media/MediaViewerModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { createTripLink } from '@/services/tripLinksService';
 import { toast } from 'sonner';
+import { TripMediaRenderer } from '@/components/media/TripMediaRenderer';
+import { getUploadContentType } from '@/utils/mime';
 
 interface MediaItem {
   id: string;
@@ -22,6 +25,8 @@ interface MediaItem {
   uploadedAt: Date;
   filename?: string;
   fileSize?: string;
+  mimeType?: string | null;
+  metadata?: unknown;
 }
 
 interface MobileUnifiedMediaHubProps {
@@ -105,7 +110,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       tags?: string[];
     }>
   >([]);
-  const [activeVideo, setActiveVideo] = useState<string | null>(null);
+  // Track active media index for swipe navigation (-1 means no viewer open)
+  const [activeMediaIndex, setActiveMediaIndex] = useState<number>(-1);
   const [itemToDelete, setItemToDelete] = useState<MediaItem | null>(null);
   const [linkToDelete, setLinkToDelete] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -149,6 +155,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
         uploadedAt: new Date(item.created_at),
         filename: item.filename,
         fileSize: undefined,
+        mimeType: item.mime_type ?? null,
+        metadata: item.metadata ?? undefined,
       }));
 
     // In demo mode, allow the user to “upload” and see items immediately without server persistence.
@@ -158,6 +166,22 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
   const combinedLinks = useMemo(() => {
     return isDemoMode ? [...demoLocalLinks, ...linkItems] : linkItems;
   }, [demoLocalLinks, isDemoMode, linkItems]);
+
+  // Filter for swipeable media (images and videos only)
+  const swipeableMedia = useMemo(() => {
+    return mediaItems.filter(item => item.type === 'image' || item.type === 'video');
+  }, [mediaItems]);
+
+  // Convert MediaItem to MediaViewerItem for the modal
+  const viewerItems: MediaViewerItem[] = useMemo(() => {
+    return swipeableMedia.map(item => ({
+      id: item.id,
+      url: item.url,
+      mimeType: item.mimeType || (item.type === 'video' ? 'video/mp4' : 'image/jpeg'),
+      fileName: item.filename,
+      metadata: item.metadata,
+    }));
+  }, [swipeableMedia]);
 
   // Calculate counts for each tab
   const photosCount = mediaItems.filter(item => item.type === 'image').length;
@@ -248,7 +272,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       const uploadedUrls: string[] = [];
 
       for (const file of Array.from(files)) {
-        const mime = file.type || '';
+        const contentType = getUploadContentType(file);
+        const mime = contentType || '';
         // Check extension for video detection (Files app may not set MIME type correctly)
         const isVideoByExtension = /\.(mp4|mov|m4v|avi|webm|mkv)$/i.test(file.name);
         const detected: 'image' | 'video' | 'document' =
@@ -278,7 +303,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           .upload(storagePath, file, {
             cacheControl: '3600',
             upsert: false,
-            contentType: file.type || 'application/octet-stream',
+            contentType,
           });
 
         if (uploadError) {
@@ -297,7 +322,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           filename: file.name,
           media_type: finalType,
           file_size: file.size,
-          mime_type: file.type,
+          mime_type: contentType,
           metadata: {
             upload_path: storagePath,
             uploaded_by: pre.userId,
@@ -669,8 +694,10 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                     <MediaGridItem
                       item={item}
                       onPress={() => {
-                        if (item.type === 'video') {
-                          setActiveVideo(item.url);
+                        // Find index in swipeableMedia array for navigation
+                        const swipeIndex = swipeableMedia.findIndex(m => m.id === item.id);
+                        if (swipeIndex !== -1) {
+                          setActiveMediaIndex(swipeIndex);
                         }
                       }}
                       onLongPress={() => {
@@ -766,37 +793,14 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
         )}
       </div>
 
-      {/* Video Player Modal */}
-      {activeVideo && (
-        <div
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-          onClick={() => setActiveVideo(null)}
-        >
-          <button
-            className="absolute top-4 right-4 z-10 text-white bg-white/20 rounded-full p-2"
-            onClick={() => setActiveVideo(null)}
-          >
-            <X size={24} />
-          </button>
-          {/* iOS CRITICAL: muted required for autoplay, user can unmute via controls */}
-          <video
-            src={activeVideo}
-            controls
-            autoPlay
-            playsInline
-            muted
-            controlsList="nodownload"
-            preload="metadata"
-            className="max-w-full max-h-full"
-            style={{
-              maxWidth: '100vw',
-              maxHeight: '100vh',
-              width: 'auto',
-              height: 'auto',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
+      {/* Media Viewer Modal - With swipe navigation */}
+      {activeMediaIndex >= 0 && viewerItems.length > 0 && (
+        <MediaViewerModal
+          items={viewerItems}
+          initialIndex={activeMediaIndex}
+          onClose={() => setActiveMediaIndex(-1)}
+          onIndexChange={(newIndex) => setActiveMediaIndex(newIndex)}
+        />
       )}
 
       {/* Delete Confirmation Modal */}

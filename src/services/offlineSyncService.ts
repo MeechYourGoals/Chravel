@@ -13,14 +13,13 @@
  * - Automatic sync when connection restored
  */
 
-import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { supabase } from '@/integrations/supabase/client';
+import { getOfflineDb } from '@/offline/db';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type SyncEntityType = 'chat_message' | 'task' | 'calendar_event';
+export type SyncEntityType = 'chat_message' | 'task' | 'calendar_event' | 'poll_vote';
 
 export type SyncOperationType = 'create' | 'update' | 'delete';
 
@@ -46,70 +45,18 @@ export interface CachedEntity {
   version?: number;
 }
 
-// ============================================================================
-// IndexedDB Schema
-// ============================================================================
-
-interface OfflineSyncDB extends DBSchema {
-  syncQueue: {
-    key: string;
-    value: QueuedSyncOperation;
-    indexes: {
-      'by-status': string;
-      'by-timestamp': number;
-      'by-trip': string;
-      'by-entity-type': string;
-    };
-  };
-  cache: {
-    key: string; // `${entityType}:${entityId}`
-    value: CachedEntity;
-    indexes: {
-      'by-trip': string;
-      'by-entity-type': string;
-      'by-cached-at': number;
-    };
-  };
-}
-
-const DB_NAME = 'chravel-offline-sync';
-const DB_VERSION = 1;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 5000; // 5 seconds
 const CACHE_EXPIRY_DAYS = 30;
 const CACHE_EXPIRY_MS = CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
 
-let dbInstance: IDBPDatabase<OfflineSyncDB> | null = null;
-
 // ============================================================================
 // Database Initialization
 // ============================================================================
 
-async function getDB(): Promise<IDBPDatabase<OfflineSyncDB>> {
-  if (dbInstance) return dbInstance;
-
-  dbInstance = await openDB<OfflineSyncDB>(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      // Sync Queue Store
-      if (!db.objectStoreNames.contains('syncQueue')) {
-        const queueStore = db.createObjectStore('syncQueue', { keyPath: 'id' });
-        queueStore.createIndex('by-status', 'status');
-        queueStore.createIndex('by-timestamp', 'timestamp');
-        queueStore.createIndex('by-trip', 'tripId');
-        queueStore.createIndex('by-entity-type', 'entityType');
-      }
-
-      // Cache Store
-      if (!db.objectStoreNames.contains('cache')) {
-        const cacheStore = db.createObjectStore('cache', { keyPath: 'id' });
-        cacheStore.createIndex('by-trip', 'tripId');
-        cacheStore.createIndex('by-entity-type', 'entityType');
-        cacheStore.createIndex('by-cached-at', 'cachedAt');
-      }
-    },
-  });
-
-  return dbInstance;
+async function getDB() {
+  // Single source of truth for offline DB schema/migrations.
+  return await getOfflineDb();
 }
 
 // ============================================================================
@@ -128,6 +75,11 @@ class OfflineSyncService {
     entityId?: string,
     version?: number
   ): Promise<string> {
+    // Guardrail: never allow basecamp writes via offline queue.
+    if (entityType === ('basecamp' as any)) {
+      throw new Error('Basecamp updates are not supported offline.');
+    }
+
     const db = await getDB();
     const queueId = `sync_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -162,9 +114,9 @@ class OfflineSyncService {
     let operations: QueuedSyncOperation[];
 
     if (filters?.status) {
-      operations = await db.getAllFromIndex('syncQueue', 'by-status', filters.status);
+      operations = (await db.getAllFromIndex('syncQueue', 'by-status', filters.status)) as QueuedSyncOperation[];
     } else {
-      operations = await db.getAll('syncQueue');
+      operations = (await db.getAll('syncQueue')) as QueuedSyncOperation[];
     }
 
     // Apply additional filters
@@ -204,11 +156,11 @@ class OfflineSyncService {
 
     if (!operation) return null;
 
-    const updated: QueuedSyncOperation = {
+    const updated = {
       ...operation,
       status,
       retryCount: incrementRetry ? operation.retryCount + 1 : operation.retryCount,
-    };
+    } as QueuedSyncOperation;
 
     await db.put('syncQueue', updated);
     return updated;
@@ -223,7 +175,9 @@ class OfflineSyncService {
 
     return pending.filter(op => {
       const timeSinceQueued = now - op.timestamp;
-      const retryDelay = RETRY_DELAY * (op.retryCount + 1);
+      // Process new operations immediately; apply backoff only between retries.
+      if (op.retryCount === 0) return true;
+      const retryDelay = RETRY_DELAY * op.retryCount;
       return timeSinceQueued >= retryDelay && op.retryCount < MAX_RETRIES;
     });
   }
@@ -276,10 +230,10 @@ class OfflineSyncService {
 
     if (entityType) {
       const allCached = await db.getAllFromIndex('cache', 'by-entity-type', entityType);
-      cached = allCached.filter(c => c.tripId === tripId);
+      cached = (allCached.filter(c => c.tripId === tripId)) as CachedEntity[];
     } else {
       const allCached = await db.getAllFromIndex('cache', 'by-trip', tripId);
-      cached = allCached;
+      cached = allCached as CachedEntity[];
     }
 
     // Filter expired entries
@@ -307,7 +261,7 @@ class OfflineSyncService {
       return null;
     }
 
-    return cached;
+    return cached as CachedEntity;
   }
 
   /**
@@ -365,6 +319,7 @@ class OfflineSyncService {
       onTaskCreate?: (tripId: string, data: any) => Promise<any>;
       onTaskUpdate?: (entityId: string, data: any) => Promise<any>;
       onTaskToggle?: (entityId: string, data: any) => Promise<any>;
+      onPollVote?: (pollId: string, data: any) => Promise<any>;
       onCalendarEventCreate?: (tripId: string, data: any) => Promise<any>;
       onCalendarEventUpdate?: (entityId: string, data: any) => Promise<any>;
       onCalendarEventDelete?: (entityId: string) => Promise<any>;
@@ -407,11 +362,25 @@ class OfflineSyncService {
             if (operation.operationType === 'create' && handlers.onTaskCreate) {
               result = await handlers.onTaskCreate(operation.tripId, operation.data);
               handlerRan = true;
-            } else if (operation.operationType === 'update' && handlers.onTaskUpdate) {
-              result = await handlers.onTaskUpdate(operation.entityId!, operation.data);
-              handlerRan = true;
-            } else if (operation.operationType === 'update' && operation.data.completed !== undefined && handlers.onTaskToggle) {
-              result = await handlers.onTaskToggle(operation.entityId!, operation.data);
+              break;
+            }
+
+            if (operation.operationType === 'update') {
+              // IMPORTANT: Prioritize toggles over generic updates.
+              // Task completion is stored in `task_status` via `toggle_task_status` RPC, not on `trip_tasks`.
+              if (operation.data?.completed !== undefined && handlers.onTaskToggle) {
+                result = await handlers.onTaskToggle(operation.entityId!, operation.data);
+                handlerRan = true;
+              } else if (handlers.onTaskUpdate) {
+                result = await handlers.onTaskUpdate(operation.entityId!, operation.data);
+                handlerRan = true;
+              }
+            }
+            break;
+
+          case 'poll_vote':
+            if (operation.operationType === 'create' && handlers.onPollVote) {
+              result = await handlers.onPollVote(operation.entityId!, operation.data);
               handlerRan = true;
             }
             break;

@@ -55,9 +55,7 @@ export interface ExportTripData {
   }>;
   roster?: Array<{
     name: string;
-    email?: string;
     role?: string;
-    avatar_url?: string;
   }>;
   broadcasts?: Array<{
     message: string;
@@ -76,23 +74,23 @@ export interface ExportTripData {
 
 export async function getExportData(
   tripId: string,
-  sections: ExportSection[]
+  sections: ExportSection[],
 ): Promise<ExportTripData> {
   const result: ExportTripData = {
-    trip: { title: 'Trip' }
+    trip: { title: 'Trip' },
   };
 
   // Check if this is a demo mode Pro trip
   const isDemoMode = useDemoModeStore.getState().isDemoMode;
   const mockProTrip = proTripMockData[tripId];
-  
+
   if (isDemoMode && mockProTrip) {
     // Demo mode: transform ProTripData to ExportTripData
     result.trip = {
       title: mockProTrip.title,
       destination: mockProTrip.location,
       dateRange: mockProTrip.dateRange,
-      description: mockProTrip.description
+      description: mockProTrip.description,
     };
 
     // Map Calendar from schedule
@@ -102,12 +100,16 @@ export async function getExportData(
         start_time: s.startTime || new Date().toISOString(),
         end_time: s.endTime,
         location: s.location,
-        description: s.notes
+        description: s.notes,
       }));
     }
 
     // Map Payments from settlement
-    if (sections.includes('payments') && mockProTrip.settlement && mockProTrip.settlement.length > 0) {
+    if (
+      sections.includes('payments') &&
+      mockProTrip.settlement &&
+      mockProTrip.settlement.length > 0
+    ) {
       result.payments = {
         items: mockProTrip.settlement.map(p => ({
           description: p.venue || 'Payment',
@@ -115,10 +117,10 @@ export async function getExportData(
           currency: 'USD',
           split_count: 1,
           is_settled: p.status === 'paid',
-          created_at: p.date
+          created_at: p.date,
         })),
         total: mockProTrip.settlement.reduce((sum, p) => sum + (p.finalPayout || 0), 0),
-        currency: 'USD'
+        currency: 'USD',
       };
     }
 
@@ -129,7 +131,7 @@ export async function getExportData(
         description: t.description,
         completed: t.completed,
         due_date: t.due_at,
-        assigned_to: t.assigned_to
+        assigned_to: t.assigned_to,
       }));
     }
 
@@ -139,7 +141,7 @@ export async function getExportData(
         question: p.question,
         options: p.options,
         total_votes: p.total_votes,
-        status: p.status
+        status: p.status,
       }));
     }
 
@@ -149,7 +151,7 @@ export async function getExportData(
         name: link.title,
         url: link.url,
         description: link.description,
-        votes: 0
+        votes: 0,
       }));
     }
 
@@ -160,7 +162,7 @@ export async function getExportData(
         priority: b.priority,
         timestamp: b.timestamp,
         sender: 'Team Member',
-        read_count: b.readBy?.length || 0
+        read_count: b.readBy?.length || 0,
       }));
     }
 
@@ -168,9 +170,7 @@ export async function getExportData(
     if (sections.includes('roster') && mockProTrip.roster) {
       result.roster = mockProTrip.roster.map(r => ({
         name: r.name,
-        email: r.email,
         role: r.role,
-        avatar_url: r.avatar
       }));
     }
 
@@ -190,10 +190,11 @@ export async function getExportData(
       result.trip = {
         title: trip.name || 'Trip',
         destination: trip.destination || undefined,
-        dateRange: trip.start_date && trip.end_date 
-          ? `${new Date(trip.start_date).toLocaleDateString()} - ${new Date(trip.end_date).toLocaleDateString()}`
-          : undefined,
-        description: trip.description || undefined
+        dateRange:
+          trip.start_date && trip.end_date
+            ? `${new Date(trip.start_date).toLocaleDateString()} - ${new Date(trip.end_date).toLocaleDateString()}`
+            : undefined,
+        description: trip.description || undefined,
       };
     }
 
@@ -221,7 +222,7 @@ export async function getExportData(
         result.payments = {
           items: payments,
           total,
-          currency: payments[0]?.currency || 'USD'
+          currency: payments[0]?.currency || 'USD',
         };
       }
     }
@@ -245,16 +246,18 @@ export async function getExportData(
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false });
 
-      result.tasks = tasks?.map(t => ({
-        title: t.title,
-        description: t.description || undefined,
-        completed: t.completed
-      })) || [];
+      result.tasks =
+        tasks?.map(t => ({
+          title: t.title,
+          description: t.description || undefined,
+          completed: t.completed,
+        })) || [];
     }
 
     // Fetch places/links if requested
     if (sections.includes('places')) {
-      const placesData: Array<{ name: string; url: string; description?: string; votes: number }> = [];
+      const placesData: Array<{ name: string; url: string; description?: string; votes: number }> =
+        [];
 
       // 1. Fetch Trip Basecamp from trips table
       const { data: tripBasecamp } = await supabase
@@ -268,12 +271,14 @@ export async function getExportData(
           name: `📍 Trip Base Camp: ${tripBasecamp.basecamp_name || 'Main Location'}`,
           url: `https://maps.google.com/?q=${encodeURIComponent(tripBasecamp.basecamp_address)}`,
           description: tripBasecamp.basecamp_address,
-          votes: 0
+          votes: 0,
         });
       }
 
       // 2. Fetch Personal Basecamp for current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         const { data: personalBasecamp } = await supabase
           .from('trip_personal_basecamps')
@@ -287,7 +292,7 @@ export async function getExportData(
             name: `🏠 Personal Base Camp: ${personalBasecamp.name || 'My Location'}`,
             url: `https://maps.google.com/?q=${encodeURIComponent(personalBasecamp.address)}`,
             description: `${personalBasecamp.address} (Private)`,
-            votes: 0
+            votes: 0,
           });
         }
       }
@@ -300,12 +305,16 @@ export async function getExportData(
         .order('votes', { ascending: false });
 
       if (links) {
-        placesData.push(...links.map(link => ({
-          name: link.title,
-          url: link.url,
-          description: link.category ? `[${link.category}] ${link.description || ''}` : (link.description || undefined),
-          votes: link.votes || 0
-        })));
+        placesData.push(
+          ...links.map(link => ({
+            name: link.title,
+            url: link.url,
+            description: link.category
+              ? `[${link.category}] ${link.description || ''}`
+              : link.description || undefined,
+            votes: link.votes || 0,
+          })),
+        );
       }
 
       result.places = placesData;
@@ -315,29 +324,42 @@ export async function getExportData(
     if (sections.includes('roster')) {
       const { data: members } = await supabase
         .from('trip_members')
-        .select(`
+        .select(
+          `
           role,
-          profiles:user_id (
-            display_name,
-            email,
-            avatar_url
-          )
-        `)
+          user_id
+        `,
+        )
         .eq('trip_id', tripId);
 
-      result.roster = members?.map(m => ({
-        name: (m.profiles as any)?.display_name || 'Unknown',
-        email: (m.profiles as any)?.email,
-        role: m.role || 'member',
-        avatar_url: (m.profiles as any)?.avatar_url
-      })) || [];
+      const memberIds = (members || []).map(m => m.user_id);
+      let profilesMap = new Map<string, any>();
+
+      if (memberIds.length) {
+        const { data: profiles } = await supabase
+          .from('profiles_public')
+          .select('user_id, display_name, avatar_url')
+          .in('user_id', memberIds);
+
+        profilesMap = new Map((profiles || []).map(p => [p.user_id, p]));
+      }
+
+      result.roster =
+        members?.map(m => {
+          const profile = profilesMap.get(m.user_id);
+          return {
+            name: profile?.display_name || 'Unknown',
+            role: m.role || 'member',
+          };
+        }) || [];
     }
 
     // Fetch broadcasts if requested
     if (sections.includes('broadcasts')) {
       const { data: broadcasts } = await supabase
         .from('broadcasts')
-        .select(`
+        .select(
+          `
           message,
           priority,
           created_at,
@@ -346,7 +368,8 @@ export async function getExportData(
           profiles:created_by (
             display_name
           )
-        `)
+        `,
+        )
         .eq('trip_id', tripId)
         .eq('is_sent', true)
         .order('created_at', { ascending: true });
@@ -357,7 +380,7 @@ export async function getExportData(
           priority: b.priority || 'fyi',
           timestamp: b.created_at,
           sender: (b.profiles as any)?.display_name || 'Team Member',
-          read_count: 0
+          read_count: 0,
         }));
       }
     }
@@ -366,7 +389,8 @@ export async function getExportData(
     if (sections.includes('attachments')) {
       const { data: files } = await supabase
         .from('trip_files')
-        .select(`
+        .select(
+          `
           id,
           name,
           file_type,
@@ -375,16 +399,18 @@ export async function getExportData(
           profiles:uploaded_by (
             display_name
           )
-        `)
+        `,
+        )
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false });
 
-      (result as any).attachments = files?.map(f => ({
-        name: f.name,
-        type: f.file_type,
-        uploaded_at: f.created_at,
-        uploaded_by: (f.profiles as any)?.display_name || 'Unknown'
-      })) || [];
+      (result as any).attachments =
+        files?.map(f => ({
+          name: f.name,
+          type: f.file_type,
+          uploaded_at: f.created_at,
+          uploaded_by: (f.profiles as any)?.display_name || 'Unknown',
+        })) || [];
     }
 
     return result;

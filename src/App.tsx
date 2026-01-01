@@ -1,11 +1,11 @@
 
-import React, { lazy, useEffect } from "react";
+import React, { lazy, useCallback, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./hooks/useAuth";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from "react-router-dom";
+import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { ConsumerSubscriptionProvider } from "./hooks/useConsumerSubscription";
 import { MobileAppLayout } from "./components/mobile/MobileAppLayout";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -17,7 +17,8 @@ import { supabase } from "./integrations/supabase/client";
 import { AppInitializer } from "./components/app/AppInitializer";
 import BuildBadge from "./components/BuildBadge";
 import { OfflineIndicator } from "./components/OfflineIndicator";
-import { Navigate, useParams } from "react-router-dom";
+import { attachNavigator, onNativeResume, setNativeBadgeCount } from "@/native/lifecycle";
+import { useDeepLinks } from "@/hooks/useDeepLinks";
 
 import { toast } from "@/hooks/use-toast";
 import { setupGlobalSyncProcessor } from "./services/globalSyncProcessor";
@@ -75,6 +76,7 @@ const AdvertiserDashboard = lazy(() => retryImport(() => import("./pages/Adverti
 const Healthz = lazy(() => retryImport(() => import("./pages/Healthz")));
 const PrivacyPolicy = lazy(() => retryImport(() => import("./pages/PrivacyPolicy")));
 const TermsOfService = lazy(() => retryImport(() => import("./pages/TermsOfService")));
+const DemoEntry = lazy(() => retryImport(() => import("./pages/DemoEntry")));
 const TripPreview = lazy(() => retryImport(() => import("./pages/TripPreview")));
 const AuthPage = lazy(() => retryImport(() => import("./pages/AuthPage")));
 
@@ -90,6 +92,64 @@ const queryClient = new QueryClient();
 
 // Always use BrowserRouter - Lovable preview now supports SPA routing
 const Router = BrowserRouter;
+
+const NativeLifecycleBridge = ({ client }: { client: QueryClient }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Handle deep links (Universal Links + Custom URL Scheme)
+  useDeepLinks();
+
+  // Allow native lifecycle module to route notification taps (including cold start).
+  useEffect(() => {
+    return attachNavigator(navigate);
+  }, [navigate]);
+
+  const refreshCriticalData = useCallback(async (): Promise<void> => {
+    if (!user) return;
+    // Refetch active queries when returning to foreground.
+    await client.invalidateQueries({ refetchType: 'active' });
+  }, [client, user]);
+
+  const syncBadgeCount = useCallback(async (): Promise<void> => {
+    if (!user) {
+      await setNativeBadgeCount(0);
+      return;
+    }
+
+    // Minimal badge source-of-truth: unread rows in `notifications` table.
+    // (If you later add a dedicated unread-messages aggregate, swap it in here.)
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('is_read', false);
+
+    if (error) {
+      console.error('[Lifecycle] Failed to fetch unread notifications count:', error);
+      return;
+    }
+
+    await setNativeBadgeCount(count ?? 0);
+  }, [user]);
+
+  // Run once on mount (helps cold start).
+  useEffect(() => {
+    void syncBadgeCount();
+  }, [syncBadgeCount]);
+
+  // On resume: refresh + badge sync.
+  useEffect(() => {
+    const unsubRefresh = onNativeResume(refreshCriticalData);
+    const unsubBadge = onNativeResume(syncBadgeCount);
+    return () => {
+      unsubRefresh();
+      unsubBadge();
+    };
+  }, [refreshCriticalData, syncBadgeCount]);
+
+  return null;
+};
 
 // ⚡ PERFORMANCE: Initialize demo mode synchronously at module load
 useDemoModeStore.getState().init();
@@ -121,57 +181,45 @@ const App = () => {
   }, []);
 
 
-  // Build version check for "New Version Available" toast
+  // Breaking-only version check - only triggers for true breaking changes (manually incremented)
   useEffect(() => {
-    const BUILD_VERSION_KEY = 'chravel_build_version';
-
-    const checkForNewVersion = () => {
-      const meta = document.querySelector('meta[name="build-version"]');
-      const currentVersion = meta?.getAttribute('content') || 'unknown';
-      const storedVersion = localStorage.getItem(BUILD_VERSION_KEY);
-
-      // Skip if version is placeholder or unknown
-      if (currentVersion === 'unknown' || currentVersion === '__BUILD_VERSION__') return;
-
-      // First visit - store version
-      if (!storedVersion) {
-        localStorage.setItem(BUILD_VERSION_KEY, currentVersion);
-        return;
+    const BREAKING_VERSION_KEY = 'chravel_breaking_version';
+    const CURRENT_BREAKING_VERSION = '1'; // Only increment for true breaking changes (auth, API, schema)
+    
+    const storedBreaking = localStorage.getItem(BREAKING_VERSION_KEY);
+    
+    // First visit - store and continue
+    if (!storedBreaking) {
+      localStorage.setItem(BREAKING_VERSION_KEY, CURRENT_BREAKING_VERSION);
+      return;
+    }
+    
+    // Breaking change detected - force reload silently
+    if (storedBreaking !== CURRENT_BREAKING_VERSION) {
+      console.log('[App] Breaking version change detected, reloading silently');
+      if ('caches' in window) {
+        caches.keys().then(names => Promise.all(names.map(n => caches.delete(n))));
       }
+      localStorage.setItem(BREAKING_VERSION_KEY, CURRENT_BREAKING_VERSION);
+      window.location.reload();
+    }
+  }, []);
 
-      // New version detected
-      if (currentVersion !== storedVersion) {
-        console.log('[App] New version detected:', { stored: storedVersion, current: currentVersion });
-
-        toast({
-          title: "New Version Available",
-          description: "A new version of Chravel is available. Click to reload and get the latest features.",
-          action: (
-            <button
-              onClick={async () => {
-                // Clear caches
-                if ('caches' in window) {
-                  const names = await caches.keys();
-                  await Promise.all(names.map(name => caches.delete(name)));
-                }
-                // Update stored version
-                localStorage.setItem(BUILD_VERSION_KEY, currentVersion);
-                // Reload
-                window.location.reload();
-              }}
-              className="px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              Reload Now
-            </button>
-          ),
-          duration: 30000, // Show for 30 seconds
+  // Silent update check on visibility change (native app-style updates)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && 'serviceWorker' in navigator) {
+        // Silently check for SW updates when app becomes visible
+        navigator.serviceWorker.ready.then(registration => {
+          registration.update().catch(() => {
+            // Silently ignore update check failures
+          });
         });
       }
     };
-
-    // Check on mount (slight delay to ensure DOM is ready)
-    const timeoutId = setTimeout(checkForNewVersion, 1000);
-    return () => clearTimeout(timeoutId);
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   // Chunk load failure recovery with better error detection
@@ -258,6 +306,7 @@ const App = () => {
                 <BuildBadge />
                 <OfflineIndicator />
                 <Router>
+                <NativeLifecycleBridge client={queryClient} />
                 <MobileAppLayout>
                   <Routes>
                     <Route path="/" element={
@@ -278,6 +327,11 @@ const App = () => {
                     <Route path="/demo/trip/:demoTripId" element={
                       <LazyRoute>
                         <DemoTripGate />
+                      </LazyRoute>
+                    } />
+                    <Route path="/demo" element={
+                      <LazyRoute>
+                        <DemoEntry />
                       </LazyRoute>
                     } />
                     <Route path="/auth" element={

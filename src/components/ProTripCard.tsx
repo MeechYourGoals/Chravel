@@ -1,15 +1,17 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Eye, Users, Clock, MoreHorizontal, Archive, EyeOff, UserPlus } from 'lucide-react';
+import { Calendar, MapPin, Eye, Users, Clock, MoreHorizontal, Archive, EyeOff, UserPlus, Trash2 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from './ui/button';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
+import { DeleteTripConfirmDialog } from './DeleteTripConfirmDialog';
 import { InviteModal } from './InviteModal';
 import { ProTripData } from '../types/pro';
 import { useTripVariant } from '../contexts/TripVariantContext';
-import { archiveTrip, hideTrip } from '../services/archiveService';
+import { useProTrips } from '../hooks/useProTrips';
 import { useToast } from '../hooks/use-toast';
+import { useAuth } from '../hooks/useAuth';
 import { getPeopleCountValue, formatPeopleCount, calculateDaysCount, calculateProTripPlacesCount } from '../utils/tripStatsUtils';
 import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
 import { useDemoMode } from '../hooks/useDemoMode';
@@ -25,15 +27,22 @@ const EMPTY_PARTICIPANTS: Array<{id: number | string; name: string; avatar?: str
 
 interface ProTripCardProps {
   trip: ProTripData;
+  onArchiveSuccess?: () => void;
+  onHideSuccess?: () => void;
+  onDeleteSuccess?: () => void;
 }
 
-export const ProTripCard = ({ trip }: ProTripCardProps) => {
+export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuccess }: ProTripCardProps) => {
   const navigate = useNavigate();
   const { accentColors } = useTripVariant();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
+  const { archiveTrip, hideTrip, deleteTripForMe } = useProTrips();
   
   // Get added members from the demo store - use stable empty array reference with shallow comparison
   const tripIdStr = trip.id.toString();
@@ -56,12 +65,22 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
     navigate(`/tour/pro/${trip.id}`);
   };
 
-  const handleArchiveTrip = () => {
-    archiveTrip(trip.id, 'pro');
-    toast({
-      title: "Professional trip archived",
-      description: `"${trip.title}" has been archived. View it in the Archived tab.`,
-    });
+  const handleArchiveTrip = async () => {
+    try {
+      await archiveTrip(trip.id);
+      toast({
+        title: "Professional trip archived",
+        description: `"${trip.title}" has been archived. View it in the Archived tab.`,
+      });
+      setShowArchiveDialog(false);
+      onArchiveSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Failed to archive trip",
+        description: "There was an error archiving your trip. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleHideTrip = async () => {
@@ -71,12 +90,43 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
         title: "Trip hidden",
         description: `"${trip.title}" is now hidden. Enable "Show Hidden Trips" in Settings to view it.`,
       });
+      onHideSuccess?.();
     } catch (error) {
       toast({
         title: "Failed to hide trip",
         description: "There was an error hiding your trip. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleDeleteTripForMe = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Not logged in",
+        description: "You must be logged in to manage trips.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteTripForMe({ tripId: trip.id.toString(), userId: user.id });
+      toast({
+        title: "Trip removed",
+        description: `"${trip.title}" has been removed from your account.`,
+      });
+      setShowDeleteDialog(false);
+      onDeleteSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Failed to remove trip",
+        description: "There was an error removing the trip. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -111,19 +161,26 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-background border-border">
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={() => setShowArchiveDialog(true)}
               className="text-muted-foreground hover:text-foreground"
             >
               <Archive className="mr-2 h-4 w-4" />
               Archive Trip
             </DropdownMenuItem>
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={handleHideTrip}
               className="text-muted-foreground hover:text-foreground"
             >
               <EyeOff className="mr-2 h-4 w-4" />
               Hide Trip
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setShowDeleteDialog(true)}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete for me
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -136,22 +193,14 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
         </h3>
 
         {/* Status Pills */}
-        <div className="flex flex-wrap gap-2 mb-3">
-          <div className="flex flex-wrap gap-2">
-            {trip.roster && trip.roster.length > 0 && (
-              <div className="flex items-center gap-1 bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-xs border border-blue-500/30">
-                <Users size={12} />
-                <span>Team: {trip.roster.length}</span>
-              </div>
-            )}
-            {nextLoadIn && (
-              <div className="flex items-center gap-1 bg-orange-500/20 text-orange-300 px-3 py-1 rounded-full text-xs border border-orange-500/30">
-                <Clock size={12} />
-                <span>Next Load-In: {new Date(nextLoadIn.startTime).toLocaleDateString()}</span>
-              </div>
-            )}
+        {nextLoadIn && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex items-center gap-1 bg-orange-500/20 text-orange-300 px-3 py-1 rounded-full text-xs border border-orange-500/30">
+              <Clock size={12} />
+              <span>Next Load-In: {new Date(nextLoadIn.startTime).toLocaleDateString()}</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Location */}
@@ -221,6 +270,14 @@ export const ProTripCard = ({ trip }: ProTripCardProps) => {
         onConfirm={handleArchiveTrip}
         tripTitle={trip.title}
         isArchiving={true}
+      />
+
+      <DeleteTripConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteTripForMe}
+        tripTitle={trip.title}
+        isLoading={isDeleting}
       />
 
       <InviteModal

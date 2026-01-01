@@ -97,15 +97,13 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
               <Avatar className="h-10 w-10 border-2 border-white/10">
                 <AvatarImage src={request.profile?.avatar_url} />
                 <AvatarFallback className="bg-orange-500/20 text-orange-500 text-sm">
-                  {request.profile?.display_name?.[0]?.toUpperCase() ||
-                    request.profile?.email?.[0]?.toUpperCase() ||
-                    'U'}
+                  {request.profile?.display_name?.[0]?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
 
               <div className="flex flex-col">
                 <span className="font-medium text-foreground text-sm">
-                  {request.profile?.display_name || request.profile?.email || 'Unknown User'}
+                  {request.profile?.display_name || 'Unknown User'}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   Requested {formatDistanceToNow(new Date(request.requested_at), { addSuffix: true })}
@@ -120,7 +118,7 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
                 onClick={() =>
                   handleApproveClick(
                     request.id,
-                    request.profile?.display_name || request.profile?.email || 'this user'
+                    request.profile?.display_name || 'this user'
                   )
                 }
                 disabled={isProcessing}
@@ -135,7 +133,7 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
                 onClick={() =>
                   handleRejectClick(
                     request.id,
-                    request.profile?.display_name || request.profile?.email || 'this user'
+                    request.profile?.display_name || 'this user'
                   )
                 }
                 disabled={isProcessing}

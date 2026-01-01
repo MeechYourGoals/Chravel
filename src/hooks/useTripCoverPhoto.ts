@@ -45,13 +45,23 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
 
     setIsUpdating(true);
     try {
-      const { error } = await supabase
+      // Use .select() to verify the update actually happened
+      // RLS policy "Trip creators can update their trips" handles authorization
+      const { data, error } = await supabase
         .from('trips')
         .update({ cover_image_url: photoUrl })
         .eq('id', tripId)
-        .eq('created_by', user.id);
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+
+      // Check if any row was actually updated
+      if (!data) {
+        console.error('[useTripCoverPhoto] No rows updated - user may not have permission');
+        toast.error('You don\'t have permission to update this trip\'s cover photo');
+        return false;
+      }
 
       setCoverPhoto(photoUrl);
       toast.success('Cover photo updated');
@@ -82,13 +92,23 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
 
     setIsUpdating(true);
     try {
-      const { error } = await supabase
+      // Use .select() to verify the update actually happened
+      // RLS policy handles authorization
+      const { data, error } = await supabase
         .from('trips')
         .update({ cover_image_url: null })
         .eq('id', tripId)
-        .eq('created_by', user.id);
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+
+      // Check if any row was actually updated
+      if (!data) {
+        console.error('[useTripCoverPhoto] No rows updated - user may not have permission');
+        toast.error('You don\'t have permission to update this trip\'s cover photo');
+        return false;
+      }
 
       // Optional: Delete file from storage if needed
       if (coverPhoto && coverPhoto.includes('supabase')) {

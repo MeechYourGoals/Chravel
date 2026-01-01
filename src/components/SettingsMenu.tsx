@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Bell, Crown, LogOut, Megaphone, LogIn } from 'lucide-react';
+import { X, User, LogOut, LogIn } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { ScrollArea, ScrollBar } from './ui/scroll-area';
@@ -10,36 +10,48 @@ import { ProUpgradeModal } from './ProUpgradeModal';
 import { EnterpriseSettings } from './EnterpriseSettings';
 import { ConsumerSettings } from './ConsumerSettings';
 import { EventsSettings } from './EventsSettings';
-import { ProfileSection } from './settings/ProfileSection';
+import { ErrorBoundary } from './ErrorBoundary';
 import { useTripVariant } from '../contexts/TripVariantContext';
-import { NotificationsSection } from './settings/NotificationsSection';
-import { SubscriptionSection } from './settings/SubscriptionSection';
 import { AuthModal } from './AuthModal';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { createMockDemoUser } from '../utils/authGate';
+import { useSuperAdmin } from '../hooks/useSuperAdmin';
 
 interface SettingsMenuProps {
   isOpen: boolean;
   onClose: () => void;
   initialConsumerSection?: string;
   initialSettingsType?: 'consumer' | 'enterprise' | 'events';
+  // Callback when a trip is restored/unhidden (for parent component to refresh)
+  onTripStateChange?: () => void;
 }
 
-export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialSettingsType }: SettingsMenuProps) => {
+export const SettingsMenu = ({
+  isOpen,
+  onClose,
+  initialConsumerSection,
+  initialSettingsType,
+  onTripStateChange,
+}: SettingsMenuProps) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [showProModal, setShowProModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [activeSection, setActiveSection] = useState('profile');
-  const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events'>(initialSettingsType || 'consumer');
-  const { accentColors } = useTripVariant();
+  const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events'>(
+    initialSettingsType || 'consumer',
+  );
+  const _tripVariant = useTripVariant();
   const { demoView } = useDemoMode();
+  const { isSuperAdmin } = useSuperAdmin();
 
   // In app-preview mode, use mock user if not logged in (full demo access)
   // In marketing mode or off, require real user
   const isAppPreview = demoView === 'app-preview';
   const currentUser = user || (isAppPreview ? createMockDemoUser() : null);
+
+  // Allow advertiser access for app-preview mode OR super admins
+  const canAccessAdvertiser = isAppPreview || isSuperAdmin;
 
   if (!isOpen) return null;
 
@@ -47,23 +59,36 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
   if (!currentUser) {
     return (
       <>
-        <div className={`fixed inset-0 z-50 ${isMobile ? 'bg-black' : 'bg-black/80 backdrop-blur-sm flex items-center justify-center p-4'}`} onClick={!isMobile ? onClose : undefined}>
-          <div className={`${isMobile ? 'h-full' : 'bg-card/95 backdrop-blur-xl border border-white/10 rounded-2xl max-w-md w-full'}`} onClick={(e) => e.stopPropagation()}>
+        <div
+          className={`fixed inset-0 z-50 ${isMobile ? 'bg-black' : 'bg-black/80 backdrop-blur-sm flex items-center justify-center p-4'}`}
+          onClick={!isMobile ? onClose : undefined}
+        >
+          <div
+            className={`${isMobile ? 'h-full' : 'bg-card/95 backdrop-blur-xl border border-white/10 rounded-2xl max-w-md w-full'}`}
+            onClick={e => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <h2 className="text-xl font-semibold text-white">Settings</h2>
-              <button onClick={onClose} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors">
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+              >
                 <X size={24} />
               </button>
             </div>
             {/* Login CTA */}
-            <div className={`flex flex-col items-center justify-center p-8 gap-6 text-center ${isMobile ? 'min-h-[80vh]' : ''}`}>
+            <div
+              className={`flex flex-col items-center justify-center p-8 gap-6 text-center ${isMobile ? 'min-h-[80vh]' : ''}`}
+            >
               <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center">
                 <User className="h-10 w-10 text-primary" />
               </div>
               <div>
                 <h3 className="text-xl font-bold text-white mb-2">Sign in to access settings</h3>
-                <p className="text-gray-400 text-sm">Create an account or log in to personalize your experience</p>
+                <p className="text-gray-400 text-sm">
+                  Create an account or log in to personalize your experience
+                </p>
               </div>
               <div className="flex gap-3 w-full max-w-xs">
                 {!isMobile && (
@@ -71,7 +96,11 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
                     Cancel
                   </Button>
                 )}
-                <Button onClick={() => setShowAuthModal(true)} size="lg" className={isMobile ? 'w-full' : 'flex-1'}>
+                <Button
+                  onClick={() => setShowAuthModal(true)}
+                  size="lg"
+                  className={isMobile ? 'w-full' : 'flex-1'}
+                >
                   <LogIn className="h-5 w-5 mr-2" /> Log In / Sign Up
                 </Button>
               </div>
@@ -83,48 +112,29 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
     );
   }
 
-  // Mock organization data - would come from your auth context
+  // Mock organization data - would come from your auth/org context.
+  // Note: Settings should never hard-crash if org data is missing; we provide safe fallbacks.
   const userOrganization = {
     id: 'org-123',
     name: 'Acme Entertainment Group',
     role: 'owner',
-    hasProAccess: true
+    hasProAccess: true,
   };
-
-  // If enterprise section is active and user has pro access, show full enterprise settings
-  if (activeSection === 'enterprise' && userOrganization?.hasProAccess) {
-    return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-0 md:p-4" onClick={onClose}>
-        <div
-          className="w-full h-full md:h-[85vh] md:max-w-6xl bg-black/90 md:bg-white/10 md:backdrop-blur-md md:border md:border-white/20 md:rounded-2xl shadow-2xl flex flex-col animate-fade-in overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between p-4 md:p-6 border-b border-white/20">
-            <h2 className="text-xl font-semibold text-white">Enterprise Settings</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors">
-              <X size={24} />
-            </button>
-          </div>
-          <EnterpriseSettings
-            organizationId={userOrganization.id}
-            currentUserId={currentUser.id}
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-0 md:p-4" onClick={onClose}>
+      <div
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-0 md:p-4"
+        onClick={onClose}
+      >
         <div
           className="w-full h-full md:h-[85vh] md:max-w-6xl bg-black/90 md:bg-card/95 md:backdrop-blur-xl md:border md:border-white/10 md:rounded-2xl shadow-2xl flex flex-col animate-fade-in overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
         >
           {/* Combined Header with Settings Type Toggle */}
           <div className="flex-shrink-0 flex items-center justify-between p-3 md:px-4 md:py-3 border-b border-white/10 bg-black/20 gap-3">
             <h2 className="text-lg font-semibold text-white whitespace-nowrap">Settings</h2>
-            
+
             {/* Settings Type Tabs */}
             <ScrollArea className="flex-1">
               <div className="flex items-center justify-center gap-1 md:gap-2">
@@ -159,16 +169,16 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
                   Events
                 </button>
                 <button
-                  onClick={() => isAppPreview && navigate('/advertiser')}
-                  disabled={!isAppPreview}
+                  onClick={() => canAccessAdvertiser && navigate('/advertiser')}
+                  disabled={!canAccessAdvertiser}
                   className={`py-2 px-4 rounded-lg text-sm font-medium whitespace-nowrap flex items-center gap-1 transition-all ${
-                    isAppPreview
+                    canAccessAdvertiser
                       ? 'text-gray-400 hover:text-white hover:bg-white/5'
                       : 'text-gray-500 cursor-not-allowed opacity-60'
                   }`}
                 >
                   Advertiser
-                  {!isAppPreview && (
+                  {!canAccessAdvertiser && (
                     <span className="text-xs bg-gray-600 text-gray-300 px-1 py-0.5 rounded-full">
                       Soon
                     </span>
@@ -177,8 +187,11 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
               </div>
               <ScrollBar orientation="horizontal" className="md:hidden" />
             </ScrollArea>
-            
-            <button onClick={onClose} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors flex-shrink-0">
+
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
+            >
               <X size={20} />
             </button>
           </div>
@@ -195,7 +208,9 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
                     </div>
                     <div>
                       <p className="text-xs text-gray-400">Signed in as</p>
-                      <p className="text-sm font-medium text-white truncate max-w-[200px]">{user.email}</p>
+                      <p className="text-sm font-medium text-white truncate max-w-[200px]">
+                        {user.email}
+                      </p>
                     </div>
                   </div>
                   <Button onClick={signOut} variant="destructive" size="sm">
@@ -215,28 +230,36 @@ export const SettingsMenu = ({ isOpen, onClose, initialConsumerSection, initialS
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {settingsType === 'consumer' ? (
               <div className="flex-1 min-h-0">
-                <ConsumerSettings currentUserId={currentUser.id} initialSection={initialConsumerSection} onClose={onClose} />
+                <ErrorBoundary compact>
+                  <ConsumerSettings
+                    currentUserId={currentUser.id}
+                    initialSection={initialConsumerSection}
+                    onClose={onClose}
+                    onTripStateChange={onTripStateChange}
+                  />
+                </ErrorBoundary>
               </div>
             ) : settingsType === 'enterprise' ? (
               <div className="flex-1 min-h-0">
-                <EnterpriseSettings 
-                  organizationId={userOrganization?.id || 'default-org'} 
-                  currentUserId={currentUser.id} 
-                />
+                <ErrorBoundary compact>
+                  <EnterpriseSettings
+                    organizationId={userOrganization?.id || 'default-org'}
+                    currentUserId={currentUser.id}
+                  />
+                </ErrorBoundary>
               </div>
             ) : settingsType === 'events' ? (
               <div className="flex-1 min-h-0">
-                <EventsSettings currentUserId={currentUser?.id || ''} />
+                <ErrorBoundary compact>
+                  <EventsSettings currentUserId={currentUser?.id || ''} />
+                </ErrorBoundary>
               </div>
             ) : null}
           </div>
         </div>
       </div>
 
-      <ProUpgradeModal 
-        isOpen={showProModal} 
-        onClose={() => setShowProModal(false)} 
-      />
+      <ProUpgradeModal isOpen={showProModal} onClose={() => setShowProModal(false)} />
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
   );

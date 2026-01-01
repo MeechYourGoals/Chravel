@@ -1,7 +1,7 @@
 /**
  * Platform-agnostic push notification handling
  * Web: Uses Web Push API / Service Workers
- * Mobile: Will use Capacitor Push Notifications plugin
+ * Mobile: Implemented by the native shell (e.g., via Capacitor plugins)
  */
 
 export interface PushNotificationToken {

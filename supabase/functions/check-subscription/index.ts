@@ -1,3 +1,10 @@
+/**
+ * Stripe Subscription Checker
+ * 
+ * Checks user's subscription status and returns tier information.
+ * Account: christian@chravelapp.com (TEST MODE)
+ */
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
@@ -7,6 +14,20 @@ import { sanitizeErrorForClient, logError } from "../_shared/errorHandling.ts";
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
+};
+
+// ============================================================
+// PRODUCT IDS - UPDATE THESE AFTER CREATING PRODUCTS IN STRIPE
+// ============================================================
+const PRODUCT_TO_TIER: Record<string, string> = {
+  // Consumer Plans - ChravelApp Plus
+  'prod_Tc0SWNhLkoCDIi': 'explorer',
+  'prod_Tc0WEzRDTCkfPM': 'frequent-chraveler',
+  
+  // Pro Plans - ChravelApp Pro
+  'prod_Tc0YVR1N0fmtDG': 'pro-starter',
+  'prod_Tc0afc0pIUt87D': 'pro-growth',
+  'prod_Tc0cJshKNpvxV0': 'pro-enterprise',
 };
 
 serve(async (req) => {
@@ -29,15 +50,13 @@ serve(async (req) => {
     }
     logStep("Stripe key verified");
 
+    // Authenticate user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return createErrorResponse('Authentication required', 401);
     }
-    logStep("Authorization header found");
 
     const token = authHeader.replace("Bearer ", "");
-    logStep("Authenticating user with token");
-    
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !userData.user?.email) {
       return createErrorResponse('Unauthorized', 401);
@@ -45,94 +64,90 @@ serve(async (req) => {
     const user = userData.user;
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" });
+    // Initialize Stripe
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    
+    // Find customer by email
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found, updating unsubscribed state");
-      return createSecureResponse({ subscribed: false });
+      logStep("No Stripe customer found");
+      return createSecureResponse({ 
+        subscribed: false, 
+        tier: 'free',
+        product_id: null,
+        subscription_end: null 
+      });
     }
 
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
-    // Update profile with stripe_customer_id if not set
+    // Update private profile with stripe_customer_id
     await supabaseClient
-      .from('profiles')
-      .update({ stripe_customer_id: customerId })
-      .eq('user_id', user.id);
+      .from('private_profiles')
+      .upsert({ id: user.id, stripe_customer_id: customerId })
+      .select();
 
+    // Check for active subscription
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
       limit: 1,
     });
     
-    const hasActiveSub = subscriptions.data.length > 0;
-    let productId = null;
-    let subscriptionEnd = null;
-
-    if (hasActiveSub) {
-      const subscription = subscriptions.data[0];
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
+    if (subscriptions.data.length === 0) {
+      logStep("No active subscription");
       
-      productId = subscription.items.data[0].price.product as string;
-      
-      // Determine tier from product ID
-      let tier = 'free';
-      if (productId === 'prod_TBD_EXPLORER') tier = 'explorer';
-      else if (productId === 'prod_TBD_FREQUENT_CHRAVELER') tier = 'frequent-chraveler';
-      else if (productId === 'prod_TBD_PRO') tier = 'frequent-chraveler'; // Legacy consumer Pro -> Frequent Chraveler
-      else if (productId === 'prod_TBD_UNLIMITED') tier = 'frequent-chraveler'; // Legacy Unlimited -> Frequent Chraveler
-      else if (productId === 'prod_TBIgoaG5RiY45u') tier = 'explorer'; // Legacy Plus -> Explorer
-      else if (productId === 'prod_TBD_STARTER') tier = 'explorer'; // Legacy Starter -> Explorer
-      else if (productId.startsWith('prod_TBIi')) tier = 'pro'; // Organization Pro products (separate from consumer tier)
-      
-      logStep("Determined subscription tier", { productId, tier });
-
-      // Update profile with subscription info
+      // Clear subscription info
       await supabaseClient
         .from('profiles')
         .update({ 
-          subscription_product_id: productId,
+          subscription_product_id: null,
+          subscription_status: null,
+          subscription_end: null 
         })
-        .eq('user_id', user.id);
-
-      // Grant pro role if it's a pro product
-      if (tier === 'pro') {
-        await supabaseClient
-          .from('user_roles')
-          .upsert({ user_id: user.id, role: 'pro' }, {
-            onConflict: 'user_id,role',
-            ignoreDuplicates: true
-          })
-          .select();
-        logStep("Pro role granted");
-      }
-      
-      return createSecureResponse({
-        subscribed: hasActiveSub,
-        product_id: productId,
-        tier: tier,
-        subscription_end: subscriptionEnd
-      });
-    } else {
-      logStep("No active subscription found");
-      
-      // Remove subscription info
-      await supabaseClient
-        .from('profiles')
-        .update({ subscription_product_id: null })
         .eq('user_id', user.id);
         
       return createSecureResponse({
         subscribed: false,
-        product_id: null,
         tier: 'free',
+        product_id: null,
         subscription_end: null
       });
     }
+
+    // Process active subscription
+    const subscription = subscriptions.data[0];
+    const productId = subscription.items.data[0].price.product as string;
+    const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+    
+    // Determine tier from product ID
+    const tier = PRODUCT_TO_TIER[productId] || 'free';
+    logStep("Active subscription found", { 
+      subscriptionId: subscription.id, 
+      productId, 
+      tier,
+      endDate: subscriptionEnd 
+    });
+
+    // Update profile with subscription info
+    await supabaseClient
+      .from('profiles')
+      .update({ 
+        subscription_product_id: productId,
+        subscription_status: subscription.status,
+        subscription_end: subscriptionEnd,
+      })
+      .eq('user_id', user.id);
+
+    return createSecureResponse({
+      subscribed: true,
+      tier: tier,
+      product_id: productId,
+      subscription_end: subscriptionEnd
+    });
+    
   } catch (error) {
     logError('CHECK_SUBSCRIPTION', error);
     return createErrorResponse(sanitizeErrorForClient(error), 500);

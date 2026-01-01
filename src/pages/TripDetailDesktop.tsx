@@ -29,6 +29,7 @@ import { Message } from '../types/messages';
 import { ExportSection } from '../types/tripExport';
 import { supabase } from '../integrations/supabase/client';
 import { openOrDownloadBlob } from '../utils/download';
+import { orderExportSections } from '../utils/exportSectionOrder';
 import { toast } from 'sonner';
 import { demoModeService } from '../services/demoModeService';
 import TripSpecificMockDataService from '../services/tripSpecificMockDataService';
@@ -258,6 +259,7 @@ export const TripDetailDesktop = () => {
 
   // Handle export functionality
   const handleExport = async (sections: ExportSection[]) => {
+    const orderedSections = orderExportSections(sections);
     try {
       // Pre-open a window on iOS Safari to avoid popup blocking for blob URLs
       let preOpenedWindow: Window | null = null;
@@ -269,9 +271,9 @@ export const TripDetailDesktop = () => {
           preOpenedWindow = window.open('', '_blank');
           if (preOpenedWindow) {
             preOpenedWindow.document.write(
-              '<html><head><title>Generating PDF…</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>' +
+              '<html><head><title>Creating your Recap…</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>' +
               '<body style="font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial; padding: 16px; color: #e5e7eb; background: #111827">' +
-              '<div>Generating PDF…</div></body></html>'
+              '<div>Creating your Recap…</div></body></html>'
             );
           }
         }
@@ -279,11 +281,13 @@ export const TripDetailDesktop = () => {
         // Non-fatal; continue without pre-open
       }
 
-      toast.info('Generating PDF...');
+      toast.info('Creating Recap...');
       const isMockTrip = tripId && /^\d+$/.test(tripId);
       let blob: Blob;
 
       if (isMockTrip) {
+        const mockCalendar = demoModeService.getMockCalendarEvents(tripId || '1');
+        const mockAttachments = demoModeService.getMockAttachments(tripId || '1');
         // ⚡ OPTIMIZATION: Use synchronous mock data methods (no await needed)
         const mockPayments = demoModeService.getMockPayments(tripId || '1');
         const mockPolls = demoModeService.getMockPolls(tripId || '1');
@@ -304,19 +308,19 @@ export const TripDetailDesktop = () => {
             destination: tripWithUpdatedData.location,
             dateRange: tripWithUpdatedData.dateRange,
             description: tripWithUpdatedData.description,
-            calendar: sections.includes('calendar') ? mockItinerary : undefined,
-            payments: sections.includes('payments') && mockPayments.length > 0 ? {
+            calendar: orderedSections.includes('calendar') ? mockCalendar : undefined,
+            payments: orderedSections.includes('payments') && mockPayments.length > 0 ? {
               items: mockPayments,
               total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
               currency: mockPayments[0]?.currency || 'USD'
             } : undefined,
-            polls: sections.includes('polls') ? mockPolls : undefined,
-            tasks: sections.includes('tasks') ? mockTasks.map(task => ({
+            polls: orderedSections.includes('polls') ? mockPolls : undefined,
+            tasks: orderedSections.includes('tasks') ? mockTasks.map(task => ({
               title: task.title,
               description: task.description,
               completed: task.completed
             })) : undefined,
-            places: sections.includes('places') ? [
+            places: orderedSections.includes('places') ? [
               // Trip Basecamp first (from session or trip-specific data)
               ...(actualBasecamp ? [{
                 name: `📍 Trip Base Camp: ${actualBasecamp.name || 'Main Location'}`,
@@ -327,13 +331,14 @@ export const TripDetailDesktop = () => {
               // Trip-specific places from tripSpecificMockDataService
               ...mockPlaces
             ] : undefined,
-            roster: sections.includes('roster') ? mockMembers.map(m => ({
+            roster: orderedSections.includes('roster') ? mockMembers.map(m => ({
               name: m.display_name,
               email: undefined,
               role: m.role
             })) : undefined,
+            attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
           },
-          sections,
+          orderedSections,
           {
             customization: {
               compress: true,
@@ -349,7 +354,7 @@ export const TripDetailDesktop = () => {
       } else {
         // Fetch real data for Supabase trips
         const { getExportData } = await import('../services/tripExportDataService');
-        const realData = await getExportData(tripId || '', sections);
+        const realData = await getExportData(tripId || '', orderedSections);
 
         // Lazy load PDF generation (only when export is clicked)
         const { generateClientPDF } = await import('../utils/exportPdfClient');
@@ -366,8 +371,10 @@ export const TripDetailDesktop = () => {
             tasks: realData.tasks,
             places: realData.places,
             roster: realData.roster,
+            attachments: realData.attachments,
+
           },
-          sections,
+          orderedSections,
           {
             customization: {
               compress: true,
@@ -397,8 +404,8 @@ export const TripDetailDesktop = () => {
       });
       toast.error(
         error instanceof Error 
-          ? `Export failed: ${error.message}` 
-          : 'Failed to export PDF'
+          ? `Recap failed: ${error.message}` 
+          : 'Failed to create recap'
       );
       throw error;
     }

@@ -12,6 +12,7 @@ import { PersonalBalance } from '../../services/paymentBalanceService';
 import { supabase } from '../../integrations/supabase/client';
 import { toast } from '../ui/use-toast';
 import { Loader2, CheckCircle2 } from 'lucide-react';
+import * as haptics from '@/native/haptics';
 
 interface ConfirmPaymentDialogProps {
   open: boolean;
@@ -63,6 +64,9 @@ export const ConfirmPaymentDialog = ({
         title: "Payment Confirmed",
         description: `You've confirmed receiving ${formatCurrency(Math.abs(balance.amountOwed))} from ${balance.userName}`,
       });
+
+      // Payment marked paid: success haptic (native-only, hard-gated).
+      void haptics.success();
 
       onOpenChange(false);
 

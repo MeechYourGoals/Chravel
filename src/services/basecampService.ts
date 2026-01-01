@@ -1,5 +1,7 @@
 import { supabase } from '../integrations/supabase/client';
 import { BasecampLocation } from '../types/basecamp';
+import { systemMessageService } from './systemMessageService';
+import { cacheEntity, getCachedEntity } from '@/offline/cache';
 
 export interface TripBasecamp {
   trip_id: string;
@@ -39,11 +41,21 @@ export interface BasecampChangeHistory {
 }
 
 class BasecampService {
+  private readonly LOG_PREFIX = '[BasecampService]';
+
   /**
    * Get the trip basecamp (shared across all users)
    */
   async getTripBasecamp(tripId: string): Promise<BasecampLocation | null> {
+    console.log(this.LOG_PREFIX, 'getTripBasecamp called:', { tripId, timestamp: new Date().toISOString() });
+    
     try {
+      // Offline-first: use cached basecamp when offline.
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        const cached = await getCachedEntity({ entityType: 'trip_basecamp', entityId: tripId });
+        return (cached?.data as BasecampLocation | null | undefined) ?? null;
+      }
+
       const { data, error } = await supabase
         .from('trips')
         .select('basecamp_name, basecamp_address, basecamp_latitude, basecamp_longitude')
@@ -51,15 +63,16 @@ class BasecampService {
         .single();
 
       if (error) {
-        if (import.meta.env.DEV) console.error('Failed to get trip basecamp:', error);
+        console.error(this.LOG_PREFIX, 'getTripBasecamp error:', { tripId, error });
         return null;
       }
 
       if (!data?.basecamp_address) {
+        console.log(this.LOG_PREFIX, 'getTripBasecamp: no basecamp set for trip:', tripId);
         return null;
       }
 
-      return {
+      const result: BasecampLocation = {
         address: data.basecamp_address,
         name: data.basecamp_name || undefined,
         type: 'other',
@@ -67,8 +80,27 @@ class BasecampService {
           ? { lat: data.basecamp_latitude, lng: data.basecamp_longitude }
           : undefined
       };
+
+      console.log(this.LOG_PREFIX, 'getTripBasecamp success:', { tripId, address: result.address });
+
+      // Cache for offline access (best-effort).
+      await cacheEntity({
+        entityType: 'trip_basecamp',
+        entityId: tripId,
+        tripId,
+        data: result,
+      });
+
+      return result;
     } catch (error) {
-      if (import.meta.env.DEV) console.error('Error getting trip basecamp:', error);
+      console.error(this.LOG_PREFIX, 'getTripBasecamp exception:', { tripId, error });
+      // Fallback to cached.
+      try {
+        const cached = await getCachedEntity({ entityType: 'trip_basecamp', entityId: tripId });
+        return (cached?.data as BasecampLocation | null | undefined) ?? null;
+      } catch {
+        // ignore
+      }
       return null;
     }
   }
@@ -81,8 +113,16 @@ class BasecampService {
   async setTripBasecamp(
     tripId: string,
     basecamp: { name?: string; address: string; latitude?: number; longitude?: number },
-    options?: { skipHistory?: boolean; currentVersion?: number }
+    options?: { skipHistory?: boolean; currentVersion?: number; previousAddress?: string }
   ): Promise<{ success: boolean; error?: string; conflict?: boolean; coordinates?: { lat: number; lng: number } }> {
+    console.log(this.LOG_PREFIX, 'setTripBasecamp called:', {
+      tripId,
+      newAddress: basecamp.address,
+      newName: basecamp.name,
+      hasCoordinates: !!(basecamp.latitude && basecamp.longitude),
+      timestamp: new Date().toISOString()
+    });
+
     try {
       // Get current version if not provided
       const currentVersion = options?.currentVersion ?? await this.getBasecampVersion(tripId);
@@ -95,8 +135,15 @@ class BasecampService {
       const userId = user?.id;
       
       if (!userId) {
+        console.error(this.LOG_PREFIX, 'setTripBasecamp: User not authenticated');
         return { success: false, error: 'User not authenticated' };
       }
+
+      console.log(this.LOG_PREFIX, 'setTripBasecamp: calling RPC update_trip_basecamp_with_version', {
+        tripId,
+        userId,
+        currentVersion
+      });
 
       // Use versioned update RPC
       const { data, error } = await supabase.rpc('update_trip_basecamp_with_version', {
@@ -110,12 +157,13 @@ class BasecampService {
       }) as { data: any; error: any };
 
       if (error) {
-        console.error('Failed to update basecamp:', error);
+        console.error(this.LOG_PREFIX, 'setTripBasecamp RPC error:', { tripId, error });
         return { success: false, error: error.message };
       }
 
       // Check for conflict
       if (data && typeof data === 'object' && data.conflict === true) {
+        console.warn(this.LOG_PREFIX, 'setTripBasecamp: conflict detected', { tripId });
         return {
           success: false,
           conflict: true,
@@ -123,12 +171,28 @@ class BasecampService {
         };
       }
 
+      // Create system message for consumer trips
+      const userName = user?.email?.split('@')[0] || 'Someone';
+      systemMessageService.tripBaseCampUpdated(
+        tripId,
+        userName,
+        options?.previousAddress,
+        basecamp.address
+      );
+
+      console.log(this.LOG_PREFIX, 'setTripBasecamp SUCCESS:', {
+        tripId,
+        newAddress: basecamp.address,
+        userId,
+        timestamp: new Date().toISOString()
+      });
+
       return {
         success: true,
         coordinates: finalLatitude && finalLongitude ? { lat: finalLatitude, lng: finalLongitude } : undefined
       };
     } catch (error) {
-      console.error('Error setting trip basecamp:', error);
+      console.error(this.LOG_PREFIX, 'setTripBasecamp exception:', { tripId, error });
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -200,27 +264,10 @@ class BasecampService {
       const currentBasecamp = await this.getPersonalBasecamp(payload.trip_id, user.id);
       const isUpdate = !!currentBasecamp;
 
-      // If no coordinates provided, try to geocode the address
-      let finalLatitude = payload.latitude || null;
-      let finalLongitude = payload.longitude || null;
-      
-      if (!finalLatitude && !finalLongitude && payload.address) {
-        try {
-          const geocoded = await this.geocodeAddress(payload.address);
-          if (geocoded) {
-            finalLatitude = geocoded.lat;
-            finalLongitude = geocoded.lng;
-            if (import.meta.env.DEV) {
-              console.log('[BasecampService] Geocoded address:', payload.address, '->', geocoded);
-            }
-          }
-        } catch (geocodeError) {
-          if (import.meta.env.DEV) {
-            console.warn('[BasecampService] Geocoding failed, saving without coordinates:', geocodeError);
-          }
-          // Continue without coordinates - don't block the save
-        }
-      }
+      // Skip geocoding entirely - basecamps are text-only references
+      // This prevents the save from hanging if Google Maps API doesn't respond
+      const finalLatitude = payload.latitude || null;
+      const finalLongitude = payload.longitude || null;
 
       const { data, error } = await (supabase as any)
         .from('trip_personal_basecamps')
@@ -264,6 +311,14 @@ class BasecampService {
           if (import.meta.env.DEV) console.error('[BasecampService] Failed to log history:', historyError);
         }
       }
+
+      // Create system message for consumer trips
+      const userName = user?.email?.split('@')[0] || 'Someone';
+      systemMessageService.personalBaseCampUpdated(
+        payload.trip_id,
+        userName,
+        payload.address
+      );
 
       return data as PersonalBasecamp;
     } catch (error) {
@@ -377,35 +432,39 @@ class BasecampService {
    * Uses Google Geocoding API via the browser's geolocation proxy
    */
   async geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+    // Add 5-second timeout to prevent hanging
+    const TIMEOUT_MS = 5000;
+    
     try {
-      // Try using Google Maps Geocoding API if available
-      if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
-        const geocoder = new google.maps.Geocoder();
-        
-        return new Promise((resolve) => {
-          geocoder.geocode({ address }, (results, status) => {
-            if (status === 'OK' && results && results.length > 0) {
-              const location = results[0].geometry.location;
-              resolve({ lat: location.lat(), lng: location.lng() });
-            } else {
-              if (import.meta.env.DEV) {
-                console.warn('[BasecampService] Geocoding failed:', status);
-              }
-              resolve(null);
-            }
-          });
-        });
-      }
-      
-      // Fallback: Return null if Google Maps not available
-      if (import.meta.env.DEV) {
+      if (typeof google === 'undefined' || !google.maps?.Geocoder) {
         console.warn('[BasecampService] Google Maps Geocoder not available');
+        return null;
       }
-      return null;
+
+      const geocoder = new google.maps.Geocoder();
+      
+      const geocodePromise = new Promise<{ lat: number; lng: number } | null>((resolve) => {
+        geocoder.geocode({ address }, (results, status) => {
+          if (status === 'OK' && results && results.length > 0) {
+            const location = results[0].geometry.location;
+            resolve({ lat: location.lat(), lng: location.lng() });
+          } else {
+            console.warn('[BasecampService] Geocoding failed:', status);
+            resolve(null);
+          }
+        });
+      });
+
+      const timeoutPromise = new Promise<null>((resolve) => 
+        setTimeout(() => {
+          console.warn('[BasecampService] Geocoding timed out after', TIMEOUT_MS, 'ms');
+          resolve(null);
+        }, TIMEOUT_MS)
+      );
+
+      return await Promise.race([geocodePromise, timeoutPromise]);
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[BasecampService] Geocoding error:', error);
-      }
+      console.error('[BasecampService] Geocoding error:', error);
       return null;
     }
   }

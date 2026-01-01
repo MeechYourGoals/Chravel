@@ -45,7 +45,11 @@ serve(async (req) => {
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     if (customers.data.length === 0) {
-      throw new Error("No Stripe customer found for this user");
+      logStep("No Stripe customer found - user has no subscription history");
+      return createSecureResponse({ 
+        error: 'no_subscription',
+        message: 'You don\'t have an active subscription yet. Please subscribe first to manage your billing.' 
+      }, 200);
     }
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });

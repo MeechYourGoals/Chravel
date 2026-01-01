@@ -36,6 +36,9 @@ verify_jwt = true
 [functions.check-subscription]
 verify_jwt = true
 
+[functions.create-trip]
+verify_jwt = true
+
 [functions.invite-organization-member]
 verify_jwt = true
 
@@ -80,3 +83,9 @@ verify_jwt = false
 
 [functions.get-trip-preview]
 verify_jwt = false
+
+[functions.send-push]
+verify_jwt = true
+
+[functions.sync-revenuecat-entitlement]
+verify_jwt = true

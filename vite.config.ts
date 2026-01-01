@@ -87,6 +87,5 @@ export default defineConfig(({ mode }) => ({
   // Optimize dependencies
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],
-    exclude: ['@capacitor/core', '@capacitor/ios', '@capacitor/android'],
   },
 }));

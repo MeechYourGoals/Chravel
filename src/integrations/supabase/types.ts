@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.12 (cd3cf9e)"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -542,6 +542,13 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
           {
+            foreignKeyName: "event_agenda_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "event_agenda_items_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
@@ -728,6 +735,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "event_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
             referencedColumns: ["user_id"]
           },
           {
@@ -1542,6 +1556,42 @@ export type Database = {
         }
         Relationships: []
       }
+      push_device_tokens: {
+        Row: {
+          created_at: string | null
+          device_id: string | null
+          disabled_at: string | null
+          id: string
+          last_seen_at: string | null
+          platform: string
+          token: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_id?: string | null
+          disabled_at?: string | null
+          id?: string
+          last_seen_at?: string | null
+          platform: string
+          token: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string | null
+          disabled_at?: string | null
+          id?: string
+          last_seen_at?: string | null
+          platform?: string
+          token?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           count: number | null
@@ -1933,6 +1983,7 @@ export type Database = {
         Row: {
           attachments: Json | null
           author_name: string
+          client_message_id: string | null
           content: string
           created_at: string
           deleted_at: string | null
@@ -1944,10 +1995,12 @@ export type Database = {
           media_type: string | null
           media_url: string | null
           message_type: string | null
+          payload: Json | null
           privacy_encrypted: boolean | null
           privacy_mode: string | null
           reply_to_id: string | null
           sentiment: string | null
+          system_event_type: string | null
           thread_id: string | null
           trip_id: string
           updated_at: string
@@ -1956,6 +2009,7 @@ export type Database = {
         Insert: {
           attachments?: Json | null
           author_name: string
+          client_message_id?: string | null
           content: string
           created_at?: string
           deleted_at?: string | null
@@ -1967,10 +2021,12 @@ export type Database = {
           media_type?: string | null
           media_url?: string | null
           message_type?: string | null
+          payload?: Json | null
           privacy_encrypted?: boolean | null
           privacy_mode?: string | null
           reply_to_id?: string | null
           sentiment?: string | null
+          system_event_type?: string | null
           thread_id?: string | null
           trip_id: string
           updated_at?: string
@@ -1979,6 +2035,7 @@ export type Database = {
         Update: {
           attachments?: Json | null
           author_name?: string
+          client_message_id?: string | null
           content?: string
           created_at?: string
           deleted_at?: string | null
@@ -1990,10 +2047,12 @@ export type Database = {
           media_type?: string | null
           media_url?: string | null
           message_type?: string | null
+          payload?: Json | null
           privacy_encrypted?: boolean | null
           privacy_mode?: string | null
           reply_to_id?: string | null
           sentiment?: string | null
+          system_event_type?: string | null
           thread_id?: string | null
           trip_id?: string
           updated_at?: string
@@ -2380,6 +2439,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      trip_member_preferences: {
+        Row: {
+          show_system_messages: boolean
+          system_message_categories: Json
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          show_system_messages?: boolean
+          system_message_categories?: Json
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          show_system_messages?: boolean
+          system_message_categories?: Json
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       trip_members: {
         Row: {
@@ -2781,6 +2864,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
+          {
+            foreignKeyName: "trip_tasks_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       trips: {
@@ -2917,6 +3007,45 @@ export type Database = {
           },
         ]
       }
+      user_entitlements: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          entitlements: Json
+          plan: string
+          revenuecat_customer_id: string | null
+          source: string
+          status: string
+          stripe_customer_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          entitlements?: Json
+          plan?: string
+          revenuecat_customer_id?: string | null
+          source: string
+          status?: string
+          stripe_customer_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          entitlements?: Json
+          plan?: string
+          revenuecat_customer_id?: string | null
+          source?: string
+          status?: string
+          stripe_customer_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_payment_methods: {
         Row: {
           created_at: string
@@ -2958,6 +3087,8 @@ export type Database = {
           created_at: string
           id: string
           preferences: Json
+          show_system_messages: boolean
+          system_message_categories: Json
           updated_at: string
           user_id: string
         }
@@ -2965,6 +3096,8 @@ export type Database = {
           created_at?: string
           id?: string
           preferences?: Json
+          show_system_messages?: boolean
+          system_message_categories?: Json
           updated_at?: string
           user_id: string
         }
@@ -2972,6 +3105,8 @@ export type Database = {
           created_at?: string
           id?: string
           preferences?: Json
+          show_system_messages?: boolean
+          system_message_categories?: Json
           updated_at?: string
           user_id?: string
         }
@@ -3045,7 +3180,54 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_public: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          display_name: string | null
+          email: string | null
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          phone: string | null
+          show_email: boolean | null
+          show_phone: boolean | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          email?: never
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          phone?: never
+          show_email?: boolean | null
+          show_phone?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          email?: never
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          phone?: never
+          show_email?: boolean | null
+          show_phone?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       approve_join_request: { Args: { _request_id: string }; Returns: Json }

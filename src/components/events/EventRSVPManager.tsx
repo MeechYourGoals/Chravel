@@ -5,7 +5,6 @@
  * - RSVP status selection (going, maybe, not-going)
  * - Capacity limit display and enforcement
  * - Waitlist management
- * - QR code ticket generation
  * 
  * Used in: EventDetailContent for attendee registration flow
  */
@@ -13,13 +12,11 @@
 import React from 'react';
 import { useEventRSVP } from '@/hooks/useEventRSVP';
 import { RSVPStatus } from '@/types/events';
-import { CheckCircle2, Clock, XCircle, Users, AlertCircle, QrCode } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, Users, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-// QR Code feature is disabled until qrcode package is properly installed and configured
-// For MVP, ticket data will be displayed as text with QR code support coming soon
 
 interface EventRSVPManagerProps {
   eventId: string;
@@ -161,35 +158,6 @@ export const EventRSVPManager: React.FC<EventRSVPManagerProps> = ({
             </div>
           )}
 
-          {/* QR Code Ticket */}
-          {rsvp?.ticketQrCode && currentStatus === 'going' && (
-            <Card className="mt-4">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <QrCode className="h-5 w-5" />
-                  Your Ticket
-                </CardTitle>
-                <CardDescription>Present this QR code at check-in</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Show ticket code as text - QR generation coming soon */}
-                <div className="flex flex-col items-center gap-4 p-4 bg-white/5 rounded-lg">
-                  <div className="w-32 h-32 flex items-center justify-center border-2 border-dashed border-white/30 rounded-lg">
-                    <QrCode className="h-12 w-12 text-white/40" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-gray-400 mb-2">Your Ticket Code:</p>
-                    <code className="text-lg font-mono bg-white/10 px-3 py-1 rounded">
-                      {rsvp.ticketQrCode?.slice(0, 12) || 'TICKET'}
-                    </code>
-                  </div>
-                  <p className="text-xs text-gray-500 text-center">
-                    QR code display coming soon. Present this code at check-in.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </CardContent>
       </Card>
     </div>

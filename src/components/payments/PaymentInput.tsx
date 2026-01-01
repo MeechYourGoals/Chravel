@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { DollarSign, Users, CheckSquare, Sparkles } from 'lucide-react';
+import { DollarSign, Users, CheckSquare, Sparkles, Check } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
@@ -257,28 +257,44 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
             )}
             
             <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
-              {tripMembers.map(member => (
-                <label
-                  key={member.id}
-                  htmlFor={`participant-${member.id}`}
-                  className="inline-flex items-center gap-2 bg-gray-800/50 hover:bg-gray-800/70 rounded-lg px-3 py-2 cursor-pointer transition-all w-auto shrink-0"
-                >
-                  <Checkbox
-                    id={`participant-${member.id}`}
-                    checked={selectedParticipants.includes(member.id)}
-                    onCheckedChange={() => toggleParticipant(member.id)}
-                    className="h-4 w-4 text-emerald-400 focus:ring-emerald-500 rounded"
-                  />
-                  {member.avatar && (
-                    <img
-                      src={member.avatar}
-                      alt={member.name}
-                      className="w-6 h-6 rounded-full object-cover shrink-0"
-                    />
-                  )}
-                  <span className="text-sm text-gray-300 whitespace-nowrap">{member.name}</span>
-                </label>
-              ))}
+              {tripMembers.map(member => {
+                const isSelected = selectedParticipants.includes(member.id);
+                return (
+                  <button
+                    key={member.id}
+                    type="button"
+                    onClick={() => toggleParticipant(member.id)}
+                    className={`
+                      inline-flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer transition-all w-auto shrink-0
+                      ${isSelected 
+                        ? 'bg-emerald-500/20 border-2 border-emerald-500 ring-1 ring-emerald-500/30' 
+                        : 'bg-gray-800/50 hover:bg-gray-800/70 border-2 border-transparent'
+                      }
+                    `}
+                  >
+                    {/* Checkmark indicator */}
+                    <div className={`
+                      w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all
+                      ${isSelected 
+                        ? 'bg-emerald-500 text-white' 
+                        : 'bg-gray-700 border border-gray-600'
+                      }
+                    `}>
+                      {isSelected && <Check size={12} strokeWidth={3} />}
+                    </div>
+                    {member.avatar && (
+                      <img
+                        src={member.avatar}
+                        alt={member.name}
+                        className="w-6 h-6 rounded-full object-cover shrink-0"
+                      />
+                    )}
+                    <span className={`text-sm whitespace-nowrap ${isSelected ? 'text-white font-medium' : 'text-gray-300'}`}>
+                      {member.name}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -299,21 +315,37 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
             </div>
             
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3">
-              {paymentMethodOptions.map(method => (
-                <label
-                  key={method.id}
-                  htmlFor={`payment-${method.id}`}
-                  className="flex items-center justify-center space-x-2 bg-gray-900/40 border border-white/10 hover:bg-gray-800/60 rounded-lg h-10 cursor-pointer transition-all focus-within:ring-2 focus-within:ring-emerald-400/30"
-                >
-                  <Checkbox
-                    id={`payment-${method.id}`}
-                    checked={selectedPaymentMethods.includes(method.id)}
-                    onCheckedChange={() => togglePaymentMethod(method.id)}
-                    className="h-4 w-4 text-emerald-400 focus:ring-emerald-500 rounded"
-                  />
-                  <span className="text-gray-200 text-sm">{method.label}</span>
-                </label>
-              ))}
+              {paymentMethodOptions.map(method => {
+                const isSelected = selectedPaymentMethods.includes(method.id);
+                return (
+                  <button
+                    key={method.id}
+                    type="button"
+                    onClick={() => togglePaymentMethod(method.id)}
+                    className={`
+                      flex items-center justify-center gap-2 rounded-lg h-10 cursor-pointer transition-all
+                      ${isSelected 
+                        ? 'bg-emerald-500/20 border-2 border-emerald-500 ring-1 ring-emerald-500/30' 
+                        : 'bg-gray-900/40 border-2 border-white/10 hover:bg-gray-800/60'
+                      }
+                    `}
+                  >
+                    {/* Checkmark indicator */}
+                    <div className={`
+                      w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all
+                      ${isSelected 
+                        ? 'bg-emerald-500 text-white' 
+                        : 'bg-gray-700 border border-gray-600'
+                      }
+                    `}>
+                      {isSelected && <Check size={12} strokeWidth={3} />}
+                    </div>
+                    <span className={`text-sm ${isSelected ? 'text-white font-medium' : 'text-gray-200'}`}>
+                      {method.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

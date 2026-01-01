@@ -1,66 +1,41 @@
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
+/**
+ * Backwards-compatible haptics service.
+ *
+ * IMPORTANT:
+ * - Must not run on web. All methods are hard-gated behind native detection.
+ * - Delegates to `src/native/haptics.ts` (Capacitor Haptics plugin).
+ */
+
+import * as nativeHaptics from '@/native/haptics';
 
 class HapticService {
-  private isCapacitorAvailable = false;
-
-  constructor() {
-    // Check if we're running in a Capacitor environment
-    this.isCapacitorAvailable = !!(window as any).Capacitor;
+  async light(): Promise<void> {
+    await nativeHaptics.light();
   }
 
-  async light() {
-    if (!this.isCapacitorAvailable) return;
-    
-    try {
-      await Haptics.impact({ style: ImpactStyle.Light });
-    } catch (error) {
-      console.warn('Haptic feedback not available:', error);
-    }
+  async medium(): Promise<void> {
+    await nativeHaptics.medium();
   }
 
-  async medium() {
-    if (!this.isCapacitorAvailable) return;
-    
-    try {
-      await Haptics.impact({ style: ImpactStyle.Medium });
-    } catch (error) {
-      console.warn('Haptic feedback not available:', error);
-    }
+  async heavy(): Promise<void> {
+    await nativeHaptics.heavy();
   }
 
-  async heavy() {
-    if (!this.isCapacitorAvailable) return;
-    
-    try {
-      await Haptics.impact({ style: ImpactStyle.Heavy });
-    } catch (error) {
-      console.warn('Haptic feedback not available:', error);
-    }
+  async success(): Promise<void> {
+    await nativeHaptics.success();
   }
 
-  async success() {
-    if (!this.isCapacitorAvailable) return;
-    
-    try {
-      // Double light tap for success feeling
-      await Haptics.impact({ style: ImpactStyle.Light });
-      setTimeout(() => Haptics.impact({ style: ImpactStyle.Light }), 100);
-    } catch (error) {
-      console.warn('Haptic feedback not available:', error);
-    }
+  async warning(): Promise<void> {
+    await nativeHaptics.warning();
   }
 
-  async celebration() {
-    if (!this.isCapacitorAvailable) return;
-    
-    try {
-      // Celebration pattern: medium, pause, light, light
-      await Haptics.impact({ style: ImpactStyle.Medium });
-      setTimeout(() => Haptics.impact({ style: ImpactStyle.Light }), 150);
-      setTimeout(() => Haptics.impact({ style: ImpactStyle.Light }), 250);
-    } catch (error) {
-      console.warn('Haptic feedback not available:', error);
-    }
+  async error(): Promise<void> {
+    await nativeHaptics.error();
+  }
+
+  // Legacy alias (not currently used, but kept to avoid regressions)
+  async celebration(): Promise<void> {
+    await nativeHaptics.success();
   }
 }
 

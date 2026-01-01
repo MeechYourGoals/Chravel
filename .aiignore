@@ -1,0 +1,37 @@
+################################################################################
+# AI ignore contract (best-effort)
+#
+# There is no universal standard here, but many agentic tools and repo indexers
+# look for an AI-specific ignore file. Keep it conservative: ignore only known
+# archives/scratch + heavy assets.
+################################################################################
+
+# Archived / scratch docs
+docs/_archive/**
+docs/_scratch/**
+docs/_external/**
+docs/archive/**
+
+# Large binary / media files
+**/*.pdf
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.webp
+**/*.gif
+**/*.mp4
+**/*.mov
+**/*.zip
+
+# Dependency / build outputs
+node_modules/**
+dist/**
+build/**
+coverage/**
+out/**
+.next/**
+.vercel/**
+.turbo/**
+
+# Local / generated artifacts
+**/*.log

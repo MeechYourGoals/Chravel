@@ -47,18 +47,21 @@ interface TripGridProps {
   onCreateTrip?: () => void;
   activeFilter?: string;
   myPendingRequests?: PendingTripRequest[];
+  // Callback when a trip is archived/hidden/deleted (for demo mode refresh)
+  onTripStateChange?: () => void;
 }
 
-export const TripGrid = React.memo(({ 
-  viewMode, 
-  trips, 
+export const TripGrid = React.memo(({
+  viewMode,
+  trips,
   pendingTrips = [],
-  proTrips, 
-  events, 
+  proTrips,
+  events,
   loading = false,
   onCreateTrip,
   activeFilter = 'all',
-  myPendingRequests = []
+  myPendingRequests = [],
+  onTripStateChange
 }: TripGridProps) => {
   const isMobile = useIsMobile();
   const [manualLocation, setManualLocation] = useState<string>('');
@@ -321,7 +324,13 @@ export const TripGrid = React.memo(({
           <>
             {/* Render active trips first */}
             {activeTrips.map((trip) => (
-              <TripCard key={trip.id} trip={trip} />
+              <TripCard
+                key={trip.id}
+                trip={trip}
+                onArchiveSuccess={onTripStateChange}
+                onHideSuccess={onTripStateChange}
+                onDeleteSuccess={onTripStateChange}
+              />
             ))}
             {/* Render pending trips after active trips */}
             {activePendingTrips.map((trip) => (
@@ -330,14 +339,26 @@ export const TripGrid = React.memo(({
           </>
         ) : viewMode === 'tripsPro' ? (
           Object.values(activeProTrips).map((trip) => (
-            <ProTripCard key={trip.id} trip={trip} />
+            <ProTripCard
+              key={trip.id}
+              trip={trip}
+              onArchiveSuccess={onTripStateChange}
+              onHideSuccess={onTripStateChange}
+              onDeleteSuccess={onTripStateChange}
+            />
           ))
         ) : viewMode === 'events' ? (
           Object.values(activeEvents).map((event) => (
             isMobile ? (
               <MobileEventCard key={event.id} event={event} />
             ) : (
-              <EventCard key={event.id} event={event} />
+              <EventCard
+                key={event.id}
+                event={event}
+                onArchiveSuccess={onTripStateChange}
+                onHideSuccess={onTripStateChange}
+                onDeleteSuccess={onTripStateChange}
+              />
             )
           ))
         ) : viewMode === 'travelRecs' ? (

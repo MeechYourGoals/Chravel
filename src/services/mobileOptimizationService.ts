@@ -1,16 +1,16 @@
-// 🆕 Mobile optimization service for better performance
-import { Capacitor } from '@capacitor/core';
+// Mobile optimization service for the web/PWA (native shell optimizations may be added separately)
 
 export class MobileOptimizationService {
-  private static isMobile = Capacitor.isNativePlatform();
-  private static isIOS = Capacitor.getPlatform() === 'ios';
-  private static isAndroid = Capacitor.getPlatform() === 'android';
+  private static isMobile =
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  private static isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  private static isAndroid = /Android/i.test(navigator.userAgent);
 
-  static async initializeMobileOptimizations() {
+  static async initializeMobileOptimizations(): Promise<void> {
     if (!this.isMobile) return;
 
     try {
-      // Set up mobile-specific optimizations
+      // Set up mobile-specific optimizations for web
       this.setupMobileViewport();
       this.setupTouchOptimizations();
       this.setupPerformanceOptimizations();
@@ -19,82 +19,43 @@ export class MobileOptimizationService {
     }
   }
 
-  private static setupMobileViewport() {
-    if (!this.isMobile) return;
+  private static setupMobileViewport(): void {
+    let viewport = document.querySelector('meta[name="viewport"]');
+    if (!viewport) {
+      viewport = document.createElement('meta');
+      viewport.setAttribute('name', 'viewport');
+      document.head.appendChild(viewport);
+    }
+    viewport.setAttribute(
+      'content',
+      'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'
+    );
+  }
 
-    // Set viewport meta tag for mobile
-    const viewport = document.querySelector('meta[name="viewport"]');
-    if (viewport) {
-      viewport.setAttribute('content', 
-        'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'
-      );
+  private static setupTouchOptimizations(): void {
+    document.documentElement.style.setProperty('touch-action', 'manipulation');
+    document.documentElement.style.setProperty('-webkit-tap-highlight-color', 'transparent');
+  }
+
+  private static setupPerformanceOptimizations(): void {
+    document.documentElement.style.setProperty('-webkit-overflow-scrolling', 'touch');
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (prefersReducedMotion.matches) {
+      document.documentElement.style.setProperty('--animation-duration', '0.01ms');
     }
   }
 
-  private static setupTouchOptimizations() {
-    if (!this.isMobile) return;
-
-    // Prevent zoom on double tap
-    document.addEventListener('touchstart', (e) => {
-      if (e.touches.length > 1) {
-        e.preventDefault();
-      }
-    }, { passive: false });
-
-    // Optimize touch targets (44px minimum)
-    const style = document.createElement('style');
-    style.textContent = `
-      button, [role="button"], input, select, textarea {
-        min-height: 44px;
-        min-width: 44px;
-      }
-      
-      .touch-target {
-        min-height: 44px;
-        min-width: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-    `;
-    document.head.appendChild(style);
+  static async triggerHapticFeedback(): Promise<void> {
+    // No haptic feedback on web
   }
 
-  private static setupPerformanceOptimizations() {
-    if (!this.isMobile) return;
-
-    // Enable hardware acceleration
-    document.body.style.transform = 'translateZ(0)';
-    document.body.style.backfaceVisibility = 'hidden';
-    document.body.style.perspective = '1000px';
-
-    // Optimize scrolling
-    (document.body.style as any).webkitOverflowScrolling = 'touch';
-    document.body.style.overscrollBehavior = 'contain';
-
-    // Reduce motion for better performance
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      document.body.style.animation = 'none';
-      document.body.style.transition = 'none';
-    }
+  static async triggerSuccessHaptic(): Promise<void> {
+    // No haptic feedback on web
   }
 
-  static async triggerHapticFeedback(style: string = 'Medium') {
-    if (!this.isMobile) return;
-
-    try {
-      // Haptic feedback will be implemented when Capacitor plugins are available
-    } catch (error) {
-      console.warn('Haptic feedback failed:', error);
-    }
-  }
-
-  static async triggerSuccessHaptic() {
-    await this.triggerHapticFeedback('Light');
-  }
-
-  static async triggerErrorHaptic() {
-    await this.triggerHapticFeedback('Heavy');
+  static async triggerErrorHaptic(): Promise<void> {
+    // No haptic feedback on web
   }
 
   static isMobileDevice(): boolean {
@@ -109,17 +70,15 @@ export class MobileOptimizationService {
     return this.isAndroid;
   }
 
-  // 🆕 Mobile-specific performance monitoring
-  static trackMobilePerformance() {
+  // Mobile-specific performance monitoring (dev only)
+  static trackMobilePerformance(): (() => void) | undefined {
     if (!this.isMobile || import.meta.env.PROD) return;
 
-
-    // Monitor frame rate
     let frameCount = 0;
     let lastTime = performance.now();
     let rafId: number;
     const stopTime = Date.now() + 10000; // Stop after 10 seconds
-    
+
     const countFrames = () => {
       if (Date.now() > stopTime) {
         return;
@@ -127,17 +86,15 @@ export class MobileOptimizationService {
 
       frameCount++;
       const currentTime = performance.now();
-      
+
       if (currentTime - lastTime >= 1000) {
-        const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
-        
         frameCount = 0;
         lastTime = currentTime;
       }
-      
+
       rafId = requestAnimationFrame(countFrames);
     };
-    
+
     rafId = requestAnimationFrame(countFrames);
 
     // Return cleanup function

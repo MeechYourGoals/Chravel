@@ -13,12 +13,17 @@ export interface JoinRequest {
   requested_at: string;
   resolved_by?: string;
   resolved_at?: string;
+  // Name captured at request creation time (fail-safe, stored in DB)
+  requester_name?: string;
+  requester_email?: string;
   profile?: {
     display_name: string;
     avatar_url?: string;
-    email?: string;
+    first_name?: string;
+    last_name?: string;
   };
 }
+
 
 interface UseJoinRequestsProps {
   tripId: string;
@@ -47,27 +52,58 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
     try {
       setIsLoading(true);
 
+      // Fetch pending join requests - only select columns that exist
       const { data, error } = await supabase
         .from('trip_join_requests')
-        .select('*')
+        .select('id, trip_id, user_id, invite_code, status, requested_at, resolved_at, resolved_by')
         .eq('trip_id', tripId)
         .eq('status', 'pending')
         .order('requested_at', { ascending: false });
 
       if (error) throw error;
 
-      // Fetch profiles separately
+      // Fetch profiles for user info (name, avatar)
       const requestsWithProfiles = await Promise.all(
         (data || []).map(async (request) => {
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('display_name, avatar_url, email')
+            .select('display_name, avatar_url, first_name, last_name')
             .eq('user_id', request.user_id)
-            .single();
+            .maybeSingle();
+
+          if (profileError) {
+            console.warn('Failed to fetch profile for user:', request.user_id, profileError);
+          }
+
+          // Name resolution priority:
+          // 1. Profile display_name
+          // 2. Profile first/last name combination
+          // 3. "Unknown User" as last resort
+          let finalDisplayName: string | null = null;
+
+          if (profile) {
+            finalDisplayName = profile.display_name;
+            if (!finalDisplayName) {
+              if (profile.first_name && profile.last_name) {
+                finalDisplayName = `${profile.first_name} ${profile.last_name}`;
+              } else if (profile.first_name) {
+                finalDisplayName = profile.first_name;
+              } else if (profile.last_name) {
+                finalDisplayName = profile.last_name;
+              }
+            }
+          }
+
+          finalDisplayName = finalDisplayName || 'Unknown User';
 
           return {
             ...request,
-            profile: profile || undefined
+            profile: {
+              display_name: finalDisplayName,
+              avatar_url: profile?.avatar_url,
+              first_name: profile?.first_name,
+              last_name: profile?.last_name
+            }
           };
         })
       );
@@ -123,8 +159,7 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
         addMember(tripId, {
           id: request.user_id,
           name: request.profile?.display_name || 'New Member',
-          avatar: request.profile?.avatar_url,
-          email: request.profile?.email
+          avatar: request.profile?.avatar_url
         });
       }
       

@@ -294,7 +294,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
   // 3. Jack and Jill's destination wedding (Bali)
   3: {
     tripId: 3,
-    tripTitle: "Jack and Jill's destination wedding",
+    tripTitle: "The Tyler's Tie The Knot",
     location: "Bali, Indonesia",
     photos: [
       {
