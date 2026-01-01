@@ -674,9 +674,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async (): Promise<void> => {
+    // Clear demo mode if active
+    const demoModeStore = useDemoModeStore.getState();
+    if (demoModeStore.isDemoMode || demoModeStore.demoView === 'app-preview') {
+      demoModeStore.setDemoView('off');
+    }
+
+    // Sign out from Supabase (no-op if not authenticated)
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
+
+    // Redirect to home/landing page
+    window.location.href = '/';
   };
 
   const resetPassword = async (email: string): Promise<{ error?: string }> => {

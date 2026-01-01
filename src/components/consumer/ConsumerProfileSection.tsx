@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Camera, Upload, Loader2, Phone, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useDemoMode } from '../../hooks/useDemoMode';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
 import { useDemoMode } from '../../hooks/useDemoMode';
@@ -9,6 +10,7 @@ import { Button } from '../ui/button';
 
 export const ConsumerProfileSection = () => {
   const { user, updateProfile, signOut } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -315,7 +317,7 @@ export const ConsumerProfileSection = () => {
       </div>
 
       {/* Sign Out */}
-      {user && (
+      {(user || isDemoMode) && (
         <div className="bg-white/5 border border-white/10 rounded-xl p-3">
           <div className="flex items-center justify-between">
             <div>

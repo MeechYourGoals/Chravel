@@ -127,7 +127,10 @@ vi.mock('../../hooks/use-mobile', () => ({
 }));
 
 vi.mock('../../hooks/useDemoMode', () => ({
-  useDemoMode: () => ({ demoView: mockDemoView }),
+  useDemoMode: () => ({
+    demoView: mockDemoView,
+    isDemoMode: mockDemoView === 'app-preview',
+  }),
 }));
 
 vi.mock('../../hooks/useSuperAdmin', () => ({
