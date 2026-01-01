@@ -130,10 +130,10 @@ export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ onSignUp }) 
           {sections.find(s => s.id === activeSection)?.label || 'Home'}
         </div>
 
-        {/* Right: Demo Selector Only (Auth CTA is centered in hero content) */}
+        {/* Right: Demo Selector + Log In for non-authenticated users */}
         <div className="flex items-center gap-2">
           {isSuperAdmin && <DemoModeSelector />}
-          <HeaderAuthButton />
+          {!user && <HeaderAuthButton />}
         </div>
       </div>
     </nav>

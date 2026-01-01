@@ -1,5 +1,4 @@
 import React from 'react';
-import { HeaderAuthButton } from '../HeaderAuthButton';
 
 interface DesktopHeaderProps {
   viewMode: string;
@@ -12,9 +11,6 @@ interface DesktopHeaderProps {
 }
 
 export const DesktopHeader = (_props: DesktopHeaderProps) => {
-  return (
-    <div className="fixed top-4 right-4 z-50">
-      <HeaderAuthButton showLoggedOut={false} />
-    </div>
-  );
+  // Account button removed - signed-in users access Settings through the navigation menu
+  return null;
 };
