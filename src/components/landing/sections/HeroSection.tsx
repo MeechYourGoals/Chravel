@@ -71,14 +71,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           </div>
         </div>
 
-        {/* CTA */}
+        {/* CTA - Dark background with white text */}
         <Button
           size="lg"
           onClick={onSignUp}
-          className="text-base md:text-xl px-6 md:px-8 py-6 md:py-7 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 animate-fade-in"
+          className="text-base md:text-xl px-6 md:px-8 py-6 md:py-7 bg-background/90 hover:bg-background border border-border/50 text-white shadow-xl shadow-black/30 backdrop-blur-sm animate-fade-in"
           style={{ animationDelay: '0.3s' }}
         >
-          Get Started Free · Log In or Sign Up
+          Login/Sign Up
         </Button>
 
         {/* Product Preview */}
