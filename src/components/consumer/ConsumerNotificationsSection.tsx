@@ -19,6 +19,7 @@ import {
 } from '../../services/userPreferencesService';
 import { useToast } from '../../hooks/use-toast';
 import { useNativePush } from '@/hooks/useNativePush';
+import { useDemoMode } from '../../hooks/useDemoMode';
 
 interface NotificationCategory {
   key: string;
@@ -91,6 +92,7 @@ export const ConsumerNotificationsSection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isNative: isNativePush, registerForPush, unregisterFromPush } = useNativePush();
+  const { showDemoContent } = useDemoMode();
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingPush, setIsUpdatingPush] = useState(false);
 
@@ -154,6 +156,15 @@ export const ConsumerNotificationsSection = () => {
 
   const handleNotificationToggle = async (setting: string) => {
     const newValue = !notificationSettings[setting];
+
+    // In demo mode, just update local state without API calls
+    if (showDemoContent) {
+      setNotificationSettings(prev => ({
+        ...prev,
+        [setting]: newValue,
+      }));
+      return;
+    }
 
     // Map local state keys to database column names
     const keyMap: Record<string, keyof NotificationPreferences> = {
@@ -236,6 +247,11 @@ export const ConsumerNotificationsSection = () => {
 
   const handleQuietTimeChange = async (field: 'start' | 'end', value: string) => {
     setQuietTimes(prev => ({ ...prev, [field]: value }));
+
+    // In demo mode, just update local state without API calls
+    if (showDemoContent) {
+      return;
+    }
 
     if (user?.id) {
       try {

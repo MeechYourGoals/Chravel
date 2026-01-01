@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
+import { useDemoMode } from '../../hooks/useDemoMode';
 
 export const ConsumerPrivacySection = () => {
   const { user, updateProfile } = useAuth();
   const { toast } = useToast();
+  const { showDemoContent } = useDemoMode();
 
   const [settings, setSettings] = useState({
     useRealName: false,
@@ -49,6 +51,11 @@ export const ConsumerPrivacySection = () => {
     }
 
     setSettings(updatedSettings);
+
+    // In demo mode, just update local state without API calls
+    if (showDemoContent) {
+      return;
+    }
 
     // Persist to database
     if (user?.id) {
