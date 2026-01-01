@@ -6,13 +6,11 @@ import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
 import { getConsistentAvatar } from '../../utils/avatarUtils';
 import { Button } from '../ui/button';
-import { useDemoMode } from '../../hooks/useDemoMode';
 
 export const ConsumerProfileSection = () => {
   const { user, updateProfile, signOut } = useAuth();
-  const { isDemoMode } = useDemoMode();
+  const { isDemoMode, showDemoContent } = useDemoMode();
   const { toast } = useToast();
-  const { showDemoContent } = useDemoMode();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Local state for form fields
