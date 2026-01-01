@@ -8,9 +8,8 @@ interface HeroSectionProps {
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
   return (
     <div
-      className="relative container mx-auto px-4 flex flex-col items-center min-h-[85vh] md:min-h-[90vh] text-center pb-12 md:pb-0"
+      className="relative container mx-auto px-4 flex flex-col min-h-[85vh] md:min-h-[90vh] text-center pb-12 md:pb-8"
       style={{
-        // Safe area for PWA + increased spacing on mobile to prevent overlap
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)',
       }}
     >
@@ -30,16 +29,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         </Button>
       </div>
 
-      {/* Brand Name - Centered, no padding shifts */}
-      <div className="w-full flex items-center justify-center px-2 md:px-4 mb-6 md:mb-8">
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight animate-fade-in text-center w-full">
-          ChravelApp
-        </h1>
-      </div>
+      {/* Top Section: Brand Name + Main Tagline */}
+      <div className="flex-shrink-0">
+        {/* Brand Name */}
+        <div className="w-full flex items-center justify-center px-2 md:px-4 mb-6 md:mb-8">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight animate-fade-in text-center w-full">
+            ChravelApp
+          </h1>
+        </div>
 
-      {/* Main Content */}
-      <div className="flex flex-col items-center">
-        {/* Tagline - Primary headline (50% of original size) */}
+        {/* Tagline - Primary headline */}
         <h2
           className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight animate-fade-in"
           style={{
@@ -54,10 +53,24 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         >
           The Group Chat Travel App
         </h2>
+      </div>
 
-        {/* Secondary tagline - Sub-headline (~33% of original size) */}
+      {/* Mobile: CTA centered in viewport - visible only on mobile */}
+      <div className="flex-1 flex items-center justify-center md:hidden">
+        <Button
+          onClick={onSignUp}
+          className="px-6 py-3 bg-background/90 hover:bg-background backdrop-blur-md border border-border/50 text-white rounded-lg text-base font-semibold shadow-xl shadow-black/30 animate-fade-in"
+          style={{ animationDelay: '0.2s' }}
+        >
+          Sign up / Log in
+        </Button>
+      </div>
+
+      {/* Bottom Section: Hero copy + CTA (desktop) */}
+      <div className="flex-shrink-0 mt-auto flex flex-col items-center">
+        {/* Secondary tagline */}
         <h3
-          className="text-lg sm:text-xl md:text-2xl lg:text-2xl font-bold leading-tight animate-fade-in mt-6 md:mt-8"
+          className="text-lg sm:text-xl md:text-2xl lg:text-2xl font-bold leading-tight animate-fade-in"
           style={{
             animationDelay: '0.1s',
             background:
@@ -72,9 +85,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           Less Chaos, More Coordinated
         </h3>
 
-        {/* Subheadline - Supporting copy (NO CHANGE as requested) */}
+        {/* Subheadline */}
         <p
-          className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white font-bold max-w-4xl animate-fade-in mt-6 md:mt-8"
+          className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white font-bold max-w-4xl animate-fade-in mt-4 md:mt-6"
           style={{
             animationDelay: '0.15s',
             textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
@@ -83,10 +96,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           One Shared Space for Chat, Calendar, Photos, Payments, & More
         </p>
 
-        {/* Centered CTA - Dark background with white text, visible on all devices */}
+        {/* Desktop CTA - hidden on mobile */}
         <Button
           onClick={onSignUp}
-          className="mt-8 px-6 py-3 bg-background/90 hover:bg-background backdrop-blur-md border border-border/50 text-white rounded-lg text-base font-semibold shadow-xl shadow-black/30 animate-fade-in"
+          className="hidden md:flex mt-6 px-6 py-3 bg-background/90 hover:bg-background backdrop-blur-md border border-border/50 text-white rounded-lg text-base font-semibold shadow-xl shadow-black/30 animate-fade-in"
           style={{ animationDelay: '0.2s' }}
         >
           Login/Sign Up

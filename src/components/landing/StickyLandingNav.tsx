@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { DemoModeSelector } from '../DemoModeSelector';
+import { HeaderAuthButton } from '../HeaderAuthButton';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
