@@ -3,14 +3,12 @@ import { User, Camera, Upload, Loader2, Phone, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
-import { useDemoMode } from '../../hooks/useDemoMode';
 import { getConsistentAvatar } from '../../utils/avatarUtils';
 import { Button } from '../ui/button';
 
 export const ConsumerProfileSection = () => {
   const { user, updateProfile, signOut } = useAuth();
   const { toast } = useToast();
-  const { showDemoContent } = useDemoMode();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Local state for form fields
@@ -40,19 +38,6 @@ export const ConsumerProfileSection = () => {
   const currentUser = user || mockUser;
 
   const handleSave = async () => {
-    // In demo mode, just show success - local state already updated
-    if (showDemoContent) {
-      setIsSaving(true);
-      // Brief delay for visual feedback
-      await new Promise(resolve => setTimeout(resolve, 300));
-      setIsSaving(false);
-      toast({
-        title: 'Profile updated',
-        description: 'Your profile changes have been saved successfully.',
-      });
-      return;
-    }
-
     if (!user) return;
 
     setIsSaving(true);
@@ -84,7 +69,7 @@ export const ConsumerProfileSection = () => {
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -105,23 +90,6 @@ export const ConsumerProfileSection = () => {
       });
       return;
     }
-
-    // In demo mode, simulate successful upload without actual API call
-    if (showDemoContent) {
-      setIsUploading(true);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setIsUploading(false);
-      toast({
-        title: 'Photo uploaded',
-        description: 'Your profile photo has been updated.',
-      });
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-      return;
-    }
-
-    if (!user) return;
 
     setIsUploading(true);
     try {
@@ -206,7 +174,7 @@ export const ConsumerProfileSection = () => {
             </div>
             <button
               onClick={triggerFileInput}
-              disabled={isUploading || (!user && !showDemoContent)}
+              disabled={isUploading || !user}
               className="absolute -bottom-2 -right-2 bg-glass-orange hover:bg-glass-orange/80 text-white p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
@@ -222,7 +190,7 @@ export const ConsumerProfileSection = () => {
             />
             <button
               onClick={triggerFileInput}
-              disabled={isUploading || (!user && !showDemoContent)}
+              disabled={isUploading || !user}
               className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-3 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isUploading ? (
@@ -299,7 +267,7 @@ export const ConsumerProfileSection = () => {
         <div className="mt-4 flex justify-end">
           <button
             onClick={handleSave}
-            disabled={isSaving || (!user && !showDemoContent)}
+            disabled={isSaving || !user}
             className="bg-glass-orange hover:bg-glass-orange/80 text-white font-medium px-6 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? (

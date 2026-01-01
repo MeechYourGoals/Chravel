@@ -1,14 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { ChatActivitySettings } from '@/components/settings/ChatActivitySettings';
 import { useGlobalSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
-import {
-  SystemMessageCategoryPrefs,
-  DEFAULT_SYSTEM_MESSAGE_CATEGORIES,
-} from '@/utils/systemMessageCategory';
+import { SystemMessageCategoryPrefs } from '@/utils/systemMessageCategory';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { useDemoMode } from '@/hooks/useDemoMode';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,31 +19,12 @@ import {
 export const ConsumerGeneralSettings = () => {
   const { preferences, updatePreferences, isUpdating } = useGlobalSystemMessagePreferences();
   const { user, signOut } = useAuth();
-  const { showDemoContent } = useDemoMode();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
 
-  // Local state for demo mode - mirrors preferences structure
-  const [demoPreferences, setDemoPreferences] = useState({
-    showSystemMessages: true,
-    categories: DEFAULT_SYSTEM_MESSAGE_CATEGORIES,
-  });
-
-  // Use demo preferences when in demo mode, otherwise use real preferences
-  const activePreferences = showDemoContent ? demoPreferences : preferences;
-
   const handleDeleteAccount = useCallback(async () => {
-    if (confirmText !== 'DELETE') return;
-
-    // In demo mode, just close the dialog - no actual deletion
-    if (showDemoContent) {
-      setShowDeleteDialog(false);
-      setConfirmText('');
-      return;
-    }
-
-    if (!user) return;
+    if (!user || confirmText !== 'DELETE') return;
 
     setIsDeleting(true);
     try {
@@ -92,24 +69,13 @@ export const ConsumerGeneralSettings = () => {
       setShowDeleteDialog(false);
       setConfirmText('');
     }
-  }, [user, confirmText, signOut, showDemoContent]);
+  }, [user, confirmText, signOut]);
 
   const handleShowSystemMessagesChange = (value: boolean) => {
-    if (showDemoContent) {
-      setDemoPreferences(prev => ({ ...prev, showSystemMessages: value }));
-      return;
-    }
     updatePreferences({ showSystemMessages: value, categories: preferences.categories });
   };
 
   const handleCategoryChange = (category: keyof SystemMessageCategoryPrefs, value: boolean) => {
-    if (showDemoContent) {
-      setDemoPreferences(prev => ({
-        ...prev,
-        categories: { ...prev.categories, [category]: value },
-      }));
-      return;
-    }
     updatePreferences({
       showSystemMessages: preferences.showSystemMessages,
       categories: { ...preferences.categories, [category]: value },
@@ -124,11 +90,11 @@ export const ConsumerGeneralSettings = () => {
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Chat Activity</h4>
         <ChatActivitySettings
-          showSystemMessages={activePreferences.showSystemMessages}
-          categories={activePreferences.categories}
+          showSystemMessages={preferences.showSystemMessages}
+          categories={preferences.categories}
           onShowSystemMessagesChange={handleShowSystemMessagesChange}
           onCategoryChange={handleCategoryChange}
-          disabled={!showDemoContent && isUpdating}
+          disabled={isUpdating}
         />
       </div>
 
