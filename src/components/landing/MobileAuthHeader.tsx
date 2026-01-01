@@ -66,11 +66,6 @@ export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp }) 
           </div>
         </div>
       </div>
-
-      {/* Auth Modal */}
-      {!onSignUp && (
-        <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
-      )}
     </>
   );
 };

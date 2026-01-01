@@ -37,11 +37,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         </h1>
       </div>
 
-      {/* Main Content - Starts immediately after brand name, not centered vertically */}
+      {/* Main Content */}
       <div className="flex flex-col items-center">
-        {/* Tagline - High contrast gradient with text shadow for readability */}
+        {/* Tagline - Primary headline (50% of original size) */}
         <h2
-          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight animate-fade-in"
+          className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight animate-fade-in"
           style={{
             background:
               'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
@@ -55,9 +55,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           The Group Chat Travel App
         </h2>
 
-        {/* Secondary tagline with same gradient */}
+        {/* Secondary tagline - Sub-headline (~33% of original size) */}
         <h3
-          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight animate-fade-in mt-12 md:mt-16"
+          className="text-lg sm:text-xl md:text-2xl lg:text-2xl font-bold leading-tight animate-fade-in mt-6 md:mt-8"
           style={{
             animationDelay: '0.1s',
             background:
@@ -72,7 +72,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           Less Chaos, More Coordinated
         </h3>
 
-        {/* Subheadline with bold white text and shadow for contrast */}
+        {/* Subheadline - Supporting copy (NO CHANGE as requested) */}
         <p
           className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white font-bold max-w-4xl animate-fade-in mt-6 md:mt-8"
           style={{
@@ -83,13 +83,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           One Shared Space for Chat, Calendar, Photos, Payments, & More
         </p>
 
-        {/* Mobile CTA - centered below text, visible only on mobile */}
+        {/* Centered CTA - Dark background with white text, visible on all devices */}
         <Button
           onClick={onSignUp}
-          className="md:hidden mt-8 px-6 py-3 bg-black/40 hover:bg-black/50 backdrop-blur-md border border-white/10 text-white rounded-lg text-base font-semibold shadow-lg animate-fade-in"
+          className="mt-8 px-6 py-3 bg-background/90 hover:bg-background backdrop-blur-md border border-border/50 text-white rounded-lg text-base font-semibold shadow-xl shadow-black/30 animate-fade-in"
           style={{ animationDelay: '0.2s' }}
         >
-          Sign up / Log in
+          Login/Sign Up
         </Button>
       </div>
     </div>
