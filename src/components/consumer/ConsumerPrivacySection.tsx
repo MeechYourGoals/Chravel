@@ -6,7 +6,7 @@ import { useDemoMode } from '../../hooks/useDemoMode';
 export const ConsumerPrivacySection = () => {
   const { user, updateProfile } = useAuth();
   const { toast } = useToast();
-  const { isDemoMode } = useDemoMode();
+  const { showDemoContent } = useDemoMode();
 
   const [settings, setSettings] = useState({
     useRealName: false,
@@ -52,7 +52,7 @@ export const ConsumerPrivacySection = () => {
     setSettings(updatedSettings);
 
     // In demo mode, just update local state - no persistence needed
-    if (isDemoMode) {
+    if (showDemoContent) {
       return;
     }
 

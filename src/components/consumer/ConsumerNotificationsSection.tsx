@@ -92,7 +92,7 @@ export const ConsumerNotificationsSection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isNative: isNativePush, registerForPush, unregisterFromPush } = useNativePush();
-  const { isDemoMode } = useDemoMode();
+  const { showDemoContent } = useDemoMode();
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingPush, setIsUpdatingPush] = useState(false);
 
@@ -158,7 +158,7 @@ export const ConsumerNotificationsSection = () => {
     const newValue = !notificationSettings[setting];
 
     // In demo mode, just update local state - no persistence needed
-    if (isDemoMode) {
+    if (showDemoContent) {
       setNotificationSettings(prev => ({
         ...prev,
         [setting]: newValue,
@@ -249,7 +249,7 @@ export const ConsumerNotificationsSection = () => {
     setQuietTimes(prev => ({ ...prev, [field]: value }));
 
     // In demo mode, just update local state - no persistence needed
-    if (isDemoMode) {
+    if (showDemoContent) {
       return;
     }
 

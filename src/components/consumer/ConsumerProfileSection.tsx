@@ -10,7 +10,7 @@ import { Button } from '../ui/button';
 export const ConsumerProfileSection = () => {
   const { user, updateProfile, signOut } = useAuth();
   const { toast } = useToast();
-  const { isDemoMode } = useDemoMode();
+  const { showDemoContent } = useDemoMode();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Local state for form fields
@@ -41,7 +41,7 @@ export const ConsumerProfileSection = () => {
 
   const handleSave = async () => {
     // In demo mode, just show success - local state already updated
-    if (isDemoMode) {
+    if (showDemoContent) {
       setIsSaving(true);
       // Brief delay for visual feedback
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -107,7 +107,7 @@ export const ConsumerProfileSection = () => {
     }
 
     // In demo mode, simulate successful upload without actual API call
-    if (isDemoMode) {
+    if (showDemoContent) {
       setIsUploading(true);
       await new Promise(resolve => setTimeout(resolve, 500));
       setIsUploading(false);
@@ -206,7 +206,7 @@ export const ConsumerProfileSection = () => {
             </div>
             <button
               onClick={triggerFileInput}
-              disabled={isUploading || (!user && !isDemoMode)}
+              disabled={isUploading || (!user && !showDemoContent)}
               className="absolute -bottom-2 -right-2 bg-glass-orange hover:bg-glass-orange/80 text-white p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
@@ -222,7 +222,7 @@ export const ConsumerProfileSection = () => {
             />
             <button
               onClick={triggerFileInput}
-              disabled={isUploading || (!user && !isDemoMode)}
+              disabled={isUploading || (!user && !showDemoContent)}
               className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-3 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isUploading ? (
@@ -299,7 +299,7 @@ export const ConsumerProfileSection = () => {
         <div className="mt-4 flex justify-end">
           <button
             onClick={handleSave}
-            disabled={isSaving || (!user && !isDemoMode)}
+            disabled={isSaving || (!user && !showDemoContent)}
             className="bg-glass-orange hover:bg-glass-orange/80 text-white font-medium px-6 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? (

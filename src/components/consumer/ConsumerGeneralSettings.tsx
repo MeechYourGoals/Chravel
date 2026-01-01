@@ -23,7 +23,7 @@ import {
 export const ConsumerGeneralSettings = () => {
   const { preferences, updatePreferences, isUpdating } = useGlobalSystemMessagePreferences();
   const { user, signOut } = useAuth();
-  const { isDemoMode } = useDemoMode();
+  const { showDemoContent } = useDemoMode();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
@@ -35,13 +35,13 @@ export const ConsumerGeneralSettings = () => {
   });
 
   // Use demo preferences when in demo mode, otherwise use real preferences
-  const activePreferences = isDemoMode ? demoPreferences : preferences;
+  const activePreferences = showDemoContent ? demoPreferences : preferences;
 
   const handleDeleteAccount = useCallback(async () => {
     if (confirmText !== 'DELETE') return;
 
     // In demo mode, just close the dialog - no actual deletion
-    if (isDemoMode) {
+    if (showDemoContent) {
       setShowDeleteDialog(false);
       setConfirmText('');
       return;
@@ -92,10 +92,10 @@ export const ConsumerGeneralSettings = () => {
       setShowDeleteDialog(false);
       setConfirmText('');
     }
-  }, [user, confirmText, signOut, isDemoMode]);
+  }, [user, confirmText, signOut, showDemoContent]);
 
   const handleShowSystemMessagesChange = (value: boolean) => {
-    if (isDemoMode) {
+    if (showDemoContent) {
       setDemoPreferences(prev => ({ ...prev, showSystemMessages: value }));
       return;
     }
@@ -103,7 +103,7 @@ export const ConsumerGeneralSettings = () => {
   };
 
   const handleCategoryChange = (category: keyof SystemMessageCategoryPrefs, value: boolean) => {
-    if (isDemoMode) {
+    if (showDemoContent) {
       setDemoPreferences(prev => ({
         ...prev,
         categories: { ...prev.categories, [category]: value },
@@ -128,7 +128,7 @@ export const ConsumerGeneralSettings = () => {
           categories={activePreferences.categories}
           onShowSystemMessagesChange={handleShowSystemMessagesChange}
           onCategoryChange={handleCategoryChange}
-          disabled={!isDemoMode && isUpdating}
+          disabled={!showDemoContent && isUpdating}
         />
       </div>
 
