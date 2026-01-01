@@ -1,13 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
+import { useDemoMode } from '../../hooks/useDemoMode';
 
 export const ConsumerPrivacySection = () => {
   const { user, updateProfile } = useAuth();
   const { toast } = useToast();
-  
+  const { isDemoMode } = useDemoMode();
+
   const [settings, setSettings] = useState({
     useRealName: false,
     useDisplayNameOnly: true,
@@ -29,10 +29,10 @@ export const ConsumerPrivacySection = () => {
 
   const handleToggle = async (setting: keyof typeof settings) => {
     const newValue = !settings[setting];
-    
+
     // Handle mutually exclusive toggles for display name
     let updatedSettings = { ...settings };
-    
+
     if (setting === 'useRealName') {
       updatedSettings = {
         ...settings,
@@ -48,14 +48,19 @@ export const ConsumerPrivacySection = () => {
     } else {
       updatedSettings[setting] = newValue;
     }
-    
+
     setSettings(updatedSettings);
+
+    // In demo mode, just update local state - no persistence needed
+    if (isDemoMode) {
+      return;
+    }
 
     // Persist to database
     if (user?.id) {
       try {
-        const updates: any = {};
-        
+        const updates: Record<string, boolean> = {};
+
         if (setting === 'useRealName' || setting === 'useDisplayNameOnly') {
           updates.show_email = updatedSettings.useRealName;
         }
@@ -64,21 +69,21 @@ export const ConsumerPrivacySection = () => {
         }
 
         const { error } = await updateProfile(updates);
-        
+
         if (error) throw error;
-        
+
         toast({
-          title: "Settings updated",
-          description: "Your privacy settings have been saved.",
+          title: 'Settings updated',
+          description: 'Your privacy settings have been saved.',
         });
       } catch (error) {
         console.error('Error saving privacy settings:', error);
         // Revert on error
         setSettings(settings);
         toast({
-          title: "Error",
-          description: "Failed to save privacy settings. Please try again.",
-          variant: "destructive"
+          title: 'Error',
+          description: 'Failed to save privacy settings. Please try again.',
+          variant: 'destructive',
         });
       }
     }
@@ -87,7 +92,7 @@ export const ConsumerPrivacySection = () => {
   return (
     <div className="space-y-3">
       <h3 className="text-2xl font-bold text-white">Privacy & Security</h3>
-      
+
       {/* Display Name Privacy */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Display Name Settings</h4>
@@ -97,15 +102,17 @@ export const ConsumerPrivacySection = () => {
               <div className="text-white font-medium">Use Real Name</div>
               <div className="text-sm text-gray-400">Show your real name to other users</div>
             </div>
-            <button 
+            <button
               onClick={() => handleToggle('useRealName')}
               className={`relative w-12 h-6 rounded-full transition-colors ${
                 settings.useRealName ? 'bg-glass-orange' : 'bg-gray-600'
               }`}
             >
-              <div className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
-                settings.useRealName ? 'translate-x-6' : 'translate-x-0.5'
-              }`} />
+              <div
+                className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
+                  settings.useRealName ? 'translate-x-6' : 'translate-x-0.5'
+                }`}
+              />
             </button>
           </div>
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
@@ -113,15 +120,17 @@ export const ConsumerPrivacySection = () => {
               <div className="text-white font-medium">Use Display Name Only</div>
               <div className="text-sm text-gray-400">Show only your chosen display name</div>
             </div>
-            <button 
+            <button
               onClick={() => handleToggle('useDisplayNameOnly')}
               className={`relative w-12 h-6 rounded-full transition-colors ${
                 settings.useDisplayNameOnly ? 'bg-glass-orange' : 'bg-gray-600'
               }`}
             >
-              <div className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
-                settings.useDisplayNameOnly ? 'translate-x-6' : 'translate-x-0.5'
-              }`} />
+              <div
+                className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
+                  settings.useDisplayNameOnly ? 'translate-x-6' : 'translate-x-0.5'
+                }`}
+              />
             </button>
           </div>
         </div>
@@ -134,17 +143,21 @@ export const ConsumerPrivacySection = () => {
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
             <div>
               <div className="text-white font-medium">Share Phone Number with Trip Members</div>
-              <div className="text-sm text-gray-400">Allow trip members to see your phone number for direct contact</div>
+              <div className="text-sm text-gray-400">
+                Allow trip members to see your phone number for direct contact
+              </div>
             </div>
-            <button 
+            <button
               onClick={() => handleToggle('sharePhoneNumber')}
               className={`relative w-12 h-6 rounded-full transition-colors ${
                 settings.sharePhoneNumber ? 'bg-glass-orange' : 'bg-gray-600'
               }`}
             >
-              <div className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
-                settings.sharePhoneNumber ? 'translate-x-6' : 'translate-x-0.5'
-              }`} />
+              <div
+                className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
+                  settings.sharePhoneNumber ? 'translate-x-6' : 'translate-x-0.5'
+                }`}
+              />
             </button>
           </div>
         </div>
@@ -164,7 +177,9 @@ export const ConsumerPrivacySection = () => {
           <button className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
             <div className="text-left">
               <div className="text-white font-medium">Two-Factor Authentication</div>
-              <div className="text-sm text-gray-400">Add an extra layer of security to your account</div>
+              <div className="text-sm text-gray-400">
+                Add an extra layer of security to your account
+              </div>
             </div>
             <div className="text-glass-orange">Set Up</div>
           </button>
