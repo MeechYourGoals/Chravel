@@ -47,8 +47,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            textShadow: '0 2px 20px rgba(74, 144, 226, 0.3), 0 4px 40px rgba(245, 166, 35, 0.2)',
-            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+            color: 'transparent',
           }}
         >
           The Group Chat Travel App
@@ -70,7 +69,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       <div className="flex-shrink-0 mt-auto flex flex-col items-center">
         {/* Secondary tagline */}
         <h3
-          className="text-lg sm:text-xl md:text-2xl lg:text-2xl font-bold leading-tight animate-fade-in"
+          className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight animate-fade-in"
           style={{
             animationDelay: '0.1s',
             background:
@@ -78,8 +77,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            textShadow: '0 2px 20px rgba(74, 144, 226, 0.3), 0 4px 40px rgba(245, 166, 35, 0.2)',
-            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+            color: 'transparent',
           }}
         >
           Less Chaos, More Coordinated
@@ -95,15 +93,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         >
           One Shared Space for Chat, Calendar, Photos, Payments, & More
         </p>
-
-        {/* Desktop CTA - hidden on mobile */}
-        <Button
-          onClick={onSignUp}
-          className="hidden md:flex mt-6 px-6 py-3 bg-background/90 hover:bg-background backdrop-blur-md border border-border/50 text-white rounded-lg text-base font-semibold shadow-xl shadow-black/30 animate-fade-in"
-          style={{ animationDelay: '0.2s' }}
-        >
-          Login/Sign Up
-        </Button>
       </div>
     </div>
   );
