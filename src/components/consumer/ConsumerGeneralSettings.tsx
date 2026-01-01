@@ -1,10 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { ChatActivitySettings } from '@/components/settings/ChatActivitySettings';
 import { useGlobalSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
-import { SystemMessageCategoryPrefs } from '@/utils/systemMessageCategory';
+import {
+  SystemMessageCategoryPrefs,
+  DEFAULT_SYSTEM_MESSAGE_CATEGORIES,
+} from '@/utils/systemMessageCategory';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useDemoMode } from '@/hooks/useDemoMode';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,12 +23,31 @@ import {
 export const ConsumerGeneralSettings = () => {
   const { preferences, updatePreferences, isUpdating } = useGlobalSystemMessagePreferences();
   const { user, signOut } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
 
+  // Local state for demo mode - mirrors preferences structure
+  const [demoPreferences, setDemoPreferences] = useState({
+    showSystemMessages: true,
+    categories: DEFAULT_SYSTEM_MESSAGE_CATEGORIES,
+  });
+
+  // Use demo preferences when in demo mode, otherwise use real preferences
+  const activePreferences = isDemoMode ? demoPreferences : preferences;
+
   const handleDeleteAccount = useCallback(async () => {
-    if (!user || confirmText !== 'DELETE') return;
+    if (confirmText !== 'DELETE') return;
+
+    // In demo mode, just close the dialog - no actual deletion
+    if (isDemoMode) {
+      setShowDeleteDialog(false);
+      setConfirmText('');
+      return;
+    }
+
+    if (!user) return;
 
     setIsDeleting(true);
     try {
@@ -40,7 +63,10 @@ export const ConsumerGeneralSettings = () => {
         // Send deletion request email
         toast({
           title: 'Account Deletion Requested',
-          description: 'Your request has been received. You will receive a confirmation email at ' + user.email + '. Your account will be deleted within 30 days per our privacy policy.',
+          description:
+            'Your request has been received. You will receive a confirmation email at ' +
+            user.email +
+            '. Your account will be deleted within 30 days per our privacy policy.',
         });
 
         // Sign out the user
@@ -66,32 +92,43 @@ export const ConsumerGeneralSettings = () => {
       setShowDeleteDialog(false);
       setConfirmText('');
     }
-  }, [user, confirmText, signOut]);
+  }, [user, confirmText, signOut, isDemoMode]);
 
   const handleShowSystemMessagesChange = (value: boolean) => {
+    if (isDemoMode) {
+      setDemoPreferences(prev => ({ ...prev, showSystemMessages: value }));
+      return;
+    }
     updatePreferences({ showSystemMessages: value, categories: preferences.categories });
   };
 
   const handleCategoryChange = (category: keyof SystemMessageCategoryPrefs, value: boolean) => {
+    if (isDemoMode) {
+      setDemoPreferences(prev => ({
+        ...prev,
+        categories: { ...prev.categories, [category]: value },
+      }));
+      return;
+    }
     updatePreferences({
       showSystemMessages: preferences.showSystemMessages,
-      categories: { ...preferences.categories, [category]: value }
+      categories: { ...preferences.categories, [category]: value },
     });
   };
 
   return (
     <div className="space-y-3">
       <h3 className="text-2xl font-bold text-white">General Settings</h3>
-      
+
       {/* Chat Activity Section */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Chat Activity</h4>
         <ChatActivitySettings
-          showSystemMessages={preferences.showSystemMessages}
-          categories={preferences.categories}
+          showSystemMessages={activePreferences.showSystemMessages}
+          categories={activePreferences.categories}
           onShowSystemMessagesChange={handleShowSystemMessagesChange}
           onCategoryChange={handleCategoryChange}
-          disabled={isUpdating}
+          disabled={!isDemoMode && isUpdating}
         />
       </div>
 
@@ -159,7 +196,9 @@ export const ConsumerGeneralSettings = () => {
           >
             <div className="text-left">
               <div className="text-red-400 font-medium">Delete Account</div>
-              <div className="text-sm text-gray-400">Permanently delete your account and all data</div>
+              <div className="text-sm text-gray-400">
+                Permanently delete your account and all data
+              </div>
             </div>
             <div className="text-red-400">Delete</div>
           </button>
@@ -172,18 +211,23 @@ export const ConsumerGeneralSettings = () => {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-red-400">Delete Your Account?</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300 space-y-3">
-              <p>This action is <strong>permanent and irreversible</strong>. The following will be deleted:</p>
+              <p>
+                This action is <strong>permanent and irreversible</strong>. The following will be
+                deleted:
+              </p>
               <ul className="list-disc list-inside text-sm space-y-1">
                 <li>Your profile and personal information</li>
                 <li>All trips you've created</li>
                 <li>Your messages and media uploads</li>
                 <li>Your subscription and payment history</li>
               </ul>
-              <p className="pt-2">To confirm, type <strong>DELETE</strong> below:</p>
+              <p className="pt-2">
+                To confirm, type <strong>DELETE</strong> below:
+              </p>
               <input
                 type="text"
                 value={confirmText}
-                onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
+                onChange={e => setConfirmText(e.target.value.toUpperCase())}
                 placeholder="Type DELETE to confirm"
                 className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 disabled={isDeleting}

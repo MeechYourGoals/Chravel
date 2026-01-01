@@ -1,10 +1,25 @@
-
 import React, { useState, useEffect } from 'react';
-import { Bell, Mail, Smartphone, MessageCircle, Radio, Calendar, DollarSign, CheckSquare, BarChart2, UserPlus, MapPin } from 'lucide-react';
+import {
+  Bell,
+  Mail,
+  Smartphone,
+  MessageCircle,
+  Radio,
+  Calendar,
+  DollarSign,
+  CheckSquare,
+  BarChart2,
+  UserPlus,
+  MapPin,
+} from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { userPreferencesService, NotificationPreferences } from '../../services/userPreferencesService';
+import {
+  userPreferencesService,
+  NotificationPreferences,
+} from '../../services/userPreferencesService';
 import { useToast } from '../../hooks/use-toast';
 import { useNativePush } from '@/hooks/useNativePush';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface NotificationCategory {
   key: string;
@@ -20,66 +35,67 @@ const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
     dbKey: 'chat_messages',
     label: 'Messages',
     description: 'Get notified when someone sends you a message',
-    icon: <MessageCircle size={16} className="text-blue-400" />
+    icon: <MessageCircle size={16} className="text-blue-400" />,
   },
   {
     key: 'broadcasts',
     dbKey: 'broadcasts',
     label: 'Broadcasts',
     description: 'Receive important announcements from trip organizers',
-    icon: <Radio size={16} className="text-red-400" />
+    icon: <Radio size={16} className="text-red-400" />,
   },
   {
     key: 'calendar',
     dbKey: 'calendar_events',
     label: 'Calendar Events',
     description: 'Get notified when events are added or updated',
-    icon: <Calendar size={16} className="text-purple-400" />
+    icon: <Calendar size={16} className="text-purple-400" />,
   },
   {
     key: 'payments',
     dbKey: 'payments',
     label: 'Payments',
     description: 'Get notified about payment requests and settlements',
-    icon: <DollarSign size={16} className="text-green-400" />
+    icon: <DollarSign size={16} className="text-green-400" />,
   },
   {
     key: 'tasks',
     dbKey: 'tasks',
     label: 'Tasks',
     description: 'Get notified when tasks are assigned or completed',
-    icon: <CheckSquare size={16} className="text-yellow-400" />
+    icon: <CheckSquare size={16} className="text-yellow-400" />,
   },
   {
     key: 'polls',
     dbKey: 'polls',
     label: 'Polls',
     description: 'Get notified when new polls are created',
-    icon: <BarChart2 size={16} className="text-cyan-400" />
+    icon: <BarChart2 size={16} className="text-cyan-400" />,
   },
   {
     key: 'joinRequests',
     dbKey: 'join_requests',
     label: 'Join Requests',
     description: 'Get notified when someone requests to join your trip',
-    icon: <UserPlus size={16} className="text-orange-400" />
+    icon: <UserPlus size={16} className="text-orange-400" />,
   },
   {
     key: 'basecampUpdates',
     dbKey: 'basecamp_updates',
     label: 'Basecamp Updates',
     description: 'Get notified when trip basecamp location changes',
-    icon: <MapPin size={16} className="text-pink-400" />
-  }
+    icon: <MapPin size={16} className="text-pink-400" />,
+  },
 ];
 
 export const ConsumerNotificationsSection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isNative: isNativePush, registerForPush, unregisterFromPush } = useNativePush();
+  const { isDemoMode } = useDemoMode();
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingPush, setIsUpdatingPush] = useState(false);
-  
+
   // State for notification settings - matching database columns
   const [notificationSettings, setNotificationSettings] = useState<Record<string, boolean>>({
     messages: true,
@@ -93,12 +109,12 @@ export const ConsumerNotificationsSection = () => {
     email: true,
     push: false,
     sms: false,
-    quietHours: false
+    quietHours: false,
   });
 
   const [quietTimes, setQuietTimes] = useState({
     start: '22:00',
-    end: '08:00'
+    end: '08:00',
   });
 
   // Load notification preferences from database
@@ -108,7 +124,7 @@ export const ConsumerNotificationsSection = () => {
         setIsLoading(false);
         return;
       }
-      
+
       try {
         const prefs = await userPreferencesService.getNotificationPreferences(user.id);
         setNotificationSettings({
@@ -123,11 +139,11 @@ export const ConsumerNotificationsSection = () => {
           email: prefs.email_enabled ?? true,
           push: prefs.push_enabled ?? false,
           sms: prefs.sms_enabled ?? false,
-          quietHours: prefs.quiet_hours_enabled ?? false
+          quietHours: prefs.quiet_hours_enabled ?? false,
         });
         setQuietTimes({
           start: prefs.quiet_start || '22:00',
-          end: prefs.quiet_end || '08:00'
+          end: prefs.quiet_end || '08:00',
         });
       } catch (error) {
         console.error('Error loading notification preferences:', error);
@@ -140,6 +156,15 @@ export const ConsumerNotificationsSection = () => {
 
   const handleNotificationToggle = async (setting: string) => {
     const newValue = !notificationSettings[setting];
+
+    // In demo mode, just update local state - no persistence needed
+    if (isDemoMode) {
+      setNotificationSettings(prev => ({
+        ...prev,
+        [setting]: newValue,
+      }));
+      return;
+    }
 
     // Map local state keys to database column names
     const keyMap: Record<string, keyof NotificationPreferences> = {
@@ -222,11 +247,16 @@ export const ConsumerNotificationsSection = () => {
 
   const handleQuietTimeChange = async (field: 'start' | 'end', value: string) => {
     setQuietTimes(prev => ({ ...prev, [field]: value }));
-    
+
+    // In demo mode, just update local state - no persistence needed
+    if (isDemoMode) {
+      return;
+    }
+
     if (user?.id) {
       try {
         const updates: Partial<NotificationPreferences> = {
-          [field === 'start' ? 'quiet_start' : 'quiet_end']: value
+          [field === 'start' ? 'quiet_start' : 'quiet_end']: value,
         };
         await userPreferencesService.updateNotificationPreferences(user.id, updates);
       } catch (error) {
@@ -243,9 +273,11 @@ export const ConsumerNotificationsSection = () => {
         isEnabled ? 'bg-glass-orange' : 'bg-gray-600'
       }`}
     >
-      <div className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
-        isEnabled ? 'translate-x-6' : 'translate-x-0.5'
-      }`} />
+      <div
+        className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
+          isEnabled ? 'translate-x-6' : 'translate-x-0.5'
+        }`}
+      />
     </button>
   );
 
@@ -259,11 +291,16 @@ export const ConsumerNotificationsSection = () => {
       {/* App Notification Categories */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">App Notifications</h4>
-        <p className="text-sm text-gray-400 mb-4">Choose which types of notifications you want to receive</p>
-        
+        <p className="text-sm text-gray-400 mb-4">
+          Choose which types of notifications you want to receive
+        </p>
+
         <div className="space-y-3">
-          {NOTIFICATION_CATEGORIES.map((category) => (
-            <div key={category.key} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+          {NOTIFICATION_CATEGORIES.map(category => (
+            <div
+              key={category.key}
+              className="flex items-center justify-between p-3 bg-white/5 rounded-lg"
+            >
               <div className="flex items-center gap-3">
                 {category.icon}
                 <div>
@@ -280,7 +317,7 @@ export const ConsumerNotificationsSection = () => {
       {/* Delivery Methods */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Delivery Methods</h4>
-        
+
         <div className="space-y-3">
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
             <div className="flex items-center gap-3">
@@ -292,7 +329,7 @@ export const ConsumerNotificationsSection = () => {
             </div>
             {renderToggle('push', notificationSettings.push, isUpdatingPush)}
           </div>
-          
+
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
             <div className="flex items-center gap-3">
               <Mail size={16} className="text-blue-400" />
@@ -303,7 +340,7 @@ export const ConsumerNotificationsSection = () => {
             </div>
             {renderToggle('email', notificationSettings.email)}
           </div>
-          
+
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
             <div className="flex items-center gap-3">
               <Smartphone size={16} className="text-green-400" />
@@ -320,7 +357,7 @@ export const ConsumerNotificationsSection = () => {
       {/* Quiet Hours */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Quiet Hours</h4>
-        
+
         <div className="space-y-3">
           <div className="p-3 bg-white/5 rounded-lg">
             <div className="flex items-center justify-between mb-3">
@@ -331,19 +368,19 @@ export const ConsumerNotificationsSection = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-300 mb-2">Start Time</label>
-                  <input 
-                    type="time" 
+                  <input
+                    type="time"
                     value={quietTimes.start}
-                    onChange={(e) => handleQuietTimeChange('start', e.target.value)}
+                    onChange={e => handleQuietTimeChange('start', e.target.value)}
                     className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-300 mb-2">End Time</label>
-                  <input 
-                    type="time" 
+                  <input
+                    type="time"
                     value={quietTimes.end}
-                    onChange={(e) => handleQuietTimeChange('end', e.target.value)}
+                    onChange={e => handleQuietTimeChange('end', e.target.value)}
                     className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
                   />
                 </div>

@@ -1,15 +1,16 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Camera, Upload, Loader2, Phone, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
+import { useDemoMode } from '../../hooks/useDemoMode';
 import { getConsistentAvatar } from '../../utils/avatarUtils';
 import { Button } from '../ui/button';
 
 export const ConsumerProfileSection = () => {
   const { user, updateProfile, signOut } = useAuth();
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Local state for form fields
@@ -33,12 +34,25 @@ export const ConsumerProfileSection = () => {
     id: 'demo-user-123',
     email: 'demo@example.com',
     displayName: 'Demo User',
-    avatar: getConsistentAvatar('Demo User')
+    avatar: getConsistentAvatar('Demo User'),
   };
 
   const currentUser = user || mockUser;
 
   const handleSave = async () => {
+    // In demo mode, just show success - local state already updated
+    if (isDemoMode) {
+      setIsSaving(true);
+      // Brief delay for visual feedback
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setIsSaving(false);
+      toast({
+        title: 'Profile updated',
+        description: 'Your profile changes have been saved successfully.',
+      });
+      return;
+    }
+
     if (!user) return;
 
     setIsSaving(true);
@@ -53,15 +67,15 @@ export const ConsumerProfileSection = () => {
       if (error) throw error;
 
       toast({
-        title: "Profile updated",
-        description: "Your profile changes have been saved successfully.",
+        title: 'Profile updated',
+        description: 'Your profile changes have been saved successfully.',
       });
     } catch (error) {
       console.error('Error saving profile:', error);
       toast({
-        title: "Error",
-        description: "Failed to save profile changes. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to save profile changes. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsSaving(false);
@@ -70,14 +84,14 @@ export const ConsumerProfileSection = () => {
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
       toast({
-        title: "Invalid file type",
-        description: "Please upload an image file (JPG, PNG, GIF).",
-        variant: "destructive"
+        title: 'Invalid file type',
+        description: 'Please upload an image file (JPG, PNG, GIF).',
+        variant: 'destructive',
       });
       return;
     }
@@ -85,53 +99,69 @@ export const ConsumerProfileSection = () => {
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast({
-        title: "File too large",
-        description: "Image size must be less than 5MB.",
-        variant: "destructive"
+        title: 'File too large',
+        description: 'Image size must be less than 5MB.',
+        variant: 'destructive',
       });
       return;
     }
 
+    // In demo mode, simulate successful upload without actual API call
+    if (isDemoMode) {
+      setIsUploading(true);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setIsUploading(false);
+      toast({
+        title: 'Photo uploaded',
+        description: 'Your profile photo has been updated.',
+      });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    if (!user) return;
+
     setIsUploading(true);
     try {
-      const fileExt =
-        file.name.includes('.') ? file.name.split('.').pop() : file.type.split('/')[1] || 'jpg';
+      const fileExt = file.name.includes('.')
+        ? file.name.split('.').pop()
+        : file.type.split('/')[1] || 'jpg';
       // Path must start with user.id for RLS policies to work correctly
       const filePath = `${user.id}/${Date.now()}.${fileExt}`;
 
       // Upload to Supabase Storage with upsert to allow overwriting
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          contentType: file.type,
-          upsert: true,
-        });
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, {
+        cacheControl: '3600',
+        contentType: file.type,
+        upsert: true,
+      });
 
       if (uploadError) throw uploadError;
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('avatars').getPublicUrl(filePath);
 
       // Update profile with new avatar URL immediately
       const { error: profileError } = await updateProfile({
-        avatar_url: publicUrl
+        avatar_url: publicUrl,
       });
 
       if (profileError) throw profileError;
 
       toast({
-        title: "Photo uploaded",
-        description: "Your profile photo has been updated.",
+        title: 'Photo uploaded',
+        description: 'Your profile photo has been updated.',
       });
     } catch (error) {
       console.error('Error uploading photo:', error);
       toast({
-        title: "Upload failed",
-        description: "Failed to upload profile photo. Please try again.",
-        variant: "destructive"
+        title: 'Upload failed',
+        description: 'Failed to upload profile photo. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsUploading(false);
@@ -165,14 +195,18 @@ export const ConsumerProfileSection = () => {
           <div className="relative">
             <div className="w-20 h-20 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-full flex items-center justify-center overflow-hidden">
               {currentUser.avatar ? (
-                <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+                <img
+                  src={currentUser.avatar}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <User size={24} className="text-white" />
               )}
             </div>
             <button
               onClick={triggerFileInput}
-              disabled={isUploading || !user}
+              disabled={isUploading || (!user && !isDemoMode)}
               className="absolute -bottom-2 -right-2 bg-glass-orange hover:bg-glass-orange/80 text-white p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
@@ -188,7 +222,7 @@ export const ConsumerProfileSection = () => {
             />
             <button
               onClick={triggerFileInput}
-              disabled={isUploading || !user}
+              disabled={isUploading || (!user && !isDemoMode)}
               className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-3 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isUploading ? (
@@ -217,7 +251,7 @@ export const ConsumerProfileSection = () => {
             <input
               type="text"
               value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+              onChange={e => setDisplayName(e.target.value)}
               className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
               placeholder="Enter your display name"
             />
@@ -232,7 +266,7 @@ export const ConsumerProfileSection = () => {
             />
           </div>
         </div>
-        
+
         <div className="mt-3">
           <label className="block text-sm text-gray-300 mb-1.5 flex items-center gap-2">
             <Phone size={14} />
@@ -241,18 +275,20 @@ export const ConsumerProfileSection = () => {
           <input
             type="tel"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={e => setPhone(e.target.value)}
             className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
             placeholder="+1 (555) 123-4567"
           />
-          <p className="text-xs text-gray-500 mt-1">Used for SMS notifications and trip member contact (if enabled in Privacy settings)</p>
+          <p className="text-xs text-gray-500 mt-1">
+            Used for SMS notifications and trip member contact (if enabled in Privacy settings)
+          </p>
         </div>
-        
+
         <div className="mt-3">
           <label className="block text-sm text-gray-300 mb-1">Bio</label>
           <textarea
             value={bio}
-            onChange={(e) => setBio(e.target.value)}
+            onChange={e => setBio(e.target.value)}
             placeholder="Tell people a bit about yourself..."
             className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 resize-none"
             rows={3}
@@ -263,7 +299,7 @@ export const ConsumerProfileSection = () => {
         <div className="mt-4 flex justify-end">
           <button
             onClick={handleSave}
-            disabled={isSaving || !user}
+            disabled={isSaving || (!user && !isDemoMode)}
             className="bg-glass-orange hover:bg-glass-orange/80 text-white font-medium px-6 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? (
