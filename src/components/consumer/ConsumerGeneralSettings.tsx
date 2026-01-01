@@ -1,10 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { ChatActivitySettings } from '@/components/settings/ChatActivitySettings';
 import { useGlobalSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
-import {
-  SystemMessageCategoryPrefs,
-  DEFAULT_SYSTEM_MESSAGE_CATEGORIES,
-} from '@/utils/systemMessageCategory';
+import { SystemMessageCategoryPrefs } from '@/utils/systemMessageCategory';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -23,31 +20,25 @@ import {
 export const ConsumerGeneralSettings = () => {
   const { preferences, updatePreferences, isUpdating } = useGlobalSystemMessagePreferences();
   const { user, signOut } = useAuth();
-  const { isDemoMode } = useDemoMode();
+  const { showDemoContent } = useDemoMode();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
 
-  // Local state for demo mode - mirrors preferences structure
+  // Local demo state for preferences when in demo mode
   const [demoPreferences, setDemoPreferences] = useState({
     showSystemMessages: true,
-    categories: DEFAULT_SYSTEM_MESSAGE_CATEGORIES,
+    categories: {
+      joins: true,
+      leaves: true,
+      roleChanges: true,
+      nameChanges: true,
+      settingChanges: true,
+    } as SystemMessageCategoryPrefs,
   });
 
-  // Use demo preferences when in demo mode, otherwise use real preferences
-  const activePreferences = isDemoMode ? demoPreferences : preferences;
-
   const handleDeleteAccount = useCallback(async () => {
-    if (confirmText !== 'DELETE') return;
-
-    // In demo mode, just close the dialog - no actual deletion
-    if (isDemoMode) {
-      setShowDeleteDialog(false);
-      setConfirmText('');
-      return;
-    }
-
-    if (!user) return;
+    if (!user || confirmText !== 'DELETE') return;
 
     setIsDeleting(true);
     try {
@@ -92,10 +83,10 @@ export const ConsumerGeneralSettings = () => {
       setShowDeleteDialog(false);
       setConfirmText('');
     }
-  }, [user, confirmText, signOut, isDemoMode]);
+  }, [user, confirmText, signOut]);
 
   const handleShowSystemMessagesChange = (value: boolean) => {
-    if (isDemoMode) {
+    if (showDemoContent) {
       setDemoPreferences(prev => ({ ...prev, showSystemMessages: value }));
       return;
     }
@@ -103,7 +94,7 @@ export const ConsumerGeneralSettings = () => {
   };
 
   const handleCategoryChange = (category: keyof SystemMessageCategoryPrefs, value: boolean) => {
-    if (isDemoMode) {
+    if (showDemoContent) {
       setDemoPreferences(prev => ({
         ...prev,
         categories: { ...prev.categories, [category]: value },
@@ -115,6 +106,9 @@ export const ConsumerGeneralSettings = () => {
       categories: { ...preferences.categories, [category]: value },
     });
   };
+
+  // Use demo preferences when in demo mode, otherwise use real preferences
+  const activePreferences = showDemoContent ? demoPreferences : preferences;
 
   return (
     <div className="space-y-3">
@@ -128,7 +122,7 @@ export const ConsumerGeneralSettings = () => {
           categories={activePreferences.categories}
           onShowSystemMessagesChange={handleShowSystemMessagesChange}
           onCategoryChange={handleCategoryChange}
-          disabled={!isDemoMode && isUpdating}
+          disabled={isUpdating && !showDemoContent}
         />
       </div>
 
