@@ -38,17 +38,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           </h1>
         </div>
 
-        {/* Tagline - Primary headline */}
+        {/* Tagline - Primary headline - Same gradient as "Less Chaos, More Coordinated" */}
         <h2
-          className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight animate-fade-in"
-          style={{
-            background:
-              'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            color: 'transparent',
-          }}
+          className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight animate-fade-in gradient-tagline"
         >
           The Group Chat Travel App
         </h2>
@@ -69,16 +61,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       <div className="flex-shrink-0 mt-auto flex flex-col items-center">
         {/* Secondary tagline */}
         <h3
-          className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight animate-fade-in"
-          style={{
-            animationDelay: '0.1s',
-            background:
-              'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            color: 'transparent',
-          }}
+          className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight animate-fade-in gradient-tagline"
+          style={{ animationDelay: '0.1s' }}
         >
           Less Chaos, More Coordinated
         </h3>
