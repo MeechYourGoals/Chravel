@@ -888,3 +888,13 @@
   scrollbar-width: none;
 }
 
+/* Landing page gradient tagline - blue to gold */
+.gradient-tagline {
+  background: linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+
