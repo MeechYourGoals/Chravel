@@ -27,17 +27,18 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
   const [awaitingAuth, setAwaitingAuth] = useState(false);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Close modal when user becomes authenticated after sign-in attempt
+  // Close modal immediately if user is already authenticated when modal opens
+  // Also close when user becomes authenticated after sign-in attempt
   useEffect(() => {
-    if (awaitingAuth && user) {
-      // User is now authenticated, close the modal
+    if (user && isOpen) {
+      // User is authenticated, close the modal immediately
       if (closeTimeoutRef.current) {
         clearTimeout(closeTimeoutRef.current);
       }
       setAwaitingAuth(false);
       onClose();
     }
-  }, [awaitingAuth, user, onClose]);
+  }, [user, isOpen, onClose]);
 
   // Safety timeout: if auth takes too long, still close the modal
   useEffect(() => {
