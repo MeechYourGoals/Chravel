@@ -29,11 +29,13 @@ export const ConsumerGeneralSettings = () => {
   const [demoPreferences, setDemoPreferences] = useState({
     showSystemMessages: true,
     categories: {
-      joins: true,
-      leaves: true,
-      roleChanges: true,
-      nameChanges: true,
-      settingChanges: true,
+      member: true,
+      basecamp: true,
+      uploads: true,
+      polls: true,
+      calendar: true,
+      tasks: false,
+      payments: false,
     } as SystemMessageCategoryPrefs,
   });
 
