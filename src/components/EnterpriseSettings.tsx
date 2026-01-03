@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Building, CreditCard, Settings, Bell, Wallet, ChevronDown } from 'lucide-react';
+import { Building, CreditCard, Settings, Bell, Wallet, ChevronDown, Loader2 } from 'lucide-react';
 import { TravelWallet } from './TravelWallet';
 import { OrganizationSection } from './enterprise/OrganizationSection';
 import { BillingSection } from './enterprise/BillingSection';
 import { EnterpriseNotificationsSection } from './enterprise/EnterpriseNotificationsSection';
 import { EnterprisePrivacySection } from './enterprise/EnterprisePrivacySection';
-
+import { useOrganization } from '../hooks/useOrganization';
 import { useIsMobile } from '../hooks/use-mobile';
+import { SUBSCRIPTION_TIERS } from '../types/pro';
 
 interface EnterpriseSettingsProps {
   organizationId: string;
@@ -18,23 +19,26 @@ export const EnterpriseSettings = ({ organizationId, currentUserId, defaultSecti
   const [activeSection, setActiveSection] = useState(defaultSection);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const isMobile = useIsMobile();
+  
+  // Fetch real organization data
+  const { currentOrg, members, loading } = useOrganization();
 
-  // Mock organization data
-  const organization = {
-    id: organizationId,
-    name: 'Acme Entertainment Group',
-    displayName: 'Acme Entertainment',
-    subscriptionTier: 'growing' as const,
-    subscriptionStatus: 'active' as const,
-    seatLimit: 25,
-    seatsUsed: 18,
-    billingEmail: 'billing@acme.com',
-    subscriptionEndsAt: '2025-12-15',
-    currentUserRole: 'owner',
+  // Build organization object from real data
+  const organization = currentOrg ? {
+    id: currentOrg.id,
+    name: currentOrg.name,
+    displayName: currentOrg.display_name,
+    subscriptionTier: currentOrg.subscription_tier as 'starter' | 'growing' | 'enterprise' | 'enterprise-plus',
+    subscriptionStatus: currentOrg.subscription_status as 'active' | 'trial' | 'cancelled' | 'expired',
+    seatLimit: currentOrg.seat_limit || SUBSCRIPTION_TIERS[currentOrg.subscription_tier as keyof typeof SUBSCRIPTION_TIERS]?.seatLimit || 50,
+    seatsUsed: currentOrg.seats_used || members.length,
+    billingEmail: currentOrg.billing_email || 'billing@organization.com',
+    subscriptionEndsAt: currentOrg.subscription_ends_at || undefined,
+    currentUserRole: 'owner' as const,
     contactName: '',
     contactEmail: '',
     contactPhone: ''
-  };
+  } : null;
 
   // Simplified sidebar - same for all categories
   const sections = [
@@ -46,6 +50,22 @@ export const EnterpriseSettings = ({ organizationId, currentUserId, defaultSecti
   ];
 
   const renderSection = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-glass-orange" />
+        </div>
+      );
+    }
+    
+    if (!organization) {
+      return (
+        <div className="text-center py-12 text-gray-400">
+          <p>No organization found. Please create or join an organization.</p>
+        </div>
+      );
+    }
+    
     switch (activeSection) {
       case 'organization': return <OrganizationSection organization={organization} />;
       case 'billing': return <BillingSection organization={organization} />;

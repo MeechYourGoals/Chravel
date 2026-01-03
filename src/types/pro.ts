@@ -429,41 +429,46 @@ export const SUBSCRIPTION_TIERS = {
   'starter': {
     name: 'Starter Pro',
     price: 49,
-    seatLimit: 25,
+    seatLimit: 50,
     features: [
-      'Up to 25 team members',
-      'Multi-city tour management',
-      'Advanced team roles & permissions',
-      'Broadcast messaging with translation',
-      'Shared itinerary building',
-      'Travel wallet integration',
-      'Basic compliance tools',
-      'Email support'
+      'Up to 50 team members',
+      'Advanced permissions',
+      'Compliance features',
+      'Team management dashboard',
+      'Basic integrations',
+      'Email support',
+      'Unlimited Events for your team',
+      'Your first Pro Trip + Event included free'
     ]
   },
   'growing': {
     name: 'Growth Pro',
-    price: 199,
+    price: 99,
     seatLimit: 100,
     features: [
       'Up to 100 team members',
-      'Advanced role management',
-      'Travel wallet & rewards tracking',
-      'Priority phone support',
-      'Custom branding options'
+      'Multi-language support',
+      'Priority support',
+      'Advanced integrations',
+      'Custom workflows',
+      'Analytics dashboard',
+      'Unlimited Events for your team',
+      'Your first Pro Trip + Event included free'
     ]
   },
   'enterprise': {
-    name: 'Enterprise Pro',
-    price: 499,
-    seatLimit: 500,
+    name: 'Enterprise',
+    price: 199,
+    seatLimit: 250,
     features: [
-      'Up to 500 team members',
-      'Advanced integrations & APIs',
-      'Advanced security features',
-      'Priority support',
-      'Custom branding',
-      'Dedicated account manager'
+      'Up to 250 team members',
+      'Custom integrations',
+      'Dedicated success manager',
+      'SLA guarantees',
+      'White-label options',
+      '24/7 premium support',
+      'Unlimited Events for your team',
+      'Your first Pro Trip + Event included free'
     ]
   },
   'enterprise-plus': {
@@ -473,16 +478,14 @@ export const SUBSCRIPTION_TIERS = {
     features: [
       'Unlimited team members',
       'Full SSO/MFA integration',
-      'Custom integrations & APIs',
+      'Custom integrations and APIs',
       'GDPR compliance suite',
       'White-label options',
       'Advanced security features',
       'Custom feature development',
       '24/7 dedicated support',
       'On-premise deployment options',
-      'Custom SLA agreements',
-      'Quarterly business reviews',
-      'Executive support line'
+      'Custom SLA agreements'
     ]
   }
 } as const;

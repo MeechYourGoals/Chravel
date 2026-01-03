@@ -120,23 +120,19 @@ const consumerTiers: PricingTier[] = [
 ];
 
 // Pro/Enterprise Tiers - Chravel Pro (Starter, Growth, Enterprise)
+// Import from central source of truth
+import { SUBSCRIPTION_TIERS } from '@/types/pro';
+
 const proTiers: PricingTier[] = [
   {
     id: 'starter-pro',
-    name: 'Starter Pro',
-    price: '$49',
+    name: SUBSCRIPTION_TIERS.starter.name,
+    price: `$${SUBSCRIPTION_TIERS.starter.price}`,
     description: 'Perfect for small touring acts, AAU teams, local clubs',
     icon: <Building size={24} />,
-    features: [
-      'Up to 50 team members',
-      'Advanced permissions',
-      'Compliance features',
-      'Team management dashboard',
-      'Basic integrations',
-      'Email support',
-      '🎉 Unlimited Events for your team',
-      '🎁 Your first Pro Trip + Event included free'
-    ],
+    features: SUBSCRIPTION_TIERS.starter.features.map(f => 
+      f.includes('Events') ? `🎉 ${f}` : f.includes('free') ? `🎁 ${f}` : f
+    ),
     cta: 'Start 14-Day Trial',
     category: 'pro',
     enterprise: true,
@@ -144,20 +140,13 @@ const proTiers: PricingTier[] = [
   },
   {
     id: 'growth-pro',
-    name: 'Growth Pro',
-    price: '$99',
+    name: SUBSCRIPTION_TIERS.growing.name,
+    price: `$${SUBSCRIPTION_TIERS.growing.price}`,
     description: 'For college teams, mid-size productions, corporate groups',
     icon: <TrendingUp size={24} />,
-    features: [
-      'Up to 100 team members',
-      'Multi-language support',
-      'Priority support',
-      'Advanced integrations',
-      'Custom workflows',
-      'Analytics dashboard',
-      '🎉 Unlimited Events for your team',
-      '🎁 Your first Pro Trip + Event included free'
-    ],
+    features: SUBSCRIPTION_TIERS.growing.features.map(f => 
+      f.includes('Events') ? `🎉 ${f}` : f.includes('free') ? `🎁 ${f}` : f
+    ),
     cta: 'Start 14-Day Trial',
     popular: true,
     category: 'pro',
@@ -167,20 +156,13 @@ const proTiers: PricingTier[] = [
   },
   {
     id: 'enterprise',
-    name: 'Enterprise',
-    price: '$199',
+    name: SUBSCRIPTION_TIERS.enterprise.name,
+    price: `$${SUBSCRIPTION_TIERS.enterprise.price}`,
     description: 'For professional leagues, major tours, Fortune 500',
     icon: <Shield size={24} />,
-    features: [
-      'Up to 250 team members',
-      'Custom integrations',
-      'Dedicated success manager',
-      'SLA guarantees',
-      'White-label options',
-      '24/7 premium support',
-      '🎉 Unlimited Events for your team',
-      '🎁 Your first Pro Trip + Event included free'
-    ],
+    features: SUBSCRIPTION_TIERS.enterprise.features.map(f => 
+      f.includes('Events') ? `🎉 ${f}` : f.includes('free') ? `🎁 ${f}` : f
+    ),
     cta: 'Contact Sales',
     category: 'pro',
     enterprise: true,
