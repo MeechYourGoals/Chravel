@@ -40,7 +40,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
 
         {/* Tagline - Primary headline */}
         <h2
-          className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight animate-fade-in"
+          className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight animate-fade-in px-4 py-2 rounded-lg inline-block"
           style={{
             background:
               'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
@@ -48,6 +48,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
             color: 'transparent',
+            backgroundColor: 'rgba(255, 255, 255, 0.08)',
           }}
         >
           The Group Chat Travel App
@@ -69,7 +70,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       <div className="flex-shrink-0 mt-auto flex flex-col items-center">
         {/* Secondary tagline */}
         <h3
-          className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight animate-fade-in"
+          className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight animate-fade-in px-4 py-2 rounded-lg inline-block"
           style={{
             animationDelay: '0.1s',
             background:
@@ -78,6 +79,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
             color: 'transparent',
+            backgroundColor: 'rgba(255, 255, 255, 0.08)',
           }}
         >
           Less Chaos, More Coordinated
