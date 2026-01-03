@@ -112,15 +112,6 @@ export const SettingsMenu = ({
     );
   }
 
-  // Mock organization data - would come from your auth/org context.
-  // Note: Settings should never hard-crash if org data is missing; we provide safe fallbacks.
-  const userOrganization = {
-    id: 'org-123',
-    name: 'Acme Entertainment Group',
-    role: 'owner',
-    hasProAccess: true,
-  };
-
   return (
     <>
       <div
@@ -242,10 +233,7 @@ export const SettingsMenu = ({
             ) : settingsType === 'enterprise' ? (
               <div className="flex-1 min-h-0">
                 <ErrorBoundary compact>
-                  <EnterpriseSettings
-                    organizationId={userOrganization?.id || 'default-org'}
-                    currentUserId={currentUser.id}
-                  />
+                  <EnterpriseSettings organizationId="" currentUserId={currentUser.id} />
                 </ErrorBoundary>
               </div>
             ) : settingsType === 'events' ? (

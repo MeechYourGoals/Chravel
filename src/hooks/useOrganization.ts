@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
@@ -69,7 +69,7 @@ export const useOrganization = () => {
         setLoading(false);
         return;
       }
-      
+
       // Fetch user's organization memberships
       const { data: memberships, error: membershipsError } = await supabase
         .from('organization_members')
@@ -81,7 +81,7 @@ export const useOrganization = () => {
 
       if (memberships && memberships.length > 0) {
         const orgIds = memberships.map(m => m.organization_id);
-        
+
         const { data: orgs, error: orgsError } = await supabase
           .from('organizations')
           .select('*')
@@ -89,7 +89,7 @@ export const useOrganization = () => {
 
         if (orgsError) throw orgsError;
 
-        setOrganizations(orgs as Organization[] || []);
+        setOrganizations((orgs as Organization[]) || []);
         if (orgs && orgs.length > 0) {
           setCurrentOrg(orgs[0] as Organization);
         }
@@ -101,7 +101,7 @@ export const useOrganization = () => {
     }
   };
 
-  const fetchOrgMembers = async (orgId: string) => {
+  const fetchOrgMembers = useCallback(async (orgId: string) => {
     try {
       const { data, error } = await supabase
         .from('organization_members')
@@ -114,7 +114,7 @@ export const useOrganization = () => {
     } catch (error) {
       console.error('Error fetching org members:', error);
     }
-  };
+  }, []);
 
   const createOrganization = async (data: {
     name: string;
@@ -145,14 +145,16 @@ export const useOrganization = () => {
 
       const { data, error } = await supabase
         .from('organization_invites')
-        .insert([{
-          organization_id: orgId,
-          email,
-          invited_by: user?.id,
-          role,
-          token,
-          expires_at: expiresAt.toISOString(),
-        }])
+        .insert([
+          {
+            organization_id: orgId,
+            email,
+            invited_by: user?.id,
+            role,
+            token,
+            expires_at: expiresAt.toISOString(),
+          },
+        ])
         .select()
         .single();
 
@@ -165,17 +167,14 @@ export const useOrganization = () => {
 
   const removeMember = async (memberId: string) => {
     try {
-      const { error } = await supabase
-        .from('organization_members')
-        .delete()
-        .eq('id', memberId);
+      const { error } = await supabase.from('organization_members').delete().eq('id', memberId);
 
       if (error) throw error;
-      
+
       if (currentOrg) {
         await fetchOrgMembers(currentOrg.id);
       }
-      
+
       return { error: null };
     } catch (error) {
       return { error };
@@ -190,11 +189,11 @@ export const useOrganization = () => {
         .eq('id', memberId);
 
       if (error) throw error;
-      
+
       if (currentOrg) {
         await fetchOrgMembers(currentOrg.id);
       }
-      
+
       return { error: null };
     } catch (error) {
       return { error };
