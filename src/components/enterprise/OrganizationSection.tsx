@@ -1,22 +1,32 @@
 import React, { useState } from 'react';
-import { Building, Camera, Upload } from 'lucide-react';
+import { Building, Camera, Upload, Plus, AlertCircle } from 'lucide-react';
 
-interface OrganizationSectionProps {
-  organization: {
-    id: string;
-    name: string;
-    displayName: string;
-    billingEmail: string;
-    contactName?: string;
-    contactEmail?: string;
-    contactPhone?: string;
-  };
+interface OrganizationData {
+  id: string;
+  name: string;
+  displayName: string;
+  billingEmail: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
 }
 
-export const OrganizationSection = ({ organization }: OrganizationSectionProps) => {
-  const [contactName, setContactName] = useState(organization.contactName || '');
-  const [contactEmail, setContactEmail] = useState(organization.contactEmail || '');
-  const [contactPhone, setContactPhone] = useState(organization.contactPhone || '');
+interface OrganizationSectionProps {
+  organization: OrganizationData | null;
+  onCreateOrganization?: () => void;
+}
+
+export const OrganizationSection = ({
+  organization,
+  onCreateOrganization,
+}: OrganizationSectionProps) => {
+  const [contactName, setContactName] = useState(organization?.contactName || '');
+  const [contactEmail, setContactEmail] = useState(organization?.contactEmail || '');
+  const [contactPhone, setContactPhone] = useState(organization?.contactPhone || '');
+  const [orgName, setOrgName] = useState(organization?.name || '');
+  const [displayName, setDisplayName] = useState(organization?.displayName || '');
+  const [billingEmail, setBillingEmail] = useState(organization?.billingEmail || '');
+  const [description, setDescription] = useState('');
 
   return (
     <div className="space-y-3">
@@ -29,6 +39,32 @@ export const OrganizationSection = ({ organization }: OrganizationSectionProps) 
           <p className="text-gray-400">Manage your organization profile and details</p>
         </div>
       </div>
+
+      {/* CTA Banner when no organization */}
+      {!organization && (
+        <div className="bg-gradient-to-r from-amber-500/10 to-amber-600/10 border border-amber-500/30 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h4 className="text-base font-semibold text-white mb-1">
+                Add Your Organization Profile
+              </h4>
+              <p className="text-sm text-gray-300 mb-3">
+                Fill out the form below to create your organization and unlock Enterprise features.
+              </p>
+              {onCreateOrganization && (
+                <button
+                  onClick={onCreateOrganization}
+                  className="inline-flex items-center gap-2 bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                >
+                  <Plus size={16} />
+                  Create Organization
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Organization Logo */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
@@ -59,7 +95,9 @@ export const OrganizationSection = ({ organization }: OrganizationSectionProps) 
             <label className="block text-sm text-gray-300 mb-2">Organization Name</label>
             <input
               type="text"
-              defaultValue={organization.name}
+              value={orgName}
+              onChange={e => setOrgName(e.target.value)}
+              placeholder="Enter organization name"
               className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
             />
           </div>
@@ -67,7 +105,9 @@ export const OrganizationSection = ({ organization }: OrganizationSectionProps) 
             <label className="block text-sm text-gray-300 mb-2">Display Name</label>
             <input
               type="text"
-              defaultValue={organization.displayName}
+              value={displayName}
+              onChange={e => setDisplayName(e.target.value)}
+              placeholder="Enter display name"
               className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
             />
           </div>
@@ -75,15 +115,19 @@ export const OrganizationSection = ({ organization }: OrganizationSectionProps) 
             <label className="block text-sm text-gray-300 mb-2">Billing Email</label>
             <input
               type="email"
-              defaultValue={organization.billingEmail}
+              value={billingEmail}
+              onChange={e => setBillingEmail(e.target.value)}
+              placeholder="Enter billing email"
               className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
             />
           </div>
         </div>
-        
+
         <div className="mt-3">
           <label className="block text-sm text-gray-300 mb-1">Organization Description</label>
           <textarea
+            value={description}
+            onChange={e => setDescription(e.target.value)}
             placeholder="Describe your organization's mission and focus..."
             className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 resize-none"
             rows={3}
@@ -94,14 +138,16 @@ export const OrganizationSection = ({ organization }: OrganizationSectionProps) 
       {/* Primary Contact Section */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Primary Contact</h4>
-        <p className="text-sm text-gray-400 mb-4">The main point of contact for your organization</p>
+        <p className="text-sm text-gray-400 mb-4">
+          The main point of contact for your organization
+        </p>
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-gray-300 mb-2">Contact Name</label>
             <input
               type="text"
               value={contactName}
-              onChange={(e) => setContactName(e.target.value)}
+              onChange={e => setContactName(e.target.value)}
               placeholder="John Smith"
               className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
             />
@@ -111,7 +157,7 @@ export const OrganizationSection = ({ organization }: OrganizationSectionProps) 
             <input
               type="email"
               value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
+              onChange={e => setContactEmail(e.target.value)}
               placeholder="john@company.com"
               className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
             />
@@ -121,16 +167,16 @@ export const OrganizationSection = ({ organization }: OrganizationSectionProps) 
             <input
               type="tel"
               value={contactPhone}
-              onChange={(e) => setContactPhone(e.target.value)}
+              onChange={e => setContactPhone(e.target.value)}
               placeholder="+1 (555) 123-4567"
               className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
             />
           </div>
         </div>
       </div>
-      
+
       <button className="mt-4 bg-glass-orange hover:bg-glass-orange/80 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-        Save Changes
+        {organization ? 'Save Changes' : 'Create Organization'}
       </button>
     </div>
   );

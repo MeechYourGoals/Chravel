@@ -1,14 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Building,
-  CreditCard,
-  Settings,
-  Bell,
-  Wallet,
-  ChevronDown,
-  Loader2,
-  Plus,
-} from 'lucide-react';
+import { Building, CreditCard, Settings, Bell, Wallet, ChevronDown, Loader2 } from 'lucide-react';
 import { TravelWallet } from './TravelWallet';
 import { OrganizationSection } from './enterprise/OrganizationSection';
 import { BillingSection } from './enterprise/BillingSection';
@@ -46,7 +37,7 @@ export const EnterpriseSettings = ({
     }
   }, [currentOrg?.id, fetchOrgMembers]);
 
-  // Build organization object from real data
+  // Build organization object from real data (can be null)
   const organization = currentOrg
     ? {
         id: currentOrg.id,
@@ -68,7 +59,7 @@ export const EnterpriseSettings = ({
             ?.seatLimit ||
           50,
         seatsUsed: currentOrg.seats_used || members.length,
-        billingEmail: currentOrg.billing_email || 'billing@organization.com',
+        billingEmail: currentOrg.billing_email || '',
         subscriptionEndsAt: currentOrg.subscription_ends_at || undefined,
         currentUserRole: 'owner' as const,
         contactName: '',
@@ -86,6 +77,18 @@ export const EnterpriseSettings = ({
     { id: 'privacy', label: 'General & Privacy', icon: Settings },
   ];
 
+  // Handler to open create organization modal
+  const handleOpenCreateOrgModal = () => {
+    setShowCreateOrgModal(true);
+  };
+
+  // Handler for when organization is created
+  const handleOrgCreated = () => {
+    setShowCreateOrgModal(false);
+    fetchUserOrganizations();
+  };
+
+  // Render section content - ALL sections always render, even without organization
   const renderSection = () => {
     if (loading) {
       return (
@@ -95,47 +98,42 @@ export const EnterpriseSettings = ({
       );
     }
 
-    if (!organization) {
-      return (
-        <div className="text-center py-12 px-4">
-          <div className="max-w-md mx-auto">
-            <div className="h-16 w-16 mx-auto rounded-full bg-glass-orange/20 flex items-center justify-center mb-4">
-              <Building className="h-8 w-8 text-glass-orange" />
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">No Organization Found</h3>
-            <p className="text-gray-400 mb-6">
-              Create an organization to access Enterprise features like team management,
-              subscription billing, and advanced seat controls.
-            </p>
-            <button
-              onClick={() => setShowCreateOrgModal(true)}
-              className="inline-flex items-center gap-2 bg-glass-orange hover:bg-glass-orange/80 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-            >
-              <Plus size={20} />
-              Create Organization
-            </button>
-          </div>
-        </div>
-      );
-    }
-
+    // Each section handles null organization gracefully with CTAs
     switch (activeSection) {
       case 'organization':
-        return <OrganizationSection organization={organization} />;
+        return (
+          <OrganizationSection
+            organization={organization}
+            onCreateOrganization={handleOpenCreateOrgModal}
+          />
+        );
       case 'billing':
-        return <BillingSection organization={organization} />;
+        return (
+          <BillingSection
+            organization={organization}
+            onCreateOrganization={handleOpenCreateOrgModal}
+          />
+        );
       case 'travel-wallet':
+        // Travel Wallet is user-specific, not org-specific - always renders
         return (
           <div>
             <TravelWallet userId={currentUserId} />
           </div>
         );
       case 'notifications':
+        // Notifications always render with defaults
         return <EnterpriseNotificationsSection />;
       case 'privacy':
+        // Privacy settings always render with defaults
         return <EnterprisePrivacySection />;
       default:
-        return <OrganizationSection organization={organization} />;
+        return (
+          <OrganizationSection
+            organization={organization}
+            onCreateOrganization={handleOpenCreateOrgModal}
+          />
+        );
     }
   };
 
@@ -143,7 +141,12 @@ export const EnterpriseSettings = ({
 
   // When integrated into dashboard, render without the full layout
   if (defaultSection !== 'organization') {
-    return <div className="w-full">{renderSection()}</div>;
+    return (
+      <>
+        <div className="w-full">{renderSection()}</div>
+        <CreateOrganizationModal open={showCreateOrgModal} onClose={handleOrgCreated} />
+      </>
+    );
   }
 
   if (isMobile) {
@@ -196,22 +199,10 @@ export const EnterpriseSettings = ({
           <div className="p-4">{renderSection()}</div>
         </div>
 
-        <CreateOrganizationModal
-          open={showCreateOrgModal}
-          onClose={() => {
-            setShowCreateOrgModal(false);
-            fetchUserOrganizations();
-          }}
-        />
+        <CreateOrganizationModal open={showCreateOrgModal} onClose={handleOrgCreated} />
       </div>
     );
   }
-
-  // Handler for when organization is created
-  const handleOrgCreated = () => {
-    setShowCreateOrgModal(false);
-    fetchUserOrganizations();
-  };
 
   // Desktop layout
   return (
