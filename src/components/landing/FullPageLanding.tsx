@@ -13,7 +13,7 @@ const PricingLandingSection = lazy(() => import('./sections/PricingLandingSectio
 const FooterSection = lazy(() => import('./FooterSection').then(module => ({ default: module.FooterSection })));
 
 // Import cinematic hero images
-import heroImage from '@/assets/hero-images/hero-travel-desk.png';
+import heroImage from '@/assets/hero-background.png';
 import howItWorksImage from '@/assets/hero-images/festival-goers-phone.png';
 import aiImage from '@/assets/hero-images/conference-enterprise.png';
 import scenariosImage from '@/assets/hero-images/sports-events-1920.jpg';
