@@ -39,20 +39,26 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         </div>
 
         {/* Tagline - Primary headline */}
-        <h2
-          className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight animate-fade-in px-4 py-2 rounded-lg inline-block"
+        <div
+          className="inline-block px-6 py-3 rounded-xl animate-fade-in"
           style={{
-            background:
-              'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            color: 'transparent',
-            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            backgroundColor: 'rgba(128, 128, 128, 0.15)',
+            backdropFilter: 'blur(4px)',
           }}
         >
-          The Group Chat Travel App
-        </h2>
+          <h2
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight"
+            style={{
+              background:
+                'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            The Group Chat Travel App
+          </h2>
+        </div>
       </div>
 
       {/* Mobile: CTA centered in viewport - visible only on mobile */}
@@ -69,21 +75,27 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       {/* Bottom Section: Hero copy + CTA (desktop) */}
       <div className="flex-shrink-0 mt-auto flex flex-col items-center">
         {/* Secondary tagline */}
-        <h3
-          className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight animate-fade-in px-4 py-2 rounded-lg inline-block"
+        <div
+          className="inline-block px-6 py-3 rounded-xl animate-fade-in"
           style={{
             animationDelay: '0.1s',
-            background:
-              'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            color: 'transparent',
-            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            backgroundColor: 'rgba(128, 128, 128, 0.15)',
+            backdropFilter: 'blur(4px)',
           }}
         >
-          Less Chaos, More Coordinated
-        </h3>
+          <h3
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight"
+            style={{
+              background:
+                'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            Less Chaos, More Coordinated
+          </h3>
+        </div>
 
         {/* Subheadline */}
         <p
