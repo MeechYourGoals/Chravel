@@ -211,7 +211,7 @@ CREATE TABLE trip_join_requests (
 
 **Input**: `{ code: string }`
 
-**No auth required** - Used for link previews
+**No auth required** - Used for link previews. This is implemented via an edge function (service role) so we do **not** need (or want) public SELECT access on `trip_invites`.
 
 **Returns**: Trip name, destination, dates, cover image, member count
 
