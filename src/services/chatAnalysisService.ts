@@ -203,7 +203,7 @@ export async function detectPaymentParticipantsFromMessage(
 
     // Step 2: Get profiles for all trip members
     const { data: profiles, error: profileError } = await supabase
-      .from('profiles')
+      .from('profiles_public')
       .select('user_id, display_name')
       .in('user_id', userIds);
 
@@ -542,7 +542,7 @@ export async function getAutomaticParticipantSuggestions(
 
     // Get profiles
     const { data: profiles, error: profileError } = await supabase
-      .from('profiles')
+      .from('profiles_public')
       .select('user_id, display_name')
       .in('user_id', userIds);
 

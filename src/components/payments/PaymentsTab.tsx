@@ -101,7 +101,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         let finalMembers = formattedMembers;
         if (user && !formattedMembers.find(m => m.id === user.id)) {
           const { data: profile } = await supabase
-            .from('profiles')
+            .from('profiles_public')
             .select('display_name, avatar_url')
             .eq('user_id', user.id)
             .single();

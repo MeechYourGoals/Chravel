@@ -66,7 +66,7 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
       const requestsWithProfiles = await Promise.all(
         (data || []).map(async (request) => {
           const { data: profile, error: profileError } = await supabase
-            .from('profiles')
+            .from('profiles_public')
             .select('display_name, avatar_url, first_name, last_name')
             .eq('user_id', request.user_id)
             .maybeSingle();

@@ -93,7 +93,7 @@ export async function searchBroadcasts(
   // Fetch creator names from profiles
   const creatorIds = [...new Set(data?.map(b => b.created_by) || [])];
   const { data: profiles } = await supabase
-    .from('profiles')
+    .from('profiles_public')
     .select('user_id, display_name, first_name, last_name')
     .in('user_id', creatorIds);
 
