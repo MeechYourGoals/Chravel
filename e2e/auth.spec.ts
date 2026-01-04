@@ -6,8 +6,8 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should display sign in form', async ({ page }) => {
-    // Look for sign in elements - use .first() since landing page has multiple login buttons
-    const signInButton = page.getByRole('button', { name: /sign in|log in/i }).first();
+    // Landing page has multiple auth CTAs; target the primary "Log In" button explicitly.
+    const signInButton = page.getByRole('button', { name: /^log\s*in$/i });
     await expect(signInButton).toBeVisible();
   });
 
