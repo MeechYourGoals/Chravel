@@ -58,14 +58,13 @@ const consumerTiers: PricingTier[] = [
     icon: <Users size={24} />,
     features: [
       'Core group chat',
-      'Shared calendar (manual entry)',
+      'Shared calendar',
       'Photo & video sharing',
       'Basic itinerary planning',
       'Payment tracking',
       'Polls & group decisions',
       'AI Trip Assistant (5 queries per user per trip)',
       '1 PDF export per trip (sample it!)',
-      'ICS calendar export',
       'Save up to 3 active trips',
       '🎁 1 free Pro trip to try',
       '🎁 1 free Event to try'
@@ -87,6 +86,7 @@ const consumerTiers: PricingTier[] = [
       'Unlimited saved trips + restore archived',
       '10 AI queries per user per trip',
       'Unlimited PDF exports',
+      'ICS calendar export',
       'Location-aware AI recommendations',
       'Search past trips and memories'
     ],
@@ -245,7 +245,11 @@ const faqItems = [
   },
   {
     question: "Are Events included in my subscription?",
-    answer: "Yes! Events are bundled into all paid plans. Explorer includes unlimited Events with up to 100 guests each. Frequent Chraveler includes Events with up to 200 guests. All Pro tiers include unlimited Events for your entire team."
+    answer: "Yes! Events are bundled into all paid plans. Explorer includes unlimited Events with up to 50 guests each. Frequent Chraveler includes Events with up to 100 guests. All Pro tiers include unlimited Events for your entire team."
+  },
+  {
+    question: "Isn't this just another app to download?",
+    answer: "Unlike your current stack where texts don't know what's in your emails, and your spreadsheet doesn't know what's in your group chat—ChravelApp's 8 tabs are fully interconnected. Your AI concierge can search your chat history, reference your itinerary, know your saved places, and factor in who owes what. One context-aware trip brain instead of 8 disconnected apps."
   }
 ];
 
