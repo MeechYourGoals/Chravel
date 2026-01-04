@@ -1,60 +1,86 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Offline resilience (MVP)', () => {
-  test('shows Offline banner when network disconnects (no reload)', async ({ page, context }) => {
-    // Start online and load the page fully
-    await context.setOffline(false);
-    await page.goto('/');
+  // NOTE:
+  // We intentionally do NOT use `context.setOffline(true)` here.
+  // In Playwright, a true network-offline state can cause `page.reload()` to throw
+  // `net::ERR_INTERNET_DISCONNECTED`, which prevents us from testing the app's offline UI.
+  // Instead we mock offline by overriding `navigator.onLine` + dispatching `online/offline` events.
+  async function installNavigatorOnlineMock(
+    context: import('@playwright/test').BrowserContext,
+  ): Promise<void> {
+    await context.addInitScript(() => {
+      (window as unknown as { __PW_IS_ONLINE__?: boolean }).__PW_IS_ONLINE__ = true;
+      Object.defineProperty(window.navigator, 'onLine', {
+        configurable: true,
+        get: () => (window as unknown as { __PW_IS_ONLINE__?: boolean }).__PW_IS_ONLINE__ !== false,
+      });
+    });
+  }
 
-    // Wait for app to be fully loaded
+  async function setMockedOnlineStatus(
+    page: import('@playwright/test').Page,
+    isOnline: boolean,
+  ): Promise<void> {
+    await page.evaluate((nextOnline: boolean) => {
+      (window as unknown as { __PW_IS_ONLINE__?: boolean }).__PW_IS_ONLINE__ = nextOnline;
+      window.dispatchEvent(new Event(nextOnline ? 'online' : 'offline'));
+    }, isOnline);
+  }
+
+  test('OFFLINE-001-TC01: page reloads while offline and shows banner', async ({
+    page,
+    context,
+  }) => {
+    await installNavigatorOnlineMock(context);
+
+    // Simulate "offline at startup", but keep actual network available so reload works.
+    await page.goto('/');
+    await setMockedOnlineStatus(page, false);
+
+    await page.reload();
+
+    // OfflineIndicator label.
+    await expect(page.getByText('Offline', { exact: true })).toBeVisible();
+  });
+
+  test('shows Offline banner when network disconnects (no real network offline)', async ({
+    page,
+    context,
+  }) => {
+    await installNavigatorOnlineMock(context);
+
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // Set offline WITHOUT reloading - the app should detect the network change
-    // and show an offline banner via the OfflineIndicator component
-    await context.setOffline(true);
+    // Simulate offline WITHOUT breaking navigation.
+    await setMockedOnlineStatus(page, false);
 
-    // Give the app time to detect network change (uses navigator.onLine event)
-    await page.waitForTimeout(500);
+    await expect(page.getByText('Offline', { exact: true })).toBeVisible();
 
-    // Check if offline indicator appears (may be text or visual indicator)
-    // The app uses OfflineIndicator component which should respond to network state
-    const offlineIndicator = page.getByText(/offline/i);
-    const hasOfflineIndicator = await offlineIndicator.isVisible().catch(() => false);
-
-    if (!hasOfflineIndicator) {
-      // Some apps only show offline state on failed requests, not immediately
-      // This is acceptable behavior - skip the immediate banner check
-      console.log('Offline banner not shown immediately (app may wait for failed request)');
-    }
-
-    // Restore connectivity
-    await context.setOffline(false);
-    await page.waitForTimeout(500);
-
-    // Verify page is still functional after reconnect
+    // Restore connectivity and ensure UI remains functional.
+    await setMockedOnlineStatus(page, true);
     await expect(page.locator('body')).toBeVisible();
   });
 
-  test('page remains functional after offline/online cycle', async ({ page, context }) => {
-    // Load page online
-    await context.setOffline(false);
+  test('page remains functional after offline/online cycle (no real network offline)', async ({
+    page,
+    context,
+  }) => {
+    await installNavigatorOnlineMock(context);
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // Cycle offline then online
-    await context.setOffline(true);
-    await page.waitForTimeout(300);
-    await context.setOffline(false);
-    await page.waitForTimeout(300);
+    await setMockedOnlineStatus(page, false);
+    await setMockedOnlineStatus(page, true);
 
-    // Verify the app is still responsive - can interact with UI
-    const body = page.locator('body');
-    await expect(body).toBeVisible();
+    // Verify the app is still responsive - can interact with UI.
+    await expect(page.locator('body')).toBeVisible();
 
-    // Try to navigate or interact to confirm app isn't frozen
+    // Try to locate an interactive element (if any) to ensure it's not frozen.
     const anyButton = page.getByRole('button').first();
     if (await anyButton.isVisible().catch(() => false)) {
-      // Just verify we can locate interactive elements
       await expect(anyButton).toBeEnabled();
     }
   });
