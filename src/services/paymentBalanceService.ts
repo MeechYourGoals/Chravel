@@ -94,7 +94,7 @@ export const paymentBalanceService = {
       paymentSplits?.forEach(s => allUserIds.add(s.debtor_user_id));
 
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('user_id, display_name, avatar_url')
         .in('user_id', Array.from(allUserIds));
 

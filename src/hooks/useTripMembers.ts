@@ -227,7 +227,7 @@ export const useTripMembers = (tripId?: string) => {
     try {
       // Get user's display name for the notification
       const { data: profileData } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('display_name, first_name, last_name')
         .eq('user_id', user.id)
         .single();

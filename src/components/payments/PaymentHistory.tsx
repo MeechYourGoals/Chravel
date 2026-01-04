@@ -119,7 +119,7 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated }: PaymentHistoryProps
       
       if (authorIds.length > 0) {
         const { data: profiles } = await supabase
-          .from('profiles')
+          .from('profiles_public')
           .select('user_id, display_name')
           .in('user_id', authorIds);
 

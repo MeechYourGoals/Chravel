@@ -170,7 +170,7 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
       // Get debtor profiles
       const debtorIds = [...new Set((splitsResult.data || []).map(s => s.debtor_user_id))];
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('user_id, display_name, avatar_url')
         .in('user_id', debtorIds);
 

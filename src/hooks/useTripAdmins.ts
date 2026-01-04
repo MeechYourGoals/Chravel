@@ -76,7 +76,7 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
       const adminsWithProfiles = await Promise.all(
         (data || []).map(async (admin) => {
           const { data: profile } = await supabase
-            .from('profiles')
+            .from('profiles_public')
             .select('display_name, avatar_url')
             .eq('user_id', admin.user_id)
             .single();
