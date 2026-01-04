@@ -54,22 +54,11 @@ export const ConsumerProfileSection = () => {
     setIsSaving(true);
     try {
       // Canonical identity lives in `profiles` (via useAuth.updateProfile upsert).
-      // Phone is stored in private_profiles but we also need to update it there
       const { error } = await updateProfile({
         display_name: displayName,
         bio: bio,
+        phone: phone || null,
       });
-
-      // Save phone to private_profiles table separately
-      if (phone !== user.phone) {
-        const { error: phoneError } = await supabase
-          .from('private_profiles')
-          .upsert({ id: user.id, phone: phone || null }, { onConflict: 'id' });
-        if (phoneError) {
-          console.error('Error saving phone:', phoneError);
-          // Don't throw - profile save succeeded, just log phone error
-        }
-      }
 
       if (error) throw error;
 

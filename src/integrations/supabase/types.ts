@@ -3515,6 +3515,10 @@ export type Database = {
         }
         Returns: Json
       }
+      users_share_trip: {
+        Args: { target_id: string; viewer_id: string }
+        Returns: boolean
+      }
       vote_on_poll: {
         Args: {
           p_current_version?: number
