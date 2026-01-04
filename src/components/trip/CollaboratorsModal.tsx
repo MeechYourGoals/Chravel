@@ -6,8 +6,9 @@ import { UserMinus, Crown, Check, X, Clock, Users, UserPlus } from 'lucide-react
 import { cn } from '@/lib/utils';
 import { JoinRequest } from '@/hooks/useJoinRequests';
 import { formatDistanceToNow } from 'date-fns';
+import { MemberContactCard, MemberContactCardMember } from './MemberContactCard';
 
-interface CollaboratorItem {
+export interface CollaboratorItem {
   id: number | string;
   name: string;
   avatar?: string;
@@ -20,10 +21,12 @@ interface CollaboratorsModalProps {
   onOpenChange: (open: boolean) => void;
   participants: CollaboratorItem[];
   tripType?: 'consumer' | 'pro' | 'event';
+  tripId?: string;
   currentUserId?: string;
   tripCreatorId?: string | null;
   isAdmin?: boolean;
   onRemoveMember?: (userId: string) => Promise<boolean>;
+  onSendMessage?: (memberId: string) => void;
   // New props for join requests
   pendingRequests?: JoinRequest[];
   onApproveRequest?: (requestId: string) => Promise<void>;
@@ -40,10 +43,12 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
   onOpenChange,
   participants,
   tripType = 'consumer',
+  tripId,
   currentUserId,
   tripCreatorId,
   isAdmin = false,
   onRemoveMember,
+  onSendMessage,
   pendingRequests = [],
   onApproveRequest,
   onRejectRequest,
@@ -53,6 +58,24 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+  const [selectedMember, setSelectedMember] = useState<MemberContactCardMember | null>(null);
+  const [contactCardOpen, setContactCardOpen] = useState(false);
+
+  // Handle clicking on a member to show their contact card
+  const handleMemberClick = (member: CollaboratorItem) => {
+    // Don't show contact card for current user - they can view their own profile in settings
+    const idStr = member.id.toString();
+    if (idStr === currentUserId) return;
+
+    setSelectedMember({
+      id: idStr,
+      name: member.name,
+      avatar: member.avatar,
+      role: member.role,
+      isCreator: member.isCreator || idStr === tripCreatorId,
+    });
+    setContactCardOpen(true);
+  };
 
   // Reset to initialTab when modal opens or initialTab changes
   React.useEffect(() => {
@@ -63,7 +86,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
 
   const handleRemove = async (userId: string, name: string) => {
     if (!onRemoveMember) return;
-    
+
     const confirmed = window.confirm(`Remove ${name} from this trip?`);
     if (!confirmed) return;
 
@@ -127,10 +150,10 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
           <button
             onClick={() => setActiveTab('members')}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all",
+              'flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all',
               activeTab === 'members'
-                ? "bg-white/10 text-white"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
+                ? 'bg-white/10 text-white'
+                : 'text-gray-400 hover:text-white hover:bg-white/5',
             )}
           >
             <Users size={16} />
@@ -139,10 +162,10 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
           <button
             onClick={() => setActiveTab('requests')}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all relative",
+              'flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all relative',
               activeTab === 'requests'
-                ? "bg-white/10 text-white"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
+                ? 'bg-white/10 text-white'
+                : 'text-gray-400 hover:text-white hover:bg-white/5',
             )}
           >
             <UserPlus size={16} />
@@ -160,19 +183,23 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
           {activeTab === 'members' ? (
             // Members List
             <div role="list" aria-label="All collaborators">
-              {participants.map((c) => {
+              {participants.map(c => {
                 const idStr = c.id.toString();
                 const isCreator = idStr === tripCreatorId || c.isCreator;
                 const isCurrentUser = idStr === currentUserId;
                 const showRemoveButton = canRemove(idStr);
 
+                const isClickable = !isCurrentUser; // Can click on other members to see contact card
+
                 return (
                   <div
                     key={c.id}
                     role="listitem"
+                    onClick={isClickable ? () => handleMemberClick(c) : undefined}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 mb-2",
-                      removingId === idStr && "opacity-50"
+                      'flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 mb-2',
+                      removingId === idStr && 'opacity-50',
+                      isClickable && 'cursor-pointer hover:bg-white/10 transition-colors',
                     )}
                   >
                     {isValidAvatarUrl(c.avatar) ? (
@@ -201,18 +228,19 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                           <span className="text-xs text-gray-400">(you)</span>
                         )}
                       </div>
-                      {c.role && (
-                        <div className="truncate text-xs text-gray-400">{c.role}</div>
-                      )}
+                      {c.role && <div className="truncate text-xs text-gray-400">{c.role}</div>}
                     </div>
-                    
+
                     {/* Remove button */}
                     {showRemoveButton && (
                       <button
-                        onClick={() => handleRemove(idStr, c.name)}
+                        onClick={e => {
+                          e.stopPropagation(); // Prevent contact card from opening
+                          handleRemove(idStr, c.name);
+                        }}
                         disabled={removingId === idStr}
                         className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
-                        title={isCurrentUser ? "Leave trip" : "Remove from trip"}
+                        title={isCurrentUser ? 'Leave trip' : 'Remove from trip'}
                       >
                         <UserMinus size={16} />
                       </button>
@@ -221,9 +249,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                 );
               })}
               {participants.length === 0 && (
-                <div className="text-center py-8 text-gray-400">
-                  No members yet
-                </div>
+                <div className="text-center py-8 text-gray-400">No members yet</div>
               )}
             </div>
           ) : (
@@ -232,18 +258,20 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
               {canManageRequests ? (
                 // Admin view: can approve/reject requests
                 pendingRequests.length > 0 ? (
-                  pendingRequests.map((request) => {
+                  pendingRequests.map(request => {
                     const isProcessing = processingRequestId === request.id;
                     const displayName = request.profile?.display_name || 'Unknown User';
-                    const timeAgo = formatDistanceToNow(new Date(request.requested_at), { addSuffix: true });
+                    const timeAgo = formatDistanceToNow(new Date(request.requested_at), {
+                      addSuffix: true,
+                    });
 
                     return (
                       <div
                         key={request.id}
                         role="listitem"
                         className={cn(
-                          "flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-3 mb-2",
-                          isProcessing && "opacity-50"
+                          'flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-3 mb-2',
+                          isProcessing && 'opacity-50',
                         )}
                       >
                         {/* Avatar */}
@@ -305,7 +333,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                   </div>
                 )
               ) : (
-              // Non-admin view: informational message (Pro/Event trips only)
+                // Non-admin view: informational message (Pro/Event trips only)
                 <div className="text-center py-12">
                   <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
                     <UserPlus size={24} className="text-gray-500" />
@@ -320,6 +348,15 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
           )}
         </div>
       </DialogContent>
+
+      {/* Member Contact Card - opens when clicking a member */}
+      <MemberContactCard
+        open={contactCardOpen}
+        onOpenChange={setContactCardOpen}
+        member={selectedMember}
+        tripId={tripId}
+        onSendMessage={onSendMessage}
+      />
     </Dialog>
   );
 };
