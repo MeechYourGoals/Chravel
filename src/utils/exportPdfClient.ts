@@ -941,7 +941,6 @@ export async function generateClientPDF(
   const footerText = customization?.footerText || 'From www.Chravel.App';
   const brandTitle = 'ChravelApp Recap';
   const brandTagline = 'The Group Chat Travel App';
-  const brandGold: [number, number, number] = [212, 175, 55]; // #D4AF37
 
   // Add footer to all pages
   const totalPages = doc.internal.pages.length - 1; // jsPDF uses 1-indexed pages but array is 0-indexed
@@ -950,7 +949,8 @@ export async function generateClientPDF(
     // Top-right brand text (no logo)
     doc.setFont('NotoSans', 'bold');
     doc.setFontSize(12);
-    doc.setTextColor(brandGold[0], brandGold[1], brandGold[2]);
+    // Match the table header bar color for consistency and readability
+    doc.setTextColor(primaryR, primaryG, primaryB);
     const titleW = doc.getTextWidth(brandTitle);
     doc.text(brandTitle, pageWidth - margin - titleW, 22);
 
