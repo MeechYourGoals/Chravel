@@ -370,52 +370,20 @@ export class AdvertiserService {
     trip_type?: string;
   }): Promise<CampaignWithTargeting[]> {
     try {
-      const query = supabase
-        .from('campaigns')
-        .select(
-          `
-          *,
-          targeting:campaign_targeting(*)
-        `,
-        )
-        .eq('status', 'active')
-        .or(`start_date.is.null,start_date.lte.${new Date().toISOString()}`)
-        .or(`end_date.is.null,end_date.gte.${new Date().toISOString()}`);
+      // Important: anonymous clients can no longer SELECT from public.campaigns.
+      // Use a security-definer RPC that returns only safe public fields from
+      // public.campaigns_public (and applies optional targeting filters server-side).
+      const { data, error } = await supabase.rpc('get_active_campaigns_public', {
+        p_interests: filters?.interests ?? null,
+        p_location: filters?.location ?? null,
+        p_trip_type: filters?.trip_type ?? null,
+      });
 
-      const { data, error } = await query;
       if (error) throw error;
 
-      // Client-side filtering based on targeting
-      let filteredCampaigns = data || [];
-
-      if (filters) {
-        filteredCampaigns = filteredCampaigns.filter(campaign => {
-          const targeting = campaign.targeting;
-          if (!targeting) return true;
-
-          // Check interests
-          if (filters.interests?.length && targeting.interests?.length) {
-            const hasMatchingInterest = filters.interests.some(interest =>
-              targeting.interests.includes(interest),
-            );
-            if (!hasMatchingInterest) return false;
-          }
-
-          // Check location
-          if (filters.location && targeting.locations?.length) {
-            if (!targeting.locations.includes(filters.location)) return false;
-          }
-
-          // Check trip type
-          if (filters.trip_type && targeting.trip_types?.length) {
-            if (!targeting.trip_types.includes(filters.trip_type)) return false;
-          }
-
-          return true;
-        });
-      }
-
-      return filteredCampaigns as unknown as CampaignWithTargeting[];
+      // RPC returns only public fields; keep return type stable for now.
+      // (Consumers of this method should not rely on targeting/budget/metrics fields.)
+      return (data ?? []) as unknown as CampaignWithTargeting[];
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching active campaigns:', error);
