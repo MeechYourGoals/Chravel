@@ -31,7 +31,7 @@ export const EventDetailContent = ({
   tripId,
   basecamp,
   eventData,
-  tripContext
+  tripContext,
 }: EventDetailContentProps) => {
   const { accentColors } = useTripVariant();
   const { isAdmin, isLoading: permissionsLoading } = useEventPermissions(tripId);
@@ -48,7 +48,7 @@ export const EventDetailContent = ({
     { id: 'media', label: 'Media', icon: Camera, enabled: eventData.mediaUploadEnabled !== false },
     { id: 'lineup', label: 'Line-up', icon: Users, enabled: true },
     { id: 'polls', label: 'Polls', icon: BarChart3, enabled: eventData.pollsEnabled !== false },
-    { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: true }
+    { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: true },
   ];
 
   // Filter tabs based on enabled settings
@@ -68,14 +68,16 @@ export const EventDetailContent = ({
       case 'calendar':
         return <GroupCalendar tripId={tripId} />;
       case 'chat':
-        return <TripChat enableGroupChat={true} showBroadcasts={true} isEvent={true} tripId={tripId} />;
+        return (
+          <TripChat enableGroupChat={true} showBroadcasts={true} isEvent={true} tripId={tripId} />
+        );
       case 'media':
         return <UnifiedMediaHub tripId={tripId} />;
       case 'lineup':
         return (
           <LineupTab
             speakers={eventData.speakers || []}
-            userRole={showAsAdmin ? 'organizer' : (eventData.userRole || 'attendee')}
+            userRole={showAsAdmin ? 'organizer' : eventData.userRole || 'attendee'}
           />
         );
       case 'polls':
@@ -98,7 +100,7 @@ export const EventDetailContent = ({
     <>
       {/* Enhanced Tab Navigation for Events */}
       <div className="flex whitespace-nowrap gap-2 mb-2 justify-start">
-        {visibleTabs.map((tab) => {
+        {visibleTabs.map(tab => {
           const Icon = tab.icon;
           return (
             <button
@@ -117,8 +119,8 @@ export const EventDetailContent = ({
         })}
       </div>
 
-      {/* Tab Content */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      {/* Tab Content - match sizing with TripTabs and ProTabContent */}
+      <div className="overflow-y-auto native-scroll pb-24 sm:pb-4 h-auto min-h-0 max-h-none md:h-[calc(100vh-320px)] md:max-h-[1000px] md:min-h-[500px] flex flex-col">
         {renderTabContent()}
       </div>
     </>
