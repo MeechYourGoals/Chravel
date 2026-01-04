@@ -58,21 +58,26 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
 
         if (profilesError) throw profilesError;
 
-        // Merge data
-        const mergedData = requestsData.map(request => {
-          const profile = profilesData?.find(p => p.user_id === request.user_id);
-          
-          // Determine display name from profile
-          const displayName = profile?.display_name || 'Unknown User';
-          
-          return {
-            ...request,
-            profiles: {
-              display_name: displayName,
-              avatar_url: profile?.avatar_url || null
+        // Merge data and filter out orphaned requests (users without profiles)
+        const mergedData = requestsData
+          .map(request => {
+            const profile = profilesData?.find(p => p.user_id === request.user_id);
+
+            // If no profile exists, this is an orphaned request from a deleted user
+            if (!profile) {
+              console.warn('[PendingJoinRequests] Orphaned request detected:', request.user_id);
+              return null;
             }
-          };
-        });
+
+            return {
+              ...request,
+              profiles: {
+                display_name: profile.display_name || 'Unknown User',
+                avatar_url: profile.avatar_url || null,
+              },
+            };
+          })
+          .filter((req): req is NonNullable<typeof req> => req !== null);
 
         setRequests(mergedData as JoinRequest[]);
       } else {
@@ -90,13 +95,17 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
     setProcessing(requestId);
     try {
       const { data, error } = await supabase.functions.invoke('approve-join-request', {
-        body: { requestId, action: 'approve' }
+        body: { requestId, action: 'approve' },
       });
 
       if (error) throw error;
 
       if (data.success) {
         toast.success(data.message);
+        setRequests(prev => prev.filter(r => r.id !== requestId));
+      } else if (data.cleaned_up) {
+        // Orphaned request was automatically cleaned up
+        toast.info(data.message || 'This request is no longer valid');
         setRequests(prev => prev.filter(r => r.id !== requestId));
       } else {
         toast.error(data.message);
@@ -113,13 +122,17 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
     setProcessing(requestId);
     try {
       const { data, error } = await supabase.functions.invoke('approve-join-request', {
-        body: { requestId, action: 'reject' }
+        body: { requestId, action: 'reject' },
       });
 
       if (error) throw error;
 
       if (data.success) {
         toast.success(data.message);
+        setRequests(prev => prev.filter(r => r.id !== requestId));
+      } else if (data.cleaned_up) {
+        // Orphaned request was automatically cleaned up
+        toast.info(data.message || 'Invalid request removed');
         setRequests(prev => prev.filter(r => r.id !== requestId));
       } else {
         toast.error(data.message);
@@ -152,7 +165,7 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Pending Join Requests</h3>
-      {requests.map((request) => (
+      {requests.map(request => (
         <div
           key={request.id}
           className="flex items-center justify-between p-4 bg-card border rounded-lg"
@@ -172,9 +185,7 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
               </div>
             )}
             <div>
-              <p className="font-medium">
-                {request.profiles?.display_name || 'Unknown User'}
-              </p>
+              <p className="font-medium">{request.profiles?.display_name || 'Unknown User'}</p>
               <p className="text-sm text-muted-foreground">
                 Requested {new Date(request.requested_at).toLocaleDateString()}
               </p>
