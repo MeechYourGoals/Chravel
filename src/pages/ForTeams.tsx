@@ -8,47 +8,52 @@ export const ForTeams = () => {
   const benefits = [
     {
       icon: <Shield size={32} className="text-primary" />,
-      title: "Reduce Operational Costs",
-      description: "Cut coordination time by 70% and eliminate tool sprawl across your organization"
+      title: 'Reduce Operational Costs',
+      description:
+        'Cut coordination time by 70% and eliminate tool sprawl across your organization',
     },
     {
       icon: <Users size={32} className="text-accent" />,
-      title: "Scale Team Coordination",
-      description: "From 10 to 500+ team members, Chravel handles complex logistics seamlessly"
+      title: 'Scale Team Coordination',
+      description: 'From 10 to 500+ team members, Chravel handles complex logistics seamlessly',
     },
     {
       icon: <BarChart3 size={32} className="text-primary" />,
-      title: "Compliance & Reporting",
-      description: "Built-in audit trails, compliance features, and real-time analytics for your operations"
+      title: 'Compliance & Reporting',
+      description:
+        'Built-in audit trails, compliance features, and real-time analytics for your operations',
     },
     {
       icon: <Zap size={32} className="text-accent" />,
-      title: "Advanced Integrations",
-      description: "Connect with Slack, QuickBooks, Google Workspace, and your existing tool stack"
-    }
+      title: 'Advanced Integrations',
+      description: 'Connect with Slack, QuickBooks, Google Workspace, and your existing tool stack',
+    },
   ];
 
   const useCases = [
     {
-      icon: "🏆",
-      title: "Sports Teams",
-      description: "College athletics, youth leagues, and professional teams managing travel, schedules, and rosters"
+      icon: '🏆',
+      title: 'Sports Teams',
+      description:
+        'College athletics, youth leagues, and professional teams managing travel, schedules, and rosters',
     },
     {
-      icon: "🎤",
-      title: "Touring Artists",
-      description: "Bands, performers, and production crews coordinating multi-city tours and logistics"
+      icon: '🎤',
+      title: 'Touring Artists',
+      description:
+        'Bands, performers, and production crews coordinating multi-city tours and logistics',
     },
     {
-      icon: "🏢",
-      title: "Corporate Travel",
-      description: "Companies managing team offsites, conferences, and business travel programs"
+      icon: '🏢',
+      title: 'Corporate Travel',
+      description: 'Companies managing team offsites, conferences, and business travel programs',
     },
     {
-      icon: "🎪",
-      title: "Event Organizers",
-      description: "Professional event planners running conferences, festivals, and large-scale gatherings"
-    }
+      icon: '🎪',
+      title: 'Event Organizers',
+      description:
+        'Professional event planners running conferences, festivals, and large-scale gatherings',
+    },
   ];
 
   return (
@@ -60,27 +65,33 @@ export const ForTeams = () => {
             <Building size={20} className="text-primary" />
             <span className="text-sm font-semibold text-primary">CHRAVEL PRO & EVENTS</span>
           </div>
-          
+
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-foreground">
             Built for Teams That Move
           </h1>
-          
+
           <p className="text-xl sm:text-2xl md:text-3xl text-foreground max-w-3xl mx-auto">
-            From touring artists to college athletics, Chravel Pro reduces operational costs and eliminates coordination chaos for teams of 10 to 500+
+            From touring artists to college athletics, Chravel Pro reduces operational costs and
+            eliminates coordination chaos for teams of 10 to 500+
           </p>
 
           <div className="flex flex-wrap gap-4 justify-center pt-4">
-            <Button 
-              size="lg" 
-              onClick={() => window.location.href = 'mailto:christian@chravelapp.com?subject=Chravel%20Pro%20Inquiry'}
+            <Button
+              size="lg"
+              onClick={() =>
+                (window.location.href =
+                  'mailto:christian@chravelapp.com?subject=Chravel%20Pro%20Inquiry')
+              }
               className="text-lg px-8"
             >
               Schedule a Demo →
             </Button>
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               variant="outline"
-              onClick={() => window.location.href = 'mailto:christian@chravelapp.com?subject=14-Day%20Trial'}
+              onClick={() =>
+                (window.location.href = 'mailto:christian@chravelapp.com?subject=14-Day%20Trial')
+              }
               className="text-lg px-8"
             >
               Start 14-Day Trial
@@ -99,9 +110,9 @@ export const ForTeams = () => {
             Keep coaches, players, and parents organized with dedicated channels
           </p>
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300">
-            <img 
-              src={channelsPro} 
-              alt="Role-based channels for team organization" 
+            <img
+              src={channelsPro}
+              alt="Role-based channels for team organization"
               className="w-full h-auto"
             />
           </div>
@@ -114,10 +125,10 @@ export const ForTeams = () => {
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-12 text-foreground">
             Enterprise-Grade Coordination
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             {benefits.map((benefit, index) => (
-              <div 
+              <div
                 key={index}
                 className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 md:p-8 hover:border-primary/50 transition-all duration-300"
               >
@@ -142,10 +153,10 @@ export const ForTeams = () => {
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-12 text-foreground">
             Trusted By
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {useCases.map((useCase, index) => (
-              <div 
+              <div
                 key={index}
                 className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 text-center hover:border-primary/50 transition-all duration-300"
               >
@@ -153,9 +164,7 @@ export const ForTeams = () => {
                 <h3 className="font-bold text-lg md:text-xl mb-2 text-foreground">
                   {useCase.title}
                 </h3>
-                <p className="text-sm md:text-base text-foreground">
-                  {useCase.description}
-                </p>
+                <p className="text-sm md:text-base text-foreground">{useCase.description}</p>
               </div>
             ))}
           </div>
@@ -171,18 +180,23 @@ export const ForTeams = () => {
           <p className="text-xl text-center text-foreground mb-12">
             From startups to enterprises, we have a plan that scales with you
           </p>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             {/* Starter Pro */}
             <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 md:p-8">
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-foreground mb-2">Starter Pro</h3>
-                <div className="text-4xl font-bold text-foreground mb-2">$49<span className="text-xl text-muted-foreground">/mo</span></div>
+                <div className="text-4xl font-bold text-foreground mb-2">
+                  $49<span className="text-xl text-muted-foreground">/mo</span>
+                </div>
                 <p className="text-foreground">Up to 50 team members</p>
               </div>
-              <Button 
+              <Button
                 className="w-full mb-6"
-                onClick={() => window.location.href = 'mailto:christian@chravelapp.com?subject=Starter%20Pro%2014-Day%20Trial'}
+                onClick={() =>
+                  (window.location.href =
+                    'mailto:christian@chravelapp.com?subject=Starter%20Pro%2014-Day%20Trial')
+                }
               >
                 Start 14-Day Trial
               </Button>
@@ -213,12 +227,17 @@ export const ForTeams = () => {
               </div>
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-foreground mb-2">Growth Pro</h3>
-                <div className="text-4xl font-bold text-foreground mb-2">$99<span className="text-xl text-muted-foreground">/mo</span></div>
+                <div className="text-4xl font-bold text-foreground mb-2">
+                  $99<span className="text-xl text-muted-foreground">/mo</span>
+                </div>
                 <p className="text-foreground">Up to 100 team members</p>
               </div>
-              <Button 
+              <Button
                 className="w-full mb-6"
-                onClick={() => window.location.href = 'mailto:christian@chravelapp.com?subject=Growth%20Pro%2014-Day%20Trial'}
+                onClick={() =>
+                  (window.location.href =
+                    'mailto:christian@chravelapp.com?subject=Growth%20Pro%2014-Day%20Trial')
+                }
               >
                 Start 14-Day Trial
               </Button>
@@ -250,12 +269,17 @@ export const ForTeams = () => {
             <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 md:p-8">
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-foreground mb-2">Enterprise</h3>
-                <div className="text-4xl font-bold text-foreground mb-2">$199<span className="text-xl text-muted-foreground">/mo</span></div>
+                <div className="text-4xl font-bold text-foreground mb-2">
+                  $199<span className="text-xl text-muted-foreground">/mo</span>
+                </div>
                 <p className="text-foreground">Up to 250 team members</p>
               </div>
-              <Button 
+              <Button
                 className="w-full mb-6"
-                onClick={() => window.location.href = 'mailto:christian@chravelapp.com?subject=Enterprise%20Inquiry'}
+                onClick={() =>
+                  (window.location.href =
+                    'mailto:christian@chravelapp.com?subject=Enterprise%20Inquiry')
+                }
               >
                 Contact Sales
               </Button>
@@ -296,22 +320,18 @@ export const ForTeams = () => {
             Schedule a demo to see how Chravel Pro can reduce your operational costs
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Button 
+            <Button
               size="lg"
-              onClick={() => window.location.href = 'mailto:christian@chravelapp.com?subject=Schedule%20Demo'}
+              onClick={() =>
+                (window.location.href = 'mailto:christian@chravelapp.com?subject=Schedule%20Demo')
+              }
               className="text-lg px-8"
             >
               <Phone size={20} className="mr-2" />
               Schedule a Demo
             </Button>
-            <Button 
-              size="lg"
-              variant="outline"
-              asChild
-            >
-              <Link to="/">
-                Back to Home
-              </Link>
+            <Button size="lg" variant="outline" asChild>
+              <Link to="/">Go to Dashboard</Link>
             </Button>
           </div>
         </div>
