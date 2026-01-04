@@ -29,6 +29,7 @@ interface UserProfile {
   last_name: string | null;
   avatar_url: string | null;
   bio: string | null;
+  phone: string | null;
   show_email: boolean;
   show_phone: boolean;
 }
@@ -745,6 +746,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         updatedUser.lastName = data.last_name ?? updatedUser.lastName;
         updatedUser.avatar = data.avatar_url ?? updatedUser.avatar;
         updatedUser.bio = data.bio ?? updatedUser.bio;
+        updatedUser.phone = data.phone ?? updatedUser.phone;
         updatedUser.showEmail = data.show_email ?? updatedUser.showEmail;
         updatedUser.showPhone = data.show_phone ?? updatedUser.showPhone;
       } else {
@@ -753,6 +755,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (updates.last_name) updatedUser.lastName = updates.last_name;
         if (updates.avatar_url) updatedUser.avatar = updates.avatar_url;
         if (updates.bio !== undefined) updatedUser.bio = updates.bio ?? undefined;
+        if (updates.phone !== undefined) updatedUser.phone = updates.phone ?? undefined;
         if (updates.show_email !== undefined) updatedUser.showEmail = updates.show_email;
         if (updates.show_phone !== undefined) updatedUser.showPhone = updates.show_phone;
       }
