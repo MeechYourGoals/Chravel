@@ -24,14 +24,17 @@ export interface JoinRequest {
   };
 }
 
-
 interface UseJoinRequestsProps {
   tripId: string;
   enabled?: boolean;
   isDemoMode?: boolean;
 }
 
-export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: UseJoinRequestsProps) => {
+export const useJoinRequests = ({
+  tripId,
+  enabled = true,
+  isDemoMode = false,
+}: UseJoinRequestsProps) => {
   const [requests, setRequests] = useState<JoinRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -62,9 +65,9 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
 
       if (error) throw error;
 
-      // Fetch profiles for user info (name, avatar)
+      // Fetch profiles for user info (name, avatar) and filter out orphaned requests
       const requestsWithProfiles = await Promise.all(
-        (data || []).map(async (request) => {
+        (data || []).map(async request => {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('display_name, avatar_url, first_name, last_name')
@@ -75,22 +78,28 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
             console.warn('Failed to fetch profile for user:', request.user_id, profileError);
           }
 
+          // If profile doesn't exist, this is an orphaned request from a deleted user
+          // We'll mark it for filtering and attempt cleanup
+          if (!profile) {
+            console.warn(
+              '[JoinRequests] Orphaned request detected - user profile missing:',
+              request.user_id,
+            );
+            return null; // Mark for filtering
+          }
+
           // Name resolution priority:
           // 1. Profile display_name
           // 2. Profile first/last name combination
-          // 3. "Unknown User" as last resort
-          let finalDisplayName: string | null = null;
-
-          if (profile) {
-            finalDisplayName = profile.display_name;
-            if (!finalDisplayName) {
-              if (profile.first_name && profile.last_name) {
-                finalDisplayName = `${profile.first_name} ${profile.last_name}`;
-              } else if (profile.first_name) {
-                finalDisplayName = profile.first_name;
-              } else if (profile.last_name) {
-                finalDisplayName = profile.last_name;
-              }
+          // 3. "Unknown User" as last resort (shouldn't happen with valid profile)
+          let finalDisplayName: string | null = profile.display_name;
+          if (!finalDisplayName) {
+            if (profile.first_name && profile.last_name) {
+              finalDisplayName = `${profile.first_name} ${profile.last_name}`;
+            } else if (profile.first_name) {
+              finalDisplayName = profile.first_name;
+            } else if (profile.last_name) {
+              finalDisplayName = profile.last_name;
             }
           }
 
@@ -100,15 +109,20 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
             ...request,
             profile: {
               display_name: finalDisplayName,
-              avatar_url: profile?.avatar_url,
-              first_name: profile?.first_name,
-              last_name: profile?.last_name
-            }
+              avatar_url: profile.avatar_url,
+              first_name: profile.first_name,
+              last_name: profile.last_name,
+            },
           };
-        })
+        }),
       );
 
-      setRequests(requestsWithProfiles as JoinRequest[]);
+      // Filter out null entries (orphaned requests) and cast properly
+      const validRequests = requestsWithProfiles.filter(
+        (req): req is NonNullable<typeof req> => req !== null,
+      );
+
+      setRequests(validRequests as JoinRequest[]);
     } catch (error) {
       console.error('Error fetching join requests:', error);
       toast.error('Failed to load join requests');
@@ -133,11 +147,11 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
           event: '*',
           schema: 'public',
           table: 'trip_join_requests',
-          filter: `trip_id=eq.${tripId}`
+          filter: `trip_id=eq.${tripId}`,
         },
         () => {
           fetchRequests();
-        }
+        },
       )
       .subscribe();
 
@@ -146,87 +160,107 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
     };
   }, [tripId, enabled, isDemoMode, fetchRequests]);
 
-  const approveRequest = useCallback(async (requestId: string) => {
-    setIsProcessing(true);
-    
-    // Demo mode - add member to store and update local state
-    if (isDemoMode) {
-      const request = requests.find(r => r.id === requestId);
-      
-      if (request) {
-        // Add the approved user to the demo trip members store
-        const { addMember } = useDemoTripMembersStore.getState();
-        addMember(tripId, {
-          id: request.user_id,
-          name: request.profile?.display_name || 'New Member',
-          avatar: request.profile?.avatar_url
+  const approveRequest = useCallback(
+    async (requestId: string) => {
+      setIsProcessing(true);
+
+      // Demo mode - add member to store and update local state
+      if (isDemoMode) {
+        const request = requests.find(r => r.id === requestId);
+
+        if (request) {
+          // Add the approved user to the demo trip members store
+          const { addMember } = useDemoTripMembersStore.getState();
+          addMember(tripId, {
+            id: request.user_id,
+            name: request.profile?.display_name || 'New Member',
+            avatar: request.profile?.avatar_url,
+          });
+        }
+
+        setRequests(prev => prev.filter(r => r.id !== requestId));
+        toast.success('✅ Request approved - member added to trip!');
+        setIsProcessing(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.rpc('approve_join_request', {
+          _request_id: requestId,
         });
+
+        if (error) throw error;
+
+        // Check the response for success/failure
+        const result = data as { success: boolean; message: string; cleaned_up?: boolean } | null;
+
+        if (result && !result.success) {
+          // If the request was cleaned up (orphaned user), show info message and refresh
+          if (result.cleaned_up) {
+            toast.info(result.message || 'This request is no longer valid');
+            await fetchRequests();
+            return;
+          }
+          throw new Error(result.message || 'Failed to approve request');
+        }
+
+        toast.success('✅ Request approved');
+        await fetchRequests();
+      } catch (error) {
+        console.error('Error approving request:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to approve request');
+        throw error;
+      } finally {
+        setIsProcessing(false);
       }
-      
-      setRequests(prev => prev.filter(r => r.id !== requestId));
-      toast.success('✅ Request approved - member added to trip!');
-      setIsProcessing(false);
-      return;
-    }
-    
-    try {
-      const { data, error } = await supabase.rpc('approve_join_request', {
-        _request_id: requestId
-      });
+    },
+    [fetchRequests, isDemoMode, requests, tripId],
+  );
 
-      if (error) throw error;
+  const rejectRequest = useCallback(
+    async (requestId: string) => {
+      setIsProcessing(true);
 
-      // Check the response for success/failure
-      const result = data as { success: boolean; message: string } | null;
-      if (result && !result.success) {
-        throw new Error(result.message || 'Failed to approve request');
-      }
-
-      toast.success('✅ Request approved');
-      await fetchRequests();
-    } catch (error) {
-      console.error('Error approving request:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to approve request');
-      throw error;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [fetchRequests, isDemoMode, requests, tripId]);
-
-  const rejectRequest = useCallback(async (requestId: string) => {
-    setIsProcessing(true);
-    
-    // Demo mode - just update local state
-    if (isDemoMode) {
-      setRequests(prev => prev.filter(r => r.id !== requestId));
-      toast.success('Request rejected');
-      setIsProcessing(false);
-      return;
-    }
-    
-    try {
-      const { data, error } = await supabase.rpc('reject_join_request', {
-        _request_id: requestId
-      });
-
-      if (error) throw error;
-
-      // Check the response for success/failure
-      const result = data as { success: boolean; message: string } | null;
-      if (result && !result.success) {
-        throw new Error(result.message || 'Failed to reject request');
+      // Demo mode - just update local state
+      if (isDemoMode) {
+        setRequests(prev => prev.filter(r => r.id !== requestId));
+        toast.success('Request rejected');
+        setIsProcessing(false);
+        return;
       }
 
-      toast.success('Request rejected');
-      await fetchRequests();
-    } catch (error) {
-      console.error('Error rejecting request:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to reject request');
-      throw error;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [fetchRequests, isDemoMode]);
+      try {
+        const { data, error } = await supabase.rpc('reject_join_request', {
+          _request_id: requestId,
+        });
+
+        if (error) throw error;
+
+        // Check the response for success/failure
+        const result = data as { success: boolean; message: string; cleaned_up?: boolean } | null;
+
+        if (result && !result.success) {
+          throw new Error(result.message || 'Failed to reject request');
+        }
+
+        // Show appropriate message based on whether it was a cleanup or normal rejection
+        if (result?.cleaned_up) {
+          toast.info(result.message || 'Invalid request removed');
+        } else {
+          toast.success('Request rejected');
+        }
+
+        await fetchRequests();
+      } catch (error) {
+        console.error('Error rejecting request:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to reject request');
+        throw error;
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [fetchRequests, isDemoMode],
+  );
 
   return {
     requests,
@@ -234,6 +268,6 @@ export const useJoinRequests = ({ tripId, enabled = true, isDemoMode = false }: 
     isProcessing,
     approveRequest,
     rejectRequest,
-    refetch: fetchRequests
+    refetch: fetchRequests,
   };
 };
