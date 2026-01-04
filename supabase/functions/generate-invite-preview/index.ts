@@ -503,7 +503,7 @@ function generateInviteHTML(trip: {
         <span>👥 ${trip.participantCount} Chravelers</span>
       </div>
       <a href="${escapeHtml(joinUrl)}" class="cta">Join This Trip</a>
-      <p class="loading">Redirecting you to Chravel in 5 seconds...</p>
+      <p class="loading">Redirecting you to ChravelApp in 5 seconds...</p>
     </div>
     <div class="logo">Powered by ChravelApp</div>
   </div>
@@ -607,7 +607,7 @@ serve(async (req: Request): Promise<Response> => {
   <meta http-equiv="refresh" content="5;url=${baseUrl}/join/${escapeHtml(inviteCode)}">
 </head>
 <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #1a1a2e; color: white;">
-  <p>Redirecting to Chravel...</p>
+  <p>Redirecting to ChravelApp...</p>
 </body>
 </html>`;
       return new Response(notFoundHtml, {

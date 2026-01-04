@@ -176,7 +176,7 @@ const DemoTripGate = () => {
             <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/50 to-transparent" />
             <div className="absolute top-4 left-4">
               <div className="bg-black/40 backdrop-blur-sm px-4 py-2 rounded-full">
-                <span className="text-yellow-400 font-bold text-lg">Chravel</span>
+                <span className="text-yellow-400 font-bold text-lg">ChravelApp</span>
               </div>
             </div>
           </div>
@@ -187,7 +187,7 @@ const DemoTripGate = () => {
             </h1>
             <p className="text-white/60 mb-5">
               This is a <span className="text-white font-medium">demo trip</span> created to show how
-              Chravel works. Sign up or log in to create your own trip and unlock the full
+              ChravelApp works. Sign up or log in to create your own trip and unlock the full
               experience.
             </p>
 
