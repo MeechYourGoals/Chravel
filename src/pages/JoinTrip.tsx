@@ -49,7 +49,6 @@ const JoinTrip = () => {
   // Debug logging on mount
   useEffect(() => {
     if (import.meta.env.DEV) {
-       
       console.log('[JoinTrip] Component mounted', {
         token,
         authLoading,
@@ -67,9 +66,9 @@ const JoinTrip = () => {
         console.error('[JoinTrip] Loading timeout after 5s - forcing completion');
         setLoading(false);
         if (!inviteData && !error) {
-          setError({ 
-            message: 'Failed to load invite details. Please refresh and try again.', 
-            code: 'NETWORK' 
+          setError({
+            message: 'Failed to load invite details. Please refresh and try again.',
+            code: 'NETWORK',
           });
         }
       }
@@ -81,9 +80,13 @@ const JoinTrip = () => {
   useEffect(() => {
     const tripName = inviteData?.trip.name || 'Plan Trips Better';
     const destination = inviteData?.trip.destination || 'an exciting destination';
-    const imageUrl = inviteData?.trip.cover_image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop';
+    const imageUrl =
+      inviteData?.trip.cover_image_url ||
+      'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop';
 
-    document.title = inviteData?.trip.name ? `Join ${tripName} - Chravel` : 'Plan Trips Better - Chravel';
+    document.title = inviteData?.trip.name
+      ? `Join ${tripName} - Chravel`
+      : 'Plan Trips Better - Chravel';
 
     const updateMetaTag = (property: string, content: string) => {
       let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
@@ -106,12 +109,18 @@ const JoinTrip = () => {
     };
 
     updateMetaTag('og:title', `Join ${tripName}!`);
-    updateMetaTag('og:description', `You've been invited to join a trip to ${destination}. Click to see details and join the adventure!`);
+    updateMetaTag(
+      'og:description',
+      `You've been invited to join a trip to ${destination}. Click to see details and join the adventure!`,
+    );
     updateMetaTag('og:type', 'website');
     updateMetaTag('og:image', imageUrl);
     updateMetaName('twitter:card', 'summary_large_image');
     updateMetaName('twitter:title', `Join ${tripName}!`);
-    updateMetaName('twitter:description', `You've been invited to join a trip to ${destination}. Click to see details!`);
+    updateMetaName(
+      'twitter:description',
+      `You've been invited to join a trip to ${destination}. Click to see details!`,
+    );
     updateMetaName('twitter:image', imageUrl);
   }, [inviteData]);
 
@@ -136,7 +145,7 @@ const JoinTrip = () => {
 
   const checkDeepLinkAndFetchInvite = async () => {
     if (!token) return;
-    
+
     // ALWAYS fetch invite preview first - show the user the trip details
     // regardless of platform. Deep linking via button click is optional.
     await fetchInvitePreview();
@@ -144,13 +153,11 @@ const JoinTrip = () => {
 
   const fetchInvitePreview = async () => {
     if (import.meta.env.DEV) {
-       
       console.log('[JoinTrip] fetchInvitePreview called', { token });
     }
-    
+
     if (!token) {
       if (import.meta.env.DEV) {
-         
         console.warn('[JoinTrip] No token provided');
       }
       setLoading(false);
@@ -172,7 +179,7 @@ const JoinTrip = () => {
       console.error('[JoinTrip] Supabase client not initialized');
       setError({
         message: 'App initialization error. Please refresh the page.',
-        code: 'NETWORK'
+        code: 'NETWORK',
       });
       setLoading(false);
       return;
@@ -181,64 +188,56 @@ const JoinTrip = () => {
     try {
       setLoading(true);
       if (import.meta.env.DEV) {
-         
         console.log('[JoinTrip] Invoking get-invite-preview edge function');
       }
 
       // Use edge function to get invite preview (works without auth)
       const { data, error: funcError } = await supabase.functions.invoke('get-invite-preview', {
-        body: { code: token }
+        body: { code: token },
       });
 
       if (import.meta.env.DEV) {
-         
         console.log('[JoinTrip] Edge function response:', { data, error: funcError });
       }
 
       if (funcError) {
         if (import.meta.env.DEV) {
-           
           console.error('[JoinTrip] Edge function error:', funcError);
         }
         setError({
           message: 'Failed to load invite details. Please check your connection and try again.',
-          code: 'NETWORK'
+          code: 'NETWORK',
         });
         return;
       }
 
       if (!data?.success) {
         if (import.meta.env.DEV) {
-           
           console.error('[JoinTrip] Invite preview error:', data?.error);
         }
         setError({
           message: data?.error || 'Invalid invite link',
-          code: data?.error_code || 'INVALID'
+          code: data?.error_code || 'INVALID',
         });
         return;
       }
 
       if (import.meta.env.DEV) {
-         
         console.log('[JoinTrip] Successfully loaded invite data');
       }
       setInviteData(data);
-
     } catch (err) {
       if (import.meta.env.DEV) {
-         
         console.error('[JoinTrip] Critical error fetching invite preview:', err);
       }
       setError({
         message: 'An unexpected error occurred. Please try again.',
-        code: 'NETWORK'
+        code: 'NETWORK',
       });
     } finally {
       // ALWAYS stop loading regardless of success/failure
       setLoading(false);
       if (import.meta.env.DEV) {
-         
         console.log('[JoinTrip] fetchInvitePreview completed, loading set to false');
       }
     }
@@ -265,7 +264,9 @@ const JoinTrip = () => {
       if (token) {
         sessionStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
       }
-      navigate(`/auth?mode=signin&returnTo=${encodeURIComponent(location.pathname)}`, { replace: true });
+      navigate(`/auth?mode=signin&returnTo=${encodeURIComponent(location.pathname)}`, {
+        replace: true,
+      });
       return;
     }
 
@@ -274,7 +275,7 @@ const JoinTrip = () => {
     setJoining(true);
     try {
       const { data, error } = await supabase.functions.invoke('join-trip', {
-        body: { inviteCode: token }
+        body: { inviteCode: token },
       });
 
       if (error) {
@@ -291,7 +292,10 @@ const JoinTrip = () => {
       }
 
       if (data.requires_approval) {
-        toast.success(data.message || 'Join request submitted! You\'ll see the trip on your home page once approved.');
+        toast.success(
+          data.message ||
+            "Join request submitted! You'll see the trip on your home page once approved.",
+        );
         setJoinSuccess(true);
         setJoining(false);
         // Redirect to home page after 2 seconds to show pending trip card
@@ -318,7 +322,6 @@ const JoinTrip = () => {
           navigate(`/trip/${data.trip_id}`);
         }
       }, 1000);
-
     } catch (err) {
       console.error('Error joining trip:', err);
       toast.error('An unexpected error occurred. Please try again.');
@@ -331,14 +334,18 @@ const JoinTrip = () => {
     if (token) {
       sessionStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
     }
-    navigate(`/auth?mode=signin&returnTo=${encodeURIComponent(location.pathname)}`, { replace: true });
+    navigate(`/auth?mode=signin&returnTo=${encodeURIComponent(location.pathname)}`, {
+      replace: true,
+    });
   };
 
   const handleSignupRedirect = () => {
     if (token) {
       sessionStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
     }
-    navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(location.pathname)}`, { replace: true });
+    navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(location.pathname)}`, {
+      replace: true,
+    });
   };
 
   const formatDateRange = () => {
@@ -348,7 +355,11 @@ const JoinTrip = () => {
 
     if (inviteData.trip.end_date) {
       const end = new Date(inviteData.trip.end_date);
-      const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const endStr = end.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
       return `${startStr} - ${endStr}`;
     }
     return startStr;
@@ -386,7 +397,6 @@ const JoinTrip = () => {
   // DO NOT block on authLoading - unauthenticated users should see preview immediately
   if (loading) {
     if (import.meta.env.DEV) {
-       
       console.log('[JoinTrip] Rendering loading state');
     }
     return (
@@ -406,7 +416,9 @@ const JoinTrip = () => {
         <div className="text-center max-w-md bg-card/50 backdrop-blur-md border border-border rounded-3xl p-8 shadow-xl">
           <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground mb-4">Something went wrong</h1>
-          <p className="text-muted-foreground mb-6">We couldn't load the invite details. Please try again.</p>
+          <p className="text-muted-foreground mb-6">
+            We couldn't load the invite details. Please try again.
+          </p>
           <button
             onClick={() => {
               setLoading(true);
@@ -446,7 +458,7 @@ const JoinTrip = () => {
             onClick={() => navigate('/')}
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-colors"
           >
-            Go to Dashboard
+            Go to Home
           </button>
         </div>
       </div>
@@ -464,8 +476,7 @@ const JoinTrip = () => {
           <p className="text-muted-foreground mb-6">
             {inviteData?.invite.require_approval
               ? 'Your join request has been submitted. The organizer will review it soon.'
-              : `You've successfully joined ${inviteData?.trip.name}!`
-            }
+              : `You've successfully joined ${inviteData?.trip.name}!`}
           </p>
           <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
           <p className="text-sm text-muted-foreground mt-2">Redirecting...</p>
@@ -474,7 +485,9 @@ const JoinTrip = () => {
     );
   }
 
-  const coverImage = inviteData?.trip.cover_image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=400&fit=crop';
+  const coverImage =
+    inviteData?.trip.cover_image_url ||
+    'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=400&fit=crop';
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -514,7 +527,8 @@ const JoinTrip = () => {
               <div className="flex items-center gap-3 text-sm">
                 <Users size={16} className="text-primary" />
                 <span className="text-foreground">
-                  {inviteData.trip.member_count} {inviteData.trip.member_count === 1 ? 'member' : 'members'}
+                  {inviteData.trip.member_count}{' '}
+                  {inviteData.trip.member_count === 1 ? 'member' : 'members'}
                 </span>
               </div>
             )}
@@ -528,7 +542,9 @@ const JoinTrip = () => {
             {inviteData?.invite.expires_at && (
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <Clock size={14} />
-                <span>Invite expires: {new Date(inviteData.invite.expires_at).toLocaleDateString()}</span>
+                <span>
+                  Invite expires: {new Date(inviteData.invite.expires_at).toLocaleDateString()}
+                </span>
               </div>
             )}
           </div>
@@ -536,7 +552,9 @@ const JoinTrip = () => {
           {/* Actions */}
           {!user ? (
             <div className="space-y-4">
-              <p className="text-muted-foreground text-center text-sm">Please log in to join this trip</p>
+              <p className="text-muted-foreground text-center text-sm">
+                Please log in to join this trip
+              </p>
               <div className="space-y-3">
                 <button
                   onClick={handleLoginRedirect}
@@ -573,7 +591,7 @@ const JoinTrip = () => {
                 onClick={() => navigate('/')}
                 className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground py-3 px-6 rounded-xl transition-colors"
               >
-                Go to Dashboard
+                Go to Home
               </button>
             </div>
           )}
@@ -585,7 +603,8 @@ const JoinTrip = () => {
                 <p className="font-medium text-yellow-400">Approval Required</p>
               </div>
               <p className="text-yellow-400/80 text-sm">
-                This trip requires approval from the organizer. Your request will be reviewed once submitted.
+                This trip requires approval from the organizer. Your request will be reviewed once
+                submitted.
               </p>
             </div>
           )}
