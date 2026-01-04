@@ -9,6 +9,7 @@ Last Updated: 2025-01-25
 
 2. Data Security
 - RLS: Enforced on user-owned tables (receipts, saved_recommendations, secure_storage, trip_*). Public SELECT is allowed only for non-sensitive content (e.g., read-only trip artifacts when sharing). Revisit profiles SELECT for PII minimization at UI level.
+- Invites: **`trip_invites` is not publicly readable** (no anon SELECT). Shareable `/join/{code}` links are supported via edge functions (`get-invite-preview`, `join-trip`) rather than direct table reads. See `docs/security/INVITE_LINKS.md`.
 - Storage: advertiser-assets bucket is public by design for ads; all user-generated media buckets must be private with signed URLs.
 - **secure_storage Enhanced Security**: The `secure_storage` table requires additional security layers beyond basic RLS:
   - **Recent Authentication Required**: Users must have authenticated within the last 15 minutes OR have an active verification session to access secure_storage entries.
