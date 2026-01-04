@@ -447,11 +447,10 @@ export const SUBSCRIPTION_TIERS = {
     seatLimit: 100,
     features: [
       'Up to 100 team members',
-      'Multi-language support',
+      'Multi-language support (coming soon)',
       'Priority support',
-      'Advanced integrations',
+      'Advanced integrations (coming soon)',
       'Custom workflows',
-      'Analytics dashboard',
       'Unlimited Events for your team',
       'Your first Pro Trip + Event included free'
     ]
@@ -469,23 +468,6 @@ export const SUBSCRIPTION_TIERS = {
       '24/7 premium support',
       'Unlimited Events for your team',
       'Your first Pro Trip + Event included free'
-    ]
-  },
-  'enterprise-plus': {
-    name: 'Enterprise Plus',
-    price: 'Contact Sales',
-    seatLimit: 999,
-    features: [
-      'Unlimited team members',
-      'Full SSO/MFA integration',
-      'Custom integrations and APIs',
-      'GDPR compliance suite',
-      'White-label options',
-      'Advanced security features',
-      'Custom feature development',
-      '24/7 dedicated support',
-      'On-premise deployment options',
-      'Custom SLA agreements'
     ]
   }
 } as const;
