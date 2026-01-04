@@ -15,7 +15,6 @@ import { UnauthenticatedLanding } from '../components/UnauthenticatedLanding';
 import { FullPageLanding } from '../components/landing/FullPageLanding';
 import { DemoModeSelector } from '../components/DemoModeSelector';
 import { SearchOverlay } from '../components/home/SearchOverlay';
-import { MobileSettingsSheet } from '../components/mobile/MobileSettingsSheet';
 
 // New conversion components
 import { PersistentCTABar } from '../components/conversion/PersistentCTABar';
@@ -61,7 +60,6 @@ const Index = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -473,7 +471,7 @@ const Index = () => {
                 onAuthRequired={() => setIsAuthModalOpen(true)}
               />
               <TripActionBar
-                onSettings={() => isMobile ? setIsMobileSettingsOpen(true) : setIsSettingsOpen(true)}
+                onSettings={() => setIsSettingsOpen(true)}
                 onCreateTrip={handleCreateTrip}
                 onSearch={() => setIsSearchOpen(true)}
                 onNotifications={() => {}}
@@ -571,16 +569,6 @@ const Index = () => {
             onSearchChange={setSearchQuery}
             resultCount={searchResultCount}
           />
-
-
-          <MobileSettingsSheet
-            isOpen={isMobileSettingsOpen}
-            onClose={() => setIsMobileSettingsOpen(false)}
-            onOpenFullSettings={() => {
-              setIsMobileSettingsOpen(false);
-              setIsSettingsOpen(true);
-            }}
-          />
         </div>
       );
     }
@@ -618,7 +606,7 @@ const Index = () => {
                     className="w-full lg:flex-1 h-12 sm:h-16"
                   />
                   <TripActionBar
-                    onSettings={() => isMobile ? setIsMobileSettingsOpen(true) : setIsSettingsOpen(true)}
+                    onSettings={() => setIsSettingsOpen(true)}
                     onCreateTrip={handleCreateTrip}
                     onSearch={() => setIsSearchOpen(true)}
                     onNotifications={() => {}}
@@ -723,16 +711,6 @@ const Index = () => {
             onSearchChange={setSearchQuery}
             resultCount={searchResultCount}
           />
-
-
-          <MobileSettingsSheet
-            isOpen={isMobileSettingsOpen}
-            onClose={() => setIsMobileSettingsOpen(false)}
-            onOpenFullSettings={() => {
-              setIsMobileSettingsOpen(false);
-              setIsSettingsOpen(true);
-            }}
-          />
         </div>
       );
   }
@@ -780,7 +758,10 @@ const Index = () => {
             className="w-full lg:flex-1 h-12 sm:h-16"
           />
           <TripActionBar
-            onSettings={() => isMobile ? setIsMobileSettingsOpen(true) : (setSettingsInitialType('consumer'), setIsSettingsOpen(true))}
+            onSettings={() => {
+              setSettingsInitialType('consumer');
+              setIsSettingsOpen(true);
+            }}
             onCreateTrip={handleCreateTrip}
             onSearch={(query: string) => {
               setSearchQuery(query);
@@ -894,15 +875,6 @@ const Index = () => {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         resultCount={searchResultCount}
-      />
-
-      <MobileSettingsSheet
-        isOpen={isMobileSettingsOpen}
-        onClose={() => setIsMobileSettingsOpen(false)}
-        onOpenFullSettings={() => {
-          setIsMobileSettingsOpen(false);
-          setIsSettingsOpen(true);
-        }}
       />
     </div>
   );

@@ -37,7 +37,7 @@ test.describe('Settings hardening', () => {
     await expect(page.getByText(/something went wrong/i)).not.toBeVisible();
   });
 
-  test('Mobile: Quick Settings sheet opens, then All Settings opens full SettingsMenu (demo app-preview)', async ({
+  test('Mobile: Settings button opens full SettingsMenu directly (demo app-preview)', async ({
     page,
   }) => {
     await enableAppPreviewDemoMode(page);
@@ -45,14 +45,10 @@ test.describe('Settings hardening', () => {
 
     await page.goto('/');
 
-    // Open the mobile settings sheet via the same action bar Settings button.
+    // Open the full Settings menu directly via the action bar Settings button.
     await page.getByLabel('Settings').click();
 
-    await expect(page.getByText('Quick Settings')).toBeVisible();
-
-    // From the sheet, open the full Settings menu overlay.
-    await page.getByRole('button', { name: 'All Settings' }).click();
-
+    // Should go directly to full settings (no Quick Settings intermediate step)
     await expect(page.getByRole('button', { name: 'Consumer' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Enterprise' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Events' })).toBeVisible();
