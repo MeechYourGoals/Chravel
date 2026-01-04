@@ -13,9 +13,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)',
       }}
     >
-      {/* Top-right Sign up / Log in button - hidden on mobile, visible on md+ */}
+      {/* Top-right Sign up / Log in button - DESKTOP ONLY (≥1024px)
+          IMPORTANT: Must use lg: breakpoint (1024px) to match useIsMobile() hook.
+          DO NOT change to md: as it causes button overlap on mobile/PWA (768-1023px devices) */}
       <div
-        className="absolute right-2 w-auto z-10 hidden md:block"
+        className="absolute right-2 w-auto z-10 hidden lg:block"
         style={{
           top: 'calc(env(safe-area-inset-top, 0px) + 8px)',
         }}
@@ -61,8 +63,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         </div>
       </div>
 
-      {/* Mobile: CTA centered in viewport - visible only on mobile */}
-      <div className="flex-1 flex items-center justify-center md:hidden">
+      {/* Mobile: CTA centered in viewport - MOBILE/PWA ONLY (<1024px)
+          IMPORTANT: Must use lg:hidden to match useIsMobile() hook (1024px breakpoint).
+          This ensures proper display on tablets, landscape phones, and PWA viewports */}
+      <div className="flex-1 flex items-center justify-center lg:hidden">
         <Button
           onClick={onSignUp}
           className="px-6 py-3 bg-background/90 hover:bg-background backdrop-blur-md border border-border/50 text-white rounded-lg text-base font-semibold shadow-xl shadow-black/30 animate-fade-in"
