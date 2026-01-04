@@ -458,7 +458,7 @@ const JoinTrip = () => {
             onClick={() => navigate('/')}
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-colors"
           >
-            Go to Home
+            Go to Dashboard
           </button>
         </div>
       </div>
@@ -591,7 +591,7 @@ const JoinTrip = () => {
                 onClick={() => navigate('/')}
                 className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground py-3 px-6 rounded-xl transition-colors"
               >
-                Go to Home
+                Go to Dashboard
               </button>
             </div>
           )}

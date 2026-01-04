@@ -10,7 +10,7 @@ test.describe('Invite + Preview Links (no blank screens)', () => {
     });
     // Verify at least one action button is visible (use .first() since there may be multiple)
     await expect(
-      page.getByRole('button', { name: /Go to (Home|Dashboard)|Try Again|Reload/i }).first(),
+      page.getByRole('button', { name: /Go to Dashboard|Try Again|Reload/i }).first(),
     ).toBeVisible();
   });
 
