@@ -487,9 +487,9 @@ function generateHTML(trip: {
       <p class="description">${safeDescription}</p>
       <div class="meta">
         <div class="meta-item">📅 ${safeDateRange}</div>
-        <div class="meta-item">👥 ${trip.participantCount} travelers</div>
+        <div class="meta-item">👥 ${trip.participantCount} Chravelers</div>
       </div>
-      <a href="${escapeHtml(appTripUrl)}" class="cta">View Trip on Chravel</a>
+      <a href="${escapeHtml(appTripUrl)}" class="cta">View Trip on ChravelApp</a>
     </div>
     <div class="logo">Powered by ChravelApp</div>
   </div>

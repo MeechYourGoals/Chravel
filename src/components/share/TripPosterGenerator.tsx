@@ -81,7 +81,7 @@ export const TripPosterGenerator = ({ trip, colorTheme }: TripPosterGeneratorPro
           <div className="flex items-center gap-3 mb-6">
             <Users size={28} className="text-primary-foreground" />
             <span className="text-3xl font-semibold">
-              {trip.participants.length} Traveler{trip.participants.length !== 1 ? 's' : ''}
+              {trip.participants.length} Chraveler{trip.participants.length !== 1 ? 's' : ''}
             </span>
           </div>
           
