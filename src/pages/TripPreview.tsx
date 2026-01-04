@@ -46,7 +46,9 @@ const TripPreview = () => {
   useEffect(() => {
     const tripName = tripData?.name || 'Plan Trips Better';
     const destination = tripData?.destination || 'an exciting destination';
-    const imageUrl = tripData?.cover_image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop';
+    const imageUrl =
+      tripData?.cover_image_url ||
+      'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop';
 
     document.title = tripData?.name ? `${tripName} - Chravel` : 'Plan Trips Better - Chravel';
 
@@ -71,13 +73,19 @@ const TripPreview = () => {
     };
 
     updateMetaTag('og:title', `Check out ${tripName} on Chravel!`);
-    updateMetaTag('og:description', `A trip to ${destination}. Plan your group travel adventures with Chravel!`);
+    updateMetaTag(
+      'og:description',
+      `A trip to ${destination}. Plan your group travel adventures with Chravel!`,
+    );
     updateMetaTag('og:type', 'website');
     updateMetaTag('og:image', imageUrl);
     updateMetaTag('og:url', window.location.href);
     updateMetaName('twitter:card', 'summary_large_image');
     updateMetaName('twitter:title', `Check out ${tripName} on Chravel!`);
-    updateMetaName('twitter:description', `A trip to ${destination}. Plan your group travel adventures with Chravel!`);
+    updateMetaName(
+      'twitter:description',
+      `A trip to ${destination}. Plan your group travel adventures with Chravel!`,
+    );
     updateMetaName('twitter:image', imageUrl);
   }, [tripData]);
 
@@ -109,7 +117,7 @@ const TripPreview = () => {
           cover_image_url: demoTrip.coverPhoto || null,
           trip_type: 'consumer',
           member_count: demoTrip.participants.length,
-          description: null
+          description: null,
         });
         setLoading(false);
         return;
@@ -119,7 +127,7 @@ const TripPreview = () => {
     // Real trip (UUID) - fetch via public edge function to avoid RLS blank/404 for unauthenticated users
     try {
       const { data, error: funcError } = await supabase.functions.invoke('get-trip-preview', {
-        body: { tripId }
+        body: { tripId },
       });
 
       if (funcError || !data?.success || !data?.trip) {
@@ -145,7 +153,7 @@ const TripPreview = () => {
         await navigator.share({
           title: tripData?.name || 'Trip on Chravel',
           text: shareText,
-          url: shareUrl
+          url: shareUrl,
         });
       } catch (err) {
         // User cancelled or error
@@ -178,11 +186,17 @@ const TripPreview = () => {
       navigate(`/trip/${tripId}`);
     } else {
       // Prompt to sign up/login
-      navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(`/trip/${tripId}`)}`, { replace: true });
+      navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(`/trip/${tripId}`)}`, {
+        replace: true,
+      });
     }
   };
 
-  const formatDateRange = (startDate: string | null, endDate: string | null, dateRange?: string): string => {
+  const formatDateRange = (
+    startDate: string | null,
+    endDate: string | null,
+    dateRange?: string,
+  ): string => {
     // Prefer pre-formatted dateRange if available (for demo trips)
     if (dateRange) return dateRange;
     if (!startDate) return 'Dates TBD';
@@ -221,12 +235,14 @@ const TripPreview = () => {
             <ExternalLink className="h-8 w-8 text-red-400" />
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">Trip Not Found</h1>
-          <p className="text-white/60 mb-6">{error || 'This trip may have been deleted or is no longer available.'}</p>
+          <p className="text-white/60 mb-6">
+            {error || 'This trip may have been deleted or is no longer available.'}
+          </p>
           <Button
             onClick={() => navigate('/')}
             className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
           >
-            Go to Home
+            Go to Dashboard
           </Button>
         </div>
       </div>
@@ -240,7 +256,7 @@ const TripPreview = () => {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: `url('${tripData.cover_image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop'}')`
+            backgroundImage: `url('${tripData.cover_image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop'}')`,
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent" />
@@ -278,12 +294,16 @@ const TripPreview = () => {
 
             <div className="flex items-center gap-3 text-white/80">
               <Calendar className="h-5 w-5 text-yellow-400 flex-shrink-0" />
-              <span>{formatDateRange(tripData.start_date, tripData.end_date, tripData.dateRange)}</span>
+              <span>
+                {formatDateRange(tripData.start_date, tripData.end_date, tripData.dateRange)}
+              </span>
             </div>
 
             <div className="flex items-center gap-3 text-white/80">
               <Users className="h-5 w-5 text-yellow-400 flex-shrink-0" />
-              <span>{tripData.member_count} {tripData.member_count === 1 ? 'Chraveler' : 'Chravelers'}</span>
+              <span>
+                {tripData.member_count} {tripData.member_count === 1 ? 'Chraveler' : 'Chravelers'}
+              </span>
             </div>
           </div>
 

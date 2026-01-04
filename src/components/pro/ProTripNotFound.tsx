@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTripVariant } from '../../contexts/TripVariantContext';
@@ -26,7 +25,7 @@ export const ProTripNotFound = ({ message, details, availableIds }: ProTripNotFo
           onClick={() => navigate('/')}
           className={`bg-gradient-to-r ${accentColors.gradient} text-white px-6 py-3 rounded-xl`}
         >
-          Back to Home
+          Go to Dashboard
         </button>
       </div>
     </div>

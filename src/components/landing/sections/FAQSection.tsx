@@ -8,6 +8,10 @@ const faqItems = [
     answer: "Anybody organizing a group that wants to simplify sharing information: Work, Personal, Sports, Tours, Conferences, Vacations, Travel, or even local events."
   },
   {
+    question: "Isn't this just another app to download?",
+    answer: "Unlike your current stack where texts don't know what's in your emails, and your spreadsheet doesn't know what's in your group chat—ChravelApp's 8 tabs are fully interconnected. Your AI concierge can search your chat history, reference your itinerary, know your saved places, and factor in who owes what. One context-aware trip brain instead of 8 disconnected apps."
+  },
+  {
     question: "What happens when I hit my 3-trip limit?",
     answer: "You'll need to delete an old trip to create a new one. Or upgrade to Explorer to keep unlimited trips!"
   },
@@ -33,7 +37,7 @@ const faqItems = [
   },
   {
     question: "Are Events included in my subscription?",
-    answer: "Yes! Events are bundled into all paid plans. Explorer includes unlimited Events with up to 100 guests each. Frequent Chraveler includes Events with up to 200 guests. All Pro tiers include unlimited Events for your entire team."
+    answer: "Yes! Events are bundled into all paid plans. Explorer includes unlimited Events with up to 50 guests each. Frequent Chraveler includes Events with up to 100 guests. All Pro tiers include unlimited Events for your entire team."
   }
 ];
 export const FAQSection = () => {

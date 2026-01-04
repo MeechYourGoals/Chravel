@@ -19,9 +19,7 @@ type TripPreviewData = {
 
 function isUuid(value: string): boolean {
   // Accept UUID v1-v5.
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value,
-  );
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 function toPrefillPayload(trip: TripPreviewData): {
@@ -119,7 +117,10 @@ const DemoTripGate = () => {
   const handleCreateTripLikeThis = useCallback(() => {
     if (tripData) {
       try {
-        sessionStorage.setItem(DEMO_PREFILL_STORAGE_KEY, JSON.stringify(toPrefillPayload(tripData)));
+        sessionStorage.setItem(
+          DEMO_PREFILL_STORAGE_KEY,
+          JSON.stringify(toPrefillPayload(tripData)),
+        );
       } catch {
         // Non-fatal: still allow user to proceed.
       }
@@ -141,7 +142,7 @@ const DemoTripGate = () => {
           <h1 className="text-2xl font-bold text-white mb-2">Demo Trip</h1>
           <p className="text-white/60 mb-6">Missing demo trip id.</p>
           <Button onClick={() => navigate('/')} className="bg-white text-black hover:bg-white/90">
-            Back to Home
+            Go to Dashboard
           </Button>
         </div>
       </div>
@@ -233,4 +234,3 @@ const DemoTripGate = () => {
 };
 
 export default DemoTripGate;
-
