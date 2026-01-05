@@ -28,7 +28,12 @@ interface BroadcastComposerProps {
   }) => void;
 }
 
-export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId, onSend }: BroadcastComposerProps) => {
+export const BroadcastComposer = ({
+  participants,
+  tripTier = 'consumer',
+  tripId,
+  onSend,
+}: BroadcastComposerProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [scheduledFor, setScheduledFor] = useState<Date | null>(null);
   const [showScheduler, setShowScheduler] = useState(false);
@@ -36,7 +41,7 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
-  
+
   const {
     message,
     location,
@@ -53,7 +58,7 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
     setTranslateTo,
     setShowDetails,
     resetForm,
-    getCategoryColor
+    getCategoryColor,
   } = useBroadcastComposer();
 
   const languages = [
@@ -66,7 +71,7 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
     { code: 'zh', name: 'Chinese' },
     { code: 'ja', name: 'Japanese' },
     { code: 'ko', name: 'Korean' },
-    { code: 'ar', name: 'Arabic' }
+    { code: 'ar', name: 'Arabic' },
   ];
 
   // Reserved for role-based targeting in enterprise broadcasts
@@ -82,7 +87,14 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
     try {
       for (const file of Array.from(files)) {
         // Validate file type
-        const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime'];
+        const validTypes = [
+          'image/jpeg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'video/mp4',
+          'video/quicktime',
+        ];
         if (!validTypes.includes(file.type)) {
           toast.error(`${file.name} is not a supported file type`);
           continue;
@@ -97,12 +109,12 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
         // Upload to storage
         const fileExt = file.name.split('.').pop();
         const fileName = `broadcasts/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        
+
         const { error: uploadError } = await supabase.storage
           .from('trip-files')
           .upload(fileName, file, {
             contentType: file.type,
-            upsert: false
+            upsert: false,
           });
 
         if (uploadError) {
@@ -112,9 +124,7 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
         }
 
         // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('trip-files')
-          .getPublicUrl(fileName);
+        const { data: urlData } = supabase.storage.from('trip-files').getPublicUrl(fileName);
 
         if (urlData?.publicUrl) {
           uploadedUrls.push(urlData.publicUrl);
@@ -145,20 +155,23 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
       const broadcastData = {
         trip_id: tripId,
         message: message.trim(),
-        priority: category === 'chill' ? 'fyi' as const : 
-                 category === 'logistics' ? 'reminder' as const : 
-                 'urgent' as const,
+        priority:
+          category === 'chill'
+            ? ('fyi' as const)
+            : category === 'logistics'
+              ? ('reminder' as const)
+              : ('urgent' as const),
         scheduled_for: scheduledFor ? scheduledFor.toISOString() : undefined,
         attachment_urls: attachments.length > 0 ? attachments : undefined,
         metadata: {
           location: location.trim() || undefined,
           recipients: recipient,
-          translateTo: translateTo !== 'none' ? translateTo : undefined
-        }
+          translateTo: translateTo !== 'none' ? translateTo : undefined,
+        },
       };
 
       const newBroadcast = await broadcastService.createBroadcast(broadcastData);
-      
+
       if (newBroadcast) {
         // Trigger push notification for urgent/reminder broadcasts if sent immediately
         if (!scheduledFor && (category === 'urgent' || category === 'logistics')) {
@@ -170,14 +183,16 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
           }
         }
 
-        toast.success(scheduledFor ? 'Broadcast scheduled successfully!' : 'Broadcast sent successfully!');
-        
+        toast.success(
+          scheduledFor ? 'Broadcast scheduled successfully!' : 'Broadcast sent successfully!',
+        );
+
         // Call the optional onSend callback for any additional handling
         onSend?.({
           message: message.trim(),
           location: location.trim() || undefined,
           category,
-          recipients: recipient
+          recipients: recipient,
         });
 
         // Reset form
@@ -205,13 +220,13 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
         <div className="flex-1">
           <textarea
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={e => setMessage(e.target.value)}
             placeholder="Share an update with the group..."
             maxLength={140}
             rows={2}
             className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 resize-none"
           />
-          
+
           {/* Attachments preview */}
           {attachments.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
@@ -231,6 +246,7 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
                   <button
                     onClick={() => handleRemoveAttachment(index)}
                     className="absolute -top-2 -right-2 bg-red-600 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Remove attachment"
                   >
                     <X size={12} className="text-white" />
                   </button>
@@ -246,55 +262,55 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
                 className="text-slate-400 hover:text-white text-sm flex items-center gap-1"
               >
                 <MapPin size={14} />
-                 Add details
-               </button>
-               <button
-                 onClick={() => setShowScheduler(!showScheduler)}
-                 className={`text-slate-400 hover:text-white text-sm flex items-center gap-1 ${
-                   scheduledFor ? 'text-blue-400' : ''
-                 }`}
-               >
-                 <Calendar size={14} />
-                 Schedule
-               </button>
-               <button
-                 onClick={() => fileInputRef.current?.click()}
-                 disabled={uploadingAttachments}
-                 className="text-slate-400 hover:text-white text-sm flex items-center gap-1 disabled:opacity-50"
-               >
-                 <Image size={14} />
-                 {uploadingAttachments ? 'Uploading...' : 'Attach'}
-               </button>
-               <input
-                 ref={fileInputRef}
-                 type="file"
-                 multiple
-                 accept="image/*,video/*"
-                 onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
-                 className="hidden"
-               />
-               {!isConsumerTrip && (
-                 <div className="flex items-center gap-2 ml-4">
-                   <Languages size={14} className="text-slate-400" />
-                   <Select value={translateTo} onValueChange={setTranslateTo}>
-                     <SelectTrigger className="w-32 h-6 bg-slate-700 border-slate-600 text-white text-xs">
-                       <SelectValue />
-                     </SelectTrigger>
-                     <SelectContent>
-                       {languages.map((lang) => (
-                         <SelectItem key={lang.code} value={lang.code} className="text-xs">
-                           {lang.name}
-                         </SelectItem>
-                       ))}
-                     </SelectContent>
-                   </Select>
-                 </div>
-               )}
-               <span className="text-xs text-slate-500">
+                Add details
+              </button>
+              <button
+                onClick={() => setShowScheduler(!showScheduler)}
+                className={`text-slate-400 hover:text-white text-sm flex items-center gap-1 ${
+                  scheduledFor ? 'text-blue-400' : ''
+                }`}
+              >
+                <Calendar size={14} />
+                Schedule
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAttachments}
+                className="text-slate-400 hover:text-white text-sm flex items-center gap-1 disabled:opacity-50"
+              >
+                <Image size={14} />
+                {uploadingAttachments ? 'Uploading...' : 'Attach'}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,video/*"
+                onChange={e => e.target.files && handleFileUpload(e.target.files)}
+                className="hidden"
+              />
+              {!isConsumerTrip && (
+                <div className="flex items-center gap-2 ml-4">
+                  <Languages size={14} className="text-slate-400" />
+                  <Select value={translateTo} onValueChange={setTranslateTo}>
+                    <SelectTrigger className="w-32 h-6 bg-slate-700 border-slate-600 text-white text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {languages.map(lang => (
+                        <SelectItem key={lang.code} value={lang.code} className="text-xs">
+                          {lang.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <span className="text-xs text-slate-500">
                 {characterCount}/{maxCharacters}
               </span>
             </div>
-            
+
             <div className="flex items-center gap-2">
               {/* Recipient selector - only for Pro/Event trips */}
               <RecipientSelector
@@ -307,7 +323,7 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
               {/* Category selector - only for Pro/Event trips */}
               {!isConsumerTrip && (
                 <div className="flex gap-1">
-                  {(['chill', 'logistics', 'urgent'] as const).map((cat) => (
+                  {(['chill', 'logistics', 'urgent'] as const).map(cat => (
                     <button
                       key={cat}
                       onClick={() => setCategory(cat)}
@@ -322,7 +338,7 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
                   ))}
                 </div>
               )}
-              
+
               <Button
                 onClick={handleSend}
                 disabled={!message.trim() || isLoading}
@@ -336,10 +352,14 @@ export const BroadcastComposer = ({ participants, tripTier = 'consumer', tripId,
           {/* Additional details */}
           {showDetails && (
             <div className="mt-3 space-y-2">
+              <label htmlFor="broadcast-location" className="sr-only">
+                Location (optional)
+              </label>
               <input
+                id="broadcast-location"
                 type="text"
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                onChange={e => setLocation(e.target.value)}
                 placeholder="Location (optional)"
                 className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
               />
