@@ -30,5 +30,14 @@
 	<array>
 		<string>Default</string>
 	</array>
+
+	<!--
+	In-App Purchase (RevenueCat Subscriptions)
+	REQUIRED: For subscription and in-app purchase functionality
+	-->
+	<key>com.apple.developer.in-app-payments</key>
+	<array>
+		<string>merchant.com.chravel.app</string>
+	</array>
 </dict>
 </plist>

@@ -26,7 +26,6 @@ async function safeRun(fn: () => Promise<void>): Promise<void> {
   } catch (error) {
     // Non-blocking: haptics should never crash UX flows.
     if (import.meta.env.DEV) {
-       
       console.warn('[Haptics] Failed to trigger haptic:', error);
     }
   }
@@ -56,3 +55,18 @@ export async function error(): Promise<void> {
   await safeRun(() => Haptics.notification({ type: NotificationType.Error }));
 }
 
+/**
+ * Selection changed haptic - iOS selection feedback
+ * Used for picker changes, list selection, etc.
+ */
+export async function selectionChanged(): Promise<void> {
+  await safeRun(() => Haptics.selectionChanged());
+}
+
+/**
+ * Vibrate - Simple vibration for attention
+ * Fallback for devices without taptic engine
+ */
+export async function vibrate(duration: number = 300): Promise<void> {
+  await safeRun(() => Haptics.vibrate({ duration }));
+}

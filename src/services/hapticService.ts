@@ -37,6 +37,21 @@ class HapticService {
   async celebration(): Promise<void> {
     await nativeHaptics.success();
   }
+
+  /**
+   * Selection changed haptic - iOS selection feedback
+   * Used for picker changes, list selection, tab changes, etc.
+   */
+  async selectionChanged(): Promise<void> {
+    await nativeHaptics.selectionChanged();
+  }
+
+  /**
+   * Simple vibration for attention
+   */
+  async vibrate(duration: number = 300): Promise<void> {
+    await nativeHaptics.vibrate(duration);
+  }
 }
 
 export const hapticService = new HapticService();
