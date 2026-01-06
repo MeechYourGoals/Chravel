@@ -69,7 +69,7 @@ const consumerTiers: PricingTier[] = [
       '🎁 1 free Pro trip to try',
       '🎁 1 free Event to try'
     ],
-    cta: 'Try It Free',
+    cta: 'Create My First Trip',
     category: 'consumer',
     limitation: 'Archive trips to make room for new ones. Upgrade to restore anytime!'
   },
@@ -90,7 +90,7 @@ const consumerTiers: PricingTier[] = [
       'Location-aware AI recommendations',
       'Search past trips and memories'
     ],
-    cta: 'Upgrade My Trips',
+    cta: 'Never Lose a Trip',
     popular: true,
     category: 'consumer',
     badge: 'Most Popular',
@@ -113,7 +113,7 @@ const consumerTiers: PricingTier[] = [
       'Custom trip categories',
       'Early feature access'
     ],
-    cta: 'Upgrade My Trips',
+    cta: 'Go Unlimited',
     category: 'consumer',
     savings: 'Save $40/year'
   }

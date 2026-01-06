@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '../../ui/button';
+import { Check } from 'lucide-react';
 
 interface HeroSectionProps {
   onSignUp: () => void;
@@ -25,22 +26,25 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         <Button
           size="sm"
           onClick={onSignUp}
-          className="text-xs px-2 py-1 bg-black/40 hover:bg-black/50 backdrop-blur-md border border-white/10 text-white shadow-lg h-7"
+          className="text-xs px-3 py-1 bg-primary hover:bg-primary/90 backdrop-blur-md border border-white/10 text-primary-foreground shadow-lg h-7"
         >
-          Sign up / Log in
+          Start Coordinating Free
         </Button>
       </div>
 
-      {/* Top Section: Brand Name + Main Tagline */}
+      {/* Top Section: Pain-First Headline + Brand */}
       <div className="flex-shrink-0">
-        {/* Brand Name */}
-        <div className="w-full flex items-center justify-center px-2 md:px-4 mb-6 md:mb-8">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight animate-fade-in text-center w-full">
-            ChravelApp
+        {/* Pain-First Headline */}
+        <div className="w-full flex items-center justify-center px-2 md:px-4 mb-4 md:mb-6">
+          <h1 
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight animate-fade-in text-center w-full"
+            style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
+          >
+            Stop Losing Plans in Group Chats
           </h1>
         </div>
 
-        {/* Tagline - Primary headline */}
+        {/* Brand Name - Secondary */}
         <div
           className="inline-block px-6 py-3 rounded-xl animate-fade-in"
           style={{
@@ -58,7 +62,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
               backgroundClip: 'text',
             }}
           >
-            The Group Chat Travel App
+            ChravelApp
           </h2>
         </div>
       </div>
@@ -66,14 +70,27 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       {/* Mobile: CTA centered in viewport - MOBILE/PWA ONLY (<1024px)
           IMPORTANT: Must use lg:hidden to match useIsMobile() hook (1024px breakpoint).
           This ensures proper display on tablets, landscape phones, and PWA viewports */}
-      <div className="flex-1 flex items-center justify-center lg:hidden">
+      <div className="flex-1 flex flex-col items-center justify-center lg:hidden gap-4">
         <Button
           onClick={onSignUp}
-          className="px-6 py-3 bg-background/90 hover:bg-background backdrop-blur-md border border-border/50 text-white rounded-lg text-base font-semibold shadow-xl shadow-black/30 animate-fade-in"
+          className="px-6 py-3 bg-primary hover:bg-primary/90 backdrop-blur-md border border-border/50 text-primary-foreground rounded-lg text-base font-semibold shadow-xl shadow-black/30 animate-fade-in"
           style={{ animationDelay: '0.2s' }}
         >
-          Sign up / Log in
+          Start Coordinating Free
         </Button>
+        
+        {/* Trust Badges - Mobile */}
+        <div className="flex flex-wrap justify-center gap-2 mt-2 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <span className="flex items-center gap-1 text-xs text-white/90 bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full">
+            <Check size={12} className="text-green-400" /> Free forever
+          </span>
+          <span className="flex items-center gap-1 text-xs text-white/90 bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full">
+            <Check size={12} className="text-green-400" /> No credit card
+          </span>
+          <span className="flex items-center gap-1 text-xs text-white/90 bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full">
+            <Check size={12} className="text-green-400" /> 1 free Pro trip
+          </span>
+        </div>
       </div>
 
       {/* Bottom Section: Hero copy + CTA (desktop) */}
@@ -111,6 +128,19 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         >
           One Shared Space for Chat, Calendar, Photos, Payments, & More
         </p>
+
+        {/* Trust Badges - Desktop */}
+        <div className="hidden lg:flex flex-wrap justify-center gap-3 mt-6 animate-fade-in" style={{ animationDelay: '0.25s' }}>
+          <span className="flex items-center gap-1.5 text-sm text-white/90 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
+            <Check size={14} className="text-green-400" /> Free forever
+          </span>
+          <span className="flex items-center gap-1.5 text-sm text-white/90 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
+            <Check size={14} className="text-green-400" /> No credit card required
+          </span>
+          <span className="flex items-center gap-1.5 text-sm text-white/90 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
+            <Check size={14} className="text-green-400" /> 1 free Pro trip included
+          </span>
+        </div>
       </div>
     </div>
   );
