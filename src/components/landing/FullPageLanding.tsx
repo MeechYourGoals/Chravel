@@ -12,14 +12,11 @@ const FAQSection = lazy(() => import('./sections/FAQSection').then(module => ({ 
 const PricingLandingSection = lazy(() => import('./sections/PricingLandingSection').then(module => ({ default: module.PricingLandingSection })));
 const FooterSection = lazy(() => import('./FooterSection').then(module => ({ default: module.FooterSection })));
 
-// Import cinematic hero images
+// Import cinematic hero images - keeping only the ones we use
 import heroImage from '@/assets/hero-background.png';
-import howItWorksImage from '@/assets/hero-images/festival-goers-phone.png';
-import aiImage from '@/assets/hero-images/conference-enterprise.png';
 import scenariosImage from '@/assets/hero-images/sports-events-1920.jpg';
 import replacesImage from '@/assets/hero-images/basketball-team-bus.png';
 import pricingWorkspaceImage from '@/assets/hero-images/skiers-mountain-resort.png';
-import faqImage from '@/assets/hero-images/golf-course-chravel-banner.png';
 
 
 interface FullPageLandingProps {
@@ -51,7 +48,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           paddingRight: 'env(safe-area-inset-right)'
         }}
       >
-        {/* Section 1: Hero */}
+        {/* Section 1: Hero - Keep image (shows product) */}
         <FullPageLandingSection
           id="section-hero"
           imageFallback={heroImage}
@@ -61,7 +58,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           <HeroSection onSignUp={onSignUp} />
         </FullPageLandingSection>
 
-        {/* Section 2: Problem It Solves - Operating System for Groups */}
+        {/* Section 2: Problem It Solves - Keep image (basketball team bus) */}
         <FullPageLandingSection
           id="section-replaces"
           imageFallback={replacesImage}
@@ -72,16 +69,16 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 3: How It Works (merged) */}
+        {/* Section 3: How It Works - Use gradient (cleaner for info section) */}
         <FullPageLandingSection
           id="section-features"
-          imageFallback={howItWorksImage}
-          videoOpacity={0.5}
+          backgroundStyle="gradient"
+          gradientColors={['#1a1a2e', '#0f172a']}
         >
           <ProblemSolutionSection />
         </FullPageLandingSection>
 
-        {/* Section 4: Use Cases - Built for Every Journey */}
+        {/* Section 4: Use Cases - Keep image (stadium) */}
         <FullPageLandingSection
           id="section-use-cases"
           imageFallback={scenariosImage}
@@ -93,18 +90,18 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 5: AI Features */}
+        {/* Section 5: AI Features - Use gradient (cleaner for feature cards) */}
         <FullPageLandingSection
           id="section-ai"
-          imageFallback={aiImage}
-          videoOpacity={0.5}
+          backgroundStyle="gradient"
+          gradientColors={['#0f172a', '#1e293b']}
         >
           <Suspense fallback={<SectionLoader />}>
             <AiFeaturesSection />
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 6: Pricing */}
+        {/* Section 6: Pricing - Keep image (skiers) */}
         <FullPageLandingSection
           id="section-pricing"
           imageFallback={pricingWorkspaceImage}
@@ -116,11 +113,11 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 7: FAQ */}
+        {/* Section 7: FAQ - Use gradient (cleaner for text-heavy section) */}
         <FullPageLandingSection
           id="section-faq"
-          imageFallback={faqImage}
-          videoOpacity={0.5}
+          backgroundStyle="gradient"
+          gradientColors={['#1e293b', '#0f172a']}
         >
           <Suspense fallback={<SectionLoader />}>
             <FAQSection />
