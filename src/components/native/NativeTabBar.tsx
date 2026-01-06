@@ -1,17 +1,21 @@
-import React, { useCallback } from 'react';
-import { Map, Compass, Plus, Bell, User } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
+import { Map, Search, Plus, Bell, User, Compass } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticService } from '@/services/hapticService';
 
-type TabId = 'trips' | 'recs' | 'new' | 'alerts' | 'profile';
+type CoreTabId = 'trips' | 'search' | 'new' | 'alerts' | 'profile';
+type TabId = CoreTabId | 'recs';
 
 interface NativeTabBarProps {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
   alertsBadge?: number;
   onNewPress?: () => void;
+  onSearchPress?: () => void;
   tripTypeLabel?: string;
   onTripTypePress?: () => void;
+  /** Show the 6th "Recs" tab (demo mode only) */
+  showRecsTab?: boolean;
   className?: string;
 }
 
@@ -22,7 +26,8 @@ interface TabConfig {
   activeIcon?: React.ReactNode;
 }
 
-const TABS: TabConfig[] = [
+// Core 5 tabs for authenticated users
+const CORE_TABS: TabConfig[] = [
   {
     id: 'trips',
     label: 'Trips',
@@ -30,10 +35,10 @@ const TABS: TabConfig[] = [
     activeIcon: <Map size={24} strokeWidth={2} />,
   },
   {
-    id: 'recs',
-    label: 'Explore',
-    icon: <Compass size={24} strokeWidth={1.5} />,
-    activeIcon: <Compass size={24} strokeWidth={2} />,
+    id: 'search',
+    label: 'Search',
+    icon: <Search size={24} strokeWidth={1.5} />,
+    activeIcon: <Search size={24} strokeWidth={2} />,
   },
   {
     id: 'new',
@@ -54,9 +59,22 @@ const TABS: TabConfig[] = [
   },
 ];
 
+// Optional 6th tab for demo mode
+const RECS_TAB: TabConfig = {
+  id: 'recs',
+  label: 'Recs',
+  icon: <Compass size={24} strokeWidth={1.5} />,
+  activeIcon: <Compass size={24} strokeWidth={2} />,
+};
+
 /**
  * iOS-style bottom tab bar.
  * Fixed at bottom with safe area handling.
+ *
+ * Layout:
+ * - 5 core tabs: Trips, Search, + (New), Alerts, Profile
+ * - Optional 6th "Recs" tab for demo mode (appears on far right)
+ *
  * Center "New" button is prominent like Instagram's create button.
  */
 export const NativeTabBar = ({
@@ -64,16 +82,32 @@ export const NativeTabBar = ({
   onTabChange,
   alertsBadge = 0,
   onNewPress,
+  onSearchPress,
   tripTypeLabel,
   onTripTypePress,
+  showRecsTab = false,
   className,
 }: NativeTabBarProps) => {
+  // Build tabs array - include Recs if in demo mode
+  const tabs = showRecsTab ? [...CORE_TABS, RECS_TAB] : CORE_TABS;
+
   const handleTabPress = useCallback(
     async (tabId: TabId) => {
       // Special handling for "new" tab - it opens a modal
       if (tabId === 'new') {
         await hapticService.medium();
         onNewPress?.();
+        return;
+      }
+
+      // Special handling for search tab - can open search overlay
+      if (tabId === 'search') {
+        await hapticService.light();
+        onSearchPress?.();
+        // Still change to search tab to show search is active
+        if (tabId !== activeTab) {
+          onTabChange(tabId);
+        }
         return;
       }
 
@@ -89,7 +123,7 @@ export const NativeTabBar = ({
         onTabChange(tabId);
       }
     },
-    [activeTab, onTabChange, onNewPress, onTripTypePress],
+    [activeTab, onTabChange, onNewPress, onSearchPress, onTripTypePress],
   );
 
   return (
@@ -106,7 +140,7 @@ export const NativeTabBar = ({
       }}
     >
       <div className="flex items-center justify-around h-[49px]">
-        {TABS.map(tab => {
+        {tabs.map(tab => {
           const isActive = activeTab === tab.id;
           const isCenter = tab.id === 'new';
 
@@ -116,9 +150,11 @@ export const NativeTabBar = ({
               onClick={() => handleTabPress(tab.id)}
               className={cn(
                 'flex flex-col items-center justify-center',
-                'min-w-[64px] h-full',
+                'h-full',
                 'active:opacity-50 transition-opacity',
                 isCenter && 'relative -mt-3',
+                // Adjust width based on number of tabs
+                showRecsTab ? 'min-w-[52px]' : 'min-w-[64px]',
               )}
             >
               {/* Center "New" button with special styling */}
@@ -193,3 +229,6 @@ export const NativeTabBarSpacer = () => (
     }}
   />
 );
+
+// Export types for consumers
+export type { TabId, CoreTabId };

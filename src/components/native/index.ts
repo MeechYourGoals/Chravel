@@ -10,6 +10,7 @@ export { NativeBottomSheet } from './NativeBottomSheet';
 
 // Tab Bar (iOS-style bottom navigation)
 export { NativeTabBar, NativeTabBarSpacer } from './NativeTabBar';
+export type { TabId, CoreTabId } from './NativeTabBar';
 
 // Trip Type Switcher (like Instagram's account switcher)
 export {
