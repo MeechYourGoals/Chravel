@@ -90,9 +90,17 @@ export const UseCasesSection = () => {
         <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
           Built for Every Journey
         </h2>
-        <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
-          For work trips, vacations, sports teams, tours, and even local events. ChravelApp is designed to handle it all.
-        </p>
+        <div 
+          className="inline-block px-6 py-4 rounded-xl"
+          style={{
+            backgroundColor: 'rgba(30, 30, 30, 0.7)',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <p className="text-xl sm:text-2xl md:text-3xl text-foreground">
+            For work trips, vacations, sports teams, tours, and even local events. ChravelApp is designed to handle it all.
+          </p>
+        </div>
       </div>
 
       {/* Scenarios Grid */}
