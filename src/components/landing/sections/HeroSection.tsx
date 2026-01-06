@@ -1,6 +1,5 @@
 import React from 'react';
 import { Button } from '../../ui/button';
-import { Check } from 'lucide-react';
 
 interface HeroSectionProps {
   onSignUp: () => void;
@@ -37,8 +36,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         {/* Pain-First Headline */}
         <div className="w-full flex items-center justify-center px-2 md:px-4 mb-4 md:mb-6">
           <h1 
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight animate-fade-in text-center w-full"
-            style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight animate-fade-in text-center w-full"
+            style={{
+              background: 'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
           >
             Stop Losing Plans in Group Chats
           </h1>
@@ -53,13 +57,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           }}
         >
           <h2
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight"
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold text-white leading-tight"
             style={{
-              background:
-                'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
+              textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
             }}
           >
             ChravelApp
@@ -70,7 +70,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       {/* Mobile: CTA centered in viewport - MOBILE/PWA ONLY (<1024px)
           IMPORTANT: Must use lg:hidden to match useIsMobile() hook (1024px breakpoint).
           This ensures proper display on tablets, landscape phones, and PWA viewports */}
-      <div className="flex-1 flex flex-col items-center justify-center lg:hidden gap-4">
+      <div className="flex-1 flex flex-col items-center justify-center lg:hidden">
         <Button
           onClick={onSignUp}
           className="px-6 py-3 bg-primary hover:bg-primary/90 backdrop-blur-md border border-border/50 text-primary-foreground rounded-lg text-base font-semibold shadow-xl shadow-black/30 animate-fade-in"
@@ -78,19 +78,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         >
           Start Coordinating Free
         </Button>
-        
-        {/* Trust Badges - Mobile */}
-        <div className="flex flex-wrap justify-center gap-2 mt-2 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-          <span className="flex items-center gap-1 text-xs text-white/90 bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full">
-            <Check size={12} className="text-green-400" /> Free forever
-          </span>
-          <span className="flex items-center gap-1 text-xs text-white/90 bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full">
-            <Check size={12} className="text-green-400" /> No credit card
-          </span>
-          <span className="flex items-center gap-1 text-xs text-white/90 bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full">
-            <Check size={12} className="text-green-400" /> 1 free Pro trip
-          </span>
-        </div>
       </div>
 
       {/* Bottom Section: Hero copy + CTA (desktop) */}
@@ -129,18 +116,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           One Shared Space for Chat, Calendar, Photos, Payments, & More
         </p>
 
-        {/* Trust Badges - Desktop */}
-        <div className="hidden lg:flex flex-wrap justify-center gap-3 mt-6 animate-fade-in" style={{ animationDelay: '0.25s' }}>
-          <span className="flex items-center gap-1.5 text-sm text-white/90 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
-            <Check size={14} className="text-green-400" /> Free forever
-          </span>
-          <span className="flex items-center gap-1.5 text-sm text-white/90 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
-            <Check size={14} className="text-green-400" /> No credit card required
-          </span>
-          <span className="flex items-center gap-1.5 text-sm text-white/90 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
-            <Check size={14} className="text-green-400" /> 1 free Pro trip included
-          </span>
-        </div>
       </div>
     </div>
   );
