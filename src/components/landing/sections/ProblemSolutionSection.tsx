@@ -22,7 +22,7 @@ export const ProblemSolutionSection = () => {
       number: 3,
       icon: <RefreshCw size={32} className="text-primary" />,
       title: "Everything syncs",
-      description: "Plans, Places, Photos, Payments — Live"
+      description: "Calendar, Tasks, and last minute changes — Updated Live"
     }
   ];
 
