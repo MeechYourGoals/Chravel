@@ -36,15 +36,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         {/* Pain-First Headline */}
         <div className="w-full flex items-center justify-center px-2 md:px-4 mb-4 md:mb-6">
           <h1 
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight animate-fade-in text-center w-full"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight animate-fade-in text-center w-full"
             style={{
-              background: 'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
+              textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
             }}
           >
-            Stop Losing Plans in Group Chats
+            Your Trip Deserves a Better Group Chat
           </h1>
         </div>
 
@@ -57,9 +54,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           }}
         >
           <h2
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold text-white leading-tight"
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight"
             style={{
-              textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
+              background: 'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
             }}
           >
             ChravelApp
@@ -113,7 +113,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
           }}
         >
-          One Shared Space for Chat, Calendar, Photos, Payments, & More
+          Plans, Photos, Places, PDFs, & Payments — FINALLY in one shared space.
         </p>
 
       </div>
