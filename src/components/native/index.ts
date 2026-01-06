@@ -8,6 +8,17 @@
 // Bottom Sheet
 export { NativeBottomSheet } from './NativeBottomSheet';
 
+// Tab Bar (iOS-style bottom navigation)
+export { NativeTabBar, NativeTabBarSpacer } from './NativeTabBar';
+
+// Trip Type Switcher (like Instagram's account switcher)
+export {
+  NativeTripTypeSwitcher,
+  TripTypeIndicator,
+  getTripTypeLabel,
+  getTripTypeShortLabel,
+} from './NativeTripTypeSwitcher';
+
 // Lists (iOS-style grouped lists)
 export { NativeList, NativeListSection, NativeListItem, NativeToggleItem } from './NativeList';
 
