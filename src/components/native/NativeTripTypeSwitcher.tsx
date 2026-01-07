@@ -1,8 +1,7 @@
-import React, { useCallback } from 'react';
-import { Map, Briefcase, Calendar, ChevronDown, Check } from 'lucide-react';
+import React, { useCallback, useEffect } from 'react';
+import { Map, Briefcase, Calendar, ChevronDown, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticService } from '@/services/hapticService';
-import { NativeBottomSheet } from './NativeBottomSheet';
 
 type TripType = 'myTrips' | 'tripsPro' | 'events';
 
@@ -18,19 +17,19 @@ const TRIP_TYPES: TripTypeOption[] = [
     id: 'myTrips',
     label: 'My Trips',
     sublabel: 'Personal travel plans',
-    icon: <Map size={22} />,
+    icon: <Map size={24} />,
   },
   {
     id: 'tripsPro',
     label: 'Pro Trips',
     sublabel: 'Business & team travel',
-    icon: <Briefcase size={22} />,
+    icon: <Briefcase size={24} />,
   },
   {
     id: 'events',
     label: 'Events',
     sublabel: 'Conferences & gatherings',
-    icon: <Calendar size={22} />,
+    icon: <Calendar size={24} />,
   },
 ];
 
@@ -43,8 +42,8 @@ interface NativeTripTypeSwitcherProps {
 }
 
 /**
- * iOS-style trip type switcher sheet.
- * Similar to Instagram's account switcher pattern.
+ * Full-screen trip type selector modal.
+ * iOS alert-style centered modal for switching between trip views.
  */
 export const NativeTripTypeSwitcher = ({
   isOpen,
@@ -62,56 +61,125 @@ export const NativeTripTypeSwitcher = ({
     [onSelectType, onClose],
   );
 
+  // Handle escape key
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Prevent body scroll when open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
   return (
-    <NativeBottomSheet
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Switch View"
-      detent="small"
-      allowedDetents={['small', 'medium']}
-      showGrabber
-    >
-      <div className="py-2">
-        {TRIP_TYPES.map(type => {
-          const isSelected = selectedType === type.id;
-          const count = tripCounts[type.id];
+    <div className="fixed inset-0 z-50">
+      {/* Dark backdrop with blur */}
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+        onClick={onClose}
+      />
 
-          return (
+      {/* Centered modal container */}
+      <div
+        className="absolute inset-0 flex items-center justify-center p-6"
+        style={{
+          paddingTop: 'max(24px, env(safe-area-inset-top))',
+          paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
+        }}
+      >
+        <div className="w-full max-w-sm bg-[#1c1c1e] rounded-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200 shadow-2xl">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+            <h2 className="text-lg font-semibold text-white">Select View</h2>
             <button
-              key={type.id}
-              onClick={() => handleSelect(type.id)}
-              className={cn(
-                'w-full flex items-center gap-4 px-4 py-3',
-                'active:bg-white/5 transition-colors',
-                isSelected && 'bg-white/5',
-              )}
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 active:bg-white/20 transition-colors"
             >
-              {/* Icon */}
-              <div
-                className={cn(
-                  'w-11 h-11 rounded-full flex items-center justify-center',
-                  isSelected ? 'bg-primary text-primary-foreground' : 'bg-white/10 text-white/70',
-                )}
-              >
-                {type.icon}
-              </div>
-
-              {/* Label & sublabel */}
-              <div className="flex-1 text-left">
-                <div className="flex items-center gap-2">
-                  <span className="text-[17px] font-medium text-white">{type.label}</span>
-                  {count > 0 && <span className="text-[13px] text-white/40">{count}</span>}
-                </div>
-                <span className="text-[13px] text-white/50">{type.sublabel}</span>
-              </div>
-
-              {/* Checkmark */}
-              {isSelected && <Check size={22} className="text-primary" strokeWidth={2.5} />}
+              <X size={18} className="text-white/70" />
             </button>
-          );
-        })}
+          </div>
+
+          {/* Trip type options */}
+          <div className="p-4 space-y-3">
+            {TRIP_TYPES.map(type => {
+              const isSelected = selectedType === type.id;
+              const count = tripCounts[type.id];
+
+              return (
+                <button
+                  key={type.id}
+                  onClick={() => handleSelect(type.id)}
+                  className={cn(
+                    'w-full flex items-center gap-4 p-4 rounded-xl',
+                    'transition-all duration-150',
+                    isSelected
+                      ? 'bg-primary/20 ring-2 ring-primary'
+                      : 'bg-white/5 active:bg-white/10',
+                  )}
+                >
+                  {/* Icon */}
+                  <div
+                    className={cn(
+                      'w-12 h-12 rounded-full flex items-center justify-center shrink-0',
+                      isSelected
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-white/10 text-white/70',
+                    )}
+                  >
+                    {type.icon}
+                  </div>
+
+                  {/* Label & sublabel */}
+                  <div className="flex-1 text-left">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          'text-[17px] font-medium',
+                          isSelected ? 'text-white' : 'text-white/90',
+                        )}
+                      >
+                        {type.label}
+                      </span>
+                      {count > 0 && (
+                        <span className="text-[13px] text-white/40 bg-white/10 px-2 py-0.5 rounded-full">
+                          {count}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[14px] text-white/50">{type.sublabel}</span>
+                  </div>
+
+                  {/* Checkmark */}
+                  {isSelected && (
+                    <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
+                      <Check size={14} className="text-primary-foreground" strokeWidth={3} />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
-    </NativeBottomSheet>
+    </div>
   );
 };
 
