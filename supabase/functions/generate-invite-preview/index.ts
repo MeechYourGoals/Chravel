@@ -33,14 +33,15 @@ const demoTrips: Record<string, {
   tripType?: 'consumer' | 'pro' | 'event';
   themeColor?: string; // For events only
 }> = {
-  // Consumer Trips (1-12) - Using Unsplash images for reliable OG previews
-  // Synced with src/data/tripsData.ts on 2025-12-29
+  // Consumer Trips (1-12) - Using Unsplash images that visually match bundled webp assets
+  // Synced with src/data/tripsData.ts cover photos on 2026-01-07
   '1': {
     title: 'Spring Break Cancun 2026 – Fraternity Trip',
     location: 'Cancun, Mexico',
     dateRange: 'Mar 15 - Mar 22, 2026',
     description: 'Brotherhood spring break getaway with beach activities, nightlife, and bonding experiences',
-    coverPhoto: 'https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=1200&h=630&fit=crop',
+    // Matches: cancun-spring-break.webp - pool party / beach friends vibe
+    coverPhoto: 'https://images.unsplash.com/photo-1530789253388-582c481c54b0?w=1200&h=630&fit=crop',
     participantCount: 14
   },
   '2': {
@@ -48,6 +49,7 @@ const demoTrips: Record<string, {
     location: 'Tokyo, Japan',
     dateRange: 'Oct 5 - Oct 15, 2026',
     description: "Cultural exploration of Japan's capital with temples, modern tech districts, and amazing cuisine",
+    // Matches: tokyo-adventure.webp - Tokyo neon streets/cityscape
     coverPhoto: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200&h=630&fit=crop',
     participantCount: 12
   },
@@ -56,7 +58,8 @@ const demoTrips: Record<string, {
     location: 'Bali, Indonesia',
     dateRange: 'Dec 10 - Dec 12, 2026',
     description: 'Romantic destination wedding celebration with family and friends in paradise, featuring welcome dinner, ceremony, and reception',
-    coverPhoto: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=1200&h=630&fit=crop',
+    // Matches: bali-destination-wedding.webp - beach wedding ceremony with couple
+    coverPhoto: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&h=630&fit=crop',
     participantCount: 63
   },
   '4': {
@@ -64,7 +67,8 @@ const demoTrips: Record<string, {
     location: 'Nashville, TN',
     dateRange: 'Nov 8 - Nov 10, 2026',
     description: 'Epic bachelorette celebration with honky-tonk bars, live music, spa day, karaoke, and unforgettable memories across multiple Nashville venues',
-    coverPhoto: 'https://images.unsplash.com/photo-1570749467898-1f10f0082f09?w=1200&h=630&fit=crop',
+    // Matches: nashville-bachelorette.webp - girls celebrating/party vibe
+    coverPhoto: 'https://images.unsplash.com/photo-1529543544277-750e220e5e51?w=1200&h=630&fit=crop',
     participantCount: 22
   },
   '5': {
@@ -72,7 +76,8 @@ const demoTrips: Record<string, {
     location: 'Indio, CA',
     dateRange: 'Apr 10 - Apr 13, 2026',
     description: 'Music festival adventure with top artists, desert vibes, and group camping',
-    coverPhoto: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&h=630&fit=crop',
+    // Matches: coachella-festival-new.webp - festival crowd/desert stage
+    coverPhoto: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&h=630&fit=crop',
     participantCount: 22
   },
   '6': {
@@ -80,6 +85,7 @@ const demoTrips: Record<string, {
     location: 'Dubai, UAE',
     dateRange: 'Jul 5 - Jul 9, 2026',
     description: 'Luxury birthday celebration in Dubai featuring Burj Khalifa, desert safari, yacht party, and fine dining',
+    // Matches: dubai-birthday-cameron-knight.webp - Dubai skyline/luxury setting
     coverPhoto: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200&h=630&fit=crop',
     participantCount: 8
   },
@@ -88,7 +94,8 @@ const demoTrips: Record<string, {
     location: 'Phoenix, Arizona',
     dateRange: 'Feb 20 - Feb 23, 2026',
     description: "Annual guys' golf trip with tournaments, poker nights, and fantasy football draft",
-    coverPhoto: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=1200&h=630&fit=crop',
+    // Matches: phoenix-golf-outing.webp - golf course/desert golf
+    coverPhoto: 'https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=1200&h=630&fit=crop',
     participantCount: 6
   },
   '8': {
@@ -96,7 +103,8 @@ const demoTrips: Record<string, {
     location: 'Tulum, Mexico',
     dateRange: 'Nov 10 - Nov 23, 2026',
     description: 'Yoga and wellness focused retreat with breathwork, meditation, and spa treatments',
-    coverPhoto: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=1200&h=630&fit=crop',
+    // Matches: tulum-yoga-wellness.webp - yoga/wellness retreat setting
+    coverPhoto: 'https://images.unsplash.com/photo-1545389336-cf090694435e?w=1200&h=630&fit=crop',
     participantCount: 34
   },
   '9': {
@@ -104,6 +112,7 @@ const demoTrips: Record<string, {
     location: 'Napa Valley, CA',
     dateRange: 'May 2 - May 5, 2026',
     description: 'Celebratory wine country escape with close friends to mark a major career milestone, featuring tastings, spa treatments, and new adventures',
+    // Matches: napa-wine-getaway.webp - vineyard/wine tasting
     coverPhoto: 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=1200&h=630&fit=crop',
     participantCount: 6
   },
@@ -112,7 +121,8 @@ const demoTrips: Record<string, {
     location: 'Aspen, CO',
     dateRange: 'Dec 12 - Dec 15, 2026',
     description: 'Company holiday celebration with skiing, team building, and winter activities featuring corporate lodging, group ski lessons, and team dinners',
-    coverPhoto: 'https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&h=630&fit=crop',
+    // Matches: aspen-corporate-ski.webp - ski slopes/winter mountain scene
+    coverPhoto: 'https://images.unsplash.com/photo-1605540436563-5bca919ae766?w=1200&h=630&fit=crop',
     participantCount: 44
   },
   '11': {
@@ -120,7 +130,8 @@ const demoTrips: Record<string, {
     location: 'Port Canaveral, FL',
     dateRange: 'Jun 15 - Jun 22, 2026',
     description: 'Magical family cruise with Disney characters, activities, and island adventures',
-    coverPhoto: 'https://images.unsplash.com/photo-1599640842225-85d111c60e6b?w=1200&h=630&fit=crop',
+    // Matches: disney-family-cruise.webp - cruise ship/family vacation
+    coverPhoto: 'https://images.unsplash.com/photo-1548574505-5e239809ee19?w=1200&h=630&fit=crop',
     participantCount: 7
   },
   '12': {
@@ -128,7 +139,8 @@ const demoTrips: Record<string, {
     location: 'Yellowstone, WY',
     dateRange: 'Jul 10 - Jul 17, 2026',
     description: 'Outdoor adventure exploring geysers, wildlife, and backcountry hiking trails',
-    coverPhoto: 'https://images.unsplash.com/photo-1527489377706-5bf97e608852?w=1200&h=630&fit=crop',
+    // Matches: yellowstone-hiking-group.webp - Yellowstone geysers/nature
+    coverPhoto: 'https://images.unsplash.com/photo-1533953955-21bbda63c13b?w=1200&h=630&fit=crop',
     participantCount: 5
   },
   // Pro Trips - grayscale backgrounds
