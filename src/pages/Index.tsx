@@ -657,6 +657,7 @@ const Index = () => {
           <NativeTabBar
             activeTab={activeTab}
             onTabChange={handleTabChange}
+            onNewPress={() => setIsCreateModalOpen(true)}
             alertsBadge={0}
             tripTypeLabel={getTripTypeForTabBar()}
             onTripTypePress={() => setShowTripTypeSwitcher(true)}
@@ -811,6 +812,7 @@ const Index = () => {
         <NativeTabBar
           activeTab={activeTab}
           onTabChange={handleTabChange}
+          onNewPress={() => setIsCreateModalOpen(true)}
           alertsBadge={0}
           tripTypeLabel={getTripTypeForTabBar()}
           onTripTypePress={() => setShowTripTypeSwitcher(true)}
@@ -989,6 +991,7 @@ const Index = () => {
       <NativeTabBar
         activeTab={activeTab}
         onTabChange={handleTabChange}
+        onNewPress={() => setIsCreateModalOpen(true)}
         alertsBadge={0}
         tripTypeLabel={getTripTypeForTabBar()}
         onTripTypePress={() => setShowTripTypeSwitcher(true)}
