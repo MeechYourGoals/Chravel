@@ -20,14 +20,27 @@ function isLightTheme(): boolean {
 
 async function syncStatusBarStyle(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
-  if (Capacitor.getPlatform() !== 'ios') return;
+
+  const platform = Capacitor.getPlatform();
+  const isLight = isLightTheme();
 
   try {
-    await StatusBar.setOverlaysWebView({ overlay: true });
-    await StatusBar.setStyle({
-      // iOS naming is confusing: Style.Dark = dark text, Style.Light = light text.
-      style: isLightTheme() ? StatusBarStyle.Dark : StatusBarStyle.Light,
-    });
+    if (platform === 'ios') {
+      // iOS: overlay web view and set style
+      await StatusBar.setOverlaysWebView({ overlay: true });
+      await StatusBar.setStyle({
+        // iOS naming is confusing: Style.Dark = dark text, Style.Light = light text.
+        style: isLight ? StatusBarStyle.Dark : StatusBarStyle.Light,
+      });
+    } else if (platform === 'android') {
+      // Android: requires explicit background color + style
+      await StatusBar.setBackgroundColor({
+        color: isLight ? '#FFFFFF' : '#000000',
+      });
+      await StatusBar.setStyle({
+        style: isLight ? StatusBarStyle.Dark : StatusBarStyle.Light,
+      });
+    }
   } catch {
     // StatusBar plugin may not be available in all environments (e.g., web).
   }

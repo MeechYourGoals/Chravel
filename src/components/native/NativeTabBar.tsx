@@ -1,7 +1,8 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import { Map, Search, Plus, Bell, User, Compass } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticService } from '@/services/hapticService';
+import { useOrientationTransition } from '@/hooks/useOrientationTransition';
 
 type CoreTabId = 'trips' | 'search' | 'new' | 'alerts' | 'profile';
 type TabId = CoreTabId | 'recs';
@@ -88,6 +89,9 @@ export const NativeTabBar = ({
   showRecsTab = false,
   className,
 }: NativeTabBarProps) => {
+  // Use orientation transition hook for smooth mobile/desktop animations
+  const { isMobile, isTransitioning } = useOrientationTransition();
+  
   // Build tabs array - include Recs if in demo mode
   const tabs = showRecsTab ? [...CORE_TABS, RECS_TAB] : CORE_TABS;
 
@@ -126,13 +130,18 @@ export const NativeTabBar = ({
     [activeTab, onTabChange, onNewPress, onSearchPress, onTripTypePress],
   );
 
+  // Don't render on desktop
+  if (!isMobile && !isTransitioning) return null;
+
   return (
     <div
       className={cn(
         'fixed inset-x-0 bottom-0 z-50',
         'bg-[#1c1c1e]/95 backdrop-blur-xl',
         'border-t border-white/10',
-        'lg:hidden', // Only show on mobile (use lg: to match MOBILE_BREAKPOINT = 1024)
+        // Animate in/out during orientation transitions
+        isTransitioning && isMobile && 'animate-fade-in',
+        isTransitioning && !isMobile && 'animate-fade-out',
         className,
       )}
       style={{
