@@ -23,6 +23,7 @@ import { DemoModal } from '../components/conversion/DemoModal';
 import { useAuth } from '../hooks/useAuth';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { useDemoModeStore } from '../store/demoModeStore';
 import { useTrips } from '../hooks/useTrips';
 import { useMyPendingTrips } from '../hooks/useMyPendingTrips';
 import { proTripMockData } from '../data/proTripMockData';
@@ -80,8 +81,27 @@ const Index = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { demoView, isDemoMode } = useDemoMode();
   const isMobilePortrait = useMobilePortrait();
+
+  // Clear stale demo mode for unauthenticated users visiting root (not from /demo redirect)
+  useEffect(() => {
+    const fromDemo = searchParams.get('from') === 'demo';
+    
+    if (fromDemo) {
+      // Clean up the URL param, keep demo mode active
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('from');
+      setSearchParams(newParams, { replace: true });
+      return;
+    }
+    
+    // Not from /demo redirect - clear stale demo mode for unauthenticated users
+    if (!user && demoView === 'app-preview') {
+      useDemoModeStore.getState().setDemoView('off');
+    }
+  }, [user, demoView, searchParams, setSearchParams]);
 
   // Counter to force re-renders when demo session state changes (archive/hide)
   const [demoRefreshCounter, setDemoRefreshCounter] = useState(0);

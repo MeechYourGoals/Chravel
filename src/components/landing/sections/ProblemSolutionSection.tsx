@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { CalendarPlus, Share2, RefreshCw } from 'lucide-react';
 import tripShareGolf from '@/assets/app-screenshots/trip-share-golf.png';
 import tripInviteCoachella from '@/assets/app-screenshots/trip-invite-coachella.png';
@@ -21,14 +22,39 @@ export const ProblemSolutionSection = () => {
       number: 3,
       icon: <RefreshCw size={32} className="text-primary" />,
       title: "Everything syncs",
-      description: "Plans, Places, Photos, Payments — Live"
+      description: "Calendar, Tasks, and last minute changes — Updated Live"
     }
   ];
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.4, ease: 'easeOut' }
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-16 flex flex-col items-center justify-start md:justify-center min-h-screen space-y-4 md:space-y-10">
       {/* Headline */}
-      <div className="text-center space-y-4 max-w-4xl">
+      <motion.div 
+        className="text-center space-y-4 max-w-4xl"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+      >
         <h2 
           className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white"
           style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.7), 0 0 20px rgba(0,0,0,0.5)' }}
@@ -41,16 +67,25 @@ export const ProblemSolutionSection = () => {
         >
           From zero → organized in under 60 seconds
         </p>
-      </div>
+      </motion.div>
 
       {/* Steps - Horizontal on desktop, vertical on mobile */}
       <div className="w-full max-w-6xl">
         {/* Desktop View (Hidden on mobile/tablet) */}
-        <div className="hidden lg:flex items-center justify-between gap-4 relative">
+        <motion.div 
+          className="hidden lg:flex items-center justify-between gap-4 relative"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+        >
           {steps.map((step, index) => (
             <React.Fragment key={step.number}>
               {/* Step Card */}
-              <div className="flex-1 min-w-0 overflow-hidden bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 text-center hover:border-primary/50 transition-all duration-300 relative z-10">
+              <motion.div 
+                className="flex-1 min-w-0 overflow-hidden bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 text-center hover:border-primary/50 transition-all duration-300 relative z-10"
+                variants={itemVariants}
+              >
                 {/* Number Badge */}
                 <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground font-bold text-xl flex items-center justify-center mx-auto mb-4">
                   {step.number}
@@ -68,7 +103,7 @@ export const ProblemSolutionSection = () => {
                 <p className="text-lg text-accent font-medium break-words">
                   {step.description}
                 </p>
-              </div>
+              </motion.div>
 
               {/* Connecting Arrow (not after last step) */}
               {index < steps.length - 1 && (
@@ -79,12 +114,22 @@ export const ProblemSolutionSection = () => {
               )}
             </React.Fragment>
           ))}
-        </div>
+        </motion.div>
 
         {/* Mobile/Tablet View (Hidden on desktop) */}
-        <div className="lg:hidden space-y-4">
+        <motion.div 
+          className="lg:hidden space-y-4"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+        >
           {steps.map((step) => (
-            <div key={step.number} className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-5 w-full overflow-hidden">
+            <motion.div 
+              key={step.number} 
+              className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-5 w-full overflow-hidden"
+              variants={itemVariants}
+            >
               {/* Inline Step Number + Icon */}
               <div className="flex items-center justify-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground font-bold text-lg flex items-center justify-center flex-shrink-0">
@@ -102,16 +147,28 @@ export const ProblemSolutionSection = () => {
                   {step.description}
                 </p>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
 
       {/* Screenshots Row - Two cards centered and staggered */}
-      <div className="w-full max-w-4xl">
+      <motion.div 
+        className="w-full max-w-4xl"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+      >
         {/* Desktop: Side by side with equal height (lg breakpoint for tablets to show stacked) */}
         <div className="hidden lg:flex justify-center items-start gap-8">
-          <div className="flex flex-col items-center">
+          <motion.div 
+            className="flex flex-col items-center"
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
             <span 
               className="text-white font-semibold text-lg mb-3"
               style={{ textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}
@@ -125,8 +182,14 @@ export const ProblemSolutionSection = () => {
                 className="w-full h-auto max-h-full object-contain rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
               />
             </div>
-          </div>
-          <div className="flex flex-col items-center">
+          </motion.div>
+          <motion.div 
+            className="flex flex-col items-center"
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
             <span 
               className="text-white font-semibold text-lg mb-3"
               style={{ textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}
@@ -140,12 +203,18 @@ export const ProblemSolutionSection = () => {
                 className="w-full h-auto max-h-full object-contain rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
               />
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Mobile/Tablet: Stacked (shows on screens < 1024px) */}
         <div className="lg:hidden flex flex-col items-center gap-6">
-          <div className="flex flex-col items-center">
+          <motion.div 
+            className="flex flex-col items-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
             <span 
               className="text-white font-semibold text-base mb-2"
               style={{ textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}
@@ -159,8 +228,14 @@ export const ProblemSolutionSection = () => {
                 className="w-full h-auto rounded-xl shadow-xl border border-border/50"
               />
             </div>
-          </div>
-          <div className="flex flex-col items-center">
+          </motion.div>
+          <motion.div 
+            className="flex flex-col items-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
             <span 
               className="text-white font-semibold text-base mb-2"
               style={{ textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}
@@ -174,9 +249,9 @@ export const ProblemSolutionSection = () => {
                 className="w-full h-auto rounded-xl shadow-xl border border-border/50"
               />
             </div>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

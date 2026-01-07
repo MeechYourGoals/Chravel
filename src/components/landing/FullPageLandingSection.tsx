@@ -12,6 +12,8 @@ interface FullPageLandingSectionProps {
   children: React.ReactNode;
   className?: string;
   imagePosition?: string;
+  backgroundStyle?: 'image' | 'gradient';
+  gradientColors?: [string, string];
 }
 
 export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
@@ -23,8 +25,12 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
   minHeight = '100vh',
   children,
   className,
-  imagePosition = 'center'
+  imagePosition = 'center',
+  backgroundStyle = 'image',
+  gradientColors = ['#1a1a2e', '#16213e']
 }) => {
+  const useGradient = backgroundStyle === 'gradient' || (!videoSrc && !imageFallback);
+
   return (
     <section
       id={id}
@@ -42,10 +48,13 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
       )}
       style={{
         ['--section-desktop-min-height' as string]: minHeight,
+        ...(useGradient && {
+          background: `linear-gradient(135deg, ${gradientColors[0]} 0%, ${gradientColors[1]} 100%)`
+        })
       }}
     >
-      {/* Background Video/Image */}
-      {(videoSrc || imageFallback) && (
+      {/* Background Video/Image - only render if not using gradient */}
+      {!useGradient && (videoSrc || imageFallback) && (
         <VideoBackground
           videoSrc={videoSrc}
           imageFallback={imageFallback || ''}
