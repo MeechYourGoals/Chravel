@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { Map, Briefcase, Calendar, ChevronDown, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticService } from '@/services/hapticService';
@@ -52,6 +52,17 @@ export const NativeTripTypeSwitcher = ({
   onSelectType,
   tripCounts = { myTrips: 0, tripsPro: 0, events: 0 },
 }: NativeTripTypeSwitcherProps) => {
+  // Swipe-to-dismiss state
+  const [translateY, setTranslateY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startY = useRef(0);
+  const lastY = useRef(0);
+  const velocity = useRef(0);
+  const lastTime = useRef(0);
+
+  const DISMISS_THRESHOLD = 150;
+  const VELOCITY_THRESHOLD = 500;
+
   const handleSelect = useCallback(
     async (type: TripType) => {
       await hapticService.selectionChanged();
@@ -60,6 +71,53 @@ export const NativeTripTypeSwitcher = ({
     },
     [onSelectType, onClose],
   );
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    startY.current = touch.clientY;
+    lastY.current = touch.clientY;
+    lastTime.current = Date.now();
+    velocity.current = 0;
+    setIsDragging(true);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging) return;
+    
+    const touch = e.touches[0];
+    const currentY = touch.clientY;
+    const deltaY = currentY - startY.current;
+    const now = Date.now();
+    const timeDelta = now - lastTime.current;
+    
+    if (timeDelta > 0) {
+      velocity.current = (currentY - lastY.current) / timeDelta * 1000;
+    }
+    
+    lastY.current = currentY;
+    lastTime.current = now;
+    
+    // Only allow dragging down, with rubber-band resistance for up
+    if (deltaY > 0) {
+      setTranslateY(deltaY);
+    } else {
+      // Rubber-band effect when pulling up
+      setTranslateY(deltaY * 0.2);
+    }
+  }, [isDragging]);
+
+  const handleTouchEnd = useCallback(async () => {
+    setIsDragging(false);
+    
+    const shouldDismiss = translateY > DISMISS_THRESHOLD || velocity.current > VELOCITY_THRESHOLD;
+    
+    if (shouldDismiss) {
+      await hapticService.light();
+      onClose();
+    }
+    
+    setTranslateY(0);
+  }, [translateY, onClose]);
 
   // Handle escape key
   useEffect(() => {
@@ -87,6 +145,14 @@ export const NativeTripTypeSwitcher = ({
     };
   }, [isOpen]);
 
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setTranslateY(0);
+      setIsDragging(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -105,9 +171,24 @@ export const NativeTripTypeSwitcher = ({
           paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
         }}
       >
-        <div className="w-full max-w-sm bg-[#1c1c1e] rounded-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200 shadow-2xl">
+        <div
+          className={cn(
+            'w-full max-w-sm bg-[#1c1c1e] rounded-2xl overflow-hidden shadow-2xl',
+            !isDragging && 'transition-transform duration-200 ease-out',
+            !isDragging && translateY === 0 && 'animate-in zoom-in-95 fade-in duration-200',
+          )}
+          style={{ transform: `translateY(${translateY}px)` }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Grabber indicator */}
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-white/30" />
+          </div>
+
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-white/10">
             <h2 className="text-lg font-semibold text-white">Select View</h2>
             <button
               onClick={onClose}

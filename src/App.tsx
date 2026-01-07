@@ -79,6 +79,7 @@ const TermsOfService = lazy(() => retryImport(() => import("./pages/TermsOfServi
 const DemoEntry = lazy(() => retryImport(() => import("./pages/DemoEntry")));
 const TripPreview = lazy(() => retryImport(() => import("./pages/TripPreview")));
 const AuthPage = lazy(() => retryImport(() => import("./pages/AuthPage")));
+const DeviceTestMatrix = lazy(() => retryImport(() => import("./pages/DeviceTestMatrix")));
 
 // Note: Large components are already optimized with code splitting
 
@@ -422,6 +423,11 @@ const App = () => {
                     <Route path="/accept-invite/:token" element={
                       <LazyRoute>
                         <AcceptOrganizationInvite />
+                      </LazyRoute>
+                    } />
+                    <Route path="/dev/device-matrix" element={
+                      <LazyRoute>
+                        <DeviceTestMatrix />
                       </LazyRoute>
                     } />
                     <Route path="*" element={
