@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, Users, Building, PartyPopper, ChevronDown, Settings, Upload } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Building, PartyPopper, ChevronDown, Settings, Upload, Globe } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Switch } from './ui/switch';
@@ -32,7 +32,8 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     location: '',
     startDate: '',
     endDate: '',
-    description: ''
+    description: '',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone // Default to user's timezone
   });
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
@@ -66,7 +67,8 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         location: '',
         startDate: '',
         endDate: '',
-        description: ''
+        description: '',
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
       });
       setValidationErrors({});
       setTripType('consumer');
@@ -173,6 +175,8 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         trip_type: tripType,
         // ✅ Phase 2: Pass category for Pro trips
         ...(tripType === 'pro' && { category: proTripCategory }),
+        // ✅ Pass timezone for Event trips
+        ...(tripType === 'event' && { timezone: formData.timezone }),
         privacy_mode: privacyMode,
         ai_access_enabled: privacyMode === 'standard',
         // ✅ Phase 2: Pass feature toggles for Pro/Event trips
@@ -242,7 +246,8 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         location: '',
         startDate: '',
         endDate: '',
-        description: ''
+        description: '',
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
       });
       setCoverImage(null);
       setCoverImagePreview(null);
@@ -494,7 +499,63 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             </div>
           </div>
 
-          {/* Description */}
+          {/* Event Time Zone - Only for Event trips */}
+          {tripType === 'event' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                <Globe size={16} />
+                Event Time Zone
+              </label>
+              <select
+                name="timezone"
+                value={formData.timezone}
+                onChange={(e) => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
+                className="w-full bg-slate-700/50 border border-slate-600 text-white rounded-xl px-4 py-3 focus:border-blue-500 focus:outline-none transition-colors"
+              >
+                <optgroup label="United States">
+                  <option value="America/New_York">Eastern Time (ET) - New York</option>
+                  <option value="America/Chicago">Central Time (CT) - Chicago</option>
+                  <option value="America/Denver">Mountain Time (MT) - Denver</option>
+                  <option value="America/Los_Angeles">Pacific Time (PT) - Los Angeles</option>
+                  <option value="America/Anchorage">Alaska Time (AKT)</option>
+                  <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                </optgroup>
+                <optgroup label="Europe">
+                  <option value="Europe/London">London (GMT/BST)</option>
+                  <option value="Europe/Paris">Paris (CET)</option>
+                  <option value="Europe/Berlin">Berlin (CET)</option>
+                  <option value="Europe/Madrid">Madrid (CET)</option>
+                  <option value="Europe/Rome">Rome (CET)</option>
+                  <option value="Europe/Amsterdam">Amsterdam (CET)</option>
+                </optgroup>
+                <optgroup label="Asia Pacific">
+                  <option value="Asia/Tokyo">Tokyo (JST)</option>
+                  <option value="Asia/Shanghai">Shanghai (CST)</option>
+                  <option value="Asia/Hong_Kong">Hong Kong (HKT)</option>
+                  <option value="Asia/Singapore">Singapore (SGT)</option>
+                  <option value="Asia/Dubai">Dubai (GST)</option>
+                  <option value="Australia/Sydney">Sydney (AEST)</option>
+                </optgroup>
+                <optgroup label="Americas">
+                  <option value="America/Toronto">Toronto (ET)</option>
+                  <option value="America/Vancouver">Vancouver (PT)</option>
+                  <option value="America/Mexico_City">Mexico City (CT)</option>
+                  <option value="America/Sao_Paulo">São Paulo (BRT)</option>
+                  <option value="America/Buenos_Aires">Buenos Aires (ART)</option>
+                </optgroup>
+                <optgroup label="Other">
+                  <option value="UTC">UTC (Coordinated Universal Time)</option>
+                  <option value="Africa/Johannesburg">Johannesburg (SAST)</option>
+                  <option value="Asia/Kolkata">India (IST)</option>
+                  <option value="Asia/Seoul">Seoul (KST)</option>
+                </optgroup>
+              </select>
+              <p className="text-xs text-slate-400 mt-1">
+                Helps attendees from other time zones know when events occur.
+              </p>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
               Description (Optional)
