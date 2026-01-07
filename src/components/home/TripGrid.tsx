@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { TripCard } from '../TripCard';
 import { PendingTripCard } from '../PendingTripCard';
 import { PendingTripCard as RequestTripCard } from '../trip/PendingTripCard';
@@ -25,6 +25,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { PendingTripRequest } from '@/hooks/useMyPendingTrips';
 import { SwipeableRowProvider } from '../../contexts/SwipeableRowContext';
 import { SwipeableTripCard } from '../mobile/SwipeableTripCard';
+import { PullToRefreshContainer } from '../mobile/PullToRefreshContainer';
 
 interface Trip {
   id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
@@ -51,6 +52,8 @@ interface TripGridProps {
   myPendingRequests?: PendingTripRequest[];
   // Callback when a trip is archived/hidden/deleted (for demo mode refresh)
   onTripStateChange?: () => void;
+  // Optional refresh callback for pull-to-refresh (mobile only)
+  onRefresh?: () => Promise<void>;
 }
 
 export const TripGrid = React.memo(
@@ -65,6 +68,7 @@ export const TripGrid = React.memo(
     activeFilter = 'all',
     myPendingRequests = [],
     onTripStateChange,
+    onRefresh,
   }: TripGridProps) => {
     const isMobile = useIsMobile();
     const [manualLocation, setManualLocation] = useState<string>('');
@@ -74,6 +78,18 @@ export const TripGrid = React.memo(
     const queryClient = useQueryClient();
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [archivedTrips, setArchivedTrips] = useState<any[]>([]);
+
+    // Default refresh handler - invalidates trips query if no custom handler provided
+    const handleRefresh = useCallback(async () => {
+      if (onRefresh) {
+        await onRefresh();
+      } else {
+        // Fallback: invalidate trips query cache to trigger refetch
+        await queryClient.invalidateQueries({ queryKey: ['trips'] });
+        // Small delay to allow query to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }, [onRefresh, queryClient]);
 
     // Filter out archived trips - use synchronous version since we don't have async user context
     const activeTrips = useMemo(() => trips, [trips]);
@@ -294,7 +310,9 @@ export const TripGrid = React.memo(
 
     // Render content grid (using filtered data)
     // Wrap with SwipeableRowProvider for mobile swipe-to-delete coordination
-    return (
+    // Wrap with PullToRefreshContainer for mobile pull-to-refresh
+
+    const gridContent = (
       <SwipeableRowProvider>
         <div className="space-y-6 w-full">
           {/* Location alert for travel recs */}
@@ -395,5 +413,15 @@ export const TripGrid = React.memo(
         </div>
       </SwipeableRowProvider>
     );
+
+    // On mobile, wrap with PullToRefreshContainer for native-style pull-to-refresh
+    if (isMobile) {
+      return (
+        <PullToRefreshContainer onRefresh={handleRefresh}>{gridContent}</PullToRefreshContainer>
+      );
+    }
+
+    // On desktop, return grid content directly
+    return gridContent;
   },
 );
