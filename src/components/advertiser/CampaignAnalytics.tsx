@@ -61,8 +61,8 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
     <div className="space-y-6">
       {/* Header Controls */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-white text-center md:text-left">Campaign Analytics</h2>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+        <h2 className="text-xl font-semibold text-white">Campaign Analytics</h2>
+        <div className="flex flex-col tablet:flex-row gap-3">
           <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Select campaign" />
@@ -90,56 +90,62 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
         </div>
       </div>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Overview Cards - 2x2 on mobile, 4-across on tablet+ */}
+      <div className="grid grid-cols-2 tablet:grid-cols-4 gap-3 tablet:gap-4">
         <Card className="bg-white/5 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-white">Total Impressions</CardTitle>
-            <Eye className="h-4 w-4 text-gray-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 tablet:pb-2 px-3 tablet:px-6 pt-3 tablet:pt-6">
+            <CardTitle className="text-xs tablet:text-sm font-medium text-white">
+              <span className="tablet:hidden">Impressions</span>
+              <span className="hidden tablet:inline">Total Impressions</span>
+            </CardTitle>
+            <Eye className="h-3 w-3 tablet:h-4 tablet:w-4 text-gray-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">{totalImpressions.toLocaleString()}</div>
-            <p className="text-xs text-gray-400">
-              <TrendingUp className="h-3 w-3 inline text-green-500" /> +15.3% from last week
+          <CardContent className="px-3 tablet:px-6 pb-3 tablet:pb-6">
+            <div className="text-lg tablet:text-2xl font-bold text-white">{totalImpressions.toLocaleString()}</div>
+            <p className="text-xs text-gray-400 whitespace-nowrap">
+              <TrendingUp className="h-3 w-3 inline text-green-500" /> +15.3%<span className="hidden tablet:inline"> from last week</span>
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-white/5 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-white">Total Clicks</CardTitle>
-            <MousePointer className="h-4 w-4 text-gray-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 tablet:pb-2 px-3 tablet:px-6 pt-3 tablet:pt-6">
+            <CardTitle className="text-xs tablet:text-sm font-medium text-white">
+              <span className="tablet:hidden">Clicks</span>
+              <span className="hidden tablet:inline">Total Clicks</span>
+            </CardTitle>
+            <MousePointer className="h-3 w-3 tablet:h-4 tablet:w-4 text-gray-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">{totalClicks.toLocaleString()}</div>
-            <p className="text-xs text-gray-400">
-              <TrendingUp className="h-3 w-3 inline text-green-500" /> +8.2% from last week
+          <CardContent className="px-3 tablet:px-6 pb-3 tablet:pb-6">
+            <div className="text-lg tablet:text-2xl font-bold text-white">{totalClicks.toLocaleString()}</div>
+            <p className="text-xs text-gray-400 whitespace-nowrap">
+              <TrendingUp className="h-3 w-3 inline text-green-500" /> +8.2%<span className="hidden tablet:inline"> from last week</span>
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-white/5 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-white">Overall CTR</CardTitle>
-            <Target className="h-4 w-4 text-gray-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 tablet:pb-2 px-3 tablet:px-6 pt-3 tablet:pt-6">
+            <CardTitle className="text-xs tablet:text-sm font-medium text-white">CTR</CardTitle>
+            <Target className="h-3 w-3 tablet:h-4 tablet:w-4 text-gray-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">{overallCTR.toFixed(2)}%</div>
-            <p className="text-xs text-gray-400">
-              <TrendingDown className="h-3 w-3 inline text-red-500" /> -0.8% from last week
+          <CardContent className="px-3 tablet:px-6 pb-3 tablet:pb-6">
+            <div className="text-lg tablet:text-2xl font-bold text-white">{overallCTR.toFixed(2)}%</div>
+            <p className="text-xs text-gray-400 whitespace-nowrap">
+              <TrendingDown className="h-3 w-3 inline text-red-500" /> -0.8%<span className="hidden tablet:inline"> from last week</span>
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-white/5 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-white">Conversions</CardTitle>
-            <DollarSign className="h-4 w-4 text-gray-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 tablet:pb-2 px-3 tablet:px-6 pt-3 tablet:pt-6">
+            <CardTitle className="text-xs tablet:text-sm font-medium text-white">Conversions</CardTitle>
+            <DollarSign className="h-3 w-3 tablet:h-4 tablet:w-4 text-gray-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">{totalConversions.toLocaleString()}</div>
-            <p className="text-xs text-gray-400">
-              <TrendingUp className="h-3 w-3 inline text-green-500" /> +5% from last week
+          <CardContent className="px-3 tablet:px-6 pb-3 tablet:pb-6">
+            <div className="text-lg tablet:text-2xl font-bold text-white">{totalConversions.toLocaleString()}</div>
+            <p className="text-xs text-gray-400 whitespace-nowrap">
+              <TrendingUp className="h-3 w-3 inline text-green-500" /> +5%<span className="hidden tablet:inline"> from last week</span>
             </p>
           </CardContent>
         </Card>
@@ -247,7 +253,7 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
           <CardTitle className="text-white">Active Campaigns Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-2 tablet:gap-4">
             <div className="text-center p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
               <BarChart3 className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
               <p className="text-2xl font-bold text-white">{activeCampaigns.length}</p>

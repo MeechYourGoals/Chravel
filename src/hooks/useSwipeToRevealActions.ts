@@ -101,6 +101,28 @@ export function useSwipeToRevealActions({
       window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
   );
 
+  // Define close and open before useEffects that reference them
+  const close = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      offsetX: 0,
+      isOpen: false,
+      isDragging: false,
+    }));
+    onClose?.();
+  }, [onClose]);
+
+  const open = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      offsetX: -actionWidth,
+      isOpen: true,
+      isDragging: false,
+    }));
+    hapticService.light();
+    onOpen?.();
+  }, [actionWidth, onOpen]);
+
   // Handle external open state changes
   useEffect(() => {
     if (externalIsOpen !== undefined && externalIsOpen !== state.isOpen) {
@@ -127,27 +149,6 @@ export function useSwipeToRevealActions({
       }
     };
   }, []);
-
-  const close = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      offsetX: 0,
-      isOpen: false,
-      isDragging: false,
-    }));
-    onClose?.();
-  }, [onClose]);
-
-  const open = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      offsetX: -actionWidth,
-      isOpen: true,
-      isDragging: false,
-    }));
-    hapticService.light();
-    onOpen?.();
-  }, [actionWidth, onOpen]);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
