@@ -30,6 +30,8 @@ import { MessageTypeBar } from './chat/MessageTypeBar';
 import { ChatSearchOverlay } from './chat/ChatSearchOverlay';
 import { useEffectiveSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
 import { isConsumerTrip } from '@/utils/tripTierDetector';
+import { toggleMessageReaction, getMessagesReactions, subscribeToReactions, type ReactionType, type ReactionCount } from '@/services/chatService';
+import { ThreadView } from './chat/ThreadView';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -69,12 +71,20 @@ export const TripChat = ({
   participants = []
 }: TripChatProps) => {
   const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
-  const [reactions, setReactions] = useState<{ [messageId: string]: { [reaction: string]: { count: number; userReacted: boolean } } }>({});
+  const [reactions, setReactions] = useState<Record<string, Record<string, { count: number; userReacted: boolean }>>>({});
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
   const typingServiceRef = useRef<TypingIndicatorService | null>(null);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [activeThreadMessage, setActiveThreadMessage] = useState<{
+    id: string;
+    content: string;
+    authorName: string;
+    authorAvatar?: string;
+    createdAt: string;
+    tripId: string;
+  } | null>(null);
   
   const { isOffline } = useOfflineStatus();
   const params = useParams<{ tripId?: string; proTripId?: string; eventId?: string }>();
@@ -255,6 +265,71 @@ export const TripChat = ({
     }));
   }, [liveMessages, demoMode.isDemoMode, tripMembers]);
 
+  // Fetch initial reactions for messages
+  useEffect(() => {
+    if (demoMode.isDemoMode || !user?.id || liveMessages.length === 0) return;
+
+    const fetchReactions = async () => {
+      const messageIds = liveMessages.map(m => m.id);
+      try {
+        const data = await getMessagesReactions(messageIds, user.id);
+        const formatted: Record<string, Record<string, { count: number; userReacted: boolean }>> = {};
+        for (const [msgId, typeMap] of Object.entries(data)) {
+          formatted[msgId] = {};
+          for (const [type, rData] of Object.entries(typeMap)) {
+            formatted[msgId][type] = { count: rData.count, userReacted: rData.userReacted };
+          }
+        }
+        setReactions(formatted);
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('[TripChat] Failed to fetch reactions:', error);
+        }
+      }
+    };
+
+    fetchReactions();
+  }, [liveMessages.length, user?.id, demoMode.isDemoMode]);
+
+  // Subscribe to realtime reaction changes
+  useEffect(() => {
+    if (demoMode.isDemoMode || !resolvedTripId || !user?.id) return;
+
+    const messageIdSet = new Set(liveMessages.map(m => m.id));
+
+    const channel = subscribeToReactions(resolvedTripId, (payload) => {
+      // Only process reactions for messages we have loaded
+      if (!messageIdSet.has(payload.messageId)) return;
+
+      setReactions(prev => {
+        const updated = { ...prev };
+        if (!updated[payload.messageId]) {
+          updated[payload.messageId] = {};
+        }
+
+        const current = updated[payload.messageId][payload.reactionType] || { count: 0, userReacted: false };
+
+        if (payload.eventType === 'INSERT') {
+          updated[payload.messageId][payload.reactionType] = {
+            count: current.count + 1,
+            userReacted: payload.userId === user.id ? true : current.userReacted,
+          };
+        } else if (payload.eventType === 'DELETE') {
+          updated[payload.messageId][payload.reactionType] = {
+            count: Math.max(0, current.count - 1),
+            userReacted: payload.userId === user.id ? false : current.userReacted,
+          };
+        }
+
+        return updated;
+      });
+    });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [resolvedTripId, user?.id, liveMessages, demoMode.isDemoMode]);
+
   const handleSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: any) => {
     // Transform paymentData if needed to match useChatComposer expectations
     let transformedPaymentData;
@@ -320,18 +395,78 @@ export const TripChat = ({
     }
   };
 
-  const handleReaction = (messageId: string, reactionType: string) => {
-    const updatedReactions = { ...reactions };
-    if (!updatedReactions[messageId]) {
-      updatedReactions[messageId] = {};
+  const handleReaction = async (messageId: string, reactionType: string) => {
+    if (demoMode.isDemoMode || !user?.id) {
+      // Demo mode: local-only reactions
+      const updatedReactions = { ...reactions };
+      if (!updatedReactions[messageId]) {
+        updatedReactions[messageId] = {};
+      }
+
+      const currentReaction = updatedReactions[messageId][reactionType] || { count: 0, userReacted: false };
+      currentReaction.userReacted = !currentReaction.userReacted;
+      currentReaction.count += currentReaction.userReacted ? 1 : -1;
+
+      updatedReactions[messageId][reactionType] = currentReaction;
+      setReactions(updatedReactions);
+      return;
     }
 
-    const currentReaction = updatedReactions[messageId][reactionType] || { count: 0, userReacted: false };
-    currentReaction.userReacted = !currentReaction.userReacted;
-    currentReaction.count += currentReaction.userReacted ? 1 : -1;
+    // Authenticated mode: persist to database
+    // Optimistic update
+    setReactions(prev => {
+      const updated = { ...prev };
+      if (!updated[messageId]) {
+        updated[messageId] = {};
+      }
+      const current = updated[messageId][reactionType] || { count: 0, userReacted: false };
+      const wasReacted = current.userReacted;
+      updated[messageId][reactionType] = {
+        count: wasReacted ? Math.max(0, current.count - 1) : current.count + 1,
+        userReacted: !wasReacted,
+      };
+      return updated;
+    });
 
-    updatedReactions[messageId][reactionType] = currentReaction;
-    setReactions(updatedReactions);
+    // Persist to database
+    const result = await toggleMessageReaction(messageId, user.id, reactionType as ReactionType);
+    if (result.error) {
+      console.error('[TripChat] Failed to toggle reaction:', result.error);
+      // Revert on failure - refetch reactions
+      const messageIds = liveMessages.map(m => m.id);
+      const freshReactions = await getMessagesReactions(messageIds, user.id);
+      const formatted: Record<string, Record<string, { count: number; userReacted: boolean }>> = {};
+      for (const [msgId, typeMap] of Object.entries(freshReactions)) {
+        formatted[msgId] = {};
+        for (const [type, data] of Object.entries(typeMap)) {
+          formatted[msgId][type] = { count: data.count, userReacted: data.userReacted };
+        }
+      }
+      setReactions(formatted);
+    }
+  };
+
+  // Handle opening a thread
+  const handleOpenThread = (messageId: string) => {
+    const message = liveMessages.find(m => m.id === messageId) || demoMessages.find(m => m.id === messageId);
+    if (!message) return;
+
+    const isDemo = demoMode.isDemoMode;
+    const content = isDemo ? (message as MockMessage).text : message.content;
+    const authorName = isDemo ? (message as MockMessage).sender?.name : message.author_name;
+    const createdAt = isDemo ? (message as MockMessage).createdAt : message.created_at;
+    const authorAvatar = isDemo
+      ? (message as MockMessage).sender?.avatar
+      : tripMembers.find(m => m.id === message.user_id)?.avatar;
+
+    setActiveThreadMessage({
+      id: messageId,
+      content,
+      authorName,
+      authorAvatar,
+      createdAt,
+      tripId: resolvedTripId,
+    });
   };
 
   // ⚡ PERFORMANCE: Synchronous demo message loading (no unnecessary async wrapper)
@@ -503,6 +638,7 @@ export const TripChat = ({
                         message={message}
                         reactions={reactions[message.id]}
                         onReaction={handleReaction}
+                        onReply={handleOpenThread}
                         systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
                       />
                     </div>
@@ -573,6 +709,19 @@ export const TripChat = ({
                   }
                 }
               }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Thread View Drawer/Modal */}
+      {activeThreadMessage && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm md:items-center">
+          <div className="w-full max-w-lg h-[70vh] md:h-[60vh] m-4 md:m-0">
+            <ThreadView
+              parentMessage={activeThreadMessage}
+              onClose={() => setActiveThreadMessage(null)}
+              tripMembers={tripMembers}
             />
           </div>
         </div>
