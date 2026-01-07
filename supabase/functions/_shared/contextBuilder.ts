@@ -11,6 +11,8 @@ export interface UserPreferences {
   accessibility?: string[];
   timePreference?: string;
   travelStyle?: string;
+  business?: string[];      // Business-related preferences
+  entertainment?: string[]; // Entertainment preferences
 }
 
 export interface ComprehensiveTripContext {
@@ -433,13 +435,19 @@ export class TripContextBuilder {
 
       console.log('[Context] Found user preferences:', Object.keys(prefs));
       
+      // 🔧 FIX: Map frontend field names correctly (dietary, vibe, etc.)
+      // Frontend stores as: dietary, vibe, budgetMin, budgetMax, accessibility, timePreference
       return {
-        dietary: prefs.dietary_restrictions || [],
-        vibe: prefs.vibe_preferences || [],
-        budget: prefs.budget_preference,
-        accessibility: prefs.accessibility_needs || [],
-        timePreference: prefs.time_preference,
-        travelStyle: prefs.travel_style
+        dietary: prefs.dietary || [],
+        vibe: prefs.vibe || [],
+        budget: (prefs.budgetMin !== undefined && prefs.budgetMax !== undefined)
+          ? `$${prefs.budgetMin}-$${prefs.budgetMax}`
+          : undefined,
+        accessibility: prefs.accessibility || [],
+        timePreference: prefs.timePreference || 'flexible',
+        travelStyle: prefs.lifestyle?.join(', ') || undefined,
+        business: prefs.business || [],
+        entertainment: prefs.entertainment || []
       };
     } catch (error) {
       console.error('Error fetching user preferences:', error);
