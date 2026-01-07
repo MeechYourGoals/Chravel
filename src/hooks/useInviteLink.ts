@@ -38,16 +38,25 @@ const generateBrandedCode = (): string => {
   return `chravel${randomPart}`;
 };
 
-// Check if a code already exists in the database
+// Check if a code already exists in the database using secure function
+// This prevents enumeration attacks by only returning boolean, not table data
 const checkCodeExists = async (code: string): Promise<boolean> => {
-  // Direct query to check code existence
-  // Uses maybeSingle to avoid errors when no match found
-  const { data } = await supabase
-    .from('trip_invites')
-    .select('id')
-    .eq('code', code)
-    .maybeSingle();
-  return !!data;
+  try {
+    const { data, error } = await supabase.rpc('check_invite_code_exists', {
+      code_param: code,
+    });
+
+    if (error) {
+      console.error('[InviteLink] Error checking code existence:', error);
+      // On error, assume code might exist to be safe (will retry with new code)
+      return true;
+    }
+
+    return data === true;
+  } catch (error) {
+    console.error('[InviteLink] Exception checking code:', error);
+    return true; // Assume exists on error to prevent collision
+  }
 };
 
 // Generate a unique branded code with collision detection
@@ -63,13 +72,13 @@ const generateUniqueCode = async (maxAttempts = 5): Promise<string> => {
   return crypto.randomUUID();
 };
 
-export const useInviteLink = ({ 
-  isOpen, 
-  tripName, 
-  requireApproval, 
-  expireIn7Days, 
-  tripId, 
-  proTripId 
+export const useInviteLink = ({
+  isOpen,
+  tripName,
+  requireApproval,
+  expireIn7Days,
+  tripId,
+  proTripId,
 }: UseInviteLinkProps): InviteLinkResult => {
   const [copied, setCopied] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
@@ -83,9 +92,14 @@ export const useInviteLink = ({
     }
   }, [isOpen, requireApproval, expireIn7Days, tripId, proTripId, isDemoMode]);
 
-  const createInviteInDatabase = async (tripIdValue: string, inviteCode: string): Promise<boolean> => {
+  const createInviteInDatabase = async (
+    tripIdValue: string,
+    inviteCode: string,
+  ): Promise<boolean> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         console.error('[InviteLink] User not authenticated');
         toast.error('Please log in to create invite links');
@@ -128,19 +142,19 @@ export const useInviteLink = ({
         is_active: true,
         current_uses: 0,
         require_approval: requireApproval,
-        expires_at: expireIn7Days 
-          ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() 
+        expires_at: expireIn7Days
+          ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
           : null,
       };
 
-      const { error } = await supabase
-        .from('trip_invites')
-        .insert([inviteData]);
+      const { error } = await supabase.from('trip_invites').insert([inviteData]);
 
       if (error) {
         console.error('[InviteLink] Database insert error:', error);
         if (error.code === '42501' || error.message?.includes('RLS')) {
-          toast.error('Permission denied. You may not have access to create invites for this trip.');
+          toast.error(
+            'Permission denied. You may not have access to create invites for this trip.',
+          );
         } else {
           toast.error('Failed to create invite link. Please try again.');
         }
@@ -161,7 +175,7 @@ export const useInviteLink = ({
     // Always use branded chravel.app URL for invite links
     const baseUrl = 'https://chravel.app';
     const actualTripId = proTripId || tripId;
-    
+
     if (!actualTripId) {
       toast.error('No trip ID provided');
       setLoading(false);
@@ -179,17 +193,21 @@ export const useInviteLink = ({
     }
 
     // AUTHENTICATED MODE: Validate and create real invite
-    
+
     // Check if trip ID is a valid UUID (real trips have UUIDs, demo trips have mock IDs)
     if (!UUID_REGEX.test(actualTripId)) {
       console.error('[InviteLink] Invalid trip ID format (not UUID):', actualTripId);
-      toast.error('This appears to be a demo trip. Create a real trip to generate shareable invite links.');
+      toast.error(
+        'This appears to be a demo trip. Create a real trip to generate shareable invite links.',
+      );
       setLoading(false);
       return;
     }
 
     // Check authentication
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       toast.error('Please log in to create invite links');
       setLoading(false);
@@ -199,7 +217,7 @@ export const useInviteLink = ({
     // Generate a unique branded invite code (e.g., "chravel7x9k2m")
     const inviteCode = await generateUniqueCode();
     const created = await createInviteInDatabase(actualTripId, inviteCode);
-    
+
     if (!created) {
       setLoading(false);
       return;
@@ -217,21 +235,21 @@ export const useInviteLink = ({
       try {
         const oldCode = inviteLink.split('/join/')[1]?.split('?')[0];
         if (oldCode && !oldCode.startsWith('demo-')) {
-          await supabase
-            .from('trip_invites')
-            .update({ is_active: false })
-            .eq('code', oldCode);
+          await supabase.from('trip_invites').update({ is_active: false }).eq('code', oldCode);
         }
       } catch (error) {
         console.error('[InviteLink] Error deactivating old invite:', error);
       }
     }
-    
+
     // Generate new invite link
     await generateTripLink();
   };
 
-  const resendInvite = async (recipientEmail?: string, recipientPhone?: string): Promise<boolean> => {
+  const resendInvite = async (
+    recipientEmail?: string,
+    recipientPhone?: string,
+  ): Promise<boolean> => {
     if (!inviteLink) {
       toast.error('No invite link available. Please generate one first.');
       return false;
@@ -243,16 +261,16 @@ export const useInviteLink = ({
         const subject = encodeURIComponent(`Join my trip: ${tripName}`);
         const body = encodeURIComponent(
           `Hi there!\n\nYou're invited to join my trip "${tripName}"!\n\n` +
-          `Click here to join: ${inviteLink}\n\n` +
-          `If you have the Chravel app installed, this link will open it directly. ` +
-          `Otherwise, you can join through your browser!\n\nSee you there!`
+            `Click here to join: ${inviteLink}\n\n` +
+            `If you have the Chravel app installed, this link will open it directly. ` +
+            `Otherwise, you can join through your browser!\n\nSee you there!`,
         );
         window.open(`mailto:${recipientEmail}?subject=${subject}&body=${body}`);
         toast.success(`Invite sent to ${recipientEmail}`);
         return true;
       } else if (recipientPhone) {
         const message = encodeURIComponent(
-          `You're invited to join my trip "${tripName}"! ${inviteLink} (Opens in Chravel app if installed)`
+          `You're invited to join my trip "${tripName}"! ${inviteLink} (Opens in Chravel app if installed)`,
         );
         window.open(`sms:${recipientPhone}?body=${message}`);
         toast.success(`Invite sent to ${recipientPhone}`);
@@ -272,7 +290,7 @@ export const useInviteLink = ({
 
   const handleCopyLink = async () => {
     if (!inviteLink) return;
-    
+
     try {
       await navigator.clipboard.writeText(inviteLink);
       setCopied(true);
@@ -286,13 +304,13 @@ export const useInviteLink = ({
 
   const handleShare = async () => {
     if (!inviteLink) return;
-    
+
     if (navigator.share) {
       try {
         await navigator.share({
           title: `Join my trip: ${tripName}`,
           text: `You're invited to join my trip "${tripName}"!`,
-          url: inviteLink
+          url: inviteLink,
         });
       } catch (error) {
         console.error('[InviteLink] Error sharing:', error);
@@ -304,22 +322,22 @@ export const useInviteLink = ({
 
   const handleEmailInvite = () => {
     if (!inviteLink) return;
-    
+
     const subject = encodeURIComponent(`Join my trip: ${tripName}`);
     const body = encodeURIComponent(
       `Hi there!\n\nYou're invited to join my trip "${tripName}"!\n\n` +
-      `Click here to join: ${inviteLink}\n\n` +
-      `If you have the Chravel app installed, this link will open it directly. ` +
-      `Otherwise, you can join through your browser!\n\nSee you there!`
+        `Click here to join: ${inviteLink}\n\n` +
+        `If you have the Chravel app installed, this link will open it directly. ` +
+        `Otherwise, you can join through your browser!\n\nSee you there!`,
     );
     window.open(`mailto:?subject=${subject}&body=${body}`);
   };
 
   const handleSMSInvite = () => {
     if (!inviteLink) return;
-    
+
     const message = encodeURIComponent(
-      `You're invited to join my trip "${tripName}"! ${inviteLink} (Opens in Chravel app if installed)`
+      `You're invited to join my trip "${tripName}"! ${inviteLink} (Opens in Chravel app if installed)`,
     );
     window.open(`sms:?body=${message}`);
   };
@@ -334,6 +352,6 @@ export const useInviteLink = ({
     handleCopyLink,
     handleShare,
     handleEmailInvite,
-    handleSMSInvite
+    handleSMSInvite,
   };
 };
