@@ -6,7 +6,7 @@ export interface AppPreferences {
   ai_concierge_preferences?: TripPreferences;
 }
 
-const DEFAULT_PREFERENCES: AppPreferences = { 
+const DEFAULT_PREFERENCES: AppPreferences = {
   hide_sample_content: false,
   ai_concierge_preferences: {
     dietary: [],
@@ -17,8 +17,8 @@ const DEFAULT_PREFERENCES: AppPreferences = {
     lifestyle: [],
     budgetMin: 0,
     budgetMax: 1000,
-    timePreference: 'flexible'
-  }
+    timePreference: 'flexible',
+  },
 };
 
 export interface NotificationPreferences {
@@ -27,6 +27,7 @@ export interface NotificationPreferences {
   push_enabled: boolean;
   email_enabled: boolean;
   sms_enabled: boolean;
+  sms_phone_number?: string; // Phone number for SMS delivery
   chat_messages: boolean;
   mentions_only: boolean;
   broadcasts: boolean;
@@ -64,7 +65,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   quiet_hours_enabled: false,
   quiet_start: '22:00',
   quiet_end: '08:00',
-  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 };
 
 export const userPreferencesService = {
@@ -136,18 +137,18 @@ export const userPreferencesService = {
 
   async updateNotificationPreferences(
     userId: string,
-    preferences: Partial<NotificationPreferences>
+    preferences: Partial<NotificationPreferences>,
   ): Promise<NotificationPreferences | null> {
     try {
       const { data, error } = await (supabase as any)
         .from('notification_preferences')
         .upsert(
-          { 
-            user_id: userId, 
+          {
+            user_id: userId,
             ...preferences,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           },
-          { onConflict: 'user_id' }
+          { onConflict: 'user_id' },
         )
         .select()
         .single();
@@ -166,5 +167,5 @@ export const userPreferencesService = {
       }
       throw error;
     }
-  }
+  },
 };

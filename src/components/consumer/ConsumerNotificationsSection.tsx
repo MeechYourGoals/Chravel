@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Bell,
   Mail,
@@ -11,6 +11,8 @@ import {
   BarChart2,
   UserPlus,
   MapPin,
+  X,
+  Phone,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -20,6 +22,7 @@ import {
 import { useToast } from '../../hooks/use-toast';
 import { useNativePush } from '@/hooks/useNativePush';
 import { useDemoMode } from '../../hooks/useDemoMode';
+import { Button } from '../ui/button';
 
 interface NotificationCategory {
   key: string;
@@ -96,6 +99,13 @@ export const ConsumerNotificationsSection = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingPush, setIsUpdatingPush] = useState(false);
 
+  // SMS phone number modal state
+  const [showSmsPhoneModal, setShowSmsPhoneModal] = useState(false);
+  const [smsPhoneNumber, setSmsPhoneNumber] = useState('');
+  const [smsPhoneInput, setSmsPhoneInput] = useState('');
+  const [isSavingPhone, setIsSavingPhone] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
+
   // State for notification settings - matching database columns
   const [notificationSettings, setNotificationSettings] = useState<Record<string, boolean>>({
     messages: true,
@@ -116,6 +126,26 @@ export const ConsumerNotificationsSection = () => {
     start: '22:00',
     end: '08:00',
   });
+
+  // Phone number validation helper
+  const validatePhoneNumber = useCallback((phone: string): boolean => {
+    // Remove all non-numeric characters except +
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    // Must have at least 10 digits and optionally start with +
+    const phoneRegex = /^\+?[1-9]\d{9,14}$/;
+    return phoneRegex.test(cleaned);
+  }, []);
+
+  // Format phone number for display
+  const formatPhoneNumber = useCallback((phone: string): string => {
+    const cleaned = phone.replace(/[^\d]/g, '');
+    if (cleaned.length === 10) {
+      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+    } else if (cleaned.length === 11 && cleaned[0] === '1') {
+      return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
+    }
+    return phone;
+  }, []);
 
   // Load notification preferences from database
   useEffect(() => {
@@ -145,6 +175,10 @@ export const ConsumerNotificationsSection = () => {
           start: prefs.quiet_start || '22:00',
           end: prefs.quiet_end || '08:00',
         });
+        // Load SMS phone number if it exists
+        if ((prefs as any).sms_phone_number) {
+          setSmsPhoneNumber((prefs as any).sms_phone_number);
+        }
       } catch (error) {
         console.error('Error loading notification preferences:', error);
       } finally {
@@ -184,6 +218,14 @@ export const ConsumerNotificationsSection = () => {
 
     const dbKey = keyMap[setting];
     if (!dbKey) return;
+
+    // SMS notifications: prompt for phone number when enabling if not already set
+    if (setting === 'sms' && newValue && !smsPhoneNumber) {
+      setSmsPhoneInput('');
+      setPhoneError('');
+      setShowSmsPhoneModal(true);
+      return;
+    }
 
     // Push notifications: request/register only when user explicitly enables (native only).
     if (setting === 'push' && user?.id && isNativePush) {
@@ -245,6 +287,45 @@ export const ConsumerNotificationsSection = () => {
     }
   };
 
+  // Handle SMS phone number submission
+  const handleSmsPhoneSubmit = async () => {
+    if (!user?.id) return;
+
+    // Validate phone number
+    if (!validatePhoneNumber(smsPhoneInput)) {
+      setPhoneError('Please enter a valid phone number (e.g., +1 555-123-4567)');
+      return;
+    }
+
+    setIsSavingPhone(true);
+    setPhoneError('');
+
+    try {
+      // Normalize phone number (remove formatting)
+      const normalizedPhone = smsPhoneInput.replace(/[^\d+]/g, '');
+
+      // Save phone number and enable SMS
+      await userPreferencesService.updateNotificationPreferences(user.id, {
+        sms_enabled: true,
+        sms_phone_number: normalizedPhone,
+      } as Partial<NotificationPreferences>);
+
+      setSmsPhoneNumber(normalizedPhone);
+      setNotificationSettings(prev => ({ ...prev, sms: true }));
+      setShowSmsPhoneModal(false);
+
+      toast({
+        title: 'SMS notifications enabled',
+        description: `You'll receive text messages at ${formatPhoneNumber(normalizedPhone)}`,
+      });
+    } catch (error) {
+      console.error('Error saving SMS phone number:', error);
+      setPhoneError('Failed to save phone number. Please try again.');
+    } finally {
+      setIsSavingPhone(false);
+    }
+  };
+
   const handleQuietTimeChange = async (field: 'start' | 'end', value: string) => {
     setQuietTimes(prev => ({ ...prev, [field]: value }));
 
@@ -269,13 +350,15 @@ export const ConsumerNotificationsSection = () => {
     <button
       onClick={() => handleNotificationToggle(key)}
       disabled={isDisabled}
-      className={`relative w-12 h-6 rounded-full transition-colors ${
-        isEnabled ? 'bg-glass-orange' : 'bg-gray-600'
+      aria-checked={isEnabled}
+      role="switch"
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+        isEnabled ? 'bg-green-500' : 'bg-gray-600'
       }`}
     >
-      <div
-        className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
-          isEnabled ? 'translate-x-6' : 'translate-x-0.5'
+      <span
+        className={`pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform ${
+          isEnabled ? 'translate-x-5' : 'translate-x-0'
         }`}
       />
     </button>
@@ -346,7 +429,23 @@ export const ConsumerNotificationsSection = () => {
               <Smartphone size={16} className="text-green-400" />
               <div>
                 <span className="text-white font-medium">SMS Notifications</span>
-                <p className="text-sm text-gray-400">Get text messages for urgent updates</p>
+                <p className="text-sm text-gray-400">
+                  {smsPhoneNumber
+                    ? `Texts sent to ${formatPhoneNumber(smsPhoneNumber)}`
+                    : 'Get text messages for urgent updates'}
+                </p>
+                {smsPhoneNumber && notificationSettings.sms && (
+                  <button
+                    onClick={() => {
+                      setSmsPhoneInput(smsPhoneNumber);
+                      setPhoneError('');
+                      setShowSmsPhoneModal(true);
+                    }}
+                    className="text-xs text-glass-orange hover:text-glass-yellow mt-1"
+                  >
+                    Change number
+                  </button>
+                )}
               </div>
             </div>
             {renderToggle('sms', notificationSettings.sms)}
@@ -389,6 +488,80 @@ export const ConsumerNotificationsSection = () => {
           </div>
         </div>
       </div>
+
+      {/* SMS Phone Number Modal */}
+      {showSmsPhoneModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowSmsPhoneModal(false)}
+          />
+          <div className="relative bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
+            <button
+              onClick={() => setShowSmsPhoneModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-green-500/20 rounded-lg">
+                <Phone size={24} className="text-green-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Enable SMS Notifications</h3>
+                <p className="text-sm text-gray-400">
+                  Enter your mobile number to receive text alerts
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="sms-phone" className="block text-sm font-medium text-gray-300 mb-2">
+                  Mobile Phone Number
+                </label>
+                <input
+                  id="sms-phone"
+                  type="tel"
+                  value={smsPhoneInput}
+                  onChange={e => {
+                    setSmsPhoneInput(e.target.value);
+                    setPhoneError('');
+                  }}
+                  placeholder="+1 (555) 123-4567"
+                  className={`w-full bg-gray-800 border ${
+                    phoneError ? 'border-red-500' : 'border-gray-600'
+                  } text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500/50 placeholder-gray-500`}
+                  autoFocus
+                />
+                {phoneError && <p className="text-sm text-red-400 mt-2">{phoneError}</p>}
+                <p className="text-xs text-gray-500 mt-2">
+                  Standard messaging rates may apply. You can disable SMS anytime.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowSmsPhoneModal(false)}
+                  className="flex-1"
+                  disabled={isSavingPhone}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSmsPhoneSubmit}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  disabled={isSavingPhone || !smsPhoneInput.trim()}
+                >
+                  {isSavingPhone ? 'Saving...' : 'Enable SMS'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
