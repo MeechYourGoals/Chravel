@@ -12,6 +12,13 @@ const FAQSection = lazy(() => import('./sections/FAQSection').then(module => ({ 
 const PricingLandingSection = lazy(() => import('./sections/PricingLandingSection').then(module => ({ default: module.PricingLandingSection })));
 const FooterSection = lazy(() => import('./FooterSection').then(module => ({ default: module.FooterSection })));
 
+// Import cinematic hero images - keeping only the ones we use
+import heroImage from '@/assets/hero-background.png';
+import scenariosImage from '@/assets/hero-images/sports-events-1920.jpg';
+import replacesImage from '@/assets/hero-images/basketball-team-bus.png';
+import pricingWorkspaceImage from '@/assets/hero-images/skiers-mountain-resort.png';
+
+
 interface FullPageLandingProps {
   onSignUp: () => void;
 }
@@ -41,21 +48,21 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           paddingRight: 'env(safe-area-inset-right)'
         }}
       >
-        {/* Section 1: Hero - Clean gradient for premium feel */}
+        {/* Section 1: Hero - Keep image (shows product) */}
         <FullPageLandingSection
           id="section-hero"
-          backgroundStyle="gradient"
-          gradientColors={['#0f172a', '#1e293b']}
+          imageFallback={heroImage}
+          videoOpacity={0.5}
           minHeight="90vh"
         >
           <HeroSection onSignUp={onSignUp} />
         </FullPageLandingSection>
 
-        {/* Section 2: Problem It Solves - Deep navy gradient */}
+        {/* Section 2: Problem It Solves - Keep image (basketball team bus) */}
         <FullPageLandingSection
           id="section-replaces"
-          backgroundStyle="gradient"
-          gradientColors={['#1a1a2e', '#16213e']}
+          imageFallback={replacesImage}
+          videoOpacity={0.6}
         >
           <Suspense fallback={<SectionLoader />}>
             <ReplacesSection />
@@ -71,11 +78,11 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           <ProblemSolutionSection />
         </FullPageLandingSection>
 
-        {/* Section 4: Use Cases - Dark slate gradient */}
+        {/* Section 4: Use Cases - Keep image (stadium) */}
         <FullPageLandingSection
           id="section-use-cases"
-          backgroundStyle="gradient"
-          gradientColors={['#0f172a', '#1e3a5f']}
+          imageFallback={scenariosImage}
+          videoOpacity={0.5}
           minHeight="120vh"
         >
           <Suspense fallback={<SectionLoader />}>
@@ -94,11 +101,11 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 6: Pricing - Premium dark gradient */}
+        {/* Section 6: Pricing - Keep image (skiers) */}
         <FullPageLandingSection
           id="section-pricing"
-          backgroundStyle="gradient"
-          gradientColors={['#1e293b', '#334155']}
+          imageFallback={pricingWorkspaceImage}
+          videoOpacity={0.5}
           minHeight="110vh"
         >
           <Suspense fallback={<SectionLoader />}>
