@@ -285,20 +285,22 @@ export const AdvertiserDashboard = () => {
 
       {/* Header - Mobile Optimized */}
       <header className="bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 h-auto sm:h-16 py-3 sm:py-0">
-            <div className="flex items-center space-x-3 sm:space-x-4">
-              <h1 className="text-lg sm:text-2xl font-bold text-white">Chravel Advertiser Hub</h1>
-              <span className="text-xs sm:text-sm text-gray-400 truncate max-w-[120px] sm:max-w-none">
+        <div className="max-w-7xl mx-auto px-4 tablet:px-6 lg:px-8 py-4 tablet:py-0">
+          <div className="flex flex-col tablet:flex-row tablet:justify-between tablet:items-center gap-3 tablet:h-16">
+            {/* Title and company name - stacked on mobile */}
+            <div className="flex flex-col tablet:flex-row tablet:items-center gap-1 tablet:gap-4">
+              <h1 className="text-xl tablet:text-2xl font-bold text-white">Advertiser Hub</h1>
+              <span className="text-sm text-gray-400">
                 {activeAdvertiser?.company_name || 'Loading...'}
               </span>
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* Buttons - full width on mobile */}
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/')}
-                className="border-gray-600 text-gray-300 hover:bg-white/10 flex-1 sm:flex-none"
+                className="border-gray-600 text-gray-300 hover:bg-white/10 flex-1 tablet:flex-none text-xs tablet:text-sm"
               >
                 Back to Chravel
               </Button>
@@ -307,10 +309,10 @@ export const AdvertiserDashboard = () => {
                   variant="ghost"
                   size="sm"
                   onClick={handleSignOut}
-                  className="text-gray-300 hover:bg-white/10 flex-1 sm:flex-none"
+                  className="text-gray-300 hover:bg-white/10 flex-1 tablet:flex-none text-xs tablet:text-sm"
                 >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign Out
+                  <LogOut className="h-4 w-4 mr-1 tablet:mr-2" />
+                  <span className="tablet:inline">Sign Out</span>
                 </Button>
               )}
             </div>
@@ -347,10 +349,8 @@ export const AdvertiserDashboard = () => {
 
           <TabsContent value="campaigns" className="space-y-6 mobile-safe-scroll overflow-y-auto">
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-white text-center md:text-left">
-                Your Campaigns
-              </h2>
-              <div className="flex justify-center md:justify-start">
+              <h2 className="text-xl font-semibold text-white">Your Campaigns</h2>
+              <div className="flex justify-start">
                 <Button
                   onClick={() => setShowCampaignCreator(true)}
                   className="bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700 w-full sm:w-auto"
