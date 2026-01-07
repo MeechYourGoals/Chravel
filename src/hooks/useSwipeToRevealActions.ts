@@ -1,3 +1,8 @@
+/**
+ * Swipe-to-reveal actions hook for iOS-style swipe gestures
+ * @module useSwipeToRevealActions
+ * @version 2.0.1
+ */
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { hapticService } from '../services/hapticService';
 
