@@ -61,6 +61,26 @@ interface MockMessage {
   tags?: string[];
 }
 
+// Match the interface from useTripChat.ts
+interface TripChatMessage {
+  id: string;
+  trip_id: string;
+  content: string;
+  author_name: string;
+  user_id?: string;
+  created_at: string;
+  updated_at: string;
+  media_type?: string;
+  media_url?: string;
+  sentiment?: string;
+  link_preview?: any;
+  privacy_mode?: string;
+  privacy_encrypted?: boolean;
+  message_type?: string;
+  is_edited?: boolean;
+  edited_at?: string;
+}
+
 export const TripChat = ({
   enableGroupChat: _enableGroupChat = true,
   showBroadcasts: _showBroadcasts = true,
@@ -452,12 +472,14 @@ export const TripChat = ({
     if (!message) return;
 
     const isDemo = demoMode.isDemoMode;
-    const content = isDemo ? (message as MockMessage).text : message.content;
-    const authorName = isDemo ? (message as MockMessage).sender?.name : message.author_name;
-    const createdAt = isDemo ? (message as MockMessage).createdAt : message.created_at;
+    const mockMsg = message as MockMessage;
+    const liveMsg = message as TripChatMessage;
+    const content = isDemo ? mockMsg.text : liveMsg.content;
+    const authorName = isDemo ? mockMsg.sender?.name : liveMsg.author_name;
+    const createdAt = isDemo ? mockMsg.createdAt : liveMsg.created_at;
     const authorAvatar = isDemo
-      ? (message as MockMessage).sender?.avatar
-      : tripMembers.find(m => m.id === message.user_id)?.avatar;
+      ? mockMsg.sender?.avatar
+      : tripMembers.find(m => m.id === liveMsg.user_id)?.avatar;
 
     setActiveThreadMessage({
       id: messageId,
