@@ -7,9 +7,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { shouldShowSystemMessage, DEFAULT_SYSTEM_MESSAGE_CATEGORIES, SystemMessageCategoryPrefs } from '@/utils/systemMessageCategory';
 
 interface MessageItemProps {
-  message: ChatMessage & { status?: 'sending' | 'sent' | 'failed' };
+  message: ChatMessage & { status?: 'sending' | 'sent' | 'failed'; replyCount?: number };
   reactions?: Record<string, { count: number; userReacted: boolean }>;
   onReaction: (messageId: string, reactionType: string) => void;
+  onReply?: (messageId: string) => void;
   showSenderInfo?: boolean;
   onRetry?: (messageId: string) => void;
   // System message visibility preferences
@@ -19,13 +20,14 @@ interface MessageItemProps {
   };
 }
 
-export const MessageItem = memo(({ 
-  message, 
-  reactions, 
-  onReaction, 
-  showSenderInfo, 
+export const MessageItem = memo(({
+  message,
+  reactions,
+  onReaction,
+  onReply,
+  showSenderInfo,
   onRetry,
-  systemMessagePrefs 
+  systemMessagePrefs
 }: MessageItemProps) => {
   const { user } = useAuth();
   const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
@@ -84,6 +86,8 @@ export const MessageItem = memo(({
       isEdited={(message as any).isEdited || false}
       reactions={reactions}
       onReaction={onReaction}
+      replyCount={message.replyCount || 0}
+      onReply={onReply}
       showSenderInfo={showSenderInfo}
       messageType="trip"
       onEdit={handleEdit}

@@ -16,6 +16,8 @@ export interface ChatMessageInsert extends Omit<Insert, 'attachments'> {
     url?: string;
   }[];
   message_type?: 'text' | 'broadcast' | 'payment' | 'system';
+  client_message_id?: string;
+  reply_to_id?: string;
 }
 
 /** Enhanced insert with rich media support */
@@ -33,22 +35,66 @@ export interface RichChatMessageInsert {
   privacy_mode?: string;
 }
 
+/**
+ * Generate a client-side message ID for idempotency
+ */
+function generateClientMessageId(): string {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  const random = Math.random().toString(16).slice(2).padEnd(12, '0').slice(0, 12);
+  return `00000000-0000-4000-8000-${random}`;
+}
+
 export async function sendChatMessage(msg: ChatMessageInsert) {
+  // Always generate a client_message_id for idempotency if not provided
+  const clientMessageId = msg.client_message_id || generateClientMessageId();
+
   return retryWithBackoff(
     async () => {
+      const insertPayload = {
+        ...msg,
+        client_message_id: clientMessageId,
+        privacy_mode: msg.privacy_mode || 'standard',
+        message_type: msg.message_type || 'text',
+        attachments: msg.attachments as any,
+      };
+
+      if (import.meta.env.DEV) {
+        console.log('[chatService] Sending message:', {
+          clientMessageId,
+          tripId: msg.trip_id,
+          contentPreview: msg.content?.substring(0, 50),
+        });
+      }
+
       const { data, error } = await supabase
         .from('trip_chat_messages')
-        .insert({
-          ...msg,
-          privacy_mode: msg.privacy_mode || 'standard',
-          message_type: msg.message_type || 'text',
-          attachments: msg.attachments as any,
-        })
+        .insert(insertPayload)
         .select()
         .single();
-      if (error) throw error;
-      
-      // TODO: Trigger push notification after successful message creation
+
+      if (error) {
+        // Handle unique constraint violation (duplicate client_message_id)
+        if (error.code === '23505' && error.message.includes('client_message_id')) {
+          console.warn('[chatService] Duplicate message detected, fetching existing:', clientMessageId);
+          // Fetch the existing message instead of failing
+          const { data: existing } = await supabase
+            .from('trip_chat_messages')
+            .select()
+            .eq('trip_id', msg.trip_id)
+            .eq('client_message_id', clientMessageId)
+            .single();
+          if (existing) return existing;
+        }
+        throw error;
+      }
+
+      if (import.meta.env.DEV) {
+        console.log('[chatService] Message sent successfully:', {
+          messageId: data.id,
+          clientMessageId,
+        });
+      }
+
       // Fire and forget - don't block message return
       if (data && msg.user_id && msg.message_type !== 'system') {
         notifyTripOfChatMessage({
@@ -59,14 +105,14 @@ export async function sendChatMessage(msg: ChatMessageInsert) {
           messageId: data.id,
         });
       }
-      
+
       return data;
     },
     {
       maxRetries: 3,
       onRetry: (attempt, error) => {
         if (import.meta.env.DEV) {
-          console.warn(`Retry attempt ${attempt}/3 for sending chat message:`, error.message);
+          console.warn(`[chatService] Retry attempt ${attempt}/3 for sending chat message:`, error.message);
         }
       }
     }
@@ -301,4 +347,284 @@ export function subscribeToMediaUpdates(tripId: string, handlers: {
   }
 
   return channel.subscribe();
+}
+
+// ============================================================================
+// MESSAGE REACTIONS
+// ============================================================================
+
+export type ReactionType = 'like' | 'love' | 'dislike' | 'important';
+
+export interface MessageReaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  reaction_type: ReactionType;
+  created_at: string;
+}
+
+export interface ReactionCount {
+  type: ReactionType;
+  count: number;
+  userReacted: boolean;
+  userIds: string[];
+}
+
+/**
+ * Add a reaction to a message (toggle - adds if not present, removes if present)
+ */
+export async function toggleMessageReaction(
+  messageId: string,
+  userId: string,
+  reactionType: ReactionType
+): Promise<{ added: boolean; error?: string }> {
+  try {
+    // Check if reaction already exists
+    const { data: existing } = await supabase
+      .from('message_reactions')
+      .select('id')
+      .eq('message_id', messageId)
+      .eq('user_id', userId)
+      .eq('reaction_type', reactionType)
+      .single();
+
+    if (existing) {
+      // Remove existing reaction
+      const { error } = await supabase
+        .from('message_reactions')
+        .delete()
+        .eq('id', existing.id);
+
+      if (error) throw error;
+      return { added: false };
+    } else {
+      // Add new reaction
+      const { error } = await supabase
+        .from('message_reactions')
+        .insert({
+          message_id: messageId,
+          user_id: userId,
+          reaction_type: reactionType,
+        });
+
+      if (error) throw error;
+      return { added: true };
+    }
+  } catch (error: any) {
+    console.error('[chatService] Toggle reaction error:', error);
+    return { added: false, error: error.message };
+  }
+}
+
+/**
+ * Get all reactions for a message
+ */
+export async function getMessageReactions(messageId: string): Promise<ReactionCount[]> {
+  try {
+    const { data, error } = await supabase
+      .from('message_reactions')
+      .select('reaction_type, user_id')
+      .eq('message_id', messageId);
+
+    if (error) throw error;
+
+    // Aggregate reactions by type
+    const reactionMap = new Map<ReactionType, string[]>();
+    for (const row of data || []) {
+      const type = row.reaction_type as ReactionType;
+      if (!reactionMap.has(type)) {
+        reactionMap.set(type, []);
+      }
+      reactionMap.get(type)!.push(row.user_id);
+    }
+
+    return Array.from(reactionMap.entries()).map(([type, userIds]) => ({
+      type,
+      count: userIds.length,
+      userReacted: false, // Will be set by caller with current user ID
+      userIds,
+    }));
+  } catch (error) {
+    console.error('[chatService] Get reactions error:', error);
+    return [];
+  }
+}
+
+/**
+ * Get reactions for multiple messages (batched for performance)
+ */
+export async function getMessagesReactions(
+  messageIds: string[],
+  currentUserId?: string
+): Promise<Record<string, Record<ReactionType, ReactionCount>>> {
+  if (messageIds.length === 0) return {};
+
+  try {
+    const { data, error } = await supabase
+      .from('message_reactions')
+      .select('message_id, reaction_type, user_id')
+      .in('message_id', messageIds);
+
+    if (error) throw error;
+
+    // Build reaction counts per message
+    const result: Record<string, Record<ReactionType, ReactionCount>> = {};
+
+    for (const row of data || []) {
+      const msgId = row.message_id;
+      const type = row.reaction_type as ReactionType;
+
+      if (!result[msgId]) {
+        result[msgId] = {} as Record<ReactionType, ReactionCount>;
+      }
+
+      if (!result[msgId][type]) {
+        result[msgId][type] = {
+          type,
+          count: 0,
+          userReacted: false,
+          userIds: [],
+        };
+      }
+
+      result[msgId][type].count++;
+      result[msgId][type].userIds.push(row.user_id);
+      if (currentUserId && row.user_id === currentUserId) {
+        result[msgId][type].userReacted = true;
+      }
+    }
+
+    return result;
+  } catch (error) {
+    console.error('[chatService] Get batch reactions error:', error);
+    return {};
+  }
+}
+
+/**
+ * Subscribe to reaction changes for messages in a trip
+ */
+export function subscribeToReactions(
+  tripId: string,
+  onReactionChange: (payload: {
+    eventType: 'INSERT' | 'DELETE';
+    messageId: string;
+    userId: string;
+    reactionType: ReactionType;
+  }) => void
+) {
+  // We need to join through messages to filter by trip_id
+  // Since we can't filter reactions by trip directly, we subscribe to all and filter client-side
+  // A better approach would be to add trip_id to message_reactions table
+  return supabase
+    .channel(`reactions:${tripId}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'message_reactions' },
+      (payload) => {
+        const row = payload.new as MessageReaction;
+        onReactionChange({
+          eventType: 'INSERT',
+          messageId: row.message_id,
+          userId: row.user_id,
+          reactionType: row.reaction_type as ReactionType,
+        });
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'message_reactions' },
+      (payload) => {
+        const row = payload.old as MessageReaction;
+        onReactionChange({
+          eventType: 'DELETE',
+          messageId: row.message_id,
+          userId: row.user_id,
+          reactionType: row.reaction_type as ReactionType,
+        });
+      }
+    )
+    .subscribe();
+}
+
+// ============================================================================
+// THREAD REPLIES
+// ============================================================================
+
+/**
+ * Send a reply to a message (thread)
+ */
+export async function sendThreadReply(
+  tripId: string,
+  parentMessageId: string,
+  content: string,
+  authorName: string,
+  userId?: string
+): Promise<Row | null> {
+  try {
+    const result = await sendChatMessage({
+      trip_id: tripId,
+      content,
+      author_name: authorName,
+      user_id: userId,
+      reply_to_id: parentMessageId,
+    });
+    return result;
+  } catch (error) {
+    console.error('[chatService] Send thread reply error:', error);
+    return null;
+  }
+}
+
+/**
+ * Get thread replies for a message
+ */
+export async function getThreadReplies(parentMessageId: string): Promise<Row[]> {
+  try {
+    const { data, error } = await supabase
+      .from('trip_chat_messages')
+      .select('*')
+      .eq('reply_to_id', parentMessageId)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('[chatService] Get thread replies error:', error);
+    return [];
+  }
+}
+
+/**
+ * Subscribe to thread replies for a specific message
+ */
+export function subscribeToThreadReplies(
+  parentMessageId: string,
+  onReply: (row: Row) => void,
+  onUpdate?: (row: Row) => void
+) {
+  return supabase
+    .channel(`thread:${parentMessageId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'trip_chat_messages',
+        filter: `reply_to_id=eq.${parentMessageId}`,
+      },
+      (payload) => onReply(payload.new as Row)
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'trip_chat_messages',
+        filter: `reply_to_id=eq.${parentMessageId}`,
+      },
+      (payload) => onUpdate?.(payload.new as Row)
+    )
+    .subscribe();
 }

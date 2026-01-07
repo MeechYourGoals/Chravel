@@ -5,7 +5,7 @@ import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { GroundingCitationCard } from './GroundingCitationCard';
 import { ImageLightbox } from './ImageLightbox';
 import { GroundingCitation } from '@/types/grounding';
-import { MapPin, Maximize2, FileText, Download, Link, ExternalLink, AlertCircle, RotateCcw, Loader2 } from 'lucide-react';
+import { MapPin, Maximize2, FileText, Download, Link, ExternalLink, AlertCircle, RotateCcw, Loader2, MessageSquareReply } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMobilePortrait } from '@/hooks/useMobilePortrait';
 import { useLongPress } from '@/hooks/useLongPress';
@@ -31,6 +31,9 @@ export interface MessageBubbleProps {
   isDeleted?: boolean;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
+  // Thread support
+  replyCount?: number;
+  onReply?: (messageId: string) => void;
   // 🆕 Grounding support
   grounding?: {
     sources?: GroundingCitation[];
@@ -74,6 +77,8 @@ export const MessageBubble = memo(({
   isDeleted = false,
   onEdit,
   onDelete,
+  replyCount = 0,
+  onReply,
   grounding,
   showSenderInfo = true,
   mediaType,
@@ -398,6 +403,19 @@ export const MessageBubble = memo(({
             )}>
               <MessageReactionBar messageId={id} reactions={reactions} onReaction={onReaction} />
             </div>
+          )}
+
+          {/* Thread reply indicator */}
+          {replyCount > 0 && (
+            <button
+              onClick={() => onReply?.(id)}
+              className="flex items-center gap-1 mt-1.5 text-xs text-primary/80 hover:text-primary transition-colors"
+            >
+              <MessageSquareReply className="h-3 w-3" />
+              <span>
+                {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
+              </span>
+            </button>
           )}
         </div>
       </div>

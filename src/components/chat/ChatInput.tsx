@@ -62,6 +62,7 @@ export const ChatInput = ({
   const [isPaymentMode, setIsPaymentMode] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [isFetchingPreview, setIsFetchingPreview] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false); // Send-lock to prevent double submit
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   
@@ -100,34 +101,49 @@ export const ChatInput = ({
   }, [inputMessage, onTypingChange]);
 
   const handleSend = async () => {
+    // Prevent double-submit while request is in-flight
+    if (isSendingMessage) {
+      console.warn('[ChatInput] Send blocked - already sending');
+      return;
+    }
+
     if (!isPaymentMode) {
+      // Early validation - don't start send flow if no content
+      if (!inputMessage.trim()) return;
+
+      setIsSendingMessage(true);
       onTypingChange?.(false);
-      
-      // Check for URL and fetch OG metadata
-      const url = extractFirstUrl(inputMessage);
-      let linkPreview = null;
-      
-      if (url) {
-        setIsFetchingPreview(true);
-        try {
-          const metadata = await fetchOGMetadata(url);
-          if (metadata && !metadata.error) {
-            linkPreview = {
-              url,
-              title: metadata.title,
-              description: metadata.description,
-              image: metadata.image,
-              domain: new URL(url).hostname.replace('www.', ''),
-            };
+
+      try {
+        // Check for URL and fetch OG metadata
+        const url = extractFirstUrl(inputMessage);
+        let linkPreview = null;
+
+        if (url) {
+          setIsFetchingPreview(true);
+          try {
+            const metadata = await fetchOGMetadata(url);
+            if (metadata && !metadata.error) {
+              linkPreview = {
+                url,
+                title: metadata.title,
+                description: metadata.description,
+                image: metadata.image,
+                domain: new URL(url).hostname.replace('www.', ''),
+              };
+            }
+          } catch (error) {
+            console.warn('Failed to fetch OG metadata:', error);
+          } finally {
+            setIsFetchingPreview(false);
           }
-        } catch (error) {
-          console.warn('Failed to fetch OG metadata:', error);
-        } finally {
-          setIsFetchingPreview(false);
         }
+
+        onSendMessage(isBroadcastMode, false, undefined, linkPreview);
+      } finally {
+        // Release send-lock after a short delay to prevent rapid re-clicks
+        setTimeout(() => setIsSendingMessage(false), 300);
       }
-      
-      onSendMessage(isBroadcastMode, false, undefined, linkPreview);
     }
   };
 
@@ -389,7 +405,7 @@ export const ChatInput = ({
           {/* Send Button */}
           <button
             onClick={handleSend}
-            disabled={(!inputMessage.trim() && !isMediaUploading && !isShareUploading) || isTyping || isFetchingPreview}
+            disabled={(!inputMessage.trim() && !isMediaUploading && !isShareUploading) || isTyping || isFetchingPreview || isSendingMessage}
             className={cn(
               "size-10 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center",
               isBroadcastMode

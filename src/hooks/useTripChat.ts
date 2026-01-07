@@ -145,18 +145,28 @@ export const useTripChat = (tripId: string | undefined) => {
           
           // Update query data with optimistic ordering
           queryClient.setQueryData(['tripChat', tripId], (old: TripChatMessage[] = []) => {
-            const newMessage = payload.new as TripChatMessage;
-            
-            // Prevent duplicate messages
-            if (old.some(msg => msg.id === newMessage.id)) {
-              console.log('[CHAT REALTIME] Duplicate message ignored:', newMessage.id);
+            const newMessage = payload.new as TripChatMessage & { client_message_id?: string };
+
+            // Prevent duplicate messages by id OR client_message_id
+            const isDuplicate = old.some(msg => {
+              if (msg.id === newMessage.id) return true;
+              // Also dedupe by client_message_id if present (handles optimistic updates)
+              const existingClientId = (msg as TripChatMessage & { client_message_id?: string }).client_message_id;
+              if (existingClientId && newMessage.client_message_id && existingClientId === newMessage.client_message_id) {
+                return true;
+              }
+              return false;
+            });
+
+            if (isDuplicate) {
+              console.log('[CHAT REALTIME] Duplicate message ignored:', newMessage.id, newMessage.client_message_id);
               return old;
             }
-            
+
             // Insert message in correct chronological order
             const newMessages = [...old, newMessage];
             console.log('[CHAT RENDER] Messages count after INSERT:', newMessages.length);
-            return newMessages.sort((a, b) => 
+            return newMessages.sort((a, b) =>
               new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             );
           });
