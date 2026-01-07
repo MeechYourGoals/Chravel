@@ -36,7 +36,6 @@ interface LovableConciergeRequest {
   }
 }
 
-// Input validation schema
 // Input validation schema - increased limits for better context handling
 const LovableConciergeSchema = z.object({
   message: z.string()
@@ -48,9 +47,21 @@ const LovableConciergeSchema = z.object({
     .max(50, 'Trip ID too long')
     .optional(),
   tripContext: z.any().optional(),
+  // 🆕 Accept preferences from client as fallback
+  preferences: z.object({
+    dietary: z.array(z.string()).optional(),
+    vibe: z.array(z.string()).optional(),
+    accessibility: z.array(z.string()).optional(),
+    business: z.array(z.string()).optional(),
+    entertainment: z.array(z.string()).optional(),
+    lifestyle: z.array(z.string()).optional(),
+    budgetMin: z.number().optional(),
+    budgetMax: z.number().optional(),
+    timePreference: z.string().optional()
+  }).optional(),
   chatHistory: z.array(z.object({
     role: z.enum(['system', 'user', 'assistant']),
-    content: z.string().max(20000, 'Chat message too long') // Increased from 2000 to 20000
+    content: z.string().max(20000, 'Chat message too long')
   })).max(20, 'Chat history too long (max 20 messages)').optional(),
   isDemoMode: z.boolean().optional(),
   config: z.object({
@@ -221,6 +232,39 @@ serve(async (req) => {
       } catch (error) {
         console.error('Failed to build comprehensive context:', error)
         // Continue with basic context
+      }
+    }
+    
+    // 🆕 FALLBACK: Use client-passed preferences if context builder didn't find any
+    if (validatedData.preferences) {
+      const clientPrefs = validatedData.preferences
+      const hasClientPrefs = clientPrefs.dietary?.length || clientPrefs.vibe?.length || 
+                            clientPrefs.accessibility?.length || clientPrefs.business?.length ||
+                            clientPrefs.entertainment?.length || clientPrefs.budgetMin !== undefined
+      
+      if (hasClientPrefs && (!comprehensiveContext?.userPreferences || 
+          !comprehensiveContext.userPreferences.dietary?.length)) {
+        console.log('[Context] Using client-passed preferences as fallback')
+        
+        // Build userPreferences from client data
+        const fallbackPrefs = {
+          dietary: clientPrefs.dietary || [],
+          vibe: clientPrefs.vibe || [],
+          accessibility: clientPrefs.accessibility || [],
+          business: clientPrefs.business || [],
+          entertainment: clientPrefs.entertainment || [],
+          budget: (clientPrefs.budgetMin !== undefined && clientPrefs.budgetMax !== undefined)
+            ? `$${clientPrefs.budgetMin}-$${clientPrefs.budgetMax}`
+            : undefined,
+          timePreference: clientPrefs.timePreference || 'flexible',
+          travelStyle: clientPrefs.lifestyle?.join(', ') || undefined
+        }
+        
+        if (!comprehensiveContext) {
+          comprehensiveContext = { userPreferences: fallbackPrefs }
+        } else {
+          comprehensiveContext.userPreferences = fallbackPrefs
+        }
       }
     }
 
@@ -805,32 +849,51 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
       }
     }
 
-    // 🆕 USER PREFERENCES FOR PERSONALIZED RECOMMENDATIONS
+    // 🆕 USER PREFERENCES FOR PERSONALIZED RECOMMENDATIONS - CRITICAL FOR AI FILTERING
     if (tripContext.userPreferences) {
       const prefs = tripContext.userPreferences
-      basePrompt += `\n\n=== 👤 USER PREFERENCES ===`
-      basePrompt += `\nIMPORTANT: Factor these into ALL recommendations:`
+      basePrompt += `\n\n=== 🎯 CRITICAL USER PREFERENCES (MUST APPLY TO ALL RECOMMENDATIONS) ===`
+      basePrompt += `\n⚠️ YOU MUST filter ALL suggestions based on these preferences. Do NOT ask the user to clarify - you already know their preferences!`
       
       if (prefs.dietary?.length) {
-        basePrompt += `\n🥗 Dietary: ${prefs.dietary.join(', ')}`
+        basePrompt += `\n\n🥗 DIETARY RESTRICTIONS: ${prefs.dietary.join(', ')}`
+        basePrompt += `\n   → ONLY suggest food/restaurants that meet these requirements`
+        basePrompt += `\n   → If asked for "restaurants" or "food", automatically filter to these dietary needs`
       }
       if (prefs.vibe?.length) {
-        basePrompt += `\n🎯 Preferred Vibes: ${prefs.vibe.join(', ')}`
-      }
-      if (prefs.budget) {
-        basePrompt += `\n💰 Budget Level: ${prefs.budget}`
+        basePrompt += `\n\n🎯 VIBE PREFERENCES: ${prefs.vibe.join(', ')}`
+        basePrompt += `\n   → Prioritize venues/activities matching these vibes`
       }
       if (prefs.accessibility?.length) {
-        basePrompt += `\n♿ Accessibility Needs: ${prefs.accessibility.join(', ')}`
+        basePrompt += `\n\n♿ ACCESSIBILITY REQUIREMENTS: ${prefs.accessibility.join(', ')}`
+        basePrompt += `\n   → ONLY suggest venues that are fully accessible per these needs`
       }
-      if (prefs.timePreference) {
-        basePrompt += `\n🕐 Time Preference: ${prefs.timePreference}`
+      if (prefs.business?.length) {
+        basePrompt += `\n\n💼 BUSINESS PREFERENCES: ${prefs.business.join(', ')}`
+      }
+      if (prefs.entertainment?.length) {
+        basePrompt += `\n\n🎭 ENTERTAINMENT PREFERENCES: ${prefs.entertainment.join(', ')}`
+        basePrompt += `\n   → Prioritize activities matching these interests`
+      }
+      if (prefs.budget) {
+        basePrompt += `\n\n💰 BUDGET RANGE: ${prefs.budget}`
+        basePrompt += `\n   → Keep recommendations within this price range`
+      }
+      if (prefs.timePreference && prefs.timePreference !== 'flexible') {
+        const timeDesc = prefs.timePreference === 'early-riser' 
+          ? 'Prefers morning activities (early breakfast, daytime tours)'
+          : 'Prefers evening/night activities (late dinners, nightlife)'
+        basePrompt += `\n\n🕐 TIME PREFERENCE: ${timeDesc}`
       }
       if (prefs.travelStyle) {
-        basePrompt += `\n✈️ Travel Style: ${prefs.travelStyle}`
+        basePrompt += `\n\n✈️ TRAVEL STYLE: ${prefs.travelStyle}`
       }
       
-      basePrompt += `\n\n⚠️ Always respect these preferences when making recommendations!`
+      basePrompt += `\n\n🚨 ENFORCEMENT RULES:`
+      basePrompt += `\n   1. NEVER recommend options that violate dietary restrictions`
+      basePrompt += `\n   2. NEVER suggest inaccessible venues when accessibility needs are specified`
+      basePrompt += `\n   3. When user asks generic questions like "good restaurants", automatically apply ALL their preferences`
+      basePrompt += `\n   4. Do NOT ask the user to repeat their preferences - you already have them!`
     }
 
     // Add comprehensive context sections
