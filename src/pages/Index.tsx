@@ -36,7 +36,7 @@ import {
   calculateProTripStats,
   calculateEventStats,
 } from '../utils/tripStatsCalculator';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMobilePortrait } from '../hooks/useMobilePortrait';
 import {
   convertSupabaseTripsToMock,
