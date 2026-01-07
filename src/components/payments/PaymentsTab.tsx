@@ -366,16 +366,62 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       return;
     }
 
-    // Production mode: use database
-    const paymentId = await createPaymentMessage(paymentData);
+    // Production mode: use database with structured error handling
+    const result = await createPaymentMessage(paymentData);
     
-    if (paymentId) {
-      // Refresh payment lists immediately
+    if (result && typeof result === 'object' && 'success' in result) {
+      // New structured response
+      if (result.success && result.paymentId) {
+        refreshPayments();
+        
+        const newPayment = {
+          id: result.paymentId,
+          tripId: tripId,
+          amount: paymentData.amount,
+          currency: paymentData.currency,
+          description: paymentData.description,
+          splitCount: paymentData.splitCount,
+          splitParticipants: paymentData.splitParticipants,
+          paymentMethods: paymentData.paymentMethods,
+          createdBy: user?.id || '',
+          createdAt: new Date().toISOString(),
+          isSettled: false
+        };
+        setPaymentMessages(prev => [newPayment, ...prev]);
+        
+        if (user?.id) {
+          try {
+            const summary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
+            setBalanceSummary(summary);
+          } catch (error) {
+            console.error('Error refreshing balance summary:', error);
+          }
+        }
+        
+        toast({
+          title: "Payment created",
+          description: `${paymentData.description} - $${paymentData.amount.toFixed(2)}`
+        });
+      } else {
+        // Handle specific error types
+        const errorCode = result.error?.code || 'UNKNOWN';
+        const errorMessage = result.error?.message || 'Failed to create payment request';
+        
+        toast({
+          title: errorCode === 'SESSION_EXPIRED' ? "Session Expired" : 
+                 errorCode === 'RLS_VIOLATION' ? "Permission Denied" :
+                 errorCode === 'VALIDATION_FAILED' ? "Validation Error" :
+                 errorCode === 'NETWORK_ERROR' ? "Connection Error" : "Error",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
+    } else if (result) {
+      // Legacy string response (paymentId directly)
       refreshPayments();
       
-      // Also add to local state for immediate display
       const newPayment = {
-        id: paymentId,
+        id: result as unknown as string,
         tripId: tripId,
         amount: paymentData.amount,
         currency: paymentData.currency,
@@ -389,7 +435,6 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       };
       setPaymentMessages(prev => [newPayment, ...prev]);
       
-      // Refresh balance summary
       if (user?.id) {
         try {
           const summary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
@@ -401,7 +446,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     } else {
       toast({
         title: "Error",
-        description: "Failed to create payment request",
+        description: "Failed to create payment request. Please try again.",
         variant: "destructive"
       });
     }
@@ -526,7 +571,8 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       {/* Outstanding Payments with Settlement Tracking */}
       <OutstandingPayments 
         key={`outstanding-${refreshKey}`}
-        tripId={tripId} 
+        tripId={tripId}
+        tripMembers={tripMembers}
         onPaymentUpdated={refreshPayments} 
       />
 

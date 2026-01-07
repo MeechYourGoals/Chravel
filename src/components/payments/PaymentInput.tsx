@@ -169,8 +169,9 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Amount, Currency & Description - 3 Column Grid with Equal Heights */}
+          {/* Amount, Description & Currency - 3 Column Grid (UX-optimized order) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* 1. Amount (first - most important) */}
             <div className="flex flex-col space-y-1">
               <Label htmlFor="amount" className="text-sm font-medium text-gray-300">Amount</Label>
               <Input
@@ -185,14 +186,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
               />
             </div>
 
-            <div className="flex flex-col space-y-1">
-              <Label htmlFor="currency" className="text-sm font-medium text-gray-300">Currency</Label>
-              <CurrencySelector
-                value={currency}
-                onChange={setCurrency}
-              />
-            </div>
-
+            {/* 2. Description (second - what was it for?) */}
             <div className="flex flex-col space-y-1">
               <Label htmlFor="description" className="text-sm font-medium text-gray-300">What's this for?</Label>
               <textarea
@@ -202,6 +196,15 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                 placeholder="Dinner, taxi, tickets, etc."
                 className="w-full h-12 resize-none rounded-xl bg-gray-900/40 border border-white/10 text-white px-4 py-2 focus:ring-2 focus:ring-emerald-400/40 focus:outline-none placeholder-gray-500 transition-all"
                 required
+              />
+            </div>
+
+            {/* 3. Currency (third - typically less frequently changed) */}
+            <div className="flex flex-col space-y-1">
+              <Label htmlFor="currency" className="text-sm font-medium text-gray-300">Currency</Label>
+              <CurrencySelector
+                value={currency}
+                onChange={setCurrency}
               />
             </div>
           </div>
