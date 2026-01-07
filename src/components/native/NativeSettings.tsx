@@ -22,7 +22,7 @@ import { NativeList, NativeListSection, NativeListItem, NativeToggleItem } from 
 import { NativeLargeTitle } from './NativeLargeTitle';
 import { NativeSubscriptionPaywall } from './NativeSubscriptionPaywall';
 import { getPlatform } from '@/integrations/revenuecat/revenuecatClient';
-import { getAppVersion, getBuildNumber } from '@/native/appInfo';
+import { getAppVersion } from '@/native/appInfo';
 
 interface NativeSettingsProps {
   user?: {
@@ -70,10 +70,9 @@ export const NativeSettings = ({
   // Load app info
   React.useEffect(() => {
     const loadAppInfo = async () => {
-      const version = await getAppVersion();
-      const build = await getBuildNumber();
-      setAppVersion(version);
-      setBuildNumber(build);
+      const versionInfo = await getAppVersion();
+      setAppVersion(versionInfo.versionNumber);
+      setBuildNumber(versionInfo.bundleNumber);
     };
     loadAppInfo();
   }, []);
