@@ -552,7 +552,7 @@ const Index = () => {
 
             <div className="max-w-[1500px] mx-auto">
               {/* Desktop navigation - hidden on mobile, use NativeTabBar instead */}
-              <div className="hidden md:flex w-full flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
+              <div className="hidden lg:flex w-full flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
                 <TripViewToggle
                   viewMode={viewMode}
                   onViewModeChange={handleViewModeChange}
@@ -702,7 +702,7 @@ const Index = () => {
 
           <div className="max-w-[1500px] mx-auto">
             {/* Desktop navigation - hidden on mobile, use NativeTabBar instead */}
-            <div className="hidden md:flex w-full flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
+            <div className="hidden lg:flex w-full flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
               <TripViewToggle
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
@@ -871,7 +871,7 @@ const Index = () => {
         {/* Mobile auth moved to Settings menu - no floating button needed */}
 
         {/* Desktop navigation - hidden on mobile, use NativeTabBar instead */}
-        <div className="hidden md:flex w-full flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
+        <div className="hidden lg:flex w-full flex-col lg:flex-row gap-1.5 sm:gap-3 lg:gap-6 items-stretch mb-3 sm:mb-6">
           <TripViewToggle
             viewMode={viewMode}
             onViewModeChange={handleViewModeChange}

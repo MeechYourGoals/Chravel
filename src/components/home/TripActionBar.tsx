@@ -288,8 +288,8 @@ export const TripActionBar = ({
                 : "text-white hover:text-foreground"
             )}
           >
-            <span className="inline md:hidden text-sm">+ Trip</span>
-            <span className="hidden md:inline text-base">New Trip</span>
+            <span className="inline lg:hidden text-sm">+ Trip</span>
+            <span className="hidden lg:inline text-base">New Trip</span>
           </button>
 
           {/* Alerts with Badge */}
@@ -310,7 +310,7 @@ export const TripActionBar = ({
                 : "text-white hover:text-foreground"
             )}
           >
-            <span className="text-sm md:text-base">Alerts</span>
+            <span className="text-sm lg:text-base">Alerts</span>
             {unreadCount > 0 && (
               <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -401,7 +401,7 @@ export const TripActionBar = ({
                 : "text-white hover:text-foreground"
             )}
           >
-            <span className="text-sm md:text-base truncate">Settings</span>
+            <span className="text-sm lg:text-base truncate">Settings</span>
           </button>
 
           {/* Search */}

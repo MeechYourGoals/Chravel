@@ -132,7 +132,7 @@ export const NativeTabBar = ({
         'fixed inset-x-0 bottom-0 z-50',
         'bg-[#1c1c1e]/95 backdrop-blur-xl',
         'border-t border-white/10',
-        'md:hidden', // Only show on mobile
+        'lg:hidden', // Only show on mobile (use lg: to match MOBILE_BREAKPOINT = 1024)
         className,
       )}
       style={{
@@ -223,7 +223,7 @@ export const NativeTabBar = ({
 // Tab bar spacer to prevent content from being hidden behind the tab bar
 export const NativeTabBarSpacer = () => (
   <div
-    className="md:hidden"
+    className="lg:hidden"
     style={{
       height: 'calc(49px + env(safe-area-inset-bottom))',
     }}
