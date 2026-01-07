@@ -54,9 +54,11 @@ describe('retry utility', () => {
       const alwaysFail = vi.fn().mockRejectedValue(error);
 
       let caughtError: Error | null = null;
-      const promise = retryWithBackoff(alwaysFail, { maxRetries: 2 }).catch((e) => {
+      const promise = retryWithBackoff(alwaysFail, { maxRetries: 2 });
+
+      // Attach error handler immediately to prevent unhandled rejection
+      const handledPromise = promise.catch(e => {
         caughtError = e;
-        throw e;
       });
 
       // Advance timers for first retry (1s)
@@ -65,7 +67,7 @@ describe('retry utility', () => {
       // Advance timers for second retry (2s)
       await vi.advanceTimersByTimeAsync(2000);
 
-      await expect(promise).rejects.toThrow('Persistent error');
+      await handledPromise;
       expect(caughtError?.message).toBe('Persistent error');
       expect(alwaysFail).toHaveBeenCalledTimes(3); // Initial + 2 retries
     });
@@ -170,21 +172,23 @@ describe('retry utility', () => {
       const alwaysFail = vi.fn().mockRejectedValue(error);
 
       const onFailure = vi.fn();
-
       let caughtError: Error | null = null;
+
       const promise = retryWithBackoff(alwaysFail, {
         maxRetries: 2,
         onFailure,
-      }).catch((e) => {
+      });
+
+      // Attach error handler immediately to prevent unhandled rejection
+      const handledPromise = promise.catch(e => {
         caughtError = e;
-        throw e;
       });
 
       // Advance through all retries
       await vi.advanceTimersByTimeAsync(1000);
       await vi.advanceTimersByTimeAsync(2000);
 
-      await expect(promise).rejects.toThrow('Final error');
+      await handledPromise;
       expect(caughtError?.message).toBe('Final error');
       expect(onFailure).toHaveBeenCalledWith(error);
       expect(onFailure).toHaveBeenCalledTimes(1);
@@ -358,7 +362,7 @@ describe('retry utility', () => {
               console.warn(`Retry attempt ${attempt}/3:`, error.message);
             }
           },
-        }
+        },
       );
 
       const resultPromise = promise;
