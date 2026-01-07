@@ -58,16 +58,29 @@ export function AddEventModal({
             />
           </div>
 
-          <div>
-            <Label htmlFor="modal-time" className="text-gray-300 text-sm">Time</Label>
-            <Input
-              id="modal-time"
-              type="time"
-              className="mt-1.5 bg-gray-800 border-white/10 text-white"
-              value={newEvent.time}
-              onChange={(e) => onUpdateField('time', e.target.value)}
-              disabled={isSubmitting}
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="modal-start-time" className="text-gray-300 text-sm">Start Time</Label>
+              <Input
+                id="modal-start-time"
+                type="time"
+                className="mt-1.5 bg-gray-800 border-white/10 text-white"
+                value={newEvent.time}
+                onChange={(e) => onUpdateField('time', e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <Label htmlFor="modal-end-time" className="text-gray-300 text-sm">End Time</Label>
+              <Input
+                id="modal-end-time"
+                type="time"
+                className="mt-1.5 bg-gray-800 border-white/10 text-white"
+                value={newEvent.endTime || ''}
+                onChange={(e) => onUpdateField('endTime', e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
           </div>
 
           <div>
