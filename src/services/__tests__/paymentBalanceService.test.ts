@@ -38,7 +38,9 @@ describe('paymentBalanceService', () => {
     const mockMembershipCheck = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
+          })
         })
       })
     });
@@ -59,7 +61,9 @@ describe('paymentBalanceService', () => {
       // Mock trip_members check (membership validation)
       const mockMembershipSelect = vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
+          })
         })
       });
 
@@ -126,7 +130,9 @@ describe('paymentBalanceService', () => {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
+                })
               })
             })
           };
@@ -433,7 +439,9 @@ describe('paymentBalanceService', () => {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null })
+                })
               })
             })
           };
@@ -459,7 +467,9 @@ describe('paymentBalanceService', () => {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
+                })
               })
             })
           };
