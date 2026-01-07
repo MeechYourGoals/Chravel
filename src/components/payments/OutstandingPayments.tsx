@@ -3,13 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Checkbox } from '../ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { supabase } from '../../integrations/supabase/client';
 import { paymentService } from '../../services/paymentService';
 import { demoModeService } from '../../services/demoModeService';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/use-toast';
-import { Loader2, Clock, Users } from 'lucide-react';
+import { Loader2, Clock, Users, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { EditPaymentDialog } from './EditPaymentDialog';
 import * as haptics from '@/native/haptics';
 
 interface PaymentSplit {
@@ -41,10 +44,18 @@ interface OutstandingPayment {
   settledCount: number;
   paymentMethods: string[];
   creatorPaymentDetails: PaymentMethodDetail[];
+  splitParticipants?: string[];
+}
+
+interface TripMember {
+  id: string;
+  name: string;
+  avatar?: string;
 }
 
 interface OutstandingPaymentsProps {
   tripId: string;
+  tripMembers?: TripMember[];
   onPaymentUpdated?: () => void;
 }
 
@@ -60,9 +71,12 @@ const METHOD_DISPLAY_NAMES: Record<string, string> = {
   other: 'Other'
 };
 
-export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPaymentsProps) => {
+export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated }: OutstandingPaymentsProps) => {
   const [payments, setPayments] = useState<OutstandingPayment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingPayment, setEditingPayment] = useState<OutstandingPayment | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -283,6 +297,46 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
     }
   };
 
+  const handleDeletePayment = async (paymentId: string) => {
+    setDeleting(true);
+    
+    try {
+      if (demoActive) {
+        // Demo mode: remove from local state
+        setPayments(prev => prev.filter(p => p.id !== paymentId));
+        toast({ title: "Payment deleted (Demo)" });
+        setDeleteConfirmId(null);
+        onPaymentUpdated?.();
+        return;
+      }
+
+      // Authenticated mode: delete from database
+      const success = await paymentService.deletePaymentMessage(paymentId);
+      
+      if (success) {
+        toast({ title: "Payment deleted", description: "Payment request has been removed" });
+        setDeleteConfirmId(null);
+        await loadPayments();
+        onPaymentUpdated?.();
+      } else {
+        toast({ 
+          title: "Error", 
+          description: "Failed to delete payment. Please try again.", 
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      toast({ 
+        title: "Error", 
+        description: "An unexpected error occurred.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const formatCurrency = (amount: number, currency: string) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
   };
@@ -302,104 +356,177 @@ export const OutstandingPayments = ({ tripId, onPaymentUpdated }: OutstandingPay
   }
 
   return (
-    <Card className="rounded-lg border-amber-500/30 bg-gradient-to-br from-amber-900/10 to-amber-950/10">
-      <CardHeader className="py-3 px-4">
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-amber-400" />
-          <CardTitle className="text-base text-amber-100">Outstanding Payments</CardTitle>
-        </div>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Track who has paid and mark as settled
-        </p>
-      </CardHeader>
-      <CardContent className="py-2 px-4 space-y-3">
-        {payments.map(payment => {
-          const isCreator = user?.id === payment.createdBy;
-          
-          return (
-            <div key={payment.id} className="bg-card/50 rounded-lg p-3 border border-border">
-              {/* Payment Header - Compact single row */}
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-                  <span className="font-semibold text-base text-foreground">{payment.description}</span>
-                  <span className="text-muted-foreground hidden sm:inline">•</span>
-                  <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-300 border-amber-500/30">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Pending
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    {payment.settledCount}/{payment.splits.length} paid
-                  </span>
+    <>
+      <Card className="rounded-lg border-amber-500/30 bg-gradient-to-br from-amber-900/10 to-amber-950/10">
+        <CardHeader className="py-3 px-4">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-amber-400" />
+            <CardTitle className="text-base text-amber-100">Outstanding Payments</CardTitle>
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Track who has paid and mark as settled
+          </p>
+        </CardHeader>
+        <CardContent className="py-2 px-4 space-y-3">
+          {payments.map(payment => {
+            const isCreator = user?.id === payment.createdBy;
+            
+            return (
+              <div key={payment.id} className="bg-card/50 rounded-lg p-3 border border-border">
+                {/* Payment Header - Compact single row */}
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                    <span className="font-semibold text-base text-foreground">{payment.description}</span>
+                    <span className="text-muted-foreground hidden sm:inline">•</span>
+                    <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-300 border-amber-500/30">
+                      <Clock className="w-3 h-3 mr-1" />
+                      Pending
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {payment.settledCount}/{payment.splits.length} paid
+                    </span>
+                    
+                    {/* Payment Methods inline with separators */}
+                    {payment.creatorPaymentDetails.map((method) => (
+                      <React.Fragment key={method.method}>
+                        <span className="text-muted-foreground hidden sm:inline">•</span>
+                        <span className="text-sm">
+                          <span className="text-muted-foreground">{method.displayName}:</span>{' '}
+                          <span className="text-primary">{method.identifier || '—'}</span>
+                        </span>
+                      </React.Fragment>
+                    ))}
+                  </div>
                   
-                  {/* Payment Methods inline with separators */}
-                  {payment.creatorPaymentDetails.map((method) => (
-                    <React.Fragment key={method.method}>
-                      <span className="text-muted-foreground hidden sm:inline">•</span>
-                      <span className="text-sm">
-                        <span className="text-muted-foreground">{method.displayName}:</span>{' '}
-                        <span className="text-primary">{method.identifier || '—'}</span>
-                      </span>
-                    </React.Fragment>
-                  ))}
+                  {/* Amount and Actions on far right */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="font-bold text-lg text-foreground">
+                      {formatCurrency(payment.amount, payment.currency)}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      ({formatCurrency(payment.amount / payment.splitCount, payment.currency)}/ea)
+                    </span>
+                    
+                    {/* Edit/Delete buttons - only for creator */}
+                    {isCreator && (
+                      <div className="flex items-center gap-1 ml-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => setEditingPayment(payment)}
+                          title="Edit payment"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteConfirmId(payment.id)}
+                          title="Delete payment"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                
-                {/* Amount on far right */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="font-bold text-lg text-foreground">
-                    {formatCurrency(payment.amount, payment.currency)}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    ({formatCurrency(payment.amount / payment.splitCount, payment.currency)}/ea)
-                  </span>
-                </div>
+
+                {/* Splits List - compact, no header label */}
+                {isCreator && payment.splits.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-border space-y-0.5">
+                    {payment.splits.map(split => (
+                      <div key={split.id} className="flex items-center justify-between py-0.5">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            checked={split.is_settled}
+                            onCheckedChange={() => handleToggleSplit(split.id, payment.id, split.is_settled)}
+                          />
+                          <Avatar className="w-5 h-5">
+                            <AvatarImage src={split.debtor_avatar} />
+                            <AvatarFallback className="text-xs">
+                              {split.debtor_name?.charAt(0) || '?'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className={`text-sm ${split.is_settled ? 'text-muted-foreground' : 'text-foreground'}`}>
+                            {split.debtor_name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">
+                            {formatCurrency(split.amount_owed, payment.currency)}
+                          </span>
+                          {split.is_settled && (
+                            <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-300 border-emerald-500/30">
+                              Paid
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Non-creator view - inline */}
+                {!isCreator && (
+                  <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                    <Users className="w-3 h-3" />
+                    <span>Split among {payment.splitCount} people</span>
+                  </div>
+                )}
               </div>
+            );
+          })}
+        </CardContent>
+      </Card>
 
-              {/* Splits List - compact, no header label */}
-              {isCreator && payment.splits.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-border space-y-0.5">
-                  {payment.splits.map(split => (
-                    <div key={split.id} className="flex items-center justify-between py-0.5">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          checked={split.is_settled}
-                          onCheckedChange={() => handleToggleSplit(split.id, payment.id, split.is_settled)}
-                        />
-                        <Avatar className="w-5 h-5">
-                          <AvatarImage src={split.debtor_avatar} />
-                          <AvatarFallback className="text-xs">
-                            {split.debtor_name?.charAt(0) || '?'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className={`text-sm ${split.is_settled ? 'text-muted-foreground' : 'text-foreground'}`}>
-                          {split.debtor_name}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">
-                          {formatCurrency(split.amount_owed, payment.currency)}
-                        </span>
-                        {split.is_settled && (
-                          <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-300 border-emerald-500/30">
-                            Paid
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+      {/* Edit Payment Dialog */}
+      <EditPaymentDialog
+        payment={editingPayment}
+        tripMembers={tripMembers}
+        isOpen={!!editingPayment}
+        onClose={() => setEditingPayment(null)}
+        onSave={() => {
+          loadPayments();
+          onPaymentUpdated?.();
+        }}
+        isDemoMode={demoActive}
+      />
 
-              {/* Non-creator view - inline */}
-              {!isCreator && (
-                <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                  <Users className="w-3 h-3" />
-                  <span>Split among {payment.splitCount} people</span>
-                </div>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Delete Payment
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground">
+            Are you sure you want to delete this payment request? This will remove all associated splits and cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmId(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => deleteConfirmId && handleDeletePayment(deleteConfirmId)}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
               )}
-            </div>
-          );
-        })}
-      </CardContent>
-    </Card>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

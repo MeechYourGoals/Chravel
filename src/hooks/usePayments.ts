@@ -136,16 +136,24 @@ export const usePayments = (tripId?: string) => {
     splitCount: number;
     splitParticipants: string[];
     paymentMethods: string[];
-  }) => {
-    if (!tripId || !userId) return null;
+  }): Promise<{ success: boolean; paymentId?: string; error?: { code: string; message: string } } | null> => {
+    if (!tripId || !userId) {
+      return {
+        success: false,
+        error: {
+          code: 'VALIDATION_FAILED',
+          message: 'Trip ID or User ID is missing.'
+        }
+      };
+    }
 
-    const paymentId = await paymentService.createPaymentMessage(tripId, userId, paymentData);
-    if (paymentId) {
+    const result = await paymentService.createPaymentMessage(tripId, userId, paymentData);
+    if (result.success && result.paymentId) {
       // Refresh trip payments
       const updatedPayments = await paymentService.getTripPaymentMessages(tripId);
       setTripPayments(updatedPayments);
     }
-    return paymentId;
+    return result;
   };
 
   const settlePayment = async (splitId: string, settlementMethod: string) => {

@@ -344,14 +344,7 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated }: PaymentHistoryProps
             <DialogTitle>Edit Payment</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Input
-                id="description"
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-              />
-            </div>
+            {/* Amount first - UX-optimized order matching PaymentInput */}
             <div className="space-y-2">
               <Label htmlFor="amount">Amount</Label>
               <Input
@@ -360,6 +353,15 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated }: PaymentHistoryProps
                 step="0.01"
                 value={editAmount}
                 onChange={(e) => setEditAmount(e.target.value)}
+              />
+            </div>
+            {/* Description second */}
+            <div className="space-y-2">
+              <Label htmlFor="description">What's this for?</Label>
+              <Input
+                id="description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
               />
             </div>
           </div>

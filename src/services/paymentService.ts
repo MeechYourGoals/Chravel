@@ -100,7 +100,7 @@ export const paymentService = {
     }
   },
 
-  // Trip Payment Messages
+  // Trip Payment Messages - Error result type for better error handling
   async createPaymentMessage(
     tripId: string, 
     userId: string, 
@@ -112,8 +112,51 @@ export const paymentService = {
       splitParticipants: string[];
       paymentMethods: string[];
     }
-  ): Promise<string | null> {
+  ): Promise<{ success: boolean; paymentId?: string; error?: { code: string; message: string } }> {
     try {
+      // Validate session before attempting RPC
+      const { data: session, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.session) {
+        return {
+          success: false,
+          error: {
+            code: 'SESSION_EXPIRED',
+            message: 'Your session has expired. Please sign in again.'
+          }
+        };
+      }
+
+      // Validate required fields
+      if (!paymentData.amount || paymentData.amount <= 0) {
+        return {
+          success: false,
+          error: {
+            code: 'VALIDATION_FAILED',
+            message: 'Amount must be greater than zero.'
+          }
+        };
+      }
+
+      if (!paymentData.description?.trim()) {
+        return {
+          success: false,
+          error: {
+            code: 'VALIDATION_FAILED',
+            message: 'Description is required.'
+          }
+        };
+      }
+
+      if (!paymentData.splitParticipants || paymentData.splitParticipants.length === 0) {
+        return {
+          success: false,
+          error: {
+            code: 'VALIDATION_FAILED',
+            message: 'Please select at least one participant.'
+          }
+        };
+      }
+
       // Use enhanced v2 function with audit trail and transaction safety
       const { data: paymentId, error } = await supabase
         .rpc('create_payment_with_splits_v2', {
@@ -127,22 +170,68 @@ export const paymentService = {
           p_created_by: userId
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[paymentService] RPC error:', error);
+        
+        // Detect RLS violation
+        if (error.message?.includes('row-level security') || error.code === '42501') {
+          return {
+            success: false,
+            error: {
+              code: 'RLS_VIOLATION',
+              message: 'You do not have permission to create payments for this trip.'
+            }
+          };
+        }
+
+        // Detect network/connection issues
+        if (error.message?.includes('network') || error.message?.includes('fetch')) {
+          return {
+            success: false,
+            error: {
+              code: 'NETWORK_ERROR',
+              message: 'Network error. Please check your connection and try again.'
+            }
+          };
+        }
+
+        return {
+          success: false,
+          error: {
+            code: 'UNKNOWN',
+            message: error.message || 'Failed to create payment. Please try again.'
+          }
+        };
+      }
+
+      if (!paymentId) {
+        return {
+          success: false,
+          error: {
+            code: 'UNKNOWN',
+            message: 'Payment creation failed. No payment ID returned.'
+          }
+        };
+      }
 
       // Record payment split patterns for ML-based suggestions (non-blocking)
-      // This helps improve future participant suggestions
-      if (paymentId && paymentData.splitParticipants.length > 0) {
+      if (paymentData.splitParticipants.length > 0) {
         recordPaymentSplitPattern(tripId, userId, paymentData.splitParticipants)
           .catch(err => {
-            // Silently fail - pattern recording is optional and shouldn't block payment creation
             console.debug('[paymentService] Failed to record split pattern:', err);
           });
       }
 
-      return paymentId;
+      return { success: true, paymentId };
     } catch (error) {
-      console.error('Error creating payment message:', error);
-      return null;
+      console.error('[paymentService] Unexpected error creating payment:', error);
+      return {
+        success: false,
+        error: {
+          code: 'UNKNOWN',
+          message: error instanceof Error ? error.message : 'An unexpected error occurred.'
+        }
+      };
     }
   },
 
