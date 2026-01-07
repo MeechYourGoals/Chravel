@@ -45,7 +45,7 @@ const DemoEntry = () => {
 
       // Enable demo mode
       await store.setDemoView('app-preview');
-      navigate('/', { replace: true });
+      navigate('/?from=demo', { replace: true });
     };
 
     processDemo();
