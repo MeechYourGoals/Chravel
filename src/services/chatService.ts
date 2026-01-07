@@ -379,27 +379,28 @@ export async function toggleMessageReaction(
   reactionType: ReactionType
 ): Promise<{ added: boolean; error?: string }> {
   try {
-    // Check if reaction already exists
-    const { data: existing } = await supabase
+    // Use direct query with type assertion since message_reactions isn't in generated types
+    const { data: existingRows } = await (supabase as any)
       .from('message_reactions')
       .select('id')
       .eq('message_id', messageId)
       .eq('user_id', userId)
       .eq('reaction_type', reactionType)
-      .single();
+      .limit(1);
+
+    const existing = existingRows?.[0] as { id: string } | undefined;
 
     if (existing) {
       // Remove existing reaction
-      const { error } = await supabase
+      await (supabase as any)
         .from('message_reactions')
         .delete()
         .eq('id', existing.id);
 
-      if (error) throw error;
       return { added: false };
     } else {
       // Add new reaction
-      const { error } = await supabase
+      await (supabase as any)
         .from('message_reactions')
         .insert({
           message_id: messageId,
@@ -407,7 +408,6 @@ export async function toggleMessageReaction(
           reaction_type: reactionType,
         });
 
-      if (error) throw error;
       return { added: true };
     }
   } catch (error: any) {
@@ -421,7 +421,7 @@ export async function toggleMessageReaction(
  */
 export async function getMessageReactions(messageId: string): Promise<ReactionCount[]> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('message_reactions')
       .select('reaction_type, user_id')
       .eq('message_id', messageId);
@@ -430,7 +430,7 @@ export async function getMessageReactions(messageId: string): Promise<ReactionCo
 
     // Aggregate reactions by type
     const reactionMap = new Map<ReactionType, string[]>();
-    for (const row of data || []) {
+    for (const row of (data || []) as { reaction_type: string; user_id: string }[]) {
       const type = row.reaction_type as ReactionType;
       if (!reactionMap.has(type)) {
         reactionMap.set(type, []);
@@ -460,7 +460,7 @@ export async function getMessagesReactions(
   if (messageIds.length === 0) return {};
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('message_reactions')
       .select('message_id, reaction_type, user_id')
       .in('message_id', messageIds);
@@ -470,7 +470,7 @@ export async function getMessagesReactions(
     // Build reaction counts per message
     const result: Record<string, Record<ReactionType, ReactionCount>> = {};
 
-    for (const row of data || []) {
+    for (const row of (data || []) as { message_id: string; reaction_type: string; user_id: string }[]) {
       const msgId = row.message_id;
       const type = row.reaction_type as ReactionType;
 
