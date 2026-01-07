@@ -61,23 +61,23 @@ export const TripStatsOverview = ({ stats, activeFilter, onFilterClick }: TripSt
           onClick={handleExpandToggle}
           className="flex items-center justify-between cursor-pointer"
         >
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-center flex-1 gap-2">
             {renderStatButton('total', stats.total, 'Total', 'text-foreground')}
             {renderStatButton('upcoming', stats.upcoming, 'Upcoming', 'text-accent')}
             {renderStatButton('inProgress', stats.inProgress, 'Active', 'text-blue-500', true)}
+            {renderStatButton('requests', stats.requests, 'Requests', 'text-yellow-500', true)}
           </div>
           <ChevronDown 
-            className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-muted-foreground transition-transform duration-200 flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
           />
         </div>
         
-        {/* Expandable row (hidden by default) */}
+        {/* Expandable row (hidden by default) - only Completed */}
         <div 
           className={`overflow-hidden transition-all duration-200 ease-out ${isExpanded ? 'max-h-12 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}
         >
-          <div className="flex items-center justify-center gap-6">
+          <div className="flex items-center justify-center">
             {renderStatButton('completed', stats.completed, 'Completed', 'text-green-500')}
-            {renderStatButton('requests', stats.requests, 'Requests', 'text-yellow-500', true)}
           </div>
         </div>
         
