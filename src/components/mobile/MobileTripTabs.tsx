@@ -1,25 +1,57 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { MessageCircle, Calendar, ClipboardList, BarChart3, Camera, MapPin, Sparkles, CreditCard, Lock, Users } from 'lucide-react';
+import React, { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
+import {
+  MessageCircle,
+  Calendar,
+  ClipboardList,
+  BarChart3,
+  Camera,
+  MapPin,
+  Sparkles,
+  CreditCard,
+  Lock,
+  Users,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useFeatureToggle } from '../../hooks/useFeatureToggle';
-import { TripChat } from '../TripChat';
-import { MobileGroupCalendar } from './MobileGroupCalendar';
-import { MobileTripTasks } from './MobileTripTasks';
-import { CommentsWall } from '../CommentsWall';
-import { MobileUnifiedMediaHub } from './MobileUnifiedMediaHub';
-import { PlacesSection } from '../PlacesSection';
-import { AIConciergeChat } from '../AIConciergeChat';
-import { MobileTripChat } from './MobileTripChat';
-import { MobileTripPayments } from './MobileTripPayments';
 import { hapticService } from '../../services/hapticService';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { ErrorBoundary } from '../ErrorBoundary';
-import { EnhancedAgendaTab } from '../events/EnhancedAgendaTab';
-import { LineupTab } from '../events/LineupTab';
-import { EventTasksTab } from '../events/EventTasksTab';
 import { useEventPermissions } from '@/hooks/useEventPermissions';
 import type { EventData } from '../../types/events';
+
+// ⚡ PERFORMANCE: Lazy load all tab components for code splitting
+// This significantly reduces initial bundle size - tabs load on demand
+const TripChat = lazy(() => import('../TripChat').then(m => ({ default: m.TripChat })));
+const MobileGroupCalendar = lazy(() =>
+  import('./MobileGroupCalendar').then(m => ({ default: m.MobileGroupCalendar })),
+);
+const MobileTripTasks = lazy(() =>
+  import('./MobileTripTasks').then(m => ({ default: m.MobileTripTasks })),
+);
+const CommentsWall = lazy(() => import('../CommentsWall').then(m => ({ default: m.CommentsWall })));
+const MobileUnifiedMediaHub = lazy(() =>
+  import('./MobileUnifiedMediaHub').then(m => ({ default: m.MobileUnifiedMediaHub })),
+);
+const PlacesSection = lazy(() =>
+  import('../PlacesSection').then(m => ({ default: m.PlacesSection })),
+);
+const AIConciergeChat = lazy(() =>
+  import('../AIConciergeChat').then(m => ({ default: m.AIConciergeChat })),
+);
+const MobileTripChat = lazy(() =>
+  import('./MobileTripChat').then(m => ({ default: m.MobileTripChat })),
+);
+const MobileTripPayments = lazy(() =>
+  import('./MobileTripPayments').then(m => ({ default: m.MobileTripPayments })),
+);
+const EnhancedAgendaTab = lazy(() =>
+  import('../events/EnhancedAgendaTab').then(m => ({ default: m.EnhancedAgendaTab })),
+);
+const LineupTab = lazy(() => import('../events/LineupTab').then(m => ({ default: m.LineupTab })));
+const EventTasksTab = lazy(() =>
+  import('../events/EventTasksTab').then(m => ({ default: m.EventTasksTab })),
+);
 
 interface MobileTripTabsProps {
   activeTab: string;
@@ -43,7 +75,7 @@ export const MobileTripTabs = ({
   variant = 'consumer',
   participants = [],
   tripData,
-  eventData
+  eventData,
 }: MobileTripTabsProps) => {
   const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
@@ -73,7 +105,7 @@ export const MobileTripTabs = ({
         { id: 'media', label: 'Media', icon: Camera, enabled: features.showMedia },
         { id: 'lineup', label: 'Line-up', icon: Users, enabled: true },
         { id: 'polls', label: 'Polls', icon: BarChart3, enabled: features.showPolls },
-        { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: true }
+        { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: true },
       ];
     }
 
@@ -86,7 +118,7 @@ export const MobileTripTabs = ({
       { id: 'payments', label: 'Payments', icon: CreditCard, enabled: features.showPayments },
       { id: 'places', label: 'Places', icon: MapPin, enabled: features.showPlaces },
       { id: 'polls', label: 'Polls', icon: BarChart3, enabled: features.showPolls },
-      { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: features.showTasks }
+      { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: features.showTasks },
     ];
 
     return baseTabs;
@@ -129,7 +161,7 @@ export const MobileTripTabs = ({
   const handleTabPress = async (tabId: string, enabled: boolean) => {
     if (!enabled) {
       toast.info('This feature is disabled for this trip', {
-        description: 'Contact trip admin to enable this feature'
+        description: 'Contact trip admin to enable this feature',
       });
       return;
     }
@@ -137,11 +169,23 @@ export const MobileTripTabs = ({
     onTabChange(tabId);
   };
 
+  // ⚡ PERFORMANCE: Skeleton loader for lazy-loaded tabs
+  const TabSkeleton = () => (
+    <div className="flex items-center justify-center h-full min-h-[300px]">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 border-3 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+        <p className="text-sm text-gray-400">Loading...</p>
+      </div>
+    </div>
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
       // Event-specific tabs
       case 'agenda':
-        return <EnhancedAgendaTab eventId={tripId} userRole={isEventAdmin ? 'organizer' : 'attendee'} />;
+        return (
+          <EnhancedAgendaTab eventId={tripId} userRole={isEventAdmin ? 'organizer' : 'attendee'} />
+        );
       case 'lineup':
         return <LineupTab speakers={eventData?.speakers || []} userRole="attendee" />;
       case 'tasks':
@@ -152,12 +196,14 @@ export const MobileTripTabs = ({
         return <MobileTripTasks tripId={tripId} />;
       // Common tabs
       case 'chat':
-        return <TripChat 
-          tripId={tripId} 
-          isPro={variant === 'pro'} 
-          isEvent={variant === 'event'}
-          participants={participants}
-        />;
+        return (
+          <TripChat
+            tripId={tripId}
+            isPro={variant === 'pro'}
+            isEvent={variant === 'event'}
+            participants={participants}
+          />
+        );
       case 'calendar':
         return <MobileGroupCalendar tripId={tripId} />;
       case 'polls':
@@ -169,13 +215,7 @@ export const MobileTripTabs = ({
       case 'payments':
         return <MobileTripPayments tripId={tripId} />;
       case 'concierge':
-        return (
-          <AIConciergeChat 
-            tripId={tripId}
-            basecamp={basecamp}
-            isDemoMode={isDemoMode}
-          />
-        );
+        return <AIConciergeChat tripId={tripId} basecamp={basecamp} isDemoMode={isDemoMode} />;
       default:
         return <MobileTripChat tripId={tripId} />;
     }
@@ -188,18 +228,18 @@ export const MobileTripTabs = ({
         <div
           ref={tabsContainerRef}
           className="flex overflow-x-auto scrollbar-hide gap-2 px-4 py-2"
-          style={{ 
-            scrollbarWidth: 'none', 
+          style={{
+            scrollbarWidth: 'none',
             msOverflowStyle: 'none',
             scrollSnapType: 'x mandatory',
-            WebkitOverflowScrolling: 'touch'
+            WebkitOverflowScrolling: 'touch',
           }}
         >
-          {tabs.map((tab) => {
+          {tabs.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             const enabled = tab.enabled;
-            
+
             return (
               <button
                 key={tab.id}
@@ -217,8 +257,8 @@ export const MobileTripTabs = ({
                     isActive && enabled
                       ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-lg`
                       : enabled
-                      ? 'bg-white/10 text-gray-300'
-                      : 'bg-white/5 text-gray-500 opacity-40 grayscale cursor-not-allowed'
+                        ? 'bg-white/10 text-gray-300'
+                        : 'bg-white/5 text-gray-500 opacity-40 grayscale cursor-not-allowed'
                   }
                 `}
               >
@@ -237,15 +277,12 @@ export const MobileTripTabs = ({
         className="bg-background flex flex-col min-h-0 flex-1"
         style={{
           height: 'calc(100dvh - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px))',
-          WebkitOverflowScrolling: 'touch'
+          WebkitOverflowScrolling: 'touch',
         }}
       >
-        <ErrorBoundary
-          key={`${activeTab}-${errorBoundaryKey}`}
-          compact
-          onRetry={handleErrorRetry}
-        >
-          {renderTabContent()}
+        <ErrorBoundary key={`${activeTab}-${errorBoundaryKey}`} compact onRetry={handleErrorRetry}>
+          {/* ⚡ PERFORMANCE: Suspense boundary for lazy-loaded tab components */}
+          <Suspense fallback={<TabSkeleton />}>{renderTabContent()}</Suspense>
         </ErrorBoundary>
       </div>
     </>

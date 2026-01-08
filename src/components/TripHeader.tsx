@@ -1,6 +1,18 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Calendar, MapPin, Users, Plus, Settings, Edit, FileDown, Camera, Loader2, Crop, LogOut, AlertTriangle } from 'lucide-react';
+import {
+  Calendar,
+  MapPin,
+  Users,
+  Plus,
+  Settings,
+  Edit,
+  FileDown,
+  Camera,
+  Loader2,
+  Crop,
+  LogOut,
+  AlertTriangle,
+} from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { InviteModal } from './InviteModal';
 import { CoverPhotoCropModal } from './CoverPhotoCropModal';
@@ -22,8 +34,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 // Stable empty array to prevent Zustand selector reference changes causing infinite re-renders
-const EMPTY_MEMBERS_ARRAY: Array<{ id: number | string; name: string; avatar?: string; role?: string; email?: string }> = [];
-
+const EMPTY_MEMBERS_ARRAY: Array<{
+  id: number | string;
+  name: string;
+  avatar?: string;
+  role?: string;
+  email?: string;
+}> = [];
 
 interface TripHeaderProps {
   trip: {
@@ -51,14 +68,35 @@ interface TripHeaderProps {
   category?: ProTripCategory;
   tags?: string[];
   onCategoryChange?: (category: ProTripCategory) => void;
+  // ⚡ PERFORMANCE: Optional pre-loaded member data to avoid duplicate fetches
+  preloadedTripCreatorId?: string | null;
+  preloadedCanRemoveMembers?: () => Promise<boolean>;
+  preloadedRemoveMember?: (userId: string) => Promise<boolean>;
+  preloadedLeaveTrip?: (tripName: string) => Promise<boolean>;
 }
 
-export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpdate, onShowExport, category, tags = [], onCategoryChange: _onCategoryChange }: TripHeaderProps) => {
+export const TripHeader = ({
+  trip,
+  onManageUsers,
+  onDescriptionUpdate,
+  onTripUpdate,
+  onShowExport,
+  category,
+  tags = [],
+  onCategoryChange: _onCategoryChange,
+  // ⚡ PERFORMANCE: Use pre-loaded data when available to avoid duplicate fetches
+  preloadedTripCreatorId,
+  preloadedCanRemoveMembers,
+  preloadedRemoveMember,
+  preloadedLeaveTrip,
+}: TripHeaderProps) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showInvite, setShowInvite] = useState(false);
   const [showAllCollaborators, setShowAllCollaborators] = useState(false);
-  const [collaboratorsInitialTab, setCollaboratorsInitialTab] = useState<'members' | 'requests'>('members');
+  const [collaboratorsInitialTab, setCollaboratorsInitialTab] = useState<'members' | 'requests'>(
+    'members',
+  );
   const [showEditModal, setShowEditModal] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
@@ -88,61 +126,71 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
   }, [searchParams, setSearchParams]);
   const { variant, accentColors } = useTripVariant();
   const { coverPhoto, updateCoverPhoto, isUpdating } = useTripCoverPhoto(
-    trip.id.toString(), 
-    trip.coverPhoto
+    trip.id.toString(),
+    trip.coverPhoto,
   );
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
-  const { tripCreatorId, canRemoveMembers, removeMember, leaveTrip } = useTripMembers(trip.id.toString());
+
+  // ⚡ PERFORMANCE: Only call useTripMembers if preloaded data not provided
+  // This prevents duplicate network requests when parent already has this data
+  const needsOwnMemberData = preloadedTripCreatorId === undefined;
+  const memberHookData = useTripMembers(needsOwnMemberData ? trip.id.toString() : undefined);
+
+  // Use preloaded data if available, otherwise use hook data
+  const tripCreatorId = preloadedTripCreatorId ?? memberHookData.tripCreatorId;
+  const canRemoveMembers = preloadedCanRemoveMembers ?? memberHookData.canRemoveMembers;
+  const removeMember = preloadedRemoveMember ?? memberHookData.removeMember;
+  const leaveTrip = preloadedLeaveTrip ?? memberHookData.leaveTrip;
   const [isUploading, setIsUploading] = useState(false);
   const [showCropModal, setShowCropModal] = useState(false);
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
-  
+
   // Fetch pending join requests
-  const { 
-    requests: pendingRequests, 
-    approveRequest, 
-    rejectRequest, 
-    isProcessing: isProcessingRequest 
-  } = useJoinRequests({ 
-    tripId: trip.id.toString(), 
+  const {
+    requests: pendingRequests,
+    approveRequest,
+    rejectRequest,
+    isProcessing: isProcessingRequest,
+  } = useJoinRequests({
+    tripId: trip.id.toString(),
     enabled: true,
-    isDemoMode 
+    isDemoMode,
   });
-  
+
   // In demo mode, always treat as admin so the Requests tab shows
   // In authenticated mode, check if user is creator or can remove members
   const [isAdmin, setIsAdmin] = useState(isDemoMode);
-  
+
   useEffect(() => {
     if (isDemoMode) {
       setIsAdmin(true);
       return;
     }
-    
+
     // If we don't have user, can't be admin
     if (!user?.id) {
       setIsAdmin(false);
       return;
     }
-    
+
     // Fast path: check trip.created_by prop first (passed from parent)
     if (trip.created_by && user.id === trip.created_by) {
       setIsAdmin(true);
       return;
     }
-    
+
     // Direct creator check (fast path) - if tripCreatorId is loaded and matches user
     if (tripCreatorId && user.id === tripCreatorId) {
       setIsAdmin(true);
       return;
     }
-    
+
     // If tripCreatorId is still loading (undefined), wait for it
     if (tripCreatorId === undefined) {
       return;
     }
-    
+
     // Full async check including trip_admins table
     const checkAdmin = async () => {
       const canRemove = await canRemoveMembers();
@@ -150,18 +198,20 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
     };
     checkAdmin();
   }, [canRemoveMembers, isDemoMode, user?.id, tripCreatorId, trip.created_by]);
-  
+
   // Get added members from the demo store - use stable empty array to prevent infinite re-renders
-  const addedDemoMembers = useDemoTripMembersStore(state => 
-    isDemoMode ? (state.addedMembers[trip.id.toString()] ?? EMPTY_MEMBERS_ARRAY) : EMPTY_MEMBERS_ARRAY
+  const addedDemoMembers = useDemoTripMembersStore(state =>
+    isDemoMode
+      ? (state.addedMembers[trip.id.toString()] ?? EMPTY_MEMBERS_ARRAY)
+      : EMPTY_MEMBERS_ARRAY,
   );
-  
+
   // Merge base participants with any dynamically added members (from approved join requests)
   const mergedParticipants = React.useMemo(() => {
     if (!isDemoMode || addedDemoMembers.length === 0) {
       return trip.participants;
     }
-    
+
     // Add new members that aren't already in participants
     const existingIds = new Set(trip.participants.map(p => p.id.toString()));
     const newMembers = addedDemoMembers
@@ -171,12 +221,12 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
         name: m.name,
         avatar: m.avatar || '',
         role: m.role,
-        email: m.email
+        email: m.email,
       }));
-    
+
     return [...trip.participants, ...newMembers];
   }, [trip.participants, addedDemoMembers, isDemoMode]);
-  
+
   const isPro = variant === 'pro';
   // Export is now available to everyone
   const canExport = true;
@@ -218,8 +268,9 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
     }
   };
 
-  // Check if current user is the trip creator
-  const isCurrentUserCreator = user?.id && (user.id === tripCreatorId || user.id === trip.created_by);
+  // Check if current user is the trip creator (used for conditional UI in future)
+  const _isCurrentUserCreator =
+    user?.id && (user.id === tripCreatorId || user.id === trip.created_by);
 
   const isProOrEvent = trip.trip_type === 'pro' || trip.trip_type === 'event';
   const isEvent = trip.trip_type === 'event';
@@ -257,7 +308,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
     const objectUrl = URL.createObjectURL(file);
     setCropImageSrc(objectUrl);
     setShowCropModal(true);
-    
+
     // Clear the input so the same file can be selected again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -266,7 +317,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
 
   const handleCropComplete = async (croppedBlob: Blob) => {
     setShowCropModal(false);
-    
+
     // Demo mode: use blob URL
     if (isDemoMode) {
       const objectUrl = URL.createObjectURL(croppedBlob);
@@ -295,7 +346,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
         .upload(filePath, croppedBlob, {
           cacheControl: '3600',
           upsert: true,
-          contentType: 'image/jpeg'
+          contentType: 'image/jpeg',
         });
 
       if (uploadError) {
@@ -304,9 +355,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
         return;
       }
 
-      const { data: urlData } = supabase.storage
-        .from('trip-media')
-        .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from('trip-media').getPublicUrl(filePath);
 
       if (!urlData?.publicUrl) {
         toast.error('Failed to get image URL');
@@ -342,21 +391,23 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       {/* Cover Photo Hero (Consumer Only) - Always show for consumer trips */}
       {!isProOrEvent && (
         <div className="relative mb-8 rounded-3xl overflow-hidden">
-          <div 
+          <div
             className="aspect-[3/1] w-full bg-cover bg-center relative"
-            style={{ 
+            style={{
               backgroundImage: coverPhoto ? `url(${coverPhoto})` : undefined,
-              backgroundColor: !coverPhoto ? '#1a1a2e' : undefined
+              backgroundColor: !coverPhoto ? '#1a1a2e' : undefined,
             }}
           >
             {/* Gradient overlay - darker when no photo */}
-            <div className={cn(
-              "absolute inset-0",
-              coverPhoto 
-                ? "bg-gradient-to-t from-black/60 via-black/20 to-transparent"
-                : "bg-gradient-to-t from-black/80 via-gray-900/90 to-gray-800/70"
-            )}></div>
-            
+            <div
+              className={cn(
+                'absolute inset-0',
+                coverPhoto
+                  ? 'bg-gradient-to-t from-black/60 via-black/20 to-transparent'
+                  : 'bg-gradient-to-t from-black/80 via-gray-900/90 to-gray-800/70',
+              )}
+            ></div>
+
             {/* Trip info at bottom */}
             <div className="absolute bottom-6 left-8 right-8 z-10">
               <div className="flex items-center gap-3 mb-2">
@@ -373,7 +424,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 </div>
               </div>
             </div>
-            
+
             {/* Add Cover Photo Button - Show when no cover photo */}
             {!coverPhoto && (
               <div className="absolute top-4 right-4 z-10">
@@ -404,7 +455,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 />
               </div>
             )}
-            
+
             {/* Action Buttons - Bottom right */}
             <div className="absolute bottom-2 right-2 z-10 flex items-center gap-2">
               {/* Adjust Position Button - only show when cover photo exists */}
@@ -431,12 +482,10 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       )}
 
       {/* Main Trip Info Section - Compact 75% height */}
-      <div 
+      <div
         className={cn(
-          "relative rounded-3xl p-4 mb-3 overflow-hidden border border-white/20",
-          hasCoverPhoto && isProOrEvent 
-            ? "shadow-2xl" 
-            : "bg-white/10 backdrop-blur-md"
+          'relative rounded-3xl p-4 mb-3 overflow-hidden border border-white/20',
+          hasCoverPhoto && isProOrEvent ? 'shadow-2xl' : 'bg-white/10 backdrop-blur-md',
         )}
       >
         {/* Background Cover Photo for Pro/Events */}
@@ -454,13 +503,18 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 'absolute inset-0',
                 isEvent
                   ? 'bg-gradient-to-t from-black/90 via-black/50 to-transparent'
-                  : 'bg-gradient-to-t from-black/70 via-black/40 to-transparent'
+                  : 'bg-gradient-to-t from-black/70 via-black/40 to-transparent',
               )}
             />
           </>
         )}
 
-        <div className={cn("grid grid-cols-1 lg:grid-cols-2 gap-6", hasCoverPhoto && isProOrEvent && "relative z-10")}>
+        <div
+          className={cn(
+            'grid grid-cols-1 lg:grid-cols-2 gap-6',
+            hasCoverPhoto && isProOrEvent && 'relative z-10',
+          )}
+        >
           {/* Left: Trip Details */}
           <div className="space-y-4">
             {/* Show title/location/dates here only for Pro/Event trips (consumer trips show in hero section) */}
@@ -469,33 +523,43 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 <div className="flex items-center gap-3 mb-4">
                   <h1 className="text-4xl font-bold text-white">{trip.title}</h1>
                 </div>
-                
+
                 {/* Category Tags for Pro trips */}
                 {isPro && category && (
                   <div className="mb-4">
                     <CategoryTags category={category} tags={tags} />
                   </div>
                 )}
-                
+
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-                  <div className={cn(
-                    "flex items-center gap-2",
-                    coverPhoto ? "text-white/90" : "text-gray-300"
-                  )}>
-                    <MapPin size={18} className={coverPhoto ? undefined : `text-${accentColors.primary}`} />
+                  <div
+                    className={cn(
+                      'flex items-center gap-2',
+                      coverPhoto ? 'text-white/90' : 'text-gray-300',
+                    )}
+                  >
+                    <MapPin
+                      size={18}
+                      className={coverPhoto ? undefined : `text-${accentColors.primary}`}
+                    />
                     <span>{trip.location}</span>
                   </div>
-                  <div className={cn(
-                    "flex items-center gap-2",
-                    coverPhoto ? "text-white/90" : "text-gray-300"
-                  )}>
-                    <Calendar size={18} className={coverPhoto ? undefined : `text-${accentColors.primary}`} />
+                  <div
+                    className={cn(
+                      'flex items-center gap-2',
+                      coverPhoto ? 'text-white/90' : 'text-gray-300',
+                    )}
+                  >
+                    <Calendar
+                      size={18}
+                      className={coverPhoto ? undefined : `text-${accentColors.primary}`}
+                    />
                     <span>{trip.dateRange}</span>
                   </div>
                 </div>
               </>
             )}
-            
+
             <EditableDescription
               tripId={trip.id.toString()}
               description={trip.description}
@@ -507,12 +571,12 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
           </div>
 
           {/* Right: Collaborators Panel - Full width on mobile, constrained on desktop */}
-          <div 
+          <div
             className={cn(
-              "rounded-2xl p-3 pb-2 w-full border border-white/10 max-h-[240px]",
-              hasCoverPhoto && isProOrEvent 
-                ? "bg-black/50 backdrop-blur-md" 
-                : "bg-white/5 backdrop-blur-sm"
+              'rounded-2xl p-3 pb-2 w-full border border-white/10 max-h-[240px]',
+              hasCoverPhoto && isProOrEvent
+                ? 'bg-black/50 backdrop-blur-md'
+                : 'bg-white/5 backdrop-blur-sm',
             )}
           >
             <div className="flex items-center justify-between mb-2">
@@ -535,7 +599,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 )}
               </div>
             </div>
-            
+
             {/* Read-only Category Display for Pro trips */}
             {isPro && category && (
               <div className="mb-3">
@@ -564,7 +628,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 <Plus size={14} />
                 <span>Invite to Trip</span>
               </button>
-              
+
               {/* Exit Trip - Always show, handler validates authentication */}
               <button
                 onClick={() => setShowExitConfirm(true)}
@@ -574,15 +638,15 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
                 <LogOut size={14} />
                 <span>Exit Trip</span>
               </button>
-              
+
               <button
                 onClick={() => canExport && onShowExport?.()}
                 disabled={!canExport}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200",
+                  'flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200',
                   canExport
                     ? `bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white hover:scale-105`
-                    : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/50'
+                    : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/50',
                 )}
                 title={canExport ? 'Create PDF Recap' : 'Upgrade for PDF recap'}
                 aria-label="Create PDF Recap"
@@ -597,12 +661,12 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
         {/* Left: Edit Description Button - desktop only, aligned with right edit */}
         <div className="hidden lg:block absolute bottom-2 left-2 z-20">
           <button
-            onClick={() => setDescEditTick((t) => t + 1)}
+            onClick={() => setDescEditTick(t => t + 1)}
             className={cn(
-              "p-1.5 border border-white/20 rounded-lg transition-all shadow-lg backdrop-blur-sm",
+              'p-1.5 border border-white/20 rounded-lg transition-all shadow-lg backdrop-blur-sm',
               hasCoverPhoto && isProOrEvent
-                ? "bg-black/40 hover:bg-black/60 text-white/80 hover:text-white"
-                : "bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white"
+                ? 'bg-black/40 hover:bg-black/60 text-white/80 hover:text-white'
+                : 'bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white',
             )}
             title="Edit description"
           >
@@ -616,10 +680,10 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
             <button
               onClick={() => setShowEditModal(true)}
               className={cn(
-                "p-1.5 border border-white/20 rounded-lg transition-all shadow-lg backdrop-blur-sm",
+                'p-1.5 border border-white/20 rounded-lg transition-all shadow-lg backdrop-blur-sm',
                 hasCoverPhoto && isProOrEvent
-                  ? "bg-black/40 hover:bg-black/60 text-white/80 hover:text-white"
-                  : "bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white"
+                  ? 'bg-black/40 hover:bg-black/60 text-white/80 hover:text-white'
+                  : 'bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white',
               )}
               title="Edit trip details"
             >
@@ -630,7 +694,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
       </div>
 
       <InviteModal
-        isOpen={showInvite} 
+        isOpen={showInvite}
         onClose={() => setShowInvite(false)}
         tripName={trip.title}
         tripId={trip.id.toString()}
@@ -638,7 +702,7 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
 
       <CollaboratorsModal
         open={showAllCollaborators}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           setShowAllCollaborators(open);
           // Reset to members tab when closing
           if (!open) {
@@ -683,16 +747,18 @@ export const TripHeader = ({ trip, onManageUsers, onDescriptionUpdate, onTripUpd
               <AlertTriangle size={24} />
               <h3 className="text-xl font-bold text-white">Leave Trip?</h3>
             </div>
-            
+
             <p className="text-gray-300 mb-6">
-              Are you sure you want to leave "{trip.title}"? You'll lose access to all trip information, chat history, and won't receive updates.
+              Are you sure you want to leave "{trip.title}"? You'll lose access to all trip
+              information, chat history, and won't receive updates.
               {isProOrEvent && (
                 <span className="block mt-2 text-amber-400 text-sm">
-                  Note: This is a {trip.trip_type === 'event' ? 'event' : 'Pro trip'}. You'll need approval to rejoin even with the same invite link.
+                  Note: This is a {trip.trip_type === 'event' ? 'event' : 'Pro trip'}. You'll need
+                  approval to rejoin even with the same invite link.
                 </span>
               )}
             </p>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={() => setShowExitConfirm(false)}

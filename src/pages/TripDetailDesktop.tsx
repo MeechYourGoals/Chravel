@@ -1,4 +1,3 @@
-
 import React, { useState, Suspense, lazy } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MessageInbox } from '../components/MessageInbox';
@@ -8,16 +7,16 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { usePerformanceMonitor } from '../hooks/usePerformanceMonitor';
 
 // 🚀 OPTIMIZATION: Lazy load heavy components for faster initial render
-const TripHeader = lazy(() => 
+const TripHeader = lazy(() =>
   import('../components/TripHeader').then(module => ({
-    default: module.TripHeader
-  }))
+    default: module.TripHeader,
+  })),
 );
 
 const TripDetailContent = lazy(() =>
   import('../components/trip/TripDetailContent').then(module => ({
-    default: module.TripDetailContent
-  }))
+    default: module.TripDetailContent,
+  })),
 );
 
 import { TripExportModal } from '../components/trip/TripExportModal';
@@ -27,19 +26,17 @@ import { useTripMembers } from '../hooks/useTripMembers';
 import { tripService } from '../services/tripService';
 import { Message } from '../types/messages';
 import { ExportSection } from '../types/tripExport';
-import { supabase } from '../integrations/supabase/client';
 import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { toast } from 'sonner';
 import { demoModeService } from '../services/demoModeService';
-import TripSpecificMockDataService from '../services/tripSpecificMockDataService';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { convertSupabaseTripToMock } from '../utils/tripConverter';
 import { useQueryClient } from '@tanstack/react-query';
 
 /**
  * TripDetailDesktop Component
- * 
+ *
  * 🖥️ Desktop-only implementation of trip detail page
  * 🔒 ALL hooks are called unconditionally at the top (Rules of Hooks compliant)
  * 🎯 Demo mode uses ONLY mock data from tripsData.ts
@@ -50,12 +47,14 @@ export const TripDetailDesktop = () => {
   const { tripId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
+  const { isDemoMode } = useDemoMode();
   const queryClient = useQueryClient();
-  
+
   // 🔄 PHASE 3 FIX: Fetch real trip members from database for authenticated trips
-  const { tripMembers, loading: membersLoading } = useTripMembers(tripId);
-  
+  // ⚡ PERFORMANCE: These values will be passed to TripHeader to avoid duplicate fetches
+  const { tripMembers, tripCreatorId, canRemoveMembers, removeMember, leaveTrip } =
+    useTripMembers(tripId);
+
   // State hooks - all called unconditionally
   const [activeTab, setActiveTab] = useState('chat');
   const [showInbox, setShowInbox] = useState(false);
@@ -75,6 +74,8 @@ export const TripDetailDesktop = () => {
   const [loading, setLoading] = useState(true);
 
   // 🔄 CRITICAL: Load trip data - demo mode uses ONLY mock data, authenticated uses Supabase
+  // ⚡ PERFORMANCE: Start loading immediately - don't wait for demoModeLoading
+  // demoModeStore uses synchronous localStorage, so isDemoMode is already accurate
   React.useEffect(() => {
     const loadTrip = async () => {
       if (!tripId) {
@@ -83,13 +84,8 @@ export const TripDetailDesktop = () => {
         return;
       }
 
-      // Wait for demo mode to initialize
-      if (demoModeLoading) {
-        return;
-      }
-
       setLoading(true);
-      
+
       if (isDemoMode) {
         // 🎭 DEMO MODE: Use mock data only - NO Supabase queries
         const tripIdNum = parseInt(tripId, 10);
@@ -115,7 +111,7 @@ export const TripDetailDesktop = () => {
           } else {
             setTrip(null);
           }
-        } catch (error) {
+        } catch {
           setTrip(null);
         }
       }
@@ -123,8 +119,8 @@ export const TripDetailDesktop = () => {
     };
 
     loadTrip();
-  }, [tripId, isDemoMode, demoModeLoading]);
-  
+  }, [tripId, isDemoMode]);
+
   // Initialize description state when trip is loaded
   React.useEffect(() => {
     if (trip && !tripDescription) {
@@ -164,12 +160,12 @@ export const TripDetailDesktop = () => {
   // Handle trip updates from edit modal
   const handleTripUpdate = (updates: Partial<MockTrip>) => {
     setTripData(prev => ({ ...prev, ...updates }));
-    
+
     // Update specific states for backward compatibility
     if (updates.title) setTripData(prev => ({ ...prev, title: updates.title }));
     if (updates.description) setTripDescription(updates.description);
   };
-  
+
   // ⚡ OPTIMIZATION: Memoize trip data to prevent regeneration on every render
   // 🔄 CRITICAL FIX: Merge real trip members for authenticated trips
   const tripWithUpdatedData = React.useMemo(() => {
@@ -181,17 +177,25 @@ export const TripDetailDesktop = () => {
       dateRange: tripData.dateRange || trip.dateRange,
       description: tripDescription || trip.description,
       // Merge real trip members for authenticated trips instead of empty array
-      participants: isDemoMode 
-        ? trip.participants 
-        : tripMembers.map(m => ({ 
+      participants: isDemoMode
+        ? trip.participants
+        : (tripMembers.map(m => ({
             id: m.id as any, // UUID strings for authenticated trips
-            name: m.name, 
+            name: m.name,
             avatar: m.avatar || '',
-            role: 'member'
-          })) as any
+            role: 'member',
+          })) as any),
     };
-  }, [trip, tripData.title, tripData.location, tripData.dateRange, tripDescription, isDemoMode, tripMembers]);
-  
+  }, [
+    trip,
+    tripData.title,
+    tripData.location,
+    tripData.dateRange,
+    tripDescription,
+    isDemoMode,
+    tripMembers,
+  ]);
+
   // Generate dynamic mock data based on the trip - MEMOIZED for performance
   const mockData = React.useMemo(() => {
     if (!tripWithUpdatedData) {
@@ -202,39 +206,66 @@ export const TripDetailDesktop = () => {
 
   const basecamp = mockData?.basecamp;
 
-  // Messages are now handled by unified messaging service
-  const tripMessages: Message[] = [];
-
-  // Use generated mock data with safe fallbacks
-  const mockBroadcasts = mockData?.broadcasts ?? [];
-  const mockLinks = mockData?.links ?? [];
-  const mockItinerary = mockData?.itinerary ?? [];
-
   // ⚡ OPTIMIZATION: Memoize trip context to prevent child re-renders
   // 🔄 PHASE 3: Merge real trip_members into participants for authenticated trips
-  const tripContext = React.useMemo(() => ({
-    id: tripId || '1',
-    title: tripWithUpdatedData?.title ?? '',
-    location: tripWithUpdatedData?.location ?? '',
-    dateRange: tripWithUpdatedData?.dateRange ?? '',
-    basecamp,
-    calendar: mockItinerary,
-    broadcasts: mockBroadcasts,
-    links: mockLinks,
-    messages: tripMessages,
-    collaborators: isDemoMode 
-      ? (tripWithUpdatedData?.participants ?? [])
-      : tripMembers.map(m => ({ id: m.id, name: m.name, avatar: m.avatar })),
-    itinerary: mockItinerary,
-    isPro: false
-  }), [tripId, tripWithUpdatedData, basecamp, mockItinerary, mockBroadcasts, mockLinks, tripMessages, isDemoMode, tripMembers]);
+  const tripContext = React.useMemo(() => {
+    // Derive values from mockData inside useMemo to prevent re-render cycles
+    const mockBroadcasts = mockData?.broadcasts ?? [];
+    const mockLinks = mockData?.links ?? [];
+    const mockItinerary = mockData?.itinerary ?? [];
 
-  // ⚡ OPTIMIZATION: Show loading spinner only for critical data
+    return {
+      id: tripId || '1',
+      title: tripWithUpdatedData?.title ?? '',
+      location: tripWithUpdatedData?.location ?? '',
+      dateRange: tripWithUpdatedData?.dateRange ?? '',
+      basecamp,
+      calendar: mockItinerary,
+      broadcasts: mockBroadcasts,
+      links: mockLinks,
+      messages: [] as Message[], // Messages handled by unified messaging service
+      collaborators: isDemoMode
+        ? (tripWithUpdatedData?.participants ?? [])
+        : tripMembers.map(m => ({ id: m.id, name: m.name, avatar: m.avatar })),
+      itinerary: mockItinerary,
+      isPro: false,
+    };
+  }, [tripId, tripWithUpdatedData, basecamp, mockData, isDemoMode, tripMembers]);
+
+  // ⚡ OPTIMIZATION: Show skeleton UI for perceived instant load
   // Don't block on members loading - show trip immediately, members load in background
-  if (demoModeLoading || loading) {
+  // NOTE: Removed demoModeLoading check - store uses synchronous localStorage
+  if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <LoadingSpinner />
+      <div className="min-h-screen bg-black">
+        <div className="container mx-auto px-6 py-4 pb-8 max-w-7xl">
+          {/* Skeleton Header Navigation */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="h-8 w-32 bg-white/10 rounded-lg animate-pulse" />
+            <div className="flex gap-2">
+              <div className="h-10 w-10 bg-white/10 rounded-full animate-pulse" />
+              <div className="h-10 w-10 bg-white/10 rounded-full animate-pulse" />
+            </div>
+          </div>
+          {/* Skeleton Cover Photo */}
+          <div className="mb-8 animate-pulse">
+            <div className="h-64 bg-white/5 rounded-3xl mb-4" />
+            <div className="h-8 bg-white/5 rounded w-1/3 mb-2" />
+            <div className="h-4 bg-white/5 rounded w-1/4" />
+          </div>
+          {/* Skeleton Tabs */}
+          <div className="flex gap-2 mb-4">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="h-10 w-24 bg-white/10 rounded-xl animate-pulse" />
+            ))}
+          </div>
+          {/* Skeleton Content */}
+          <div className="space-y-4">
+            <div className="h-20 bg-white/5 rounded-2xl animate-pulse" />
+            <div className="h-20 bg-white/5 rounded-2xl animate-pulse" />
+            <div className="h-20 bg-white/5 rounded-2xl animate-pulse" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -265,15 +296,17 @@ export const TripDetailDesktop = () => {
       let preOpenedWindow: Window | null = null;
       try {
         const ua = navigator.userAgent || '';
-        const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isIOS =
+          /iPad|iPhone|iPod/.test(ua) ||
+          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
         if (isIOS && isSafari) {
           preOpenedWindow = window.open('', '_blank');
           if (preOpenedWindow) {
             preOpenedWindow.document.write(
               '<html><head><title>Creating your Recap…</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>' +
-              '<body style="font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial; padding: 16px; color: #e5e7eb; background: #111827">' +
-              '<div>Creating your Recap…</div></body></html>'
+                '<body style="font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial; padding: 16px; color: #e5e7eb; background: #111827">' +
+                '<div>Creating your Recap…</div></body></html>',
             );
           }
         }
@@ -294,7 +327,7 @@ export const TripDetailDesktop = () => {
         const mockMembers = demoModeService.getMockMembers(tripId || '1');
         const mockTasks = demoModeService.getMockTasks(tripId || '1');
         const mockPlaces = demoModeService.getMockPlaces(tripId || '1');
-        
+
         // Get session basecamp if set, otherwise use existing basecamp
         const sessionBasecamp = demoModeService.getSessionTripBasecamp(tripId || '1');
         const actualBasecamp = sessionBasecamp || basecamp;
@@ -309,33 +342,46 @@ export const TripDetailDesktop = () => {
             dateRange: tripWithUpdatedData.dateRange,
             description: tripWithUpdatedData.description,
             calendar: orderedSections.includes('calendar') ? mockCalendar : undefined,
-            payments: orderedSections.includes('payments') && mockPayments.length > 0 ? {
-              items: mockPayments,
-              total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
-              currency: mockPayments[0]?.currency || 'USD'
-            } : undefined,
+            payments:
+              orderedSections.includes('payments') && mockPayments.length > 0
+                ? {
+                    items: mockPayments,
+                    total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
+                    currency: mockPayments[0]?.currency || 'USD',
+                  }
+                : undefined,
             polls: orderedSections.includes('polls') ? mockPolls : undefined,
-            tasks: orderedSections.includes('tasks') ? mockTasks.map(task => ({
-              title: task.title,
-              description: task.description,
-              completed: task.completed
-            })) : undefined,
-            places: orderedSections.includes('places') ? [
-              // Trip Basecamp first (from session or trip-specific data)
-              ...(actualBasecamp ? [{
-                name: `📍 Trip Base Camp: ${actualBasecamp.name || 'Main Location'}`,
-                url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(actualBasecamp.address)}`,
-                description: actualBasecamp.address,
-                votes: 0
-              }] : []),
-              // Trip-specific places from tripSpecificMockDataService
-              ...mockPlaces
-            ] : undefined,
-            roster: orderedSections.includes('roster') ? mockMembers.map(m => ({
-              name: m.display_name,
-              email: undefined,
-              role: m.role
-            })) : undefined,
+            tasks: orderedSections.includes('tasks')
+              ? mockTasks.map(task => ({
+                  title: task.title,
+                  description: task.description,
+                  completed: task.completed,
+                }))
+              : undefined,
+            places: orderedSections.includes('places')
+              ? [
+                  // Trip Basecamp first (from session or trip-specific data)
+                  ...(actualBasecamp
+                    ? [
+                        {
+                          name: `📍 Trip Base Camp: ${actualBasecamp.name || 'Main Location'}`,
+                          url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(actualBasecamp.address)}`,
+                          description: actualBasecamp.address,
+                          votes: 0,
+                        },
+                      ]
+                    : []),
+                  // Trip-specific places from tripSpecificMockDataService
+                  ...mockPlaces,
+                ]
+              : undefined,
+            roster: orderedSections.includes('roster')
+              ? mockMembers.map(m => ({
+                  name: m.display_name,
+                  email: undefined,
+                  role: m.role,
+                }))
+              : undefined,
             attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
           },
           orderedSections,
@@ -344,12 +390,12 @@ export const TripDetailDesktop = () => {
               compress: true,
               maxItemsPerSection: 100,
             },
-            onProgress: (progress) => {
+            onProgress: progress => {
               if (progress.stage === 'rendering') {
                 toast.info(`${progress.message} (${progress.current}/${progress.total})`);
               }
-            }
-          }
+            },
+          },
         );
       } else {
         // Fetch real data for Supabase trips
@@ -372,7 +418,6 @@ export const TripDetailDesktop = () => {
             places: realData.places,
             roster: realData.roster,
             attachments: realData.attachments,
-
           },
           orderedSections,
           {
@@ -380,19 +425,19 @@ export const TripDetailDesktop = () => {
               compress: true,
               maxItemsPerSection: 100,
             },
-            onProgress: (progress) => {
+            onProgress: progress => {
               if (progress.stage === 'rendering') {
                 toast.info(`${progress.message} (${progress.current}/${progress.total})`);
               }
-            }
-          }
+            },
+          },
         );
       }
 
       // Download or open the PDF with cross-platform handling
       const filename = `Trip_${tripWithUpdatedData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
       await openOrDownloadBlob(blob, filename, { preOpenedWindow, mimeType: 'application/pdf' });
-      
+
       toast.success('PDF exported successfully!');
     } catch (error) {
       console.error('Export error details:', {
@@ -400,12 +445,10 @@ export const TripDetailDesktop = () => {
         errorMessage: error instanceof Error ? error.message : String(error),
         errorStack: error instanceof Error ? error.stack : undefined,
         tripId,
-        sections
+        sections,
       });
       toast.error(
-        error instanceof Error 
-          ? `Recap failed: ${error.message}` 
-          : 'Failed to create recap'
+        error instanceof Error ? `Recap failed: ${error.message}` : 'Failed to create recap',
       );
       throw error;
     }
@@ -433,18 +476,25 @@ export const TripDetailDesktop = () => {
         )}
 
         {/* Trip Header with Cover Photo Upload */}
-        <Suspense fallback={
-          <div className="mb-8 animate-pulse">
-            <div className="h-64 bg-white/5 rounded-3xl mb-4"></div>
-            <div className="h-8 bg-white/5 rounded w-1/3 mb-2"></div>
-            <div className="h-4 bg-white/5 rounded w-1/4"></div>
-          </div>
-        }>
-          <TripHeader 
-            trip={tripWithUpdatedData} 
+        <Suspense
+          fallback={
+            <div className="mb-8 animate-pulse">
+              <div className="h-64 bg-white/5 rounded-3xl mb-4"></div>
+              <div className="h-8 bg-white/5 rounded w-1/3 mb-2"></div>
+              <div className="h-4 bg-white/5 rounded w-1/4"></div>
+            </div>
+          }
+        >
+          <TripHeader
+            trip={tripWithUpdatedData}
             onDescriptionUpdate={setTripDescription}
             onTripUpdate={handleTripUpdate}
             onShowExport={() => setShowExportModal(true)}
+            // ⚡ PERFORMANCE: Pass preloaded member data to avoid duplicate fetches
+            preloadedTripCreatorId={tripCreatorId}
+            preloadedCanRemoveMembers={canRemoveMembers}
+            preloadedRemoveMember={removeMember}
+            preloadedLeaveTrip={leaveTrip}
           />
         </Suspense>
 
