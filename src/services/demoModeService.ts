@@ -1085,6 +1085,27 @@ class DemoModeService {
     this.sessionPayments.clear();
     this.sessionPersonalBasecamps.clear();
     this.sessionTripBasecamps.clear();
+    // Clear session storage items
+    try {
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith('demo_')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+    } catch {
+      // sessionStorage not available
+    }
+  }
+
+  /**
+   * Get the count of actions performed during this demo session
+   */
+  getSessionActionsCount(): number {
+    try {
+      return parseInt(sessionStorage.getItem('demo_actions_count') || '0', 10);
+    } catch {
+      return 0;
+    }
   }
 }
 

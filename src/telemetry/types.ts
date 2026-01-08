@@ -178,6 +178,22 @@ export interface OnboardingEvents {
   onboarding_demo_trip_selected: Record<string, never>;
 }
 
+/**
+ * Demo Mode Events
+ */
+export interface DemoEvents {
+  demo_mode_entered: { source: 'onboarding' | 'toggle' | 'deep_link' };
+  demo_mode_exited: {
+    duration_ms: number;
+    actions_count: number;
+    exit_method: 'button' | 'toggle' | 'logout';
+  };
+  demo_action_performed: {
+    action: 'message_sent' | 'task_created' | 'payment_added' | 'cover_changed' | 'poll_created';
+    trip_id: string;
+  };
+}
+
 // ============================================================================
 // Combined Event Map
 // ============================================================================
@@ -191,7 +207,8 @@ export type TelemetryEventMap = AuthEvents &
   ExportEvents &
   PerformanceEvents &
   ErrorEvents &
-  OnboardingEvents;
+  OnboardingEvents &
+  DemoEvents;
 
 export type TelemetryEventName = keyof TelemetryEventMap;
 
