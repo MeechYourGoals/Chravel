@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { MapPin, ExternalLink } from 'lucide-react';
 import { getGoogleMapsApiKey } from '@/config/maps';
 
@@ -7,25 +7,61 @@ interface GoogleMapsWidgetProps {
   height?: number;
 }
 
+type ErrorState = 'configuration_error' | 'widget_error' | 'load_failed' | 'script_blocked' | null;
+
+const ErrorDisplay = ({ type }: { type: ErrorState }) => {
+  if (!type) return null;
+
+  const errorMessages: Record<NonNullable<ErrorState>, { icon: string; title: string; subtitle?: string }> = {
+    configuration_error: {
+      icon: '🗺️',
+      title: 'Google Maps configuration error',
+      subtitle: 'API key not available'
+    },
+    widget_error: {
+      icon: '⚠️',
+      title: 'Map temporarily unavailable',
+      subtitle: 'Retry in a moment'
+    },
+    load_failed: {
+      icon: '⚠️',
+      title: 'Map loading failed'
+    },
+    script_blocked: {
+      icon: '⚠️',
+      title: 'Google Maps script blocked',
+      subtitle: 'Check API key domain restrictions'
+    }
+  };
+
+  const { icon, title, subtitle } = errorMessages[type];
+
+  return (
+    <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+      <div className="text-center">
+        <p>{icon} {title}</p>
+        {subtitle && <p className="text-xs mt-1">{subtitle}</p>}
+      </div>
+    </div>
+  );
+};
+
 export const GoogleMapsWidget = ({ widgetToken, height = 300 }: GoogleMapsWidgetProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [errorState, setErrorState] = useState<ErrorState>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    // Reset state on mount/token change
+    setErrorState(null);
+    setIsLoaded(false);
+
     // Validate API key before attempting to load
     const apiKey = getGoogleMapsApiKey();
     
     if (!apiKey) {
       console.error('❌ Google Maps API key not available');
-      if (containerRef.current) {
-        containerRef.current.innerHTML = `
-          <div class="flex items-center justify-center h-full text-gray-400 text-sm">
-            <div class="text-center">
-              <p>🗺️ Google Maps configuration error</p>
-              <p class="text-xs mt-1">API key not available</p>
-            </div>
-          </div>
-        `;
-      }
+      setErrorState('configuration_error');
       return;
     }
 
@@ -37,36 +73,22 @@ export const GoogleMapsWidget = ({ widgetToken, height = 300 }: GoogleMapsWidget
     const onScriptLoad = () => {
       if (containerRef.current && !containerRef.current.querySelector('gmp-place-contextual')) {
         try {
-          const widget = document.createElement('gmp-place-contextual') as any;
+          const widget = document.createElement('gmp-place-contextual') as HTMLElement;
           widget.setAttribute('context-token', widgetToken);
           widget.style.width = '100%';
           widget.style.height = `${height}px`;
           
           // Add error handler for widget
-          widget.addEventListener('error', (e: any) => {
+          widget.addEventListener('error', (e: Event) => {
             console.error('Google Maps Widget error:', e);
-            if (containerRef.current) {
-              containerRef.current.innerHTML = `
-                <div class="flex items-center justify-center h-full text-gray-400 text-sm">
-                  <div class="text-center">
-                    <p>⚠️ Map temporarily unavailable</p>
-                    <p class="text-xs mt-1">Retry in a moment</p>
-                  </div>
-                </div>
-              `;
-            }
+            setErrorState('widget_error');
           });
 
           containerRef.current.appendChild(widget);
+          setIsLoaded(true);
         } catch (error) {
           console.error('Failed to create Google Maps widget:', error);
-          if (containerRef.current) {
-            containerRef.current.innerHTML = `
-              <div class="flex items-center justify-center h-full text-gray-400 text-sm">
-                <p>⚠️ Map loading failed</p>
-              </div>
-            `;
-          }
+          setErrorState('load_failed');
         }
       }
     };
@@ -75,16 +97,7 @@ export const GoogleMapsWidget = ({ widgetToken, height = 300 }: GoogleMapsWidget
     
     script.onerror = (error) => {
       console.error('Failed to load Google Maps script:', error);
-      if (containerRef.current) {
-        containerRef.current.innerHTML = `
-          <div class="flex items-center justify-center h-full text-gray-400 text-sm">
-            <div class="text-center">
-              <p>⚠️ Google Maps script blocked</p>
-              <p class="text-xs mt-1">Check API key domain restrictions</p>
-            </div>
-          </div>
-        `;
-      }
+      setErrorState('script_blocked');
     };
     
     // Check if script already exists
@@ -116,7 +129,9 @@ export const GoogleMapsWidget = ({ widgetToken, height = 300 }: GoogleMapsWidget
           Verified by Google
         </div>
       </div>
-      <div ref={containerRef} style={{ height: `${height}px`, minHeight: '200px' }} />
+      <div ref={containerRef} style={{ height: `${height}px`, minHeight: '200px' }}>
+        {errorState && <ErrorDisplay type={errorState} />}
+      </div>
     </div>
   );
 };
