@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { CalendarEvent, AddToCalendarData } from '@/types/calendar';
 import { calendarService } from '@/services/calendarService';
+import { demoModeService } from '@/services/demoModeService';
+import { useDemoMode } from './useDemoMode';
 import { useToast } from './use-toast';
 
 export type ViewMode = 'calendar' | 'itinerary' | 'grid';
@@ -24,6 +26,7 @@ export const useCalendarManagement = (tripId: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
 
   useEffect(() => {
     if (!tripId) {
@@ -63,9 +66,26 @@ export const useCalendarManagement = (tripId: string) => {
   }, [tripId, toast]);
 
   const getEventsForDate = (date: Date): CalendarEvent[] => {
-    return events.filter(event =>
+    // Get regular events for this date
+    const regularEvents = events.filter(event =>
       event.date.toDateString() === date.toDateString()
     );
+
+    // In demo mode for Cancun trip (ID "1"), inject dynamic demo events
+    if (isDemoMode && tripId === '1') {
+      const dynamicDemoEvents = demoModeService.getDynamicDemoEventsForDate(tripId, date);
+      // Convert TripEvent to CalendarEvent format
+      const demoCalendarEvents: CalendarEvent[] = dynamicDemoEvents.map(evt => 
+        calendarService.convertToCalendarEvent(evt)
+      );
+      
+      // Merge, avoiding duplicates by ID
+      const existingIds = new Set(regularEvents.map(e => e.id));
+      const newDemoEvents = demoCalendarEvents.filter(e => !existingIds.has(e.id));
+      return [...regularEvents, ...newDemoEvents];
+    }
+
+    return regularEvents;
   };
 
   const handleAddEvent = async () => {
