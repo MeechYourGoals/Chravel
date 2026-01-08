@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -11,29 +11,14 @@ import { demoModeService } from '../../services/demoModeService';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/use-toast';
+import { PaymentMessage } from '../../types/payments';
 import { format } from 'date-fns';
 import { Loader2, Pencil, Trash2, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
-
-interface MockPayment {
-  id: string;
-  trip_id: string;
-  amount: number;
-  currency: string;
-  description: string;
-  split_count: number;
-  split_participants: string[];
-  payment_methods: string[];
-  created_by: string;
-  is_settled: boolean;
-  created_at: string;
-  updated_at: string;
-  version: number;
-}
 
 interface PaymentHistoryProps {
   tripId: string;
   onPaymentUpdated?: () => void;
-  refreshTrigger?: number;
+  payments: PaymentMessage[];  // Centralized payment data from parent
 }
 
 interface PaymentRecord {
@@ -48,8 +33,8 @@ interface PaymentRecord {
   isSettled: boolean;
 }
 
-export const PaymentHistory = ({ tripId, onPaymentUpdated, refreshTrigger = 0 }: PaymentHistoryProps) => {
-  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+export const PaymentHistory = ({ tripId, onPaymentUpdated, payments }: PaymentHistoryProps) => {
+  const [enrichedPayments, setEnrichedPayments] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPayment, setEditingPayment] = useState<PaymentRecord | null>(null);
   const [editAmount, setEditAmount] = useState('');
@@ -59,124 +44,75 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, refreshTrigger = 0 }:
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const loadPayments = async () => {
-    setLoading(true);
-    try {
-      let paymentMessages = await paymentService.getTripPaymentMessages(tripId);
+  const isNumericOnly = /^\d+$/.test(tripId);
+  const tripIdNum = parseInt(tripId, 10);
+  const demoActive = isDemoMode && isNumericOnly && tripIdNum >= 1 && tripIdNum <= 12;
 
-      const isNumericOnly = /^\d+$/.test(tripId);
-      const tripIdNum = parseInt(tripId);
-      const shouldUseMockData = isDemoMode && isNumericOnly && tripIdNum >= 1 && tripIdNum <= 12;
-      
-      if (paymentMessages.length === 0 && shouldUseMockData) {
-        const mockPayments = demoModeService.getMockPayments(tripId, false);
-        paymentMessages = mockPayments.map((p: MockPayment) => ({
-          id: p.id,
-          tripId: p.trip_id,
-          messageId: null,
-          amount: p.amount,
-          currency: p.currency,
-          description: p.description,
-          splitCount: p.split_count,
-          splitParticipants: p.split_participants,
-          paymentMethods: p.payment_methods,
-          createdBy: p.created_by,
-          createdAt: p.created_at,
-          isSettled: p.is_settled
-        }));
-      }
+  // Filter to settled payments from the centralized source
+  const settledPayments = useMemo(() => {
+    return payments
+      .filter(p => p.isSettled)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [payments]);
 
-      const sessionPayments = demoModeService.getSessionPayments(tripId);
-      if (sessionPayments.length > 0) {
-        const sessionMessages = sessionPayments.map((p) => ({
-          id: p.id,
-          tripId: p.trip_id,
-          messageId: null,
-          amount: p.amount,
-          currency: p.currency,
-          description: p.description,
-          splitCount: p.split_count,
-          splitParticipants: p.split_participants,
-          paymentMethods: p.payment_methods,
-          createdBy: p.created_by,
-          createdAt: p.created_at,
-          isSettled: p.is_settled
-        }));
-        paymentMessages = [...paymentMessages, ...sessionMessages];
-      }
-
-      // Filter to only COMPLETED payments (is_settled = true)
-      const completedPayments = paymentMessages.filter(p => p.isSettled);
-      
-      completedPayments.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-
-      const authorIds = [...new Set(completedPayments
-        .filter(p => p.createdBy !== 'demo-user')
-        .map(p => p.createdBy))];
-      
-      const profileMap = new Map<string, string>();
-      
-      if (authorIds.length > 0) {
-        // Use public view for co-member profile data
-        const { data: profiles } = await supabase
-          .from('profiles_public')
-          .select('user_id, display_name')
-          .in('user_id', authorIds);
-
-        (profiles || []).forEach(p => {
-          profileMap.set(p.user_id, p.display_name || 'Trip member');
-        });
-      }
-
-      const formattedPayments = completedPayments.map(payment => ({
-        id: payment.id,
-        description: payment.description,
-        amount: payment.amount,
-        currency: payment.currency,
-        splitCount: payment.splitCount,
-        createdBy: payment.createdBy,
-        createdAt: payment.createdAt,
-        createdByName: payment.createdBy === 'demo-user' 
-          ? 'Demo User' 
-          : profileMap.get(payment.createdBy) || 'Trip member',
-        isSettled: payment.isSettled
-      }));
-
-      setPayments(formattedPayments);
-    } catch (error) {
-      console.error('Error loading payment history:', error);
-      
-      const isNumericOnly = /^\d+$/.test(tripId);
-      const tripIdNum = parseInt(tripId);
-      const shouldUseMockData = isDemoMode && isNumericOnly && tripIdNum >= 1 && tripIdNum <= 12;
-      
-      if (shouldUseMockData) {
-        const mockPayments = demoModeService.getMockPayments(tripId, false);
-        const fallbackPayments = mockPayments.map((p: MockPayment) => ({
-          id: p.id,
-          description: p.description,
-          amount: p.amount,
-          currency: p.currency,
-          splitCount: p.split_count,
-          createdBy: p.created_by,
-          createdAt: p.created_at,
-          createdByName: 'Demo User',
-          isSettled: p.is_settled
-        }));
-        setPayments(fallbackPayments);
-      } else {
-        setPayments([]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Enrich payments with creator names
   useEffect(() => {
-    loadPayments();
-  }, [tripId, isDemoMode, refreshTrigger]);
+    const enrichPayments = async () => {
+      if (settledPayments.length === 0) {
+        setEnrichedPayments([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // Get unique creator IDs (excluding demo users)
+        const authorIds = [...new Set(settledPayments
+          .filter(p => p.createdBy !== 'demo-user')
+          .map(p => p.createdBy))];
+
+        const profileMap = new Map<string, string>();
+
+        if (authorIds.length > 0 && !demoActive) {
+          const { data: profiles } = await supabase
+            .from('profiles_public')
+            .select('user_id, display_name')
+            .in('user_id', authorIds);
+
+          (profiles || []).forEach(p => {
+            profileMap.set(p.user_id, p.display_name || 'Trip member');
+          });
+        }
+
+        const formattedPayments = settledPayments.map(payment => ({
+          id: payment.id,
+          description: payment.description,
+          amount: payment.amount,
+          currency: payment.currency,
+          splitCount: payment.splitCount,
+          createdBy: payment.createdBy,
+          createdAt: payment.createdAt,
+          createdByName: payment.createdBy === 'demo-user'
+            ? 'Demo User'
+            : profileMap.get(payment.createdBy) || 'Trip member',
+          isSettled: payment.isSettled
+        }));
+
+        setEnrichedPayments(formattedPayments);
+      } catch (error) {
+        console.error('Error enriching payment history:', error);
+        // Fall back to basic data without names
+        setEnrichedPayments(settledPayments.map(p => ({
+          ...p,
+          createdByName: p.createdBy === 'demo-user' ? 'Demo User' : 'Trip member'
+        })));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    enrichPayments();
+  }, [settledPayments, demoActive]);
 
   const handleEdit = (payment: PaymentRecord) => {
     setEditingPayment(payment);
@@ -187,14 +123,10 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, refreshTrigger = 0 }:
   const handleSaveEdit = async () => {
     if (!editingPayment) return;
 
-    const isNumericOnly = /^\d+$/.test(tripId);
-    const tripIdNum = parseInt(tripId);
-    const demoActive = isDemoMode && isNumericOnly && tripIdNum >= 1 && tripIdNum <= 12;
-
     if (demoActive) {
       // Demo mode: update local state
-      setPayments(prev => prev.map(p => 
-        p.id === editingPayment.id 
+      setEnrichedPayments(prev => prev.map(p =>
+        p.id === editingPayment.id
           ? { ...p, amount: parseFloat(editAmount), description: editDescription }
           : p
       ));
@@ -212,7 +144,6 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, refreshTrigger = 0 }:
     if (success) {
       toast({ title: "Payment updated", description: "Changes saved" });
       setEditingPayment(null);
-      await loadPayments();
       onPaymentUpdated?.();
     } else {
       toast({ title: "Error", description: "Failed to update payment", variant: "destructive" });
@@ -220,12 +151,8 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, refreshTrigger = 0 }:
   };
 
   const handleDelete = async (paymentId: string) => {
-    const isNumericOnly = /^\d+$/.test(tripId);
-    const tripIdNum = parseInt(tripId);
-    const demoActive = isDemoMode && isNumericOnly && tripIdNum >= 1 && tripIdNum <= 12;
-
     if (demoActive) {
-      setPayments(prev => prev.filter(p => p.id !== paymentId));
+      setEnrichedPayments(prev => prev.filter(p => p.id !== paymentId));
       toast({ title: "Payment deleted (Demo)" });
       setDeleteConfirmId(null);
       return;
@@ -235,7 +162,6 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, refreshTrigger = 0 }:
     if (success) {
       toast({ title: "Payment deleted" });
       setDeleteConfirmId(null);
-      await loadPayments();
       onPaymentUpdated?.();
     } else {
       toast({ title: "Error", description: "Failed to delete payment", variant: "destructive" });
@@ -256,86 +182,91 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, refreshTrigger = 0 }:
     );
   }
 
+  // Don't render if no completed payments
+  if (enrichedPayments.length === 0) {
+    return null;
+  }
+
   return (
     <>
       <Card className="rounded-lg">
         <CardHeader className="py-3 px-4">
-          <CardTitle className="text-base">Completed Payments</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <CheckCircle size={18} className="text-green-500" />
+            Completed Payments
+            <Badge variant="secondary" className="ml-auto text-xs">
+              {enrichedPayments.length}
+            </Badge>
+          </CardTitle>
           <p className="text-xs text-muted-foreground mt-0.5">
             Fully settled payment requests
           </p>
         </CardHeader>
         <CardContent className="py-3 px-4">
-          {payments.length > 0 ? (
-            <div className="space-y-1">
-              {payments.map(payment => {
-                const isCreator = user?.id === payment.createdBy;
-                
-                return (
-                  <div key={payment.id} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2 flex-wrap">
-                    {/* Single row: all info inline with bullet separators */}
-                    <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-                      <span className="font-semibold text-foreground">{payment.description}</span>
-                      <span className="text-muted-foreground hidden sm:inline">•</span>
-                      {payment.isSettled ? (
-                        <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-300 border-emerald-500/30">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Settled
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-300 border-amber-500/30">
-                          <Clock className="w-3 h-3 mr-1" />
-                          Pending
-                        </Badge>
-                      )}
-                      <span className="text-muted-foreground hidden sm:inline">•</span>
-                      <span className="text-sm text-muted-foreground">{payment.createdByName || 'Trip member'}</span>
-                      <span className="text-muted-foreground hidden sm:inline">•</span>
-                      <span className="text-sm text-muted-foreground">Split {payment.splitCount} ways</span>
-                      <span className="text-muted-foreground hidden sm:inline">•</span>
-                      <span className="text-sm text-muted-foreground">{format(new Date(payment.createdAt), 'MMM d')}</span>
-                    </div>
-                    
-                    {/* Amount and actions */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="font-bold text-foreground">
-                        {formatCurrency(payment.amount, payment.currency)}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        ({formatCurrency(payment.amount / payment.splitCount, payment.currency)}/ea)
-                      </span>
-                      
-                      {/* Edit/Delete buttons - only for creator */}
-                      {isCreator && (
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleEdit(payment)}
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => setDeleteConfirmId(payment.id)}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+          <div className="space-y-1">
+            {enrichedPayments.map(payment => {
+              const isCreator = user?.id === payment.createdBy;
+
+              return (
+                <div key={payment.id} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2 flex-wrap">
+                  {/* Single row: all info inline with bullet separators */}
+                  <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                    <span className="font-semibold text-foreground">{payment.description}</span>
+                    <span className="text-muted-foreground hidden sm:inline">•</span>
+                    {payment.isSettled ? (
+                      <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-300 border-emerald-500/30">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Settled
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-300 border-amber-500/30">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Pending
+                      </Badge>
+                    )}
+                    <span className="text-muted-foreground hidden sm:inline">•</span>
+                    <span className="text-sm text-muted-foreground">{payment.createdByName || 'Trip member'}</span>
+                    <span className="text-muted-foreground hidden sm:inline">•</span>
+                    <span className="text-sm text-muted-foreground">Split {payment.splitCount} ways</span>
+                    <span className="text-muted-foreground hidden sm:inline">•</span>
+                    <span className="text-sm text-muted-foreground">{format(new Date(payment.createdAt), 'MMM d')}</span>
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground py-4">
-              No payments yet
-            </p>
-          )}
+
+                  {/* Amount and actions */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="font-bold text-foreground">
+                      {formatCurrency(payment.amount, payment.currency)}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      ({formatCurrency(payment.amount / payment.splitCount, payment.currency)}/ea)
+                    </span>
+
+                    {/* Edit/Delete buttons - only for creator */}
+                    {isCreator && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => handleEdit(payment)}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteConfirmId(payment.id)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
 
