@@ -2,7 +2,7 @@
  * Unified Entitlements Hook
  * 
  * Single hook for checking feature access across all billing sources.
- * Works with demo mode, RevenueCat (iOS/Android), and Stripe (web).
+ * Works with demo mode, RevenueCat (iOS/Android), Stripe (web), and super admin override.
  */
 
 import { useCallback, useEffect } from 'react';
@@ -13,6 +13,7 @@ import { getEntitlementsForTier } from '@/billing/entitlements';
 import { configureRevenueCat, getCustomerInfo, logoutRevenueCat, isNativePlatform } from '@/integrations/revenuecat/revenuecatClient';
 import { REVENUECAT_CONFIG } from '@/constants/revenuecat';
 import { supabase } from '@/integrations/supabase/client';
+import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
 import type { FeatureName, FeatureContext, SubscriptionTier, EntitlementId } from '@/billing/types';
 
 // Feature limits per tier
@@ -41,6 +42,7 @@ export interface UseUnifiedEntitlementsReturn {
   isLoading: boolean;
   isSubscribed: boolean;
   isPro: boolean;
+  isSuperAdmin: boolean;
   canUse: (feature: FeatureName, context?: FeatureContext) => boolean;
   getLimit: (feature: FeatureName) => number;
   hasEntitlement: (entitlement: EntitlementId) => boolean;
@@ -52,8 +54,17 @@ export function useUnifiedEntitlements(): UseUnifiedEntitlementsReturn {
   const { user } = useAuth();
   const store = useEntitlementsStore();
   
+  // Check super admin by email (founder failsafe)
+  const isSuperAdminByEmail = isSuperAdminEmail(user?.email);
+  
   useEffect(() => {
     const init = async () => {
+      // Super admin by email takes highest priority
+      if (isSuperAdminByEmail) {
+        store.setSuperAdminMode();
+        return;
+      }
+      
       if (isDemoMode) {
         store.setDemoMode(true);
         return;
@@ -75,19 +86,24 @@ export function useUnifiedEntitlements(): UseUnifiedEntitlementsReturn {
           }
         }
       }
-      await store.refreshEntitlements(user.id);
+      // Pass email for super admin check inside refreshEntitlements
+      await store.refreshEntitlements(user.id, user.email);
     };
     init();
-  }, [isDemoMode, user?.id]);
+  }, [isDemoMode, user?.id, user?.email, isSuperAdminByEmail]);
   
   const refreshEntitlements = useCallback(async () => {
+    if (isSuperAdminByEmail) { store.setSuperAdminMode(); return; }
     if (isDemoMode) { store.setDemoMode(true); return; }
     if (!user?.id) { store.clear(); return; }
-    await store.refreshEntitlements(user.id);
-  }, [isDemoMode, user?.id, store]);
+    await store.refreshEntitlements(user.id, user.email);
+  }, [isDemoMode, user?.id, user?.email, isSuperAdminByEmail, store]);
+  
+  // Super admins and demo mode get unlimited access to everything
+  const hasUnlimitedAccess = isSuperAdminByEmail || isDemoMode || store.isSuperAdmin;
   
   const canUse = useCallback((feature: FeatureName, context?: FeatureContext): boolean => {
-    if (isDemoMode) return true;
+    if (hasUnlimitedAccess) return true;
     const tierEnts = getEntitlementsForTier(store.plan);
     const limits = FEATURE_LIMITS[feature];
     if (!limits) return true;
@@ -96,27 +112,28 @@ export function useUnifiedEntitlements(): UseUnifiedEntitlementsReturn {
     if (limit === 0) return false;
     if (context?.usageCount !== undefined) return context.usageCount < limit;
     return true;
-  }, [isDemoMode, store.plan]);
+  }, [hasUnlimitedAccess, store.plan]);
   
   const getLimit = useCallback((feature: FeatureName): number => {
-    if (isDemoMode) return -1;
+    if (hasUnlimitedAccess) return -1;
     const limits = FEATURE_LIMITS[feature];
     if (!limits) return -1;
     return limits[store.plan] ?? limits.free ?? -1;
-  }, [isDemoMode, store.plan]);
+  }, [hasUnlimitedAccess, store.plan]);
   
   const hasEntitlement = useCallback((entitlement: EntitlementId): boolean => {
-    if (isDemoMode) return true;
+    if (hasUnlimitedAccess) return true;
     return store.entitlements.has(entitlement);
-  }, [isDemoMode, store.entitlements]);
+  }, [hasUnlimitedAccess, store.entitlements]);
   
   return {
-    plan: isDemoMode ? 'frequent-chraveler' : store.plan,
-    status: isDemoMode ? 'active' : store.status,
-    source: isDemoMode ? 'demo' : store.source,
+    plan: hasUnlimitedAccess ? 'pro-enterprise' : store.plan,
+    status: hasUnlimitedAccess ? 'active' : store.status,
+    source: isSuperAdminByEmail ? 'admin' : (isDemoMode ? 'demo' : store.source),
     isLoading: store.isLoading,
-    isSubscribed: isDemoMode ? true : store.isSubscribed,
-    isPro: isDemoMode ? true : store.isPro,
+    isSubscribed: hasUnlimitedAccess ? true : store.isSubscribed,
+    isPro: hasUnlimitedAccess ? true : store.isPro,
+    isSuperAdmin: isSuperAdminByEmail || store.isSuperAdmin,
     canUse,
     getLimit,
     hasEntitlement,

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
 
 /**
  * Per-trip AI query limits for freemium model
@@ -8,15 +9,17 @@ import { useAuth } from './useAuth';
  * IMPORTANT: These are per user, per trip limits (NO daily reset):
  * - Free: 5 queries per user per trip
  * - Explorer: 10 queries per user per trip
- * - Frequent Chraveler/Pro: Unlimited
+ * - Frequent Chraveler/Pro/Super Admin: Unlimited
  */
 const FREE_TIER_LIMIT = 5; // 5 queries per user per trip
 const EXPLORER_TIER_LIMIT = 10; // 10 queries per user per trip
 const PAID_TIER_LIMIT = -1; // Unlimited
 
-type UserTier = 'free' | 'explorer' | 'frequent-chraveler' | 'pro';
+type UserTier = 'free' | 'explorer' | 'frequent-chraveler' | 'pro' | 'super_admin';
 
 const getTierFromRole = (appRole?: string): UserTier => {
+  // Super admin roles get unlimited access
+  if (appRole === 'super_admin' || appRole === 'enterprise_admin') return 'super_admin';
   if (!appRole || appRole === 'consumer') return 'free';
   if (appRole === 'plus' || appRole === 'explorer') return 'explorer';
   if (appRole === 'frequent-chraveler') return 'frequent-chraveler';
@@ -25,6 +28,7 @@ const getTierFromRole = (appRole?: string): UserTier => {
 };
 
 const getLimitForTier = (tier: UserTier): number => {
+  if (tier === 'super_admin') return PAID_TIER_LIMIT; // Super admins always unlimited
   if (tier === 'free') return FREE_TIER_LIMIT;
   if (tier === 'explorer') return EXPLORER_TIER_LIMIT;
   return PAID_TIER_LIMIT; // Unlimited for Frequent Chraveler and Pro
@@ -46,6 +50,10 @@ export interface ConciergeUsage {
 export const useConciergeUsage = (tripId: string, userId?: string) => {
   const { user } = useAuth();
   const targetUserId = userId || user?.id;
+  const userEmail = user?.email;
+
+  // Check if user is super admin by email (founder failsafe)
+  const isSuperAdminByEmail = isSuperAdminEmail(userEmail);
 
   // Fetch user tier from profile
   const { data: profileData } = useQuery({
@@ -54,8 +62,8 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
       if (!targetUserId) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('app_role')
-        .eq('id', targetUserId)
+        .select('app_role, email')
+        .eq('user_id', targetUserId)
         .single();
 
       if (error) {
@@ -68,7 +76,10 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const userTier = getTierFromRole(profileData?.app_role);
+  // Super admin by email takes precedence, then check app_role
+  const userTier: UserTier = isSuperAdminByEmail 
+    ? 'super_admin' 
+    : getTierFromRole(profileData?.app_role);
   const tierLimit = getLimitForTier(userTier);
 
   const { data: usage, isLoading, error, refetch } = useQuery({
@@ -200,6 +211,7 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
     getUsageStatus,
     isFreeUser: userTier === 'free',
     isExplorerUser: userTier === 'explorer',
+    isSuperAdmin: userTier === 'super_admin' || isSuperAdminByEmail,
     userTier,
     upgradeUrl: getUpgradeUrlForTier(userTier)
   };
