@@ -291,6 +291,72 @@ Chravel/
 
 ---
 
+## AI Tools Usage Guide
+
+This section helps AI coding assistants (Claude Code, Cursor, Codex, Jules, etc.) navigate the codebase efficiently.
+
+### Active Code Directories
+
+These are the primary directories AI tools should focus on for code changes:
+
+| Directory | Purpose | When to Edit |
+|-----------|---------|--------------|
+| `src/` | Main React application | Most feature work, bug fixes |
+| `src/components/` | Reusable UI components | Component changes, new UI |
+| `src/services/` | Business logic & API calls | Service layer changes |
+| `src/hooks/` | Custom React hooks | Hook additions/modifications |
+| `src/pages/` | Page-level components | Route/page changes |
+| `api/` | API endpoints | Backend API changes |
+| `supabase/functions/` | Edge Functions | Serverless function changes |
+| `supabase/migrations/` | Database schema | Schema migrations |
+| `e2e/` | End-to-end tests | Test additions |
+
+### Reference-Only Directories (Not for Active Editing)
+
+These directories are **ignored by AI tools** (via `.aiignore`/`.cursorignore`) because they contain reference material, artifacts, or assets that don't require code changes:
+
+| Directory | Contents | Why Ignored |
+|-----------|----------|-------------|
+| `SWIFT_SCREENS/` | Swift reference code | Historical reference only |
+| `SWIFT_SCREENS_CORRECTED/` | Swift reference code | Historical reference only |
+| `jules-scratch/` | AI scratch work | Temporary exploration |
+| `appstore/` | App Store assets | Screenshots, metadata, legal |
+| `ios-release/` | Release artifacts | CI/CD outputs |
+| `docs/_archive/` | Archived documentation | Outdated/superseded docs |
+| `test-results/` | Test output artifacts | Auto-generated |
+
+### Key Entry Points
+
+When starting work on the codebase, these files provide the best orientation:
+
+1. **`CLAUDE.md`** (root) — Coding standards for all AI tools
+2. **`docs/ACTIVE/DEVELOPER_HANDBOOK.md`** (this file) — Architecture & features
+3. **`src/App.tsx`** — Main application entry
+4. **`src/integrations/supabase/client.ts`** — Supabase singleton
+5. **`supabase/functions/lovable-concierge/index.ts`** — AI Concierge endpoint
+
+### Commands AI Tools Should Know
+
+```bash
+npm run dev          # Start local dev server
+npm run lint         # Run ESLint
+npm run typecheck    # Run TypeScript checks
+npm run build        # Production build
+npm run validate     # All checks (lint + typecheck + build)
+npm run test         # Unit tests
+npm run test:e2e     # E2E tests
+```
+
+### What NOT to Do
+
+- **Don't** edit files in ignored directories unless explicitly asked
+- **Don't** move code between `src/`, `api/`, `supabase/`, `ios/`, or `migrations/`
+- **Don't** delete or reorganize the directory structure
+- **Don't** create new documentation files without explicit request
+- **Always** run `npm run validate` before committing changes
+
+---
+
 ## Database Schema
 
 ### Core Tables

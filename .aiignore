@@ -4,15 +4,43 @@
 # There is no universal standard here, but many agentic tools and repo indexers
 # look for an AI-specific ignore file. Keep it conservative: ignore only known
 # archives/scratch + heavy assets.
+#
+# ACTIVE CODE DIRECTORIES (NOT ignored):
+# - src/          → Main React application code
+# - api/          → API endpoints
+# - supabase/     → Edge Functions and migrations
+# - ios/          → Capacitor iOS shell
+# - migrations/   → Database migrations
+# - e2e/          → End-to-end tests
 ################################################################################
 
-# Archived / scratch docs
+# =============================================================================
+# ARCHIVED / SCRATCH DOCUMENTATION
+# =============================================================================
 docs/_archive/**
 docs/_scratch/**
 docs/_external/**
 docs/archive/**
 
-# Large binary / media files
+# =============================================================================
+# REFERENCE-ONLY DIRECTORIES (not actively edited)
+# =============================================================================
+# Swift reference screens - kept for historical reference, not active development
+SWIFT_SCREENS/**
+SWIFT_SCREENS_CORRECTED/**
+
+# Jules AI scratch work - temporary exploration, not production code
+jules-scratch/**
+
+# App Store assets - screenshots, metadata, legal (not code)
+appstore/**
+
+# iOS release artifacts - CI/CD outputs
+ios-release/**
+
+# =============================================================================
+# LARGE BINARY / MEDIA FILES
+# =============================================================================
 **/*.pdf
 **/*.png
 **/*.jpg
@@ -22,8 +50,16 @@ docs/archive/**
 **/*.mp4
 **/*.mov
 **/*.zip
+**/*.ico
+**/*.svg
 
-# Dependency / build outputs
+# Large binary artifacts
+core
+bun.lockb
+
+# =============================================================================
+# DEPENDENCY / BUILD OUTPUTS
+# =============================================================================
 node_modules/**
 dist/**
 build/**
@@ -33,5 +69,31 @@ out/**
 .vercel/**
 .turbo/**
 
-# Local / generated artifacts
+# =============================================================================
+# TEST ARTIFACTS
+# =============================================================================
+test-results/**
+playwright-report/**
+.nyc_output/**
+
+# =============================================================================
+# LOCAL / GENERATED ARTIFACTS
+# =============================================================================
 **/*.log
+
+# Lock files (large, auto-generated)
+package-lock.json
+
+# Progress/audit text files (large reports, not code)
+AUDIT_EXECUTIVE_SUMMARY.txt
+claude-progress.txt
+validation-report.json
+
+# SQL preview files
+migration-diff-preview.sql
+
+# =============================================================================
+# STORYBOOK (UI documentation, not critical for code changes)
+# =============================================================================
+.storybook/**
+storybook-static/**
