@@ -23,7 +23,7 @@ import { mockNotifications } from '@/mockData/notifications';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 
 interface Notification {
   id: string;
@@ -358,22 +358,35 @@ export const TripActionBar = ({
 
       {/* Notifications Modal */}
       <Dialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[80vh] bg-card/95 backdrop-blur-xl border-2 border-border/50 text-foreground p-0">
+        <DialogContent showClose={false} className="sm:max-w-[500px] max-h-[80vh] bg-card/95 backdrop-blur-xl border-2 border-border/50 text-foreground p-0">
           <DialogHeader className="p-4 border-b border-border/50">
-            <DialogTitle className="text-lg font-semibold">Notifications</DialogTitle>
+            {/* Row 1: Title + Close button - properly spaced */}
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-lg font-semibold">Notifications</DialogTitle>
+              <DialogClose asChild>
+                <button
+                  className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+                  aria-label="Close notifications"
+                >
+                  <X size={18} />
+                </button>
+              </DialogClose>
+            </div>
+            
+            {/* Row 2: Action buttons - separate row with spacing */}
             {notifications.length > 0 && (
-              <div className="flex items-center gap-4 mt-2">
+              <div className="flex items-center gap-4 mt-3 pt-2">
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
-                    className="text-sm text-primary hover:text-primary/80 transition-colors font-medium"
+                    className="text-sm text-primary hover:text-primary/80 hover:bg-primary/10 transition-colors font-medium px-3 py-1.5 rounded-lg"
                   >
                     Mark all read
                   </button>
                 )}
                 <button
                   onClick={clearAllNotifications}
-                  className="text-sm text-muted-foreground hover:text-destructive transition-colors font-medium"
+                  className="text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors font-medium px-3 py-1.5 rounded-lg"
                 >
                   Clear all
                 </button>
