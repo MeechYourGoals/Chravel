@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { Map, Briefcase, Calendar, ChevronDown, Check, X } from 'lucide-react';
+import { Map, Briefcase, Calendar, Compass, ChevronDown, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticService } from '@/services/hapticService';
 
-type TripType = 'myTrips' | 'tripsPro' | 'events';
+type TripType = 'myTrips' | 'tripsPro' | 'events' | 'travelRecs';
 
 interface TripTypeOption {
   id: TripType;
@@ -12,7 +12,7 @@ interface TripTypeOption {
   icon: React.ReactNode;
 }
 
-const TRIP_TYPES: TripTypeOption[] = [
+const BASE_TRIP_TYPES: TripTypeOption[] = [
   {
     id: 'myTrips',
     label: 'My Trips',
@@ -33,12 +33,23 @@ const TRIP_TYPES: TripTypeOption[] = [
   },
 ];
 
+const RECS_OPTION: TripTypeOption = {
+  id: 'travelRecs',
+  label: 'Chravel Recs',
+  sublabel: 'Travel recommendations',
+  icon: <Compass size={24} />,
+};
+
 interface NativeTripTypeSwitcherProps {
   isOpen: boolean;
   onClose: () => void;
   selectedType: TripType;
   onSelectType: (type: TripType) => void;
   tripCounts?: Record<TripType, number>;
+  /** Show the Chravel Recs option */
+  showRecsOption?: boolean;
+  /** Disable recs with "Coming Soon" badge (for authenticated users) */
+  recsDisabled?: boolean;
 }
 
 /**
@@ -50,8 +61,12 @@ export const NativeTripTypeSwitcher = ({
   onClose,
   selectedType,
   onSelectType,
-  tripCounts = { myTrips: 0, tripsPro: 0, events: 0 },
+  tripCounts = { myTrips: 0, tripsPro: 0, events: 0, travelRecs: 0 },
+  showRecsOption = false,
+  recsDisabled = false,
 }: NativeTripTypeSwitcherProps) => {
+  // Build trip types array - include Recs if enabled
+  const TRIP_TYPES = showRecsOption ? [...BASE_TRIP_TYPES, RECS_OPTION] : BASE_TRIP_TYPES;
   // Swipe-to-dismiss state
   const [translateY, setTranslateY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -203,14 +218,17 @@ export const NativeTripTypeSwitcher = ({
             {TRIP_TYPES.map(type => {
               const isSelected = selectedType === type.id;
               const count = tripCounts[type.id];
+              const isRecsDisabled = type.id === 'travelRecs' && recsDisabled;
 
               return (
                 <button
                   key={type.id}
-                  onClick={() => handleSelect(type.id)}
+                  onClick={() => !isRecsDisabled && handleSelect(type.id)}
+                  disabled={isRecsDisabled}
                   className={cn(
                     'w-full flex items-center gap-4 p-4 rounded-xl',
                     'transition-all duration-150',
+                    isRecsDisabled && 'opacity-50 cursor-not-allowed',
                     isSelected
                       ? 'bg-primary/20 ring-2 ring-primary'
                       : 'bg-white/5 active:bg-white/10',
@@ -239,7 +257,12 @@ export const NativeTripTypeSwitcher = ({
                       >
                         {type.label}
                       </span>
-                      {count > 0 && (
+                      {isRecsDisabled && (
+                        <span className="text-[11px] text-white/50 bg-white/10 px-2 py-0.5 rounded-full">
+                          Coming Soon
+                        </span>
+                      )}
+                      {!isRecsDisabled && count > 0 && (
                         <span className="text-[13px] text-white/40 bg-white/10 px-2 py-0.5 rounded-full">
                           {count}
                         </span>
@@ -249,7 +272,7 @@ export const NativeTripTypeSwitcher = ({
                   </div>
 
                   {/* Checkmark */}
-                  {isSelected && (
+                  {isSelected && !isRecsDisabled && (
                     <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
                       <Check size={14} className="text-primary-foreground" strokeWidth={3} />
                     </div>
@@ -272,7 +295,8 @@ interface TripTypeIndicatorProps {
 }
 
 export const TripTypeIndicator = ({ selectedType, onPress, className }: TripTypeIndicatorProps) => {
-  const selectedOption = TRIP_TYPES.find(t => t.id === selectedType);
+  const allTypes = [...BASE_TRIP_TYPES, RECS_OPTION];
+  const selectedOption = allTypes.find(t => t.id === selectedType);
 
   const handlePress = async () => {
     await hapticService.light();
@@ -298,7 +322,8 @@ export const TripTypeIndicator = ({ selectedType, onPress, className }: TripType
 
 // Get display label for a trip type
 export function getTripTypeLabel(type: TripType): string {
-  const option = TRIP_TYPES.find(t => t.id === type);
+  const allTypes = [...BASE_TRIP_TYPES, RECS_OPTION];
+  const option = allTypes.find(t => t.id === type);
   return option?.label || 'Trips';
 }
 
@@ -311,6 +336,8 @@ export function getTripTypeShortLabel(type: TripType): string {
       return 'Pro';
     case 'events':
       return 'Events';
+    case 'travelRecs':
+      return 'Recs';
     default:
       return 'Trips';
   }

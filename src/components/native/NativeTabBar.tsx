@@ -1,11 +1,10 @@
 import React, { useCallback } from 'react';
-import { Map, Search, Plus, Bell, User, Compass } from 'lucide-react';
+import { Map, Search, Plus, Bell, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticService } from '@/services/hapticService';
 import { useOrientationTransition } from '@/hooks/useOrientationTransition';
 
-type CoreTabId = 'trips' | 'search' | 'new' | 'alerts' | 'profile';
-type TabId = CoreTabId | 'recs';
+type TabId = 'trips' | 'search' | 'new' | 'alerts' | 'profile';
 
 interface NativeTabBarProps {
   activeTab: TabId;
@@ -15,8 +14,6 @@ interface NativeTabBarProps {
   onSearchPress?: () => void;
   tripTypeLabel?: string;
   onTripTypePress?: () => void;
-  /** Show the 6th "Recs" tab (demo mode only) */
-  showRecsTab?: boolean;
   className?: string;
 }
 
@@ -27,8 +24,8 @@ interface TabConfig {
   activeIcon?: React.ReactNode;
 }
 
-// Core 5 tabs for authenticated users
-const CORE_TABS: TabConfig[] = [
+// 5 tabs with centered "+" button
+const TABS: TabConfig[] = [
   {
     id: 'trips',
     label: 'Trips',
@@ -60,22 +57,11 @@ const CORE_TABS: TabConfig[] = [
   },
 ];
 
-// Optional 6th tab for demo mode
-const RECS_TAB: TabConfig = {
-  id: 'recs',
-  label: 'Recs',
-  icon: <Compass size={24} strokeWidth={1.5} />,
-  activeIcon: <Compass size={24} strokeWidth={2} />,
-};
-
 /**
  * iOS-style bottom tab bar.
  * Fixed at bottom with safe area handling.
  *
- * Layout:
- * - 5 core tabs: Trips, Search, + (New), Alerts, Profile
- * - Optional 6th "Recs" tab for demo mode (appears on far right)
- *
+ * Layout: 5 tabs with centered "+" button (Trips, Search, +, Alerts, Profile)
  * Center "New" button is prominent like Instagram's create button.
  */
 export const NativeTabBar = ({
@@ -86,14 +72,10 @@ export const NativeTabBar = ({
   onSearchPress,
   tripTypeLabel,
   onTripTypePress,
-  showRecsTab = false,
   className,
 }: NativeTabBarProps) => {
   // Use orientation transition hook for smooth mobile/desktop animations
   const { isMobile, isTransitioning } = useOrientationTransition();
-  
-  // Build tabs array - include Recs if in demo mode
-  const tabs = showRecsTab ? [...CORE_TABS, RECS_TAB] : CORE_TABS;
 
   const handleTabPress = useCallback(
     async (tabId: TabId) => {
@@ -149,7 +131,7 @@ export const NativeTabBar = ({
       }}
     >
       <div className="flex items-center justify-around h-[49px]">
-        {tabs.map(tab => {
+        {TABS.map(tab => {
           const isActive = activeTab === tab.id;
           const isCenter = tab.id === 'new';
 
@@ -159,11 +141,9 @@ export const NativeTabBar = ({
               onClick={() => handleTabPress(tab.id)}
               className={cn(
                 'flex flex-col items-center justify-center',
-                'h-full',
+                'h-full min-w-[64px]',
                 'active:opacity-50 transition-opacity',
                 isCenter && 'relative -mt-3',
-                // Adjust width based on number of tabs
-                showRecsTab ? 'min-w-[52px]' : 'min-w-[64px]',
               )}
             >
               {/* Center "New" button with special styling */}
@@ -240,4 +220,4 @@ export const NativeTabBarSpacer = () => (
 );
 
 // Export types for consumers
-export type { TabId, CoreTabId };
+export type { TabId };
