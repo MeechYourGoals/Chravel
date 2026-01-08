@@ -23,6 +23,7 @@ import { demoModeService } from '../services/demoModeService';
 import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
+import { usePrefetchTrip } from '../hooks/usePrefetchTrip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,6 +72,7 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
   const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
   const { tier } = useConsumerSubscription();
+  const { prefetch } = usePrefetchTrip();
 
   // Free users use archive-first (no hard delete) to preserve their trips
   const isFreeUser = tier === 'free';
@@ -82,6 +84,11 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
       ? state.addedMembers[tripIdStr] 
       : EMPTY_PARTICIPANTS)
   );
+
+  // ⚡ PERFORMANCE: Prefetch trip data on hover/focus to reduce perceived load time
+  const handlePrefetch = useCallback(() => {
+    prefetch(tripIdStr);
+  }, [prefetch, tripIdStr]);
 
   const handleViewTrip = () => {
     navigate(`/trip/${trip.id}`);
@@ -486,9 +493,11 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
             Invite
           </button>
 
-          {/* Bottom Row */}
+          {/* Bottom Row - View button with prefetch on hover/focus */}
           <button
             onClick={handleViewTrip}
+            onMouseEnter={handlePrefetch}
+            onFocus={handlePrefetch}
             className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/25 text-xs md:text-sm"
           >
             View
