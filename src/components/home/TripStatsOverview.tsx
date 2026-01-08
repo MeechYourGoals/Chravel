@@ -87,9 +87,9 @@ export const TripStatsOverview = ({ stats, activeFilter, onFilterClick }: TripSt
       <div className="hidden tablet:flex landscape:flex items-center justify-center gap-4 lg:gap-6">
         {renderStatButton('total', stats.total, 'Total', 'text-foreground')}
         {renderStatButton('upcoming', stats.upcoming, 'Upcoming', 'text-accent')}
-        {renderStatButton('completed', stats.completed, 'Completed', 'text-green-500')}
         {renderStatButton('inProgress', stats.inProgress, 'Active', 'text-blue-500', true)}
         {renderStatButton('requests', stats.requests, 'Requests', 'text-yellow-500', true)}
+        {renderStatButton('completed', stats.completed, 'Completed', 'text-green-500')}
       </div>
 
     </div>
