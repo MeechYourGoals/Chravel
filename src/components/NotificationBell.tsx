@@ -1,6 +1,19 @@
-
 import React, { useState, useEffect } from 'react';
-import { Bell, MessageCircle, Calendar, Radio, X, FilePlus, Image, BarChart2, UserPlus, Trash2, CheckSquare, DollarSign, MapPin } from 'lucide-react';
+import {
+  Bell,
+  MessageCircle,
+  Calendar,
+  Radio,
+  X,
+  FilePlus,
+  Image,
+  BarChart2,
+  UserPlus,
+  Trash2,
+  CheckSquare,
+  DollarSign,
+  MapPin,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,7 +25,21 @@ import { useInboundJoinRequests } from '@/hooks/useInboundJoinRequests';
 
 interface Notification {
   id: string;
-  type: 'message' | 'broadcast' | 'calendar' | 'poll' | 'files' | 'photos' | 'chat' | 'mention' | 'task' | 'payment' | 'invite' | 'join_request' | 'basecamp' | 'system';
+  type:
+    | 'message'
+    | 'broadcast'
+    | 'calendar'
+    | 'poll'
+    | 'files'
+    | 'photos'
+    | 'chat'
+    | 'mention'
+    | 'task'
+    | 'payment'
+    | 'invite'
+    | 'join_request'
+    | 'basecamp'
+    | 'system';
   title: string;
   description: string;
   tripId: string;
@@ -36,7 +63,7 @@ export const NotificationBell = () => {
   useEffect(() => {
     if (!isDemoMode && user) {
       fetchNotifications();
-      
+
       // Subscribe to real-time notifications
       const channel = supabase
         .channel('notification_updates')
@@ -46,9 +73,9 @@ export const NotificationBell = () => {
             event: 'INSERT',
             schema: 'public',
             table: 'notifications',
-            filter: `user_id=eq.${user.id}`
+            filter: `user_id=eq.${user.id}`,
           },
-          (payload) => {
+          payload => {
             const newNotification = payload.new as any;
             setNotifications(prev => [
               {
@@ -58,14 +85,16 @@ export const NotificationBell = () => {
                 description: newNotification.message,
                 tripId: newNotification.metadata?.trip_id || '',
                 tripName: newNotification.metadata?.trip_name || '',
-                timestamp: formatDistanceToNow(new Date(newNotification.created_at), { addSuffix: true }),
+                timestamp: formatDistanceToNow(new Date(newNotification.created_at), {
+                  addSuffix: true,
+                }),
                 isRead: newNotification.is_read || false,
                 isHighPriority: newNotification.type === 'broadcast',
-                data: newNotification.metadata
+                data: newNotification.metadata,
               },
-              ...prev
+              ...prev,
             ]);
-          }
+          },
         )
         .subscribe();
 
@@ -73,18 +102,20 @@ export const NotificationBell = () => {
         supabase.removeChannel(channel);
       };
     } else if (isDemoMode) {
-      setNotifications(mockNotifications.map(n => ({
-        id: n.id,
-        type: n.type as any,
-        title: n.title,
-        description: n.message,
-        tripId: n.tripId,
-        tripName: n.data?.trip_name || 'Demo Trip',
-        timestamp: formatDistanceToNow(new Date(n.timestamp), { addSuffix: true }),
-        isRead: n.read,
-        isHighPriority: n.type === 'broadcast',
-        data: { ...n.data, tripType: n.tripType }
-      })));
+      setNotifications(
+        mockNotifications.map(n => ({
+          id: n.id,
+          type: n.type as any,
+          title: n.title,
+          description: n.message,
+          tripId: n.tripId,
+          tripName: n.data?.trip_name || 'Demo Trip',
+          timestamp: formatDistanceToNow(new Date(n.timestamp), { addSuffix: true }),
+          isRead: n.read,
+          isHighPriority: n.type === 'broadcast',
+          data: { ...n.data, tripType: n.tripType },
+        })),
+      );
     }
   }, [isDemoMode, user]);
 
@@ -115,8 +146,8 @@ export const NotificationBell = () => {
           timestamp: formatDistanceToNow(new Date(n.created_at || new Date()), { addSuffix: true }),
           isRead: n.is_read || false,
           isHighPriority: n.type === 'broadcast',
-          data: n.metadata
-        }))
+          data: n.metadata,
+        })),
       );
     }
   };
@@ -125,16 +156,13 @@ export const NotificationBell = () => {
 
   const handleNotificationClick = async (notification: Notification) => {
     // Mark as read locally
-    setNotifications(prev => 
-      prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
+    setNotifications(prev =>
+      prev.map(n => (n.id === notification.id ? { ...n, isRead: true } : n)),
     );
 
     // Mark as read in database (if not demo mode)
     if (!isDemoMode && user) {
-      await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notification.id);
+      await supabase.from('notifications').update({ is_read: true }).eq('id', notification.id);
     }
 
     // Determine base route based on trip type
@@ -158,7 +186,7 @@ export const NotificationBell = () => {
       poll: 'polls',
       photos: 'media',
       join_request: 'collaborators',
-      basecamp: 'places'
+      basecamp: 'places',
     };
 
     const tab = tabMap[notification.type];
@@ -173,7 +201,7 @@ export const NotificationBell = () => {
 
   const getNotificationIcon = (type: string, isHighPriority?: boolean) => {
     const iconClass = isHighPriority ? 'text-red-400' : 'text-gray-400';
-    
+
     switch (type) {
       case 'message':
       case 'chat':
@@ -205,16 +233,13 @@ export const NotificationBell = () => {
 
   const deleteNotification = async (notificationId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     // Remove locally
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
-    
+
     // Delete from database (if not demo mode)
     if (!isDemoMode && user) {
-      await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId);
+      await supabase.from('notifications').delete().eq('id', notificationId);
     }
   };
 
@@ -226,11 +251,20 @@ export const NotificationBell = () => {
     if (!isDemoMode && user) {
       const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
       if (unreadIds.length > 0) {
-        await supabase
-          .from('notifications')
-          .update({ is_read: true })
-          .in('id', unreadIds);
+        await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
       }
+    }
+  };
+
+  const clearAllNotifications = async () => {
+    const notificationIds = notifications.map(n => n.id);
+
+    // Clear locally
+    setNotifications([]);
+
+    // Delete from database (if not demo mode)
+    if (!isDemoMode && user && notificationIds.length > 0) {
+      await supabase.from('notifications').delete().in('id', notificationIds);
     }
   };
 
@@ -258,23 +292,37 @@ export const NotificationBell = () => {
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          
+
           <div className="absolute right-0 top-full mt-2 w-96 bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-2xl shadow-2xl z-50 max-h-96 overflow-hidden">
-            <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Notifications</h3>
-              <div className="flex items-center gap-2">
-                {unreadCount > 0 && (
-                  <button
-                    onClick={markAllAsRead}
-                    className="text-sm text-glass-orange hover:text-glass-yellow transition-colors"
-                  >
-                    Mark all read
-                  </button>
-                )}
-                <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-white transition-colors">
-                  <X size={16} />
+            <div className="p-4 border-b border-gray-700">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">Notifications</h3>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-gray-400 hover:text-white transition-colors p-1 hover:bg-gray-700 rounded-lg"
+                  title="Close"
+                >
+                  <X size={18} />
                 </button>
               </div>
+              {notifications.length > 0 && (
+                <div className="flex items-center gap-3 mt-3">
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllAsRead}
+                      className="text-sm text-glass-orange hover:text-glass-yellow transition-colors"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                  <button
+                    onClick={clearAllNotifications}
+                    className="text-sm text-gray-400 hover:text-red-400 transition-colors"
+                  >
+                    Clear all
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="max-h-80 overflow-y-auto">
@@ -284,7 +332,7 @@ export const NotificationBell = () => {
                   <p>No notifications yet</p>
                 </div>
               ) : (
-                notifications.map((notification) => (
+                notifications.map(notification =>
                   notification.type === 'join_request' ? (
                     <JoinRequestNotification
                       key={notification.id}
@@ -313,7 +361,9 @@ export const NotificationBell = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <p className={`text-sm font-medium ${!notification.isRead ? 'text-white' : 'text-gray-300'}`}>
+                            <p
+                              className={`text-sm font-medium ${!notification.isRead ? 'text-white' : 'text-gray-300'}`}
+                            >
                               {notification.title}
                             </p>
                             {notification.isHighPriority && (
@@ -331,7 +381,7 @@ export const NotificationBell = () => {
                         {/* Delete button and timestamp - always visible */}
                         <div className="flex flex-col items-end gap-1 shrink-0">
                           <button
-                            onClick={(e) => deleteNotification(notification.id, e)}
+                            onClick={e => deleteNotification(notification.id, e)}
                             className="p-1.5 rounded-lg text-destructive hover:bg-destructive/20 transition-all"
                             title="Delete notification"
                           >
@@ -341,8 +391,8 @@ export const NotificationBell = () => {
                         </div>
                       </div>
                     </div>
-                  )
-                ))
+                  ),
+                )
               )}
             </div>
           </div>
