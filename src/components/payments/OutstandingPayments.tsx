@@ -181,10 +181,10 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
         creatorMethodsMap.set(method.user_id, existing);
       });
 
-      // Get debtor profiles
+      // Get debtor profiles (use public view for co-member data)
       const debtorIds = [...new Set((splitsResult.data || []).map(s => s.debtor_user_id))];
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('user_id, display_name, avatar_url')
         .in('user_id', debtorIds);
 

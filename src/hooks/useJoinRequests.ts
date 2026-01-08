@@ -65,11 +65,11 @@ export const useJoinRequests = ({
 
       if (error) throw error;
 
-      // Fetch profiles for user info (name, avatar) and filter out orphaned requests
+      // Fetch profiles for user info (use public view for co-member data)
       const requestsWithProfiles = await Promise.all(
         (data || []).map(async request => {
           const { data: profile, error: profileError } = await supabase
-            .from('profiles')
+            .from('profiles_public')
             .select('display_name, avatar_url, first_name, last_name')
             .eq('user_id', request.user_id)
             .maybeSingle();
