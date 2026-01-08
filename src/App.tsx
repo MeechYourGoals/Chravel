@@ -17,6 +17,7 @@ import { supabase } from "./integrations/supabase/client";
 import { AppInitializer } from "./components/app/AppInitializer";
 import BuildBadge from "./components/BuildBadge";
 import { OfflineIndicator } from "./components/OfflineIndicator";
+import { ExitDemoButton } from "./components/demo";
 import { attachNavigator, onNativeResume, setNativeBadgeCount } from "@/native/lifecycle";
 import { useDeepLinks } from "@/hooks/useDeepLinks";
 
@@ -306,6 +307,7 @@ const App = () => {
                 <Sonner />
                 <BuildBadge />
                 <OfflineIndicator />
+                <ExitDemoButton />
                 <Router>
                 <NativeLifecycleBridge client={queryClient} />
                 <MobileAppLayout>

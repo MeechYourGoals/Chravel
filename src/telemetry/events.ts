@@ -262,3 +262,51 @@ export const onboardingEvents = {
     telemetry.track('onboarding_demo_trip_selected', {});
   },
 };
+
+// ============================================================================
+// Demo Mode Events
+// ============================================================================
+
+export const demoEvents = {
+  entered: (source: 'onboarding' | 'toggle' | 'deep_link') => {
+    telemetry.track('demo_mode_entered', { source });
+    // Store entry timestamp in sessionStorage for duration calc
+    try {
+      sessionStorage.setItem('demo_mode_start', Date.now().toString());
+      sessionStorage.setItem('demo_actions_count', '0');
+    } catch {
+      // sessionStorage not available
+    }
+  },
+
+  exited: (exitMethod: 'button' | 'toggle' | 'logout', actionsCount: number) => {
+    let duration = 0;
+    try {
+      const startTime = sessionStorage.getItem('demo_mode_start');
+      duration = startTime ? Date.now() - parseInt(startTime, 10) : 0;
+      sessionStorage.removeItem('demo_mode_start');
+      sessionStorage.removeItem('demo_actions_count');
+    } catch {
+      // sessionStorage not available
+    }
+    telemetry.track('demo_mode_exited', {
+      duration_ms: duration,
+      actions_count: actionsCount,
+      exit_method: exitMethod,
+    });
+  },
+
+  actionPerformed: (
+    action: 'message_sent' | 'task_created' | 'payment_added' | 'cover_changed' | 'poll_created',
+    tripId: string
+  ) => {
+    telemetry.track('demo_action_performed', { action, trip_id: tripId });
+    // Increment action counter
+    try {
+      const count = parseInt(sessionStorage.getItem('demo_actions_count') || '0', 10);
+      sessionStorage.setItem('demo_actions_count', (count + 1).toString());
+    } catch {
+      // sessionStorage not available
+    }
+  },
+};
