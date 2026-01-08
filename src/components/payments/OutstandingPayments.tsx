@@ -57,6 +57,7 @@ interface OutstandingPaymentsProps {
   tripId: string;
   tripMembers?: TripMember[];
   onPaymentUpdated?: () => void;
+  refreshTrigger?: number;
 }
 
 // Map method types to display names
@@ -71,7 +72,7 @@ const METHOD_DISPLAY_NAMES: Record<string, string> = {
   other: 'Other'
 };
 
-export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated }: OutstandingPaymentsProps) => {
+export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated, refreshTrigger = 0 }: OutstandingPaymentsProps) => {
   const [payments, setPayments] = useState<OutstandingPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPayment, setEditingPayment] = useState<OutstandingPayment | null>(null);
@@ -233,7 +234,7 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
 
   useEffect(() => {
     loadPayments();
-  }, [tripId, isDemoMode]);
+  }, [tripId, isDemoMode, refreshTrigger]);
 
   const handleToggleSplit = async (splitId: string, paymentId: string, currentlySettled: boolean) => {
     if (demoActive) {

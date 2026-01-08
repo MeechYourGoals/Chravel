@@ -33,6 +33,7 @@ interface MockPayment {
 interface PaymentHistoryProps {
   tripId: string;
   onPaymentUpdated?: () => void;
+  refreshTrigger?: number;
 }
 
 interface PaymentRecord {
@@ -47,7 +48,7 @@ interface PaymentRecord {
   isSettled: boolean;
 }
 
-export const PaymentHistory = ({ tripId, onPaymentUpdated }: PaymentHistoryProps) => {
+export const PaymentHistory = ({ tripId, onPaymentUpdated, refreshTrigger = 0 }: PaymentHistoryProps) => {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPayment, setEditingPayment] = useState<PaymentRecord | null>(null);
@@ -175,7 +176,7 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated }: PaymentHistoryProps
 
   useEffect(() => {
     loadPayments();
-  }, [tripId, isDemoMode]);
+  }, [tripId, isDemoMode, refreshTrigger]);
 
   const handleEdit = (payment: PaymentRecord) => {
     setEditingPayment(payment);

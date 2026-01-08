@@ -302,7 +302,9 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     loadBalances();
   }, [tripId, user?.id, demoActive, demoLoading]);
 
-  const refreshPayments = useCallback(() => {
+  const refreshPayments = useCallback(async () => {
+    // Small delay to ensure database transaction is fully committed
+    await new Promise(resolve => setTimeout(resolve, 100));
     setRefreshKey(prev => prev + 1);
   }, []);
 
@@ -317,10 +319,10 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     // Demo mode: use session storage
     if (demoActive) {
       const paymentId = demoModeService.addSessionPayment(tripId, paymentData);
-      
+
       if (paymentId) {
         // Refresh immediately - no toast needed as payment appears in list
-        refreshPayments();
+        await refreshPayments();
         
         // Refresh balances with session payments included
         const mockPayments = demoModeService.getMockPayments(tripId, false);
@@ -368,11 +370,11 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
 
     // Production mode: use database with structured error handling
     const result = await createPaymentMessage(paymentData);
-    
+
     if (result && typeof result === 'object' && 'success' in result) {
       // New structured response
       if (result.success && result.paymentId) {
-        refreshPayments();
+        await refreshPayments();
         
         const newPayment = {
           id: result.paymentId,
@@ -418,7 +420,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       }
     } else if (result) {
       // Legacy string response (paymentId directly)
-      refreshPayments();
+      await refreshPayments();
       
       const newPayment = {
         id: result as unknown as string,
@@ -569,18 +571,18 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       )}
 
       {/* Outstanding Payments with Settlement Tracking */}
-      <OutstandingPayments 
-        key={`outstanding-${refreshKey}`}
+      <OutstandingPayments
         tripId={tripId}
         tripMembers={tripMembers}
-        onPaymentUpdated={refreshPayments} 
+        onPaymentUpdated={refreshPayments}
+        refreshTrigger={refreshKey}
       />
 
       {/* Payment History */}
-      <PaymentHistory 
-        key={`history-${refreshKey}`}
-        tripId={tripId} 
-        onPaymentUpdated={refreshPayments} 
+      <PaymentHistory
+        tripId={tripId}
+        onPaymentUpdated={refreshPayments}
+        refreshTrigger={refreshKey}
       />
 
       {/* Auth Modal */}
