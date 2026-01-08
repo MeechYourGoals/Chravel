@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { corsHeaders } from "../_shared/cors.ts"
+import { getCorsHeaders } from "../_shared/cors.ts"
 import { TripContextBuilder } from "../_shared/contextBuilder.ts"
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts"
 import { validateInput } from "../_shared/validation.ts"
@@ -74,6 +74,7 @@ const LovableConciergeSchema = z.object({
 
 serve(async (req) => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
+  const corsHeaders = getCorsHeaders(req);
   
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
