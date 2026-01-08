@@ -40,7 +40,7 @@ export default defineConfig(({ mode }) => ({
     // Performance optimizations
     rollupOptions: {
       // Externalize optional native-only dependencies
-      external: ['@sentry/capacitor'],
+      external: ['@sentry/capacitor', '@sentry/react'],
       output: {
         // Manual chunks for better caching
         manualChunks: {
