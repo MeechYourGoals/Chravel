@@ -168,6 +168,16 @@ export interface ErrorEvents {
   };
 }
 
+/**
+ * Onboarding Events
+ */
+export interface OnboardingEvents {
+  onboarding_screen_viewed: { screen: number };
+  onboarding_completed: Record<string, never>;
+  onboarding_skipped: { at_screen: number };
+  onboarding_demo_trip_selected: Record<string, never>;
+}
+
 // ============================================================================
 // Combined Event Map
 // ============================================================================
@@ -180,7 +190,8 @@ export type TelemetryEventMap = AuthEvents &
   TaskEvents &
   ExportEvents &
   PerformanceEvents &
-  ErrorEvents;
+  ErrorEvents &
+  OnboardingEvents;
 
 export type TelemetryEventName = keyof TelemetryEventMap;
 

@@ -19,6 +19,7 @@ import { RecommendationFilters } from '../components/home/RecommendationFilters'
 import { FullPageLanding } from '../components/landing/FullPageLanding';
 import { SearchOverlay } from '../components/home/SearchOverlay';
 import { DemoModal } from '../components/conversion/DemoModal';
+import { OnboardingCarousel } from '../components/onboarding';
 
 import { useAuth } from '../hooks/useAuth';
 import { useIsMobile } from '../hooks/use-mobile';
@@ -50,6 +51,7 @@ import {
   filterEvents,
   type DateFacet,
 } from '../utils/semanticTripFilter';
+import { useOnboarding } from '../hooks/useOnboarding';
 import { X } from 'lucide-react';
 
 const Index = () => {
@@ -82,8 +84,30 @@ const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { demoView, isDemoMode } = useDemoMode();
+  const { demoView, isDemoMode, setDemoView } = useDemoMode();
   const isMobilePortrait = useMobilePortrait();
+  const { hasCompletedOnboarding, isInitialized, completeOnboarding, skipOnboarding } = useOnboarding();
+
+  // Show onboarding for new authenticated users who haven't completed it
+  const showOnboarding = user && isInitialized && !hasCompletedOnboarding;
+
+  const handleOnboardingComplete = useCallback(() => {
+    completeOnboarding();
+  }, [completeOnboarding]);
+
+  const handleOnboardingSkip = useCallback(() => {
+    skipOnboarding();
+  }, [skipOnboarding]);
+
+  const handleOnboardingExploreDemoTrip = useCallback(() => {
+    completeOnboarding();
+    setDemoView('app-preview');
+    navigate('/trip/1');
+  }, [completeOnboarding, setDemoView, navigate]);
+
+  const handleOnboardingCreateTrip = useCallback(() => {
+    setIsCreateModalOpen(true);
+  }, []);
 
   // Clear stale demo mode for unauthenticated users visiting root (not from /demo redirect)
   useEffect(() => {
@@ -523,6 +547,19 @@ const Index = () => {
         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       </div>
     );
+  }
+
+  // Show onboarding for new authenticated users
+  if (showOnboarding) {
+    return (
+      <OnboardingCarousel
+        onComplete={handleOnboardingComplete}
+        onSkip={handleOnboardingSkip}
+        onExploreDemoTrip={handleOnboardingExploreDemoTrip}
+        onCreateTrip={handleOnboardingCreateTrip}
+      />
+    );
+  }
   }
 
   // Show marketing landing when logged out (for Home/Demo views)

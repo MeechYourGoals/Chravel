@@ -240,3 +240,25 @@ export const pageView = (
     load_time_ms: properties?.load_time_ms,
   });
 };
+
+// ============================================================================
+// Onboarding Events
+// ============================================================================
+
+export const onboardingEvents = {
+  screenViewed: (screen: number) => {
+    telemetry.track('onboarding_screen_viewed', { screen });
+  },
+
+  completed: () => {
+    telemetry.track('onboarding_completed', {});
+  },
+
+  skipped: (atScreen: number) => {
+    telemetry.track('onboarding_skipped', { at_screen: atScreen });
+  },
+
+  demoTripSelected: () => {
+    telemetry.track('onboarding_demo_trip_selected', {});
+  },
+};
