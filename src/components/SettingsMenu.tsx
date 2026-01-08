@@ -137,7 +137,7 @@ export const SettingsMenu = ({
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  Consumer
+                  Group
                 </button>
                 <button
                   onClick={() => setSettingsType('enterprise')}

@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import { User, LogOut } from 'lucide-react';
+import { User } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Button } from '../ui/button';
-import { useAuth } from '../../hooks/useAuth';
 
 export const EventProfileSection = () => {
-  const { user, signOut } = useAuth();
   const [organizerInfo, setOrganizerInfo] = useState({
     organizationName: '',
     organizerName: '',
@@ -140,21 +138,6 @@ export const EventProfileSection = () => {
           Save Organizer Profile
         </Button>
       </div>
-
-      {/* Sign Out */}
-      {user && (
-        <div className="bg-white/5 border border-white/10 rounded-xl p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="text-base font-semibold text-white">Sign Out</h4>
-              <p className="text-sm text-gray-400">Sign out of your account</p>
-            </div>
-            <Button onClick={signOut} variant="destructive" size="sm">
-              <LogOut className="h-4 w-4 mr-1" /> Sign Out
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

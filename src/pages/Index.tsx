@@ -458,15 +458,16 @@ const Index = () => {
         setSettingsInitialType('consumer');
         setIsSettingsOpen(true);
         break;
-      case 'recs':
-        setViewMode('travelRecs');
-        break;
     }
   }, []);
 
-  // Handle trip type selection from the switcher
-  const handleTripTypeSelect = useCallback((type: 'myTrips' | 'tripsPro' | 'events') => {
-    setViewMode(type === 'tripsPro' ? 'tripsPro' : type === 'events' ? 'events' : 'myTrips');
+  // Handle trip type selection from the switcher (including travelRecs)
+  const handleTripTypeSelect = useCallback((type: 'myTrips' | 'tripsPro' | 'events' | 'travelRecs') => {
+    if (type === 'travelRecs') {
+      setViewMode('travelRecs');
+    } else {
+      setViewMode(type);
+    }
     setActiveTab('trips');
   }, []);
 
@@ -661,18 +662,19 @@ const Index = () => {
             alertsBadge={0}
             tripTypeLabel={getTripTypeForTabBar()}
             onTripTypePress={() => setShowTripTypeSwitcher(true)}
-            showRecsTab={isDemoMode}
           />
           <NativeTabBarSpacer />
 
-          {/* Trip type switcher (Instagram-style) */}
+          {/* Trip type switcher (Instagram-style) - now includes Chravel Recs */}
           <NativeTripTypeSwitcher
             isOpen={showTripTypeSwitcher}
             onClose={() => setShowTripTypeSwitcher(false)}
             selectedType={
-              viewMode === 'tripsPro' ? 'tripsPro' : viewMode === 'events' ? 'events' : 'myTrips'
+              viewMode === 'tripsPro' ? 'tripsPro' : viewMode === 'events' ? 'events' : viewMode === 'travelRecs' ? 'travelRecs' : 'myTrips'
             }
             onSelectType={handleTripTypeSelect}
+            showRecsOption={true}
+            recsDisabled={!isDemoMode}
           />
         </div>
       );
@@ -816,18 +818,19 @@ const Index = () => {
           alertsBadge={0}
           tripTypeLabel={getTripTypeForTabBar()}
           onTripTypePress={() => setShowTripTypeSwitcher(true)}
-          showRecsTab={isDemoMode}
         />
         <NativeTabBarSpacer />
 
-        {/* Trip type switcher (Instagram-style) */}
+        {/* Trip type switcher (Instagram-style) - now includes Chravel Recs */}
         <NativeTripTypeSwitcher
           isOpen={showTripTypeSwitcher}
           onClose={() => setShowTripTypeSwitcher(false)}
           selectedType={
-            viewMode === 'tripsPro' ? 'tripsPro' : viewMode === 'events' ? 'events' : 'myTrips'
+            viewMode === 'tripsPro' ? 'tripsPro' : viewMode === 'events' ? 'events' : viewMode === 'travelRecs' ? 'travelRecs' : 'myTrips'
           }
           onSelectType={handleTripTypeSelect}
+          showRecsOption={true}
+          recsDisabled={!isDemoMode}
         />
       </div>
     );
@@ -995,18 +998,19 @@ const Index = () => {
         alertsBadge={0}
         tripTypeLabel={getTripTypeForTabBar()}
         onTripTypePress={() => setShowTripTypeSwitcher(true)}
-        showRecsTab={isDemoMode}
       />
       <NativeTabBarSpacer />
 
-      {/* Trip type switcher (Instagram-style) */}
+      {/* Trip type switcher (Instagram-style) - now includes Chravel Recs */}
       <NativeTripTypeSwitcher
         isOpen={showTripTypeSwitcher}
         onClose={() => setShowTripTypeSwitcher(false)}
         selectedType={
-          viewMode === 'tripsPro' ? 'tripsPro' : viewMode === 'events' ? 'events' : 'myTrips'
+          viewMode === 'tripsPro' ? 'tripsPro' : viewMode === 'events' ? 'events' : viewMode === 'travelRecs' ? 'travelRecs' : 'myTrips'
         }
         onSelectType={handleTripTypeSelect}
+        showRecsOption={true}
+        recsDisabled={!isDemoMode}
       />
     </div>
   );

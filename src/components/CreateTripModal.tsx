@@ -365,7 +365,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               className="flex items-center gap-2 data-[state=on]:bg-blue-600 data-[state=on]:text-white text-slate-300 hover:text-white"
             >
               <Users size={16} />
-              Consumer
+              Group
             </ToggleGroupItem>
             <ToggleGroupItem
               value="pro"
