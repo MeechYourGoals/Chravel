@@ -21,7 +21,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { mockNotifications } from '@/mockData/notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { JoinRequestNotification } from './notifications/JoinRequestNotification';
+import { SwipeableNotificationRow } from './notifications/SwipeableNotificationRow';
 import { useInboundJoinRequests } from '@/hooks/useInboundJoinRequests';
+import { useMobilePortrait } from '@/hooks/useMobilePortrait';
 
 interface Notification {
   id: string;
@@ -56,6 +58,7 @@ export const NotificationBell = () => {
   const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
   const { pendingCount: inboundRequestsCount } = useInboundJoinRequests();
+  const isMobile = useMobilePortrait();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
@@ -126,6 +129,7 @@ export const NotificationBell = () => {
       .from('notifications')
       .select('*')
       .eq('user_id', user.id)
+      .eq('is_visible', true) // Only fetch visible notifications
       .order('created_at', { ascending: false })
       .limit(20);
 
@@ -231,15 +235,18 @@ export const NotificationBell = () => {
     }
   };
 
-  const deleteNotification = async (notificationId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const deleteNotification = async (notificationId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
 
     // Remove locally
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
 
-    // Delete from database (if not demo mode)
+    // Soft delete in database (if not demo mode)
     if (!isDemoMode && user) {
-      await supabase.from('notifications').delete().eq('id', notificationId);
+      await supabase
+        .from('notifications')
+        .update({ is_visible: false, cleared_at: new Date().toISOString() })
+        .eq('id', notificationId);
     }
   };
 
@@ -262,9 +269,12 @@ export const NotificationBell = () => {
     // Clear locally
     setNotifications([]);
 
-    // Delete from database (if not demo mode)
+    // Soft delete all in database (if not demo mode)
     if (!isDemoMode && user && notificationIds.length > 0) {
-      await supabase.from('notifications').delete().in('id', notificationIds);
+      await supabase
+        .from('notifications')
+        .update({ is_visible: false, cleared_at: new Date().toISOString() })
+        .in('id', notificationIds);
     }
   };
 
@@ -332,24 +342,27 @@ export const NotificationBell = () => {
                   <p>No notifications yet</p>
                 </div>
               ) : (
-                notifications.map(notification =>
-                  notification.type === 'join_request' ? (
-                    <JoinRequestNotification
-                      key={notification.id}
-                      notification={notification}
-                      isDemoMode={isDemoMode}
-                      onAction={() => {
-                        if (isDemoMode) {
-                          setNotifications(prev => prev.filter(n => n.id !== notification.id));
-                        } else {
-                          fetchNotifications();
-                        }
-                      }}
-                      onNavigate={() => setIsOpen(false)}
-                    />
-                  ) : (
+                notifications.map(notification => {
+                  if (notification.type === 'join_request') {
+                    return (
+                      <JoinRequestNotification
+                        key={notification.id}
+                        notification={notification}
+                        isDemoMode={isDemoMode}
+                        onAction={() => {
+                          if (isDemoMode) {
+                            setNotifications(prev => prev.filter(n => n.id !== notification.id));
+                          } else {
+                            fetchNotifications();
+                          }
+                        }}
+                        onNavigate={() => setIsOpen(false)}
+                      />
+                    );
+                  }
+
+                  const notificationContent = (
                     <div
-                      key={notification.id}
                       onClick={() => handleNotificationClick(notification)}
                       className={`p-4 border-b border-gray-700/50 hover:bg-gray-800/50 cursor-pointer transition-colors group ${
                         !notification.isRead ? 'bg-gray-800/30' : ''
@@ -378,21 +391,41 @@ export const NotificationBell = () => {
                           </p>
                           <p className="text-xs text-muted-foreground">{notification.tripName}</p>
                         </div>
-                        {/* Delete button and timestamp - always visible */}
-                        <div className="flex flex-col items-end gap-1 shrink-0">
-                          <button
-                            onClick={e => deleteNotification(notification.id, e)}
-                            className="p-1.5 rounded-lg text-destructive hover:bg-destructive/20 transition-all"
-                            title="Delete notification"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                          <p className="text-xs text-muted-foreground">{notification.timestamp}</p>
-                        </div>
+                        {/* Delete button and timestamp - only on desktop */}
+                        {!isMobile && (
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            <button
+                              onClick={e => deleteNotification(notification.id, e)}
+                              className="p-1.5 rounded-lg text-destructive hover:bg-destructive/20 transition-all"
+                              title="Delete notification"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                            <p className="text-xs text-muted-foreground">{notification.timestamp}</p>
+                          </div>
+                        )}
+                        {/* Timestamp only on mobile (swipe to delete) */}
+                        {isMobile && (
+                          <p className="text-xs text-muted-foreground shrink-0">{notification.timestamp}</p>
+                        )}
                       </div>
                     </div>
-                  ),
-                )
+                  );
+
+                  // Wrap in swipeable row for mobile
+                  if (isMobile) {
+                    return (
+                      <SwipeableNotificationRow
+                        key={notification.id}
+                        onDelete={() => deleteNotification(notification.id)}
+                      >
+                        {notificationContent}
+                      </SwipeableNotificationRow>
+                    );
+                  }
+
+                  return <div key={notification.id}>{notificationContent}</div>;
+                })
               )}
             </div>
           </div>

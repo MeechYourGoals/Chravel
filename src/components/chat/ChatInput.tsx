@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Plus, Megaphone, Link, Camera, Video, FileText, Loader2, Upload, Image, Film, File } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { fetchOGMetadata } from '@/services/ogMetadataService';
 import { cn } from '@/lib/utils';
 import * as haptics from '@/native/haptics';
+import { MentionPicker, TripMember } from './MentionPicker';
 
 // URL detection regex
 const URL_REGEX = /https?:\/\/[^\s<>"{}|\\^`[\]]+/gi;
@@ -23,7 +24,7 @@ function extractFirstUrl(text: string): string | null {
 interface ChatInputProps {
   inputMessage: string;
   onInputChange: (message: string) => void;
-  onSendMessage: (isBroadcast?: boolean, isPayment?: boolean, paymentData?: any, linkPreview?: any) => void;
+  onSendMessage: (isBroadcast?: boolean, isPayment?: boolean, paymentData?: any, linkPreview?: any, mentionedUserIds?: string[]) => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
   onFileUpload?: (files: FileList, type: 'image' | 'video' | 'document') => void;
   apiKey: string;
@@ -65,6 +66,14 @@ export const ChatInput = ({
   const [isSendingMessage, setIsSendingMessage] = useState(false); // Send-lock to prevent double submit
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // @-mention state
+  const [showMentionPicker, setShowMentionPicker] = useState(false);
+  const [mentionSearchQuery, setMentionSearchQuery] = useState('');
+  const [mentionStartIndex, setMentionStartIndex] = useState<number | null>(null);
+  const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+  const [mentionedUsers, setMentionedUsers] = useState<TripMember[]>([]);
   
   const { 
     shareFile, 
@@ -99,6 +108,98 @@ export const ChatInput = ({
       onTypingChange(hasText);
     }
   }, [inputMessage, onTypingChange]);
+
+  // Handle @ mention detection
+  const handleInputChange = useCallback((value: string) => {
+    onInputChange(value);
+    
+    // Check for @ trigger
+    const cursorPosition = textareaRef.current?.selectionStart || value.length;
+    const textBeforeCursor = value.slice(0, cursorPosition);
+    
+    // Find the last @ before cursor
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+      // Check if @ is at start or preceded by whitespace
+      const charBefore = textBeforeCursor[lastAtIndex - 1];
+      if (lastAtIndex === 0 || charBefore === ' ' || charBefore === '\n') {
+        const searchText = textBeforeCursor.slice(lastAtIndex + 1);
+        // Only show picker if no space after @
+        if (!searchText.includes(' ')) {
+          setShowMentionPicker(true);
+          setMentionSearchQuery(searchText);
+          setMentionStartIndex(lastAtIndex);
+          return;
+        }
+      }
+    }
+    
+    setShowMentionPicker(false);
+    setMentionSearchQuery('');
+    setMentionStartIndex(null);
+  }, [onInputChange]);
+
+  // Handle mention selection
+  const handleMentionSelect = useCallback((member: TripMember) => {
+    if (mentionStartIndex === null) return;
+    
+    // Replace @query with @Name
+    const beforeMention = inputMessage.slice(0, mentionStartIndex);
+    const cursorPosition = textareaRef.current?.selectionStart || inputMessage.length;
+    const afterCursor = inputMessage.slice(cursorPosition);
+    
+    const newMessage = `${beforeMention}@${member.name} ${afterCursor}`;
+    onInputChange(newMessage);
+    
+    // Add to mentioned users if not already there
+    if (!mentionedUsers.find(u => u.id === member.id)) {
+      setMentionedUsers(prev => [...prev, member]);
+    }
+    
+    // Close picker
+    setShowMentionPicker(false);
+    setMentionSearchQuery('');
+    setMentionStartIndex(null);
+    setSelectedMentionIndex(0);
+    
+    // Haptic feedback
+    haptics.light();
+    
+    // Focus back on input
+    textareaRef.current?.focus();
+  }, [inputMessage, mentionStartIndex, onInputChange, mentionedUsers]);
+
+  // Handle keyboard navigation in mention picker
+  const handleMentionKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!showMentionPicker) return;
+    
+    const filteredMembers = tripMembers.filter(m => 
+      m.name.toLowerCase().includes(mentionSearchQuery.toLowerCase())
+    );
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedMentionIndex(prev => 
+        prev < filteredMembers.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedMentionIndex(prev => 
+        prev > 0 ? prev - 1 : filteredMembers.length - 1
+      );
+    } else if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const selectedMember = filteredMembers[selectedMentionIndex];
+      if (selectedMember) {
+        handleMentionSelect(selectedMember);
+      }
+    } else if (e.key === 'Escape') {
+      setShowMentionPicker(false);
+      setMentionSearchQuery('');
+      setMentionStartIndex(null);
+    }
+  }, [showMentionPicker, tripMembers, mentionSearchQuery, selectedMentionIndex, handleMentionSelect]);
 
   const handleSend = async () => {
     // Prevent double-submit while request is in-flight
@@ -139,7 +240,13 @@ export const ChatInput = ({
           }
         }
 
-        onSendMessage(isBroadcastMode, false, undefined, linkPreview);
+        // Extract mentioned user IDs
+        const mentionedUserIds = mentionedUsers.map(u => u.id);
+        
+        onSendMessage(isBroadcastMode, false, undefined, linkPreview, mentionedUserIds);
+        
+        // Clear mentioned users after send
+        setMentionedUsers([]);
       } finally {
         // Release send-lock after a short delay to prevent rapid re-clicks
         setTimeout(() => setIsSendingMessage(false), 300);
@@ -153,6 +260,12 @@ export const ChatInput = ({
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
+    // Handle mention picker keyboard navigation first
+    if (showMentionPicker) {
+      handleMentionKeyDown(e);
+      return;
+    }
+    
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -383,15 +496,28 @@ export const ChatInput = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Mention Picker */}
+          {showMentionPicker && tripMembers.length > 0 && (
+            <MentionPicker
+              members={tripMembers}
+              searchQuery={mentionSearchQuery}
+              onSelect={handleMentionSelect}
+              onClose={() => setShowMentionPicker(false)}
+              selectedIndex={selectedMentionIndex}
+              onSelectedIndexChange={setSelectedMentionIndex}
+            />
+          )}
+
           {/* Message Input */}
           <textarea
+            ref={textareaRef}
             value={inputMessage}
-            onChange={(e) => onInputChange(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onKeyDown={handleKeyPress}
             placeholder={
               isBroadcastMode 
                 ? "Send an announcement..." 
-                : "Type a message…"
+                : "Type @ to mention someone…"
             }
             rows={1}
             className={cn(
