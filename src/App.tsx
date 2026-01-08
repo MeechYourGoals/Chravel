@@ -95,6 +95,12 @@ const queryClient = new QueryClient();
 // Always use BrowserRouter - Lovable preview now supports SPA routing
 const Router = BrowserRouter;
 
+// Adapter component: renders ExitDemoButton inside Router context with navigation callback
+const ExitDemoButtonWithNav = () => {
+  const navigate = useNavigate();
+  return <ExitDemoButton onNavigate={() => navigate('/')} />;
+};
+
 const NativeLifecycleBridge = ({ client }: { client: QueryClient }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -307,8 +313,9 @@ const App = () => {
                 <Sonner />
                 <BuildBadge />
                 <OfflineIndicator />
-                <ExitDemoButton />
+                {/* All components using react-router hooks must render inside <Router> */}
                 <Router>
+                <ExitDemoButtonWithNav />
                 <NativeLifecycleBridge client={queryClient} />
                 <MobileAppLayout>
                   <Routes>
