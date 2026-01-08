@@ -66,6 +66,7 @@ export const MobileTripDetail = () => {
   });
 
   // ⚡ PERFORMANCE: Load ONLY this trip (not all trips) - matching desktop pattern
+  // Parallelized fetch for trip + members (members handled by useTripMembers hook)
   React.useEffect(() => {
     const loadTrip = async () => {
       if (!tripId) {
@@ -77,7 +78,7 @@ export const MobileTripDetail = () => {
       setLoading(true);
 
       if (isDemoMode) {
-        // 🎭 DEMO MODE: Use mock data only - NO Supabase queries
+        // 🎭 DEMO MODE: Use mock data only - instant load, NO network
         const tripIdNum = parseInt(tripId, 10);
 
         if (Number.isNaN(tripIdNum)) {
@@ -92,19 +93,22 @@ export const MobileTripDetail = () => {
           toast.error(`Demo trip ${tripId} not found. Available trips: 1-12`);
         }
         setTrip(mockTrip || null);
-      } else {
-        // 🔐 AUTHENTICATED MODE: Query Supabase for single trip
-        try {
-          const realTrip = await tripService.getTripById(tripId);
-          if (realTrip) {
-            setTrip(convertSupabaseTripToMock(realTrip));
-          } else {
-            setTrip(null);
-          }
-        } catch (error) {
-          console.error('[MobileTripDetail] Failed to load trip:', error);
+        setLoading(false);
+        return;
+      }
+      
+      // 🔐 AUTHENTICATED MODE: Query Supabase for single trip
+      // Note: useTripMembers hook fetches members in parallel automatically
+      try {
+        const realTrip = await tripService.getTripById(tripId);
+        if (realTrip) {
+          setTrip(convertSupabaseTripToMock(realTrip));
+        } else {
           setTrip(null);
         }
+      } catch (error) {
+        console.error('[MobileTripDetail] Failed to load trip:', error);
+        setTrip(null);
       }
       setLoading(false);
     };

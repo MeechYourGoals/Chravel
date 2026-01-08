@@ -76,6 +76,7 @@ export const TripDetailDesktop = () => {
   // 🔄 CRITICAL: Load trip data - demo mode uses ONLY mock data, authenticated uses Supabase
   // ⚡ PERFORMANCE: Start loading immediately - don't wait for demoModeLoading
   // demoModeStore uses synchronous localStorage, so isDemoMode is already accurate
+  // Note: useTripMembers hook fetches members in parallel automatically
   React.useEffect(() => {
     const loadTrip = async () => {
       if (!tripId) {
@@ -87,7 +88,7 @@ export const TripDetailDesktop = () => {
       setLoading(true);
 
       if (isDemoMode) {
-        // 🎭 DEMO MODE: Use mock data only - NO Supabase queries
+        // 🎭 DEMO MODE: Use mock data only - instant load, NO network
         const tripIdNum = parseInt(tripId, 10);
 
         if (Number.isNaN(tripIdNum)) {
@@ -102,18 +103,20 @@ export const TripDetailDesktop = () => {
           toast.error(`Demo trip ${tripId} not found. Available trips: 1-12`);
         }
         setTrip(mockTrip || null);
-      } else {
-        // 🔐 AUTHENTICATED MODE: Query Supabase
-        try {
-          const realTrip = await tripService.getTripById(tripId);
-          if (realTrip) {
-            setTrip(convertSupabaseTripToMock(realTrip));
-          } else {
-            setTrip(null);
-          }
-        } catch {
+        setLoading(false);
+        return;
+      }
+      
+      // 🔐 AUTHENTICATED MODE: Query Supabase
+      try {
+        const realTrip = await tripService.getTripById(tripId);
+        if (realTrip) {
+          setTrip(convertSupabaseTripToMock(realTrip));
+        } else {
           setTrip(null);
         }
+      } catch {
+        setTrip(null);
       }
       setLoading(false);
     };
