@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { corsHeaders } from "../_shared/cors.ts"
+import { getCorsHeaders } from "../_shared/cors.ts"
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
@@ -26,6 +26,7 @@ interface OpenAIRequest {
 
 serve(async (req) => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
+  const corsHeaders = getCorsHeaders(req);
   
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })

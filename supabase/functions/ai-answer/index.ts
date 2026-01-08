@@ -3,18 +3,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createSecureResponse, createErrorResponse, createOptionsResponse } from "../_shared/securityHeaders.ts";
 import { AIAnswerSchema, validateInput } from "../_shared/validation.ts";
 import { sanitizeErrorForClient, logError } from "../_shared/errorHandling.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return createOptionsResponse();
+    return createOptionsResponse(req);
   }
 
   try {
