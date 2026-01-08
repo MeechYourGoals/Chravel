@@ -1,60 +1,99 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { paymentService } from '../services/paymentService';
 import { PaymentMethod, PaymentMessage } from '../types/payments';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 import { supabase } from '@/integrations/supabase/client';
+import { demoModeService } from '../services/demoModeService';
 
 export const usePayments = (tripId?: string) => {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [tripPayments, setTripPayments] = useState<PaymentMessage[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [paymentsLoading, setPaymentsLoading] = useState(true);
+  const [methodsLoading, setMethodsLoading] = useState(false);
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
 
   const userId = user?.id;
+
+  // Check if this is a demo trip
+  const isNumericOnly = tripId ? /^\d+$/.test(tripId) : false;
+  const tripIdNum = tripId ? parseInt(tripId, 10) : NaN;
+  const isDemoTrip = isNumericOnly && !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
+  const demoActive = isDemoMode && isDemoTrip;
 
   // Load user payment methods
   useEffect(() => {
     if (!userId) return;
 
     const loadPaymentMethods = async () => {
-      setLoading(true);
+      setMethodsLoading(true);
       try {
         const methods = await paymentService.getUserPaymentMethods(userId);
         setPaymentMethods(methods);
       } catch (error) {
         console.error('Error loading payment methods:', error);
       } finally {
-        setLoading(false);
+        setMethodsLoading(false);
       }
     };
 
     loadPaymentMethods();
   }, [userId]);
 
-  // Load trip payments
-  useEffect(() => {
+  // Load trip payments (handles both demo and authenticated modes)
+  const loadTripPayments = useCallback(async () => {
     if (!tripId) return;
 
-    const loadTripPayments = async () => {
-      setLoading(true);
-      try {
+    setPaymentsLoading(true);
+    try {
+      if (demoActive) {
+        // Demo mode: combine mock and session payments
+        const mockPayments = demoModeService.getMockPayments(tripId, false);
+        const sessionPayments = demoModeService.getSessionPayments(tripId);
+
+        // Convert to PaymentMessage format
+        const allPayments: PaymentMessage[] = [...mockPayments, ...sessionPayments].map(p => ({
+          id: p.id,
+          tripId: p.trip_id,
+          messageId: null,
+          amount: p.amount,
+          currency: p.currency || 'USD',
+          description: p.description,
+          splitCount: p.split_count,
+          splitParticipants: p.split_participants || [],
+          paymentMethods: p.payment_methods || [],
+          createdBy: p.created_by,
+          createdAt: p.created_at,
+          isSettled: p.is_settled || false,
+        }));
+
+        setTripPayments(allPayments);
+      } else {
+        // Authenticated mode: fetch from Supabase
         const payments = await paymentService.getTripPaymentMessages(tripId);
         setTripPayments(payments);
-      } catch (error) {
-        console.error('Error loading trip payments:', error);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Error loading trip payments:', error);
+    } finally {
+      setPaymentsLoading(false);
+    }
+  }, [tripId, demoActive]);
 
+  // Initial load of trip payments
+  useEffect(() => {
     loadTripPayments();
-  }, [tripId]);
+  }, [loadTripPayments]);
+
+  // Manual refresh function
+  const refreshPayments = useCallback(async () => {
+    await loadTripPayments();
+  }, [loadTripPayments]);
 
   // Real-time subscription for authenticated mode
   useEffect(() => {
-    if (!tripId || isDemoMode) return;
+    if (!tripId || demoActive) return;
 
     const channel = supabase
       .channel(`trip_payments:${tripId}`)
@@ -66,14 +105,9 @@ export const usePayments = (tripId?: string) => {
           table: 'trip_payment_messages',
           filter: `trip_id=eq.${tripId}`,
         },
-        async (payload) => {
+        () => {
           // Refresh payments on any change
-          try {
-            const payments = await paymentService.getTripPaymentMessages(tripId);
-            setTripPayments(payments);
-          } catch (error) {
-            console.error('Error refreshing payments after real-time update:', error);
-          }
+          loadTripPayments();
         }
       )
       .on(
@@ -83,14 +117,9 @@ export const usePayments = (tripId?: string) => {
           schema: 'public',
           table: 'payment_splits',
         },
-        async (payload) => {
+        () => {
           // Refresh payments when splits are updated
-          try {
-            const payments = await paymentService.getTripPaymentMessages(tripId);
-            setTripPayments(payments);
-          } catch (error) {
-            console.error('Error refreshing payments after split update:', error);
-          }
+          loadTripPayments();
         }
       )
       .subscribe();
@@ -98,7 +127,7 @@ export const usePayments = (tripId?: string) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tripId, isDemoMode]);
+  }, [tripId, demoActive, loadTripPayments]);
 
   const addPaymentMethod = async (method: Omit<PaymentMethod, 'id'>) => {
     if (!userId) return false;
@@ -136,32 +165,61 @@ export const usePayments = (tripId?: string) => {
     splitCount: number;
     splitParticipants: string[];
     paymentMethods: string[];
-  }): Promise<{ success: boolean; paymentId?: string; error?: { code: string; message: string } } | null> => {
-    if (!tripId || !userId) {
+  }): Promise<{ success: boolean; paymentId?: string; error?: { code: string; message: string } }> => {
+    if (!tripId) {
       return {
         success: false,
         error: {
           code: 'VALIDATION_FAILED',
-          message: 'Trip ID or User ID is missing.'
+          message: 'Trip ID is missing.'
+        }
+      };
+    }
+
+    // Demo mode: use session storage
+    if (demoActive) {
+      const paymentId = demoModeService.addSessionPayment(tripId, paymentData);
+      if (paymentId) {
+        await refreshPayments();
+        return { success: true, paymentId };
+      }
+      return {
+        success: false,
+        error: { code: 'DEMO_ERROR', message: 'Failed to create demo payment.' }
+      };
+    }
+
+    // Authenticated mode: use database
+    if (!userId) {
+      return {
+        success: false,
+        error: {
+          code: 'VALIDATION_FAILED',
+          message: 'User ID is missing. Please sign in.'
         }
       };
     }
 
     const result = await paymentService.createPaymentMessage(tripId, userId, paymentData);
     if (result.success && result.paymentId) {
-      // Refresh trip payments
-      const updatedPayments = await paymentService.getTripPaymentMessages(tripId);
-      setTripPayments(updatedPayments);
+      // Refresh trip payments after creation
+      await refreshPayments();
     }
     return result;
   };
 
   const settlePayment = async (splitId: string, settlementMethod: string) => {
     const success = await paymentService.settlePayment(splitId, settlementMethod);
-    if (success && tripId) {
-      // Refresh trip payments
-      const updatedPayments = await paymentService.getTripPaymentMessages(tripId);
-      setTripPayments(updatedPayments);
+    if (success) {
+      await refreshPayments();
+    }
+    return success;
+  };
+
+  const unsettlePayment = async (splitId: string) => {
+    const success = await paymentService.unsettlePayment(splitId);
+    if (success) {
+      await refreshPayments();
     }
     return success;
   };
@@ -171,15 +229,30 @@ export const usePayments = (tripId?: string) => {
     return await paymentService.getTripPaymentSummary(tripId);
   };
 
+  // Derived state: separate settled and unsettled payments
+  const outstandingPayments = tripPayments.filter(p => !p.isSettled);
+  const completedPayments = tripPayments.filter(p => p.isSettled);
+
   return {
+    // Data
     paymentMethods,
     tripPayments,
-    loading,
+    outstandingPayments,
+    completedPayments,
+    // Loading states
+    loading: paymentsLoading || methodsLoading,
+    paymentsLoading,
+    methodsLoading,
+    // Demo mode info
+    demoActive,
+    // Actions
+    refreshPayments,
     addPaymentMethod,
     updatePaymentMethod,
     deletePaymentMethod,
     createPaymentMessage,
     settlePayment,
+    unsettlePayment,
     getTripPaymentSummary
   };
 };

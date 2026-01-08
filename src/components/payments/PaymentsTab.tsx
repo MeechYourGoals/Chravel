@@ -4,7 +4,6 @@ import { PersonBalanceCard } from './PersonBalanceCard';
 import { PaymentHistory } from './PaymentHistory';
 import { OutstandingPayments } from './OutstandingPayments';
 import { PaymentInput } from './PaymentInput';
-import { paymentService } from '../../services/paymentService';
 import { paymentBalanceService, BalanceSummary as BalanceSummaryType } from '../../services/paymentBalanceService';
 import { useAuth } from '../../hooks/useAuth';
 import { usePayments } from '../../hooks/usePayments';
@@ -20,7 +19,6 @@ import { AuthModal } from '../AuthModal';
 import { Loader2, LogIn, Lock, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
-import { FREEMIUM_LIMITS } from '../../utils/featureTiers';
 
 interface PaymentsTabProps {
   tripId: string;
@@ -28,39 +26,41 @@ interface PaymentsTabProps {
 
 export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   const { user } = useAuth();
-  const { createPaymentMessage } = usePayments(tripId);
   const { toast } = useToast();
-  const { isDemoMode, isLoading: demoLoading } = useDemoMode();
+  const { isLoading: demoLoading } = useDemoMode();
   const { tier, isLoading: tierLoading, upgradeToTier } = useConsumerSubscription();
   const { isSuperAdmin } = useSuperAdmin();
+
+  // Single source of truth for payment data
+  const {
+    tripPayments,
+    paymentsLoading,
+    demoActive,
+    refreshPayments,
+    createPaymentMessage,
+  } = usePayments(tripId);
+
   const [balanceSummary, setBalanceSummary] = useState<BalanceSummaryType | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [balanceLoading, setBalanceLoading] = useState(true);
   const [tripMembers, setTripMembers] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
-  const [paymentMessages, setPaymentMessages] = useState<any[]>([]);
   const [membersLoading, setMembersLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // CRITICAL: Only parse as demo trip if tripId is ENTIRELY numeric (not a UUID)
+  // Demo mode values
   const isNumericOnly = /^\d+$/.test(tripId);
   const tripIdNum = parseInt(tripId, 10);
-  const isConsumerDemoTrip = isNumericOnly && !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
-  // Only activate demo mode for trips 1-12 if EXPLICITLY in demo mode
-  const demoActive = isDemoMode && isConsumerDemoTrip;
 
-  // Fetch trip members and payment messages
+  // Fetch trip members (separate from payments)
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchMembers = async () => {
       if (!tripId) return;
-      
+
       setMembersLoading(true);
       try {
-        // 🎭 DEMO MODE: Load participants from tripsData.ts (same as Trip Collaborators)
         if (demoActive) {
           const mockTrip = getTripById(tripIdNum);
-          
+
           if (mockTrip && mockTrip.participants) {
-            // Transform participants to match expected format
             const formattedMembers = mockTrip.participants.map(p => ({
               id: String(p.id),
               name: p.name,
@@ -68,7 +68,6 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
             }));
             setTripMembers(formattedMembers);
           } else {
-            // Fallback to generic demo members if trip not found
             const demoMembers = demoModeService.getMockMembers(tripId);
             setTripMembers(demoMembers.map(m => ({
               id: m.user_id,
@@ -76,27 +75,19 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
               avatar: m.avatar_url
             })));
           }
-          
-          // Demo payments
-          const demoPayments = demoModeService.getMockPayments(tripId, false);
-          setPaymentMessages(demoPayments);
           setMembersLoading(false);
           return;
         }
-        
-        // 🔐 AUTHENTICATED MODE: Query Supabase
-        const [membersData, paymentsData] = await Promise.all([
-          tripService.getTripMembers(tripId),
-          paymentService.getTripPaymentMessages(tripId)
-        ]);
-        
-        // Format members from getTripMembers return structure
+
+        // Authenticated mode: Query Supabase
+        const membersData = await tripService.getTripMembers(tripId);
+
         const formattedMembers = membersData.map(m => ({
           id: m.user_id,
           name: m.profiles?.display_name || 'Unknown User',
           avatar: m.profiles?.avatar_url || undefined
         }));
-        
+
         // Ensure current user is always in the members list
         let finalMembers = formattedMembers;
         if (user && !formattedMembers.find(m => m.id === user.id)) {
@@ -105,7 +96,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
             .select('display_name, avatar_url')
             .eq('user_id', user.id)
             .single();
-          
+
           finalMembers = [
             {
               id: user.id,
@@ -115,25 +106,19 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
             ...formattedMembers
           ];
         }
-        
+
         setTripMembers(finalMembers);
-        setPaymentMessages(paymentsData);
       } catch (error) {
-        console.error('Error loading payment data:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load payment information",
-          variant: "destructive"
-        });
+        console.error('Error loading trip members:', error);
       } finally {
         setMembersLoading(false);
       }
     };
 
-    fetchData();
-  }, [tripId, user, demoActive]);
+    fetchMembers();
+  }, [tripId, user, demoActive, tripIdNum]);
 
-  // Subscribe to profile updates so avatar/name changes propagate into payments UI immediately.
+  // Subscribe to profile updates for name/avatar changes
   useEffect(() => {
     if (!tripId || demoActive) return;
 
@@ -163,25 +148,22 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel).catch(() => {
-        // ignore
-      });
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [tripId, demoActive]);
 
-  // Count user's payment requests for this trip
+  // Count user's payment requests for freemium limits
   const userPaymentCount = useMemo(() => {
-    return paymentMessages.filter(p => p.createdBy === user?.id).length;
-  }, [paymentMessages, user]);
+    return tripPayments.filter(p => p.createdBy === user?.id).length;
+  }, [tripPayments, user]);
 
-  // Super admin bypass - unlimited everything
   const paymentLimit = isSuperAdmin ? -1 : (tier === 'free' ? 5 : -1);
   const remainingPayments = paymentLimit === -1 ? -1 : Math.max(0, paymentLimit - userPaymentCount);
   const canCreateMorePayments = isSuperAdmin || paymentLimit === -1 || userPaymentCount < paymentLimit;
 
-  // Calculate payment summary
+  // Calculate payment summary from centralized data
   const paymentSummary = useMemo(() => {
-    if (!user || paymentMessages.length === 0) {
+    if (!user || tripPayments.length === 0) {
       return {
         totalPaid: 0,
         totalOwed: 0,
@@ -191,13 +173,11 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       };
     }
 
-    // Simple balance calculation from payment messages
     let totalPaid = 0;
-    let totalOwed = 0;
     let totalOwedToYou = 0;
     let totalYouOwe = 0;
 
-    paymentMessages.forEach(payment => {
+    tripPayments.forEach(payment => {
       if (payment.createdBy === user.id) {
         totalPaid += payment.amount;
         if (!payment.isSettled) {
@@ -210,33 +190,26 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       }
     });
 
-    totalOwed = totalOwedToYou + totalYouOwe;
+    const totalOwed = totalOwedToYou + totalYouOwe;
     const isSettled = totalOwed === 0;
 
-    return {
-      totalPaid,
-      totalOwed,
-      totalOwedToYou,
-      totalYouOwe,
-      isSettled
-    };
-  }, [paymentMessages, user]);
+    return { totalPaid, totalOwed, totalOwedToYou, totalYouOwe, isSettled };
+  }, [tripPayments, user]);
 
-  // Load balances
+  // Load balance summary
   useEffect(() => {
     if (demoLoading) return;
-    
+
     const loadBalances = async () => {
-      // Demo mode: use mock data
       if (demoActive) {
-        // ⚡ OPTIMIZATION: Synchronous demo data loading
         const mockPayments = demoModeService.getMockPayments(tripId, false);
+        const sessionPayments = demoModeService.getSessionPayments(tripId);
+        const allPayments = [...mockPayments, ...sessionPayments];
         const mockMembers = demoModeService.getMockMembers(tripId);
-        
-        // Compute simple demo balance summary
-        const totalAmount = mockPayments.reduce((sum, p) => sum + p.amount, 0);
+
+        const totalAmount = allPayments.reduce((sum, p) => sum + p.amount, 0);
         const avgPerPerson = totalAmount / Math.max(mockMembers.length, 1);
-        
+
         setBalanceSummary({
           totalOwed: avgPerPerson * 0.6,
           totalOwedToYou: avgPerPerson * 0.4,
@@ -252,23 +225,23 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
             unsettledPayments: []
           }))
         });
-        setLoading(false);
+        setBalanceLoading(false);
         return;
       }
-      
+
       if (!user?.id) {
-          setBalanceSummary({
-            totalOwed: 0,
-            totalOwedToYou: 0,
-            netBalance: 0,
-            baseCurrency: 'USD',
-            balances: []
-          });
-        setLoading(false);
+        setBalanceSummary({
+          totalOwed: 0,
+          totalOwedToYou: 0,
+          netBalance: 0,
+          baseCurrency: 'USD',
+          balances: []
+        });
+        setBalanceLoading(false);
         return;
       }
-      
-      setLoading(true);
+
+      setBalanceLoading(true);
       try {
         const summary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
         setBalanceSummary(summary);
@@ -280,32 +253,68 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
             description: "You don't have permission to view payment balances for this trip.",
             variant: "destructive"
           });
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to load payment balances.",
-            variant: "destructive"
-          });
         }
-          setBalanceSummary({
-            totalOwed: 0,
-            totalOwedToYou: 0,
-            netBalance: 0,
-            baseCurrency: 'USD',
-            balances: []
-          });
+        setBalanceSummary({
+          totalOwed: 0,
+          totalOwedToYou: 0,
+          netBalance: 0,
+          baseCurrency: 'USD',
+          balances: []
+        });
       } finally {
-        setLoading(false);
+        setBalanceLoading(false);
       }
     };
 
     loadBalances();
-  }, [tripId, user?.id, demoActive, demoLoading]);
+  }, [tripId, user?.id, demoActive, demoLoading, toast]);
 
-  const refreshPayments = useCallback(() => {
-    setRefreshKey(prev => prev + 1);
-  }, []);
+  // Refresh balance summary when payments change
+  const refreshBalanceSummary = useCallback(async () => {
+    if (demoActive) {
+      const mockPayments = demoModeService.getMockPayments(tripId, false);
+      const sessionPayments = demoModeService.getSessionPayments(tripId);
+      const allPayments = [...mockPayments, ...sessionPayments];
+      const mockMembers = demoModeService.getMockMembers(tripId);
 
+      const totalAmount = allPayments.reduce((sum, p) => sum + p.amount, 0);
+      const avgPerPerson = totalAmount / Math.max(mockMembers.length, 1);
+
+      setBalanceSummary({
+        totalOwed: avgPerPerson * 0.6,
+        totalOwedToYou: avgPerPerson * 0.4,
+        netBalance: avgPerPerson * 0.2,
+        baseCurrency: 'USD',
+        balances: mockMembers.slice(0, 3).map((m, i) => ({
+          userId: m.user_id,
+          userName: m.display_name,
+          avatar: m.avatar_url,
+          amountOwed: (i === 0 ? avgPerPerson * 0.5 : avgPerPerson * 0.3) * (i % 2 === 0 ? 1 : -1),
+          amountOwedCurrency: 'USD',
+          preferredPaymentMethod: null,
+          unsettledPayments: []
+        }))
+      });
+      return;
+    }
+
+    if (user?.id) {
+      try {
+        const summary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
+        setBalanceSummary(summary);
+      } catch (error) {
+        console.error('Error refreshing balance summary:', error);
+      }
+    }
+  }, [tripId, user?.id, demoActive]);
+
+  // Unified refresh function for child components
+  const handlePaymentUpdated = useCallback(async () => {
+    await refreshPayments();
+    await refreshBalanceSummary();
+  }, [refreshPayments, refreshBalanceSummary]);
+
+  // Handle payment submission
   const handlePaymentSubmit = async (paymentData: {
     amount: number;
     currency: string;
@@ -314,145 +323,37 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     splitParticipants: string[];
     paymentMethods: string[];
   }) => {
-    // Demo mode: use session storage
-    if (demoActive) {
-      const paymentId = demoModeService.addSessionPayment(tripId, paymentData);
-      
-      if (paymentId) {
-        // Refresh immediately - no toast needed as payment appears in list
-        refreshPayments();
-        
-        // Refresh balances with session payments included
-        const mockPayments = demoModeService.getMockPayments(tripId, false);
-        const sessionPayments = demoModeService.getSessionPayments(tripId);
-        const allPayments = [...mockPayments, ...sessionPayments];
-        
-        const mockMembers = demoModeService.getMockMembers(tripId);
-        const totalAmount = allPayments.reduce((sum, p) => sum + p.amount, 0);
-        const avgPerPerson = totalAmount / Math.max(mockMembers.length, 1);
-        
-        setBalanceSummary({
-          totalOwed: avgPerPerson * 0.6,
-          totalOwedToYou: avgPerPerson * 0.4,
-          netBalance: avgPerPerson * 0.2,
-          baseCurrency: 'USD',
-          balances: mockMembers.slice(0, 3).map((m, i) => ({
-            userId: m.user_id,
-            userName: m.display_name,
-            avatar: m.avatar_url,
-            amountOwed: (i === 0 ? avgPerPerson * 0.5 : avgPerPerson * 0.3) * (i % 2 === 0 ? 1 : -1),
-            amountOwedCurrency: 'USD',
-            preferredPaymentMethod: null,
-            unsettledPayments: []
-          }))
-        });
-
-        // Also update local paymentMessages for immediate display
-        const newPayment = {
-          id: paymentId,
-          trip_id: tripId,
-          amount: paymentData.amount,
-          currency: paymentData.currency,
-          description: paymentData.description,
-          split_count: paymentData.splitCount,
-          split_participants: paymentData.splitParticipants,
-          payment_methods: paymentData.paymentMethods,
-          created_by: 'demo-user',
-          is_settled: false,
-          created_at: new Date().toISOString()
-        };
-        setPaymentMessages(prev => [newPayment, ...prev]);
-      }
-      return;
-    }
-
-    // Production mode: use database with structured error handling
     const result = await createPaymentMessage(paymentData);
-    
-    if (result && typeof result === 'object' && 'success' in result) {
-      // New structured response
-      if (result.success && result.paymentId) {
-        refreshPayments();
-        
-        const newPayment = {
-          id: result.paymentId,
-          tripId: tripId,
-          amount: paymentData.amount,
-          currency: paymentData.currency,
-          description: paymentData.description,
-          splitCount: paymentData.splitCount,
-          splitParticipants: paymentData.splitParticipants,
-          paymentMethods: paymentData.paymentMethods,
-          createdBy: user?.id || '',
-          createdAt: new Date().toISOString(),
-          isSettled: false
-        };
-        setPaymentMessages(prev => [newPayment, ...prev]);
-        
-        if (user?.id) {
-          try {
-            const summary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
-            setBalanceSummary(summary);
-          } catch (error) {
-            console.error('Error refreshing balance summary:', error);
-          }
-        }
-        
+
+    if (result.success && result.paymentId) {
+      // Refresh balance summary after successful creation
+      await refreshBalanceSummary();
+
+      if (!demoActive) {
         toast({
           title: "Payment created",
           description: `${paymentData.description} - $${paymentData.amount.toFixed(2)}`
         });
-      } else {
-        // Handle specific error types
-        const errorCode = result.error?.code || 'UNKNOWN';
-        const errorMessage = result.error?.message || 'Failed to create payment request';
-        
-        toast({
-          title: errorCode === 'SESSION_EXPIRED' ? "Session Expired" : 
-                 errorCode === 'RLS_VIOLATION' ? "Permission Denied" :
-                 errorCode === 'VALIDATION_FAILED' ? "Validation Error" :
-                 errorCode === 'NETWORK_ERROR' ? "Connection Error" : "Error",
-          description: errorMessage,
-          variant: "destructive"
-        });
       }
-    } else if (result) {
-      // Legacy string response (paymentId directly)
-      refreshPayments();
-      
-      const newPayment = {
-        id: result as unknown as string,
-        tripId: tripId,
-        amount: paymentData.amount,
-        currency: paymentData.currency,
-        description: paymentData.description,
-        splitCount: paymentData.splitCount,
-        splitParticipants: paymentData.splitParticipants,
-        paymentMethods: paymentData.paymentMethods,
-        createdBy: user?.id || '',
-        createdAt: new Date().toISOString(),
-        isSettled: false
-      };
-      setPaymentMessages(prev => [newPayment, ...prev]);
-      
-      if (user?.id) {
-        try {
-          const summary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
-          setBalanceSummary(summary);
-        } catch (error) {
-          console.error('Error refreshing balance summary:', error);
-        }
-      }
-    } else {
+    } else if (result.error) {
+      const errorCode = result.error.code;
+      const errorMessage = result.error.message;
+
       toast({
-        title: "Error",
-        description: "Failed to create payment request. Please try again.",
+        title: errorCode === 'SESSION_EXPIRED' ? "Session Expired" :
+               errorCode === 'RLS_VIOLATION' ? "Permission Denied" :
+               errorCode === 'VALIDATION_FAILED' ? "Validation Error" :
+               errorCode === 'NETWORK_ERROR' ? "Connection Error" : "Error",
+        description: errorMessage,
         variant: "destructive"
       });
     }
   };
 
-  if (loading) {
+  // Loading state
+  const isLoading = paymentsLoading && balanceLoading;
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -471,7 +372,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   return (
     <div className="space-y-3">
       {/* Payment Status Messages */}
-      {paymentSummary.isSettled && paymentMessages.length > 0 && (
+      {paymentSummary.isSettled && tripPayments.length > 0 && (
         <Card className="bg-gradient-to-br from-emerald-900/20 to-emerald-950/20 border-emerald-500/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-emerald-400">
@@ -553,8 +454,8 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         <div className="space-y-2">
           <h3 className="text-base font-semibold text-foreground mb-1">Balance Breakdown</h3>
           {balanceSummary.balances.map(balance => (
-            <PersonBalanceCard 
-              key={balance.userId} 
+            <PersonBalanceCard
+              key={balance.userId}
               balance={balance}
               tripId={tripId}
             />
@@ -568,25 +469,25 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         </div>
       )}
 
-      {/* Outstanding Payments with Settlement Tracking */}
-      <OutstandingPayments 
-        key={`outstanding-${refreshKey}`}
+      {/* Outstanding Payments - pass data as props */}
+      <OutstandingPayments
         tripId={tripId}
         tripMembers={tripMembers}
-        onPaymentUpdated={refreshPayments} 
+        onPaymentUpdated={handlePaymentUpdated}
+        payments={tripPayments}
       />
 
-      {/* Payment History */}
-      <PaymentHistory 
-        key={`history-${refreshKey}`}
-        tripId={tripId} 
-        onPaymentUpdated={refreshPayments} 
+      {/* Payment History - pass data as props */}
+      <PaymentHistory
+        tripId={tripId}
+        onPaymentUpdated={handlePaymentUpdated}
+        payments={tripPayments}
       />
 
       {/* Auth Modal */}
-      <AuthModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
       />
     </div>
   );
