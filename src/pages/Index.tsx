@@ -560,7 +560,6 @@ const Index = () => {
       />
     );
   }
-  }
 
   // Show marketing landing when logged out (for Home/Demo views)
   if (!user) {
