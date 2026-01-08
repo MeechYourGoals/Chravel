@@ -1158,9 +1158,11 @@ export type Database = {
       }
       notifications: {
         Row: {
+          cleared_at: string | null
           created_at: string | null
           id: string
           is_read: boolean | null
+          is_visible: boolean | null
           message: string
           metadata: Json | null
           title: string
@@ -1169,9 +1171,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cleared_at?: string | null
           created_at?: string | null
           id?: string
           is_read?: boolean | null
+          is_visible?: boolean | null
           message: string
           metadata?: Json | null
           title: string
@@ -1180,9 +1184,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cleared_at?: string | null
           created_at?: string | null
           id?: string
           is_read?: boolean | null
+          is_visible?: boolean | null
           message?: string
           metadata?: Json | null
           title?: string
@@ -2008,6 +2014,7 @@ export type Database = {
           link_preview: Json | null
           media_type: string | null
           media_url: string | null
+          mentioned_user_ids: string[] | null
           message_type: string | null
           payload: Json | null
           privacy_encrypted: boolean | null
@@ -2034,6 +2041,7 @@ export type Database = {
           link_preview?: Json | null
           media_type?: string | null
           media_url?: string | null
+          mentioned_user_ids?: string[] | null
           message_type?: string | null
           payload?: Json | null
           privacy_encrypted?: boolean | null
@@ -2060,6 +2068,7 @@ export type Database = {
           link_preview?: Json | null
           media_type?: string | null
           media_url?: string | null
+          mentioned_user_ids?: string[] | null
           message_type?: string | null
           payload?: Json | null
           privacy_encrypted?: boolean | null
@@ -3563,10 +3572,19 @@ export type Database = {
         }
         Returns: undefined
       }
-      should_send_notification: {
-        Args: { p_notification_type: string; p_user_id: string }
-        Returns: boolean
-      }
+      should_send_notification:
+        | {
+            Args: { p_notification_type: string; p_user_id: string }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              p_channel?: string
+              p_notification_type: string
+              p_user_id: string
+            }
+            Returns: boolean
+          }
       toggle_task_status: {
         Args: {
           p_completed: boolean

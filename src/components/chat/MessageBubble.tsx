@@ -258,6 +258,39 @@ export const MessageBubble = memo(({
     );
   };
 
+  // Parse text and render @mentions with distinct styling
+  const renderTextWithMentions = (content: string) => {
+    // Regex to find @mentions (word characters after @)
+    const mentionRegex = /@(\w+(?:\s\w+)?)/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = mentionRegex.exec(content)) !== null) {
+      // Add text before the mention
+      if (match.index > lastIndex) {
+        parts.push(content.slice(lastIndex, match.index));
+      }
+      // Add the mention with styling
+      parts.push(
+        <span
+          key={match.index}
+          className="text-blue-400 font-medium bg-blue-500/10 px-1 rounded"
+        >
+          @{match[1]}
+        </span>
+      );
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < content.length) {
+      parts.push(content.slice(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : content;
+  };
+
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], {
       hour: '2-digit',
@@ -328,7 +361,7 @@ export const MessageBubble = memo(({
           >
             {/* Text content - only show if not a pure media message */}
             {text && (
-              <p className="whitespace-pre-wrap">{text}</p>
+              <p className="whitespace-pre-wrap">{renderTextWithMentions(text)}</p>
             )}
             
             {/* Rich media content */}
