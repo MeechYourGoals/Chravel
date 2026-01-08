@@ -1,6 +1,5 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,11 +18,11 @@ import { demoEvents } from '@/telemetry/events';
 interface ExitDemoModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onNavigate?: () => void;
 }
 
-export const ExitDemoModal: React.FC<ExitDemoModalProps> = ({ open, onOpenChange }) => {
+export const ExitDemoModal: React.FC<ExitDemoModalProps> = ({ open, onOpenChange, onNavigate }) => {
   const { setDemoView } = useDemoMode();
-  const navigate = useNavigate();
 
   const handleExitDemo = async () => {
     // Track exit event
@@ -41,8 +40,8 @@ export const ExitDemoModal: React.FC<ExitDemoModalProps> = ({ open, onOpenChange
     // Close modal
     onOpenChange(false);
 
-    // Navigate to home
-    navigate('/');
+    // Navigate via callback (if provided)
+    onNavigate?.();
   };
 
   return (

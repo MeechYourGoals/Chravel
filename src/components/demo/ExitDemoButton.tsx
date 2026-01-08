@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { ExitDemoModal } from './ExitDemoModal';
@@ -9,6 +10,7 @@ export const ExitDemoButton: React.FC = () => {
   const { isDemoMode } = useDemoMode();
   const [showModal, setShowModal] = useState(false);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   if (!isDemoMode) return null;
 
@@ -48,7 +50,8 @@ export const ExitDemoButton: React.FC = () => {
 
       <ExitDemoModal 
         open={showModal} 
-        onOpenChange={setShowModal} 
+        onOpenChange={setShowModal}
+        onNavigate={() => navigate('/')}
       />
     </>
   );
