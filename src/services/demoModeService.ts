@@ -352,12 +352,12 @@ class DemoModeService {
       {
         id: 'sys_3',
         sender_name: 'System',
-        message_content: 'Base camp set to The Hermitage Hotel, Nashville',
+        message_content: 'Base camp set to Hyatt Ziva Cancun',
         timestamp_offset_days: 4,
         tags: ['system'],
         message_type: 'system',
         system_event_type: 'trip_base_camp_updated',
-        payload: { newAddress: 'The Hermitage Hotel, Nashville' }
+        payload: { newAddress: 'Hyatt Ziva Cancun, Zona Hotelera' }
       },
       {
         id: 'sys_4',
@@ -422,12 +422,12 @@ class DemoModeService {
       {
         id: 'sys_10',
         sender_name: 'System',
-        message_content: 'Base camp changed from The Hermitage Hotel → The Grand Hyatt Nashville',
+        message_content: 'Base camp changed from Hyatt Ziva Cancun → Hilton Cancun Mar Caribe All-Inclusive Resort',
         timestamp_offset_days: 0,
         tags: ['system'],
         message_type: 'system',
         system_event_type: 'trip_base_camp_updated',
-        payload: { previousAddress: 'The Hermitage Hotel', newAddress: 'The Grand Hyatt Nashville' }
+        payload: { previousAddress: 'Hyatt Ziva Cancun', newAddress: 'Hilton Cancun Mar Caribe All-Inclusive Resort' }
       }
     ];
   }
@@ -929,11 +929,25 @@ class DemoModeService {
   // Trip Basecamp Methods (Demo Mode)
   // ============================================
 
+  // Pre-seeded demo basecamps for specific trips (Cancun = trip ID "1")
+  private readonly DEMO_TRIP_BASECAMPS: Record<string, { name: string; address: string }> = {
+    '1': {
+      name: 'Hyatt Ziva Cancun',
+      address: 'Blvd. Kukulcan Manzana 51, Lote 7, Zona Hotelera, 77500 Cancún, Q.R., Mexico'
+    }
+  };
+
   /**
    * Get session trip basecamp (for demo mode PDF export)
+   * Falls back to pre-seeded demo data if no session value exists
    */
   getSessionTripBasecamp(tripId: string): { name?: string; address: string } | null {
-    return this.sessionTripBasecamps.get(tripId) || null;
+    // 1. Check session storage first (user may have changed it)
+    const sessionValue = this.sessionTripBasecamps.get(tripId);
+    if (sessionValue) return sessionValue;
+    
+    // 2. Fall back to seeded demo data
+    return this.DEMO_TRIP_BASECAMPS[tripId] || null;
   }
 
   /**
@@ -983,6 +997,76 @@ class DemoModeService {
 
   getMockCalendarEvents(tripId: string): TripEvent[] {
     return demoTripEventsByTripId[tripId] || [];
+  }
+
+  /**
+   * Generate dynamic demo events for any selected date (Cancun trip only)
+   * These always appear regardless of which day user clicks
+   */
+  getDynamicDemoEventsForDate(tripId: string, selectedDate: Date): TripEvent[] {
+    // Only for Cancun demo trip (ID "1")
+    if (tripId !== '1') return [];
+
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth();
+    const day = selectedDate.getDate();
+
+    // Helper to create ISO date string for given hour/minute
+    const makeTime = (hour: number, minute: number): string => {
+      const d = new Date(year, month, day, hour, minute);
+      return d.toISOString();
+    };
+
+    return [
+      {
+        id: `demo-dynamic-1-${year}-${month}-${day}`,
+        trip_id: tripId,
+        title: 'Jet Skis + Beach Morning',
+        description: 'Meet at the beach for water sports',
+        start_time: makeTime(10, 30),
+        end_time: makeTime(12, 0),
+        location: 'Playa Delfines',
+        event_category: 'activity',
+        include_in_itinerary: true,
+        source_type: 'manual',
+        source_data: {},
+        created_by: 'demo-user',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: `demo-dynamic-2-${year}-${month}-${day}`,
+        trip_id: tripId,
+        title: 'Group Dinner — Bella Vista',
+        description: 'Confirm attendance in chat!',
+        start_time: makeTime(19, 30),
+        end_time: makeTime(21, 0),
+        location: 'Bella Vista Restaurant (Cancun)',
+        event_category: 'dining',
+        include_in_itinerary: true,
+        source_type: 'manual',
+        source_data: {},
+        created_by: 'demo-user',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: `demo-dynamic-3-${year}-${month}-${day}`,
+        trip_id: tripId,
+        title: 'Club Night — Coco Bongo',
+        description: 'VIP table reserved',
+        start_time: makeTime(23, 30),
+        end_time: makeTime(2, 0), // Next day, but we keep it simple
+        location: 'Coco Bongo Cancun',
+        event_category: 'entertainment',
+        include_in_itinerary: true,
+        source_type: 'manual',
+        source_data: {},
+        created_by: 'demo-user',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ];
   }
 
   getMockFiles(tripId: string): DemoTripFile[] {
