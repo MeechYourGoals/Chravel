@@ -181,6 +181,13 @@ export type Database = {
             referencedRelation: "campaigns"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "campaign_analytics_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       campaign_targeting: {
@@ -226,6 +233,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: true
             referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_targeting_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: true
+            referencedRelation: "campaigns_public"
             referencedColumns: ["id"]
           },
         ]
@@ -3180,6 +3194,45 @@ export type Database = {
       }
     }
     Views: {
+      campaigns_public: {
+        Row: {
+          description: string | null
+          destination_info: Json | null
+          discount_details: string | null
+          end_date: string | null
+          id: string | null
+          images: Json | null
+          name: string | null
+          start_date: string | null
+          status: string | null
+          tags: string[] | null
+        }
+        Insert: {
+          description?: string | null
+          destination_info?: Json | null
+          discount_details?: string | null
+          end_date?: string | null
+          id?: string | null
+          images?: Json | null
+          name?: string | null
+          start_date?: string | null
+          status?: string | null
+          tags?: string[] | null
+        }
+        Update: {
+          description?: string | null
+          destination_info?: Json | null
+          discount_details?: string | null
+          end_date?: string | null
+          id?: string | null
+          images?: Json | null
+          name?: string | null
+          start_date?: string | null
+          status?: string | null
+          tags?: string[] | null
+        }
+        Relationships: []
+      }
       profiles_public: {
         Row: {
           app_role: string | null
