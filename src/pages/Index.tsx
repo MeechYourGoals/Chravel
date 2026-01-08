@@ -52,6 +52,7 @@ import {
   type DateFacet,
 } from '../utils/semanticTripFilter';
 import { useOnboarding } from '../hooks/useOnboarding';
+import { shouldShowOnboarding, capturePendingDestination } from '../utils/onboardingUtils';
 import { X } from 'lucide-react';
 
 const Index = () => {
@@ -86,33 +87,70 @@ const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { demoView, isDemoMode, setDemoView } = useDemoMode();
   const isMobilePortrait = useMobilePortrait();
-  const { hasCompletedOnboarding, isInitialized, completeOnboarding, skipOnboarding } = useOnboarding();
 
-  // Show onboarding for new authenticated users who haven't completed it
-  const showOnboarding = user && isInitialized && !hasCompletedOnboarding;
+  // Initialize onboarding with user context for Supabase sync
+  const {
+    hasCompletedOnboarding,
+    isInitialized,
+    completeOnboarding,
+    skipOnboarding,
+    setPendingDestination,
+    getPendingDestination,
+    clearPendingDestination,
+  } = useOnboarding({
+    userId: user?.id,
+    isDemoMode,
+  });
 
-  const handleOnboardingComplete = useCallback(() => {
-    completeOnboarding();
-  }, [completeOnboarding]);
+  // Centralized onboarding decision
+  const showOnboarding = shouldShowOnboarding({
+    user,
+    hasCompletedOnboarding,
+    isInitialized,
+    isDemoMode,
+  });
 
-  const handleOnboardingSkip = useCallback(() => {
-    skipOnboarding();
-  }, [skipOnboarding]);
+  // Navigate to pending destination after onboarding, or stay on dashboard
+  const navigateToPendingOrDashboard = useCallback(() => {
+    const pendingDest = getPendingDestination();
+    if (pendingDest) {
+      clearPendingDestination();
+      // Also clear the original invite code storage
+      sessionStorage.removeItem('chravel_pending_invite_code');
+      navigate(pendingDest, { replace: true });
+    }
+    // Otherwise stay on dashboard (default)
+  }, [getPendingDestination, clearPendingDestination, navigate]);
 
-  const handleOnboardingExploreDemoTrip = useCallback(() => {
-    completeOnboarding();
+  const handleOnboardingComplete = useCallback(async () => {
+    await completeOnboarding();
+    navigateToPendingOrDashboard();
+  }, [completeOnboarding, navigateToPendingOrDashboard]);
+
+  const handleOnboardingSkip = useCallback(async () => {
+    await skipOnboarding();
+    navigateToPendingOrDashboard();
+  }, [skipOnboarding, navigateToPendingOrDashboard]);
+
+  const handleOnboardingExploreDemoTrip = useCallback(async () => {
+    await completeOnboarding();
     setDemoView('app-preview');
+    // Clear any pending destination since user chose to explore demo
+    clearPendingDestination();
     navigate('/trip/1');
-  }, [completeOnboarding, setDemoView, navigate]);
+  }, [completeOnboarding, setDemoView, clearPendingDestination, navigate]);
 
-  const handleOnboardingCreateTrip = useCallback(() => {
+  const handleOnboardingCreateTrip = useCallback(async () => {
+    // Mark onboarding as complete before opening create modal
+    await completeOnboarding();
+    clearPendingDestination();
     setIsCreateModalOpen(true);
-  }, []);
+  }, [completeOnboarding, clearPendingDestination]);
 
   // Clear stale demo mode for unauthenticated users visiting root (not from /demo redirect)
   useEffect(() => {
     const fromDemo = searchParams.get('from') === 'demo';
-    
+
     if (fromDemo) {
       // Clean up the URL param, keep demo mode active
       const newParams = new URLSearchParams(searchParams);
@@ -120,7 +158,7 @@ const Index = () => {
       setSearchParams(newParams, { replace: true });
       return;
     }
-    
+
     // Not from /demo redirect - clear stale demo mode for unauthenticated users
     if (!user && demoView === 'app-preview') {
       useDemoModeStore.getState().setDemoView('off');
@@ -486,14 +524,17 @@ const Index = () => {
   }, []);
 
   // Handle trip type selection from the switcher (including travelRecs)
-  const handleTripTypeSelect = useCallback((type: 'myTrips' | 'tripsPro' | 'events' | 'travelRecs') => {
-    if (type === 'travelRecs') {
-      setViewMode('travelRecs');
-    } else {
-      setViewMode(type);
-    }
-    setActiveTab('trips');
-  }, []);
+  const handleTripTypeSelect = useCallback(
+    (type: 'myTrips' | 'tripsPro' | 'events' | 'travelRecs') => {
+      if (type === 'travelRecs') {
+        setViewMode('travelRecs');
+      } else {
+        setViewMode(type);
+      }
+      setActiveTab('trips');
+    },
+    [],
+  );
 
   // Get current trip type for the tab bar label
   const getTripTypeForTabBar = useCallback(() => {
@@ -528,15 +569,41 @@ const Index = () => {
   }, [location.search]);
 
   // Handle pending invite code after login
+  // If user hasn't completed onboarding, store as pending destination
+  // Otherwise, navigate immediately
   useEffect(() => {
-    if (user) {
-      const pendingInviteCode = sessionStorage.getItem('chravel_pending_invite_code');
-      if (pendingInviteCode) {
+    if (!user) return;
+
+    const pendingInviteCode = sessionStorage.getItem('chravel_pending_invite_code');
+    if (pendingInviteCode) {
+      const destination = `/join/${pendingInviteCode}`;
+
+      if (showOnboarding) {
+        // User needs onboarding - store destination for after completion
+        setPendingDestination(destination);
+        // Don't remove the invite code yet - onboarding will handle cleanup
+      } else {
+        // User has completed onboarding - navigate immediately
         sessionStorage.removeItem('chravel_pending_invite_code');
-        navigate(`/join/${pendingInviteCode}`, { replace: true });
+        navigate(destination, { replace: true });
       }
     }
-  }, [user, navigate]);
+  }, [user, showOnboarding, navigate, setPendingDestination]);
+
+  // Capture any other deep link destinations when onboarding will be shown
+  useEffect(() => {
+    if (!user || !showOnboarding) return;
+
+    // Check if there's already a pending destination (e.g., from invite code)
+    const existingPending = getPendingDestination();
+    if (existingPending) return;
+
+    // Capture current path as potential destination (for direct deep link visits)
+    const captured = capturePendingDestination(location.pathname);
+    if (captured) {
+      setPendingDestination(captured);
+    }
+  }, [user, showOnboarding, location.pathname, getPendingDestination, setPendingDestination]);
 
   // MRKTING toggle: Show marketing page only for unauthenticated users
   if (demoView === 'off' && !user) {
@@ -706,7 +773,13 @@ const Index = () => {
             isOpen={showTripTypeSwitcher}
             onClose={() => setShowTripTypeSwitcher(false)}
             selectedType={
-              viewMode === 'tripsPro' ? 'tripsPro' : viewMode === 'events' ? 'events' : viewMode === 'travelRecs' ? 'travelRecs' : 'myTrips'
+              viewMode === 'tripsPro'
+                ? 'tripsPro'
+                : viewMode === 'events'
+                  ? 'events'
+                  : viewMode === 'travelRecs'
+                    ? 'travelRecs'
+                    : 'myTrips'
             }
             onSelectType={handleTripTypeSelect}
             showRecsOption={true}
@@ -862,7 +935,13 @@ const Index = () => {
           isOpen={showTripTypeSwitcher}
           onClose={() => setShowTripTypeSwitcher(false)}
           selectedType={
-            viewMode === 'tripsPro' ? 'tripsPro' : viewMode === 'events' ? 'events' : viewMode === 'travelRecs' ? 'travelRecs' : 'myTrips'
+            viewMode === 'tripsPro'
+              ? 'tripsPro'
+              : viewMode === 'events'
+                ? 'events'
+                : viewMode === 'travelRecs'
+                  ? 'travelRecs'
+                  : 'myTrips'
           }
           onSelectType={handleTripTypeSelect}
           showRecsOption={true}
@@ -1042,7 +1121,13 @@ const Index = () => {
         isOpen={showTripTypeSwitcher}
         onClose={() => setShowTripTypeSwitcher(false)}
         selectedType={
-          viewMode === 'tripsPro' ? 'tripsPro' : viewMode === 'events' ? 'events' : viewMode === 'travelRecs' ? 'travelRecs' : 'myTrips'
+          viewMode === 'tripsPro'
+            ? 'tripsPro'
+            : viewMode === 'events'
+              ? 'events'
+              : viewMode === 'travelRecs'
+                ? 'travelRecs'
+                : 'myTrips'
         }
         onSelectType={handleTripTypeSelect}
         showRecsOption={true}
