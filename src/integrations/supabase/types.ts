@@ -3182,47 +3182,59 @@ export type Database = {
     Views: {
       profiles_public: {
         Row: {
+          app_role: string | null
           avatar_url: string | null
           bio: string | null
           created_at: string | null
           display_name: string | null
           email: string | null
           first_name: string | null
-          id: string | null
           last_name: string | null
+          notification_settings: Json | null
           phone: string | null
+          role: string | null
           show_email: boolean | null
           show_phone: boolean | null
+          subscription_status: string | null
+          timezone: string | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
+          app_role?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string | null
           display_name?: string | null
           email?: never
-          first_name?: string | null
-          id?: string | null
-          last_name?: string | null
+          first_name?: never
+          last_name?: never
+          notification_settings?: never
           phone?: never
-          show_email?: boolean | null
-          show_phone?: boolean | null
+          role?: string | null
+          show_email?: never
+          show_phone?: never
+          subscription_status?: string | null
+          timezone?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
+          app_role?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string | null
           display_name?: string | null
           email?: never
-          first_name?: string | null
-          id?: string | null
-          last_name?: string | null
+          first_name?: never
+          last_name?: never
+          notification_settings?: never
           phone?: never
-          show_email?: boolean | null
-          show_phone?: boolean | null
+          role?: string | null
+          show_email?: never
+          show_phone?: never
+          subscription_status?: string | null
+          timezone?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -3237,6 +3249,10 @@ export type Database = {
       }
       can_access_channel: {
         Args: { _channel_id: string; _user_id: string }
+        Returns: boolean
+      }
+      check_invite_code_exists: {
+        Args: { code_param: string }
         Returns: boolean
       }
       cleanup_rate_limits: { Args: never; Returns: undefined }
@@ -3423,6 +3439,10 @@ export type Database = {
       }
       is_trip_admin: {
         Args: { _trip_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_trip_co_member: {
+        Args: { target_user_id: string; viewer_id: string }
         Returns: boolean
       }
       is_trip_member: {

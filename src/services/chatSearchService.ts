@@ -90,10 +90,10 @@ export async function searchBroadcasts(
     return [];
   }
 
-  // Fetch creator names from profiles
+  // Fetch creator names from profiles (use public view for co-member data)
   const creatorIds = [...new Set(data?.map(b => b.created_by) || [])];
   const { data: profiles } = await supabase
-    .from('profiles')
+    .from('profiles_public')
     .select('user_id, display_name, first_name, last_name')
     .in('user_id', creatorIds);
 

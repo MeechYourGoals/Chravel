@@ -88,13 +88,13 @@ export const paymentBalanceService = {
 
       if (splitsError) throw splitsError;
 
-      // Fetch user profiles for all involved users
+      // Fetch user profiles for all involved users (use public view for co-member data)
       const allUserIds = new Set<string>();
       paymentMessages?.forEach(m => allUserIds.add(m.created_by));
       paymentSplits?.forEach(s => allUserIds.add(s.debtor_user_id));
 
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('user_id, display_name, avatar_url')
         .in('user_id', Array.from(allUserIds));
 

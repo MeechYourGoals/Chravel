@@ -118,8 +118,9 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated }: PaymentHistoryProps
       const profileMap = new Map<string, string>();
       
       if (authorIds.length > 0) {
+        // Use public view for co-member profile data
         const { data: profiles } = await supabase
-          .from('profiles')
+          .from('profiles_public')
           .select('user_id, display_name')
           .in('user_id', authorIds);
 

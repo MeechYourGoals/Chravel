@@ -79,8 +79,9 @@ export const MobileTripChat = ({ tripId, isEvent = false, isPro = false, userRol
         return;
       }
 
+      // Use public view for co-member profile data (respects privacy settings)
       const { data, error } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('user_id, display_name, avatar_url')
         .in('user_id', senderIds);
 

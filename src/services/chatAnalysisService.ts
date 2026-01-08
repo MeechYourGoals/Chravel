@@ -201,9 +201,9 @@ export async function detectPaymentParticipantsFromMessage(
 
     const userIds = memberIds.map(m => m.user_id);
 
-    // Step 2: Get profiles for all trip members
+    // Step 2: Get profiles for all trip members (use public view for co-member data)
     const { data: profiles, error: profileError } = await supabase
-      .from('profiles')
+      .from('profiles_public')
       .select('user_id, display_name')
       .in('user_id', userIds);
 
@@ -540,9 +540,9 @@ export async function getAutomaticParticipantSuggestions(
       .map(m => m.user_id)
       .filter(id => !excludeSelf || id !== userId);
 
-    // Get profiles
+    // Get profiles (use public view for co-member data)
     const { data: profiles, error: profileError } = await supabase
-      .from('profiles')
+      .from('profiles_public')
       .select('user_id, display_name')
       .in('user_id', userIds);
 
