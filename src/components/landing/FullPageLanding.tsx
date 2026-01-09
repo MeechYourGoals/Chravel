@@ -18,7 +18,7 @@ import scenariosImage from '@/assets/landing-use-cases-forest.png';
 import replacesImage from '@/assets/landing-world-map.png';
 import howItWorksImage from '@/assets/landing-travel-network.png';
 import pricingWorkspaceImage from '@/assets/hero-images/skiers-mountain-resort.png';
-import faqImage from '@/assets/landing-faq-forest.png';
+import faqImage from '@/assets/landing-faq-ocean.png';
 
 
 interface FullPageLandingProps {
