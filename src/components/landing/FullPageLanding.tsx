@@ -14,7 +14,7 @@ const FooterSection = lazy(() => import('./FooterSection').then(module => ({ def
 
 // Import landing page background images - simpler, less busy images
 import heroImage from '@/assets/landing-grass-field.png';
-import scenariosImage from '@/assets/landing-watercolor-cities.png';
+import scenariosImage from '@/assets/landing-use-cases-forest.png';
 import replacesImage from '@/assets/landing-world-map.png';
 import howItWorksImage from '@/assets/landing-travel-network.png';
 import pricingWorkspaceImage from '@/assets/hero-images/skiers-mountain-resort.png';
