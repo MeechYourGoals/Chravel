@@ -7,6 +7,21 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[JOIN-TRIP] ${step}${detailsStr}`);
 };
 
+function createJsonResponse(data: unknown, status: number, corsHeaders: HeadersInit): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+function errorResponse(message: string, status: number, corsHeaders: HeadersInit): Response {
+  return createJsonResponse({ success: false, message }, status, corsHeaders);
+}
+
+function successResponse(data: Record<string, unknown>, corsHeaders: HeadersInit): Response {
+  return createJsonResponse({ success: true, ...data }, 200, corsHeaders);
+}
+
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -28,10 +43,7 @@ serve(async req => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       logStep('ERROR: No authorization header');
-      return new Response(JSON.stringify({ success: false, message: 'Authentication required' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse('Authentication required', 401, corsHeaders);
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -39,10 +51,7 @@ serve(async req => {
 
     if (userError || !userData.user) {
       logStep('ERROR: User authentication failed', { error: userError?.message });
-      return new Response(JSON.stringify({ success: false, message: 'Invalid authentication' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse('Invalid authentication', 401, corsHeaders);
     }
 
     const user = userData.user;
@@ -52,10 +61,7 @@ serve(async req => {
     const { inviteCode } = await req.json();
     if (!inviteCode) {
       logStep('ERROR: No invite code provided');
-      return new Response(JSON.stringify({ success: false, message: 'Invite code is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse('Invite code is required', 400, corsHeaders);
     }
 
     logStep('Processing invite code', { inviteCode });
@@ -69,12 +75,10 @@ serve(async req => {
 
     if (inviteError || !invite) {
       logStep('ERROR: Invite not found', { error: inviteError?.message });
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Invalid invite link. This invite may have been deleted or never existed.',
-        }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      return errorResponse(
+        'Invalid invite link. This invite may have been deleted or never existed.',
+        404,
+        corsHeaders,
       );
     }
 
@@ -83,25 +87,20 @@ serve(async req => {
     // Validate invite is active
     if (!invite.is_active) {
       logStep('ERROR: Invite is not active');
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'This invite link has been deactivated by the trip organizer.',
-        }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      return errorResponse(
+        'This invite link has been deactivated by the trip organizer.',
+        403,
+        corsHeaders,
       );
     }
 
     // Validate invite hasn't expired
     if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
       logStep('ERROR: Invite has expired', { expiresAt: invite.expires_at });
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message:
-            'This invite link has expired. Please request a new one from the trip organizer.',
-        }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      return errorResponse(
+        'This invite link has expired. Please request a new one from the trip organizer.',
+        403,
+        corsHeaders,
       );
     }
 
@@ -111,13 +110,10 @@ serve(async req => {
         currentUses: invite.current_uses,
         maxUses: invite.max_uses,
       });
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message:
-            'This invite link has reached its maximum number of uses. Please request a new one.',
-        }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      return errorResponse(
+        'This invite link has reached its maximum number of uses. Please request a new one.',
+        403,
+        corsHeaders,
       );
     }
 
@@ -139,16 +135,15 @@ serve(async req => {
         .eq('id', invite.trip_id)
         .single();
 
-      return new Response(
-        JSON.stringify({
-          success: true,
+      return successResponse(
+        {
           already_member: true,
           trip_id: invite.trip_id,
           trip_name: trip?.name || 'Trip',
           trip_type: trip?.trip_type || 'consumer',
           message: "You're already a member of this trip!",
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        },
+        corsHeaders,
       );
     }
 
@@ -161,13 +156,7 @@ serve(async req => {
 
     if (tripError || !trip) {
       logStep('ERROR: Trip not found', { error: tripError?.message });
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Trip not found. It may have been deleted.',
-        }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      return errorResponse('Trip not found. It may have been deleted.', 404, corsHeaders);
     }
 
     logStep('Trip found', { tripName: trip.name, tripType: trip.trip_type });
@@ -220,27 +209,20 @@ serve(async req => {
         // Check if request already exists
         if (requestError.code === '23505') {
           logStep('Join request already exists');
-          return new Response(
-            JSON.stringify({
-              success: true,
+          return successResponse(
+            {
               requires_approval: true,
               trip_id: invite.trip_id,
               trip_name: trip.name,
               trip_type: trip.trip_type,
               message: 'Your join request is pending approval from the trip organizer.',
-            }),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+            },
+            corsHeaders,
           );
         }
 
         logStep('ERROR: Failed to create join request', { error: requestError.message });
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: 'Failed to submit join request. Please try again.',
-          }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
+        return errorResponse('Failed to submit join request. Please try again.', 500, corsHeaders);
       }
 
       logStep('Join request created successfully', { requestId: joinRequest?.id });
@@ -303,16 +285,15 @@ serve(async req => {
       const successCount = notificationResults.filter(r => r.status === 'fulfilled').length;
       logStep('Notifications created', { total: recipientIds.length, success: successCount });
 
-      return new Response(
-        JSON.stringify({
-          success: true,
+      return successResponse(
+        {
           requires_approval: true,
           trip_id: invite.trip_id,
           trip_name: trip.name,
           trip_type: trip.trip_type,
           message: 'Join request submitted! The trip organizer will review your request.',
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        },
+        corsHeaders,
       );
     }
 
@@ -325,13 +306,7 @@ serve(async req => {
 
     if (memberError) {
       logStep('ERROR: Failed to add member', { error: memberError.message });
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Failed to join trip. Please try again.',
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      return errorResponse('Failed to join trip. Please try again.', 500, corsHeaders);
     }
 
     logStep('Member added successfully');
@@ -356,25 +331,18 @@ serve(async req => {
       newUsageCount: invite.current_uses + 1,
     });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
+    return successResponse(
+      {
         trip_id: invite.trip_id,
         trip_name: trip.name,
         trip_type: trip.trip_type,
         message: `Successfully joined ${trip.name}!`,
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      },
+      corsHeaders,
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep('ERROR in join-trip', { message: errorMessage });
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'An unexpected error occurred. Please try again.',
-      }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
+    return errorResponse('An unexpected error occurred. Please try again.', 500, corsHeaders);
   }
 });

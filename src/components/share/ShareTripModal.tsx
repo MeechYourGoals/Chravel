@@ -89,16 +89,11 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
   const handleNativeShare = async () => {
     setIsSharing(true);
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: trip.title,
-          text: shareText,
-          url: previewLink,
-        });
-      } else {
-        // Fallback to copy
-        await handleCopyLink();
-      }
+      await navigator.share({
+        title: trip.title,
+        text: shareText,
+        url: previewLink,
+      });
     } catch (error) {
       // User cancelled or error - silently ignore AbortError
       if ((error as Error).name !== 'AbortError') {

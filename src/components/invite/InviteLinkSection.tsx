@@ -35,15 +35,16 @@ export const InviteLinkSection = ({
     try {
       if (onShare) {
         onShare();
-      } else if (navigator.share) {
-        await navigator.share({
-          title: tripName ? `Join ${tripName}` : 'Trip Invitation',
-          text: tripName
-            ? `You're invited to join "${tripName}" on Chravel!`
-            : "You're invited to join a trip on Chravel!",
-          url: inviteLink,
-        });
+        return;
       }
+
+      await navigator.share({
+        title: tripName ? `Join ${tripName}` : 'Trip Invitation',
+        text: tripName
+          ? `You're invited to join "${tripName}" on Chravel!`
+          : "You're invited to join a trip on Chravel!",
+        url: inviteLink,
+      });
     } catch (error) {
       // User cancelled or error - silently ignore AbortError
       if ((error as Error).name !== 'AbortError') {
