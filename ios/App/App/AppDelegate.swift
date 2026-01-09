@@ -1,18 +1,42 @@
 import UIKit
 import Capacitor
 import WebKit
+import RevenueCat
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+    
+    // MARK: - RevenueCat Configuration
+    // Replace with your actual API key from RevenueCat dashboard
+    private let revenueCatAPIKey = "test_QqVXiOnWgmxTHaMKTUiCrOpYMDm"
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        
+        // Configure RevenueCat SDK
+        configureRevenueCat()
+        
         // iOS polish: tune the Capacitor WebView scroll behavior (reduce rubber-band/overscroll artifacts).
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             self?.applyWebViewPolish()
         }
         return true
+    }
+    
+    // MARK: - RevenueCat Setup
+    
+    private func configureRevenueCat() {
+        // Set log level (use .warn in production)
+        Purchases.logLevel = .debug
+        
+        // Configure with API key
+        Purchases.configure(withAPIKey: revenueCatAPIKey)
+        
+        // Enable automatic collection of attribution data
+        Purchases.shared.attribution.enableAdServicesAttributionTokenCollection()
+        
+        print("[RevenueCat] SDK configured successfully")
     }
 
     private func applyWebViewPolish() {
