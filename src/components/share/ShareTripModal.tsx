@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Copy, Check, MapPin, Calendar, Users } from 'lucide-react';
+import { X, Copy, Check, MapPin, Calendar, Users, Share2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
 interface Participant {
@@ -27,6 +27,10 @@ interface ShareTripModalProps {
 
 export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) => {
   const [copied, setCopied] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+
+  // Check if native share is available (iOS, Android, some desktop browsers)
+  const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
 
   // Generate branded preview link - hardcoded for reliability
   // p.chravel.app is configured in Render/IONOS DNS to proxy to generate-trip-preview
@@ -83,31 +87,34 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
   };
 
   const handleNativeShare = async () => {
-    if (navigator.share) {
-      try {
+    setIsSharing(true);
+    try {
+      if (navigator.share) {
         await navigator.share({
           title: trip.title,
           text: shareText,
-          url: previewLink
+          url: previewLink,
         });
-      } catch (error) {
-        // User cancelled or error - silently ignore
-        if ((error as Error).name !== 'AbortError') {
-          console.error('Share failed:', error);
-        }
+      } else {
+        // Fallback to copy
+        await handleCopyLink();
       }
-    } else {
-      // Fallback to copy
-      await handleCopyLink();
+    } catch (error) {
+      // User cancelled or error - silently ignore AbortError
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Share failed:', error);
+      }
+    } finally {
+      setIsSharing(false);
     }
   };
 
   if (!isOpen) return null;
 
   const modalContent = (
-    <div 
+    <div
       className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 animate-fade-in"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-background/95 backdrop-blur-md border border-border rounded-2xl max-w-md w-full animate-scale-in">
         {/* Compact Header with X */}
@@ -132,7 +139,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
             <div
               className="h-24 bg-cover bg-center"
               style={{
-                backgroundImage: `url('${trip.coverPhoto || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=300&fit=crop'}')`
+                backgroundImage: `url('${trip.coverPhoto || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=300&fit=crop'}')`,
               }}
             />
             <div className="absolute inset-0 h-24 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -170,11 +177,19 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
               <div className="flex-1 bg-muted border border-border rounded-lg px-2 py-1.5 text-foreground text-xs font-mono truncate">
                 {previewLink}
               </div>
-              <Button
-                onClick={handleCopyLink}
-                size="sm"
-                className="px-3 h-8"
-              >
+              {canNativeShare && (
+                <Button
+                  onClick={handleNativeShare}
+                  disabled={isSharing}
+                  size="sm"
+                  className="px-3 h-8 bg-green-600 hover:bg-green-700"
+                  title="Share via Messages, Email, and more"
+                >
+                  <Share2 size={14} />
+                  <span className="ml-1.5">Share</span>
+                </Button>
+              )}
+              <Button onClick={handleCopyLink} size="sm" className="px-3 h-8">
                 {copied ? <Check size={14} /> : <Copy size={14} />}
                 <span className="ml-1.5">{copied ? 'Copied!' : 'Copy'}</span>
               </Button>

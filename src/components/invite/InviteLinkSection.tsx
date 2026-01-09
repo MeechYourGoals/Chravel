@@ -1,5 +1,5 @@
-import React from 'react';
-import { Copy, Check, RotateCcw, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Copy, Check, RotateCcw, AlertTriangle, Share2 } from 'lucide-react';
 
 interface InviteLinkSectionProps {
   inviteLink: string;
@@ -8,17 +8,51 @@ interface InviteLinkSectionProps {
   isDemoMode?: boolean;
   onCopyLink: () => void;
   onRegenerate: () => void;
+  onShare?: () => void;
+  tripName?: string;
 }
 
-export const InviteLinkSection = ({ 
-  inviteLink, 
-  loading, 
+export const InviteLinkSection = ({
+  inviteLink,
+  loading,
   copied,
   isDemoMode = false,
-  onCopyLink, 
-  onRegenerate 
+  onCopyLink,
+  onRegenerate,
+  onShare,
+  tripName,
 }: InviteLinkSectionProps) => {
+  const [isSharing, setIsSharing] = useState(false);
   const isDemoLink = inviteLink?.includes('/join/demo-');
+
+  // Check if native share is available (iOS, Android, some desktop browsers)
+  const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
+
+  const handleNativeShare = async () => {
+    if (!inviteLink) return;
+
+    setIsSharing(true);
+    try {
+      if (onShare) {
+        onShare();
+      } else if (navigator.share) {
+        await navigator.share({
+          title: tripName ? `Join ${tripName}` : 'Trip Invitation',
+          text: tripName
+            ? `You're invited to join "${tripName}" on Chravel!`
+            : "You're invited to join a trip on Chravel!",
+          url: inviteLink,
+        });
+      }
+    } catch (error) {
+      // User cancelled or error - silently ignore AbortError
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Share failed:', error);
+      }
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   return (
     <div className="mb-3">
@@ -37,6 +71,17 @@ export const InviteLinkSection = ({
         <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-gray-300 text-sm font-mono truncate">
           {loading ? 'Generating invite link...' : inviteLink || 'Failed to generate link'}
         </div>
+        {canNativeShare && (
+          <button
+            onClick={handleNativeShare}
+            disabled={loading || !inviteLink || isSharing}
+            className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+            title="Share via Messages, Email, and more"
+          >
+            <Share2 size={16} />
+            <span className="hidden sm:inline">Share</span>
+          </button>
+        )}
         <button
           onClick={onCopyLink}
           disabled={loading || !inviteLink}
@@ -46,7 +91,7 @@ export const InviteLinkSection = ({
           <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
         </button>
       </div>
-      
+
       {/* Demo mode indicator */}
       {(isDemoMode || isDemoLink) && inviteLink && (
         <div className="mt-2 flex items-center gap-2 text-xs text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 rounded-lg px-2 py-1.5">
