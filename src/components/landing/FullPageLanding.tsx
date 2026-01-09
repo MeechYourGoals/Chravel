@@ -16,6 +16,7 @@ const FooterSection = lazy(() => import('./FooterSection').then(module => ({ def
 import heroImage from '@/assets/landing-grass-field.png';
 import scenariosImage from '@/assets/hero-images/sports-events-1920.jpg';
 import replacesImage from '@/assets/landing-world-map.png';
+import howItWorksImage from '@/assets/landing-travel-network.png';
 import pricingWorkspaceImage from '@/assets/hero-images/skiers-mountain-resort.png';
 
 
@@ -69,11 +70,11 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 3: How It Works - Use gradient (cleaner for info section) */}
+        {/* Section 3: How It Works - Travel network background */}
         <FullPageLandingSection
           id="section-features"
-          backgroundStyle="gradient"
-          gradientColors={['#1a1a2e', '#0f172a']}
+          imageFallback={howItWorksImage}
+          videoOpacity={0.5}
         >
           <ProblemSolutionSection />
         </FullPageLandingSection>
