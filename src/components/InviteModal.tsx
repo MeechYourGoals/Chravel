@@ -12,9 +12,19 @@ interface InviteModalProps {
   tripName: string;
   tripId?: string;
   proTripId?: string;
+  tripType?: 'consumer' | 'pro' | 'event';
 }
 
-export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: InviteModalProps) => {
+export const InviteModal = ({
+  isOpen,
+  onClose,
+  tripName,
+  tripId,
+  proTripId,
+  tripType = 'consumer',
+}: InviteModalProps) => {
+  // Pro/Event trips always require approval (enforced on backend)
+  // Default to true for all trips for safer defaults
   const [requireApproval, setRequireApproval] = useState(true);
   const [expireIn7Days, setExpireIn7Days] = useState(false);
 
@@ -51,6 +61,7 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: In
           expireIn7Days={expireIn7Days}
           onRequireApprovalChange={setRequireApproval}
           onExpireIn7DaysChange={setExpireIn7Days}
+          tripType={tripType}
         />
 
         <InviteInstructions />

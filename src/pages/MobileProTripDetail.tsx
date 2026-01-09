@@ -522,6 +522,7 @@ export const MobileProTripDetail = () => {
         onClose={() => setShowInviteModal(false)}
         tripName={tripData?.title || 'Pro Trip'}
         proTripId={proTripId}
+        tripType="pro"
       />
 
       {/* Delete Trip Confirm Dialog */}

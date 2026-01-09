@@ -304,6 +304,7 @@ export const EventCard = ({ event, onArchiveSuccess, onHideSuccess, onDeleteSucc
         onClose={() => setShowInviteModal(false)}
         tripName={event.title}
         tripId={event.id}
+        tripType="event"
       />
     </div>
   );

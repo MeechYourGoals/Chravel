@@ -285,6 +285,7 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
         onClose={() => setShowInviteModal(false)}
         tripName={trip.title}
         proTripId={trip.id}
+        tripType="pro"
       />
     </div>
   );
