@@ -51,7 +51,12 @@ export const TripStatsOverview = ({ stats, activeFilter, onFilterClick }: TripSt
   );
 
   return (
-    <div className="bg-card/50 backdrop-blur-md rounded-2xl px-3 py-2 mb-2 sm:mb-4 min-h-[48px] tablet:min-h-0">
+    <div 
+      className="bg-card/50 backdrop-blur-md rounded-2xl px-3 py-2 mb-2 sm:mb-4 min-h-[48px] tablet:min-h-0"
+      style={{
+        marginTop: 'env(safe-area-inset-top, 0px)',
+      }}
+    >
       
       {/* MOBILE PORTRAIT ONLY: Collapsible single-line → expandable */}
       <div className="flex flex-col tablet:hidden landscape:hidden">
