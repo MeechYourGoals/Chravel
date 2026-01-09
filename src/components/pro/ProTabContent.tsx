@@ -1,18 +1,7 @@
 
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { CalendarIcon, DollarSign, Shield, FileCheck, Award } from 'lucide-react';
-import { TripTabs } from '../TripTabs';
-import { PlacesSection } from '../PlacesSection';
-import { CommentsWall } from '../CommentsWall';
-import { TripChat } from '../TripChat';
-import { AIConciergeChat } from '../AIConciergeChat';
-import { GroupCalendar } from '../GroupCalendar';
-import { UnifiedMediaHub } from '../UnifiedMediaHub';
-import { PaymentsTab } from '../payments/PaymentsTab';
 import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
-
-import { TeamTab } from './TeamTab';
-import { TripTasksTab } from '../todo/TripTasksTab';
 
 import { ProTripData } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
@@ -20,6 +9,19 @@ import { isReadOnlyTab, hasTabAccess } from './ProTabsConfig';
 import { useAuth } from '../../hooks/useAuth';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useSuperAdmin } from '../../hooks/useSuperAdmin';
+
+// ⚡ PERFORMANCE: Lazy load all tab components for code splitting
+// This significantly reduces initial bundle size - tabs load on demand
+const TripTabs = lazy(() => import('../TripTabs').then(m => ({ default: m.TripTabs })));
+const PlacesSection = lazy(() => import('../PlacesSection').then(m => ({ default: m.PlacesSection })));
+const CommentsWall = lazy(() => import('../CommentsWall').then(m => ({ default: m.CommentsWall })));
+const TripChat = lazy(() => import('../TripChat').then(m => ({ default: m.TripChat })));
+const AIConciergeChat = lazy(() => import('../AIConciergeChat').then(m => ({ default: m.AIConciergeChat })));
+const GroupCalendar = lazy(() => import('../GroupCalendar').then(m => ({ default: m.GroupCalendar })));
+const UnifiedMediaHub = lazy(() => import('../UnifiedMediaHub').then(m => ({ default: m.UnifiedMediaHub })));
+const PaymentsTab = lazy(() => import('../payments/PaymentsTab').then(m => ({ default: m.PaymentsTab })));
+const TeamTab = lazy(() => import('./TeamTab').then(m => ({ default: m.TeamTab })));
+const TripTasksTab = lazy(() => import('../todo/TripTasksTab').then(m => ({ default: m.TripTasksTab })));
 
 interface ProTabContentProps {
   activeTab: string;
@@ -32,6 +34,16 @@ interface ProTabContentProps {
   trip?: any;
   tripCreatorId?: string;
 }
+
+// ⚡ PERFORMANCE: Skeleton loader for lazy-loaded tabs
+const TabSkeleton = () => (
+  <div className="flex items-center justify-center h-full min-h-[400px]">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+      <p className="text-sm text-muted-foreground">Loading...</p>
+    </div>
+  </div>
+);
 
 export const ProTabContent = ({ 
   activeTab, 
@@ -224,7 +236,10 @@ export const ProTabContent = ({
 
   return (
     <div className="h-[calc(100vh-320px)] max-h-[1000px] min-h-[500px] overflow-y-auto flex flex-col">
-      {renderTabContent()}
+      {/* ⚡ PERFORMANCE: Suspense boundary for lazy-loaded tab components */}
+      <Suspense fallback={<TabSkeleton />}>
+        {renderTabContent()}
+      </Suspense>
     </div>
   );
 };

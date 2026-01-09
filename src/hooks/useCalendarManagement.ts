@@ -1,16 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CalendarEvent, AddToCalendarData } from '@/types/calendar';
-import { calendarService } from '@/services/calendarService';
+import { calendarService, TripEvent } from '@/services/calendarService';
 import { demoModeService } from '@/services/demoModeService';
 import { useDemoMode } from './useDemoMode';
 import { useToast } from './use-toast';
+import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 
 export type ViewMode = 'calendar' | 'itinerary' | 'grid';
 
+/**
+ * ⚡ PERFORMANCE: Enhanced calendar management hook with TanStack Query caching
+ * 
+ * Benefits:
+ * - Instant tab switching (data cached for 10 minutes)
+ * - Optimistic updates for create/update/delete
+ * - Automatic background refetching
+ * - Real-time sync via subscription
+ */
 export const useCalendarManagement = (tripId: string) => {
+  const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
@@ -23,49 +34,28 @@ export const useCalendarManagement = (tripId: string) => {
     category: 'other',
     include_in_itinerary: true
   });
-  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
 
-  useEffect(() => {
-    if (!tripId) {
-      setEvents([]);
-      setIsLoading(false);
-      return;
-    }
+  // ⚡ PERFORMANCE: Use TanStack Query for caching
+  const {
+    data: tripEvents = [],
+    isLoading,
+    refetch: refreshEvents,
+  } = useQuery({
+    queryKey: tripKeys.calendar(tripId),
+    queryFn: () => calendarService.getTripEvents(tripId),
+    enabled: !!tripId,
+    staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
+    gcTime: QUERY_CACHE_CONFIG.calendar.gcTime,
+    refetchOnWindowFocus: QUERY_CACHE_CONFIG.calendar.refetchOnWindowFocus,
+  });
 
-    const loadEvents = async () => {
-      setIsLoading(true);
-      try {
-        const tripEvents = await calendarService.getTripEvents(tripId);
-        const formatted = tripEvents.map(calendarService.convertToCalendarEvent);
-        setEvents(formatted);
-      } catch (error) {
-        console.error('Failed to load calendar events:', error);
-        toast({
-          title: 'Unable to load events',
-          description: 'We had trouble retrieving the calendar. Please try again.',
-          variant: 'destructive'
-        });
-        setEvents([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Convert TripEvents to CalendarEvents for UI
+  const events: CalendarEvent[] = tripEvents.map(calendarService.convertToCalendarEvent);
 
-    // Set a timeout to prevent infinite loading (safety net)
-    const timeoutId = setTimeout(() => {
-      console.warn('Calendar loading timeout - forcing load complete');
-      setIsLoading(false);
-    }, 10000); // 10 second timeout
-
-    loadEvents();
-    
-    return () => clearTimeout(timeoutId);
-  }, [tripId, toast]);
-
-  const getEventsForDate = (date: Date): CalendarEvent[] => {
+  const getEventsForDate = useCallback((date: Date): CalendarEvent[] => {
     // Get regular events for this date
     const regularEvents = events.filter(event =>
       event.date.toDateString() === date.toDateString()
@@ -86,7 +76,63 @@ export const useCalendarManagement = (tripId: string) => {
     }
 
     return regularEvents;
-  };
+  }, [events, isDemoMode, tripId]);
+
+  // Create mutation with optimistic update
+  const createMutation = useMutation({
+    mutationFn: async (eventData: {
+      trip_id: string;
+      title: string;
+      description?: string;
+      start_time: string;
+      end_time?: string;
+      location?: string;
+      event_category?: string;
+      include_in_itinerary?: boolean;
+      source_type?: string;
+      source_data?: any;
+    }) => {
+      return calendarService.createEvent(eventData);
+    },
+    onMutate: async (newEventData) => {
+      await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId) });
+      const previousEvents = queryClient.getQueryData<TripEvent[]>(tripKeys.calendar(tripId));
+
+      // Optimistic update
+      if (previousEvents) {
+        const optimisticEvent: TripEvent = {
+          id: `temp-${Date.now()}`,
+          trip_id: tripId,
+          title: newEventData.title,
+          description: newEventData.description,
+          start_time: newEventData.start_time,
+          end_time: newEventData.end_time,
+          location: newEventData.location,
+          event_category: newEventData.event_category || 'other',
+          include_in_itinerary: newEventData.include_in_itinerary ?? true,
+          source_type: 'manual',
+          source_data: {},
+          created_by: '',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        queryClient.setQueryData<TripEvent[]>(
+          tripKeys.calendar(tripId),
+          [...previousEvents, optimisticEvent]
+        );
+      }
+
+      return { previousEvents };
+    },
+    onError: (_err, _newEvent, context) => {
+      if (context?.previousEvents) {
+        queryClient.setQueryData(tripKeys.calendar(tripId), context.previousEvents);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+    },
+  });
 
   const handleAddEvent = async () => {
     if (!newEvent.title || !selectedDate || !tripId) {
@@ -104,7 +150,7 @@ export const useCalendarManagement = (tripId: string) => {
       const [hours, minutes] = newEvent.time.split(':');
       startDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
 
-      const result = await calendarService.createEvent({
+      const result = await createMutation.mutateAsync({
         trip_id: tripId,
         title: newEvent.title,
         description: newEvent.description,
@@ -118,10 +164,6 @@ export const useCalendarManagement = (tripId: string) => {
       });
 
       if (result.event) {
-        const formatted = calendarService.convertToCalendarEvent(result.event);
-        setEvents(prev => [...prev, formatted].sort((a, b) =>
-          a.date.getTime() - b.date.getTime()
-        ));
         setShowAddEvent(false);
         resetForm();
 
@@ -159,14 +201,41 @@ export const useCalendarManagement = (tripId: string) => {
     }
   };
 
+  // Delete mutation with optimistic update
+  const deleteMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      return calendarService.deleteEvent(eventId, tripId);
+    },
+    onMutate: async (eventId) => {
+      await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId) });
+      const previousEvents = queryClient.getQueryData<TripEvent[]>(tripKeys.calendar(tripId));
+
+      if (previousEvents) {
+        queryClient.setQueryData<TripEvent[]>(
+          tripKeys.calendar(tripId),
+          previousEvents.filter(e => e.id !== eventId)
+        );
+      }
+
+      return { previousEvents };
+    },
+    onError: (_err, _eventId, context) => {
+      if (context?.previousEvents) {
+        queryClient.setQueryData(tripKeys.calendar(tripId), context.previousEvents);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+    },
+  });
+
   const deleteEvent = async (eventId: string) => {
     if (!tripId) return;
 
     try {
       setIsSaving(true);
-      const removed = await calendarService.deleteEvent(eventId, tripId);
+      const removed = await deleteMutation.mutateAsync(eventId);
       if (removed) {
-        setEvents(prev => prev.filter(e => e.id !== eventId));
         toast({
           title: 'Event removed',
           description: 'The event has been removed from the calendar.'
@@ -184,6 +253,34 @@ export const useCalendarManagement = (tripId: string) => {
     }
   };
 
+  // Update mutation with optimistic update
+  const updateMutation = useMutation({
+    mutationFn: async ({ eventId, updates }: { eventId: string; updates: Partial<TripEvent> }) => {
+      return calendarService.updateEvent(eventId, updates);
+    },
+    onMutate: async ({ eventId, updates }) => {
+      await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId) });
+      const previousEvents = queryClient.getQueryData<TripEvent[]>(tripKeys.calendar(tripId));
+
+      if (previousEvents) {
+        queryClient.setQueryData<TripEvent[]>(
+          tripKeys.calendar(tripId),
+          previousEvents.map(e => e.id === eventId ? { ...e, ...updates } : e)
+        );
+      }
+
+      return { previousEvents };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousEvents) {
+        queryClient.setQueryData(tripKeys.calendar(tripId), context.previousEvents);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+    },
+  });
+
   const updateEvent = async (eventId: string, eventData: AddToCalendarData): Promise<boolean> => {
     if (!tripId) {
       toast({
@@ -200,20 +297,19 @@ export const useCalendarManagement = (tripId: string) => {
       const [hours, minutes] = eventData.time.split(':');
       startDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
 
-      const updated = await calendarService.updateEvent(eventId, {
-        title: eventData.title,
-        description: eventData.description,
-        start_time: startDate.toISOString(),
-        location: eventData.location,
-        event_category: eventData.category,
-        include_in_itinerary: eventData.include_in_itinerary ?? true
+      const updated = await updateMutation.mutateAsync({
+        eventId,
+        updates: {
+          title: eventData.title,
+          description: eventData.description,
+          start_time: startDate.toISOString(),
+          location: eventData.location,
+          event_category: eventData.category,
+          include_in_itinerary: eventData.include_in_itinerary ?? true
+        }
       });
 
       if (updated) {
-        // Reload events to get the updated data
-        const tripEvents = await calendarService.getTripEvents(tripId);
-        const formatted = tripEvents.map(calendarService.convertToCalendarEvent);
-        setEvents(formatted);
         setEditingEvent(null);
         setShowAddEvent(false);
         toast({
@@ -222,8 +318,6 @@ export const useCalendarManagement = (tripId: string) => {
         });
         return true;
       } else {
-        // This shouldn't happen anymore since calendarService now throws on failure
-        // But handle it just in case for defensive programming
         toast({
           title: 'Unable to update event',
           description: 'The update did not complete. Please try again.',
@@ -275,6 +369,30 @@ export const useCalendarManagement = (tripId: string) => {
     });
   };
 
+  // Setter for events (for backwards compatibility with components that set events directly)
+  const setEvents = useCallback((updater: CalendarEvent[] | ((prev: CalendarEvent[]) => CalendarEvent[])) => {
+    // Convert CalendarEvents back to TripEvents and update cache
+    const newEvents = typeof updater === 'function' ? updater(events) : updater;
+    const tripEventData = newEvents.map(e => ({
+      id: e.id,
+      trip_id: tripId,
+      title: e.title,
+      description: e.description,
+      start_time: e.date.toISOString(),
+      end_time: undefined,
+      location: e.location,
+      event_category: e.event_category || 'other',
+      include_in_itinerary: e.include_in_itinerary ?? true,
+      source_type: 'manual',
+      source_data: {},
+      created_by: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as TripEvent));
+    
+    queryClient.setQueryData(tripKeys.calendar(tripId), tripEventData);
+  }, [events, tripId, queryClient]);
+
   return {
     selectedDate,
     setSelectedDate,
@@ -297,6 +415,8 @@ export const useCalendarManagement = (tripId: string) => {
     deleteEvent,
     resetForm,
     isLoading,
-    isSaving
+    isSaving,
+    // New: expose refresh function
+    refreshEvents,
   };
 };
