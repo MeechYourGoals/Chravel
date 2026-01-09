@@ -19,6 +19,7 @@ import replacesImage from '@/assets/landing-world-map.png';
 import howItWorksImage from '@/assets/landing-travel-network.png';
 import pricingWorkspaceImage from '@/assets/hero-images/skiers-mountain-resort.png';
 import faqImage from '@/assets/landing-faq-ocean.png';
+import aiNetworkImage from '@/assets/landing-ai-network.png';
 
 
 interface FullPageLandingProps {
@@ -95,8 +96,8 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
         {/* Section 5: AI Features - Use gradient (cleaner for feature cards) */}
         <FullPageLandingSection
           id="section-ai"
-          backgroundStyle="gradient"
-          gradientColors={['#0f172a', '#1e293b']}
+          imageFallback={aiNetworkImage}
+          videoOpacity={0.5}
         >
           <Suspense fallback={<SectionLoader />}>
             <AiFeaturesSection />
