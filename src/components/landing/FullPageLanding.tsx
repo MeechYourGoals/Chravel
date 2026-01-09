@@ -18,6 +18,7 @@ import scenariosImage from '@/assets/landing-watercolor-cities.png';
 import replacesImage from '@/assets/landing-world-map.png';
 import howItWorksImage from '@/assets/landing-travel-network.png';
 import pricingWorkspaceImage from '@/assets/hero-images/skiers-mountain-resort.png';
+import faqImage from '@/assets/landing-faq-forest.png';
 
 
 interface FullPageLandingProps {
@@ -114,11 +115,11 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           </Suspense>
         </FullPageLandingSection>
 
-        {/* Section 7: FAQ - Use gradient (cleaner for text-heavy section) */}
+        {/* Section 7: FAQ - Forest background */}
         <FullPageLandingSection
           id="section-faq"
-          backgroundStyle="gradient"
-          gradientColors={['#1e293b', '#0f172a']}
+          imageFallback={faqImage}
+          videoOpacity={0.5}
         >
           <Suspense fallback={<SectionLoader />}>
             <FAQSection />
