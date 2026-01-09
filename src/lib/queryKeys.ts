@@ -23,7 +23,8 @@ export const tripKeys = {
   chatMessages: (tripId: string, limit?: number) => 
     limit ? ['tripChatMessages', tripId, limit] as const : ['tripChatMessages', tripId] as const,
   calendar: (tripId: string) => ['calendarEvents', tripId] as const,
-  tasks: (tripId: string) => ['tripTasks', tripId] as const,
+  tasks: (tripId: string, isDemoMode?: boolean) => 
+    isDemoMode !== undefined ? ['tripTasks', tripId, isDemoMode] as const : ['tripTasks', tripId] as const,
   polls: (tripId: string) => ['tripPolls', tripId] as const,
   media: (tripId: string) => ['tripMedia', tripId] as const,
   places: (tripId: string) => ['tripPlaces', tripId] as const,

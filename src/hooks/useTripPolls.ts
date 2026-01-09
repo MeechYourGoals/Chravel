@@ -79,6 +79,8 @@ export const useTripPolls = (tripId: string) => {
   // Fetch polls from database or localStorage
   const { data: polls = [], isLoading } = useQuery({
     queryKey: ['tripPolls', tripId],
+    staleTime: 60 * 1000, // 1 minute - polls are stable
+    gcTime: 5 * 60 * 1000, // Keep in cache 5 min for instant tab switching
     queryFn: async (): Promise<TripPoll[]> => {
       if (isDemoMode) {
         // Get storage polls (user-created in demo mode)

@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense, useCallback, memo, useEffect } from 'react';
 import { MessageCircle, Users, Calendar, Camera, Radio, Link, BarChart3, FileText, ClipboardList, Lock, MapPin, Sparkles, DollarSign } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
@@ -16,6 +16,7 @@ import { FeatureErrorBoundary } from './FeatureErrorBoundary';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { useFeatureToggle } from '../hooks/useFeatureToggle';
 import { useSuperAdmin } from '../hooks/useSuperAdmin';
+import { usePrefetchTrip } from '../hooks/usePrefetchTrip';
 import { TripPreferences as TripPreferencesType } from '../types/consumer';
 import type { NormalizedUrl } from '@/services/chatUrlExtractor';
 
@@ -59,6 +60,17 @@ export const TripTabs = ({
   const { accentColors } = useTripVariant();
   const features = useFeatureToggle(tripData || {});
   const { isSuperAdmin } = useSuperAdmin();
+  const { prefetchTab } = usePrefetchTrip();
+
+  // ⚡ PERFORMANCE: Track visited tabs to keep them mounted
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
+
+  // Mark current tab as visited when it changes
+  useEffect(() => {
+    if (!visitedTabs.has(activeTab)) {
+      setVisitedTabs(prev => new Set([...prev, activeTab]));
+    }
+  }, [activeTab, visitedTabs]);
 
   // Handler for promoting URLs from Media to Trip Links
   const handlePromoteToTripLink = (urlData: NormalizedUrl) => {
@@ -110,8 +122,9 @@ export const TripTabs = ({
     </div>
   );
 
-  const renderTabContent = () => {
-    switch (activeTab) {
+  // ⚡ PERFORMANCE: Memoized tab content renderer
+  const renderTabContent = useCallback((tabId: string) => {
+    switch (tabId) {
       case 'chat':
         return (
           <FeatureErrorBoundary featureName="Trip Chat">
@@ -172,7 +185,12 @@ export const TripTabs = ({
           </FeatureErrorBoundary>
         );
     }
-  };
+  }, [tripId, tripName, basecamp, tripPreferences, isDemoMode, handlePromoteToTripLink]);
+
+  // ⚡ PERFORMANCE: Prefetch tab data on hover
+  const handleTabHover = useCallback((tabId: string) => {
+    prefetchTab(tripId, tabId);
+  }, [tripId, prefetchTab]);
 
   return (
     <>
@@ -201,6 +219,8 @@ export const TripTabs = ({
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id, enabled)}
+                    onMouseEnter={() => enabled && handleTabHover(tab.id)}
+                    onFocus={() => enabled && handleTabHover(tab.id)}
                     className={`
                       flex items-center justify-center gap-1.5 
                       px-3.5 py-2.5 min-h-[42px]
@@ -235,11 +255,31 @@ export const TripTabs = ({
         </div>
       </div>
 
-      {/* Tab Content */}
+      {/* ⚡ PERFORMANCE: Keep visited tabs mounted for instant switching */}
       <div className="overflow-y-auto native-scroll pb-24 sm:pb-4 h-auto min-h-0 max-h-none md:h-[calc(100vh-240px)] md:max-h-[1000px] md:min-h-[600px]">
-        <Suspense fallback={<TabSkeleton />}>
-          {renderTabContent()}
-        </Suspense>
+        {tabs.filter(t => t.enabled !== false).map(tab => {
+          const isActive = activeTab === tab.id;
+          const hasBeenVisited = visitedTabs.has(tab.id);
+          
+          // Don't mount tabs that haven't been visited
+          if (!hasBeenVisited) return null;
+          
+          return (
+            <div
+              key={tab.id}
+              style={{ 
+                display: isActive ? 'block' : 'none',
+                minHeight: isActive ? undefined : 0,
+                overflow: isActive ? undefined : 'hidden'
+              }}
+              className={isActive ? 'h-full' : ''}
+            >
+              <Suspense fallback={<TabSkeleton />}>
+                {renderTabContent(tab.id)}
+              </Suspense>
+            </div>
+          );
+        })}
       </div>
     </>
   );
