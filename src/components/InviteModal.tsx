@@ -24,7 +24,8 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: In
     loading,
     isDemoMode,
     regenerateInviteToken,
-    handleCopyLink
+    handleCopyLink,
+    handleShare,
   } = useInviteLink({ isOpen, tripName, requireApproval, expireIn7Days, tripId, proTripId });
 
   if (!isOpen) return null;
@@ -33,7 +34,7 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: In
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
       <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-4 max-w-md w-full max-h-[85vh] overflow-y-auto animate-scale-in relative">
         <InviteModalHeader tripName={tripName} onClose={onClose} />
-        
+
         <InviteLinkSection
           inviteLink={inviteLink}
           loading={loading}
@@ -41,18 +42,20 @@ export const InviteModal = ({ isOpen, onClose, tripName, tripId, proTripId }: In
           isDemoMode={isDemoMode}
           onCopyLink={handleCopyLink}
           onRegenerate={regenerateInviteToken}
+          onShare={handleShare}
+          tripName={tripName}
         />
-        
+
         <InviteSettingsSection
           requireApproval={requireApproval}
           expireIn7Days={expireIn7Days}
           onRequireApprovalChange={setRequireApproval}
           onExpireIn7DaysChange={setExpireIn7Days}
         />
-        
+
         <InviteInstructions />
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
