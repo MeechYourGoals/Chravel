@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
+import React, { useRef, useEffect, useState, useCallback, lazy, Suspense, memo } from 'react';
 import {
   MessageCircle,
   Calendar,
@@ -16,6 +16,7 @@ import { useFeatureToggle } from '../../hooks/useFeatureToggle';
 import { hapticService } from '../../services/hapticService';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '../../hooks/useDemoMode';
+import { usePrefetchTrip } from '../../hooks/usePrefetchTrip';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { useEventPermissions } from '@/hooks/useEventPermissions';
 import type { EventData } from '../../types/events';
@@ -79,12 +80,16 @@ export const MobileTripTabs = ({
 }: MobileTripTabsProps) => {
   const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
+  const { prefetchTab } = usePrefetchTrip();
   const contentRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const features = useFeatureToggle(tripData || {});
 
   // Track error boundary reset key to force re-render on retry
   const [errorBoundaryKey, setErrorBoundaryKey] = useState(0);
+  
+  // ⚡ PERFORMANCE: Track visited tabs to keep them mounted
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
 
   // Callback for ErrorBoundary retry
   const handleErrorRetry = useCallback(() => {
@@ -93,6 +98,13 @@ export const MobileTripTabs = ({
 
   // Get event admin status for event variant
   const { isAdmin: isEventAdmin } = useEventPermissions(variant === 'event' ? tripId : '');
+  
+  // Mark current tab as visited when it changes
+  useEffect(() => {
+    if (!visitedTabs.has(activeTab)) {
+      setVisitedTabs(prev => new Set([...prev, activeTab]));
+    }
+  }, [activeTab, visitedTabs]);
 
   // Tab configuration based on variant
   const getTabsForVariant = () => {
@@ -158,7 +170,7 @@ export const MobileTripTabs = ({
     };
   }, [activeTab]);
 
-  const handleTabPress = async (tabId: string, enabled: boolean) => {
+  const handleTabPress = useCallback(async (tabId: string, enabled: boolean) => {
     if (!enabled) {
       toast.info('This feature is disabled for this trip', {
         description: 'Contact trip admin to enable this feature',
@@ -167,7 +179,13 @@ export const MobileTripTabs = ({
     }
     await hapticService.light();
     onTabChange(tabId);
-  };
+  }, [onTabChange]);
+
+  // ⚡ PERFORMANCE: Prefetch tab data on hover/focus
+  // ⚡ PERFORMANCE: Prefetch tab data on hover/focus
+  const handleTabHover = useCallback((tabId: string) => {
+    prefetchTab(tripId, tabId);
+  }, [tripId, prefetchTab]);
 
   // ⚡ PERFORMANCE: Skeleton loader for lazy-loaded tabs
   const TabSkeleton = () => (
@@ -179,8 +197,8 @@ export const MobileTripTabs = ({
     </div>
   );
 
-  const renderTabContent = () => {
-    switch (activeTab) {
+  const renderTabContent = useCallback((tabId: string) => {
+    switch (tabId) {
       // Event-specific tabs
       case 'agenda':
         return (
@@ -219,7 +237,7 @@ export const MobileTripTabs = ({
       default:
         return <MobileTripChat tripId={tripId} />;
     }
-  };
+  }, [tripId, variant, isEventAdmin, eventData, basecamp, isDemoMode, participants]);
 
   return (
     <>
@@ -245,6 +263,8 @@ export const MobileTripTabs = ({
                 key={tab.id}
                 data-tab={tab.id}
                 onClick={() => handleTabPress(tab.id, enabled)}
+                onMouseEnter={() => enabled && handleTabHover(tab.id)}
+                onFocus={() => enabled && handleTabHover(tab.id)}
                 className={`
                   flex items-center justify-center gap-2 
                   px-4 py-2 min-w-max h-[44px]
@@ -271,7 +291,7 @@ export const MobileTripTabs = ({
         </div>
       </div>
 
-      {/* Tab Content - NO safe-area padding, let chat input handle it */}
+      {/* Tab Content - ⚡ PERFORMANCE: Keep visited tabs mounted */}
       <div
         ref={contentRef}
         className="bg-background flex flex-col min-h-0 flex-1"
@@ -281,8 +301,30 @@ export const MobileTripTabs = ({
         }}
       >
         <ErrorBoundary key={`${activeTab}-${errorBoundaryKey}`} compact onRetry={handleErrorRetry}>
-          {/* ⚡ PERFORMANCE: Suspense boundary for lazy-loaded tab components */}
-          <Suspense fallback={<TabSkeleton />}>{renderTabContent()}</Suspense>
+          {tabs.filter(t => t.enabled !== false).map(tab => {
+            const isActive = activeTab === tab.id;
+            const hasBeenVisited = visitedTabs.has(tab.id);
+            
+            // Don't mount tabs that haven't been visited
+            if (!hasBeenVisited) return null;
+            
+            return (
+              <div
+                key={tab.id}
+                style={{ 
+                  display: isActive ? 'flex' : 'none',
+                  flexDirection: 'column',
+                  minHeight: isActive ? '100%' : 0,
+                  overflow: isActive ? undefined : 'hidden'
+                }}
+                className={isActive ? 'h-full flex-1' : ''}
+              >
+                <Suspense fallback={<TabSkeleton />}>
+                  {renderTabContent(tab.id)}
+                </Suspense>
+              </div>
+            );
+          })}
         </ErrorBoundary>
       </div>
     </>

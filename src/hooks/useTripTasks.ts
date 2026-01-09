@@ -323,6 +323,8 @@ export const useTripTasks = (tripId: string, options?: {
 
   const tasksQuery = useQuery({
     queryKey: ['tripTasks', tripId, isDemoMode],
+    staleTime: 30 * 1000, // 30 seconds - tasks change moderately
+    gcTime: 5 * 60 * 1000, // Keep in cache 5 min for instant tab switching
     queryFn: async (): Promise<TripTask[]> => {
       // Demo mode: use localStorage
       if (isDemoMode) {
