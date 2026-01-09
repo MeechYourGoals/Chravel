@@ -681,6 +681,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       demoModeStore.setDemoView('off');
     }
 
+    // Clear onboarding cache to prevent stale data polluting next account
+    localStorage.removeItem('chravel_onboarding_completed');
+    
+    // Reset onboarding store (dynamic import to avoid circular deps)
+    import('@/store/onboardingStore').then(({ useOnboardingStore }) => {
+      useOnboardingStore.getState().resetOnboarding();
+    });
+
     // Sign out from Supabase (no-op if not authenticated)
     await supabase.auth.signOut();
     setUser(null);
