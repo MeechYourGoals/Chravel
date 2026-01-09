@@ -12,8 +12,8 @@ const FAQSection = lazy(() => import('./sections/FAQSection').then(module => ({ 
 const PricingLandingSection = lazy(() => import('./sections/PricingLandingSection').then(module => ({ default: module.PricingLandingSection })));
 const FooterSection = lazy(() => import('./FooterSection').then(module => ({ default: module.FooterSection })));
 
-// Import cinematic hero images - keeping only the ones we use
-import heroImage from '@/assets/hero-background.png';
+// Import landing page background images - simpler, less busy images
+import heroImage from '@/assets/landing-grass-field.png';
 import scenariosImage from '@/assets/hero-images/sports-events-1920.jpg';
 import replacesImage from '@/assets/hero-images/basketball-team-bus.png';
 import pricingWorkspaceImage from '@/assets/hero-images/skiers-mountain-resort.png';
@@ -52,7 +52,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
         <FullPageLandingSection
           id="section-hero"
           imageFallback={heroImage}
-          videoOpacity={0.5}
+          videoOpacity={0.4}
           minHeight="90vh"
         >
           <HeroSection onSignUp={onSignUp} />
