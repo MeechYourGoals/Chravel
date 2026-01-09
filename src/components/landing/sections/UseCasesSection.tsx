@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import useCasesBackground from '@/assets/use-cases-stadium-chravelapp.png';
+import useCasesBackground from '@/assets/landing-use-cases-forest.png';
 
 const scenarios = [
   {
