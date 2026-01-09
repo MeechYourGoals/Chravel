@@ -162,7 +162,16 @@ serve(async req => {
     logStep('Trip found', { tripName: trip.name, tripType: trip.trip_type });
 
     // Check if invite requires approval
-    const requiresApproval = invite.require_approval || false;
+    // CRITICAL: Pro/Event trips ALWAYS require approval regardless of invite setting
+    // This ensures trip admins can vet all join requests for professional/event trips
+    const requiresApproval =
+      invite.require_approval || trip.trip_type === 'pro' || trip.trip_type === 'event';
+
+    logStep('Approval requirement check', {
+      inviteRequiresApproval: invite.require_approval,
+      tripType: trip.trip_type,
+      finalRequiresApproval: requiresApproval,
+    });
 
     if (requiresApproval) {
       // Get requester profile FIRST to capture name at request time

@@ -284,6 +284,7 @@ export const MobileEventCard = ({ event, onArchiveSuccess, onHideSuccess, onDele
         onClose={() => setShowInviteModal(false)}
         tripName={event.title}
         tripId={event.id}
+        tripType="event"
       />
 
       <ArchiveConfirmDialog
