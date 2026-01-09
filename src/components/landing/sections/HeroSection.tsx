@@ -32,7 +32,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       </div>
 
       {/* Top Section: Pain-First Headline + Brand */}
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 pt-8 md:pt-12">
         {/* Pain-First Headline */}
         <div className="w-full flex items-center justify-center px-2 md:px-4 mb-4 md:mb-6">
           <h1 
@@ -45,7 +45,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           </h1>
         </div>
 
-        {/* Brand Name - Secondary */}
+        {/* Brand Name - Same size as headline */}
         <div
           className="inline-block px-6 py-3 rounded-xl animate-fade-in"
           style={{
@@ -54,7 +54,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           }}
         >
           <h2
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight"
             style={{
               background: 'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
               WebkitBackgroundClip: 'text',
