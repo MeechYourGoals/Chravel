@@ -14,9 +14,8 @@ import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useTripMembers } from '../hooks/useTripMembers';
-import { getTripById, generateTripMockData, Trip as MockTrip } from '../data/tripsData';
-import { tripService } from '../services/tripService';
-import { convertSupabaseTripToMock } from '../utils/tripConverter';
+import { useTripData } from '../hooks/useTripData';
+import { generateTripMockData } from '../data/tripsData';
 import { ExportSection } from '../types/tripExport';
 import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
@@ -29,9 +28,9 @@ export const MobileTripDetail = () => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
 
-  // ⚡ PERFORMANCE: Load ONLY the single trip we need (not all trips)
-  const [trip, setTrip] = useState<MockTrip | null>(null);
-  const [loading, setLoading] = useState(true);
+  // ⚡ PERFORMANCE: Use React Query for trip data - enables prefetch cache hits
+  // This hook reads from the SAME cache that usePrefetchTrip warms on hover
+  const { trip, isLoading: loading } = useTripData(tripId);
 
   // 🔄 CRITICAL FIX: Fetch real trip members from database for authenticated trips
   const { tripMembers } = useTripMembers(tripId);
@@ -65,56 +64,8 @@ export const MobileTripDetail = () => {
     adjustViewport: true,
   });
 
-  // ⚡ PERFORMANCE: Load ONLY this trip (not all trips) - matching desktop pattern
-  // Parallelized fetch for trip + members (members handled by useTripMembers hook)
-  React.useEffect(() => {
-    const loadTrip = async () => {
-      if (!tripId) {
-        setTrip(null);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-
-      if (isDemoMode) {
-        // 🎭 DEMO MODE: Use mock data only - instant load, NO network
-        const tripIdNum = parseInt(tripId, 10);
-
-        if (Number.isNaN(tripIdNum)) {
-          toast.error('Invalid trip ID format for demo mode');
-          setTrip(null);
-          setLoading(false);
-          return;
-        }
-
-        const mockTrip = getTripById(tripIdNum);
-        if (!mockTrip) {
-          toast.error(`Demo trip ${tripId} not found. Available trips: 1-12`);
-        }
-        setTrip(mockTrip || null);
-        setLoading(false);
-        return;
-      }
-      
-      // 🔐 AUTHENTICATED MODE: Query Supabase for single trip
-      // Note: useTripMembers hook fetches members in parallel automatically
-      try {
-        const realTrip = await tripService.getTripById(tripId);
-        if (realTrip) {
-          setTrip(convertSupabaseTripToMock(realTrip));
-        } else {
-          setTrip(null);
-        }
-      } catch (error) {
-        console.error('[MobileTripDetail] Failed to load trip:', error);
-        setTrip(null);
-      }
-      setLoading(false);
-    };
-
-    loadTrip();
-  }, [tripId, isDemoMode]);
+  // ⚡ PERFORMANCE: Trip data now loaded via useTripData hook (React Query)
+  // This enables prefetch cache hits when user hovers on TripCard before clicking
 
   // ✅ CRITICAL FIX: ALL useEffect hooks MUST be called before any early returns
   React.useEffect(() => {

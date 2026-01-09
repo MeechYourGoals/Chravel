@@ -198,20 +198,34 @@ export const TripChat = ({
     enabled: !demoMode.isDemoMode && !!user?.id
   });
 
-  // Initialize typing indicators
+  // ⚡ PERFORMANCE: Defer typing indicator initialization to requestIdleCallback
+  // This is non-critical for initial render and can be initialized after chat is visible
   useEffect(() => {
     if (demoMode.isDemoMode || !user?.id || !resolvedTripId) return;
 
     const userName = user?.displayName || user?.email?.split('@')[0] || 'You';
-    typingServiceRef.current = new TypingIndicatorService(resolvedTripId, user.id, userName);
+    
+    // Use requestIdleCallback for deferred initialization (fallback to setTimeout)
+    const initTypingIndicators = () => {
+      typingServiceRef.current = new TypingIndicatorService(resolvedTripId, user.id, userName);
+      typingServiceRef.current.initialize(setTypingUsers).catch(error => {
+        if (import.meta.env.DEV) {
+          console.error(error);
+        }
+      });
+    };
 
-    typingServiceRef.current.initialize(setTypingUsers).catch(error => {
-      if (import.meta.env.DEV) {
-        console.error(error);
-      }
-    });
+    // Defer to idle time or 200ms timeout
+    const idleCallback = 'requestIdleCallback' in window 
+      ? (window as any).requestIdleCallback(initTypingIndicators, { timeout: 500 })
+      : setTimeout(initTypingIndicators, 200);
 
     return () => {
+      if ('cancelIdleCallback' in window) {
+        (window as any).cancelIdleCallback(idleCallback);
+      } else {
+        clearTimeout(idleCallback);
+      }
       typingServiceRef.current?.cleanup().catch(error => {
         if (import.meta.env.DEV) {
           console.error(error);
@@ -220,23 +234,28 @@ export const TripChat = ({
     };
   }, [demoMode.isDemoMode, user?.id, resolvedTripId]);
 
-  // Mark messages as read when they come into view
+  // ⚡ PERFORMANCE: Defer read receipt subscription to requestIdleCallback
+  // Read receipts are non-critical for initial message display
   useEffect(() => {
     if (demoMode.isDemoMode || !user?.id || !resolvedTripId) return;
 
-    const subscription = subscribeToReadReceipts(resolvedTripId, () => {
-      // Read receipt updates handled via realtime
-    });
+    let subscription: any = null;
+    let isCancelled = false;
 
-    // Mark all messages from other users as read
-    const markVisibleAsRead = async () => {
-      // Get all message IDs from other users that need to be marked as read
+    const initReadReceipts = () => {
+      if (isCancelled) return;
+      
+      subscription = subscribeToReadReceipts(resolvedTripId, () => {
+        // Read receipt updates handled via realtime
+      });
+
+      // Mark all messages from other users as read
       const messageIdsToMark = liveMessages
         .filter(msg => msg.user_id !== user.id)
         .map(msg => msg.id);
 
       if (messageIdsToMark.length > 0) {
-        await markMessagesAsRead(messageIdsToMark, resolvedTripId, user.id).catch(error => {
+        markMessagesAsRead(messageIdsToMark, resolvedTripId, user.id).catch(error => {
           if (import.meta.env.DEV) {
             console.error(error);
           }
@@ -244,14 +263,25 @@ export const TripChat = ({
       }
     };
 
-    markVisibleAsRead();
+    // Defer to idle time or 300ms timeout
+    const idleCallback = 'requestIdleCallback' in window 
+      ? (window as any).requestIdleCallback(initReadReceipts, { timeout: 500 })
+      : setTimeout(initReadReceipts, 300);
 
     return () => {
-      supabase.removeChannel(subscription).catch(error => {
-        if (import.meta.env.DEV) {
-          console.error(error);
-        }
-      });
+      isCancelled = true;
+      if ('cancelIdleCallback' in window) {
+        (window as any).cancelIdleCallback(idleCallback);
+      } else {
+        clearTimeout(idleCallback);
+      }
+      if (subscription) {
+        supabase.removeChannel(subscription).catch(error => {
+          if (import.meta.env.DEV) {
+            console.error(error);
+          }
+        });
+      }
     };
   }, [liveMessages, user?.id, resolvedTripId, demoMode.isDemoMode]);
 
@@ -285,14 +315,21 @@ export const TripChat = ({
     }));
   }, [liveMessages, demoMode.isDemoMode, tripMembers]);
 
-  // Fetch initial reactions for messages
+  // ⚡ PERFORMANCE: Defer reactions fetching to requestIdleCallback
+  // Reactions are visual enhancements, not critical for reading messages
   useEffect(() => {
     if (demoMode.isDemoMode || !user?.id || liveMessages.length === 0) return;
 
+    let isCancelled = false;
+
     const fetchReactions = async () => {
+      if (isCancelled) return;
+      
       const messageIds = liveMessages.map(m => m.id);
       try {
         const data = await getMessagesReactions(messageIds, user.id);
+        if (isCancelled) return;
+        
         const formatted: Record<string, Record<string, { count: number; userReacted: boolean }>> = {};
         for (const [msgId, typeMap] of Object.entries(data)) {
           formatted[msgId] = {};
@@ -308,45 +345,78 @@ export const TripChat = ({
       }
     };
 
-    fetchReactions();
+    // Defer to idle time or 200ms timeout
+    const idleCallback = 'requestIdleCallback' in window 
+      ? (window as any).requestIdleCallback(fetchReactions, { timeout: 500 })
+      : setTimeout(fetchReactions, 200);
+
+    return () => {
+      isCancelled = true;
+      if ('cancelIdleCallback' in window) {
+        (window as any).cancelIdleCallback(idleCallback);
+      } else {
+        clearTimeout(idleCallback);
+      }
+    };
   }, [liveMessages.length, user?.id, demoMode.isDemoMode]);
 
-  // Subscribe to realtime reaction changes
+  // ⚡ PERFORMANCE: Defer realtime reaction subscription to requestIdleCallback
+  // Realtime reaction updates are non-critical for initial render
   useEffect(() => {
     if (demoMode.isDemoMode || !resolvedTripId || !user?.id) return;
 
+    let channel: any = null;
+    let isCancelled = false;
+
     const messageIdSet = new Set(liveMessages.map(m => m.id));
 
-    const channel = subscribeToReactions(resolvedTripId, (payload) => {
-      // Only process reactions for messages we have loaded
-      if (!messageIdSet.has(payload.messageId)) return;
+    const initReactionSubscription = () => {
+      if (isCancelled) return;
+      
+      channel = subscribeToReactions(resolvedTripId, (payload) => {
+        // Only process reactions for messages we have loaded
+        if (!messageIdSet.has(payload.messageId)) return;
 
-      setReactions(prev => {
-        const updated = { ...prev };
-        if (!updated[payload.messageId]) {
-          updated[payload.messageId] = {};
-        }
+        setReactions(prev => {
+          const updated = { ...prev };
+          if (!updated[payload.messageId]) {
+            updated[payload.messageId] = {};
+          }
 
-        const current = updated[payload.messageId][payload.reactionType] || { count: 0, userReacted: false };
+          const current = updated[payload.messageId][payload.reactionType] || { count: 0, userReacted: false };
 
-        if (payload.eventType === 'INSERT') {
-          updated[payload.messageId][payload.reactionType] = {
-            count: current.count + 1,
-            userReacted: payload.userId === user.id ? true : current.userReacted,
-          };
-        } else if (payload.eventType === 'DELETE') {
-          updated[payload.messageId][payload.reactionType] = {
-            count: Math.max(0, current.count - 1),
-            userReacted: payload.userId === user.id ? false : current.userReacted,
-          };
-        }
+          if (payload.eventType === 'INSERT') {
+            updated[payload.messageId][payload.reactionType] = {
+              count: current.count + 1,
+              userReacted: payload.userId === user.id ? true : current.userReacted,
+            };
+          } else if (payload.eventType === 'DELETE') {
+            updated[payload.messageId][payload.reactionType] = {
+              count: Math.max(0, current.count - 1),
+              userReacted: payload.userId === user.id ? false : current.userReacted,
+            };
+          }
 
-        return updated;
+          return updated;
+        });
       });
-    });
+    };
+
+    // Defer to idle time or 300ms timeout
+    const idleCallback = 'requestIdleCallback' in window 
+      ? (window as any).requestIdleCallback(initReactionSubscription, { timeout: 500 })
+      : setTimeout(initReactionSubscription, 300);
 
     return () => {
-      supabase.removeChannel(channel);
+      isCancelled = true;
+      if ('cancelIdleCallback' in window) {
+        (window as any).cancelIdleCallback(idleCallback);
+      } else {
+        clearTimeout(idleCallback);
+      }
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [resolvedTripId, user?.id, liveMessages, demoMode.isDemoMode]);
 
