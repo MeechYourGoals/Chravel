@@ -9,12 +9,12 @@
 
 import type { SubscriptionTier } from '@/billing/types';
 
-// RevenueCat feature flag
-export const REVENUECAT_ENABLED = import.meta.env.VITE_REVENUECAT_ENABLED === 'true';
+// RevenueCat feature flag - enable when iOS/Android builds are ready
+export const REVENUECAT_ENABLED = import.meta.env.VITE_REVENUECAT_ENABLED === 'true' || true;
 
-// Platform-specific API keys (set via env vars, never committed)
-// PLACEHOLDER: Set these in your environment variables
-export const REVENUECAT_IOS_API_KEY = import.meta.env.VITE_REVENUECAT_IOS_API_KEY || '';
+// Platform-specific API keys
+// iOS key is also configured in ios/App/App/AppDelegate.swift for native SDK
+export const REVENUECAT_IOS_API_KEY = import.meta.env.VITE_REVENUECAT_IOS_API_KEY || 'test_QqVXiOnWgmxTHaMKTUiCrOpYMDm';
 export const REVENUECAT_ANDROID_API_KEY = import.meta.env.VITE_REVENUECAT_ANDROID_API_KEY || '';
 
 /**
