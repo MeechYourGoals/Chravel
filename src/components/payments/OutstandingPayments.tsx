@@ -254,7 +254,7 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
         return updated;
       });
 
-      await haptics.selection();
+      await haptics.selectionChanged();
       return;
     }
 
@@ -269,7 +269,7 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
       }
 
       if (success) {
-        await haptics.selection();
+        await haptics.selectionChanged();
         onPaymentUpdated?.();
       }
     } catch (error) {
@@ -499,11 +499,18 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
             id: editingPayment.id,
             amount: editingPayment.amount,
             description: editingPayment.description,
-            currency: editingPayment.currency
+            currency: editingPayment.currency,
+            splitCount: editingPayment.splitCount,
+            createdBy: editingPayment.createdBy,
+            paymentMethods: editingPayment.paymentMethods,
+            splits: editingPayment.splits,
+            splitParticipants: editingPayment.splitParticipants
           }}
+          tripMembers={tripMembers}
           isOpen={!!editingPayment}
           onClose={() => setEditingPayment(null)}
           onSave={handleEditComplete}
+          isDemoMode={demoActive}
         />
       )}
 

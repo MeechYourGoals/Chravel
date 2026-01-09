@@ -18,9 +18,8 @@ export const useOnboarding = (options: UseOnboardingOptions = {}) => {
   const store = useOnboardingStore();
 
   // Initialize on mount with appropriate method based on auth state
+  // CRITICAL: Re-initialize when userId changes to handle account switches
   useEffect(() => {
-    if (store.isInitialized) return;
-
     // Demo mode: don't persist onboarding state
     if (isDemoMode) {
       store.init();
@@ -28,13 +27,14 @@ export const useOnboarding = (options: UseOnboardingOptions = {}) => {
     }
 
     // Authenticated user: use Supabase sync
+    // initWithUser handles checking if re-init is actually needed
     if (userId) {
       store.initWithUser(userId);
     } else {
       // Unauthenticated: use localStorage only
       store.init();
     }
-  }, [userId, isDemoMode, store.isInitialized]);
+  }, [userId, isDemoMode]); // Removed store.isInitialized - let initWithUser decide
 
   // Callback to complete onboarding and navigate to pending destination
   const completeAndNavigate = useCallback(

@@ -19,6 +19,7 @@ export interface OnboardingState {
   hasCompletedOnboarding: boolean;
   currentScreen: number;
   isInitialized: boolean;
+  initializedUserId: string | null; // Track which user we initialized for
   pendingDestination: string | null;
 
   // Actions
@@ -73,6 +74,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   hasCompletedOnboarding: false,
   currentScreen: 0,
   isInitialized: false,
+  initializedUserId: null,
   pendingDestination: null,
 
   /**
@@ -96,34 +98,44 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
   /**
    * Initialize for authenticated users.
-   * Checks Supabase user_metadata as source of truth, with localStorage cache.
+   * Supabase user_metadata is the SOURCE OF TRUTH for authenticated users.
+   * This ensures new users always see onboarding, even with stale localStorage.
    */
   initWithUser: async (userId: string) => {
-    // First check localStorage for fast UI response
-    const localStored = localStorage.getItem(LOCAL_STORAGE_KEY);
-    const localCompleted = localStored === 'true';
+    const currentInitializedUser = get().initializedUserId;
+
+    // If already initialized for THIS user, skip re-init
+    if (currentInitializedUser === userId && get().isInitialized) {
+      return;
+    }
 
     // Check for pending destination
     const pendingDest = sessionStorage.getItem(PENDING_DESTINATION_KEY);
 
-    // Set initial state from localStorage (fast path)
+    // Set loading state - default to NOT completed until Supabase confirms
+    // This prevents stale localStorage from incorrectly skipping onboarding
     set({
-      hasCompletedOnboarding: localCompleted,
-      isInitialized: true,
+      hasCompletedOnboarding: false,
+      isInitialized: false,
+      initializedUserId: userId,
       pendingDestination: pendingDest,
     });
 
-    // Then verify with Supabase (authoritative source)
+    // Check Supabase as the SOURCE OF TRUTH for authenticated users
     const supabaseCompleted = await checkSupabaseOnboardingStatus();
 
-    if (supabaseCompleted && !localCompleted) {
-      // Supabase says completed but localStorage doesn't - sync localStorage
+    // Update localStorage to match Supabase (cache sync)
+    if (supabaseCompleted) {
       localStorage.setItem(LOCAL_STORAGE_KEY, 'true');
-      set({ hasCompletedOnboarding: true });
-    } else if (!supabaseCompleted && localCompleted) {
-      // localStorage says completed but Supabase doesn't - sync to Supabase
-      await syncToSupabase();
+    } else {
+      // Clear stale localStorage for new users
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
     }
+
+    set({
+      hasCompletedOnboarding: supabaseCompleted,
+      isInitialized: true,
+    });
   },
 
   setScreen: (screen: number) => {
@@ -161,6 +173,8 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     set({
       hasCompletedOnboarding: false,
       currentScreen: 0,
+      isInitialized: false,
+      initializedUserId: null,
       pendingDestination: null,
     });
   },
