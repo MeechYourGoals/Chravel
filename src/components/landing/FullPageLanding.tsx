@@ -75,7 +75,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
         {/* Section 3: How It Works - Travel network background */}
         <FullPageLandingSection
           id="section-features"
-          imageFallback={howItWorksImage}
+          imageFallback={aiNetworkImage}
           videoOpacity={0.5}
         >
           <ProblemSolutionSection />
@@ -96,7 +96,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
         {/* Section 5: AI Features - Use gradient (cleaner for feature cards) */}
         <FullPageLandingSection
           id="section-ai"
-          imageFallback={aiNetworkImage}
+          imageFallback={howItWorksImage}
           videoOpacity={0.5}
         >
           <Suspense fallback={<SectionLoader />}>
