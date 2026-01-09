@@ -159,9 +159,8 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
    * Skip onboarding (same as completing it).
    */
   skipOnboarding: async () => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, 'true');
-    set({ hasCompletedOnboarding: true });
-    syncToSupabase();
+    // Delegate to completeOnboarding since they're functionally identical
+    return get().completeOnboarding();
   },
 
   /**

@@ -58,7 +58,7 @@ interface OutstandingPaymentsProps {
   tripId: string;
   tripMembers?: TripMember[];
   onPaymentUpdated?: () => void;
-  payments: PaymentMessage[];  // Centralized payment data from parent
+  payments: PaymentMessage[]; // Centralized payment data from parent
 }
 
 // Map method types to display names
@@ -70,10 +70,15 @@ const METHOD_DISPLAY_NAMES: Record<string, string> = {
   applepay: 'Apple Pay',
   applecash: 'Apple Cash',
   cash: 'Cash',
-  other: 'Other'
+  other: 'Other',
 };
 
-export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated, payments }: OutstandingPaymentsProps) => {
+export const OutstandingPayments = ({
+  tripId,
+  tripMembers = [],
+  onPaymentUpdated,
+  payments,
+}: OutstandingPaymentsProps) => {
   const [enrichedPayments, setEnrichedPayments] = useState<EnrichedPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPayment, setEditingPayment] = useState<EnrichedPayment | null>(null);
@@ -83,9 +88,9 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const isNumericOnly = /^\d+$/.test(tripId);
   const tripIdNum = parseInt(tripId, 10);
-  const demoActive = isDemoMode && isNumericOnly && tripIdNum >= 1 && tripIdNum <= 12;
+  const isValidDemoTripId = !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
+  const demoActive = isDemoMode && isValidDemoTripId;
 
   // Filter to unsettled payments from the centralized source
   const unsettledPayments = useMemo(() => {
@@ -115,7 +120,7 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
               { method: 'venmo', displayName: 'Venmo', identifier: '@demo-user' },
               { method: 'paypal', displayName: 'PayPal', identifier: 'demo@email.com' },
               { method: 'zelle', displayName: 'Zelle', identifier: '555-123-4567' },
-              { method: 'cashapp', displayName: 'Cash App', identifier: '$demouser' }
+              { method: 'cashapp', displayName: 'Cash App', identifier: '$demouser' },
             ];
           });
 
@@ -129,21 +134,21 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
                 is_settled: false,
                 settled_at: null,
                 debtor_name: member?.display_name || `Participant ${idx + 1}`,
-                debtor_avatar: member?.avatar_url
+                debtor_avatar: member?.avatar_url,
               };
             });
 
             const allCreatorMethods = mockCreatorMethods[payment.createdBy] || [];
             const selectedMethods = payment.paymentMethods || [];
             const creatorPaymentDetails = allCreatorMethods.filter(m =>
-              selectedMethods.includes(m.method)
+              selectedMethods.includes(m.method),
             );
 
             return {
               ...payment,
               splits,
               settledCount: 0,
-              creatorPaymentDetails
+              creatorPaymentDetails,
             };
           });
 
@@ -156,14 +161,11 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
         const paymentIds = unsettledPayments.map(p => p.id);
 
         const [splitsResult, creatorMethodsResult] = await Promise.all([
-          supabase
-            .from('payment_splits')
-            .select('*')
-            .in('payment_message_id', paymentIds),
+          supabase.from('payment_splits').select('*').in('payment_message_id', paymentIds),
           supabase
             .from('user_payment_methods')
             .select('user_id, method_type, identifier, display_name')
-            .in('user_id', creatorIds)
+            .in('user_id', creatorIds),
         ]);
 
         if (splitsResult.error) throw splitsResult.error;
@@ -174,8 +176,12 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
           const existing = creatorMethodsMap.get(method.user_id) || [];
           existing.push({
             method: method.method_type?.toLowerCase() || 'other',
-            displayName: method.display_name || METHOD_DISPLAY_NAMES[method.method_type?.toLowerCase() || 'other'] || method.method_type || 'Other',
-            identifier: method.identifier || ''
+            displayName:
+              method.display_name ||
+              METHOD_DISPLAY_NAMES[method.method_type?.toLowerCase() || 'other'] ||
+              method.method_type ||
+              'Other',
+            identifier: method.identifier || '',
           });
           creatorMethodsMap.set(method.user_id, existing);
         });
@@ -202,21 +208,22 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
                 is_settled: s.is_settled,
                 settled_at: s.settled_at,
                 debtor_name: profile?.display_name || 'Unknown',
-                debtor_avatar: profile?.avatar_url
+                debtor_avatar: profile?.avatar_url,
               };
             });
 
           const allCreatorMethods = creatorMethodsMap.get(payment.createdBy) || [];
           const selectedMethods = (payment.paymentMethods || []).map(m => m.toLowerCase());
-          const creatorPaymentDetails = selectedMethods.length > 0
-            ? allCreatorMethods.filter(m => selectedMethods.includes(m.method))
-            : allCreatorMethods;
+          const creatorPaymentDetails =
+            selectedMethods.length > 0
+              ? allCreatorMethods.filter(m => selectedMethods.includes(m.method))
+              : allCreatorMethods;
 
           return {
             ...payment,
             splits: paymentSplits,
             settledCount: paymentSplits.filter(s => s.is_settled).length,
-            creatorPaymentDetails
+            creatorPaymentDetails,
           };
         });
 
@@ -232,7 +239,11 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
     enrichPayments();
   }, [unsettledPayments, tripId, demoActive]);
 
-  const handleToggleSplit = async (splitId: string, paymentId: string, currentlySettled: boolean) => {
+  const handleToggleSplit = async (
+    splitId: string,
+    paymentId: string,
+    currentlySettled: boolean,
+  ) => {
     if (demoActive) {
       // Demo mode: just update local state
       setEnrichedPayments(prev => {
@@ -240,13 +251,17 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
           if (payment.id === paymentId) {
             const updatedSplits = payment.splits.map(s =>
               s.id === splitId
-                ? { ...s, is_settled: !currentlySettled, settled_at: !currentlySettled ? new Date().toISOString() : null }
-                : s
+                ? {
+                    ...s,
+                    is_settled: !currentlySettled,
+                    settled_at: !currentlySettled ? new Date().toISOString() : null,
+                  }
+                : s,
             );
             return {
               ...payment,
               splits: updatedSplits,
-              settledCount: updatedSplits.filter(s => s.is_settled).length
+              settledCount: updatedSplits.filter(s => s.is_settled).length,
             };
           }
           return payment;
@@ -264,7 +279,9 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
       if (currentlySettled) {
         success = await paymentService.unsettlePayment(splitId);
       } else {
-        const defaultMethod = enrichedPayments.find(p => p.id === paymentId)?.creatorPaymentDetails[0]?.method || 'other';
+        const defaultMethod =
+          enrichedPayments.find(p => p.id === paymentId)?.creatorPaymentDetails[0]?.method ||
+          'other';
         success = await paymentService.settlePayment(splitId, defaultMethod);
       }
 
@@ -275,9 +292,9 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
     } catch (error) {
       console.error('Error toggling split status:', error);
       toast({
-        title: "Error",
-        description: "Failed to update payment status",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to update payment status',
+        variant: 'destructive',
       });
     }
   };
@@ -291,7 +308,7 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
     if (demoActive) {
       setEnrichedPayments(prev => prev.filter(p => p.id !== paymentId));
       setDeleteConfirmId(null);
-      toast({ title: "Payment deleted", description: "Demo payment has been removed." });
+      toast({ title: 'Payment deleted', description: 'Demo payment has been removed.' });
       return;
     }
 
@@ -299,21 +316,21 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
     try {
       const success = await paymentService.deletePaymentMessage(paymentId);
       if (success) {
-        toast({ title: "Payment deleted", description: "Payment has been removed." });
+        toast({ title: 'Payment deleted', description: 'Payment has been removed.' });
         onPaymentUpdated?.();
       } else {
         toast({
-          title: "Error",
-          description: "Failed to delete payment",
-          variant: "destructive"
+          title: 'Error',
+          description: 'Failed to delete payment',
+          variant: 'destructive',
         });
       }
     } catch (error) {
       console.error('Error deleting payment:', error);
       toast({
-        title: "Error",
-        description: "Failed to delete payment",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to delete payment',
+        variant: 'destructive',
       });
     } finally {
       setDeleting(false);
@@ -325,7 +342,7 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
-      minimumFractionDigits: 2
+      minimumFractionDigits: 2,
     }).format(amount);
   };
 
@@ -333,7 +350,7 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
     });
   };
 
@@ -397,12 +414,15 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
                     <div>
                       <p className="font-medium text-sm">{payment.description}</p>
                       <p className="text-xs text-muted-foreground">
-                        Paid by {getCreatorName(payment.createdBy)} • {formatDate(payment.createdAt)}
+                        Paid by {getCreatorName(payment.createdBy)} •{' '}
+                        {formatDate(payment.createdAt)}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-base">{formatCurrency(payment.amount, payment.currency)}</p>
+                    <p className="font-semibold text-base">
+                      {formatCurrency(payment.amount, payment.currency)}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {formatCurrency(payment.amount / payment.splitCount, payment.currency)} each
                     </p>
@@ -427,19 +447,26 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Users size={14} />
-                    <span>Split {payment.splitCount} ways • {payment.settledCount}/{payment.splits.length} settled</span>
+                    <span>
+                      Split {payment.splitCount} ways • {payment.settledCount}/
+                      {payment.splits.length} settled
+                    </span>
                   </div>
                   {payment.splits.map(split => (
                     <div
                       key={split.id}
                       className={`flex items-center justify-between p-2 rounded-lg transition-colors ${
-                        split.is_settled ? 'bg-green-500/10 border border-green-500/20' : 'bg-background/50'
+                        split.is_settled
+                          ? 'bg-green-500/10 border border-green-500/20'
+                          : 'bg-background/50'
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         <Checkbox
                           checked={split.is_settled}
-                          onCheckedChange={() => handleToggleSplit(split.id, payment.id, split.is_settled)}
+                          onCheckedChange={() =>
+                            handleToggleSplit(split.id, payment.id, split.is_settled)
+                          }
                         />
                         <Avatar className="w-6 h-6">
                           <AvatarImage src={split.debtor_avatar} />
@@ -450,11 +477,16 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
                         <span className="text-sm">{split.debtor_name}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${split.is_settled ? 'text-green-500 line-through' : ''}`}>
+                        <span
+                          className={`text-sm font-medium ${split.is_settled ? 'text-green-500 line-through' : ''}`}
+                        >
                           {formatCurrency(split.amount_owed, payment.currency)}
                         </span>
                         {split.is_settled && (
-                          <Badge variant="outline" className="text-green-500 border-green-500/30 text-xs">
+                          <Badge
+                            variant="outline"
+                            className="text-green-500 border-green-500/30 text-xs"
+                          >
                             Paid
                           </Badge>
                         )}
@@ -504,7 +536,7 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
             createdBy: editingPayment.createdBy,
             paymentMethods: editingPayment.paymentMethods,
             splits: editingPayment.splits,
-            splitParticipants: editingPayment.splitParticipants
+            splitParticipants: editingPayment.splitParticipants,
           }}
           tripMembers={tripMembers}
           isOpen={!!editingPayment}
@@ -524,13 +556,18 @@ export const OutstandingPayments = ({ tripId, tripMembers = [], onPaymentUpdated
             </DialogTitle>
           </DialogHeader>
           <p className="text-muted-foreground">
-            This will permanently delete this payment and all its splits. This action cannot be undone.
+            This will permanently delete this payment and all its splits. This action cannot be
+            undone.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)} disabled={deleting}>
+            <Button
+              variant="destructive"
+              onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+              disabled={deleting}
+            >
               {deleting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
