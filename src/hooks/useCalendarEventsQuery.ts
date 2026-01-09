@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { calendarService, TripEvent, CreateEventData } from '@/services/calendarService';
 import { CalendarEvent } from '@/types/calendar';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,33 +7,30 @@ import { useDemoMode } from './useDemoMode';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 
 /**
- * ⚡ PERFORMANCE: TanStack Query-based calendar events hook
+ * TanStack Query-based calendar events hook
  * 
- * Benefits over previous useState/useEffect approach:
- * - Automatic caching across tab switches (instant re-renders)
+ * Benefits over useState/useEffect approach:
+ * - Automatic caching across tab switches
  * - Deduplication of identical requests
  * - Background refetching for freshness
  * - Optimistic updates for mutations
  * - Built-in loading/error states
- * - 5-minute gcTime keeps data in cache after unmount
  */
-export const useCalendarEvents = (tripId?: string) => {
+export const useCalendarEventsQuery = (tripId?: string) => {
   const queryClient = useQueryClient();
   const { isDemoMode } = useDemoMode();
 
-  // Main query for calendar events with proper caching
+  // Main query for calendar events
   const {
     data: events = [],
     isLoading: loading,
     error,
-    refetch,
+    refetch: refreshEvents,
   } = useQuery({
     queryKey: tripKeys.calendar(tripId || ''),
     queryFn: () => calendarService.getTripEvents(tripId!),
     enabled: !!tripId,
-    staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
-    gcTime: QUERY_CACHE_CONFIG.calendar.gcTime,
-    refetchOnWindowFocus: QUERY_CACHE_CONFIG.calendar.refetchOnWindowFocus,
+    ...QUERY_CACHE_CONFIG.calendar,
   });
 
   // Real-time subscription for authenticated mode
@@ -51,7 +48,7 @@ export const useCalendarEvents = (tripId?: string) => {
           filter: `trip_id=eq.${tripId}`,
         },
         (payload) => {
-          // Update cache directly for instant UI updates
+          // Update cache based on change type
           queryClient.setQueryData<TripEvent[]>(
             tripKeys.calendar(tripId),
             (oldEvents = []) => {
@@ -76,16 +73,25 @@ export const useCalendarEvents = (tripId?: string) => {
     };
   }, [tripId, isDemoMode, queryClient]);
 
-  // Create event with optimistic update
+  // Create event mutation with optimistic update
   const createEventMutation = useMutation({
     mutationFn: async (eventData: CreateEventData) => {
       const result = await calendarService.createEvent(eventData);
+      if (!result.event) {
+        throw new Error('Failed to create event');
+      }
       return result.event;
     },
     onMutate: async (newEvent) => {
+      // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId || '') });
-      const previousEvents = queryClient.getQueryData<TripEvent[]>(tripKeys.calendar(tripId || ''));
 
+      // Snapshot previous value
+      const previousEvents = queryClient.getQueryData<TripEvent[]>(
+        tripKeys.calendar(tripId || '')
+      );
+
+      // Optimistically add new event
       if (previousEvents && tripId) {
         const optimisticEvent: TripEvent = {
           id: `temp-${Date.now()}`,
@@ -103,34 +109,44 @@ export const useCalendarEvents = (tripId?: string) => {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
+
         queryClient.setQueryData<TripEvent[]>(
           tripKeys.calendar(tripId),
           [...previousEvents, optimisticEvent]
         );
       }
+
       return { previousEvents };
     },
     onError: (_err, _newEvent, context) => {
+      // Rollback on error
       if (context?.previousEvents && tripId) {
         queryClient.setQueryData(tripKeys.calendar(tripId), context.previousEvents);
       }
     },
     onSettled: () => {
+      // Refetch to ensure server state
       if (tripId) {
         queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
       }
     },
   });
 
-  // Update event with optimistic update
+  // Update event mutation
   const updateEventMutation = useMutation({
     mutationFn: async ({ eventId, updates }: { eventId: string; updates: Partial<TripEvent> }) => {
-      await calendarService.updateEvent(eventId, updates);
+      const success = await calendarService.updateEvent(eventId, updates);
+      if (!success) {
+        throw new Error('Failed to update event');
+      }
       return { eventId, updates };
     },
     onMutate: async ({ eventId, updates }) => {
       await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId || '') });
-      const previousEvents = queryClient.getQueryData<TripEvent[]>(tripKeys.calendar(tripId || ''));
+
+      const previousEvents = queryClient.getQueryData<TripEvent[]>(
+        tripKeys.calendar(tripId || '')
+      );
 
       if (previousEvents && tripId) {
         queryClient.setQueryData<TripEvent[]>(
@@ -140,6 +156,7 @@ export const useCalendarEvents = (tripId?: string) => {
           )
         );
       }
+
       return { previousEvents };
     },
     onError: (_err, _vars, context) => {
@@ -149,15 +166,21 @@ export const useCalendarEvents = (tripId?: string) => {
     },
   });
 
-  // Delete event with optimistic update
+  // Delete event mutation
   const deleteEventMutation = useMutation({
     mutationFn: async (eventId: string) => {
-      await calendarService.deleteEvent(eventId, tripId);
+      const success = await calendarService.deleteEvent(eventId, tripId);
+      if (!success) {
+        throw new Error('Failed to delete event');
+      }
       return eventId;
     },
     onMutate: async (eventId) => {
       await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId || '') });
-      const previousEvents = queryClient.getQueryData<TripEvent[]>(tripKeys.calendar(tripId || ''));
+
+      const previousEvents = queryClient.getQueryData<TripEvent[]>(
+        tripKeys.calendar(tripId || '')
+      );
 
       if (previousEvents && tripId) {
         queryClient.setQueryData<TripEvent[]>(
@@ -165,6 +188,7 @@ export const useCalendarEvents = (tripId?: string) => {
           previousEvents.filter(event => event.id !== eventId)
         );
       }
+
       return { previousEvents };
     },
     onError: (_err, _eventId, context) => {
@@ -174,7 +198,7 @@ export const useCalendarEvents = (tripId?: string) => {
     },
   });
 
-  // API compatible with original hook
+  // Helper functions matching original API
   const createEvent = async (eventData: CreateEventData): Promise<TripEvent | null> => {
     try {
       return await createEventMutation.mutateAsync(eventData);
@@ -208,22 +232,24 @@ export const useCalendarEvents = (tripId?: string) => {
     }
   };
 
+  // Convert to CalendarEvent format for components that expect it
   const getCalendarEvents = (): CalendarEvent[] => {
     return events.map(event => calendarService.convertToCalendarEvent(event));
-  };
-
-  const refreshEvents = async () => {
-    await refetch();
   };
 
   return {
     events,
     loading,
+    error,
     createEvent,
     createEventFromCalendar,
     updateEvent,
     deleteEvent,
     refreshEvents,
     getCalendarEvents,
+    // Expose mutation states for loading indicators
+    isCreating: createEventMutation.isPending,
+    isUpdating: updateEventMutation.isPending,
+    isDeleting: deleteEventMutation.isPending,
   };
 };

@@ -1,18 +1,21 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Users, Calendar, MessageCircle, Camera, BarChart3, ClipboardList } from 'lucide-react';
-import { TripChat } from '../TripChat';
-import { GroupCalendar } from '../GroupCalendar';
-import { UnifiedMediaHub } from '../UnifiedMediaHub';
-import { CommentsWall } from '../CommentsWall';
-import { AgendaModal } from './AgendaModal';
-import { LineupTab } from './LineupTab';
-import { EventTasksTab } from './EventTasksTab';
 import { useEventPermissions } from '@/hooks/useEventPermissions';
 import { useDemoMode } from '@/hooks/useDemoMode';
 
 import { EventData } from '../../types/events';
 import { TripContext } from '@/types';
 import { useTripVariant } from '../../contexts/TripVariantContext';
+
+// ⚡ PERFORMANCE: Lazy load all tab components for code splitting
+// This significantly reduces initial bundle size - tabs load on demand
+const TripChat = lazy(() => import('../TripChat').then(m => ({ default: m.TripChat })));
+const GroupCalendar = lazy(() => import('../GroupCalendar').then(m => ({ default: m.GroupCalendar })));
+const UnifiedMediaHub = lazy(() => import('../UnifiedMediaHub').then(m => ({ default: m.UnifiedMediaHub })));
+const CommentsWall = lazy(() => import('../CommentsWall').then(m => ({ default: m.CommentsWall })));
+const AgendaModal = lazy(() => import('./AgendaModal').then(m => ({ default: m.AgendaModal })));
+const LineupTab = lazy(() => import('./LineupTab').then(m => ({ default: m.LineupTab })));
+const EventTasksTab = lazy(() => import('./EventTasksTab').then(m => ({ default: m.EventTasksTab })));
 
 interface EventDetailContentProps {
   activeTab: string;
@@ -23,6 +26,16 @@ interface EventDetailContentProps {
   eventData: EventData;
   tripContext: TripContext;
 }
+
+// ⚡ PERFORMANCE: Skeleton loader for lazy-loaded tabs
+const TabSkeleton = () => (
+  <div className="flex items-center justify-center h-full min-h-[300px]">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-10 h-10 border-3 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+      <p className="text-sm text-gray-400">Loading...</p>
+    </div>
+  </div>
+);
 
 export const EventDetailContent = ({
   activeTab,
@@ -121,7 +134,10 @@ export const EventDetailContent = ({
 
       {/* Tab Content - match sizing with TripTabs and ProTabContent */}
       <div className="overflow-y-auto native-scroll pb-24 sm:pb-4 h-auto min-h-0 max-h-none md:h-[calc(100vh-320px)] md:max-h-[1000px] md:min-h-[500px] flex flex-col">
-        {renderTabContent()}
+        {/* ⚡ PERFORMANCE: Suspense boundary for lazy-loaded tab components */}
+        <Suspense fallback={<TabSkeleton />}>
+          {renderTabContent()}
+        </Suspense>
       </div>
     </>
   );
