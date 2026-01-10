@@ -169,6 +169,10 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
           <div>
             <label className="block text-foreground text-xs font-medium mb-1">Preview Link</label>
             <div className="flex gap-2">
+              <Button onClick={handleCopyLink} size="sm" className="px-3 h-8">
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                <span className="ml-1.5">{copied ? 'Copied!' : 'Copy'}</span>
+              </Button>
               <div className="flex-1 bg-muted border border-border rounded-lg px-2 py-1.5 text-foreground text-xs font-mono truncate">
                 {previewLink}
               </div>
@@ -184,10 +188,6 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
                   <span className="ml-1.5">Share</span>
                 </Button>
               )}
-              <Button onClick={handleCopyLink} size="sm" className="px-3 h-8">
-                {copied ? <Check size={14} /> : <Copy size={14} />}
-                <span className="ml-1.5">{copied ? 'Copied!' : 'Copy'}</span>
-              </Button>
             </div>
           </div>
         </div>
