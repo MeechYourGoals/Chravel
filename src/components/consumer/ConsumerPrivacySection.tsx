@@ -3,6 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
 import { useDemoMode } from '../../hooks/useDemoMode';
+import { DataExportSection } from '../settings/DataExportSection';
 
 export const ConsumerPrivacySection = () => {
   const { user, updateProfile } = useAuth();
@@ -193,6 +194,9 @@ export const ConsumerPrivacySection = () => {
           </button>
         </div>
       </div>
+
+      {/* Data Export - GDPR Compliance */}
+      <DataExportSection />
     </div>
   );
 };
