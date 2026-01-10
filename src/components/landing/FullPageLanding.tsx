@@ -13,7 +13,7 @@ const PricingLandingSection = lazy(() => import('./sections/PricingLandingSectio
 const FooterSection = lazy(() => import('./FooterSection').then(module => ({ default: module.FooterSection })));
 
 // Import landing page background images - simpler, less busy images
-import heroImage from '@/assets/landing-hero-mountains.png';
+import heroImage from '@/assets/hero-background.png';
 import scenariosImage from '@/assets/landing-use-cases-forest.png';
 import replacesImage from '@/assets/landing-world-map.png';
 import howItWorksImage from '@/assets/landing-travel-network.png';
