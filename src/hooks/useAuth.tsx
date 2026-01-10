@@ -553,15 +553,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithGoogle = async (): Promise<{ error?: string }> => {
     try {
       // Build the redirect URL - after OAuth completes, Supabase will redirect here
-      // The auth state change listener will handle the session automatically
       const redirectUrl = `${window.location.origin}/auth`;
       
-      console.log('[Auth] Starting Google OAuth with redirectTo:', redirectUrl);
+      console.log('[Auth] Starting Google OAuth...');
+      console.log('[Auth] Origin:', window.location.origin);
+      console.log('[Auth] RedirectTo:', redirectUrl);
       
-      const { error } = await supabase.auth.signInWithOAuth({
+      // Use skipBrowserRedirect to capture the exact authorization URL for debugging
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
+          skipBrowserRedirect: true, // Capture URL for debugging
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -570,13 +573,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        console.error('[Auth] Google sign in error:', error);
-
-        // Provide more specific error messages
+        console.error('[Auth] Google OAuth error:', error);
+        
         if (error.message.includes('not configured') || error.message.includes('OAuth')) {
           return {
-            error:
-              'Google sign-in is not configured. Please use email to sign in or contact support.',
+            error: 'Google sign-in is not configured. Please use email to sign in or contact support.',
           };
         }
         
@@ -587,6 +588,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         return { error: error.message };
+      }
+
+      // Log the full authorization URL for debugging
+      if (data?.url) {
+        console.log('[Auth] ========== GOOGLE OAUTH DEBUG ==========');
+        console.log('[Auth] Full authorization URL:', data.url);
+        
+        // Parse and log key parameters
+        try {
+          const url = new URL(data.url);
+          console.log('[Auth] Client ID:', url.searchParams.get('client_id'));
+          console.log('[Auth] Redirect URI:', url.searchParams.get('redirect_uri'));
+          console.log('[Auth] Scope:', url.searchParams.get('scope'));
+          console.log('[Auth] Hosted Domain (hd):', url.searchParams.get('hd') || 'none');
+          console.log('[Auth] State:', url.searchParams.get('state')?.substring(0, 20) + '...');
+        } catch (parseErr) {
+          console.warn('[Auth] Could not parse URL params:', parseErr);
+        }
+        console.log('[Auth] ==========================================');
+        
+        // Navigate using window.top to avoid iframe issues in Lovable preview
+        const targetWindow = window.top || window;
+        targetWindow.location.assign(data.url);
+      } else {
+        console.error('[Auth] No URL returned from signInWithOAuth');
+        return { error: 'Failed to initiate Google sign-in. Please try again.' };
       }
 
       return {};
