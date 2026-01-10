@@ -39,7 +39,8 @@ export default async function handler(request: Request): Promise<Response> {
 
   try {
     // Proxy to Supabase generate-invite-preview edge function
-    const supabaseUrl = `https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/generate-invite-preview?code=${encodeURIComponent(code)}`;
+    const supabaseProjectRef = process.env.SUPABASE_PROJECT_REF || 'jmjiyekmxwsxkfnqwyaa';
+    const supabaseUrl = `https://${supabaseProjectRef}.supabase.co/functions/v1/generate-invite-preview?code=${encodeURIComponent(code)}`;
     
     const upstream = await fetch(supabaseUrl, {
       method: 'GET',

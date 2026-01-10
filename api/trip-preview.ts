@@ -25,7 +25,7 @@ export default async function handler(request: Request): Promise<Response> {
 
   try {
     // Proxy to Supabase generate-trip-preview edge function
-    const supabaseProjectRef = 'jmjiyekmxwsxkfnqwyaa';
+    const supabaseProjectRef = process.env.SUPABASE_PROJECT_REF || 'jmjiyekmxwsxkfnqwyaa';
     const supabaseUrl = `https://${supabaseProjectRef}.supabase.co/functions/v1/generate-trip-preview?tripId=${encodeURIComponent(tripId)}`;
 
     console.log('[trip-preview] Fetching from:', supabaseUrl);

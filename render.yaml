@@ -8,9 +8,9 @@ services:
       - key: NODE_VERSION
         value: "18"
       - key: VITE_SUPABASE_URL
-        value: https://jmjiyekmxwsxkfnqwyaa.supabase.co
+        sync: false  # Set via Render dashboard - do not hardcode
       - key: VITE_SUPABASE_ANON_KEY
-        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI
+        sync: false  # Set via Render dashboard - do not hardcode
       - key: VITE_BUILD_ID
         value: $RENDER_GIT_COMMIT
       # Branded unfurl base (served by chravel-unfurl below)
