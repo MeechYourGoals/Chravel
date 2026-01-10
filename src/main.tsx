@@ -4,6 +4,7 @@ import { TripVariantProvider } from "@/contexts/TripVariantContext";
 import { BasecampProvider } from "@/contexts/BasecampContext";
 import { initNativeLifecycle } from "@/native/lifecycle";
 import { registerServiceWorker } from "./utils/serviceWorkerRegistration";
+import { initRevenueCat } from "@/config/revenuecat";
 import App from "./App.tsx";
 import "./index.css";
 
@@ -27,6 +28,9 @@ if (import.meta.env.PROD) {
 
 // Initialize native lifecycle listeners as early as possible (no-op on web).
 initNativeLifecycle();
+
+// Initialize RevenueCat for subscription management
+initRevenueCat().catch((err) => console.warn('[RevenueCat] Init failed:', err));
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
