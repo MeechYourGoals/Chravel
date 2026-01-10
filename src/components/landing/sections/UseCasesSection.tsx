@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import useCasesBackground from '@/assets/landing-use-cases-network.png';
+import useCasesBackground from '@/assets/built-for-every-journey-bg.png';
 
 const scenarios = [
   {
