@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 
 /**
- * OAuth is enabled by default since Google is configured in Supabase.
- * Set VITE_OAUTH_GOOGLE_ENABLED=false to hide the button if needed.
+ * OAuth is temporarily disabled while backend configuration is being fixed.
+ * TODO: Re-enable once Google OAuth is properly configured in Supabase.
  */
 export const isOAuthEnabled = (): boolean => {
-  const explicitlyDisabled = import.meta.env.VITE_OAUTH_GOOGLE_ENABLED === 'false';
-  return !explicitlyDisabled;
+  return false;
 };
 
 interface OAuthButtonsProps {
