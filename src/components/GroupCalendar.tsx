@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
 import { ItineraryView } from './ItineraryView';
@@ -7,6 +7,7 @@ import { CalendarHeader } from './calendar/CalendarHeader';
 import { CalendarGrid } from './calendar/CalendarGrid';
 import { AddEventModal } from './calendar/AddEventModal';
 import { EventList } from './calendar/EventList';
+import { ICSImportModal } from './calendar/ICSImportModal';
 import { exportTripEventsToICal } from '@/services/calendarSync';
 import { useToast } from '@/hooks/use-toast';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
@@ -23,6 +24,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
     currentMonth,
     setCurrentMonth,
     events,
+    tripEvents,
     showAddEvent,
     setShowAddEvent,
     editingEvent,
@@ -37,12 +39,34 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
     deleteEvent,
     resetForm,
     isLoading,
-    isSaving
+    isSaving,
+    refreshEvents,
   } = useCalendarManagement(tripId);
   const { toast } = useToast();
   const { canPerformAction } = useRolePermissions(tripId);
   // Demo mode available for future conditional rendering
   const { isDemoMode: _isDemoMode } = useDemoMode();
+
+  // ICS Import modal state
+  const [showImportModal, setShowImportModal] = useState(false);
+
+  const handleImport = useCallback(() => {
+    // Check permissions (will return true in Demo Mode)
+    if (!canPerformAction('calendar', 'can_edit_events')) {
+      toast({
+        title: 'Permission denied',
+        description: 'You do not have permission to import events',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setShowImportModal(true);
+  }, [canPerformAction, toast]);
+
+  const handleImportComplete = useCallback(async () => {
+    // Refresh events after import
+    await refreshEvents();
+  }, [refreshEvents]);
 
   const handleEdit = (event: any) => {
     // Check permissions (will return true in Demo Mode)
@@ -50,7 +74,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
       toast({
         title: 'Permission denied',
         description: 'You do not have permission to edit events',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -90,7 +114,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
       await exportTripEventsToICal(tripId, 'Trip Calendar');
       toast({
         title: 'Calendar exported',
-        description: 'Your calendar has been downloaded as an .ics file.'
+        description: 'Your calendar has been downloaded as an .ics file.',
       });
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -99,7 +123,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
       toast({
         title: 'Export failed',
         description: 'Unable to export calendar. Please try again.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
@@ -117,7 +141,6 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
     );
   }
 
-
   if (viewMode === 'grid') {
     return (
       <div className="p-6">
@@ -126,6 +149,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           onToggleView={toggleViewMode}
           onAddEvent={() => setShowAddEvent(!showAddEvent)}
           onExport={handleExport}
+          onImport={handleImport}
         />
 
         {isLoading ? (
@@ -137,7 +161,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
             events={events}
             selectedDate={selectedDate || new Date()}
             onSelectDate={setSelectedDate}
-            onAddEvent={(date) => {
+            onAddEvent={date => {
               setSelectedDate(date);
               setShowAddEvent(true);
             }}
@@ -161,6 +185,15 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           isEditing={!!editingEvent}
           selectedDate={selectedDate}
         />
+
+        {/* ICS Import Modal */}
+        <ICSImportModal
+          isOpen={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          tripId={tripId}
+          existingEvents={tripEvents}
+          onImportComplete={handleImportComplete}
+        />
       </div>
     );
   }
@@ -168,13 +201,23 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
   if (viewMode === 'itinerary') {
     return (
       <div className="p-6">
-      <CalendarHeader
-        viewMode={viewMode}
-        onToggleView={toggleViewMode}
-        onAddEvent={() => setShowAddEvent(!showAddEvent)}
-        onExport={handleExport}
-      />
+        <CalendarHeader
+          viewMode={viewMode}
+          onToggleView={toggleViewMode}
+          onAddEvent={() => setShowAddEvent(!showAddEvent)}
+          onExport={handleExport}
+          onImport={handleImport}
+        />
         <ItineraryView events={events} tripName="Trip Itinerary" />
+
+        {/* ICS Import Modal */}
+        <ICSImportModal
+          isOpen={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          tripId={tripId}
+          existingEvents={tripEvents}
+          onImportComplete={handleImportComplete}
+        />
       </div>
     );
   }
@@ -186,6 +229,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         onToggleView={toggleViewMode}
         onAddEvent={() => setShowAddEvent(!showAddEvent)}
         onExport={handleExport}
+        onImport={handleImport}
       />
 
       {isLoading ? (
@@ -201,14 +245,14 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
               onSelect={setSelectedDate}
               className="w-full"
               modifiers={{
-                hasEvents: datesWithEvents
+                hasEvents: datesWithEvents,
               }}
               modifiersStyles={{
                 hasEvents: {
                   backgroundColor: 'hsl(var(--primary) / 0.3)',
                   color: 'hsl(var(--primary-foreground))',
-                  fontWeight: 'bold'
-                }
+                  fontWeight: 'bold',
+                },
               }}
             />
           </div>
@@ -251,6 +295,15 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         isSubmitting={isSaving}
         isEditing={!!editingEvent}
         selectedDate={selectedDate}
+      />
+
+      {/* ICS Import Modal */}
+      <ICSImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        tripId={tripId}
+        existingEvents={tripEvents}
+        onImportComplete={handleImportComplete}
       />
     </div>
   );

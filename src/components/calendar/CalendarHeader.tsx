@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Calendar as CalendarIcon, List, Download, Grid3x3 } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, List, Download, Upload, Grid3x3 } from 'lucide-react';
 import { ViewMode } from '@/hooks/useCalendarManagement';
 
 interface CalendarHeaderProps {
@@ -8,9 +8,16 @@ interface CalendarHeaderProps {
   onToggleView: () => void;
   onAddEvent?: () => void;
   onExport?: () => void;
+  onImport?: () => void;
 }
 
-export const CalendarHeader = ({ viewMode, onToggleView, onAddEvent, onExport }: CalendarHeaderProps) => {
+export const CalendarHeader = ({
+  viewMode,
+  onToggleView,
+  onAddEvent,
+  onExport,
+  onImport,
+}: CalendarHeaderProps) => {
   const getViewButtonLabel = () => {
     switch (viewMode) {
       case 'grid':
@@ -36,14 +43,26 @@ export const CalendarHeader = ({ viewMode, onToggleView, onAddEvent, onExport }:
   };
 
   return (
-    <div className="grid grid-cols-8 gap-2 mb-6 items-center">
-      {/* Left: Group Calendar Title - spans first 5 columns */}
-      <h2 className="col-span-5 text-2xl font-bold text-foreground">Group Calendar</h2>
+    <div className="grid grid-cols-9 gap-2 mb-6 items-center">
+      {/* Left: Group Calendar Title - spans first 4 columns */}
+      <h2 className="col-span-4 text-2xl font-bold text-foreground">Group Calendar</h2>
 
-      {/* Export button - column 6 (under Places) */}
-      <Button 
-        variant="outline" 
-        onClick={onExport} 
+      {/* Import button */}
+      <Button
+        variant="outline"
+        onClick={onImport}
+        size="sm"
+        className="col-span-1 w-full flex items-center justify-center gap-1.5"
+        disabled={!onImport}
+      >
+        <Upload className="h-4 w-4" />
+        <span className="hidden lg:inline">Import</span>
+      </Button>
+
+      {/* Export button */}
+      <Button
+        variant="outline"
+        onClick={onExport}
         size="sm"
         className="col-span-1 w-full flex items-center justify-center gap-1.5"
         disabled={!onExport}
@@ -52,10 +71,10 @@ export const CalendarHeader = ({ viewMode, onToggleView, onAddEvent, onExport }:
         <span className="hidden lg:inline">Export</span>
       </Button>
 
-      {/* View toggle button - column 7 (under Polls) */}
-      <Button 
-        variant="outline" 
-        onClick={onToggleView} 
+      {/* View toggle button */}
+      <Button
+        variant="outline"
+        onClick={onToggleView}
         size="sm"
         className="col-span-1 w-full flex items-center justify-center gap-1.5"
       >
@@ -63,10 +82,10 @@ export const CalendarHeader = ({ viewMode, onToggleView, onAddEvent, onExport }:
         <span className="hidden lg:inline">{getViewButtonLabel()}</span>
       </Button>
 
-      {/* Add Event button - column 8 (under Tasks) */}
-      <Button 
-        variant="outline" 
-        onClick={onAddEvent} 
+      {/* Add Event button */}
+      <Button
+        variant="outline"
+        onClick={onAddEvent}
         size="sm"
         className="col-span-1 w-full flex items-center justify-center gap-1.5"
         disabled={!onAddEvent}

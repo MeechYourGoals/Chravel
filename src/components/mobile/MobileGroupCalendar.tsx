@@ -1,11 +1,33 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, ChevronLeft, ChevronRight, Clock, MapPin, Users, X, Pencil, Trash2, Download, Grid3x3 } from 'lucide-react';
+import {
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  MapPin,
+  Users,
+  X,
+  Pencil,
+  Trash2,
+  Download,
+  Upload,
+  Grid3x3,
+} from 'lucide-react';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { CalendarSkeleton } from './SkeletonLoader';
 import { hapticService } from '../../services/hapticService';
-import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameDay, isSameMonth } from 'date-fns';
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  addMonths,
+  subMonths,
+  isSameDay,
+  isSameMonth,
+} from 'date-fns';
 import { CreateEventModal } from './CreateEventModal';
+import { ICSImportModal } from '../calendar/ICSImportModal';
 import { useCalendarEvents } from '../../hooks/useCalendarEvents';
 import { toast } from 'sonner';
 import { calendarExporter } from '../../utils/calendarExport';
@@ -26,6 +48,7 @@ type CalendarViewMode = 'list' | 'grid';
 interface MobileGroupCalendarProps {
   tripId: string;
   onExport?: () => void;
+  onImport?: () => void;
   onToggleView?: () => void;
   viewMode?: CalendarViewMode;
 }
@@ -42,32 +65,58 @@ const EVENT_COLORS = [
   'from-teal-500 to-teal-600',
 ];
 
-export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: externalViewMode }: MobileGroupCalendarProps) => {
+export const MobileGroupCalendar = ({
+  tripId,
+  onExport,
+  onImport,
+  onToggleView,
+  viewMode: externalViewMode,
+}: MobileGroupCalendarProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
   // Internal view mode state when no external handler provided
   const [internalViewMode, setInternalViewMode] = useState<CalendarViewMode>('list');
-  
+
   // Use external view mode if provided, otherwise use internal state
   const currentViewMode = externalViewMode ?? internalViewMode;
-  
+
   const handleToggleView = async () => {
     await hapticService.light();
     if (onToggleView) {
       onToggleView();
     } else {
       // Toggle internal view mode if no external handler
-      setInternalViewMode(prev => prev === 'list' ? 'grid' : 'list');
+      setInternalViewMode(prev => (prev === 'list' ? 'grid' : 'list'));
     }
   };
 
+  const handleImport = async () => {
+    await hapticService.medium();
+    if (onImport) {
+      onImport();
+    } else {
+      setIsImportModalOpen(true);
+    }
+  };
+
+  const handleImportComplete = async () => {
+    await refreshEvents();
+  };
+
   // Use the calendar events hook to fetch real events
-  const { events: tripEvents, loading, refreshEvents, deleteEvent, updateEvent } = useCalendarEvents(tripId);
-  
+  const {
+    events: tripEvents,
+    loading,
+    refreshEvents,
+    deleteEvent,
+    updateEvent,
+  } = useCalendarEvents(tripId);
+
   // Convert TripEvent[] to CalendarEvent[] format for UI
   const events = useMemo(() => {
     const calendarEvents = tripEvents.map((event, index) => {
@@ -78,13 +127,13 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
         time: new Date(event.start_time).toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
-          hour12: true
+          hour12: true,
         }),
         location: event.location || undefined,
         participants: 0, // TODO: Get actual participant count
         color: EVENT_COLORS[index % EVENT_COLORS.length],
         // Keep original event data for editing
-        originalEvent: event
+        originalEvent: event,
       };
       return calendarEvent;
     });
@@ -94,7 +143,7 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
   const { isPulling, isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: async () => {
       await refreshEvents();
-    }
+    },
   });
 
   const handleAddEvent = async () => {
@@ -109,21 +158,21 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
     const end = endOfMonth(currentMonth);
     const startDay = start.getDay(); // 0 = Sunday
     const totalDays = end.getDate();
-    
+
     const days: Date[] = [];
-    
+
     // Add padding days from previous month
     for (let i = startDay - 1; i >= 0; i--) {
       const date = new Date(start);
       date.setDate(date.getDate() - i - 1);
       days.push(date);
     }
-    
+
     // Add all days of current month
     for (let i = 1; i <= totalDays; i++) {
       days.push(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i));
     }
-    
+
     // Add padding days for next month to complete grid (6 weeks max)
     while (days.length < 42) {
       const lastDate = days[days.length - 1];
@@ -131,7 +180,7 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
       nextDate.setDate(nextDate.getDate() + 1);
       days.push(nextDate);
     }
-    
+
     return days;
   };
 
@@ -153,9 +202,7 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
     setSelectedDate(date);
   };
 
-  const eventsForSelectedDate = events.filter(event =>
-    isSameDay(event.date, selectedDate)
-  );
+  const eventsForSelectedDate = events.filter(event => isSameDay(event.date, selectedDate));
 
   // Handle event click to show details
   const handleEventClick = useCallback(async (event: CalendarEvent & { originalEvent?: any }) => {
@@ -164,43 +211,49 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
   }, []);
 
   // Handle event deletion
-  const handleDeleteEvent = useCallback(async (eventId: string) => {
-    if (!eventId) return;
+  const handleDeleteEvent = useCallback(
+    async (eventId: string) => {
+      if (!eventId) return;
 
-    setIsDeleting(true);
-    try {
-      await hapticService.medium();
-      const success = await deleteEvent(eventId);
-      if (success) {
-        toast.success('Event deleted');
-        setSelectedEvent(null);
-        await refreshEvents();
-      } else {
+      setIsDeleting(true);
+      try {
+        await hapticService.medium();
+        const success = await deleteEvent(eventId);
+        if (success) {
+          toast.success('Event deleted');
+          setSelectedEvent(null);
+          await refreshEvents();
+        } else {
+          toast.error('Failed to delete event');
+        }
+      } catch (error) {
+        console.error('Error deleting event:', error);
         toast.error('Failed to delete event');
+      } finally {
+        setIsDeleting(false);
       }
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      toast.error('Failed to delete event');
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [deleteEvent, refreshEvents]);
+    },
+    [deleteEvent, refreshEvents],
+  );
 
   // Handle event edit
-  const handleEditEvent = useCallback(async (event: CalendarEvent & { originalEvent?: any }) => {
-    await hapticService.medium();
-    setSelectedEvent(null);
-    // Use originalEvent if available, otherwise construct from CalendarEvent
-    const eventToEdit = event.originalEvent || {
-      id: event.id,
-      title: event.title,
-      start_time: event.date.toISOString(),
-      location: event.location,
-      trip_id: tripId,
-    };
-    setEditingEvent(eventToEdit);
-    setIsModalOpen(true);
-  }, [tripId]);
+  const handleEditEvent = useCallback(
+    async (event: CalendarEvent & { originalEvent?: any }) => {
+      await hapticService.medium();
+      setSelectedEvent(null);
+      // Use originalEvent if available, otherwise construct from CalendarEvent
+      const eventToEdit = event.originalEvent || {
+        id: event.id,
+        title: event.title,
+        start_time: event.date.toISOString(),
+        location: event.location,
+        trip_id: tripId,
+      };
+      setEditingEvent(eventToEdit);
+      setIsModalOpen(true);
+    },
+    [tripId],
+  );
 
   // Close event detail drawer
   const handleCloseEventDetail = useCallback(() => {
@@ -270,13 +323,15 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
                       </button>
                     </div>
                   ) : (
-                    eventsForSelectedDate.map((event) => (
+                    eventsForSelectedDate.map(event => (
                       <button
                         key={event.id}
                         onClick={() => handleEventClick(event)}
                         className="w-full bg-white/10 rounded-xl p-4 active:scale-98 transition-transform relative"
                       >
-                        <div className={`w-1 h-full absolute left-0 top-0 rounded-l-xl bg-gradient-to-b ${event.color}`} />
+                        <div
+                          className={`w-1 h-full absolute left-0 top-0 rounded-l-xl bg-gradient-to-b ${event.color}`}
+                        />
                         <div className="flex items-start justify-between mb-2">
                           <h4 className="text-white font-semibold text-left">{event.title}</h4>
                           <span className="text-sm text-gray-400">{event.time}</span>
@@ -299,7 +354,14 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
 
               {/* Action Buttons - Middle section */}
               <div className="flex justify-center gap-2 px-4 py-2 border-y border-white/10 bg-black/50">
-                <button 
+                <button
+                  onClick={handleImport}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs text-gray-300 transition-colors active:scale-95"
+                >
+                  <Upload size={14} />
+                  <span>Import</span>
+                </button>
+                <button
                   onClick={async () => {
                     await hapticService.light();
                     if (onExport) {
@@ -310,9 +372,12 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
                         title: e.title,
                         date: e.date instanceof Date ? e.date : new Date(e.date),
                         location: e.location || '',
-                        description: e.originalEvent?.description || ''
+                        description: e.originalEvent?.description || '',
                       }));
-                      const icsContent = calendarExporter.exportToICS(exportEvents, `Trip_${tripId}`);
+                      const icsContent = calendarExporter.exportToICS(
+                        exportEvents,
+                        `Trip_${tripId}`,
+                      );
                       const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
                       const filename = `Trip_${tripId}_calendar.ics`;
                       try {
@@ -329,14 +394,14 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
                   <Download size={14} />
                   <span>Export</span>
                 </button>
-                <button 
+                <button
                   onClick={handleToggleView}
                   className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs text-gray-300 transition-colors active:scale-95"
                 >
                   <Grid3x3 size={14} />
                   <span>Month Grid</span>
                 </button>
-                <button 
+                <button
                   onClick={handleAddEvent}
                   className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs text-gray-300 transition-colors active:scale-95"
                 >
@@ -369,7 +434,10 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
                 {/* Compact Weekday Headers */}
                 <div className="grid grid-cols-7 gap-0.5 mb-1">
                   {weekDays.map(day => (
-                    <div key={`compact-${day}`} className="text-center text-[10px] font-medium text-gray-500 py-0.5">
+                    <div
+                      key={`compact-${day}`}
+                      className="text-center text-[10px] font-medium text-gray-500 py-0.5"
+                    >
                       {day}
                     </div>
                   ))}
@@ -382,7 +450,7 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
                     const isSelected = isSameDay(date, selectedDate);
                     const isToday = isSameDay(date, new Date());
                     const hasEvents = events.some(e => isSameDay(e.date, date));
-                    
+
                     return (
                       <button
                         key={`compact-day-${index}`}
@@ -391,11 +459,12 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
                           h-7 rounded flex items-center justify-center text-xs relative
                           transition-all duration-150 active:scale-95
                           ${isCurrentMonth ? 'text-gray-300' : 'text-gray-600'}
-                          ${isSelected 
-                            ? 'bg-blue-500 text-white font-medium' 
-                            : isToday 
-                            ? 'bg-blue-500/20 text-blue-400' 
-                            : 'hover:bg-white/10'
+                          ${
+                            isSelected
+                              ? 'bg-blue-500 text-white font-medium'
+                              : isToday
+                                ? 'bg-blue-500/20 text-blue-400'
+                                : 'hover:bg-white/10'
                           }
                         `}
                       >
@@ -416,7 +485,14 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
             <>
               {/* Action Buttons for Month Grid */}
               <div className="flex justify-center gap-2 px-4 py-3 border-b border-white/10">
-                <button 
+                <button
+                  onClick={handleImport}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm text-gray-300 transition-colors active:scale-95"
+                >
+                  <Upload size={16} />
+                  <span>Import</span>
+                </button>
+                <button
                   onClick={async () => {
                     await hapticService.light();
                     if (onExport) {
@@ -427,9 +503,12 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
                         title: e.title,
                         date: e.date instanceof Date ? e.date : new Date(e.date),
                         location: e.location || '',
-                        description: e.originalEvent?.description || ''
+                        description: e.originalEvent?.description || '',
                       }));
-                      const icsContent = calendarExporter.exportToICS(exportEvents, `Trip_${tripId}`);
+                      const icsContent = calendarExporter.exportToICS(
+                        exportEvents,
+                        `Trip_${tripId}`,
+                      );
                       const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
                       const filename = `Trip_${tripId}_calendar.ics`;
                       try {
@@ -446,14 +525,14 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
                   <Download size={16} />
                   <span>Export</span>
                 </button>
-                <button 
+                <button
                   onClick={handleToggleView}
                   className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm text-gray-300 transition-colors active:scale-95"
                 >
                   <Grid3x3 size={16} />
                   <span>Day View</span>
                 </button>
-                <button 
+                <button
                   onClick={handleAddEvent}
                   className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm text-gray-300 transition-colors active:scale-95"
                 >
@@ -467,17 +546,20 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
                 <div className="grid grid-cols-7 gap-1">
                   {/* Weekday Headers */}
                   {weekDays.map(day => (
-                    <div key={`grid-${day}`} className="text-center text-xs font-medium text-gray-500 py-2 border-b border-white/10">
+                    <div
+                      key={`grid-${day}`}
+                      className="text-center text-xs font-medium text-gray-500 py-2 border-b border-white/10"
+                    >
                       {day}
                     </div>
                   ))}
-                  
+
                   {/* Calendar Days with Events */}
                   {calendarDays.map((date, index) => {
                     const isCurrentMonth = isSameMonth(date, currentMonth);
                     const isToday = isSameDay(date, new Date());
                     const dayEvents = events.filter(e => isSameDay(e.date, date));
-                    
+
                     return (
                       <div
                         key={`grid-day-${index}`}
@@ -486,14 +568,16 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
                           ${isCurrentMonth ? 'bg-black' : 'bg-black/50'}
                         `}
                       >
-                        <div className={`
+                        <div
+                          className={`
                           text-xs font-medium mb-1 px-1
                           ${isToday ? 'text-blue-400' : isCurrentMonth ? 'text-white' : 'text-gray-600'}
-                        `}>
+                        `}
+                        >
                           {format(date, 'd')}
                         </div>
                         <div className="space-y-0.5">
-                          {dayEvents.slice(0, 3).map((event) => (
+                          {dayEvents.slice(0, 3).map(event => (
                             <button
                               key={event.id}
                               onClick={() => handleEventClick(event)}
@@ -528,14 +612,23 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
         selectedDate={selectedDate}
         tripId={tripId}
         editEvent={editingEvent}
-        onEventCreated={async (event) => {
+        onEventCreated={async () => {
           // Refresh events after creation to get the latest data
           await refreshEvents();
         }}
-        onEventUpdated={async (event) => {
+        onEventUpdated={async () => {
           // Refresh events after update to get the latest data
           await refreshEvents();
         }}
+      />
+
+      {/* ICS Import Modal */}
+      <ICSImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        tripId={tripId}
+        existingEvents={tripEvents}
+        onImportComplete={handleImportComplete}
       />
 
       {/* Event Detail Drawer */}
@@ -611,7 +704,9 @@ export const MobileGroupCalendar = ({ tripId, onExport, onToggleView, viewMode: 
             {/* Actions */}
             <div className="px-6 pb-8 flex gap-3">
               <button
-                onClick={() => handleEditEvent(selectedEvent as CalendarEvent & { originalEvent?: any })}
+                onClick={() =>
+                  handleEditEvent(selectedEvent as CalendarEvent & { originalEvent?: any })
+                }
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-xl transition-colors"
               >
                 <Pencil size={18} />
