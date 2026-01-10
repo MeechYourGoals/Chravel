@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { getStorageItem, setStorageItem, removeStorageItem } from '@/platform/storage';
 
 interface UserPreferences {
