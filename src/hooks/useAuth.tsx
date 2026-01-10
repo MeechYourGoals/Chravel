@@ -552,17 +552,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async (): Promise<{ error?: string }> => {
     try {
+      // Build the redirect URL - after OAuth completes, Supabase will redirect here
+      // The auth state change listener will handle the session automatically
+      const redirectUrl = `${window.location.origin}/auth`;
+      
+      console.log('[Auth] Starting Google OAuth with redirectTo:', redirectUrl);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
 
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('[Auth] Google sign in error:', error);
-        }
+        console.error('[Auth] Google sign in error:', error);
 
         // Provide more specific error messages
         if (error.message.includes('not configured') || error.message.includes('OAuth')) {
@@ -571,32 +579,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               'Google sign-in is not configured. Please use email to sign in or contact support.',
           };
         }
+        
+        if (error.message.includes('invalid_client')) {
+          return {
+            error: 'Google OAuth configuration error. Please contact support.',
+          };
+        }
 
         return { error: error.message };
       }
 
       return {};
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[Auth] Unexpected Google sign in error:', error);
-      }
+      console.error('[Auth] Unexpected Google sign in error:', error);
       return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
 
   const signInWithApple = async (): Promise<{ error?: string }> => {
     try {
+      const redirectUrl = `${window.location.origin}/auth`;
+      
+      console.log('[Auth] Starting Apple OAuth with redirectTo:', redirectUrl);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: redirectUrl,
         },
       });
 
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('[Auth] Apple sign in error:', error);
-        }
+        console.error('[Auth] Apple sign in error:', error);
 
         // Provide more specific error messages
         if (error.message.includes('not configured') || error.message.includes('OAuth')) {
@@ -611,9 +625,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       return {};
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[Auth] Unexpected Apple sign in error:', error);
-      }
+      console.error('[Auth] Unexpected Apple sign in error:', error);
       return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
