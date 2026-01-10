@@ -17,7 +17,7 @@ import heroImage from '@/assets/landing-hero-mountains.png';
 import scenariosImage from '@/assets/landing-use-cases-forest.png';
 import replacesImage from '@/assets/landing-world-map.png';
 import howItWorksImage from '@/assets/landing-travel-network.png';
-import pricingWorkspaceImage from '@/assets/landing-pricing-globe.png';
+import pricingWorkspaceImage from '@/assets/pricing-background.png';
 import faqImage from '@/assets/landing-faq-ocean.png';
 import aiNetworkImage from '@/assets/landing-ai-network.png';
 
