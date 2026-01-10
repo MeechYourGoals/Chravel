@@ -608,9 +608,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         console.log('[Auth] ==========================================');
         
-        // Navigate using window.top to avoid iframe issues in Lovable preview
-        const targetWindow = window.top || window;
-        targetWindow.location.assign(data.url);
+        // Navigate to Google - try multiple methods to handle iframe restrictions
+        try {
+          // First try window.top (for iframe scenarios)
+          if (window.top && window.top !== window) {
+            window.top.location.href = data.url;
+          } else {
+            window.location.href = data.url;
+          }
+        } catch (navError) {
+          // Cross-origin iframe restriction - fallback to current window
+          console.warn('[Auth] window.top access blocked, using window.location:', navError);
+          window.location.href = data.url;
+        }
       } else {
         console.error('[Auth] No URL returned from signInWithOAuth');
         return { error: 'Failed to initiate Google sign-in. Please try again.' };
