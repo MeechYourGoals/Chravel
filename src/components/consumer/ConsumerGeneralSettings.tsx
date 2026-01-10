@@ -44,34 +44,62 @@ export const ConsumerGeneralSettings = () => {
 
     setIsDeleting(true);
     try {
-      // Call the account deletion Edge Function (or RPC)
-      // This should handle cascading deletes per privacy policy
-      // Note: This RPC may not exist yet - we handle the error gracefully
-      const { error } = await supabase.rpc('request_account_deletion' as any);
+      // Step 1: Call the RPC to validate the request
 
-      if (error) {
-        // If RPC doesn't exist, fall back to manual request
-        console.warn('[AccountDeletion] RPC not available, initiating manual request');
+      const { data: rpcResult, error: rpcError } = (await supabase.rpc(
+        'request_account_deletion',
+      )) as { data: any; error: any };
 
-        // Send deletion request email
+      if (rpcError) {
+        // RPC might not exist yet, proceed to Edge Function anyway
+        console.warn('[AccountDeletion] RPC validation skipped:', rpcError.message);
+      } else if (rpcResult && !rpcResult.success) {
+        // RPC returned an error (e.g., already deleted)
         toast({
-          title: 'Account Deletion Requested',
-          description:
-            'Your request has been received. You will receive a confirmation email at ' +
-            user.email +
-            '. Your account will be deleted within 30 days per our privacy policy.',
+          title: 'Cannot Delete Account',
+          description: rpcResult.error || 'Unable to process deletion request.',
+          variant: 'destructive',
         });
-
-        // Sign out the user
-        await signOut();
         return;
       }
 
+      // Step 2: Call the delete-account Edge Function for actual deletion
+      // This uses service role to delete auth user and clean up data
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+
+      if (!accessToken) {
+        toast({
+          title: 'Authentication Error',
+          description: 'Please sign in again and try once more.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const response = await supabase.functions.invoke('delete-account', {
+        body: { confirmation: 'DELETE' },
+      });
+
+      if (response.error) {
+        console.error('[AccountDeletion] Edge Function error:', response.error);
+        toast({
+          title: 'Deletion Failed',
+          description:
+            response.error.message ||
+            'Failed to delete account. Please contact support at privacy@chravel.app',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Success - show confirmation and sign out
       toast({
         title: 'Account Deleted',
         description: 'Your account and all associated data have been permanently deleted.',
       });
 
+      // Sign out the user (session is now invalid anyway)
       await signOut();
     } catch (err) {
       console.error('[AccountDeletion] Error:', err);
