@@ -48,8 +48,8 @@ describe('OAuthButtons', () => {
   });
 
   describe('rendering', () => {
-    it('renders Google and Apple buttons', async () => {
-      render(<OAuthButtons mode="signin" />, { wrapper: createTestWrapper() });
+    it('renders Google and Apple buttons when _forceShow is true', async () => {
+      render(<OAuthButtons mode="signin" _forceShow />, { wrapper: createTestWrapper() });
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
@@ -58,7 +58,7 @@ describe('OAuthButtons', () => {
     });
 
     it('shows "Sign up with" text in signup mode', async () => {
-      render(<OAuthButtons mode="signup" />, { wrapper: createTestWrapper() });
+      render(<OAuthButtons mode="signup" _forceShow />, { wrapper: createTestWrapper() });
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /sign up with google/i })).toBeInTheDocument();
@@ -67,7 +67,7 @@ describe('OAuthButtons', () => {
     });
 
     it('shows "Sign in with" text in signin mode', async () => {
-      render(<OAuthButtons mode="signin" />, { wrapper: createTestWrapper() });
+      render(<OAuthButtons mode="signin" _forceShow />, { wrapper: createTestWrapper() });
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
@@ -76,12 +76,22 @@ describe('OAuthButtons', () => {
     });
 
     it('disables buttons when disabled prop is true', async () => {
-      render(<OAuthButtons mode="signin" disabled />, { wrapper: createTestWrapper() });
+      render(<OAuthButtons mode="signin" disabled _forceShow />, { wrapper: createTestWrapper() });
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /sign in with google/i })).toBeDisabled();
         expect(screen.getByRole('button', { name: /sign in with apple/i })).toBeDisabled();
       });
+    });
+
+    it('renders nothing when no providers enabled and _forceShow is false', () => {
+      // By default, OAUTH_CONFIG providers are false in test environment
+      const { container } = render(<OAuthButtons mode="signin" />, {
+        wrapper: createTestWrapper(),
+      });
+
+      // Should render an empty div (from the wrapper)
+      expect(container.querySelector('button')).toBeNull();
     });
   });
 
@@ -89,7 +99,7 @@ describe('OAuthButtons', () => {
     it('calls signInWithOAuth with google provider when Google button is clicked', async () => {
       const { supabase } = await import('@/integrations/supabase/client');
 
-      render(<OAuthButtons mode="signin" />, { wrapper: createTestWrapper() });
+      render(<OAuthButtons mode="signin" _forceShow />, { wrapper: createTestWrapper() });
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
@@ -109,7 +119,7 @@ describe('OAuthButtons', () => {
     it('calls signInWithOAuth with apple provider when Apple button is clicked', async () => {
       const { supabase } = await import('@/integrations/supabase/client');
 
-      render(<OAuthButtons mode="signin" />, { wrapper: createTestWrapper() });
+      render(<OAuthButtons mode="signin" _forceShow />, { wrapper: createTestWrapper() });
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /sign in with apple/i })).toBeInTheDocument();
@@ -129,7 +139,7 @@ describe('OAuthButtons', () => {
     it('does not call OAuth when disabled', async () => {
       const { supabase } = await import('@/integrations/supabase/client');
 
-      render(<OAuthButtons mode="signin" disabled />, { wrapper: createTestWrapper() });
+      render(<OAuthButtons mode="signin" disabled _forceShow />, { wrapper: createTestWrapper() });
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();

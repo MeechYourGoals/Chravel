@@ -51,89 +51,8 @@ describe('AuthModal', () => {
     vi.clearAllMocks();
   });
 
-  describe('OAuth buttons integration', () => {
-    it('renders OAuth buttons when modal is open in signin mode', async () => {
-      render(<AuthModal isOpen={true} onClose={mockOnClose} initialMode="signin" />, {
-        wrapper: createTestWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /sign in with apple/i })).toBeInTheDocument();
-      });
-    });
-
-    it('renders OAuth buttons when modal is open in signup mode', async () => {
-      render(<AuthModal isOpen={true} onClose={mockOnClose} initialMode="signup" />, {
-        wrapper: createTestWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /sign up with google/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /sign up with apple/i })).toBeInTheDocument();
-      });
-    });
-
-    it('shows divider between OAuth and email form', async () => {
-      render(<AuthModal isOpen={true} onClose={mockOnClose} initialMode="signin" />, {
-        wrapper: createTestWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(screen.getByText('or continue with email')).toBeInTheDocument();
-      });
-    });
-
-    it('does not render OAuth buttons in forgot password mode', async () => {
-      render(<AuthModal isOpen={true} onClose={mockOnClose} initialMode="signin" />, {
-        wrapper: createTestWrapper(),
-      });
-
-      // Wait for initial render
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
-      });
-
-      // Click on "Forgot password?" link
-      const forgotPasswordButton = screen.getByRole('button', { name: /forgot password/i });
-      fireEvent.click(forgotPasswordButton);
-
-      // OAuth buttons should be gone
-      await waitFor(() => {
-        expect(
-          screen.queryByRole('button', { name: /sign in with google/i }),
-        ).not.toBeInTheDocument();
-        expect(
-          screen.queryByRole('button', { name: /sign in with apple/i }),
-        ).not.toBeInTheDocument();
-        expect(screen.queryByText('or continue with email')).not.toBeInTheDocument();
-      });
-    });
-
-    it('updates OAuth button text when switching between signin and signup', async () => {
-      render(<AuthModal isOpen={true} onClose={mockOnClose} initialMode="signin" />, {
-        wrapper: createTestWrapper(),
-      });
-
-      // Wait for signin mode
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
-      });
-
-      // Switch to signup mode
-      const signUpTab = screen.getByRole('button', { name: /sign up/i });
-      fireEvent.click(signUpTab);
-
-      // OAuth buttons should now show "Sign up with"
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /sign up with google/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /sign up with apple/i })).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('email form still works', () => {
-    it('renders email and password fields', async () => {
+  describe('email form functionality', () => {
+    it('renders email and password fields in signin mode', async () => {
       render(<AuthModal isOpen={true} onClose={mockOnClose} />, {
         wrapper: createTestWrapper(),
       });
@@ -152,6 +71,50 @@ describe('AuthModal', () => {
       await waitFor(() => {
         expect(screen.getByPlaceholderText(/john/i)).toBeInTheDocument();
         expect(screen.getByPlaceholderText(/doe/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows forgot password form when clicked', async () => {
+      render(<AuthModal isOpen={true} onClose={mockOnClose} initialMode="signin" />, {
+        wrapper: createTestWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Welcome Back')).toBeInTheDocument();
+      });
+
+      // Click on "Forgot password?" link
+      const forgotPasswordButton = screen.getByRole('button', { name: /forgot password/i });
+      fireEvent.click(forgotPasswordButton);
+
+      // Should show reset password form
+      await waitFor(() => {
+        expect(screen.getByText('Reset Password')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /send reset link/i })).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('tab navigation', () => {
+    it('switches between signin and signup modes', async () => {
+      render(<AuthModal isOpen={true} onClose={mockOnClose} initialMode="signin" />, {
+        wrapper: createTestWrapper(),
+      });
+
+      // Wait for signin mode
+      await waitFor(() => {
+        expect(screen.getByText('Welcome Back')).toBeInTheDocument();
+      });
+
+      // Switch to signup mode
+      const signUpTab = screen.getByRole('button', { name: /^sign up$/i });
+      fireEvent.click(signUpTab);
+
+      // Should show Create Account header (use heading role to be more specific)
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /create account/i })).toBeInTheDocument();
+        // Name fields should appear
+        expect(screen.getByPlaceholderText(/john/i)).toBeInTheDocument();
       });
     });
   });
@@ -173,6 +136,25 @@ describe('AuthModal', () => {
       await waitFor(() => {
         expect(screen.getByText('Welcome Back')).toBeInTheDocument();
       });
+    });
+
+    it('calls onClose when X button is clicked', async () => {
+      render(<AuthModal isOpen={true} onClose={mockOnClose} />, {
+        wrapper: createTestWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Welcome Back')).toBeInTheDocument();
+      });
+
+      // Find the close button by its class (contains lucide-x icon)
+      const header = screen.getByRole('heading', { name: /welcome back/i }).parentElement;
+      const closeButton = header?.querySelector('button');
+      if (closeButton) {
+        fireEvent.click(closeButton);
+      }
+
+      expect(mockOnClose).toHaveBeenCalled();
     });
   });
 });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { OAuthButtons, AuthDivider } from './auth';
+import { OAuthButtons, AuthDivider, isOAuthEnabled } from './auth';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -357,8 +357,8 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
           </div>
         )}
 
-        {/* OAuth Buttons - Show for signin/signup only */}
-        {mode !== 'forgot' && (
+        {/* OAuth Buttons - Show for signin/signup only, when providers are enabled */}
+        {mode !== 'forgot' && isOAuthEnabled() && (
           <>
             <OAuthButtons
               mode={mode === 'signup' ? 'signup' : 'signin'}

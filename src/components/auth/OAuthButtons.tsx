@@ -1,18 +1,44 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 
+/**
+ * OAuth provider configuration via environment variables.
+ * Set these in .env to control which providers are shown:
+ *   VITE_OAUTH_GOOGLE_ENABLED=true
+ *   VITE_OAUTH_APPLE_ENABLED=true
+ *
+ * Defaults to false (hidden) until you configure the providers in Supabase.
+ */
+export const OAUTH_CONFIG = {
+  google: import.meta.env.VITE_OAUTH_GOOGLE_ENABLED === 'true',
+  apple: import.meta.env.VITE_OAUTH_APPLE_ENABLED === 'true',
+};
+
+/** Returns true if any OAuth provider is enabled */
+export const isOAuthEnabled = (): boolean => OAUTH_CONFIG.google || OAUTH_CONFIG.apple;
+
 interface OAuthButtonsProps {
   /** Mode determines the CTA text ('Sign in with' vs 'Sign up with') */
   mode: 'signin' | 'signup';
   /** Disable buttons (e.g., during email/password submission) */
   disabled?: boolean;
+  /**
+   * Force show buttons regardless of OAUTH_CONFIG.
+   * Used for testing and Storybook.
+   * @internal
+   */
+  _forceShow?: boolean;
 }
 
 /**
  * OAuth provider buttons for Google and Apple sign-in.
  * Renders styled buttons that trigger Supabase OAuth flows.
  */
-export const OAuthButtons: React.FC<OAuthButtonsProps> = ({ mode, disabled = false }) => {
+export const OAuthButtons: React.FC<OAuthButtonsProps> = ({
+  mode,
+  disabled = false,
+  _forceShow = false,
+}) => {
   const { signInWithGoogle, signInWithApple } = useAuth();
   const [loadingProvider, setLoadingProvider] = useState<'google' | 'apple' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +81,18 @@ export const OAuthButtons: React.FC<OAuthButtonsProps> = ({ mode, disabled = fal
 
   const isDisabled = disabled || loadingProvider !== null;
 
+  // Check if any providers are enabled (or forced for testing)
+  const hasAnyProvider = _forceShow || OAUTH_CONFIG.google || OAUTH_CONFIG.apple;
+
+  // Don't render anything if no providers are configured
+  if (!hasAnyProvider) {
+    return null;
+  }
+
+  // Determine which providers to show
+  const showGoogle = _forceShow || OAUTH_CONFIG.google;
+  const showApple = _forceShow || OAUTH_CONFIG.apple;
+
   return (
     <div className="space-y-3">
       {error && (
@@ -63,41 +101,45 @@ export const OAuthButtons: React.FC<OAuthButtonsProps> = ({ mode, disabled = fal
         </div>
       )}
 
-      {/* Google Button */}
-      <button
-        type="button"
-        onClick={handleGoogleAuth}
-        disabled={isDisabled}
-        aria-label={`${actionText} Google`}
-        className="w-full flex items-center justify-center gap-3 bg-white text-gray-900 font-medium py-3 px-4 rounded-xl hover:bg-gray-100 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
-      >
-        {loadingProvider === 'google' ? (
-          <LoadingSpinner />
-        ) : (
-          <>
-            <GoogleIcon />
-            <span>{actionText} Google</span>
-          </>
-        )}
-      </button>
+      {/* Google Button - only show if enabled */}
+      {showGoogle && (
+        <button
+          type="button"
+          onClick={handleGoogleAuth}
+          disabled={isDisabled}
+          aria-label={`${actionText} Google`}
+          className="w-full flex items-center justify-center gap-3 bg-white text-gray-900 font-medium py-3 px-4 rounded-xl hover:bg-gray-100 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+        >
+          {loadingProvider === 'google' ? (
+            <LoadingSpinner />
+          ) : (
+            <>
+              <GoogleIcon />
+              <span>{actionText} Google</span>
+            </>
+          )}
+        </button>
+      )}
 
-      {/* Apple Button */}
-      <button
-        type="button"
-        onClick={handleAppleAuth}
-        disabled={isDisabled}
-        aria-label={`${actionText} Apple`}
-        className="w-full flex items-center justify-center gap-3 bg-black text-white font-medium py-3 px-4 rounded-xl hover:bg-gray-900 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] border border-white/20"
-      >
-        {loadingProvider === 'apple' ? (
-          <LoadingSpinner light />
-        ) : (
-          <>
-            <AppleIcon />
-            <span>{actionText} Apple</span>
-          </>
-        )}
-      </button>
+      {/* Apple Button - only show if enabled */}
+      {showApple && (
+        <button
+          type="button"
+          onClick={handleAppleAuth}
+          disabled={isDisabled}
+          aria-label={`${actionText} Apple`}
+          className="w-full flex items-center justify-center gap-3 bg-black text-white font-medium py-3 px-4 rounded-xl hover:bg-gray-900 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] border border-white/20"
+        >
+          {loadingProvider === 'apple' ? (
+            <LoadingSpinner light />
+          ) : (
+            <>
+              <AppleIcon />
+              <span>{actionText} Apple</span>
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 };
