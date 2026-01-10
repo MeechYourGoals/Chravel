@@ -18,6 +18,7 @@ import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { toast } from 'sonner';
 import { supabase } from '../integrations/supabase/client';
+import { getEdgeFunctionUrl, getEdgeFunctionHeaders } from '../config/env';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ProAdminDashboard } from '../components/pro/admin/ProAdminDashboard';
 import { useProTripAdmin } from '../hooks/useProTripAdmin';
@@ -379,14 +380,10 @@ export const ProTripDetailDesktop = () => {
         const accessToken = sessionData?.session?.access_token || '';
         
         const response = await fetch(
-          `https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/export-trip`,
+          getEdgeFunctionUrl('export-trip'),
           {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`,
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI',
-            },
+            headers: getEdgeFunctionHeaders(accessToken),
             body: JSON.stringify({
               tripId: proTripId,
               sections: orderedSections,
