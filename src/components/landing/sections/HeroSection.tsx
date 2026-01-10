@@ -49,18 +49,17 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         <div
           className="inline-block px-6 py-3 rounded-xl animate-fade-in"
           style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            backdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(128, 128, 128, 0.15)',
+            backdropFilter: 'blur(4px)',
           }}
         >
           <h2
             className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight"
             style={{
-              background: 'linear-gradient(135deg, #FFFFFF 0%, #F5A623 30%, #FF8C00 50%, #F5A623 70%, #FFFFFF 100%)',
+              background: 'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
             }}
           >
             ChravelApp
