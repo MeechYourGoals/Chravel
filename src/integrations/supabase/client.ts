@@ -49,7 +49,7 @@ const SUPABASE_ANON_KEY =
 
 // Track whether we're using env vars or defaults (for dev banner)
 export const isUsingEnvVars = Boolean(
-  env.VITE_SUPABASE_URL && env.VITE_SUPABASE_ANON_KEY
+  env.VITE_SUPABASE_URL && (env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY)
 );
 
 // Log warning in dev if using hardcoded defaults
