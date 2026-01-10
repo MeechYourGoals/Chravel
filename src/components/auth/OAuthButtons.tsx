@@ -2,96 +2,50 @@ import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 
 /**
- * OAuth provider configuration via environment variables.
- * Set these in .env to control which providers are shown:
- *   VITE_OAUTH_GOOGLE_ENABLED=true
- *   VITE_OAUTH_APPLE_ENABLED=true
- *
- * Defaults to false (hidden) until you configure the providers in Supabase.
+ * OAuth is enabled by default since Google is configured in Supabase.
+ * Set VITE_OAUTH_GOOGLE_ENABLED=false to hide the button if needed.
  */
-export const OAUTH_CONFIG = {
-  google: import.meta.env.VITE_OAUTH_GOOGLE_ENABLED === 'true',
-  apple: import.meta.env.VITE_OAUTH_APPLE_ENABLED === 'true',
+export const isOAuthEnabled = (): boolean => {
+  const explicitlyDisabled = import.meta.env.VITE_OAUTH_GOOGLE_ENABLED === 'false';
+  return !explicitlyDisabled;
 };
-
-/** Returns true if any OAuth provider is enabled */
-export const isOAuthEnabled = (): boolean => OAUTH_CONFIG.google || OAUTH_CONFIG.apple;
 
 interface OAuthButtonsProps {
   /** Mode determines the CTA text ('Sign in with' vs 'Sign up with') */
   mode: 'signin' | 'signup';
   /** Disable buttons (e.g., during email/password submission) */
   disabled?: boolean;
-  /**
-   * Force show buttons regardless of OAUTH_CONFIG.
-   * Used for testing and Storybook.
-   * @internal
-   */
-  _forceShow?: boolean;
 }
 
 /**
- * OAuth provider buttons for Google and Apple sign-in.
- * Renders styled buttons that trigger Supabase OAuth flows.
+ * Google OAuth button for sign-in/sign-up.
+ * Renders a styled button that triggers Supabase Google OAuth flow.
  */
-export const OAuthButtons: React.FC<OAuthButtonsProps> = ({
-  mode,
-  disabled = false,
-  _forceShow = false,
-}) => {
-  const { signInWithGoogle, signInWithApple } = useAuth();
-  const [loadingProvider, setLoadingProvider] = useState<'google' | 'apple' | null>(null);
+export const OAuthButtons: React.FC<OAuthButtonsProps> = ({ mode, disabled = false }) => {
+  const { signInWithGoogle } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const actionText = mode === 'signup' ? 'Sign up with' : 'Sign in with';
 
   const handleGoogleAuth = async () => {
-    if (disabled || loadingProvider) return;
+    if (disabled || isLoading) return;
     setError(null);
-    setLoadingProvider('google');
+    setIsLoading(true);
     try {
       const result = await signInWithGoogle();
       if (result.error) {
         setError(result.error);
-        setLoadingProvider(null);
+        setIsLoading(false);
       }
       // On success, Supabase redirects the user - no need to clear loading state
     } catch (err) {
       setError('Failed to connect with Google. Please try again.');
-      setLoadingProvider(null);
+      setIsLoading(false);
     }
   };
 
-  const handleAppleAuth = async () => {
-    if (disabled || loadingProvider) return;
-    setError(null);
-    setLoadingProvider('apple');
-    try {
-      const result = await signInWithApple();
-      if (result.error) {
-        setError(result.error);
-        setLoadingProvider(null);
-      }
-      // On success, Supabase redirects the user - no need to clear loading state
-    } catch (err) {
-      setError('Failed to connect with Apple. Please try again.');
-      setLoadingProvider(null);
-    }
-  };
-
-  const isDisabled = disabled || loadingProvider !== null;
-
-  // Check if any providers are enabled (or forced for testing)
-  const hasAnyProvider = _forceShow || OAUTH_CONFIG.google || OAUTH_CONFIG.apple;
-
-  // Don't render anything if no providers are configured
-  if (!hasAnyProvider) {
-    return null;
-  }
-
-  // Determine which providers to show
-  const showGoogle = _forceShow || OAUTH_CONFIG.google;
-  const showApple = _forceShow || OAUTH_CONFIG.apple;
+  const isDisabled = disabled || isLoading;
 
   return (
     <div className="space-y-3">
@@ -101,45 +55,22 @@ export const OAuthButtons: React.FC<OAuthButtonsProps> = ({
         </div>
       )}
 
-      {/* Google Button - only show if enabled */}
-      {showGoogle && (
-        <button
-          type="button"
-          onClick={handleGoogleAuth}
-          disabled={isDisabled}
-          aria-label={`${actionText} Google`}
-          className="w-full flex items-center justify-center gap-3 bg-white text-gray-900 font-medium py-3 px-4 rounded-xl hover:bg-gray-100 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
-        >
-          {loadingProvider === 'google' ? (
-            <LoadingSpinner />
-          ) : (
-            <>
-              <GoogleIcon />
-              <span>{actionText} Google</span>
-            </>
-          )}
-        </button>
-      )}
-
-      {/* Apple Button - only show if enabled */}
-      {showApple && (
-        <button
-          type="button"
-          onClick={handleAppleAuth}
-          disabled={isDisabled}
-          aria-label={`${actionText} Apple`}
-          className="w-full flex items-center justify-center gap-3 bg-black text-white font-medium py-3 px-4 rounded-xl hover:bg-gray-900 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] border border-white/20"
-        >
-          {loadingProvider === 'apple' ? (
-            <LoadingSpinner light />
-          ) : (
-            <>
-              <AppleIcon />
-              <span>{actionText} Apple</span>
-            </>
-          )}
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={handleGoogleAuth}
+        disabled={isDisabled}
+        aria-label={`${actionText} Google`}
+        className="w-full flex items-center justify-center gap-3 bg-white text-gray-900 font-medium py-3 px-4 rounded-xl hover:bg-gray-100 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+      >
+        {isLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <>
+            <GoogleIcon />
+            <span>{actionText} Google</span>
+          </>
+        )}
+      </button>
     </div>
   );
 };
@@ -166,17 +97,10 @@ const GoogleIcon: React.FC = () => (
   </svg>
 );
 
-/** Apple logo SVG */
-const AppleIcon: React.FC = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-  </svg>
-);
-
 /** Loading spinner component */
-const LoadingSpinner: React.FC<{ light?: boolean }> = ({ light }) => (
+const LoadingSpinner: React.FC = () => (
   <svg
-    className={`animate-spin h-5 w-5 ${light ? 'text-white' : 'text-gray-900'}`}
+    className="animate-spin h-5 w-5 text-gray-900"
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
     viewBox="0 0 24 24"
