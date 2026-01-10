@@ -19,7 +19,7 @@ import replacesImage from '@/assets/replaces-background.png';
 import howItWorksImage from '@/assets/landing-travel-network.png';
 import pricingWorkspaceImage from '@/assets/pricing-background.png';
 import faqImage from '@/assets/landing-faq-ocean.png';
-import aiNetworkImage from '@/assets/landing-ai-network.png';
+import aiNetworkImage from '@/assets/how-it-works-background.png';
 
 
 interface FullPageLandingProps {
