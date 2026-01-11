@@ -179,7 +179,7 @@ function redactSensitiveData(record: Record<string, unknown>): Record<string, un
  * Fetch data from a table for a specific user with pagination
  */
 async function fetchTableData(
-  supabaseClient: ReturnType<typeof createClient>,
+  supabaseClient: any,
   tableName: string,
   userColumn: string,
   userId: string,
@@ -218,7 +218,7 @@ async function fetchTableData(
  * Generate signed URLs for user's media files
  */
 async function getMediaSignedUrls(
-  supabaseClient: ReturnType<typeof createClient>,
+  supabaseClient: any,
   tripFiles: Record<string, unknown>[],
 ): Promise<{ path: string; signedUrl: string | null; expiresAt: string }[]> {
   const mediaUrls: { path: string; signedUrl: string | null; expiresAt: string }[] = [];
