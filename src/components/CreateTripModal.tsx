@@ -5,7 +5,7 @@ import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Switch } from './ui/switch';
 import { Checkbox } from './ui/checkbox';
-import { DEFAULT_FEATURES } from '../hooks/useFeatureToggle';
+import { DEFAULT_FEATURES, PRO_FEATURES, EVENT_FEATURES } from '../hooks/useFeatureToggle';
 import { useTrips } from '../hooks/useTrips';
 import { useOrganization } from '../hooks/useOrganization';
 import { useAuth } from '../hooks/useAuth';
@@ -53,7 +53,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
 
   const [enableAllFeatures, setEnableAllFeatures] = useState(true);
   const [selectedFeatures, setSelectedFeatures] = useState<Record<string, boolean>>(
-    DEFAULT_FEATURES.reduce((acc, feature) => ({ ...acc, [feature]: true }), {})
+    PRO_FEATURES.reduce((acc, feature) => ({ ...acc, [feature]: true }), {})
   );
 
   useEffect(() => {
@@ -77,10 +77,17 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     }
   }, [isOpen, fetchUserOrganizations]);
 
-  // Update privacy mode when trip type changes
+  // Update privacy mode and features when trip type changes
   const handleTripTypeChange = (newTripType: 'consumer' | 'pro' | 'event') => {
     setTripType(newTripType);
     setPrivacyMode(getDefaultPrivacyMode(newTripType));
+
+    // Reset features based on trip type
+    const features = newTripType === 'event' ? EVENT_FEATURES : PRO_FEATURES;
+    setSelectedFeatures(
+      features.reduce((acc, feature) => ({ ...acc, [feature]: true }), {})
+    );
+    setEnableAllFeatures(true);
   };
 
   // Validation functions
@@ -325,9 +332,11 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   };
 
   const featureLabels: Record<string, string> = {
+    agenda: 'Agenda',
     chat: 'Chat',
     calendar: 'Calendar',
     concierge: 'Concierge',
+    lineup: 'Line-up',
     media: 'Media',
     payments: 'Payments',
     places: 'Places',
@@ -666,12 +675,12 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                     Select which features participants can access:
                   </p>
                   <div className="grid grid-cols-2 gap-3">
-                    {DEFAULT_FEATURES.map((feature) => (
+                    {(tripType === 'event' ? EVENT_FEATURES : PRO_FEATURES).map((feature) => (
                       <div key={feature} className="flex items-center space-x-2">
                         <Checkbox
                           id={feature}
                           checked={selectedFeatures[feature]}
-                          onCheckedChange={(checked) => 
+                          onCheckedChange={(checked) =>
                             handleFeatureToggle(feature, checked as boolean)
                           }
                         />
