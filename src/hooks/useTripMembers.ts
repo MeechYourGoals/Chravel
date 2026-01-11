@@ -288,78 +288,85 @@ export const useTripMembers = (tripId?: string) => {
     }
   }, [tripId, isDemoMode, demoAddedMembersCount]);
 
-  // Real-time subscription for trip members - only when database queries succeed
+  // ⚡ PERFORMANCE: Defer real-time subscriptions to not block initial render
+  // Subscriptions are set up 1 second after mount to allow progressive loading
   useEffect(() => {
     if (!tripId) return;
 
     let channel: any;
+    let profilesChannel: any;
+    let subscriptionTimer: ReturnType<typeof setTimeout>;
 
-    // Only create subscription if we have a valid trip ID and database connection
-    const createSubscription = async () => {
-      try {
-        // Test if we can connect to the database first
-        const { data } = await supabase.from('trip_members').select('id').limit(1);
-        
-        if (data !== null) {
-          channel = supabase
-            .channel(`trip-members-${tripId}`)
-            .on(
-              'postgres_changes',
-              {
-                event: '*',
-                schema: 'public',
-                table: 'trip_members',
-                filter: `trip_id=eq.${tripId}`
-              },
-              () => {
-                // Reload members when changes occur
-                loadTripMembers(tripId);
-              }
-            )
-            .subscribe();
+    // Defer subscription setup to not block initial render
+    subscriptionTimer = setTimeout(() => {
+      const createSubscription = async () => {
+        try {
+          // Test if we can connect to the database first
+          const { data } = await supabase.from('trip_members').select('id').limit(1);
+          
+          if (data !== null) {
+            channel = supabase
+              .channel(`trip-members-${tripId}`)
+              .on(
+                'postgres_changes',
+                {
+                  event: '*',
+                  schema: 'public',
+                  table: 'trip_members',
+                  filter: `trip_id=eq.${tripId}`
+                },
+                () => {
+                  // Reload members when changes occur
+                  loadTripMembers(tripId);
+                }
+              )
+              .subscribe();
+          }
+        } catch {
+          // Subscription setup failed - members will be loaded without real-time updates
         }
-      } catch {
-        // Subscription setup failed - members will be loaded without real-time updates
-      }
-    };
+      };
 
-    createSubscription();
+      createSubscription();
 
-    // Also subscribe to profile updates so avatar/name changes propagate across the app
-    // (payments, chat, collaborator lists should never maintain their own avatar logic).
-    const profilesChannel = supabase
-      .channel(`profiles-updates-${tripId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'profiles',
-        },
-        payload => {
-          const next = payload.new as { user_id?: string; display_name?: string | null; avatar_url?: string | null } | null;
-          const userId = next?.user_id;
-          if (!userId) return;
+      // Also subscribe to profile updates so avatar/name changes propagate across the app
+      profilesChannel = supabase
+        .channel(`profiles-updates-${tripId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'profiles',
+          },
+          payload => {
+            const next = payload.new as { user_id?: string; display_name?: string | null; avatar_url?: string | null } | null;
+            const userId = next?.user_id;
+            if (!userId) return;
 
-          setTripMembers(prev =>
-            prev.map(member => {
-              if (member.id !== userId) return member;
-              return {
-                ...member,
-                name: next?.display_name ?? member.name,
-                avatar: next?.avatar_url ?? member.avatar,
-              };
-            }),
-          );
-        },
-      )
-      .subscribe();
+            setTripMembers(prev =>
+              prev.map(member => {
+                if (member.id !== userId) return member;
+                return {
+                  ...member,
+                  name: next?.display_name ?? member.name,
+                  avatar: next?.avatar_url ?? member.avatar,
+                };
+              }),
+            );
+          },
+        )
+        .subscribe();
+    }, 1000); // Defer by 1 second to not block initial render
 
     return () => {
+      clearTimeout(subscriptionTimer);
       if (channel) {
         supabase.removeChannel(channel);
       }
-      supabase.removeChannel(profilesChannel);
+      if (profilesChannel) {
+        supabase.removeChannel(profilesChannel);
+      }
     };
   }, [tripId]);
 

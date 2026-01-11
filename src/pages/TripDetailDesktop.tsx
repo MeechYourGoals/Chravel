@@ -21,9 +21,9 @@ const TripDetailContent = lazy(() =>
 
 import { TripExportModal } from '../components/trip/TripExportModal';
 import { useAuth } from '../hooks/useAuth';
-import { getTripById, generateTripMockData, Trip as MockTrip } from '../data/tripsData';
+import { generateTripMockData, Trip as MockTrip } from '../data/tripsData';
 import { useTripMembers } from '../hooks/useTripMembers';
-import { tripService } from '../services/tripService';
+import { useTripDetailData } from '../hooks/useTripDetailData';
 import { Message } from '../types/messages';
 import { ExportSection } from '../types/tripExport';
 import { openOrDownloadBlob } from '../utils/download';
@@ -31,7 +31,6 @@ import { orderExportSections } from '../utils/exportSectionOrder';
 import { toast } from 'sonner';
 import { demoModeService } from '../services/demoModeService';
 import { useDemoMode } from '../hooks/useDemoMode';
-import { convertSupabaseTripToMock } from '../utils/tripConverter';
 import { useQueryClient } from '@tanstack/react-query';
 
 /**
@@ -40,7 +39,7 @@ import { useQueryClient } from '@tanstack/react-query';
  * 🖥️ Desktop-only implementation of trip detail page
  * 🔒 ALL hooks are called unconditionally at the top (Rules of Hooks compliant)
  * 🎯 Demo mode uses ONLY mock data from tripsData.ts
- * 🔄 Authenticated mode queries Supabase via tripService
+ * 🔄 Authenticated mode queries Supabase via TanStack Query
  */
 export const TripDetailDesktop = () => {
   usePerformanceMonitor('TripDetailDesktop');
@@ -50,10 +49,11 @@ export const TripDetailDesktop = () => {
   const { isDemoMode } = useDemoMode();
   const queryClient = useQueryClient();
 
-  // 🔄 PHASE 3 FIX: Fetch real trip members from database for authenticated trips
-  // ⚡ PERFORMANCE: These values will be passed to TripHeader to avoid duplicate fetches
-  const { tripMembers, tripCreatorId, canRemoveMembers, removeMember, leaveTrip } =
-    useTripMembers(tripId);
+  // ⚡ PERFORMANCE: Use unified hook for parallel data fetching with TanStack Query cache
+  const { trip, tripMembers, tripCreatorId, isLoading: loading } = useTripDetailData(tripId);
+  
+  // 🔄 Keep useTripMembers for member management actions (canRemoveMembers, removeMember, leaveTrip)
+  const { canRemoveMembers, removeMember, leaveTrip } = useTripMembers(tripId);
 
   // State hooks - all called unconditionally
   const [activeTab, setActiveTab] = useState('chat');
@@ -70,59 +70,8 @@ export const TripDetailDesktop = () => {
     location?: string;
     dateRange?: string;
   }>({});
-  const [trip, setTrip] = useState<MockTrip | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // 🔄 CRITICAL: Load trip data - demo mode uses ONLY mock data, authenticated uses Supabase
-  // ⚡ PERFORMANCE: Start loading immediately - don't wait for demoModeLoading
-  // demoModeStore uses synchronous localStorage, so isDemoMode is already accurate
-  // Note: useTripMembers hook fetches members in parallel automatically
-  React.useEffect(() => {
-    const loadTrip = async () => {
-      if (!tripId) {
-        setTrip(null);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-
-      if (isDemoMode) {
-        // 🎭 DEMO MODE: Use mock data only - instant load, NO network
-        const tripIdNum = parseInt(tripId, 10);
-
-        if (Number.isNaN(tripIdNum)) {
-          toast.error('Invalid trip ID format for demo mode');
-          setTrip(null);
-          setLoading(false);
-          return;
-        }
-
-        const mockTrip = getTripById(tripIdNum);
-        if (!mockTrip) {
-          toast.error(`Demo trip ${tripId} not found. Available trips: 1-12`);
-        }
-        setTrip(mockTrip || null);
-        setLoading(false);
-        return;
-      }
-      
-      // 🔐 AUTHENTICATED MODE: Query Supabase
-      try {
-        const realTrip = await tripService.getTripById(tripId);
-        if (realTrip) {
-          setTrip(convertSupabaseTripToMock(realTrip));
-        } else {
-          setTrip(null);
-        }
-      } catch {
-        setTrip(null);
-      }
-      setLoading(false);
-    };
-
-    loadTrip();
-  }, [tripId, isDemoMode]);
+  // ⚡ PERFORMANCE: Trip data now loaded via useTripDetailData hook with TanStack Query
+  // This enables cache hits from prefetching and progressive rendering
 
   // Initialize description state when trip is loaded
   React.useEffect(() => {

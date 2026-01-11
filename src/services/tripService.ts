@@ -423,6 +423,55 @@ export const tripService = {
     }
   },
 
+  /**
+   * ⚡ PERFORMANCE: Combined query for members + creator in single parallel batch
+   * Reduces 3 sequential round-trips to 1 parallel batch
+   */
+  async getTripMembersWithCreator(tripId: string): Promise<{
+    members: Array<{ id: string; name: string; avatar?: string; isCreator?: boolean }>;
+    creatorId: string | null;
+  }> {
+    try {
+      // Parallel fetch: trip creator + members
+      const [tripResult, membersResult] = await Promise.all([
+        supabase.from('trips').select('created_by').eq('id', tripId).single(),
+        supabase.from('trip_members').select('id, user_id, role, created_at').eq('trip_id', tripId),
+      ]);
+
+      const creatorId = tripResult.data?.created_by || null;
+      
+      if (!membersResult.data || membersResult.data.length === 0) {
+        return { members: [], creatorId };
+      }
+
+      // Fetch profiles for all members
+      const userIds = membersResult.data.map(m => m.user_id);
+      const { data: profilesData } = await supabase
+        .from('profiles_public')
+        .select('user_id, display_name, avatar_url')
+        .in('user_id', userIds);
+
+      const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
+
+      const members = membersResult.data.map(m => {
+        const profile = profilesMap.get(m.user_id);
+        return {
+          id: m.user_id,
+          name: profile?.display_name || 'Unknown User',
+          avatar: profile?.avatar_url,
+          isCreator: m.user_id === creatorId,
+        };
+      });
+
+      return { members, creatorId };
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error fetching trip members with creator:', error);
+      }
+      return { members: [], creatorId: null };
+    }
+  },
+
   async addTripMember(tripId: string, userId: string, role: string = 'member'): Promise<boolean> {
     try {
       const { error } = await supabase.from('trip_members').insert({
