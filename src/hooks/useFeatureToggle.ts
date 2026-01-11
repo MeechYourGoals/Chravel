@@ -54,7 +54,7 @@ export const useFeatureToggle = (config: FeatureConfig) => {
 
     // For Pro/Event trips, check enabled_features array
     const defaultFeatures = config.trip_type === 'event' ? EVENT_FEATURES : PRO_FEATURES;
-    const enabledFeatures = config.enabled_features || defaultFeatures;
+    const enabledFeatures: string[] = config.enabled_features || [...defaultFeatures];
 
     return {
       showChat: enabledFeatures.includes('chat'),
@@ -67,7 +67,7 @@ export const useFeatureToggle = (config: FeatureConfig) => {
       showTasks: enabledFeatures.includes('tasks'),
       showAgenda: enabledFeatures.includes('agenda'),
       showLineup: enabledFeatures.includes('lineup'),
-      isFeatureEnabled: (feature: FeatureType) => enabledFeatures.includes(feature)
+      isFeatureEnabled: (feature: string) => enabledFeatures.includes(feature)
     };
   }, [config.enabled_features, config.trip_type]);
 };

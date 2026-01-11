@@ -10,6 +10,7 @@ import { OnboardingProgressDots } from './OnboardingProgressDots';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { TripCreationDemo } from './screens/TripCreationDemo';
 import { ChatPreviewScreen } from './screens/ChatPreviewScreen';
+import { BasecampTourCard } from './screens/BasecampTourCard';
 import { AIConciergeTeaser } from './screens/AIConciergeTeaser';
 import { FinalCTAScreen } from './screens/FinalCTAScreen';
 import * as haptics from '@/native/haptics';
@@ -22,7 +23,7 @@ interface OnboardingCarouselProps {
   onCreateTrip: () => void;
 }
 
-const TOTAL_SCREENS = 5;
+const TOTAL_SCREENS = 6;
 
 const slideVariants = {
   enter: (direction: number) => ({
@@ -120,8 +121,10 @@ export const OnboardingCarousel = ({
       case 2:
         return <ChatPreviewScreen />;
       case 3:
-        return <AIConciergeTeaser />;
+        return <BasecampTourCard />;
       case 4:
+        return <AIConciergeTeaser />;
+      case 5:
         return (
           <FinalCTAScreen
             onCreateTrip={handleCreateTrip}
