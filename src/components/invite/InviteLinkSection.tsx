@@ -69,9 +69,22 @@ export const InviteLinkSection = ({
         </button>
       </div>
       <div className="flex gap-2">
+        {/* Copy button - first */}
+        <button
+          onClick={onCopyLink}
+          disabled={loading || !inviteLink}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+        >
+          {copied ? <Check size={16} /> : <Copy size={16} />}
+          <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
+        </button>
+        
+        {/* Link display - center */}
         <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-gray-300 text-sm font-mono truncate">
           {loading ? 'Generating invite link...' : inviteLink || 'Failed to generate link'}
         </div>
+        
+        {/* Share button - last */}
         {canNativeShare && (
           <button
             onClick={handleNativeShare}
@@ -83,14 +96,6 @@ export const InviteLinkSection = ({
             <span className="hidden sm:inline">Share</span>
           </button>
         )}
-        <button
-          onClick={onCopyLink}
-          disabled={loading || !inviteLink}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
-        >
-          {copied ? <Check size={16} /> : <Copy size={16} />}
-          <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
-        </button>
       </div>
 
       {/* Demo mode indicator */}
