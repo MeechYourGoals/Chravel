@@ -39,7 +39,13 @@ interface CreateMessageRequest {
   messageType?: 'text' | 'broadcast' | 'payment' | 'system';
 }
 
-export const useTripChat = (tripId: string | undefined) => {
+/**
+ * ⚡ PERFORMANCE: Added `enabled` option for lazy loading
+ * When enabled=false, no queries or subscriptions are created
+ * Use this to defer chat loading until the chat tab is active
+ */
+export const useTripChat = (tripId: string | undefined, options?: { enabled?: boolean }) => {
+  const isEnabled = options?.enabled !== false; // Default to true for backward compat
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isOffline } = useOfflineStatus();
@@ -94,13 +100,13 @@ export const useTripChat = (tripId: string | undefined) => {
         throw err;
       }
     },
-    enabled: !!tripId,
+    enabled: !!tripId && isEnabled,
     staleTime: 30000, // Consider data fresh for 30 seconds
   });
 
-  // Enhanced real-time subscription with rate limiting and batching
+  // ⚡ PERFORMANCE: Skip real-time subscription if not enabled (lazy loading)
   useEffect(() => {
-    if (!tripId) return;
+    if (!tripId || !isEnabled) return;
 
     let messageCount = 0;
     const maxMessagesPerMinute = 100;
@@ -220,7 +226,7 @@ export const useTripChat = (tripId: string | undefined) => {
       console.log('[CHAT REALTIME] Unsubscribing from channel:', `trip_chat_${tripId}`);
       supabase.removeChannel(channel);
     };
-  }, [tripId, queryClient]);
+  }, [tripId, queryClient, isEnabled]);
 
   // Process offline queue when connection is restored
   // Note: Global sync processor in App.tsx handles all entity types.

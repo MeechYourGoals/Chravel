@@ -363,7 +363,11 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
   const momentum = isConsumer ? gamificationService.getTripMomentum(trip.id.toString()) : 'cold';
 
   return (
-    <div className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-yellow-500/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20">
+    <div 
+      className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-yellow-500/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20"
+      onMouseEnter={handlePrefetch}
+      onFocus={handlePrefetch}
+    >
       {/* Trip Image/Header - Responsive */}
       <div className="relative h-32 md:h-48 bg-gradient-to-br from-yellow-600/20 via-yellow-500/10 to-transparent p-4 md:p-6">
         <div 
