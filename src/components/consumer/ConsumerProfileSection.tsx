@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Camera, Upload, Loader2, Phone } from 'lucide-react';
+import { User, Camera, Upload, Loader2, Phone, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { supabase } from '../../integrations/supabase/client';
@@ -7,7 +7,7 @@ import { useToast } from '../../hooks/use-toast';
 import { getConsistentAvatar } from '../../utils/avatarUtils';
 
 export const ConsumerProfileSection = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, signOut } = useAuth();
   const { isDemoMode, showDemoContent } = useDemoMode();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -306,6 +306,25 @@ export const ConsumerProfileSection = () => {
           </button>
         </div>
       </div>
+
+      {/* Sign Out Section */}
+      {user && (
+        <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-base font-semibold text-white">Account</h4>
+              <p className="text-sm text-gray-400">Signed in as {user.email}</p>
+            </div>
+            <button
+              onClick={() => signOut()}
+              className="flex items-center gap-2 bg-destructive/10 hover:bg-destructive/20 border border-destructive/30 text-destructive px-4 py-2 rounded-lg transition-colors"
+            >
+              <LogOut size={16} />
+              Sign Out
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
