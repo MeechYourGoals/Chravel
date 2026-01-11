@@ -6,53 +6,53 @@ import useCasesBackground from '@/assets/built-for-every-journey-bg.png';
 
 const scenarios = [
   {
-    title: "Family Trip",
-    subtitle: "18 guests",
-    before: "10 group chats. Email threads. Lost PDFs with reservations.",
-    expandCTA: "See how families stay sane with Chravel",
-    after: "One shared space for flights, calendars, park reservations, and photos — no confusion, just memories.",
-    badge: "75% less stress",
+    title: "Family Trips & Reunions",
+    subtitle: "Multi-generation travel · reunions · holidays · milestone trips",
+    before: "Multiple group chats. Buried emails. Someone always asking, \"Where's the itinerary?\"",
+    expandCTA: "See how families stay coordinated",
+    after: "One shared space for flights, plans, calendars, reservations, and photos—everything your family needs, in sync.",
+    badge: "Less stress · more time together",
     isHero: true
   },
   {
-    title: "Touring Artists",
-    subtitle: "12-person crew",
-    before: "21 cities over 5 months. Endless texts, spreadsheets, confusion.",
+    title: "Touring Artists & Crews",
+    subtitle: "Musicians · comedians · podcasts · managers · production",
+    before: "City-to-city confusion. Spreadsheets, texts, last-minute changes, missed details.",
     expandCTA: "See how tours stay in sync",
-    after: "Show days, off days, crew channels, payments, and logistics — everyone aligned in every city.",
-    badge: "$30K saved on average"
+    after: "Show days, off days, crew channels, logistics, and payments—everyone aligned in every city.",
+    badge: "Fewer mistakes · smoother tours"
   },
   {
-    title: "Wedding Weekend",
-    subtitle: "Wedding party + families",
-    before: "Wedding website ignored. Scattered chats for bach events.",
-    expandCTA: "See how weekends run smoothly",
-    after: "One shared itinerary, pinned locations, live photo uploads — no more \"where are we supposed to be?\"",
-    badge: "3× more photos captured"
+    title: "Bach Parties → Wedding Weekends",
+    subtitle: "Bachelor & bachelorette trips · guests · families · vendors",
+    before: "Ignored wedding sites. Fragmented chats. Guests constantly asking where to be.",
+    expandCTA: "See how celebrations run smoothly",
+    after: "One shared itinerary with pinned locations, updates, and live photo sharing—no confusion, just celebration.",
+    badge: "Fewer questions · more memories"
   },
   {
-    title: "Youth Soccer Season",
-    subtitle: "Parents coordinating",
-    before: "Last-minute texts about snacks, rides, and which field.",
-    expandCTA: "See how seasons stay organized",
-    after: "One season calendar, carpool sign-ups, snack assignments, and shared photos — automatically synced.",
-    badge: "10 hrs/month saved"
+    title: "After-School Activities & Leagues",
+    subtitle: "Sports · dance · music · carpools · parent coordination",
+    before: "Last-minute texts. Missed pickups. Confusion over times, locations, and responsibilities.",
+    expandCTA: "See how parents stay organized",
+    after: "Shared calendars, carpool plans, assignments, and updates—automatically synced for every parent.",
+    badge: "Time saved · fewer drop-offs missed"
   },
   {
-    title: "College Football Program",
-    subtitle: "80+ people",
-    before: "Staff juggling travel, practices, hotels across apps.",
+    title: "Collegiate Athletic Programs",
+    subtitle: "Players · coaches · coordinators · operations staff",
+    before: "Staff juggling travel, practices, academics, and logistics across multiple tools.",
     expandCTA: "See how programs stay aligned",
-    after: "Role-based access, team calendars, academic schedules, and instant updates — all in one place.",
-    badge: "15 hrs/week saved"
+    after: "Role-based access, team schedules, academic coordination, and instant updates—all in one system.",
+    badge: "Fewer errors · faster decisions"
   },
   {
-    title: "Friends & Community Groups",
-    subtitle: "Local crews & clubs",
-    before: "Plans scattered across DMs and random calendar invites.",
+    title: "Local Community Groups",
+    subtitle: "Run clubs · dog park crews · faith groups · recurring meetups",
+    before: "Plans scattered across DMs, texts, and random calendar invites.",
     expandCTA: "See how groups stay connected",
-    after: "One shared hub for meetups, locations, notes, and photos — your group finally has a home.",
-    badge: "1 home for recurring plans"
+    after: "One shared home for meetups, locations, notes, and photos—your group finally stays connected.",
+    badge: "Consistency · better turnout"
   }
 ];
 
