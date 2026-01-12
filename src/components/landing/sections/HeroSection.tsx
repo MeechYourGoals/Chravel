@@ -95,7 +95,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-bold leading-tight"
             style={{
               background:
-                'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)',
+                'linear-gradient(135deg, #1E40AF 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #1E40AF 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
