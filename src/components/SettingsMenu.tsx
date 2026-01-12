@@ -187,35 +187,33 @@ export const SettingsMenu = ({
             </button>
           </div>
 
-          {/* Auth Section - Show at top for mobile */}
-          {isMobile && (
-            <div className="flex-shrink-0 p-4 border-b border-white/10 bg-gradient-to-r from-primary/10 to-primary/5">
-              {user ? (
-                // Logged In: Show user info + Sign Out
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                      <User className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Signed in as</p>
-                      <p className="text-sm font-medium text-white truncate max-w-[200px]">
-                        {user.email}
-                      </p>
-                    </div>
+          {/* Auth Section - Show at top for all screen sizes */}
+          <div className="flex-shrink-0 p-4 border-b border-white/10 bg-gradient-to-r from-primary/10 to-primary/5">
+            {user ? (
+              // Logged In: Show user info + Sign Out
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <User className="h-5 w-5 text-primary" />
                   </div>
-                  <Button onClick={signOut} variant="destructive" size="sm">
-                    <LogOut className="h-4 w-4 mr-1" /> Sign Out
-                  </Button>
+                  <div>
+                    <p className="text-xs text-gray-400">Signed in as</p>
+                    <p className="text-sm font-medium text-white truncate max-w-[200px]">
+                      {user.email}
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                // Logged Out: Show Login/Sign Up
-                <Button onClick={() => setShowAuthModal(true)} className="w-full">
-                  <LogIn className="h-4 w-4 mr-2" /> Log In / Sign Up
+                <Button onClick={signOut} variant="destructive" size="sm">
+                  <LogOut className="h-4 w-4 mr-1" /> Sign Out
                 </Button>
-              )}
-            </div>
-          )}
+              </div>
+            ) : (
+              // Logged Out: Show Login/Sign Up
+              <Button onClick={() => setShowAuthModal(true)} className="w-full">
+                <LogIn className="h-4 w-4 mr-2" /> Log In / Sign Up
+              </Button>
+            )}
+          </div>
 
           {/* Render appropriate settings based on toggle */}
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
