@@ -1,7 +1,6 @@
 # Enhanced Elite Engineering Protocol v7.0 — Chravel Edition
 
-> **Purpose:** Universal AI coding standards for Chravel (group travel + events platform)
-> **Audience:** All AI assistants (Claude Code, Cursor, Lovable, Codex, Google Jules, Replit)
+> **For Google Jules & AI Agents** — Universal coding standards for Chravel
 > **Non-negotiable:** Every edit must pass `npm run lint && npm run typecheck && npm run build` before commit
 
 ---
@@ -21,23 +20,13 @@ Modular—invoke selectively (e.g., "Gates 1-3").
 
 | Gate | Focus | Key Outputs |
 |------|-------|-------------|
-| 1: Strategic Scope | Decompose to fundamentals | Objective (1 sentence), success metrics, systems + justification, risks (Prob × Impact), 5+ alternatives with trade-offs |
-| 2: Surgical Targeting | TARGET_MANIFEST | Files, rationale, scores. Reversible <15s, <3 edits/file, 4-level coupling analysis |
-| 3: Minimalist Implementation | YAGNI, logic comments | <40 lines/file diff, composition over inheritance, TS diffs only |
-| 4: Holistic Verification | Regression + chaos testing | Tests pass, perf <3% delta, offline/load tests, full user journeys |
-| 5: Surgical Delivery | Markdown manifest | Objectives, mods table, verification, assumptions, rollback plan |
+| 1: Strategic Scope | Decompose to fundamentals | Objective (1 sentence), success metrics, risks (Prob × Impact), 5+ alternatives |
+| 2: Surgical Targeting | TARGET_MANIFEST | Files, rationale, scores. Reversible <15s, <3 edits/file |
+| 3: Minimalist Implementation | YAGNI, logic comments | <40 lines/file diff, composition over inheritance |
+| 4: Holistic Verification | Regression + chaos testing | Tests pass, perf <3% delta, offline/load tests |
+| 5: Surgical Delivery | Markdown manifest | Objectives, mods table, verification, rollback plan |
 | 6: Network & Virality | Growth loops | Multipliers, hooks, API simulations |
-| 7: Ethical Scaling | Bias/privacy/sustainability audit | 100x growth readiness, legacy compatibility |
-
----
-
-## Problem-Solving Framework
-
-- **Root Cause:** 7+ hypotheses, Occam's razor + data
-- **Performance:** System boundaries, N+1 elimination, virtual scrolling
-- **Security:** Least privilege, field-level encryption for sensitive data
-- **Testing:** 60% unit, 30% integration, 10% E2E (Vitest + Playwright)
-- **Code:** SOLID, DRY, ADR documentation
+| 7: Ethical Scaling | Bias/privacy/sustainability audit | 100x growth readiness |
 
 ---
 
@@ -45,11 +34,11 @@ Modular—invoke selectively (e.g., "Gates 1-3").
 
 ### Mission
 
-Chravel is an **AI-native OS for travel/logistics/events**—unifying itineraries, budgets, media, maps, and AI to eliminate chaos (23h/trip waste, $2.3B losses). Target: 50M+ users via universal, privacy-first, contextual AI with SOC-2/SSO/MFA.
+Chravel is an **AI-native OS for travel/logistics/events**—unifying itineraries, budgets, media, maps, and AI. Target: 50M+ users via universal, privacy-first, contextual AI.
 
 **Segments:** Consumer groups, Pro (sports/tours/agencies), Events (conferences)
 
-### Tech Stack (Actual)
+### Tech Stack
 
 | Layer | Technology |
 |-------|------------|
@@ -60,22 +49,18 @@ Chravel is an **AI-native OS for travel/logistics/events**—unifying itinerarie
 | UI | Radix UI + Shadcn/ui + Tailwind CSS + Framer Motion |
 | Mobile | Capacitor for iOS/Android native |
 | Payments | Stripe + RevenueCat |
-| Quality | Vitest + Playwright, WCAG compliant, Lighthouse 90+, <200ms response |
 
 ### Core Features
 
-| Feature | Specification |
-|---------|---------------|
-| **Chat** | iMessage/WhatsApp feel with virtualized messages; Pro/Events add Slack-style channels, @mentions, threads (`/src/components/chat/`) |
-| **Calendar/Itineraries** | AI sort, drag-drop, conflict/timezone detection (`/src/services/calendarService.ts`) |
-| **Media** | Auto-organized albums with previews, upload queue (`/src/hooks/useMediaUpload.ts`) |
-| **Budget** | Splitting, OCR, multi-currency, integrations (Venmo, etc.) (`/src/services/paymentService.ts`) |
-| **AI Concierge** | Multi-modal RAG with full trip context (chats, media, calendar, URLs, polls, tasks, Places, payments, user preferences). Web search enabled. No hallucinations—verify APIs. |
-| **Places** | Google Maps suite via Supabase proxy: Autocomplete, Routes, Text/Nearby Search, Place Details, Geocoding, Distance Matrix. Fallback to OSM Nominatim. Trip/Personal Base Camp persistence (`/src/services/googlePlacesNew.ts`) |
-| **Polls** | Voting on times, places, options |
-| **Tasks** | Collaborative tasks with offline queue (`/src/hooks/useTripTasks.ts`) |
-| **Notifications** | Trip-specific: calendar events, broadcasts, task assignments |
-| **Pro/Events** | Rosters/skills, logistics (venues/equipment), role-based channels, approvals, compliance audits |
+| Feature | Location |
+|---------|----------|
+| **Chat** | `/src/components/chat/` — Virtualized messages, Slack-style channels for Pro |
+| **Calendar/Itineraries** | `/src/services/calendarService.ts` |
+| **Media** | `/src/hooks/useMediaUpload.ts` |
+| **Budget** | `/src/services/paymentService.ts` |
+| **AI Concierge** | Multi-modal RAG with full trip context |
+| **Places** | `/src/services/googlePlacesNew.ts` — Google Maps + OSM fallback |
+| **Tasks** | `/src/hooks/useTripTasks.ts` — Offline queue support |
 
 ### Trip Tier System
 
@@ -86,47 +71,22 @@ const PRO_FEATURES = [...];      // 100+ seat capacity
 const EVENT_FEATURES = [...];    // Large events
 ```
 
-### Responsive Design
-
-Ensure feature parity across: **desktop web**, **tablet/iPad**, **mobile (portrait/landscape)**. Optimize UX/UI per device via Capacitor and responsive Tailwind classes.
-
-### Revenue Model
-
-- **Freemium:** <10 users free
-- **Pro:** $X/mo (RevenueCat managed)
-- **Enterprise:** Custom
-- **Monetization:** Affiliates, ads, transaction fees, limit-based upsells
-
-### Decision Framework
-
-For every change, evaluate:
-1. **User impact?** — Does this improve the trip planning experience?
-2. **Offline support?** — Does this work without network?
-3. **Demo mode?** — Is this gated properly?
-4. **Mobile optimization?** — Does this work on all devices?
-5. **AI 10x potential?** — Can AI Concierge leverage this?
-
-**Prioritize:** Growth loops > monetization > AI enhancement > pro features
-
 ---
 
-## Chravel Architecture Patterns
+## Architecture Patterns
 
 ### Directory Structure
 
 ```
 /src
-├── components/     45+ dirs, 100+ components (UI building blocks)
-├── hooks/          140+ custom hooks (data fetching & state)
+├── components/     45+ dirs, 100+ components
+├── hooks/          140+ custom hooks
 ├── services/       130+ service files (business logic singletons)
 ├── stores/         Zustand stores (locationStore, entitlementsStore)
 ├── store/          Additional stores (demoModeStore, onboardingStore)
 ├── pages/          30+ page components
 ├── types/          30+ type definition files
 ├── integrations/   Supabase client, RevenueCat
-├── contexts/       React Context providers
-├── utils/          Utility functions
-├── config/         App configuration (maps, billing)
 └── App.tsx         Main routing & providers
 ```
 
@@ -172,12 +132,10 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
 ### Service Layer Pattern
 
 ```typescript
-// Services are singletons exporting public methods
-// /src/services/tripService.ts
+// Services are singletons - /src/services/tripService.ts
 class TripService {
   async getUserTrips(isDemoMode: boolean): Promise<Trip[]> { /* ... */ }
   async createTrip(trip: CreateTripInput): Promise<Trip> { /* ... */ }
-  async updateTrip(tripId: string, updates: Partial<Trip>): Promise<Trip> { /* ... */ }
 }
 export const tripService = new TripService();
 ```
@@ -194,12 +152,12 @@ npm run lint && npm run typecheck && npm run build  # Must pass before commit
 
 1. **Zero Syntax Errors:** Close all brackets/JSX; mentally simulate `npm run build`
 2. **TypeScript Strict:** `"strict": true` enforced, explicit types, no `any` unless documented
-3. **Vite Production:** Node 18+, no experimental syntax, test with `npm run dev`
-4. **Readability:** Explicit names (`userTrips` not `ut`), single responsibility, comment complex logic
+3. **Vite Production:** Node 18+, no experimental syntax
+4. **Readability:** Explicit names (`userTrips` not `ut`), single responsibility
 
 ---
 
-## React Patterns (Chravel-Specific)
+## React Patterns
 
 ### Component Structure
 
@@ -227,7 +185,6 @@ export function TripCard({ trip }: { trip: Trip }) {
 ### useEffect with Cleanup
 
 ```tsx
-// Mount guard + cleanup for async operations
 useEffect(() => {
   let mounted = true;
 
@@ -243,18 +200,6 @@ useEffect(() => {
   loadTrips();
   return () => { mounted = false; };
 }, [isDemoMode]);
-```
-
-### Virtualized Lists (Performance)
-
-```tsx
-// Use VirtualizedMessageContainer for long lists
-// /src/components/chat/VirtualizedMessageContainer.tsx
-<VirtualizedMessageContainer
-  messages={messages}
-  onLoadMore={handleLoadMore}
-  renderMessage={(msg) => <MessageItem message={msg} />}
-/>
 ```
 
 ---
@@ -273,7 +218,6 @@ import { supabase } from '@/integrations/supabase/client';
 ### Query Pattern
 
 ```typescript
-// Type the query, handle errors, update state safely
 const { data: trips, error } = await supabase
   .from('trips')
   .select('*')
@@ -313,7 +257,7 @@ useEffect(() => {
 | Table | Purpose |
 |-------|---------|
 | `trips` | Trip metadata and settings |
-| `trip_chat_messages` | Chat messages with media support |
+| `trip_chat_messages` | Chat messages with media |
 | `trip_members` | Trip membership |
 | `calendar_events` | Itinerary items |
 | `payments`, `payment_splits` | Budget tracking |
@@ -323,7 +267,7 @@ useEffect(() => {
 
 ---
 
-## Maps Integration (React-Leaflet + Google API)
+## Maps Integration
 
 ### Architecture
 
@@ -331,27 +275,14 @@ useEffect(() => {
 - **Geocoding:** Google Maps API via Supabase Edge Function proxy
 - **Fallback:** OSM Nominatim when Google fails
 
-### Map Service Usage
+### Services
 
 ```typescript
 // /src/services/googleMapsService.ts
-import { GoogleMapsService } from '@/services/googleMapsService';
-
-// Geocode address
 const coords = await GoogleMapsService.geocodeAddress(address);
 
-// Distance matrix
-const distances = await GoogleMapsService.getDistanceMatrix(origins, destinations, 'driving');
-```
-
-### Places Service
-
-```typescript
-// /src/services/googlePlacesNew.ts - New Google Places API
-import { searchPlaces, getPlaceDetails } from '@/services/googlePlacesNew';
-
+// /src/services/googlePlacesNew.ts
 const results = await searchPlaces(query, { lat, lng }, { types: ['restaurant'] });
-const details = await getPlaceDetails(placeId, ['displayName', 'photos', 'rating']);
 ```
 
 ### MapView Component
@@ -359,7 +290,7 @@ const details = await getPlaceDetails(placeId, ['displayName', 'photos', 'rating
 ```tsx
 // Single reusable component with mode prop
 <MapView
-  mode="tripBase"        // or "personalBase"
+  mode="tripBase"
   center={tripLocation}
   markers={tripStops}
   onPlaceSelect={handlePlaceSelect}
@@ -370,31 +301,22 @@ const details = await getPlaceDetails(placeId, ['displayName', 'photos', 'rating
 
 ---
 
-## Offline Support Architecture
+## Offline & Demo Mode
 
-### Offline Queue System
+### Offline Queue
 
 ```typescript
 // /src/services/offlineMessageQueue.ts
-// Messages queued locally until sync possible
-await offlineMessageQueue.enqueue({
-  tripId,
-  content,
-  mediaUrls,
-  timestamp: Date.now()
-});
-
-// Sync on reconnection
+await offlineMessageQueue.enqueue({ tripId, content, mediaUrls, timestamp: Date.now() });
 offlineMessageQueue.processPending();
 ```
 
-### Demo Mode System
+### Demo Mode
 
 ```typescript
 // Three states in /src/store/demoModeStore.ts
 type DemoView = 'off' | 'marketing' | 'app-preview';
 
-// Check before mutations
 const { isDemoMode } = useDemoMode();
 if (isDemoMode) {
   toast({ title: 'Demo Mode', description: 'Changes not saved in demo' });
@@ -406,7 +328,7 @@ if (isDemoMode) {
 
 ## UI Patterns
 
-### Layout Hierarchy
+### Layout
 
 ```
 ┌─────────────────────────────┐
@@ -421,22 +343,16 @@ if (isDemoMode) {
 ### Component Library
 
 ```tsx
-// Shadcn/ui components from /src/components/ui/
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 
-// Toast pattern
-toast({
-  title: 'Success',
-  description: 'Trip created successfully'
-});
+toast({ title: 'Success', description: 'Trip created successfully' });
 ```
 
 ### Loading/Empty/Error States
 
 ```tsx
-// Handle all states
 if (isLoading) return <Skeleton className="h-48 w-full" />;
 if (error) return <ErrorState message={error.message} onRetry={refetch} />;
 if (!trips?.length) return <EmptyState title="No trips yet" cta={<CreateTripButton />} />;
@@ -445,7 +361,7 @@ return <TripList trips={trips} />;
 
 ---
 
-## Code Quality Standards
+## Code Quality
 
 ### TypeScript Rules
 
@@ -460,21 +376,9 @@ return <TripList trips={trips} />;
 - Split into subcomponents when larger
 - Extract hooks for complex logic
 
-### Formatting
-
-```json
-// .prettierrc
-{
-  "singleQuote": true,
-  "semi": true,
-  "trailingComma": "all",
-  "printWidth": 100
-}
-```
-
 ---
 
-## Key File Reference
+## Key Files
 
 | File | Purpose |
 |------|---------|
@@ -482,12 +386,10 @@ return <TripList trips={trips} />;
 | `/src/integrations/supabase/types.ts` | Auto-generated DB types |
 | `/src/hooks/useAuth.tsx` | Auth context & provider |
 | `/src/hooks/useTrips.ts` | Trips with realtime sync |
-| `/src/hooks/useTripChat.ts` | Chat with offline support |
 | `/src/stores/entitlementsStore.ts` | Subscription state |
 | `/src/services/tripService.ts` | Trip business logic |
 | `/src/services/googlePlacesNew.ts` | Places API wrapper |
 | `/src/components/MapView.tsx` | Unified map component |
-| `/src/App.tsx` | Main routing & providers |
 
 ---
 
@@ -510,10 +412,9 @@ npm run preview      # Preview production build
 1. Validate syntax before returning code
 2. Test mentally: Would `npm run build` pass?
 3. Preserve working code—refactor incrementally
-4. Comment complex logic (especially async, state machines)
-5. Use service layer—don't query Supabase directly in components
-6. Check demo mode before mutations
-7. Handle offline scenarios
+4. Use service layer—don't query Supabase directly in components
+5. Check demo mode before mutations
+6. Handle offline scenarios
 
 ### Prohibited
 
@@ -530,7 +431,6 @@ npm run preview      # Preview production build
 - Default to simpler code over complex abstractions
 - Ask for clarification rather than guessing intent
 - Preserve working code—refactor incrementally
-- Add comments explaining assumptions
 
 ---
 
@@ -549,4 +449,4 @@ Every commit must:
 
 **Version:** 7.0 — Chravel Edition
 **Last Updated:** 2025-01-11
-**Maintained By:** AI Engineering Team + Meech
+**See Also:** CLAUDE.md for complete documentation
