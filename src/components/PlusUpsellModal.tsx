@@ -36,7 +36,10 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto pb-[max(2rem,env(safe-area-inset-bottom))]">
-        <div className="flex items-start justify-between mb-6 gap-4">
+        <div 
+          className="flex items-start justify-between mb-6 gap-4"
+          style={{ paddingTop: 'max(0px, calc(env(safe-area-inset-top, 0px) + 8px))' }}
+        >
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
               selectedTier === 'explorer' ? 'bg-gradient-to-r from-glass-orange to-glass-yellow' :

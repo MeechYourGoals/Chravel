@@ -68,7 +68,10 @@ export const SettingsMenu = ({
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
+            <div 
+              className="flex items-center justify-between p-4 border-b border-white/10"
+              style={{ paddingTop: 'max(16px, calc(env(safe-area-inset-top, 0px) + 12px))' }}
+            >
               <h2 className="text-xl font-semibold text-white">Settings</h2>
               <button
                 onClick={onClose}
@@ -123,7 +126,10 @@ export const SettingsMenu = ({
           onClick={e => e.stopPropagation()}
         >
           {/* Combined Header with Settings Type Toggle */}
-          <div className="flex-shrink-0 flex items-center justify-between p-3 md:px-4 md:py-3 border-b border-white/10 bg-black/20 gap-3">
+          <div 
+            className="flex-shrink-0 flex items-center justify-between p-3 md:px-4 md:py-3 border-b border-white/10 bg-black/20 gap-3"
+            style={{ paddingTop: 'max(12px, calc(env(safe-area-inset-top, 0px) + 12px))' }}
+          >
             <h2 className="text-lg font-semibold text-white whitespace-nowrap">Settings</h2>
 
             {/* Settings Type Tabs */}

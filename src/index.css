@@ -151,6 +151,23 @@
     }
   }
 
+  /* Safe area aware close button positioning for modals/sheets */
+  .safe-close-button {
+    top: max(16px, calc(env(safe-area-inset-top, 0px) + 12px));
+  }
+
+  /* Modal header that respects safe area */
+  .modal-safe-header {
+    padding-top: max(12px, env(safe-area-inset-top, 0px));
+  }
+
+  /* For full-screen modals on mobile */
+  @media (max-width: 768px) {
+    .modal-safe-header {
+      padding-top: max(12px, calc(env(safe-area-inset-top, 0px) + 8px));
+    }
+  }
+
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
