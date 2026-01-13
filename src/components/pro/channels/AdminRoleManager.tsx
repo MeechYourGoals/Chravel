@@ -73,19 +73,16 @@ export const AdminRoleManager = ({
 
   const loadData = async () => {
     setLoading(true);
-    const [rolesData, assignmentsData, adminsData] = await Promise.all([
+    const [rolesData, assignmentsData, adminsData, channelsData] = await Promise.all([
       channelService.getRoles(tripId),
       channelService.getRoleAssignments(tripId),
-      channelService.getAdmins(tripId)
+      channelService.getAdmins(tripId),
+      channelService.getAllChannelsForAdmin(tripId)
     ]);
     setRoles(rolesData);
     setAssignments(assignmentsData);
     setAdmins(adminsData);
-
-    // Load channels for section 2
-    // Note: This needs to be updated to load all channels for the trip, not just accessible ones
-    // For now, we'll leave this as a TODO for future implementation
-    setChannels([]);
+    setChannels(channelsData);
 
     setLoading(false);
   };
@@ -569,9 +566,45 @@ export const AdminRoleManager = ({
               </div>
             )}
 
-            {/* Existing Channels - Placeholder for now */}
-            <div className="text-center py-4 text-gray-500 text-sm">
-              Channel list view coming soon
+            {/* Existing Channels */}
+            <div className="space-y-2">
+              <Label>Existing Channels ({channels.length})</Label>
+              {channels.length === 0 ? (
+                <div className="text-center py-6 bg-white/5 rounded-lg border border-gray-700">
+                  <MessageSquare size={32} className="text-gray-600 mx-auto mb-2" />
+                  <p className="text-gray-400 text-sm">No channels created yet</p>
+                  <p className="text-gray-500 text-xs mt-1">Create roles first, then create channels with role-based access</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {channels.map(channel => (
+                    <div
+                      key={channel.id}
+                      className="flex items-center justify-between p-3 bg-white/5 border border-gray-700 rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-purple-400">#</span>
+                          <h4 className="font-medium text-white">{channel.channelName}</h4>
+                          {channel.isPrivate && (
+                            <span className="text-xs text-gray-500 bg-gray-700 px-2 py-0.5 rounded">
+                              Private
+                            </span>
+                          )}
+                        </div>
+                        {channel.requiredRoleName && (
+                          <p className="text-sm text-gray-400 mt-0.5">
+                            Access: {channel.requiredRoleName}
+                          </p>
+                        )}
+                        {channel.description && (
+                          <p className="text-xs text-gray-500 mt-1">{channel.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
