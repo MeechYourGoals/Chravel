@@ -612,12 +612,30 @@ export const TripHeader = ({
 
             <CollaboratorsGrid
               participants={mergedParticipants}
-              countLabel={`${mergedParticipants.length} collaborators`}
+              countLabel={`${mergedParticipants.length} collaborator${mergedParticipants.length !== 1 ? 's' : ''}`}
               onShowAll={() => setShowAllCollaborators(true)}
               maxRows={1}
               minColWidth={140}
               tripType={trip.trip_type || 'consumer'}
+              pendingRequestsCount={isAdmin ? pendingRequests.length : 0}
             />
+
+            {/* Pending Requests Alert - only shown when admin has requests to review */}
+            {pendingRequests.length > 0 && isAdmin && (
+              <button 
+                onClick={() => {
+                  setCollaboratorsInitialTab('requests');
+                  setShowAllCollaborators(true);
+                }}
+                className="mt-2 flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-400 text-xs hover:bg-amber-500/20 transition-colors w-full"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </span>
+                <span>{pendingRequests.length} pending request{pendingRequests.length !== 1 ? 's' : ''} to review</span>
+              </button>
+            )}
 
             <div className="mt-3 flex flex-wrap gap-1.5">
               <button
