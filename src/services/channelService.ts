@@ -236,36 +236,46 @@ class ChannelService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      // Get user's PRIMARY role for the trip
-      const primaryRole = await this.getUserPrimaryRole(tripId, user.id);
-      if (!primaryRole) return [];
+      // Get ALL user roles for the trip (not just primary)
+      const userRoles = await this.getUserRoles(tripId, user.id);
+      if (userRoles.length === 0) return [];
 
-      // Find channels where user's primary role has access via channel_role_access
+      const roleIds = userRoles.map(r => r.id);
+
+      // Find channels where ANY of user's roles have access via channel_role_access
       const { data } = await supabase
         .from('trip_channels')
         .select(`
           *,
-          trip_roles!inner(role_name),
+          trip_roles(role_name),
           channel_role_access!inner(role_id)
         `)
         .eq('trip_id', tripId)
         .eq('is_archived', false)
-        .eq('channel_role_access.role_id', primaryRole.id);
+        .in('channel_role_access.role_id', roleIds);
 
-      return (data || []).map(d => ({
-        id: d.id,
-        tripId: d.trip_id,
-        channelName: d.channel_name,
-        channelSlug: d.channel_slug,
-        description: d.description,
-        requiredRoleId: d.required_role_id,
-        requiredRoleName: (d.trip_roles as any)?.role_name,
-        isPrivate: d.is_private,
-        isArchived: d.is_archived,
-        createdBy: d.created_by,
-        createdAt: d.created_at,
-        updatedAt: d.updated_at
-      }));
+      // Deduplicate channels (user might have multiple roles granting access to same channel)
+      const uniqueChannels = new Map<string, TripChannel>();
+      (data || []).forEach(d => {
+        if (!uniqueChannels.has(d.id)) {
+          uniqueChannels.set(d.id, {
+            id: d.id,
+            tripId: d.trip_id,
+            channelName: d.channel_name,
+            channelSlug: d.channel_slug,
+            description: d.description,
+            requiredRoleId: d.required_role_id,
+            requiredRoleName: (d.trip_roles as any)?.role_name,
+            isPrivate: d.is_private,
+            isArchived: d.is_archived,
+            createdBy: d.created_by,
+            createdAt: d.created_at,
+            updatedAt: d.updated_at
+          });
+        }
+      });
+
+      return Array.from(uniqueChannels.values());
     } catch {
       return [];
     }
