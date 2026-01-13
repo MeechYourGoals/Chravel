@@ -1,6 +1,27 @@
 import { Purchases } from '@revenuecat/purchases-js';
 
-const REVENUECAT_API_KEY = 'test_QqVXiOnWgmxTHaMKTUiCrOpYMDm';
+/**
+ * RevenueCat API Key Configuration
+ *
+ * SECURITY: API key is loaded from environment variables.
+ *
+ * SETUP:
+ * 1. Set VITE_REVENUECAT_API_KEY in your .env file for local dev
+ * 2. Add VITE_REVENUECAT_API_KEY secret in your hosting environment (Vercel, Netlify, etc.)
+ * 3. Get your API key from: https://app.revenuecat.com/overview
+ */
+const getRevenueCatApiKey = (): string => {
+  const envKey = import.meta.env.VITE_REVENUECAT_API_KEY as string | undefined;
+
+  if (!envKey || envKey.length === 0) {
+    console.error('[RevenueCat] VITE_REVENUECAT_API_KEY not configured in environment variables');
+    throw new Error('RevenueCat API key is required. Please set VITE_REVENUECAT_API_KEY in your .env file.');
+  }
+
+  return envKey;
+};
+
+const REVENUECAT_API_KEY = getRevenueCatApiKey();
 
 /**
  * Generates a unique anonymous user ID for RevenueCat.
