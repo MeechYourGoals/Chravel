@@ -265,12 +265,66 @@ export const useJoinRequests = ({
     [fetchRequests, isDemoMode],
   );
 
+  /**
+   * Dismiss a join request - permanently removes it without approval/rejection.
+   * Used for swipe-to-delete functionality.
+   * Useful for:
+   * - Orphaned requests from deleted users
+   * - Spam or unwanted requests
+   * - "Request purgatory" - neither approving nor denying
+   */
+  const dismissRequest = useCallback(
+    async (requestId: string) => {
+      setIsProcessing(true);
+
+      // Demo mode - just update local state
+      if (isDemoMode) {
+        setRequests(prev => prev.filter(r => r.id !== requestId));
+        toast.success('Request dismissed');
+        setIsProcessing(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.rpc('dismiss_join_request', {
+          _request_id: requestId,
+        });
+
+        if (error) throw error;
+
+        // Check the response for success/failure
+        const result = data as { success: boolean; message: string; cleaned_up?: boolean } | null;
+
+        if (result && !result.success) {
+          throw new Error(result.message || 'Failed to dismiss request');
+        }
+
+        // Show appropriate message
+        if (result?.cleaned_up) {
+          toast.info(result.message || 'Orphaned request removed');
+        } else {
+          toast.success('Request dismissed');
+        }
+
+        await fetchRequests();
+      } catch (error) {
+        console.error('Error dismissing request:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to dismiss request');
+        throw error;
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [fetchRequests, isDemoMode],
+  );
+
   return {
     requests,
     isLoading,
     isProcessing,
     approveRequest,
     rejectRequest,
+    dismissRequest,
     refetch: fetchRequests,
   };
 };

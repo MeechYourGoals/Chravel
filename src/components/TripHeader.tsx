@@ -151,6 +151,7 @@ export const TripHeader = ({
     requests: pendingRequests,
     approveRequest,
     rejectRequest,
+    dismissRequest,
     isProcessing: isProcessingRequest,
   } = useJoinRequests({
     tripId: trip.id.toString(),
@@ -730,6 +731,7 @@ export const TripHeader = ({
         }}
         participants={mergedParticipants}
         tripType={trip.trip_type || 'consumer'}
+        tripId={trip.id.toString()}
         currentUserId={user?.id}
         tripCreatorId={tripCreatorId}
         isAdmin={isAdmin}
@@ -737,6 +739,7 @@ export const TripHeader = ({
         pendingRequests={pendingRequests}
         onApproveRequest={approveRequest}
         onRejectRequest={rejectRequest}
+        onDismissRequest={dismissRequest}
         isProcessingRequest={isProcessingRequest}
         initialTab={collaboratorsInitialTab}
       />
