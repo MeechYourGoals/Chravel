@@ -113,7 +113,10 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
     >
       <div className="bg-background/95 backdrop-blur-md border border-border rounded-2xl max-w-md w-full animate-scale-in">
         {/* Compact Header with X */}
-        <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+        <div 
+          className="flex items-center justify-between px-3 py-2 border-b border-border"
+          style={{ paddingTop: 'max(8px, calc(env(safe-area-inset-top, 0px) + 8px))' }}
+        >
           <span className="text-sm font-medium text-foreground">Share Trip</span>
           <Button
             onClick={onClose}

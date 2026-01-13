@@ -92,7 +92,10 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-2">
       <div className="bg-gray-900 rounded-t-2xl sm:rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] sm:max-h-[85vh] border border-gray-700 flex flex-col pb-[env(safe-area-inset-bottom)]">
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-gray-700 flex-shrink-0">
+        <div 
+          className="flex items-center justify-between p-3 border-b border-gray-700 flex-shrink-0"
+          style={{ paddingTop: 'max(12px, calc(env(safe-area-inset-top, 0px) + 12px))' }}
+        >
           <div className="flex items-center gap-2">
             <div className="bg-blue-600 p-1.5 rounded-lg">
               <FileText size={16} />

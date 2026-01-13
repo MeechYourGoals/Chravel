@@ -348,7 +348,10 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div 
+          className="flex items-center justify-between mb-6"
+          style={{ paddingTop: 'max(0px, calc(env(safe-area-inset-top, 0px) + 4px))' }}
+        >
           <h2 className="text-2xl font-bold text-white">Create New Trip</h2>
           <button
             onClick={onClose}
