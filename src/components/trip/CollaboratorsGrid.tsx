@@ -17,6 +17,7 @@ interface CollaboratorsGridProps {
   onShowAll: () => void;
   tripType?: 'consumer' | 'pro' | 'event';
   displayContext?: 'home' | 'trip-detail'; // Controls whether to show avatars or initials
+  pendingRequestsCount?: number; // Badge for pending requests (admins only)
 }
 
 export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
@@ -27,6 +28,7 @@ export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
   onShowAll,
   tripType = 'consumer',
   displayContext = 'trip-detail',
+  pendingRequestsCount = 0,
 }) => {
   // Determine whether to show avatars or initials
   // Events: always show initials only (privacy)
@@ -85,11 +87,18 @@ export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
       <div className="mt-2 flex items-center justify-between">
         <div className="text-xs text-gray-400">{countLabel}</div>
         <button
-          className="text-xs font-medium underline text-gray-200 hover:text-white"
+          className="text-xs font-medium underline text-gray-200 hover:text-white relative pr-1"
           onClick={onShowAll}
-          aria-label="Show all collaborators"
+          aria-label={pendingRequestsCount > 0 
+            ? `Show all collaborators (${pendingRequestsCount} pending requests)` 
+            : "Show all collaborators"}
         >
           Show all
+          {pendingRequestsCount > 0 && (
+            <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1 animate-pulse">
+              {pendingRequestsCount}
+            </span>
+          )}
         </button>
       </div>
     </section>

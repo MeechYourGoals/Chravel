@@ -432,6 +432,8 @@ export const tripService = {
     creatorId: string | null;
   }> {
     try {
+      console.log('[tripService.getTripMembersWithCreator] Fetching for tripId:', tripId);
+      
       // Parallel fetch: trip creator + members
       const [tripResult, membersResult] = await Promise.all([
         supabase.from('trips').select('created_by').eq('id', tripId).single(),
@@ -440,7 +442,57 @@ export const tripService = {
 
       const creatorId = tripResult.data?.created_by || null;
       
+      console.log('[tripService.getTripMembersWithCreator] Results:', {
+        creatorId,
+        membersCount: membersResult.data?.length ?? 0,
+        tripError: tripResult.error?.message,
+        membersError: membersResult.error?.message
+      });
+
+      // If members query returned error, log it but continue with creator fallback
+      if (membersResult.error) {
+        console.error('[tripService] Members query error:', membersResult.error);
+        // Return creator as minimum member if we have creatorId
+        if (creatorId) {
+          const { data: creatorProfile } = await supabase
+            .from('profiles_public')
+            .select('user_id, display_name, avatar_url')
+            .eq('user_id', creatorId)
+            .single();
+          
+          return {
+            members: [{
+              id: creatorId,
+              name: creatorProfile?.display_name || 'Trip Creator',
+              avatar: creatorProfile?.avatar_url,
+              isCreator: true,
+            }],
+            creatorId
+          };
+        }
+        return { members: [], creatorId };
+      }
+      
+      // If no members in table but we have creator, fetch creator as minimum
       if (!membersResult.data || membersResult.data.length === 0) {
+        console.warn('[tripService] No members found in trip_members table for trip:', tripId);
+        if (creatorId) {
+          const { data: creatorProfile } = await supabase
+            .from('profiles_public')
+            .select('user_id, display_name, avatar_url')
+            .eq('user_id', creatorId)
+            .single();
+          
+          return {
+            members: [{
+              id: creatorId,
+              name: creatorProfile?.display_name || 'Trip Creator',
+              avatar: creatorProfile?.avatar_url,
+              isCreator: true,
+            }],
+            creatorId
+          };
+        }
         return { members: [], creatorId };
       }
 
@@ -463,11 +515,10 @@ export const tripService = {
         };
       });
 
+      console.log('[tripService.getTripMembersWithCreator] Returning', members.length, 'members');
       return { members, creatorId };
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error fetching trip members with creator:', error);
-      }
+      console.error('[tripService] Error fetching trip members with creator:', error);
       return { members: [], creatorId: null };
     }
   },
