@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { getInitials, isValidAvatarUrl } from '../../utils/avatarUtils';
 import { formatCollaboratorName } from '../../utils/nameFormatUtils';
-import { UserMinus, Crown, Check, X, Clock, Users, UserPlus } from 'lucide-react';
+import { UserMinus, Crown, Check, X, Clock, Users, UserPlus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { JoinRequest } from '@/hooks/useJoinRequests';
 import { formatDistanceToNow } from 'date-fns';
 import { MemberContactCard, MemberContactCardMember } from './MemberContactCard';
+import { SwipeableRow } from '../mobile/SwipeableRow';
 
 export interface CollaboratorItem {
   id: number | string;
@@ -31,6 +32,8 @@ interface CollaboratorsModalProps {
   pendingRequests?: JoinRequest[];
   onApproveRequest?: (requestId: string) => Promise<void>;
   onRejectRequest?: (requestId: string) => Promise<void>;
+  /** Dismiss request without notification (swipe to delete) */
+  onDismissRequest?: (requestId: string) => Promise<void>;
   isProcessingRequest?: boolean;
   // Initial tab to show when modal opens
   initialTab?: TabType;
@@ -52,6 +55,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
   pendingRequests = [],
   onApproveRequest,
   onRejectRequest,
+  onDismissRequest,
   isProcessingRequest = false,
   initialTab = 'members',
 }) => {
@@ -60,6 +64,8 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [selectedMember, setSelectedMember] = useState<MemberContactCardMember | null>(null);
   const [contactCardOpen, setContactCardOpen] = useState(false);
+  // Track which swipeable row is open (for single-row-open behavior)
+  const [openSwipeRowId, setOpenSwipeRowId] = useState<string | null>(null);
 
   // Handle clicking on a member to show their contact card
   const handleMemberClick = (member: CollaboratorItem) => {
@@ -118,6 +124,32 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
     }
   };
 
+  /**
+   * Handle dismiss (swipe to delete) - removes request without notification
+   * Used for:
+   * - Orphaned requests from deleted users
+   * - Unknown/spam users
+   * - Putting unwanted requesters in "purgatory"
+   */
+  const handleDismiss = useCallback(
+    async (requestId: string) => {
+      if (!onDismissRequest || isProcessingRequest) return;
+      setProcessingRequestId(requestId);
+      try {
+        await onDismissRequest(requestId);
+        setOpenSwipeRowId(null);
+      } finally {
+        setProcessingRequestId(null);
+      }
+    },
+    [onDismissRequest, isProcessingRequest],
+  );
+
+  // Handler for swipeable row open
+  const handleSwipeRowOpen = useCallback((rowId: string) => {
+    setOpenSwipeRowId(rowId);
+  }, []);
+
   // Can remove if: (is admin OR is current user leaving) AND not the creator
   const canRemove = (collaboratorId: string) => {
     if (!onRemoveMember) return false;
@@ -132,10 +164,11 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
   };
 
   // Determine who can manage requests:
-  // - Consumer trips: ANY trip member can approve/reject
-  // - Pro/Event trips: Only admins can approve/reject
+  // - Consumer trips: ANY trip member can approve/reject/dismiss
+  // - Pro/Event trips: Only admins can approve/reject/dismiss
   const isConsumerTrip = !tripType || tripType === 'consumer';
   const canManageRequests = (isAdmin || isConsumerTrip) && onApproveRequest && onRejectRequest;
+  const canDismissRequests = canManageRequests && onDismissRequest;
   const pendingCount = pendingRequests.length;
 
   return (
@@ -256,82 +289,116 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
             // Pending Requests List - Show different content for admins vs non-admins
             <div role="list" aria-label="Pending join requests">
               {canManageRequests ? (
-                // Admin view: can approve/reject requests
+                // Admin view: can approve/reject/dismiss requests
                 pendingRequests.length > 0 ? (
-                  pendingRequests.map(request => {
-                    const isProcessing = processingRequestId === request.id;
-                    // Use profile display_name which already has fallback logic applied
-                    const displayName = request.profile?.display_name || 
-                                       request.requester_name || 
-                                       request.requester_email?.split('@')[0] || 
-                                       'New member';
-                    const avatarUrl = request.profile?.avatar_url || request.requester_avatar_url;
-                    const timeAgo = formatDistanceToNow(new Date(request.requested_at), {
-                      addSuffix: true,
-                    });
+                  <>
+                    {/* Swipe hint for mobile users */}
+                    {canDismissRequests && (
+                      <p className="text-xs text-gray-500 mb-3 flex items-center gap-1.5">
+                        <Trash2 size={12} />
+                        <span>Swipe left to dismiss without notifying</span>
+                      </p>
+                    )}
+                    {pendingRequests.map(request => {
+                      const isProcessing = processingRequestId === request.id;
+                      // Use profile display_name which already has fallback logic applied
+                      const displayName =
+                        request.profile?.display_name ||
+                        request.requester_name ||
+                        request.requester_email?.split('@')[0] ||
+                        'New member';
+                      const avatarUrl = request.profile?.avatar_url || request.requester_avatar_url;
+                      const timeAgo = formatDistanceToNow(new Date(request.requested_at), {
+                        addSuffix: true,
+                      });
 
-                    return (
-                      <div
-                        key={request.id}
-                        role="listitem"
-                        className={cn(
-                          'flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-3 mb-2',
-                          isProcessing && 'opacity-50',
-                        )}
-                      >
-                        {/* Avatar */}
-                        {isValidAvatarUrl(avatarUrl) ? (
-                          <img
-                            src={avatarUrl}
-                            alt={displayName}
-                            className="h-10 w-10 rounded-full object-cover border border-white/20"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white grid place-items-center text-sm font-semibold border border-white/20">
-                            {getInitials(displayName)}
-                          </div>
-                        )}
-
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-white truncate">
-                            {displayName}
-                          </div>
-                          {/* Show email if it's different from display name (helps identify new users) */}
-                          {request.requester_email && displayName !== request.requester_email && (
-                            <div className="text-xs text-gray-500 truncate">
-                              {request.requester_email}
+                      const requestContent = (
+                        <div
+                          role="listitem"
+                          className={cn(
+                            'flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-3',
+                            isProcessing && 'opacity-50',
+                          )}
+                        >
+                          {/* Avatar */}
+                          {isValidAvatarUrl(avatarUrl) ? (
+                            <img
+                              src={avatarUrl}
+                              alt={displayName}
+                              className="h-10 w-10 rounded-full object-cover border border-white/20"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white grid place-items-center text-sm font-semibold border border-white/20">
+                              {getInitials(displayName)}
                             </div>
                           )}
-                          <div className="flex items-center gap-1 text-xs text-gray-400">
-                            <Clock size={12} />
-                            <span>Requested {timeAgo}</span>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-white truncate">
+                              {displayName}
+                            </div>
+                            {/* Show email if it's different from display name (helps identify new users) */}
+                            {request.requester_email && displayName !== request.requester_email && (
+                              <div className="text-xs text-gray-500 truncate">
+                                {request.requester_email}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1 text-xs text-gray-400">
+                              <Clock size={12} />
+                              <span>Requested {timeAgo}</span>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleApprove(request.id)}
+                              disabled={isProcessing}
+                              className="p-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 hover:text-green-300 rounded-lg transition-colors disabled:opacity-50"
+                              title="Approve request"
+                            >
+                              <Check size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleReject(request.id)}
+                              disabled={isProcessing}
+                              className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 rounded-lg transition-colors disabled:opacity-50"
+                              title="Reject request"
+                            >
+                              <X size={18} />
+                            </button>
                           </div>
                         </div>
+                      );
 
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleApprove(request.id)}
+                      // Wrap in SwipeableRow if dismiss is available
+                      if (canDismissRequests) {
+                        return (
+                          <SwipeableRow
+                            key={request.id}
+                            rowId={request.id}
+                            onDelete={() => handleDismiss(request.id)}
+                            onOpenRow={handleSwipeRowOpen}
+                            openRowId={openSwipeRowId}
                             disabled={isProcessing}
-                            className="p-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 hover:text-green-300 rounded-lg transition-colors disabled:opacity-50"
-                            title="Approve request"
+                            className="mb-2"
+                            deleteLabel="Dismiss"
+                            requireConfirmation={true}
                           >
-                            <Check size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleReject(request.id)}
-                            disabled={isProcessing}
-                            className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 rounded-lg transition-colors disabled:opacity-50"
-                            title="Reject request"
-                          >
-                            <X size={18} />
-                          </button>
+                            {requestContent}
+                          </SwipeableRow>
+                        );
+                      }
+
+                      return (
+                        <div key={request.id} className="mb-2">
+                          {requestContent}
                         </div>
-                      </div>
-                    );
-                  })
+                      );
+                    })}
+                  </>
                 ) : (
                   <div className="text-center py-12">
                     <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
