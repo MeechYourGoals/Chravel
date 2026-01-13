@@ -147,6 +147,16 @@ const Index = () => {
     setIsCreateModalOpen(true);
   }, [completeOnboarding, clearPendingDestination]);
 
+  // Handler for selecting a trip from search results
+  const handleSearchTripSelect = useCallback(
+    (tripId: string | number) => {
+      setIsSearchOpen(false);
+      setSearchQuery('');
+      navigate(`/trip/${tripId}`);
+    },
+    [navigate]
+  );
+
   // Clear stale demo mode for unauthenticated users visiting root (not from /demo redirect)
   useEffect(() => {
     const fromDemo = searchParams.get('from') === 'demo';
@@ -755,6 +765,8 @@ const Index = () => {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             resultCount={searchResultCount}
+            matchingTrips={trips}
+            onTripSelect={handleSearchTripSelect}
           />
 
           {/* iOS-style bottom tab bar (mobile only) */}
@@ -1103,6 +1115,8 @@ const Index = () => {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         resultCount={searchResultCount}
+        matchingTrips={trips}
+        onTripSelect={handleSearchTripSelect}
       />
 
       {/* iOS-style bottom tab bar (mobile only) */}
