@@ -260,7 +260,12 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                 pendingRequests.length > 0 ? (
                   pendingRequests.map(request => {
                     const isProcessing = processingRequestId === request.id;
-                    const displayName = request.profile?.display_name || 'Unknown User';
+                    // Use profile display_name which already has fallback logic applied
+                    const displayName = request.profile?.display_name || 
+                                       request.requester_name || 
+                                       request.requester_email?.split('@')[0] || 
+                                       'New member';
+                    const avatarUrl = request.profile?.avatar_url || request.requester_avatar_url;
                     const timeAgo = formatDistanceToNow(new Date(request.requested_at), {
                       addSuffix: true,
                     });
@@ -275,9 +280,9 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                         )}
                       >
                         {/* Avatar */}
-                        {isValidAvatarUrl(request.profile?.avatar_url) ? (
+                        {isValidAvatarUrl(avatarUrl) ? (
                           <img
-                            src={request.profile?.avatar_url}
+                            src={avatarUrl}
                             alt={displayName}
                             className="h-10 w-10 rounded-full object-cover border border-white/20"
                             loading="lazy"
@@ -293,6 +298,12 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                           <div className="text-sm font-medium text-white truncate">
                             {displayName}
                           </div>
+                          {/* Show email if it's different from display name (helps identify new users) */}
+                          {request.requester_email && displayName !== request.requester_email && (
+                            <div className="text-xs text-gray-500 truncate">
+                              {request.requester_email}
+                            </div>
+                          )}
                           <div className="flex items-center gap-1 text-xs text-gray-400">
                             <Clock size={12} />
                             <span>Requested {timeAgo}</span>

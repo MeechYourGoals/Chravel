@@ -2296,6 +2296,9 @@ export type Database = {
           id: string
           invite_code: string
           requested_at: string
+          requester_avatar_url: string | null
+          requester_email: string | null
+          requester_name: string | null
           resolved_at: string | null
           resolved_by: string | null
           status: string
@@ -2306,6 +2309,9 @@ export type Database = {
           id?: string
           invite_code: string
           requested_at?: string
+          requester_avatar_url?: string | null
+          requester_email?: string | null
+          requester_name?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           status?: string
@@ -2316,6 +2322,9 @@ export type Database = {
           id?: string
           invite_code?: string
           requested_at?: string
+          requester_avatar_url?: string | null
+          requester_email?: string | null
+          requester_name?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           status?: string

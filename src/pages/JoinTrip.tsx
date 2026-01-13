@@ -279,8 +279,22 @@ const JoinTrip = () => {
       });
 
       if (error) {
-        console.error('Error joining trip:', error);
-        toast.error(error.message || 'Failed to join trip');
+        console.error('[JoinTrip] Edge function error:', error);
+        // Try to extract a meaningful message from the error
+        let errorMessage = 'Failed to join trip. Please try again.';
+        if (error.message) {
+          try {
+            // Edge function errors may contain JSON body
+            const parsed = JSON.parse(error.message);
+            errorMessage = parsed.message || parsed.error || errorMessage;
+          } catch {
+            // Not JSON, use the message directly unless it's the generic non-2xx error
+            if (!error.message.includes('non-2xx')) {
+              errorMessage = error.message;
+            }
+          }
+        }
+        toast.error(errorMessage);
         setJoining(false);
         return;
       }
