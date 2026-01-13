@@ -200,24 +200,18 @@ serve(async req => {
 
       logStep('Requester profile captured', { requesterName, requesterEmail });
 
-      // Create join request with requester info stored directly
-      const { data: joinRequest, error: requestError } = await supabaseClient
+      // Check if user has an existing request for this trip
+      const { data: existingRequest } = await supabaseClient
         .from('trip_join_requests')
-        .insert({
-          trip_id: invite.trip_id,
-          user_id: user.id,
-          invite_code: inviteCode,
-          status: 'pending',
-          requester_name: requesterName,
-          requester_email: requesterEmail,
-        })
-        .select('id')
+        .select('id, status')
+        .eq('trip_id', invite.trip_id)
+        .eq('user_id', user.id)
         .single();
 
-      if (requestError) {
-        // Check if request already exists
-        if (requestError.code === '23505') {
-          logStep('Join request already exists');
+      if (existingRequest) {
+        if (existingRequest.status === 'pending') {
+          // Request already pending - just return success message
+          logStep('Join request already pending', { requestId: existingRequest.id });
           return successResponse(
             {
               requires_approval: true,
@@ -228,13 +222,74 @@ serve(async req => {
             },
             corsHeaders,
           );
-        }
+        } else if (existingRequest.status === 'rejected') {
+          // Previously rejected - allow re-request by updating status back to pending
+          logStep('Updating rejected request to pending', { requestId: existingRequest.id });
+          const { error: updateError } = await supabaseClient
+            .from('trip_join_requests')
+            .update({
+              status: 'pending',
+              requested_at: new Date().toISOString(),
+              resolved_at: null,
+              resolved_by: null,
+              invite_code: inviteCode,
+              requester_name: requesterName,
+              requester_email: requesterEmail,
+            })
+            .eq('id', existingRequest.id);
 
-        logStep('ERROR: Failed to create join request', { error: requestError.message });
-        return errorResponse('Failed to submit join request. Please try again.', 500, corsHeaders);
+          if (updateError) {
+            logStep('ERROR: Failed to update rejected request', { error: updateError.message });
+            return errorResponse('Failed to resubmit join request. Please try again.', 500, corsHeaders);
+          }
+
+          // Send notifications to trip members/admins
+          // (notification logic will be handled below)
+          logStep('Rejected request updated to pending', { requestId: existingRequest.id });
+        }
+        // If status is 'approved', user should already be a member (handled earlier)
       }
 
-      logStep('Join request created successfully', { requestId: joinRequest?.id });
+      // Create join request with requester info stored directly (only if no existing request)
+      let joinRequestId = existingRequest?.id;
+
+      if (!existingRequest) {
+        const { data: joinRequest, error: requestError } = await supabaseClient
+          .from('trip_join_requests')
+          .insert({
+            trip_id: invite.trip_id,
+            user_id: user.id,
+            invite_code: inviteCode,
+            status: 'pending',
+            requester_name: requesterName,
+            requester_email: requesterEmail,
+          })
+          .select('id')
+          .single();
+
+        if (requestError) {
+          // Check if request already exists (race condition)
+          if (requestError.code === '23505') {
+            logStep('Join request already exists (race condition)');
+            return successResponse(
+              {
+                requires_approval: true,
+                trip_id: invite.trip_id,
+                trip_name: trip.name,
+                trip_type: trip.trip_type,
+                message: 'Your join request is pending approval from the trip organizer.',
+              },
+              corsHeaders,
+            );
+          }
+
+          logStep('ERROR: Failed to create join request', { error: requestError.message });
+          return errorResponse('Failed to submit join request. Please try again.', 500, corsHeaders);
+        }
+
+        joinRequestId = joinRequest?.id;
+        logStep('Join request created successfully', { requestId: joinRequestId });
+      }
 
       // Note: requesterName and requesterEmail were already captured above
       // when we created the join request - no need to fetch profile again
@@ -285,7 +340,7 @@ serve(async req => {
             trip_name: trip.name,
             requester_id: user.id,
             requester_name: requesterName,
-            request_id: joinRequest?.id,
+            request_id: joinRequestId,
           },
         }),
       );

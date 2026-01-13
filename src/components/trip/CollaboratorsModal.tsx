@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { getInitials, isValidAvatarUrl } from '../../utils/avatarUtils';
 import { formatCollaboratorName } from '../../utils/nameFormatUtils';
-import { UserMinus, Crown, Check, X, Clock, Users, UserPlus } from 'lucide-react';
+import { UserMinus, Crown, Check, X, Clock, Users, UserPlus, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { JoinRequest } from '@/hooks/useJoinRequests';
 import { formatDistanceToNow } from 'date-fns';
 import { MemberContactCard, MemberContactCardMember } from './MemberContactCard';
+import { SwipeableRow } from '../mobile/SwipeableRow';
 
 export interface CollaboratorItem {
   id: number | string;
@@ -31,6 +32,7 @@ interface CollaboratorsModalProps {
   pendingRequests?: JoinRequest[];
   onApproveRequest?: (requestId: string) => Promise<void>;
   onRejectRequest?: (requestId: string) => Promise<void>;
+  onDismissRequest?: (requestId: string) => Promise<void>;
   isProcessingRequest?: boolean;
   // Initial tab to show when modal opens
   initialTab?: TabType;
@@ -52,6 +54,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
   pendingRequests = [],
   onApproveRequest,
   onRejectRequest,
+  onDismissRequest,
   isProcessingRequest = false,
   initialTab = 'members',
 }) => {
@@ -60,6 +63,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [selectedMember, setSelectedMember] = useState<MemberContactCardMember | null>(null);
   const [contactCardOpen, setContactCardOpen] = useState(false);
+  const [openSwipeRowId, setOpenSwipeRowId] = useState<string | null>(null);
 
   // Handle clicking on a member to show their contact card
   const handleMemberClick = (member: CollaboratorItem) => {
@@ -258,80 +262,128 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
               {canManageRequests ? (
                 // Admin view: can approve/reject requests
                 pendingRequests.length > 0 ? (
-                  pendingRequests.map(request => {
-                    const isProcessing = processingRequestId === request.id;
-                    // Use profile display_name which already has fallback logic applied
-                    const displayName = request.profile?.display_name || 
-                                       request.requester_name || 
-                                       request.requester_email?.split('@')[0] || 
-                                       'New member';
-                    const avatarUrl = request.profile?.avatar_url || request.requester_avatar_url;
-                    const timeAgo = formatDistanceToNow(new Date(request.requested_at), {
-                      addSuffix: true,
-                    });
+                  <>
+                    {/* Swipe hint for mobile */}
+                    <div className="text-xs text-gray-500 mb-2 px-1 flex items-center gap-1">
+                      <span className="hidden sm:inline">←</span>
+                      <span>Swipe left to dismiss requests</span>
+                    </div>
+                    {pendingRequests.map(request => {
+                      const isProcessing = processingRequestId === request.id;
+                      // Use profile display_name which already has fallback logic applied
+                      const displayName =
+                        request.profile?.display_name ||
+                        request.requester_name ||
+                        request.requester_email?.split('@')[0] ||
+                        'New member';
+                      const avatarUrl = request.profile?.avatar_url || request.requester_avatar_url;
+                      const timeAgo = formatDistanceToNow(new Date(request.requested_at), {
+                        addSuffix: true,
+                      });
 
-                    return (
-                      <div
-                        key={request.id}
-                        role="listitem"
-                        className={cn(
-                          'flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-3 mb-2',
-                          isProcessing && 'opacity-50',
-                        )}
-                      >
-                        {/* Avatar */}
-                        {isValidAvatarUrl(avatarUrl) ? (
-                          <img
-                            src={avatarUrl}
-                            alt={displayName}
-                            className="h-10 w-10 rounded-full object-cover border border-white/20"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white grid place-items-center text-sm font-semibold border border-white/20">
-                            {getInitials(displayName)}
-                          </div>
-                        )}
+                      // Check if this might be an orphaned request (no profile data)
+                      const mightBeOrphaned =
+                        !request.profile?.display_name &&
+                        !request.profile?.avatar_url &&
+                        request.requester_name;
 
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-white truncate">
-                            {displayName}
-                          </div>
-                          {/* Show email if it's different from display name (helps identify new users) */}
-                          {request.requester_email && displayName !== request.requester_email && (
-                            <div className="text-xs text-gray-500 truncate">
-                              {request.requester_email}
+                      const requestContent = (
+                        <div
+                          role="listitem"
+                          className={cn(
+                            'flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-3',
+                            isProcessing && 'opacity-50',
+                            mightBeOrphaned && 'border-yellow-500/30',
+                          )}
+                        >
+                          {/* Avatar */}
+                          {isValidAvatarUrl(avatarUrl) ? (
+                            <img
+                              src={avatarUrl}
+                              alt={displayName}
+                              className="h-10 w-10 rounded-full object-cover border border-white/20"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white grid place-items-center text-sm font-semibold border border-white/20">
+                              {getInitials(displayName)}
                             </div>
                           )}
-                          <div className="flex items-center gap-1 text-xs text-gray-400">
-                            <Clock size={12} />
-                            <span>Requested {timeAgo}</span>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-medium text-white truncate">
+                                {displayName}
+                              </span>
+                              {mightBeOrphaned && (
+                                <span title="User may have deleted their account">
+                                  <AlertTriangle size={14} className="text-yellow-500 flex-shrink-0" />
+                                </span>
+                              )}
+                            </div>
+                            {/* Show email if it's different from display name (helps identify new users) */}
+                            {request.requester_email && displayName !== request.requester_email && (
+                              <div className="text-xs text-gray-500 truncate">
+                                {request.requester_email}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1 text-xs text-gray-400">
+                              <Clock size={12} />
+                              <span>Requested {timeAgo}</span>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleApprove(request.id)}
+                              disabled={isProcessing}
+                              className="p-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 hover:text-green-300 rounded-lg transition-colors disabled:opacity-50"
+                              title="Approve request"
+                            >
+                              <Check size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleReject(request.id)}
+                              disabled={isProcessing}
+                              className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 rounded-lg transition-colors disabled:opacity-50"
+                              title="Reject request"
+                            >
+                              <X size={18} />
+                            </button>
                           </div>
                         </div>
+                      );
 
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleApprove(request.id)}
+                      // Wrap in SwipeableRow if dismiss is available
+                      if (onDismissRequest) {
+                        return (
+                          <SwipeableRow
+                            key={request.id}
+                            rowId={request.id}
+                            openRowId={openSwipeRowId}
+                            onOpenRow={setOpenSwipeRowId}
+                            onDelete={async () => {
+                              await onDismissRequest(request.id);
+                            }}
                             disabled={isProcessing}
-                            className="p-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 hover:text-green-300 rounded-lg transition-colors disabled:opacity-50"
-                            title="Approve request"
+                            deleteLabel="Dismiss"
+                            requireConfirmation={true}
+                            className="mb-2"
                           >
-                            <Check size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleReject(request.id)}
-                            disabled={isProcessing}
-                            className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 rounded-lg transition-colors disabled:opacity-50"
-                            title="Reject request"
-                          >
-                            <X size={18} />
-                          </button>
+                            {requestContent}
+                          </SwipeableRow>
+                        );
+                      }
+
+                      return (
+                        <div key={request.id} className="mb-2">
+                          {requestContent}
                         </div>
-                      </div>
-                    );
-                  })
+                      );
+                    })}
+                  </>
                 ) : (
                   <div className="text-center py-12">
                     <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
