@@ -14,13 +14,14 @@ export interface JoinRequest {
   resolved_by?: string;
   resolved_at?: string;
   // Name captured at request creation time (fail-safe, stored in DB)
-  requester_name?: string;
-  requester_email?: string;
+  requester_name?: string | null;
+  requester_email?: string | null;
+  requester_avatar_url?: string | null;
   profile?: {
     display_name: string;
-    avatar_url?: string;
-    first_name?: string;
-    last_name?: string;
+    avatar_url?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
   };
 }
 
@@ -55,15 +56,17 @@ export const useJoinRequests = ({
     try {
       setIsLoading(true);
 
-      // Fetch pending join requests - only select columns that exist
+      // Fetch pending join requests - include requester_name/email fallback fields
       const { data, error } = await supabase
         .from('trip_join_requests')
-        .select('id, trip_id, user_id, invite_code, status, requested_at, resolved_at, resolved_by')
+        .select('id, trip_id, user_id, invite_code, status, requested_at, resolved_at, resolved_by, requester_name, requester_email, requester_avatar_url')
         .eq('trip_id', tripId)
         .eq('status', 'pending')
         .order('requested_at', { ascending: false });
 
       if (error) throw error;
+
+      console.log('[useJoinRequests] Fetched raw requests:', data?.length);
 
       // Fetch profiles for user info (use public view for co-member data)
       const requestsWithProfiles = await Promise.all(
@@ -75,54 +78,54 @@ export const useJoinRequests = ({
             .maybeSingle();
 
           if (profileError) {
-            console.warn('Failed to fetch profile for user:', request.user_id, profileError);
+            console.warn('[useJoinRequests] Failed to fetch profile for user:', request.user_id, profileError);
           }
 
-          // If profile doesn't exist, this is an orphaned request from a deleted user
-          // We'll mark it for filtering and attempt cleanup
-          if (!profile) {
-            console.warn(
-              '[JoinRequests] Orphaned request detected - user profile missing:',
-              request.user_id,
-            );
-            return null; // Mark for filtering
-          }
-
+          // CRITICAL FIX: Do NOT filter out requests when profile is missing!
+          // Use stored requester_name/email as fallback
           // Name resolution priority:
           // 1. Profile display_name
           // 2. Profile first/last name combination
-          // 3. "Unknown User" as last resort (shouldn't happen with valid profile)
-          let finalDisplayName: string | null = profile.display_name;
-          if (!finalDisplayName) {
-            if (profile.first_name && profile.last_name) {
-              finalDisplayName = `${profile.first_name} ${profile.last_name}`;
-            } else if (profile.first_name) {
-              finalDisplayName = profile.first_name;
-            } else if (profile.last_name) {
-              finalDisplayName = profile.last_name;
+          // 3. Stored requester_name from join request (captured at request time)
+          // 4. Stored requester_email from join request
+          // 5. "New member" as last resort
+          let finalDisplayName: string | null = null;
+          
+          if (profile) {
+            finalDisplayName = profile.display_name;
+            if (!finalDisplayName) {
+              if (profile.first_name && profile.last_name) {
+                finalDisplayName = `${profile.first_name} ${profile.last_name}`;
+              } else if (profile.first_name) {
+                finalDisplayName = profile.first_name;
+              } else if (profile.last_name) {
+                finalDisplayName = profile.last_name;
+              }
             }
           }
-
-          finalDisplayName = finalDisplayName || 'Unknown User';
+          
+          // Fallback to stored request fields if profile data unavailable
+          if (!finalDisplayName) {
+            finalDisplayName = request.requester_name || 
+                               request.requester_email?.split('@')[0] || 
+                               'New member';
+          }
 
           return {
             ...request,
             profile: {
               display_name: finalDisplayName,
-              avatar_url: profile.avatar_url,
-              first_name: profile.first_name,
-              last_name: profile.last_name,
+              avatar_url: profile?.avatar_url || request.requester_avatar_url || null,
+              first_name: profile?.first_name || null,
+              last_name: profile?.last_name || null,
             },
           };
         }),
       );
 
-      // Filter out null entries (orphaned requests) and cast properly
-      const validRequests = requestsWithProfiles.filter(
-        (req): req is NonNullable<typeof req> => req !== null,
-      );
+      console.log('[useJoinRequests] Processed requests with profiles:', requestsWithProfiles.length);
 
-      setRequests(validRequests as JoinRequest[]);
+      setRequests(requestsWithProfiles as JoinRequest[]);
     } catch (error) {
       console.error('Error fetching join requests:', error);
       toast.error('Failed to load join requests');
