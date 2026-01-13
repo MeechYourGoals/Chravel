@@ -151,6 +151,7 @@ export const TripHeader = ({
     requests: pendingRequests,
     approveRequest,
     rejectRequest,
+    dismissRequest,
     isProcessing: isProcessingRequest,
   } = useJoinRequests({
     tripId: trip.id.toString(),
@@ -622,7 +623,7 @@ export const TripHeader = ({
 
             {/* Pending Requests Alert - only shown when admin has requests to review */}
             {pendingRequests.length > 0 && isAdmin && (
-              <button 
+              <button
                 onClick={() => {
                   setCollaboratorsInitialTab('requests');
                   setShowAllCollaborators(true);
@@ -633,7 +634,10 @@ export const TripHeader = ({
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                 </span>
-                <span>{pendingRequests.length} pending request{pendingRequests.length !== 1 ? 's' : ''} to review</span>
+                <span>
+                  {pendingRequests.length} pending request{pendingRequests.length !== 1 ? 's' : ''}{' '}
+                  to review
+                </span>
               </button>
             )}
 
@@ -730,6 +734,7 @@ export const TripHeader = ({
         }}
         participants={mergedParticipants}
         tripType={trip.trip_type || 'consumer'}
+        tripId={trip.id.toString()}
         currentUserId={user?.id}
         tripCreatorId={tripCreatorId}
         isAdmin={isAdmin}
@@ -737,6 +742,7 @@ export const TripHeader = ({
         pendingRequests={pendingRequests}
         onApproveRequest={approveRequest}
         onRejectRequest={rejectRequest}
+        onDismissRequest={dismissRequest}
         isProcessingRequest={isProcessingRequest}
         initialTab={collaboratorsInitialTab}
       />

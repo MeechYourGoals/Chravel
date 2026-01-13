@@ -59,7 +59,9 @@ export const useJoinRequests = ({
       // Fetch pending join requests - include requester_name/email fallback fields
       const { data, error } = await supabase
         .from('trip_join_requests')
-        .select('id, trip_id, user_id, invite_code, status, requested_at, resolved_at, resolved_by, requester_name, requester_email, requester_avatar_url')
+        .select(
+          'id, trip_id, user_id, invite_code, status, requested_at, resolved_at, resolved_by, requester_name, requester_email, requester_avatar_url',
+        )
         .eq('trip_id', tripId)
         .eq('status', 'pending')
         .order('requested_at', { ascending: false });
@@ -78,7 +80,11 @@ export const useJoinRequests = ({
             .maybeSingle();
 
           if (profileError) {
-            console.warn('[useJoinRequests] Failed to fetch profile for user:', request.user_id, profileError);
+            console.warn(
+              '[useJoinRequests] Failed to fetch profile for user:',
+              request.user_id,
+              profileError,
+            );
           }
 
           // CRITICAL FIX: Do NOT filter out requests when profile is missing!
@@ -90,7 +96,7 @@ export const useJoinRequests = ({
           // 4. Stored requester_email from join request
           // 5. "New member" as last resort
           let finalDisplayName: string | null = null;
-          
+
           if (profile) {
             finalDisplayName = profile.display_name;
             if (!finalDisplayName) {
@@ -103,12 +109,11 @@ export const useJoinRequests = ({
               }
             }
           }
-          
+
           // Fallback to stored request fields if profile data unavailable
           if (!finalDisplayName) {
-            finalDisplayName = request.requester_name || 
-                               request.requester_email?.split('@')[0] || 
-                               'New member';
+            finalDisplayName =
+              request.requester_name || request.requester_email?.split('@')[0] || 'New member';
           }
 
           return {
@@ -123,7 +128,10 @@ export const useJoinRequests = ({
         }),
       );
 
-      console.log('[useJoinRequests] Processed requests with profiles:', requestsWithProfiles.length);
+      console.log(
+        '[useJoinRequests] Processed requests with profiles:',
+        requestsWithProfiles.length,
+      );
 
       setRequests(requestsWithProfiles as JoinRequest[]);
     } catch (error) {
@@ -265,12 +273,65 @@ export const useJoinRequests = ({
     [fetchRequests, isDemoMode],
   );
 
+  /**
+   * Dismiss a join request without notifying the requester.
+   * Use cases:
+   * - Orphaned requests from deleted users
+   * - Unknown/spam users who got invite codes
+   * - Abusive users to put in "request purgatory"
+   */
+  const dismissRequest = useCallback(
+    async (requestId: string) => {
+      setIsProcessing(true);
+
+      // Demo mode - just update local state
+      if (isDemoMode) {
+        setRequests(prev => prev.filter(r => r.id !== requestId));
+        toast.success('Request dismissed');
+        setIsProcessing(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.rpc('dismiss_join_request', {
+          _request_id: requestId,
+        });
+
+        if (error) throw error;
+
+        // Check the response for success/failure
+        const result = data as { success: boolean; message: string; cleaned_up?: boolean } | null;
+
+        if (result && !result.success) {
+          throw new Error(result.message || 'Failed to dismiss request');
+        }
+
+        // Show appropriate message
+        if (result?.cleaned_up) {
+          toast.info(result.message || 'Invalid request removed');
+        } else {
+          toast.success('Request dismissed');
+        }
+
+        await fetchRequests();
+      } catch (error) {
+        console.error('Error dismissing request:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to dismiss request');
+        throw error;
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [fetchRequests, isDemoMode],
+  );
+
   return {
     requests,
     isLoading,
     isProcessing,
     approveRequest,
     rejectRequest,
+    dismissRequest,
     refetch: fetchRequests,
   };
 };
