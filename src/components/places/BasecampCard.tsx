@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { MapPin, Users, Edit3, Save, X } from 'lucide-react';
-import { useAccommodations } from '@/hooks/useAccommodations';
+import { useTripBasecamp, useUpdateTripBasecamp } from '@/hooks/useTripBasecamp';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 interface BasecampCardProps {
   tripId: string;
@@ -14,21 +15,41 @@ interface BasecampCardProps {
 
 export const BasecampCard: React.FC<BasecampCardProps> = ({ tripId }) => {
   const { user } = useAuth();
-  const { tripBasecamp, updateBasecamp, isUpdatingBasecamp, basecampError } = useAccommodations(tripId);
+  const { data: tripBasecamp, isLoading: isLoadingBasecamp } = useTripBasecamp(tripId);
+  const updateBasecampMutation = useUpdateTripBasecamp(tripId);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: tripBasecamp?.name || '',
-    address: tripBasecamp?.address || '',
+    name: '',
+    address: '',
   });
+  
+  // Sync form data when tripBasecamp loads
+  useEffect(() => {
+    if (tripBasecamp && !isEditing) {
+      setFormData({
+        name: tripBasecamp.name || '',
+        address: tripBasecamp.address || '',
+      });
+    }
+  }, [tripBasecamp, isEditing]);
 
   const handleSave = async () => {
-    if (!formData.name.trim() || !formData.address.trim()) return;
+    if (!formData.address.trim()) {
+      toast.error('Address is required');
+      return;
+    }
 
-    updateBasecamp({
-      name: formData.name,
-      address: formData.address,
-    });
-    setIsEditing(false);
+    try {
+      await updateBasecampMutation.mutateAsync({
+        name: formData.name.trim() || undefined,
+        address: formData.address.trim(),
+      });
+      setIsEditing(false);
+      toast.success('Basecamp saved');
+    } catch (error) {
+      // Error toast handled by mutation
+      console.error('[BasecampCard] Save failed:', error);
+    }
   };
 
   const handleCancel = () => {
@@ -100,25 +121,27 @@ export const BasecampCard: React.FC<BasecampCardProps> = ({ tripId }) => {
               />
             </div>
 
-            {basecampError && (
-              <div className="text-sm text-red-500">
-                Error updating basecamp: {basecampError.message}
+            {updateBasecampMutation.error && (
+              <div className="text-sm text-destructive">
+                Error: {updateBasecampMutation.error instanceof Error 
+                  ? updateBasecampMutation.error.message 
+                  : 'Failed to update basecamp'}
               </div>
             )}
 
             <div className="flex gap-2">
               <Button 
                 onClick={handleSave} 
-                disabled={isUpdatingBasecamp || !formData.name.trim() || !formData.address.trim()}
+                disabled={updateBasecampMutation.isPending || !formData.address.trim()}
                 className="flex-1"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {isUpdatingBasecamp ? 'Saving...' : 'Save'}
+                {updateBasecampMutation.isPending ? 'Saving...' : 'Save'}
               </Button>
               <Button 
                 onClick={handleCancel} 
                 variant="outline"
-                disabled={isUpdatingBasecamp}
+                disabled={updateBasecampMutation.isPending}
               >
                 <X className="h-4 w-4" />
               </Button>
