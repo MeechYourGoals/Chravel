@@ -286,7 +286,8 @@ export const useJoinRequests = ({
       }
 
       try {
-        const { data, error } = await supabase.rpc('dismiss_join_request', {
+        // Type assertion needed until types.ts is regenerated
+        const { data, error } = await (supabase.rpc as Function)('dismiss_join_request', {
           _request_id: requestId,
         });
 
