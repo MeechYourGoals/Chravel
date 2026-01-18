@@ -58,6 +58,24 @@ export const useTripMedia = (tripId: string) => {
       .on(
         'postgres_changes',
         {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'trip_media_index',
+          filter: `trip_id=eq.${tripId}`,
+        },
+        (payload) => {
+          // Handle media edits (caption, tags, etc.) in realtime
+          queryClient.setQueryData<TripMedia[]>(['tripMedia', tripId], (old) => {
+            if (!old) return old;
+            return old.map(item =>
+              item.id === (payload.new as TripMedia).id ? (payload.new as TripMedia) : item
+            );
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
           event: 'DELETE',
           schema: 'public',
           table: 'trip_media_index',
