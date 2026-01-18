@@ -638,31 +638,31 @@ export const TripHeader = ({
               </button>
             )}
 
-            <div className="mt-3 flex flex-wrap gap-1.5">
+            <div className="mt-3 flex flex-nowrap gap-1 overflow-x-auto scrollbar-hide">
               <button
                 onClick={() => setShowInvite(true)}
-                className={`flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200 hover:scale-105`}
+                className={`flex items-center justify-center gap-1 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white text-xs font-medium py-1.5 px-2 rounded-lg transition-all duration-200 hover:scale-105 shrink-0`}
                 title="Invite people to this trip"
               >
                 <Plus size={14} />
-                <span>Invite to Trip</span>
+                <span>Invite</span>
               </button>
 
               {/* Exit Trip - Always show, handler validates authentication */}
               <button
                 onClick={() => setShowExitConfirm(true)}
-                className="flex items-center justify-center gap-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200"
+                className="flex items-center justify-center gap-1 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-medium py-1.5 px-2 rounded-lg transition-all duration-200 shrink-0"
                 title="Leave this trip"
               >
                 <LogOut size={14} />
-                <span>Exit Trip</span>
+                <span>Exit</span>
               </button>
 
               <button
                 onClick={() => canExport && onShowExport?.()}
                 disabled={!canExport}
                 className={cn(
-                  'flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200',
+                  'flex items-center justify-center gap-1 text-xs font-medium py-1.5 px-2 rounded-lg transition-all duration-200 shrink-0',
                   canExport
                     ? `bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white hover:scale-105`
                     : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/50',
@@ -671,7 +671,7 @@ export const TripHeader = ({
                 aria-label="Create PDF Recap"
               >
                 <FileDown size={14} />
-                <span>PDF Recap</span>
+                <span>PDF</span>
               </button>
             </div>
           </div>

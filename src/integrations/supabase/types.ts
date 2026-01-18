@@ -3390,6 +3390,7 @@ export type Database = {
         Args: { _target_user_id: string; _trip_id: string }
         Returns: Json
       }
+      dismiss_join_request: { Args: { _request_id: string }; Returns: Json }
       ensure_trip_membership: {
         Args: { p_trip_id: string; p_user_id: string }
         Returns: boolean
