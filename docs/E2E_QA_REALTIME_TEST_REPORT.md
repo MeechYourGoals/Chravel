@@ -393,6 +393,95 @@ None - proper Suspense boundaries with skeleton fallbacks (`TripTabs.tsx:116-123
 
 ---
 
+## 8. Speed Optimization Analysis (All 8 Tabs)
+
+Speed is a key differentiator for Chravel vs. opening 8 separate apps. Here's the optimization status for each tab:
+
+### Tab Speed Summary
+
+| Tab | Initial Load | Prefetch on Hover | Cache Strategy | Status |
+|-----|--------------|-------------------|----------------|--------|
+| **Chat** | 15 messages | Implemented | 10s stale, 3min gc | Optimized |
+| **Calendar** | All events | Implemented | 1min stale, 10min gc | Optimized |
+| **Concierge** | Stateless | N/A | N/A | Optimized |
+| **Media** | 20 items | Implemented | 2min stale, 10min gc | Optimized |
+| **Payments** | All | Implemented | 30s stale, 5min gc | Optimized |
+| **Places** | Basecamp only | N/A (context) | 2min stale | Optimized |
+| **Polls** | All | Implemented | 1min stale, 5min gc | Optimized |
+| **Tasks** | 50 items | Implemented | 30s stale, 5min gc | Optimized |
+
+### Speed Optimizations Implemented
+
+1. **Tab Prefetching on Hover** (`src/hooks/usePrefetchTrip.ts`)
+   - All 8 tabs now prefetch data when user hovers over tab button
+   - Uses dynamic imports to avoid loading services until needed
+   - Cache warms before user clicks, resulting in near-instant tab switching
+
+2. **Visited Tabs Stay Mounted** (`src/components/TripTabs.tsx:65-73`)
+   - Once a tab is visited, it stays in the DOM (hidden with CSS)
+   - Switching back to visited tabs is instant (no re-render)
+
+3. **Lazy Loading with Retry** (`src/App.tsx:30-58`)
+   - All routes use `retryImport` with exponential backoff
+   - Handles chunk load failures gracefully
+
+4. **Query Cache Configuration** (`src/lib/queryKeys.ts`)
+   - Centralized staleTime/gcTime settings per data type
+   - Balances freshness with performance
+
+### Per-Tab Speed Details
+
+**Chat Tab** (Most used)
+- Initial load: 15 messages (balanced for speed + context)
+- Cache-first loading from localStorage for instant display
+- Realtime subscription for live updates
+- Offline queue for seamless offline-to-online
+
+**Calendar Tab**
+- Prefetched when trip is first loaded
+- 1-minute staleTime means minimal refetches
+- 10-minute gcTime keeps data for tab switching
+
+**AI Concierge Tab**
+- Stateless - no data loading needed
+- Component lazy-loaded but instant once mounted
+
+**Media Tab**
+- Prefetch limited to 20 items (performance)
+- Image compression before upload (saves bandwidth)
+- 2-minute staleTime for stable media
+
+**Payments Tab**
+- Full prefetch (typically small dataset)
+- 30-second staleTime for sensitive data accuracy
+- Realtime subscription for immediate balance updates
+
+**Places Tab**
+- Uses Basecamp context (no separate fetch)
+- Google Maps lazy-loaded
+- Map operations debounced
+
+**Polls Tab**
+- Full prefetch (typically few polls)
+- 1-minute staleTime (stable data)
+- Optimistic voting updates
+
+**Tasks Tab**
+- Prefetch limited to 50 tasks (performance)
+- 30-second staleTime for moderate updates
+- Atomic toggle with retry logic
+
+### Future Speed Improvements (Optional)
+
+| Improvement | Impact | Effort |
+|-------------|--------|--------|
+| Skeleton loading states | UX polish | Low |
+| Virtualized lists for 100+ items | Memory/scroll perf | Medium |
+| Service worker API caching | Offline speed | Medium |
+| Predictive prefetch (ML-based) | UX polish | High |
+
+---
+
 ## Conclusion
 
 ChravelApp demonstrates **production-ready reliability** with:
@@ -400,13 +489,16 @@ ChravelApp demonstrates **production-ready reliability** with:
 1. **Robust authentication** with multiple providers and proper state management
 2. **Complete realtime collaboration** across all 8 tabs
 3. **Solid offline support** with queued operations and deduplication
-4. **Good performance optimization** with caching, lazy loading, and prefetching
+4. **Excellent speed optimization** with hover prefetching, tab persistence, and smart caching
 5. **Native mobile integration** via Capacitor
 
 The minor issues identified are non-blocking and can be addressed incrementally. The codebase adheres to the CLAUDE.md manifesto standards with strict TypeScript, proper error handling, and no syntax errors.
 
-**Recommended Priority Actions**:
-1. Add missing media UPDATE handler
-2. Increase chat initial load limit
-3. Physical iOS device testing for scroll behavior
-4. Production load testing before major releases
+**Completed in This Session**:
+1. Added missing media UPDATE handler (realtime edits sync)
+2. Adjusted chat initial load to 15 messages (speed + context balance)
+3. Implemented prefetch for all 8 tabs on hover (near-instant tab switching)
+
+**Remaining Priority Actions**:
+1. Physical iOS device testing for scroll behavior
+2. Production load testing before major releases

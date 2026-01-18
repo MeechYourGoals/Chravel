@@ -72,10 +72,13 @@ export const usePrefetchTrip = () => {
   /**
    * Prefetch specific tab data when hovering over a tab button
    * Useful for instant tab switching within a trip
+   *
+   * ⚡ SPEED OPTIMIZATION: Warms cache before user clicks tab
    */
-  const prefetchTab = useCallback((tripId: string, tabId: string) => {
+  const prefetchTab = useCallback(async (tripId: string, tabId: string) => {
     if (isDemoMode) return;
 
+    // Dynamic imports to avoid loading services until needed
     switch (tabId) {
       case 'calendar':
         queryClient.prefetchQuery({
@@ -84,14 +87,96 @@ export const usePrefetchTrip = () => {
           staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
         });
         break;
-      // Add more tab-specific prefetching as services are updated
-      // case 'tasks':
-      //   queryClient.prefetchQuery({
-      //     queryKey: tripKeys.tasks(tripId),
-      //     queryFn: () => taskService.getTripTasks(tripId),
-      //     staleTime: QUERY_CACHE_CONFIG.tasks.staleTime,
-      //   });
-      //   break;
+
+      case 'chat':
+        // Prefetch chat messages - most common tab
+        const { supabase } = await import('@/integrations/supabase/client');
+        queryClient.prefetchQuery({
+          queryKey: tripKeys.chat(tripId),
+          queryFn: async () => {
+            const { data } = await supabase
+              .from('trip_chat_messages')
+              .select('*')
+              .eq('trip_id', tripId)
+              .eq('is_deleted', false)
+              .order('created_at', { ascending: false })
+              .limit(15);
+            return (data || []).reverse();
+          },
+          staleTime: QUERY_CACHE_CONFIG.chat.staleTime,
+        });
+        break;
+
+      case 'tasks':
+        // Prefetch tasks
+        const supabaseClient = (await import('@/integrations/supabase/client')).supabase;
+        queryClient.prefetchQuery({
+          queryKey: tripKeys.tasks(tripId, false),
+          queryFn: async () => {
+            const { data } = await supabaseClient
+              .from('trip_tasks')
+              .select('*, task_status(*), creator:creator_id(id, display_name, avatar_url)')
+              .eq('trip_id', tripId)
+              .order('created_at', { ascending: false })
+              .limit(50);
+            return data || [];
+          },
+          staleTime: QUERY_CACHE_CONFIG.tasks.staleTime,
+        });
+        break;
+
+      case 'polls':
+        // Prefetch polls
+        const sb = (await import('@/integrations/supabase/client')).supabase;
+        queryClient.prefetchQuery({
+          queryKey: tripKeys.polls(tripId),
+          queryFn: async () => {
+            const { data } = await sb
+              .from('trip_polls')
+              .select('*')
+              .eq('trip_id', tripId)
+              .order('created_at', { ascending: false });
+            return data || [];
+          },
+          staleTime: QUERY_CACHE_CONFIG.polls.staleTime,
+        });
+        break;
+
+      case 'media':
+        // Prefetch media - defer slightly as it's heavier
+        const supabaseMedia = (await import('@/integrations/supabase/client')).supabase;
+        queryClient.prefetchQuery({
+          queryKey: tripKeys.media(tripId),
+          queryFn: async () => {
+            const { data } = await supabaseMedia
+              .from('trip_media_index')
+              .select('*')
+              .eq('trip_id', tripId)
+              .order('created_at', { ascending: false })
+              .limit(20); // Limit initial media prefetch
+            return data || [];
+          },
+          staleTime: QUERY_CACHE_CONFIG.media.staleTime,
+        });
+        break;
+
+      case 'payments':
+        // Prefetch payments
+        const { paymentService } = await import('@/services/paymentService');
+        queryClient.prefetchQuery({
+          queryKey: tripKeys.payments(tripId),
+          queryFn: () => paymentService.getTripPaymentMessages(tripId),
+          staleTime: QUERY_CACHE_CONFIG.payments.staleTime,
+        });
+        break;
+
+      case 'places':
+        // Places uses basecamp context, minimal prefetch needed
+        break;
+
+      case 'concierge':
+        // AI Concierge is stateless, no prefetch needed
+        break;
     }
   }, [isDemoMode, queryClient]);
 

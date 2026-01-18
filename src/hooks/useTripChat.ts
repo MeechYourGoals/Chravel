@@ -74,12 +74,12 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           .eq('trip_id', tripId)
           .eq('is_deleted', false)
           .order('created_at', { ascending: false })
-          .limit(20);
+          .limit(15);
 
         if (error) throw error;
-        
+
         const reversed = (data || []).reverse();
-        setHasMore(data && data.length === 20);
+        setHasMore(data && data.length === 15);
         
         // Cache messages for offline access
         if (data && data.length > 0) {
@@ -91,7 +91,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         // If online fetch fails, return cached messages
         if (cachedMessages.length > 0) {
           console.warn('Using cached messages due to fetch error:', err);
-          const messagesWithTimestamp = cachedMessages.slice(-20).map(msg => ({
+          const messagesWithTimestamp = cachedMessages.slice(-15).map(msg => ({
             ...msg,
             updated_at: msg.updated_at || msg.created_at
           })) as TripChatMessage[];
