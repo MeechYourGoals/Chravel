@@ -180,9 +180,62 @@ export const usePrefetchTrip = () => {
     }
   }, [isDemoMode, queryClient]);
 
-  return { 
-    prefetch, 
+  /**
+   * ⚡ MOBILE OPTIMIZATION: Prefetch adjacent tabs when user visits a tab
+   * On mobile, users tap directly (no hover), so we prefetch neighboring tabs
+   * to anticipate their next action.
+   *
+   * @param tripId - The trip ID
+   * @param currentTabId - The tab the user just visited
+   * @param allTabIds - Array of all tab IDs in order
+   */
+  const prefetchAdjacentTabs = useCallback((tripId: string, currentTabId: string, allTabIds: string[]) => {
+    if (isDemoMode) return;
+
+    const currentIndex = allTabIds.indexOf(currentTabId);
+    if (currentIndex === -1) return;
+
+    // Get adjacent tab IDs (previous and next)
+    const adjacentTabs: string[] = [];
+    if (currentIndex > 0) adjacentTabs.push(allTabIds[currentIndex - 1]);
+    if (currentIndex < allTabIds.length - 1) adjacentTabs.push(allTabIds[currentIndex + 1]);
+
+    // Prefetch adjacent tabs with slight delay to not block current tab render
+    setTimeout(() => {
+      adjacentTabs.forEach(tabId => {
+        prefetchTab(tripId, tabId);
+      });
+    }, 150);
+  }, [isDemoMode, prefetchTab]);
+
+  /**
+   * ⚡ MOBILE/PWA OPTIMIZATION: Prefetch high-priority tabs on trip load
+   * Since mobile users can't hover, we prefetch the most commonly used tabs
+   * immediately when the trip loads.
+   *
+   * Priority order: Chat > Calendar > Tasks > Payments
+   */
+  const prefetchPriorityTabs = useCallback((tripId: string) => {
+    if (isDemoMode) return;
+
+    // Immediate: Chat (default tab)
+    prefetchTab(tripId, 'chat');
+
+    // After 200ms: Calendar (second most used)
+    setTimeout(() => prefetchTab(tripId, 'calendar'), 200);
+
+    // After 400ms: Tasks and Payments (frequently used)
+    setTimeout(() => {
+      prefetchTab(tripId, 'tasks');
+      prefetchTab(tripId, 'payments');
+    }, 400);
+  }, [isDemoMode, prefetchTab]);
+
+  return {
+    prefetch,
     prefetchExtended,
     prefetchTab,
+    prefetchAdjacentTabs,
+    prefetchPriorityTabs,
   };
 };

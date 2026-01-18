@@ -60,17 +60,32 @@ export const TripTabs = ({
   const { accentColors } = useTripVariant();
   const features = useFeatureToggle(tripData || {});
   const { isSuperAdmin } = useSuperAdmin();
-  const { prefetchTab } = usePrefetchTrip();
+  const { prefetchTab, prefetchAdjacentTabs, prefetchPriorityTabs } = usePrefetchTrip();
 
   // ⚡ PERFORMANCE: Track visited tabs to keep them mounted
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
 
-  // Mark current tab as visited when it changes
+  // Tab order for adjacent prefetching
+  const tabOrder = ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks'];
+
+  // ⚡ MOBILE/PWA OPTIMIZATION: Prefetch priority tabs on mount
+  // Since mobile users can't hover, we prefetch commonly used tabs immediately
+  useEffect(() => {
+    if (tripId) {
+      prefetchPriorityTabs(tripId);
+    }
+  }, [tripId, prefetchPriorityTabs]);
+
+  // Mark current tab as visited and prefetch adjacent tabs
   useEffect(() => {
     if (!visitedTabs.has(activeTab)) {
       setVisitedTabs(prev => new Set([...prev, activeTab]));
     }
-  }, [activeTab, visitedTabs]);
+    // ⚡ MOBILE OPTIMIZATION: Prefetch adjacent tabs when user visits a tab
+    if (tripId) {
+      prefetchAdjacentTabs(tripId, activeTab, tabOrder);
+    }
+  }, [activeTab, visitedTabs, tripId, prefetchAdjacentTabs]);
 
   // Handler for promoting URLs from Media to Trip Links
   const handlePromoteToTripLink = (urlData: NormalizedUrl) => {
@@ -220,6 +235,7 @@ export const TripTabs = ({
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id, enabled)}
                     onMouseEnter={() => enabled && handleTabHover(tab.id)}
+                    onTouchStart={() => enabled && handleTabHover(tab.id)}
                     onFocus={() => enabled && handleTabHover(tab.id)}
                     className={`
                       flex items-center justify-center gap-1.5 

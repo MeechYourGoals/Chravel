@@ -412,20 +412,41 @@ Speed is a key differentiator for Chravel vs. opening 8 separate apps. Here's th
 
 ### Speed Optimizations Implemented
 
+#### Desktop (Mouse/Hover)
+
 1. **Tab Prefetching on Hover** (`src/hooks/usePrefetchTrip.ts`)
    - All 8 tabs now prefetch data when user hovers over tab button
    - Uses dynamic imports to avoid loading services until needed
    - Cache warms before user clicks, resulting in near-instant tab switching
 
-2. **Visited Tabs Stay Mounted** (`src/components/TripTabs.tsx:65-73`)
+#### Mobile / PWA / Capacitor (Touch)
+
+2. **Touch Start Prefetch** (`src/components/TripTabs.tsx:238`)
+   - `onTouchStart` fires when finger touches tab (before tap completes)
+   - Gives ~100-200ms head start to prefetch before `onClick` fires
+   - Works on iOS Safari, Android Chrome, and Capacitor apps
+
+3. **Priority Tabs Prefetch on Trip Load** (`src/hooks/usePrefetchTrip.ts`)
+   - On trip mount, automatically prefetch: Chat → Calendar → Tasks → Payments
+   - Staggered timing (0ms, 200ms, 400ms) to not block initial render
+   - Mobile users get pre-warmed cache without needing hover
+
+4. **Adjacent Tabs Prefetch** (`src/hooks/usePrefetchTrip.ts`)
+   - When user visits any tab, prefetch the tabs immediately left and right
+   - Anticipates horizontal navigation pattern common on mobile
+   - 150ms delay to not block current tab render
+
+#### Universal Optimizations
+
+5. **Visited Tabs Stay Mounted** (`src/components/TripTabs.tsx:65-88`)
    - Once a tab is visited, it stays in the DOM (hidden with CSS)
    - Switching back to visited tabs is instant (no re-render)
 
-3. **Lazy Loading with Retry** (`src/App.tsx:30-58`)
+6. **Lazy Loading with Retry** (`src/App.tsx:30-58`)
    - All routes use `retryImport` with exponential backoff
    - Handles chunk load failures gracefully
 
-4. **Query Cache Configuration** (`src/lib/queryKeys.ts`)
+7. **Query Cache Configuration** (`src/lib/queryKeys.ts`)
    - Centralized staleTime/gcTime settings per data type
    - Balances freshness with performance
 
@@ -497,7 +518,10 @@ The minor issues identified are non-blocking and can be addressed incrementally.
 **Completed in This Session**:
 1. Added missing media UPDATE handler (realtime edits sync)
 2. Adjusted chat initial load to 15 messages (speed + context balance)
-3. Implemented prefetch for all 8 tabs on hover (near-instant tab switching)
+3. Implemented prefetch for all 8 tabs on hover (desktop)
+4. Added `onTouchStart` prefetch for mobile/PWA/Capacitor (touch devices)
+5. Added priority tabs prefetch on trip load (Chat, Calendar, Tasks, Payments)
+6. Added adjacent tabs prefetch when visiting any tab (anticipate navigation)
 
 **Remaining Priority Actions**:
 1. Physical iOS device testing for scroll behavior
