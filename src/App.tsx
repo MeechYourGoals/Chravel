@@ -160,10 +160,12 @@ const NativeLifecycleBridge = ({ client }: { client: QueryClient }) => {
   return null;
 };
 
-// ⚡ PERFORMANCE: Initialize demo mode synchronously at module load
-useDemoModeStore.getState().init();
-
 const App = () => {
+  // ⚡ PERFORMANCE: Initialize demo mode synchronously on first render (not at module load)
+  // Moving this inside the component prevents "dispatcher.useState" errors on some platforms
+  React.useMemo(() => {
+    useDemoModeStore.getState().init();
+  }, []);
   // Track app initialization performance
   const stopTiming = performanceService.startTiming('App Initialization');
   
