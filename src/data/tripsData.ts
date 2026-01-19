@@ -14,7 +14,7 @@ import yellowstoneHikingGroup from '../assets/trip-covers/yellowstone-hiking-gro
 import { getMockAvatar } from '../utils/mockAvatars';
 
 export interface TripParticipant {
-  id: number;
+  id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
   name: string;
   avatar: string;
 }

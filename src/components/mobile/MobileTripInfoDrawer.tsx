@@ -32,7 +32,10 @@ export const MobileTripInfoDrawer = ({
 }: MobileTripInfoDrawerProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent showClose={false} className="bg-black border border-white/10 max-w-[90vw] max-h-[85vh] flex flex-col p-0 gap-0">
+      <DialogContent 
+        showClose={false} 
+        className="!fixed !inset-x-0 !top-[env(safe-area-inset-top,3vh)] !bottom-0 !left-0 !right-0 !translate-x-0 !translate-y-0 bg-black border-t border-white/10 !max-w-full !w-full !rounded-t-2xl !rounded-b-none flex flex-col p-0 gap-0 animate-slide-in-from-bottom"
+      >
         <DialogHeader className="border-b border-white/10 p-3 flex-shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-white text-lg font-semibold">
@@ -52,7 +55,7 @@ export const MobileTripInfoDrawer = ({
           </div>
         </DialogHeader>
 
-        <div className="px-4 py-3 flex-1 overflow-y-auto">
+        <div className="px-4 py-3 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom,20px)]">
           <TripHeader
             trip={trip}
             onDescriptionUpdate={onDescriptionUpdate}

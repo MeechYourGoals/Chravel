@@ -395,9 +395,9 @@ export const TripHeader = ({
     <>
       {/* Cover Photo Hero (Consumer Only) - Always show for consumer trips */}
       {!isProOrEvent && (
-        <div className="relative mb-8 rounded-3xl overflow-hidden">
+        <div className="relative mb-4 md:mb-8 rounded-2xl md:rounded-3xl overflow-hidden">
           <div
-            className="aspect-[3/1] w-full bg-cover bg-center relative"
+            className="aspect-[16/9] md:aspect-[3/1] w-full bg-cover bg-center relative"
             style={{
               backgroundImage: coverPhoto ? `url(${coverPhoto})` : undefined,
               backgroundColor: !coverPhoto ? '#1a1a2e' : undefined,
@@ -414,9 +414,9 @@ export const TripHeader = ({
             ></div>
 
             {/* Trip info at bottom */}
-            <div className="absolute bottom-6 left-8 right-8 z-10">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-4xl font-bold text-white">{trip.title}</h1>
+            <div className="absolute bottom-3 left-4 right-4 md:bottom-6 md:left-8 md:right-8 z-10">
+              <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
+                <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-white line-clamp-2">{trip.title}</h1>
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <div className="flex items-center gap-2 text-white/90">
@@ -489,7 +489,7 @@ export const TripHeader = ({
       {/* Main Trip Info Section - Compact 75% height */}
       <div
         className={cn(
-          'relative rounded-3xl p-4 mb-3 overflow-hidden border border-white/20',
+          'relative rounded-2xl md:rounded-3xl p-3 md:p-4 mb-2 md:mb-3 overflow-hidden border border-white/20',
           hasCoverPhoto && isProOrEvent ? 'shadow-2xl' : 'bg-white/10 backdrop-blur-md',
         )}
       >

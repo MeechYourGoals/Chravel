@@ -14,7 +14,7 @@ interface TripsDataTrip {
   location: string;
   dateRange: string;
   description: string;
-  participants: Array<{ id: number; name: string; avatar: string }>;
+  participants: Array<{ id: number | string; name: string; avatar: string }>;
   coverPhoto?: string;
   enabled_features?: string[];
   trip_type?: 'consumer' | 'pro' | 'event';

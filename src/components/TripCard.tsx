@@ -33,7 +33,7 @@ import {
 } from './ui/dropdown-menu';
 
 interface Participant {
-  id: number;
+  id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
   name: string;
   avatar: string;
 }

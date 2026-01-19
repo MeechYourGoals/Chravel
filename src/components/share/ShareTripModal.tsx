@@ -4,7 +4,7 @@ import { X, Copy, Check, MapPin, Calendar, Users, Share2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
 interface Participant {
-  id: number;
+  id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
   name: string;
   avatar: string;
 }

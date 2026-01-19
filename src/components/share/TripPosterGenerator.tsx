@@ -2,13 +2,13 @@ import React from 'react';
 import { Calendar, MapPin, Users } from 'lucide-react';
 
 interface Participant {
-  id: number;
+  id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
   name: string;
   avatar: string;
 }
 
 interface Trip {
-  id: number;
+  id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
   title: string;
   location: string;
   dateRange: string;

@@ -39,7 +39,7 @@ interface Trip {
   location: string;
   dateRange: string;
   participants: Array<{
-    id: number;
+    id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
     name: string;
     avatar: string;
   }>;
