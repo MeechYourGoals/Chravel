@@ -55,14 +55,18 @@ export const MobileTripInfoDrawer = ({
           </div>
         </DialogHeader>
 
-        <div className="px-4 py-3 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom,20px)]">
-          <TripHeader
-            trip={trip}
-            onDescriptionUpdate={onDescriptionUpdate}
-            onShowExport={onShowExport}
-            category={category as ProTripCategory}
-            tags={tags}
-          />
+        {/* Split-pane layout: hero and details each get 50% of available height */}
+        <div className="flex-1 min-h-0 overflow-hidden px-4 py-3">
+          <div className="h-full min-h-0 flex flex-col gap-3 [&>[data-trip-section='hero']]:flex-1 [&>[data-trip-section='hero']]:min-h-[280px] [&>[data-trip-section='hero']]:mb-0 [&>[data-trip-section='details']]:flex-1 [&>[data-trip-section='details']]:min-h-0 [&>[data-trip-section='details']]:overflow-y-auto [&>[data-trip-section='details']]:mb-0">
+            <TripHeader
+              trip={trip}
+              onDescriptionUpdate={onDescriptionUpdate}
+              onShowExport={onShowExport}
+              category={category as ProTripCategory}
+              tags={tags}
+            />
+          </div>
+          <div className="pb-[env(safe-area-inset-bottom,20px)]"></div>
         </div>
       </DialogContent>
     </Dialog>
