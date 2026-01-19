@@ -1,5 +1,21 @@
 # Project: Chravel iOS App Store Submission Plan
 
+## 📊 Sprint Status
+
+| Sprint | Status | Documentation |
+|--------|--------|---------------|
+| **Sprint 1: Build & Signing** | ✅ Complete | See `IOS_RELEASE_MANUAL_STEPS.md` |
+| **Sprint 2: Privacy & Compliance** | ✅ Complete | See `SPRINT_2_MANUAL_STEPS.md` |
+| **Sprint 3: Monetization (RevenueCat / IAP)** | ✅ Complete | See `SPRINT_3_MANUAL_STEPS.md` |
+| **Sprint 4: Stability & Correctness** | ✅ Complete | See `SPRINT_4_MANUAL_STEPS.md` |
+| **Sprint 5: Performance & UX** | ✅ Complete | See `SPRINT_5_MANUAL_STEPS.md` |
+| **Sprint 6: App Store Submission Assets** | ✅ Complete | See `SPRINT_6_MANUAL_STEPS.md` |
+
+**Current Phase**: Ready for App Store submission
+**Next Action**: Complete Sprint 6 checklist and submit for App Store review
+
+---
+
 ## Sprint 1: Build & Signing
 
 - [ ] iOS: Replace test RevenueCat API key with production key
