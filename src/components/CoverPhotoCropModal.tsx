@@ -11,15 +11,17 @@ interface CoverPhotoCropModalProps {
   onClose: () => void;
   imageSrc: string;
   onCropComplete: (croppedBlob: Blob) => void;
+  aspectRatio?: number; // Allow customizing for different contexts (mobile drawer vs desktop header)
 }
 
-const COVER_ASPECT_RATIO = 3; // 3:1 ratio for trip header
+const DEFAULT_ASPECT_RATIO = 4 / 3; // 4:3 for taller mobile hero; pass 3 for desktop 3:1
 
 export const CoverPhotoCropModal = ({
   isOpen,
   onClose,
   imageSrc,
-  onCropComplete
+  onCropComplete,
+  aspectRatio = DEFAULT_ASPECT_RATIO
 }: CoverPhotoCropModalProps) => {
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<Crop>();
@@ -34,7 +36,7 @@ export const CoverPhotoCropModal = ({
     const initialCrop = centerCrop(
       makeAspectCrop(
         { unit: '%', width: 90 },
-        COVER_ASPECT_RATIO,
+        aspectRatio,
         naturalWidth,
         naturalHeight
       ),
@@ -148,7 +150,7 @@ export const CoverPhotoCropModal = ({
               crop={crop}
               onChange={(_, percentCrop) => setCrop(percentCrop)}
               onComplete={(_, percentCrop) => setCompletedCrop(percentCrop)}
-              aspect={COVER_ASPECT_RATIO}
+              aspect={aspectRatio}
               className="max-h-[400px]"
             >
               <img

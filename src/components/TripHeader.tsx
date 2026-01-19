@@ -412,30 +412,38 @@ export const TripHeader = ({
             backgroundColor: !coverPhoto ? '#1a1a2e' : undefined,
           }}
         >
-          {/* Gradient overlay - darker when no photo */}
+          {/* Gradient overlay - stronger at top and bottom for title/location readability */}
           <div
             className={cn(
               'absolute inset-0',
               coverPhoto
-                ? 'bg-gradient-to-t from-black/60 via-black/20 to-transparent'
-                : 'bg-gradient-to-t from-black/80 via-gray-900/90 to-gray-800/70',
+                ? 'bg-gradient-to-b from-black/50 via-transparent to-black/60'
+                : 'bg-gradient-to-b from-black/70 via-gray-900/60 to-black/70',
             )}
-          ></div>
+          />
 
-          {/* Trip info at bottom */}
-          <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-8 md:right-8 z-10">
-            <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
-              <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-white line-clamp-2">{trip.title}</h1>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <div className="flex items-center gap-2 text-white/90">
-                <MapPin size={18} />
-                <span>{trip.location}</span>
-              </div>
-              <div className="flex items-center gap-2 text-white/90">
-                <Calendar size={18} />
-                <span>{trip.dateRange}</span>
-              </div>
+          {/* Trip title at TOP-LEFT */}
+          <div className="absolute top-4 left-4 right-16 z-10">
+            <h1 className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg line-clamp-2">
+              {trip.title}
+            </h1>
+          </div>
+
+          {/* Location and dates at BOTTOM-LEFT */}
+          <div className="absolute bottom-4 left-4 right-20 z-10">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/90">
+              {trip.location && (
+                <span className="flex items-center gap-1">
+                  <MapPin size={14} className="text-primary" />
+                  {trip.location}
+                </span>
+              )}
+              {trip.dateRange && (
+                <span className="flex items-center gap-1">
+                  <Calendar size={14} className="text-primary" />
+                  {trip.dateRange}
+                </span>
+              )}
             </div>
           </div>
 
@@ -691,32 +699,34 @@ export const TripHeader = ({
               </button>
             )}
 
-            {/* Action buttons - centered horizontally */}
-            <div className="mt-3 flex flex-nowrap justify-center gap-2 overflow-x-auto scrollbar-hide">
+            {/* Action buttons - distributed layout */}
+            <div className="mt-3 flex flex-nowrap justify-between items-center overflow-x-auto scrollbar-hide">
+              {/* Left-aligned: Invite */}
               <button
                 onClick={() => setShowInvite(true)}
-                className={`flex items-center justify-center gap-1 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white text-xs font-medium py-1.5 px-2 rounded-lg transition-all duration-200 hover:scale-105 shrink-0`}
+                className={`flex items-center justify-center gap-1 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200 hover:scale-105 shrink-0`}
                 title="Invite people to this trip"
               >
                 <Plus size={14} />
                 <span>Invite</span>
               </button>
 
-              {/* Exit Trip - Always show, handler validates authentication */}
+              {/* Center: Leave Trip */}
               <button
                 onClick={() => setShowExitConfirm(true)}
-                className="flex items-center justify-center gap-1 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-medium py-1.5 px-2 rounded-lg transition-all duration-200 shrink-0"
+                className="flex items-center justify-center gap-1 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200 shrink-0"
                 title="Leave this trip"
               >
                 <LogOut size={14} />
-                <span>Exit</span>
+                <span>Leave Trip</span>
               </button>
 
+              {/* Right-aligned: PDF Recap */}
               <button
                 onClick={() => canExport && onShowExport?.()}
                 disabled={!canExport}
                 className={cn(
-                  'flex items-center justify-center gap-1 text-xs font-medium py-1.5 px-2 rounded-lg transition-all duration-200 shrink-0',
+                  'flex items-center justify-center gap-1 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200 shrink-0',
                   canExport
                     ? `bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white hover:scale-105`
                     : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/50',
@@ -725,7 +735,7 @@ export const TripHeader = ({
                 aria-label="Create PDF Recap"
               >
                 <FileDown size={14} />
-                <span>PDF</span>
+                <span>PDF Recap</span>
               </button>
             </div>
           </div>

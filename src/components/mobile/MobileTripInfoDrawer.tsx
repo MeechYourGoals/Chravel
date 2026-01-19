@@ -57,7 +57,7 @@ export const MobileTripInfoDrawer = ({
 
         {/* Split-pane layout: hero and details each get 50% of available height via CSS Grid */}
         <div className="flex-1 min-h-0 overflow-hidden px-4 py-3">
-          <div className="h-full min-h-0 grid grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+          <div className="h-full min-h-0 grid grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
             <TripHeader
               trip={trip}
               onDescriptionUpdate={onDescriptionUpdate}
