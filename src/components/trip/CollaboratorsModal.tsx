@@ -146,7 +146,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>All Collaborators</DialogTitle>
+          <DialogTitle>Trip Members</DialogTitle>
         </DialogHeader>
 
         {/* Tab Navigation - Always visible for consistent UX across all viewports */}
@@ -186,7 +186,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
         <div className="mt-4 max-h-[60vh] overflow-auto pr-1">
           {activeTab === 'members' ? (
             // Members List
-            <div role="list" aria-label="All collaborators">
+            <div role="list" aria-label="All members">
               {participants.map(c => {
                 const idStr = c.id.toString();
                 const isCreator = idStr === tripCreatorId || c.isCreator;
@@ -318,7 +318,10 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                               </span>
                               {mightBeOrphaned && (
                                 <span title="User may have deleted their account">
-                                  <AlertTriangle size={14} className="text-yellow-500 flex-shrink-0" />
+                                  <AlertTriangle
+                                    size={14}
+                                    className="text-yellow-500 flex-shrink-0"
+                                  />
                                 </span>
                               )}
                             </div>

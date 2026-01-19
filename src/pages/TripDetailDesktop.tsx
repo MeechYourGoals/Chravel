@@ -50,8 +50,15 @@ export const TripDetailDesktop = () => {
   const queryClient = useQueryClient();
 
   // ⚡ PERFORMANCE: Use unified hook for parallel data fetching with TanStack Query cache
-  const { trip, tripMembers, tripCreatorId, isLoading: loading } = useTripDetailData(tripId);
-  
+  // 🔄 FIX: Also get isMembersLoading to prevent "0 members" flash during loading
+  const {
+    trip,
+    tripMembers,
+    tripCreatorId,
+    isLoading: loading,
+    isMembersLoading,
+  } = useTripDetailData(tripId);
+
   // 🔄 Keep useTripMembers for member management actions (canRemoveMembers, removeMember, leaveTrip)
   const { canRemoveMembers, removeMember, leaveTrip } = useTripMembers(tripId);
 
@@ -120,23 +127,29 @@ export const TripDetailDesktop = () => {
 
   // ⚡ OPTIMIZATION: Memoize trip data to prevent regeneration on every render
   // 🔄 CRITICAL FIX: Merge real trip members for authenticated trips
+  // 🔄 FIX: For authenticated trips, trip.participants is always [] (loaded separately via trip_members)
+  // So we must use tripMembers directly and rely on loading state to prevent "0" flash
   const tripWithUpdatedData = React.useMemo(() => {
     if (!trip) return null;
+
+    // For demo mode, trip.participants is populated from static mock data
+    // For authenticated mode, participants come from tripMembers (trip.participants is always [])
+    const resolvedParticipants = isDemoMode
+      ? trip.participants
+      : tripMembers.map(m => ({
+          id: m.id as string | number,
+          name: m.name,
+          avatar: m.avatar || '',
+          role: 'member',
+        }));
+
     return {
       ...trip,
       title: tripData.title || trip.title,
       location: tripData.location || trip.location,
       dateRange: tripData.dateRange || trip.dateRange,
       description: tripDescription || trip.description,
-      // Merge real trip members for authenticated trips instead of empty array
-      participants: isDemoMode
-        ? trip.participants
-        : (tripMembers.map(m => ({
-            id: m.id as any, // UUID strings for authenticated trips
-            name: m.name,
-            avatar: m.avatar || '',
-            role: 'member',
-          })) as any),
+      participants: resolvedParticipants,
     };
   }, [
     trip,
@@ -447,6 +460,8 @@ export const TripDetailDesktop = () => {
             preloadedCanRemoveMembers={canRemoveMembers}
             preloadedRemoveMember={removeMember}
             preloadedLeaveTrip={leaveTrip}
+            // 🔄 FIX: Pass loading state to prevent "0 members" flash
+            isMembersLoading={isMembersLoading}
           />
         </Suspense>
 

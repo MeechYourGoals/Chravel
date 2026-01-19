@@ -18,6 +18,7 @@ interface CollaboratorsGridProps {
   tripType?: 'consumer' | 'pro' | 'event';
   displayContext?: 'home' | 'trip-detail'; // Controls whether to show avatars or initials
   pendingRequestsCount?: number; // Badge for pending requests (admins only)
+  hideBottomRow?: boolean; // Hide the count label and "Show all" row (when integrated into header)
 }
 
 export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
@@ -29,14 +30,16 @@ export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
   tripType = 'consumer',
   displayContext = 'trip-detail',
   pendingRequestsCount = 0,
+  hideBottomRow = false,
 }) => {
   // Determine whether to show avatars or initials
   // Events: always show initials only (privacy)
   // Consumer & Pro: show avatars in trip-detail, initials on home
   const showAvatars = tripType !== 'event' && displayContext === 'trip-detail';
-  
-  // Approximate clamp height: each row ~ 52px with compact sizing
-  const clampHeight = Math.max(52, Math.min(160, maxRows * 52));
+
+  // Approximate clamp height: each row ~ 44px with compact sizing
+  // 🔄 FIX: Show at least 3 members on mobile by allowing ~2 rows (88px min)
+  const clampHeight = Math.max(88, Math.min(160, maxRows * 52));
 
   return (
     <section aria-labelledby="collab-title" className="relative">
@@ -51,30 +54,30 @@ export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
           role="list"
           aria-label="Collaborators"
         >
-          {participants.map((c) => (
+          {participants.map(c => (
             <button
               key={c.id}
               className="group inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 transition w-auto shrink-0 max-w-[200px]"
               role="listitem"
               title={c.role ? `${c.name} • ${c.role}` : c.name}
             >
-            {showAvatars && isValidAvatarUrl(c.avatar) ? (
-              <img
-                src={c.avatar}
-                alt={c.name}
-                className="h-7 w-7 rounded-full object-cover border border-white/20 shrink-0"
-                loading="lazy"
-              />
-            ) : (
-              <div className="h-7 w-7 rounded-full bg-white/10 text-white/80 grid place-items-center text-[10px] font-semibold border border-white/20 shrink-0">
-                {getInitials(c.name)}
-              </div>
-            )}
-            <div className="min-w-0 text-left">
-              <div className="truncate text-xs font-medium text-white">{formatCollaboratorName(c.name, tripType)}</div>
-                {c.role && (
-                  <div className="truncate text-[10px] text-gray-400">{c.role}</div>
-                )}
+              {showAvatars && isValidAvatarUrl(c.avatar) ? (
+                <img
+                  src={c.avatar}
+                  alt={c.name}
+                  className="h-7 w-7 rounded-full object-cover border border-white/20 shrink-0"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="h-7 w-7 rounded-full bg-white/10 text-white/80 grid place-items-center text-[10px] font-semibold border border-white/20 shrink-0">
+                  {getInitials(c.name)}
+                </div>
+              )}
+              <div className="min-w-0 text-left">
+                <div className="truncate text-xs font-medium text-white">
+                  {formatCollaboratorName(c.name, tripType)}
+                </div>
+                {c.role && <div className="truncate text-[10px] text-gray-400">{c.role}</div>}
               </div>
             </button>
           ))}
@@ -84,16 +87,19 @@ export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/60 to-transparent rounded-b-lg" />
       </div>
 
-      <div className="mt-2 flex items-center justify-between">
-        <div className="text-xs text-gray-400">{countLabel}</div>
-        <button
-          className="text-xs font-medium underline text-gray-200 hover:text-white"
-          onClick={onShowAll}
-          aria-label="Show all collaborators"
-        >
-          Show all
-        </button>
-      </div>
+      {/* Bottom row - conditionally hidden when integrated into parent header */}
+      {!hideBottomRow && (
+        <div className="mt-2 flex items-center justify-between">
+          <div className="text-xs text-gray-400">{countLabel}</div>
+          <button
+            className="text-xs font-medium underline text-gray-200 hover:text-white"
+            onClick={onShowAll}
+            aria-label="Show all members"
+          >
+            Show all
+          </button>
+        </div>
+      )}
     </section>
   );
 };

@@ -24,7 +24,7 @@ interface UseTripDetailDataResult {
 
 /**
  * ⚡ PERFORMANCE: Unified hook for Trip Detail data fetching
- * 
+ *
  * Benefits:
  * - Parallel fetching of trip + members (no waterfall)
  * - TanStack Query cache integration (prefetch hits work)
@@ -39,8 +39,8 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   const shouldUseDemoPath = isDemoMode && isNumericId;
 
   // Get demo members from store for numeric trip IDs
-  const demoAddedMembersCount = useDemoTripMembersStore(state => 
-    tripId ? (state.addedMembers[tripId]?.length || 0) : 0
+  const demoAddedMembersCount = useDemoTripMembersStore(state =>
+    tripId ? state.addedMembers[tripId]?.length || 0 : 0,
   );
 
   // ⚡ PRIORITY 1: Trip data - gates rendering
@@ -56,8 +56,9 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   });
 
   // ⚡ PRIORITY 2: Members data - can render progressively
+  // 🔄 FIX: Include demoAddedMembersCount in query key to invalidate cache when demo members change
   const membersQuery = useQuery({
-    queryKey: tripKeys.members(tripId!),
+    queryKey: [...tripKeys.members(tripId!), demoAddedMembersCount],
     queryFn: async () => {
       return await tripService.getTripMembersWithCreator(tripId!);
     },
@@ -70,10 +71,10 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   if (shouldUseDemoPath && tripId) {
     const tripIdNum = parseInt(tripId, 10);
     const mockTrip = getDemoTripById(tripIdNum);
-    
+
     // Get demo members
     const demoMembers = getMockFallbackMembers(tripId);
-    
+
     return {
       trip: mockTrip || null,
       tripMembers: demoMembers,
@@ -108,17 +109,18 @@ function getMockFallbackMembers(tripId: string): TripMember[] {
   const trip = getDemoTripById(numericTripId);
 
   // Get base participants from static mock data
-  const baseMembers: TripMember[] = trip && trip.participants
-    ? trip.participants.map((participant, index) => ({
-        id: participant.id.toString(),
-        name: participant.name,
-        avatar: participant.avatar,
-        isCreator: index === 0
-      }))
-    : [
-        { id: 'user1', name: 'You', isCreator: true },
-        { id: 'user2', name: 'Trip Organizer' }
-      ];
+  const baseMembers: TripMember[] =
+    trip && trip.participants
+      ? trip.participants.map((participant, index) => ({
+          id: participant.id.toString(),
+          name: participant.name,
+          avatar: participant.avatar,
+          isCreator: index === 0,
+        }))
+      : [
+          { id: 'user1', name: 'You', isCreator: true },
+          { id: 'user2', name: 'Trip Organizer' },
+        ];
 
   // Get any members added at runtime
   const addedMembers = useDemoTripMembersStore.getState().getAddedMembers(tripId);
@@ -126,7 +128,7 @@ function getMockFallbackMembers(tripId: string): TripMember[] {
     id: m.id.toString(),
     name: m.name,
     avatar: m.avatar,
-    isCreator: false
+    isCreator: false,
   }));
 
   // Merge avoiding duplicates
