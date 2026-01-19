@@ -4,7 +4,9 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { ZoomIn, ZoomOut, Check, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, Check, X, Focus, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { detectFocalPoint, focalPointToCrop } from '@/services/focalPointService';
 
 interface CoverPhotoCropModalProps {
   isOpen: boolean;
@@ -27,6 +29,7 @@ export const CoverPhotoCropModal = ({
   const [completedCrop, setCompletedCrop] = useState<Crop>();
   const [scale, setScale] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDetecting, setIsDetecting] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -46,7 +49,51 @@ export const CoverPhotoCropModal = ({
     
     setCrop(initialCrop);
     setCompletedCrop(initialCrop);
-  }, []);
+  }, [aspectRatio]);
+
+  // Smart focal point detection
+  const handleAutoDetect = useCallback(async () => {
+    if (!imgRef.current) return;
+
+    setIsDetecting(true);
+    try {
+      const { focalPoint, faceCount } = await detectFocalPoint(imgRef.current);
+      const image = imgRef.current;
+
+      // Convert focal point to crop position
+      const newCrop = focalPointToCrop(
+        focalPoint,
+        image.naturalWidth,
+        image.naturalHeight,
+        aspectRatio
+      );
+
+      const percentCrop: Crop = {
+        unit: '%',
+        x: newCrop.x,
+        y: newCrop.y,
+        width: newCrop.width,
+        height: newCrop.height,
+      };
+
+      setCrop(percentCrop);
+      setCompletedCrop(percentCrop);
+
+      // Show feedback toast
+      if (focalPoint.confidence === 'face') {
+        toast.success(`Positioned on ${faceCount} detected face${faceCount > 1 ? 's' : ''}`);
+      } else if (focalPoint.confidence === 'saliency') {
+        toast.success('Positioned on point of interest');
+      } else {
+        toast.info('Using rule of thirds positioning');
+      }
+    } catch (error) {
+      console.error('Focal point detection failed:', error);
+      toast.error('Auto-detect failed, please position manually');
+    } finally {
+      setIsDetecting(false);
+    }
+  }, [aspectRatio]);
 
   const updatePreview = useCallback(() => {
     if (!completedCrop || !imgRef.current || !previewCanvasRef.current) return;
@@ -165,7 +212,7 @@ export const CoverPhotoCropModal = ({
             </ReactCrop>
           </div>
 
-          {/* Zoom Control */}
+          {/* Zoom & Auto-detect Controls */}
           <div className="flex items-center gap-4 px-2">
             <ZoomOut size={18} className="text-muted-foreground flex-shrink-0" />
             <Slider
@@ -178,6 +225,22 @@ export const CoverPhotoCropModal = ({
             />
             <ZoomIn size={18} className="text-muted-foreground flex-shrink-0" />
             <span className="text-sm text-muted-foreground w-12 flex-shrink-0">{scale.toFixed(1)}x</span>
+            
+            {/* Auto-detect Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAutoDetect}
+              disabled={isDetecting || isProcessing}
+              className="flex-shrink-0 gap-1.5"
+            >
+              {isDetecting ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Focus size={14} />
+              )}
+              <span className="hidden sm:inline">Auto-detect</span>
+            </Button>
           </div>
 
           {/* Preview */}

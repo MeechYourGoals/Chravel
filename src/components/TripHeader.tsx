@@ -12,10 +12,12 @@ import {
   Crop,
   LogOut,
   AlertTriangle,
+  Expand,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { InviteModal } from './InviteModal';
 import { CoverPhotoCropModal } from './CoverPhotoCropModal';
+import { CoverPhotoFullscreenModal } from './CoverPhotoFullscreenModal';
 import { EditableDescription } from './EditableDescription';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { useTripCoverPhoto } from '../hooks/useTripCoverPhoto';
@@ -153,6 +155,7 @@ export const TripHeader = ({
   const [isUploading, setIsUploading] = useState(false);
   const [showCropModal, setShowCropModal] = useState(false);
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [showCoverLightbox, setShowCoverLightbox] = useState(false);
 
   // Fetch pending join requests
   const {
@@ -412,10 +415,26 @@ export const TripHeader = ({
             backgroundColor: !coverPhoto ? '#1a1a2e' : undefined,
           }}
         >
+          {/* Tap-to-expand overlay for drawer mode with cover photo */}
+          {drawerLayout && coverPhoto && (
+            <button
+              onClick={() => setShowCoverLightbox(true)}
+              className="absolute inset-0 z-[5] cursor-pointer"
+              aria-label="View full cover photo"
+            />
+          )}
+
+          {/* Expand icon hint - only in drawer mode with cover photo */}
+          {drawerLayout && coverPhoto && (
+            <div className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-black/40 backdrop-blur-sm pointer-events-none">
+              <Expand size={16} className="text-white/80" />
+            </div>
+          )}
+
           {/* Gradient overlay - stronger at top and bottom for title/location readability */}
           <div
             className={cn(
-              'absolute inset-0',
+              'absolute inset-0 pointer-events-none',
               coverPhoto
                 ? 'bg-gradient-to-b from-black/50 via-transparent to-black/60'
                 : 'bg-gradient-to-b from-black/70 via-gray-900/60 to-black/70',
@@ -822,6 +841,16 @@ export const TripHeader = ({
           onClose={handleCropCancel}
           imageSrc={cropImageSrc}
           onCropComplete={handleCropComplete}
+        />
+      )}
+
+      {/* Cover Photo Fullscreen Lightbox */}
+      {coverPhoto && (
+        <CoverPhotoFullscreenModal
+          isOpen={showCoverLightbox}
+          onClose={() => setShowCoverLightbox(false)}
+          imageSrc={coverPhoto}
+          tripName={trip.title}
         />
       )}
 
