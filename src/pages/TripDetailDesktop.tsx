@@ -127,27 +127,21 @@ export const TripDetailDesktop = () => {
 
   // ⚡ OPTIMIZATION: Memoize trip data to prevent regeneration on every render
   // 🔄 CRITICAL FIX: Merge real trip members for authenticated trips
-  // 🔄 FIX: Use trip.participants as fallback when members are loading to prevent "0" flash
+  // 🔄 FIX: For authenticated trips, trip.participants is always [] (loaded separately via trip_members)
+  // So we must use tripMembers directly and rely on loading state to prevent "0" flash
   const tripWithUpdatedData = React.useMemo(() => {
     if (!trip) return null;
 
-    // For authenticated trips, map tripMembers to participants format
-    // Fall back to trip.participants if members are still loading to prevent "0" flash
-    let resolvedParticipants;
-    if (isDemoMode) {
-      resolvedParticipants = trip.participants;
-    } else if (isMembersLoading || tripMembers.length === 0) {
-      // Use trip.participants as fallback during loading or if empty
-      // This ensures we show existing participants rather than "0"
-      resolvedParticipants = trip.participants;
-    } else {
-      resolvedParticipants = tripMembers.map(m => ({
-        id: m.id as string | number,
-        name: m.name,
-        avatar: m.avatar || '',
-        role: 'member',
-      }));
-    }
+    // For demo mode, trip.participants is populated from static mock data
+    // For authenticated mode, participants come from tripMembers (trip.participants is always [])
+    const resolvedParticipants = isDemoMode
+      ? trip.participants
+      : tripMembers.map(m => ({
+          id: m.id as string | number,
+          name: m.name,
+          avatar: m.avatar || '',
+          role: 'member',
+        }));
 
     return {
       ...trip,
@@ -165,7 +159,6 @@ export const TripDetailDesktop = () => {
     tripDescription,
     isDemoMode,
     tripMembers,
-    isMembersLoading,
   ]);
 
   // Generate dynamic mock data based on the trip - MEMOIZED for performance

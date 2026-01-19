@@ -628,15 +628,36 @@ export const TripHeader = ({
               </div>
             )}
 
-            <CollaboratorsGrid
-              participants={mergedParticipants}
-              onShowAll={() => setShowAllCollaborators(true)}
-              maxRows={1}
-              minColWidth={120}
-              tripType={trip.trip_type || 'consumer'}
-              pendingRequestsCount={isAdmin ? pendingRequests.length : 0}
-              hideBottomRow
-            />
+            {/* Show skeleton chips when loading members for authenticated trips */}
+            {isMembersLoading && mergedParticipants.length === 0 ? (
+              <div
+                className="flex flex-wrap gap-2"
+                style={{ maxHeight: '88px', overflow: 'hidden' }}
+              >
+                {[1, 2, 3].map(i => (
+                  <div
+                    key={i}
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 w-[140px] animate-pulse"
+                  >
+                    <div className="h-7 w-7 rounded-full bg-white/10 shrink-0" />
+                    <div className="flex-1 space-y-1">
+                      <div className="h-3 bg-white/10 rounded w-16" />
+                      <div className="h-2 bg-white/10 rounded w-10" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <CollaboratorsGrid
+                participants={mergedParticipants}
+                onShowAll={() => setShowAllCollaborators(true)}
+                maxRows={1}
+                minColWidth={120}
+                tripType={trip.trip_type || 'consumer'}
+                pendingRequestsCount={isAdmin ? pendingRequests.length : 0}
+                hideBottomRow
+              />
+            )}
 
             {/* Pending Requests Alert - only shown when admin has requests to review */}
             {pendingRequests.length > 0 && isAdmin && (
