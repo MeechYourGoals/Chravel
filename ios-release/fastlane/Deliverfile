@@ -71,6 +71,15 @@ secondary_category("Productivity")
 # Price tier (0 = Free)
 price_tier(0)
 
+# Privacy policy URL
+privacy_url("https://chravel.app/privacy")
+
+# App Store marketing URL
+app_url("https://chravel.app")
+
+# Support URL
+support_url("https://chravel.app/support")
+
 # App review information
 app_review_information(
   first_name: "Chravel",

@@ -1,0 +1,713 @@
+# Project: Chravel iOS App Store Submission Plan
+
+## Sprint 1: Build & Signing
+
+- [ ] iOS: Replace test RevenueCat API key with production key
+  - Acceptance criteria
+    - Production API key obtained from RevenueCat dashboard
+    - Key updated in `AppDelegate.swift` and environment variables
+    - Test subscription flow works with production key in sandbox environment
+    - Entitlements sync correctly to Supabase
+  - Touchpoints
+    - `/ios/App/App/AppDelegate.swift` (line with `test_QqVXiOnWgmxTHaMKTUiCrOpYMDm`)
+    - `/src/constants/revenuecat.ts`
+    - GitHub Secrets: `REVENUECAT_API_KEY_IOS`
+  - Test notes
+    - Manual device testing on TestFlight with sandbox purchases
+    - Verify entitlements appear in Supabase `user_entitlements` table
+    - Confirm no regression in existing web subscription flows
+
+- [ ] iOS: Update APNs environment from development to production
+  - Acceptance criteria
+    - `App.entitlements` updated to `production` environment
+    - Push notification certificates generated in Apple Developer Portal
+    - Edge function secrets updated with production APNs credentials
+    - Test push notification delivered on production build
+  - Touchpoints
+    - `/ios/App/App/App.entitlements` (line with `aps-environment`)
+    - `/supabase/functions/send-push/index.ts`
+    - Supabase Edge Function secrets: `APNS_ENVIRONMENT`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY`
+  - Test notes
+    - Send test notification via Supabase function to production-signed device
+    - Verify notification appears with correct deep link routing
+    - Confirm no regression in notification preferences or quiet hours
+
+- [ ] iOS: Configure code signing with App Store distribution certificate
+  - Acceptance criteria
+    - Distribution certificate generated and downloaded from Apple Developer Portal
+    - Certificate and provisioning profile added to GitHub Secrets (base64 encoded)
+    - Fastlane Match configured for automatic certificate management
+    - Xcode project updated with manual code signing settings
+    - Build succeeds in GitHub Actions CI
+  - Touchpoints
+    - `/ios-release/fastlane/Matchfile`
+    - `/ios-release/fastlane/Appfile`
+    - GitHub Secrets: `APPLE_CERTIFICATE_BASE64`, `APPLE_CERTIFICATE_PASSWORD`, `PROVISIONING_PROFILE_BASE64`, `MATCH_GIT_URL`, `MATCH_PASSWORD`
+    - `/ios/App/App.xcodeproj/project.pbxproj`
+  - Test notes
+    - Run `fastlane build` locally to verify signing works
+    - Trigger GitHub Actions workflow to build IPA artifact
+    - Confirm IPA can be uploaded to TestFlight
+
+- [ ] iOS: Verify bundle ID and app name match App Store Connect
+  - Acceptance criteria
+    - Bundle ID `com.chravel.app` matches App Store Connect record
+    - App name "Chravel" matches product name in App Store Connect
+    - `capacitor.config.ts` references correct environment variables
+    - Info.plist bundle display name matches
+  - Touchpoints
+    - `/capacitor.config.ts` (appId, appName)
+    - `/ios/App/App/Info.plist` (CFBundleDisplayName)
+    - `.env.production.example` (IOS_BUNDLE_ID, IOS_APP_NAME)
+  - Test notes
+    - Build app and verify bundle ID on device via Xcode Devices window
+    - Install on device and verify app name appears correctly on home screen
+    - Confirm no conflicting bundle IDs in Xcode project settings
+
+- [ ] iOS: Update marketing version and build number
+  - Acceptance criteria
+    - Marketing version set to 1.0.0 (or target version)
+    - Build number incremented to 1 (or next available)
+    - Version bump script tested via Fastlane
+    - Version displayed correctly in Settings > About section (if applicable)
+  - Touchpoints
+    - `/ios/App/App.xcodeproj/project.pbxproj` (MARKETING_VERSION, CURRENT_PROJECT_VERSION)
+    - `/ios-release/fastlane/Fastfile` (bump_version, bump_build lanes)
+  - Test notes
+    - Run `fastlane bump_version version:1.0.0`
+    - Run `fastlane bump_build`
+    - Build app and verify version appears in app UI or logs
+    - Confirm version matches App Store Connect metadata
+
+- [ ] CI: Validate GitHub Actions iOS release pipeline
+  - Acceptance criteria
+    - All required secrets added to GitHub repository
+    - Pipeline triggers on manual dispatch and git tags
+    - Build job succeeds and uploads IPA artifact
+    - TestFlight upload job succeeds (test with sandbox build)
+    - Pipeline documented in repository README
+  - Touchpoints
+    - `/.github/workflows/ios-release.yml`
+    - GitHub Secrets (see RELEASE_CHECKLIST.md for full list)
+    - `/ios-release/docs/RELEASE_CHECKLIST.md`
+  - Test notes
+    - Trigger workflow manually with test build
+    - Verify IPA artifact downloadable from workflow run
+    - Confirm TestFlight build appears in App Store Connect within 10 minutes
+    - Run full release workflow dry-run with production settings
+
+## Sprint 2: Privacy & Compliance
+
+- [ ] Compliance: Add NSCameraUsageDescription to Info.plist
+  - Acceptance criteria
+    - Camera usage description matches Apple guidelines (specific, user-centric)
+    - Description already present: "Chravel uses the camera to capture photos and videos you choose to share with your trips."
+    - No changes needed unless description requires refinement
+    - Camera permission request tested on device
+  - Touchpoints
+    - `/ios/App/App/Info.plist` (NSCameraUsageDescription)
+  - Test notes
+    - Trigger camera access via media upload in chat or media tab
+    - Verify permission dialog shows correct description
+    - Confirm camera access works after granting permission
+
+- [ ] Compliance: Add NSPhotoLibraryUsageDescription to Info.plist
+  - Acceptance criteria
+    - Photo library usage description matches Apple guidelines
+    - Description already present: "Chravel needs access to your photo library so you can upload photos and videos to trip chats and shared albums."
+    - No changes needed unless description requires refinement
+    - Photo library permission tested on device
+  - Touchpoints
+    - `/ios/App/App/Info.plist` (NSPhotoLibraryUsageDescription)
+  - Test notes
+    - Trigger photo library access via media upload
+    - Verify permission dialog shows correct description
+    - Confirm photo selection and upload works
+
+- [ ] Compliance: Add NSLocationWhenInUseUsageDescription to Info.plist
+  - Acceptance criteria
+    - Location usage description matches Apple guidelines
+    - Description already present: "Chravel uses your location (only while you're using the app) for optional location sharing and to help coordinate meetups during a trip."
+    - Clarify that location is optional and explain specific use cases
+    - Location permission tested
+  - Touchpoints
+    - `/ios/App/App/Info.plist` (NSLocationWhenInUseUsageDescription)
+    - `/src/native/permissions.ts`
+  - Test notes
+    - Trigger location permission via Places tab or map interaction
+    - Verify permission dialog shows correct description
+    - Confirm location features work when permission granted
+    - Verify app functions correctly when permission denied
+
+- [ ] Compliance: Configure App Store privacy manifest
+  - Acceptance criteria
+    - Privacy manifest created with required API disclosures
+    - Tracking domains declared (if any analytics/ads present)
+    - Data collection types documented (user data, usage data)
+    - Third-party SDKs privacy disclosures added (Google Maps, RevenueCat, Supabase)
+    - Privacy nutrition labels match app capabilities
+  - Touchpoints
+    - `/ios/App/App/PrivacyInfo.xcprivacy` (create if missing)
+    - App Store Connect privacy questionnaire
+  - Test notes
+    - Validate privacy manifest syntax with Xcode
+    - Review data collection types against app functionality
+    - Confirm all third-party SDK disclosures complete
+    - Submit test build to TestFlight and verify no privacy warnings
+
+- [ ] Compliance: Update App Store privacy URL
+  - Acceptance criteria
+    - Privacy policy URL points to live, accessible page
+    - URL already configured: `https://chravel.app/privacy`
+    - Privacy policy content covers all data collection practices
+    - Policy updated to reflect iOS-specific features (push notifications, location, camera, photo library)
+  - Touchpoints
+    - `/ios-release/fastlane/Deliverfile` (privacy_url)
+    - `https://chravel.app/privacy` (web page)
+  - Test notes
+    - Verify privacy URL loads successfully
+    - Review privacy policy completeness against app features
+    - Confirm policy language matches App Store privacy questionnaire responses
+    - Check for GDPR/CCPA compliance sections
+
+- [ ] Compliance: Verify Associated Domains entitlement configuration
+  - Acceptance criteria
+    - `applinks:chravel.app` configured for Universal Links
+    - `webcredentials:chravel.app` configured for Sign in with Apple
+    - AASA file deployed at `https://chravel.app/.well-known/apple-app-site-association`
+    - AASA file contains correct bundle ID and paths
+    - Universal Links tested from Safari and Messages
+  - Touchpoints
+    - `/ios/App/App/App.entitlements` (com.apple.developer.associated-domains)
+    - `/.well-known/apple-app-site-association` (deployed via Vercel)
+    - `/vercel.json` (rewrites for AASA)
+  - Test notes
+    - Open `https://chravel.app/join/{inviteCode}` in Safari on device
+    - Verify app opens automatically (not browser)
+    - Test deep link to trip: `https://chravel.app/trip/{tripId}`
+    - Confirm Sign in with Apple credential autofill works
+
+- [ ] Compliance: Add App Store review notes for demo account
+  - Acceptance criteria
+    - Demo account credentials provided: `demo@chravel.app` / password
+    - Review notes explain app features requiring authentication
+    - Special instructions for testing trip creation, invites, and chat
+    - Notes mention RevenueCat sandbox environment for IAP testing
+  - Touchpoints
+    - `/ios-release/fastlane/Deliverfile` (app_review_information)
+    - App Store Connect metadata (notes field)
+  - Test notes
+    - Test demo account login on clean device
+    - Verify demo account has access to all features
+    - Document any features that require multiple users (chat, payments)
+    - Ensure demo data is pre-populated for best review experience
+
+## Sprint 3: Monetization (RevenueCat / IAP)
+
+- [ ] RevenueCat: Create App Store subscription products
+  - Acceptance criteria
+    - Four subscription products created in App Store Connect
+    - Product IDs match constants: `com.chravel.explorer.monthly`, `com.chravel.explorer.annual`, `com.chravel.frequentchraveler.monthly`, `com.chravel.frequentchraveler.annual`
+    - Pricing set: Explorer $9.99/month, $99/year; Frequent Chraveler $19.99/month, $199/year
+    - Subscription duration and renewal settings configured
+    - Localized product descriptions added
+  - Touchpoints
+    - App Store Connect: Features > In-App Purchases
+    - `/src/constants/revenuecat.ts` (product IDs)
+    - `/ios/App/App/RevenueCat/SubscriptionManager.swift` (product IDs)
+  - Test notes
+    - Verify products appear in App Store Connect dashboard
+    - Confirm product metadata complete (name, description, pricing)
+    - Test product availability in sandbox environment
+    - Validate product IDs match across codebase
+
+- [ ] RevenueCat: Configure entitlements in RevenueCat dashboard
+  - Acceptance criteria
+    - Entitlements created: `chravel_explorer`, `chravel_frequent_chraveler`
+    - Entitlements mapped to corresponding subscription products
+    - App Store subscription products linked in RevenueCat
+    - Entitlement identifiers match codebase constants
+  - Touchpoints
+    - RevenueCat dashboard: Project Settings > Entitlements
+    - `/src/constants/revenuecat.ts` (entitlement IDs)
+    - `/ios/App/App/RevenueCat/SubscriptionManager.swift` (hasEntitlement checks)
+  - Test notes
+    - Purchase sandbox subscription and verify entitlement granted
+    - Confirm entitlement appears in RevenueCat customer profile
+    - Test entitlement revocation on subscription expiry
+    - Verify entitlements sync correctly to Supabase
+
+- [ ] RevenueCat: Set up App Store offerings
+  - Acceptance criteria
+    - "Current" offering created in RevenueCat dashboard
+    - Offering contains all subscription packages (4 products)
+    - Package identifiers assigned (e.g., $rc_monthly, $rc_annual, or custom)
+    - Default offering configured for app initialization
+  - Touchpoints
+    - RevenueCat dashboard: Offerings
+    - `/ios/App/App/RevenueCat/PaywallView.swift` (offering display)
+    - `/src/components/subscription/SubscriptionPaywall.tsx` (web paywall)
+  - Test notes
+    - Call `Purchases.shared.getOfferings()` and verify packages returned
+    - Confirm offering loads in paywall UI
+    - Test offering changes reflect in app without code update
+    - Validate package pricing displays correctly
+
+- [ ] RevenueCat: Enable App Store Server Notifications
+  - Acceptance criteria
+    - App Store Server Notifications V2 configured in App Store Connect
+    - RevenueCat webhook URL added to App Store Connect
+    - Notification types enabled: subscriptions, refunds, renewals
+    - Test notification sent from App Store Connect
+    - RevenueCat receives and processes notifications
+  - Touchpoints
+    - App Store Connect: App Information > App Store Server Notifications
+    - RevenueCat dashboard: Project Settings > Apple App Store
+  - Test notes
+    - Trigger test subscription event in sandbox
+    - Verify notification appears in RevenueCat webhook logs
+    - Confirm subscription status updates in real-time
+    - Test refund and renewal notification handling
+
+- [ ] RevenueCat: Implement restore purchases flow
+  - Acceptance criteria
+    - Restore purchases button implemented in paywall UI
+    - Button calls `SubscriptionManager.restorePurchases()` on iOS
+    - Button calls `revenuecatClient.restorePurchases()` on web
+    - Success/error toast notifications displayed
+    - Restored entitlements sync to Supabase immediately
+    - Apple compliance requirement satisfied
+  - Touchpoints
+    - `/ios/App/App/RevenueCat/SubscriptionManager.swift` (restorePurchases method)
+    - `/src/integrations/revenuecat/revenuecatClient.ts` (restorePurchases function)
+    - `/src/components/native/NativeSubscriptionPaywall.tsx` (restore button)
+    - `/src/components/subscription/SubscriptionPaywall.tsx` (web restore button)
+  - Test notes
+    - Purchase subscription on device A with Apple ID
+    - Install app on device B with same Apple ID
+    - Tap "Restore Purchases" and verify subscription activates
+    - Confirm entitlements appear in Supabase `user_entitlements` table
+    - Test restore with no previous purchases (should show informative message)
+
+- [ ] RevenueCat: Test sandbox subscription lifecycle
+  - Acceptance criteria
+    - Sandbox Apple ID created for testing
+    - Monthly subscription purchased and renews automatically
+    - Annual subscription purchased and calculated correctly
+    - Subscription cancellation tested
+    - Subscription expiry tested (auto-expires after 5 minutes in sandbox)
+    - Grace period and billing retry tested
+    - Refund tested and entitlement revoked
+  - Touchpoints
+    - Settings > Sandbox Apple ID management
+    - RevenueCat dashboard: Customers
+    - Supabase: `user_entitlements` table
+  - Test notes
+    - Purchase Explorer monthly in sandbox and wait for renewal
+    - Cancel subscription and verify entitlement persists until period end
+    - Let subscription expire and verify entitlement revoked
+    - Test upgrade from Explorer to Frequent Chraveler
+    - Verify subscription status reflects correctly in app UI
+
+- [ ] RevenueCat: Sync entitlements to Supabase on purchase
+  - Acceptance criteria
+    - Purchase flow calls `sync-revenuecat-entitlement` edge function
+    - Function updates `user_entitlements` table with plan, status, period_end
+    - Entitlement IDs stored as array in entitlements column
+    - Source field set to 'revenuecat'
+    - Sync triggered on app launch via `useEntitlementsSync` hook
+    - Sync triggered after successful purchase
+  - Touchpoints
+    - `/src/hooks/useEntitlementsSync.ts` (sync trigger)
+    - `/supabase/functions/sync-revenuecat-entitlement/index.ts` (edge function)
+    - `/src/stores/entitlementsStore.ts` (entitlements state)
+  - Test notes
+    - Purchase subscription and verify Supabase record created
+    - Confirm entitlements array contains correct IDs
+    - Test multiple purchases and verify latest entitlement takes precedence
+    - Check edge function logs for errors
+
+## Sprint 4: Stability & Correctness
+
+- [ ] Realtime: Prevent duplicate message events in chat subscriptions
+  - Acceptance criteria
+    - Message ID deduplication implemented in `useTripChat` hook
+    - Set-based duplicate checking with message ID as key
+    - Duplicate INSERT events filtered before state update
+    - Existing deduplication logic audited for correctness
+    - No duplicate messages appear in chat UI after rapid sends
+  - Touchpoints
+    - `/src/hooks/useTripChat.ts` (realtime subscription handler)
+    - `/src/components/TripChat.tsx` (message list rendering)
+    - `/src/hooks/useRealtimeOptimizations.ts` (batch update logic)
+  - Test notes
+    - Send message rapidly from two devices simultaneously
+    - Verify no duplicate messages appear in chat list
+    - Test with poor network conditions (toggle airplane mode)
+    - Check browser console for duplicate subscription events
+    - Verify message ordering remains correct after deduplication
+
+- [ ] Realtime: Audit all realtime subscriptions for duplicate event handling
+  - Acceptance criteria
+    - All 39+ realtime subscription hooks reviewed
+    - Deduplication implemented for: media, tasks, payments, calendar, broadcasts
+    - Set or Map-based deduplication strategy used consistently
+    - Batch update delays configured appropriately per data type
+    - Reconnection logic tested with exponential backoff
+  - Touchpoints
+    - `/src/hooks/useTripMedia.ts`
+    - `/src/hooks/useTripTasks.ts`
+    - `/src/hooks/usePayments.ts`
+    - `/src/hooks/useCalendarEvents.ts`
+    - `/src/hooks/useRealtimeOptimizations.ts`
+  - Test notes
+    - Trigger rapid updates across different tabs (e.g., upload multiple photos)
+    - Monitor browser DevTools for duplicate events
+    - Test network reconnection and verify no duplicate data
+    - Verify UI updates smoothly without flickering
+    - Check Supabase realtime inspector for channel health
+
+- [ ] Auth: Test invite flow with unauthenticated users
+  - Acceptance criteria
+    - Unauthenticated user opens `/join/{inviteCode}` link
+    - Invite preview displays without requiring login
+    - User clicks "Sign Up" and redirects to auth page
+    - Invite code stored in sessionStorage during auth flow
+    - After signup, user automatically joins trip
+    - User redirects to correct trip page based on trip type (consumer/pro/event)
+  - Touchpoints
+    - `/src/pages/JoinTrip.tsx` (invite preview and storage)
+    - `/src/pages/AuthPage.tsx` (OAuth callback handling)
+    - `/src/services/tripInviteService.ts` (acceptInvite function)
+    - `/src/hooks/useAuth.tsx` (post-auth invite processing)
+  - Test notes
+    - Open invite link in incognito browser
+    - Complete signup flow and verify automatic trip join
+    - Test with expired invite and verify error message
+    - Test with invite requiring approval
+    - Verify sessionStorage cleared after successful join
+
+- [ ] Auth: Validate session timeout and refresh token handling
+  - Acceptance criteria
+    - Session refresh token auto-refreshes before expiry
+    - Expired sessions redirect to login page
+    - Session state persists across browser tabs
+    - 10-second timeout safety prevents infinite loading
+    - Auth state listener handles token expiry gracefully
+  - Touchpoints
+    - `/src/hooks/useAuth.tsx` (session initialization, onAuthStateChange)
+    - `/src/integrations/supabase/client.ts` (auto-refresh config)
+  - Test notes
+    - Let session expire (default 1 hour) and verify auto-refresh
+    - Force token expiry via Supabase dashboard and verify redirect
+    - Open app in multiple tabs and verify session syncs
+    - Test network failure during token refresh
+    - Verify no infinite loops in auth loading state
+
+- [ ] Auth: Test Sign in with Apple OAuth flow end-to-end
+  - Acceptance criteria
+    - "Sign in with Apple" button functional on iOS and web
+    - OAuth redirects to Apple authentication page
+    - After approval, redirects back to `/auth` with tokens
+    - User profile created in Supabase `profiles` table
+    - User authenticated and redirected to home or returnTo URL
+    - Email privacy option ("Hide My Email") handled correctly
+  - Touchpoints
+    - `/src/components/auth/OAuthButtons.tsx` (Apple button)
+    - `/src/hooks/useAuth.tsx` (signInWithApple function)
+    - `/src/pages/AuthPage.tsx` (OAuth callback processing)
+    - `/ios/App/App/App.entitlements` (Sign in with Apple capability)
+  - Test notes
+    - Test on iOS device with Apple ID
+    - Test with "Hide My Email" option enabled
+    - Verify user profile auto-created with Apple-provided name
+    - Test returning user login (should not prompt for consent again)
+    - Confirm no errors in console or Supabase logs
+
+- [ ] Payments: Validate multi-currency conversion and display
+  - Acceptance criteria
+    - Currency selector displays all supported currencies
+    - Exchange rates fetched from reliable API or hardcoded with update timestamp
+    - Payment amounts converted correctly for display
+    - Payment history shows original currency and converted amount
+    - Settlement calculations handle multi-currency correctly
+  - Touchpoints
+    - `/src/components/payments/CurrencySelector.tsx`
+    - `/src/components/payments/MultiCurrencySelector.tsx`
+    - `/src/services/paymentService.ts`
+    - `/src/services/paymentBalanceService.ts`
+  - Test notes
+    - Create payment in USD, view in EUR and verify conversion
+    - Test with multiple participants using different currencies
+    - Verify settlement amounts calculated correctly
+    - Check for rounding errors in balance calculations
+    - Test currency conversion with zero or negative amounts (edge cases)
+
+- [ ] Calendar: Test recurring event generation and editing
+  - Acceptance criteria
+    - Daily, weekly, monthly recurring events created correctly
+    - Recurrence rules follow RFC 5545 standard
+    - Editing single instance vs. entire series works
+    - Deleting single instance removes only that occurrence
+    - Recurring events sync correctly across devices
+    - Event list displays all occurrences within date range
+  - Touchpoints
+    - `/src/components/calendar/RecurrenceInput.tsx`
+    - `/src/components/calendar/RecurringEventDialog.tsx`
+    - `/src/services/calendarService.ts`
+    - `/supabase/migrations/*_calendar_events.sql`
+  - Test notes
+    - Create daily recurring event for 7 days and verify 7 instances
+    - Edit single instance and verify other instances unchanged
+    - Delete single instance and verify series continues
+    - Test recurring event with end date
+    - Verify no duplicate events after sync
+
+## Sprint 5: Performance & UX
+
+- [ ] Perf: Optimize cold start load time under 3 seconds
+  - Acceptance criteria
+    - Time to interactive (TTI) under 3 seconds on iPhone 12 or newer
+    - Initial bundle size under 500KB (excluding images/media)
+    - Lazy load non-critical tabs (media, calendar, payments, tasks, polls)
+    - Prefetch critical data on splash screen (user profile, trip list)
+    - Performance metrics logged to analytics
+  - Touchpoints
+    - `/src/App.tsx` (lazy loading routes)
+    - `/src/components/TripTabs.tsx` (tab lazy loading)
+    - `/vite.config.ts` (code splitting configuration)
+    - `/src/hooks/usePrefetchTrip.ts` (prefetch strategy)
+  - Test notes
+    - Measure cold start with Chrome DevTools Performance tab
+    - Test on physical device (not simulator) with throttled network
+    - Verify splash screen displays for minimum time
+    - Check bundle sizes with `npm run build` and analyze dist folder
+    - Test with cleared cache and cookies
+
+- [ ] Perf: Optimize "View Trip" page load time under 2 seconds
+  - Acceptance criteria
+    - Trip detail page loads under 2 seconds on 4G network
+    - Initial data fetch parallelized (trip metadata, members, chat preview)
+    - Large data sets paginated (messages, media, calendar events)
+    - Images lazy loaded with blur placeholders
+    - Trip data cached in IndexedDB for offline access
+  - Touchpoints
+    - `/src/pages/TripDetail.tsx` (data fetching)
+    - `/src/hooks/useTripChat.ts` (message pagination)
+    - `/src/hooks/useTripMedia.ts` (media lazy loading)
+    - `/src/components/chat/LazyMedia.tsx` (image optimization)
+  - Test notes
+    - Measure page load with Network tab (throttle to Fast 3G)
+    - Test with trip containing 1000+ messages and 100+ photos
+    - Verify images load progressively with blur-up effect
+    - Check IndexedDB cache populated after first load
+    - Test offline mode loads trip from cache
+
+- [ ] Perf: Implement virtualized lists for chat and media
+  - Acceptance criteria
+    - Chat messages virtualized for trips with 1000+ messages
+    - Media grid virtualized for galleries with 500+ items
+    - Scroll performance maintains 60 FPS on iPhone 12
+    - Virtualization uses `react-window` or similar library
+    - Dynamic item sizing supported for variable-height messages
+  - Touchpoints
+    - `/src/components/chat/VirtualizedMessageContainer.tsx` (already implemented - verify)
+    - `/src/components/media/MediaGrid.tsx` (add virtualization)
+    - `/src/components/TripChat.tsx` (integration)
+  - Test notes
+    - Test with demo trip containing 5000+ messages
+    - Scroll rapidly through chat and verify smooth 60 FPS
+    - Monitor memory usage with Chrome DevTools Memory tab
+    - Test with media gallery of 1000+ photos
+    - Verify no layout shifts during scroll
+
+- [ ] Perf: Reduce main thread JavaScript execution time
+  - Acceptance criteria
+    - Long tasks (>50ms) identified and optimized
+    - Heavy computations moved to Web Workers where possible
+    - Debounce/throttle applied to high-frequency events (scroll, resize, map drag)
+    - React DevTools Profiler shows no components re-rendering unnecessarily
+    - Lighthouse Performance score above 90 on mobile
+  - Touchpoints
+    - `/src/services/chatContentParser.ts` (message parsing)
+    - `/src/services/mediaSearchService.ts` (search indexing)
+    - `/src/components/places/MapCanvas.tsx` (map event handlers)
+    - `/src/hooks/useRealtimeOptimizations.ts` (batch updates)
+  - Test notes
+    - Run Lighthouse audit on mobile device
+    - Identify long tasks with Performance tab
+    - Test map interactions with 100+ markers
+    - Verify no jank during chat message rendering
+    - Monitor CPU usage during heavy operations
+
+- [ ] iOS: Optimize native app bundle size under 50MB
+  - Acceptance criteria
+    - IPA file size under 50MB (uncompressed)
+    - Unused assets removed from Xcode project
+    - App thinning enabled in build settings
+    - On-demand resources considered for large assets
+    - Build configuration set to Release with optimizations enabled
+  - Touchpoints
+    - `/ios/App/App.xcodeproj/project.pbxproj` (build settings)
+    - `/ios/App/App/Assets.xcassets/` (asset catalog)
+    - `/ios-release/fastlane/Gymfile` (export options)
+  - Test notes
+    - Build archive and check IPA size in Finder
+    - Analyze app size report in App Store Connect
+    - Remove unused image assets from Assets.xcassets
+    - Test app functionality after asset cleanup
+    - Verify app installs and launches correctly
+
+- [ ] iOS: Implement offline mode for core features
+  - Acceptance criteria
+    - Offline indicator displayed when network unavailable
+    - Chat messages queued for send when offline
+    - Tasks, calendar events, payments queued for sync
+    - Cached trip data accessible offline
+    - Service worker handles background sync
+    - Sync queue retries with exponential backoff
+  - Touchpoints
+    - `/src/services/chatStorage.ts` (offline chat cache)
+    - `/src/services/taskOfflineQueue.ts` (task queue)
+    - `/src/services/calendarOfflineQueue.ts` (calendar queue)
+    - `/public/sw.js` (service worker sync)
+  - Test notes
+    - Enable airplane mode and verify offline indicator appears
+    - Send chat message offline and verify queued
+    - Disable airplane mode and verify message sends automatically
+    - Test with task creation, calendar event, payment split
+    - Verify no data loss during offline period
+
+- [ ] iOS: Add haptic feedback for key interactions
+  - Acceptance criteria
+    - Haptic feedback on button taps (light impact)
+    - Haptic feedback on successful actions (success notification)
+    - Haptic feedback on errors (error notification)
+    - Haptic feedback on navigation swipes (selection)
+    - Haptic patterns consistent with iOS Human Interface Guidelines
+  - Touchpoints
+    - `/src/hooks/useHaptics.ts` (create if missing)
+    - `/src/components/chat/ChatInput.tsx` (send button)
+    - `/src/components/payments/PaymentsTab.tsx` (payment actions)
+    - `/src/components/onboarding/OnboardingCarousel.tsx` (already implemented - verify)
+  - Test notes
+    - Test haptics on physical device (not simulator)
+    - Verify haptics respect system settings (can be disabled)
+    - Test each haptic type (impact, notification, selection)
+    - Confirm haptics feel appropriate for each action
+    - Ensure no excessive or annoying haptics
+
+## Sprint 6: App Store Submission Assets
+
+- [ ] Compliance: Prepare App Store screenshot set for all required device sizes
+  - Acceptance criteria
+    - Screenshots captured for: iPhone 15 Pro Max (6.7"), iPhone 14 Plus (6.5"), iPhone 8 Plus (5.5")
+    - Minimum 4 screenshots per device size, maximum 10
+    - Screenshots show key features: trip creation, chat, calendar, concierge, payments, places
+    - Status bar cleaned (time 9:41, full battery, full signal)
+    - No personal data or test data visible
+    - Localized screenshots prepared if app supports multiple languages
+  - Touchpoints
+    - `/ios-release/fastlane/screenshots/` (output directory)
+    - `/ios-release/fastlane/Fastfile` (capture_screenshots lane)
+    - `/ios-release/fastlane/Snapfile` (snapshot configuration)
+  - Test notes
+    - Run `fastlane capture_screenshots` locally
+    - Verify screenshots generated for all device sizes
+    - Review screenshots for quality and clarity
+    - Confirm no sensitive data visible
+    - Upload test screenshots to App Store Connect
+
+- [ ] Compliance: Write App Store description and keywords
+  - Acceptance criteria
+    - App name: "Chravel - Group Travel Planner"
+    - Subtitle: "Group Travel & Event Planner" (max 30 characters)
+    - Description written (max 4000 characters) highlighting key features
+    - Keywords researched and optimized (max 100 characters)
+    - Promotional text added (max 170 characters)
+    - What's New text prepared for version 1.0 (max 4000 characters)
+  - Touchpoints
+    - `/ios-release/fastlane/metadata/en-US/description.txt`
+    - `/ios-release/fastlane/metadata/en-US/keywords.txt`
+    - `/ios-release/fastlane/metadata/en-US/promotional_text.txt`
+    - `/ios-release/fastlane/metadata/en-US/release_notes.txt`
+  - Test notes
+    - Review description for clarity and marketing appeal
+    - Validate keywords against App Store search trends
+    - Ensure no prohibited content or misleading claims
+    - Proofread all text for spelling and grammar
+    - Confirm character limits respected
+
+- [ ] Compliance: Create App Store preview video (optional but recommended)
+  - Acceptance criteria
+    - Preview video under 30 seconds
+    - Video shows app functionality without UI chrome
+    - Video exported in required resolution (1080p minimum)
+    - Audio optional but recommended for engagement
+    - Video uploaded to App Store Connect for all device sizes
+  - Touchpoints
+    - Video editing software (iMovie, Final Cut Pro, etc.)
+    - App Store Connect: App Previews section
+  - Test notes
+    - Review video on device to verify quality
+    - Confirm video autoplays in App Store (first 3 seconds critical)
+    - Test video on different connection speeds
+    - Verify video file format meets Apple requirements (H.264, .mov or .mp4)
+    - Upload video for at least 6.7" and 6.5" device sizes
+
+- [ ] Compliance: Design and upload app icon
+  - Acceptance criteria
+    - App icon 1024x1024 PNG without transparency
+    - Icon follows iOS design guidelines (no rounded corners, no text)
+    - Icon visually distinct and recognizable at small sizes
+    - Icon uploaded to Assets.xcassets/AppIcon.appiconset/
+    - All required icon sizes generated (20pt to 1024pt)
+  - Touchpoints
+    - `/ios/App/App/Assets.xcassets/AppIcon.appiconset/`
+    - `/ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json`
+    - App Store Connect: App Information > App Icon
+  - Test notes
+    - Verify icon displays correctly on home screen
+    - Test icon visibility in Spotlight search
+    - Confirm icon matches brand guidelines
+    - Validate icon with Apple's Human Interface Guidelines
+    - Check icon at different sizes (small, medium, large)
+
+- [ ] Compliance: Prepare support and marketing URLs
+  - Acceptance criteria
+    - Support URL active: `https://chravel.app/support`
+    - Marketing URL active: `https://chravel.app`
+    - Privacy policy URL active: `https://chravel.app/privacy`
+    - URLs responsive and mobile-friendly
+    - Support page includes contact form or email
+    - FAQ section prepared for common questions
+  - Touchpoints
+    - `https://chravel.app/support` (web page)
+    - `https://chravel.app/privacy` (web page)
+    - `/ios-release/fastlane/Deliverfile` (URL configuration)
+  - Test notes
+    - Verify all URLs load successfully on iOS Safari
+    - Test contact form submission if present
+    - Confirm privacy policy completeness
+    - Validate URLs in App Store Connect metadata
+    - Check for broken links or missing pages
+
+- [ ] Compliance: Submit app for App Store review
+  - Acceptance criteria
+    - All metadata, screenshots, and assets uploaded
+    - Build selected for submission (from TestFlight)
+    - App Store review information completed
+    - Demo account credentials provided
+    - Export compliance answered (encryption exempt)
+    - Content rights verified
+    - Age rating completed (likely 4+)
+    - Pricing and availability configured (free with IAP)
+  - Touchpoints
+    - App Store Connect: App Store > iOS App > Version 1.0
+    - `/ios-release/docs/RELEASE_CHECKLIST.md`
+  - Test notes
+    - Review submission checklist before submitting
+    - Verify all required fields completed
+    - Test demo account works on clean device
+    - Confirm app follows App Store Review Guidelines
+    - Submit and monitor review status daily

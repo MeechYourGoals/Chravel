@@ -8,7 +8,7 @@
 	Values: "development" (TestFlight/Debug) or "production" (App Store)
 	-->
 	<key>aps-environment</key>
-	<string>development</string>
+	<string>production</string>
 
 	<!--
 	Associated Domains for Universal Links
