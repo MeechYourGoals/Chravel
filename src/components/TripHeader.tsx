@@ -397,7 +397,7 @@ export const TripHeader = ({
       {!isProOrEvent && (
         <div className="relative mb-4 md:mb-8 rounded-2xl md:rounded-3xl overflow-hidden">
           <div
-            className="aspect-[16/9] md:aspect-[3/1] w-full bg-cover bg-center relative"
+            className="aspect-[4/3] md:aspect-[3/1] min-h-[250px] md:min-h-0 w-full bg-cover bg-center relative"
             style={{
               backgroundImage: coverPhoto ? `url(${coverPhoto})` : undefined,
               backgroundColor: !coverPhoto ? '#1a1a2e' : undefined,
@@ -414,7 +414,7 @@ export const TripHeader = ({
             ></div>
 
             {/* Trip info at bottom */}
-            <div className="absolute bottom-3 left-4 right-4 md:bottom-6 md:left-8 md:right-8 z-10">
+            <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-8 md:right-8 z-10">
               <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
                 <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-white line-clamp-2">{trip.title}</h1>
               </div>
