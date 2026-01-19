@@ -75,6 +75,8 @@ interface TripHeaderProps {
   preloadedLeaveTrip?: (tripName: string) => Promise<boolean>;
   // 🔄 FIX: Loading state to show skeleton for members
   isMembersLoading?: boolean;
+  // 📐 Drawer layout mode: hero and details fill 50/50 split
+  drawerLayout?: boolean;
 }
 
 export const TripHeader = ({
@@ -93,6 +95,8 @@ export const TripHeader = ({
   preloadedLeaveTrip,
   // 🔄 FIX: Loading state to show skeleton for members
   isMembersLoading = false,
+  // 📐 Drawer layout mode
+  drawerLayout = false,
 }: TripHeaderProps) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -395,93 +399,97 @@ export const TripHeader = ({
     <>
       {/* Cover Photo Hero (Consumer Only) - Always show for consumer trips */}
       {!isProOrEvent && (
-        <div data-trip-section="hero" className="relative mb-0 md:mb-8 rounded-2xl md:rounded-3xl overflow-hidden">
+        <div 
+          data-trip-section="hero" 
+          className={cn(
+            "relative rounded-2xl md:rounded-3xl overflow-hidden bg-cover bg-center",
+            drawerLayout 
+              ? "h-full min-h-[320px] mb-0" 
+              : "mb-0 md:mb-8"
+          )}
+          style={{
+            backgroundImage: coverPhoto ? `url(${coverPhoto})` : undefined,
+            backgroundColor: !coverPhoto ? '#1a1a2e' : undefined,
+          }}
+        >
+          {/* Gradient overlay - darker when no photo */}
           <div
-            className="h-full md:h-auto md:aspect-[3/1] min-h-[280px] md:min-h-0 w-full bg-cover bg-center relative"
-            style={{
-              backgroundImage: coverPhoto ? `url(${coverPhoto})` : undefined,
-              backgroundColor: !coverPhoto ? '#1a1a2e' : undefined,
-            }}
-          >
-            {/* Gradient overlay - darker when no photo */}
-            <div
-              className={cn(
-                'absolute inset-0',
-                coverPhoto
-                  ? 'bg-gradient-to-t from-black/60 via-black/20 to-transparent'
-                  : 'bg-gradient-to-t from-black/80 via-gray-900/90 to-gray-800/70',
-              )}
-            ></div>
-
-            {/* Trip info at bottom */}
-            <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-8 md:right-8 z-10">
-              <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
-                <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-white line-clamp-2">{trip.title}</h1>
-              </div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <div className="flex items-center gap-2 text-white/90">
-                  <MapPin size={18} />
-                  <span>{trip.location}</span>
-                </div>
-                <div className="flex items-center gap-2 text-white/90">
-                  <Calendar size={18} />
-                  <span>{trip.dateRange}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Add Cover Photo Button - Show when no cover photo */}
-            {!coverPhoto && (
-              <div className="absolute top-4 right-4 z-10">
-                <button
-                  onClick={handleAddCoverPhotoClick}
-                  disabled={isUpdating || isUploading}
-                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2 text-white/80 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Add cover photo"
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      <span className="text-sm font-medium">Uploading...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Camera size={16} />
-                      <span className="text-sm font-medium">Add Cover Photo</span>
-                    </>
-                  )}
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-              </div>
+            className={cn(
+              'absolute inset-0',
+              coverPhoto
+                ? 'bg-gradient-to-t from-black/60 via-black/20 to-transparent'
+                : 'bg-gradient-to-t from-black/80 via-gray-900/90 to-gray-800/70',
             )}
+          ></div>
 
-            {/* Action Buttons - Bottom right */}
-            <div className="absolute bottom-2 right-2 z-10 flex items-center gap-2">
-              {/* Adjust Position Button - only show when cover photo exists */}
-              {coverPhoto && (
-                <button
-                  onClick={handleAdjustCoverPhoto}
-                  disabled={isUpdating || isUploading}
-                  className="p-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/20 rounded-lg transition-all text-white/80 hover:text-white shadow-lg disabled:opacity-50"
-                  title="Adjust cover photo position"
-                >
-                  <Crop size={14} />
-                </button>
-              )}
-              <button
-                onClick={() => setShowEditModal(true)}
-                className="p-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/20 rounded-lg transition-all text-white/80 hover:text-white shadow-lg"
-                title="Edit trip details"
-              >
-                <Edit size={14} />
-              </button>
+          {/* Trip info at bottom */}
+          <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-8 md:right-8 z-10">
+            <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
+              <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-white line-clamp-2">{trip.title}</h1>
             </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="flex items-center gap-2 text-white/90">
+                <MapPin size={18} />
+                <span>{trip.location}</span>
+              </div>
+              <div className="flex items-center gap-2 text-white/90">
+                <Calendar size={18} />
+                <span>{trip.dateRange}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Add Cover Photo Button - Show when no cover photo */}
+          {!coverPhoto && (
+            <div className="absolute top-4 right-4 z-10">
+              <button
+                onClick={handleAddCoverPhotoClick}
+                disabled={isUpdating || isUploading}
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2 text-white/80 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Add cover photo"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span className="text-sm font-medium">Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Camera size={16} />
+                    <span className="text-sm font-medium">Add Cover Photo</span>
+                  </>
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </div>
+          )}
+
+          {/* Action Buttons - Bottom right */}
+          <div className="absolute bottom-2 right-2 z-10 flex items-center gap-2">
+            {/* Adjust Position Button - only show when cover photo exists */}
+            {coverPhoto && (
+              <button
+                onClick={handleAdjustCoverPhoto}
+                disabled={isUpdating || isUploading}
+                className="p-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/20 rounded-lg transition-all text-white/80 hover:text-white shadow-lg disabled:opacity-50"
+                title="Adjust cover photo position"
+              >
+                <Crop size={14} />
+              </button>
+            )}
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="p-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/20 rounded-lg transition-all text-white/80 hover:text-white shadow-lg"
+              title="Edit trip details"
+            >
+              <Edit size={14} />
+            </button>
           </div>
         </div>
       )}
@@ -490,8 +498,11 @@ export const TripHeader = ({
       <div
         data-trip-section="details"
         className={cn(
-          'relative rounded-2xl md:rounded-3xl p-3 md:p-4 mb-0 md:mb-3 overflow-hidden border border-white/20',
+          'relative rounded-2xl md:rounded-3xl p-3 md:p-4 overflow-hidden border border-white/20',
           hasCoverPhoto && isProOrEvent ? 'shadow-2xl' : 'bg-white/10 backdrop-blur-md',
+          drawerLayout 
+            ? 'h-full min-h-0 overflow-y-auto mb-0 pb-[env(safe-area-inset-bottom,20px)]' 
+            : 'mb-0 md:mb-3',
         )}
       >
         {/* Background Cover Photo for Pro/Events */}
