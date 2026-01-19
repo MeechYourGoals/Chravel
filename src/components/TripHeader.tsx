@@ -395,9 +395,9 @@ export const TripHeader = ({
     <>
       {/* Cover Photo Hero (Consumer Only) - Always show for consumer trips */}
       {!isProOrEvent && (
-        <div className="relative mb-4 md:mb-8 rounded-2xl md:rounded-3xl overflow-hidden">
+        <div data-trip-section="hero" className="relative mb-0 md:mb-8 rounded-2xl md:rounded-3xl overflow-hidden">
           <div
-            className="aspect-[4/3] md:aspect-[3/1] min-h-[250px] md:min-h-0 w-full bg-cover bg-center relative"
+            className="h-full md:h-auto md:aspect-[3/1] min-h-[280px] md:min-h-0 w-full bg-cover bg-center relative"
             style={{
               backgroundImage: coverPhoto ? `url(${coverPhoto})` : undefined,
               backgroundColor: !coverPhoto ? '#1a1a2e' : undefined,
@@ -488,8 +488,9 @@ export const TripHeader = ({
 
       {/* Main Trip Info Section - Compact 75% height */}
       <div
+        data-trip-section="details"
         className={cn(
-          'relative rounded-2xl md:rounded-3xl p-3 md:p-4 mb-2 md:mb-3 overflow-hidden border border-white/20',
+          'relative rounded-2xl md:rounded-3xl p-3 md:p-4 mb-0 md:mb-3 overflow-hidden border border-white/20',
           hasCoverPhoto && isProOrEvent ? 'shadow-2xl' : 'bg-white/10 backdrop-blur-md',
         )}
       >
