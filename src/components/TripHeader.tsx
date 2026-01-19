@@ -73,6 +73,8 @@ interface TripHeaderProps {
   preloadedCanRemoveMembers?: () => Promise<boolean>;
   preloadedRemoveMember?: (userId: string) => Promise<boolean>;
   preloadedLeaveTrip?: (tripName: string) => Promise<boolean>;
+  // 🔄 FIX: Loading state to show skeleton for members
+  isMembersLoading?: boolean;
 }
 
 export const TripHeader = ({
@@ -89,6 +91,8 @@ export const TripHeader = ({
   preloadedCanRemoveMembers,
   preloadedRemoveMember,
   preloadedLeaveTrip,
+  // 🔄 FIX: Loading state to show skeleton for members
+  isMembersLoading = false,
 }: TripHeaderProps) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -580,15 +584,28 @@ export const TripHeader = ({
                 : 'bg-white/5 backdrop-blur-sm',
             )}
           >
+            {/* Header: Trip Members | count | Show all - consolidated layout */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Users size={20} className={`text-${accentColors.primary}`} />
                 <h3 className="text-white font-semibold text-sm">
-                  {isEvent ? 'Event Team' : 'Trip Collaborators'}
+                  {isEvent ? 'Event Team' : 'Trip Members'}
                 </h3>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400 text-sm">{mergedParticipants.length}</span>
+              <div className="flex items-center gap-3">
+                {/* Show loading indicator or count */}
+                {isMembersLoading ? (
+                  <span className="w-6 h-4 bg-white/10 rounded animate-pulse" />
+                ) : (
+                  <span className="text-gray-400 text-sm">{mergedParticipants.length}</span>
+                )}
+                <button
+                  className="text-xs font-medium underline text-gray-200 hover:text-white"
+                  onClick={() => setShowAllCollaborators(true)}
+                  aria-label="Show all members"
+                >
+                  Show all
+                </button>
                 {onManageUsers && (
                   <button
                     onClick={onManageUsers}
@@ -613,17 +630,17 @@ export const TripHeader = ({
 
             <CollaboratorsGrid
               participants={mergedParticipants}
-              countLabel={`${mergedParticipants.length} collaborator${mergedParticipants.length !== 1 ? 's' : ''}`}
               onShowAll={() => setShowAllCollaborators(true)}
               maxRows={1}
-              minColWidth={140}
+              minColWidth={120}
               tripType={trip.trip_type || 'consumer'}
               pendingRequestsCount={isAdmin ? pendingRequests.length : 0}
+              hideBottomRow
             />
 
             {/* Pending Requests Alert - only shown when admin has requests to review */}
             {pendingRequests.length > 0 && isAdmin && (
-              <button 
+              <button
                 onClick={() => {
                   setCollaboratorsInitialTab('requests');
                   setShowAllCollaborators(true);
@@ -634,11 +651,15 @@ export const TripHeader = ({
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                 </span>
-                <span>{pendingRequests.length} pending request{pendingRequests.length !== 1 ? 's' : ''} to review</span>
+                <span>
+                  {pendingRequests.length} pending request{pendingRequests.length !== 1 ? 's' : ''}{' '}
+                  to review
+                </span>
               </button>
             )}
 
-            <div className="mt-3 flex flex-nowrap gap-1 overflow-x-auto scrollbar-hide">
+            {/* Action buttons - centered horizontally */}
+            <div className="mt-3 flex flex-nowrap justify-center gap-2 overflow-x-auto scrollbar-hide">
               <button
                 onClick={() => setShowInvite(true)}
                 className={`flex items-center justify-center gap-1 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white text-xs font-medium py-1.5 px-2 rounded-lg transition-all duration-200 hover:scale-105 shrink-0`}
