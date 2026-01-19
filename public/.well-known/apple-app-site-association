@@ -1,0 +1,38 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "TEAM_ID.com.chravel.app"
+        ],
+        "components": [
+          {
+            "/": "/join/*",
+            "comment": "Trip invite links"
+          },
+          {
+            "/": "/trip/*",
+            "comment": "Direct trip links"
+          },
+          {
+            "/": "/event/*",
+            "comment": "Event links"
+          },
+          {
+            "/": "/auth",
+            "comment": "OAuth callback"
+          },
+          {
+            "/": "/settings/*",
+            "comment": "Deep link to settings"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "TEAM_ID.com.chravel.app"
+    ]
+  }
+}
