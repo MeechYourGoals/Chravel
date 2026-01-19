@@ -138,20 +138,20 @@ export const CoverPhotoCropModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl bg-background border-border">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[90vh] bg-background border-border flex flex-col overflow-hidden">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-foreground">Position Your Cover Photo</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto space-y-4 pb-4">
           {/* Crop Area */}
-          <div className="relative bg-muted rounded-lg overflow-hidden flex items-center justify-center min-h-[300px]">
+          <div className="relative bg-muted rounded-lg overflow-hidden flex items-center justify-center min-h-[200px] max-h-[40vh]">
             <ReactCrop
               crop={crop}
               onChange={(_, percentCrop) => setCrop(percentCrop)}
               onComplete={(_, percentCrop) => setCompletedCrop(percentCrop)}
               aspect={aspectRatio}
-              className="max-h-[400px]"
+              className="max-h-[40vh]"
             >
               <img
                 ref={imgRef}
@@ -160,14 +160,14 @@ export const CoverPhotoCropModal = ({
                 onLoad={onImageLoad}
                 crossOrigin="anonymous"
                 style={{ transform: `scale(${scale})`, transformOrigin: 'center' }}
-                className="max-w-full max-h-[400px] object-contain"
+                className="max-w-full max-h-[40vh] object-contain"
               />
             </ReactCrop>
           </div>
 
           {/* Zoom Control */}
           <div className="flex items-center gap-4 px-2">
-            <ZoomOut size={18} className="text-muted-foreground" />
+            <ZoomOut size={18} className="text-muted-foreground flex-shrink-0" />
             <Slider
               value={[scale]}
               onValueChange={([value]) => setScale(value)}
@@ -176,8 +176,8 @@ export const CoverPhotoCropModal = ({
               step={0.1}
               className="flex-1"
             />
-            <ZoomIn size={18} className="text-muted-foreground" />
-            <span className="text-sm text-muted-foreground w-12">{scale.toFixed(1)}x</span>
+            <ZoomIn size={18} className="text-muted-foreground flex-shrink-0" />
+            <span className="text-sm text-muted-foreground w-12 flex-shrink-0">{scale.toFixed(1)}x</span>
           </div>
 
           {/* Preview */}
@@ -191,27 +191,27 @@ export const CoverPhotoCropModal = ({
               />
             </div>
           </div>
+        </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={onClose} disabled={isProcessing}>
-              <X size={16} className="mr-2" />
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={isProcessing}>
-              {isProcessing ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Check size={16} className="mr-2" />
-                  Save Position
-                </>
-              )}
-            </Button>
-          </div>
+        {/* Actions - Fixed at bottom */}
+        <div className="flex-shrink-0 flex justify-end gap-3 pt-3 border-t border-border" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+          <Button variant="outline" onClick={onClose} disabled={isProcessing}>
+            <X size={16} className="mr-2" />
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={isProcessing}>
+            {isProcessing ? (
+              <>
+                <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Check size={16} className="mr-2" />
+                Save Position
+              </>
+            )}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
