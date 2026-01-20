@@ -405,7 +405,7 @@ export const TripHeader = ({
             "relative rounded-2xl md:rounded-3xl overflow-hidden bg-cover bg-center",
             drawerLayout 
               ? "h-full min-h-[320px] mb-0" 
-              : "mb-0 md:mb-8"
+              : "aspect-[3/1] min-h-[200px] mb-0 md:mb-8"
           )}
           style={{
             backgroundImage: coverPhoto ? `url(${coverPhoto})` : undefined,
