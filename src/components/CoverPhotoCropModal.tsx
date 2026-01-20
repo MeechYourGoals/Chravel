@@ -5,16 +5,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ZoomIn, ZoomOut, Check, X } from 'lucide-react';
+import { smartCropService } from '@/services/smartCropService';
 
 interface CoverPhotoCropModalProps {
   isOpen: boolean;
   onClose: () => void;
   imageSrc: string;
   onCropComplete: (croppedBlob: Blob) => void;
-  aspectRatio?: number; // Allow customizing for different contexts (mobile drawer vs desktop header)
+  aspectRatio?: number; // 3 for desktop (3:1), 4/3 for mobile drawer
 }
 
-const DEFAULT_ASPECT_RATIO = 4 / 3; // 4:3 for taller mobile hero; pass 3 for desktop 3:1
+// Desktop default: 3:1 wide banner
+const DEFAULT_ASPECT_RATIO = 3;
 
 export const CoverPhotoCropModal = ({
   isOpen,
@@ -27,26 +29,37 @@ export const CoverPhotoCropModal = ({
   const [completedCrop, setCompletedCrop] = useState<Crop>();
   const [scale, setScale] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [imageOrientation, setImageOrientation] = useState<'landscape' | 'portrait' | 'square'>('landscape');
   const imgRef = useRef<HTMLImageElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = e.currentTarget;
     
-    const initialCrop = centerCrop(
-      makeAspectCrop(
-        { unit: '%', width: 90 },
-        aspectRatio,
-        naturalWidth,
-        naturalHeight
-      ),
+    // Detect orientation
+    const orientation = smartCropService.detectOrientation(naturalWidth, naturalHeight);
+    setImageOrientation(orientation);
+    
+    // Calculate smart initial crop based on orientation and target aspect
+    const smartCrop = smartCropService.calculateSmartCrop(
       naturalWidth,
-      naturalHeight
+      naturalHeight,
+      aspectRatio
     );
+    
+    // Convert smart crop to react-image-crop format
+    const initialCrop: Crop = {
+      unit: '%',
+      x: smartCrop.x,
+      y: smartCrop.y,
+      width: smartCrop.width,
+      height: smartCrop.height
+    };
     
     setCrop(initialCrop);
     setCompletedCrop(initialCrop);
-  }, []);
+    setScale(smartCrop.scale);
+  }, [aspectRatio]);
 
   const updatePreview = useCallback(() => {
     if (!completedCrop || !imgRef.current || !previewCanvasRef.current) return;
@@ -56,9 +69,6 @@ export const CoverPhotoCropModal = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-
     const pixelCrop = {
       x: (completedCrop.x / 100) * image.naturalWidth,
       y: (completedCrop.y / 100) * image.naturalHeight,
@@ -66,8 +76,12 @@ export const CoverPhotoCropModal = ({
       height: (completedCrop.height / 100) * image.naturalHeight,
     };
 
-    canvas.width = 600;
-    canvas.height = 200;
+    // Dynamic preview size based on aspect ratio
+    const previewWidth = 600;
+    const previewHeight = Math.round(previewWidth / aspectRatio);
+    
+    canvas.width = previewWidth;
+    canvas.height = previewHeight;
 
     ctx.drawImage(
       image,
@@ -80,7 +94,7 @@ export const CoverPhotoCropModal = ({
       canvas.width,
       canvas.height
     );
-  }, [completedCrop, scale]);
+  }, [completedCrop, scale, aspectRatio]);
 
   React.useEffect(() => {
     updatePreview();
@@ -104,9 +118,12 @@ export const CoverPhotoCropModal = ({
         height: (completedCrop.height / 100) * image.naturalHeight,
       };
 
-      // Output at high quality (1200x400 for 3:1 ratio)
-      canvas.width = 1200;
-      canvas.height = 400;
+      // Dynamic output size based on aspect ratio (maintain 1200px width)
+      const outputWidth = 1200;
+      const outputHeight = Math.round(outputWidth / aspectRatio);
+      
+      canvas.width = outputWidth;
+      canvas.height = outputHeight;
 
       ctx.drawImage(
         image,
@@ -136,14 +153,30 @@ export const CoverPhotoCropModal = ({
     }
   };
 
+  // Get orientation-specific guidance text
+  const getOrientationHint = () => {
+    if (imageOrientation === 'portrait') {
+      return 'Portrait photo detected – centered vertically for best fit';
+    }
+    if (imageOrientation === 'landscape') {
+      return 'Landscape photo – drag to adjust vertical position';
+    }
+    return 'Drag to adjust position';
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] bg-background border-border flex flex-col overflow-hidden">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-foreground">Position Your Cover Photo</DialogTitle>
+          <DialogTitle className="text-foreground">Adjust Cover Photo</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 pb-4">
+          {/* Orientation hint */}
+          <p className="text-sm text-muted-foreground px-1">
+            {getOrientationHint()}
+          </p>
+          
           {/* Crop Area */}
           <div className="relative bg-muted rounded-lg overflow-hidden flex items-center justify-center min-h-[200px] max-h-[40vh]">
             <ReactCrop
@@ -182,12 +215,12 @@ export const CoverPhotoCropModal = ({
 
           {/* Preview */}
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Preview (how it will appear):</p>
+            <p className="text-sm text-muted-foreground">This is how your trip cover will appear:</p>
             <div className="bg-muted rounded-lg overflow-hidden">
               <canvas
                 ref={previewCanvasRef}
                 className="w-full h-auto"
-                style={{ aspectRatio: '3/1' }}
+                style={{ aspectRatio: `${aspectRatio}/1` }}
               />
             </div>
           </div>
@@ -208,7 +241,7 @@ export const CoverPhotoCropModal = ({
             ) : (
               <>
                 <Check size={16} className="mr-2" />
-                Save Position
+                Save
               </>
             )}
           </Button>

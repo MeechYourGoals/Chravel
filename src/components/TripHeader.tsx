@@ -9,7 +9,7 @@ import {
   FileDown,
   Camera,
   Loader2,
-  Crop,
+  
   LogOut,
   AlertTriangle,
 } from 'lucide-react';
@@ -290,12 +290,7 @@ export const TripHeader = ({
     fileInputRef.current?.click();
   };
 
-  const handleAdjustCoverPhoto = () => {
-    if (coverPhoto) {
-      setCropImageSrc(coverPhoto);
-      setShowCropModal(true);
-    }
-  };
+  // handleAdjustCoverPhoto removed - all crop controls now in Edit Trip Details modal
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -478,19 +473,8 @@ export const TripHeader = ({
             </div>
           )}
 
-          {/* Action Buttons - Bottom right */}
-          <div className="absolute bottom-2 right-2 z-10 flex items-center gap-2">
-            {/* Adjust Position Button - only show when cover photo exists */}
-            {coverPhoto && (
-              <button
-                onClick={handleAdjustCoverPhoto}
-                disabled={isUpdating || isUploading}
-                className="p-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/20 rounded-lg transition-all text-white/80 hover:text-white shadow-lg disabled:opacity-50"
-                title="Adjust cover photo position"
-              >
-                <Crop size={14} />
-              </button>
-            )}
+          {/* Edit Button - Bottom right */}
+          <div className="absolute bottom-2 right-2 z-10">
             <button
               onClick={() => setShowEditModal(true)}
               className="p-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/20 rounded-lg transition-all text-white/80 hover:text-white shadow-lg"
@@ -822,6 +806,7 @@ export const TripHeader = ({
           onClose={handleCropCancel}
           imageSrc={cropImageSrc}
           onCropComplete={handleCropComplete}
+          aspectRatio={drawerLayout ? 4/3 : 3}
         />
       )}
 

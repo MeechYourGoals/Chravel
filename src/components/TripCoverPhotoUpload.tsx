@@ -15,6 +15,7 @@ interface TripCoverPhotoUploadProps {
   onPhotoRemoved?: () => Promise<boolean>;
   tripName?: string;
   className?: string;
+  aspectRatio?: number; // 3 for desktop (3:1), 4/3 for mobile drawer
 }
 
 export const TripCoverPhotoUpload = ({
@@ -24,6 +25,7 @@ export const TripCoverPhotoUpload = ({
   onPhotoRemoved,
   tripName,
   className = '',
+  aspectRatio = 3, // Default to 3:1 desktop banner
 }: TripCoverPhotoUploadProps) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
@@ -287,6 +289,7 @@ export const TripCoverPhotoUpload = ({
           onClose={handleCropCancel}
           imageSrc={selectedImageSrc}
           onCropComplete={handleCropComplete}
+          aspectRatio={aspectRatio}
         />
       )}
 
