@@ -37,7 +37,7 @@ export const TripDetailHeader = ({
         <div className={`bg-gray-800 p-2 rounded-lg shadow-lg group-hover:shadow-${accentColors.primary}/20 transition-all border border-gray-700 hover:border-${accentColors.primary}/50`}>
           <ArrowLeft size={20} />
         </div>
-        <span className="font-medium">Back to My Places</span>
+        <span className="font-medium">Back to my trips</span>
       </button>
 
     </div>

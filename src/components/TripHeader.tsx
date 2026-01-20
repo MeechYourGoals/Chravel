@@ -424,23 +424,23 @@ export const TripHeader = ({
 
           {/* Trip title at TOP-LEFT */}
           <div className="absolute top-4 left-4 right-16 z-10">
-            <h1 className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg line-clamp-2">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white drop-shadow-lg line-clamp-2">
               {trip.title}
             </h1>
           </div>
 
           {/* Location and dates at BOTTOM-LEFT */}
           <div className="absolute bottom-4 left-4 right-20 z-10">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/90">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-lg font-bold text-white">
               {trip.location && (
-                <span className="flex items-center gap-1">
-                  <MapPin size={14} className="text-primary" />
+                <span className="flex items-center gap-1.5">
+                  <MapPin size={18} className="text-primary" />
                   {trip.location}
                 </span>
               )}
               {trip.dateRange && (
-                <span className="flex items-center gap-1">
-                  <Calendar size={14} className="text-primary" />
+                <span className="flex items-center gap-1.5">
+                  <Calendar size={18} className="text-primary" />
                   {trip.dateRange}
                 </span>
               )}
