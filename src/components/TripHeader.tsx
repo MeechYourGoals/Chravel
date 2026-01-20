@@ -399,13 +399,11 @@ export const TripHeader = ({
     <>
       {/* Cover Photo Hero (Consumer Only) - Always show for consumer trips */}
       {!isProOrEvent && (
-        <div 
-          data-trip-section="hero" 
+        <div
+          data-trip-section="hero"
           className={cn(
-            "relative rounded-2xl md:rounded-3xl overflow-hidden bg-cover bg-center",
-            drawerLayout 
-              ? "h-full min-h-[320px] mb-0" 
-              : "aspect-[3/1] min-h-[200px] mb-0 md:mb-8"
+            'relative rounded-2xl md:rounded-3xl overflow-hidden bg-cover bg-center',
+            drawerLayout ? 'h-full min-h-[320px] mb-0' : 'aspect-[3/1] min-h-[200px] mb-0 md:mb-8',
           )}
           style={{
             backgroundImage: coverPhoto ? `url(${coverPhoto})` : undefined,
@@ -508,8 +506,8 @@ export const TripHeader = ({
         className={cn(
           'relative rounded-2xl md:rounded-3xl p-3 md:p-4 overflow-hidden border border-white/20',
           hasCoverPhoto && isProOrEvent ? 'shadow-2xl' : 'bg-white/10 backdrop-blur-md',
-          drawerLayout 
-            ? 'h-full min-h-0 overflow-y-auto mb-0 pb-[env(safe-area-inset-bottom,20px)]' 
+          drawerLayout
+            ? 'h-full min-h-0 overflow-y-auto mb-0 pb-[env(safe-area-inset-bottom,20px)]'
             : 'mb-0 md:mb-3',
         )}
       >
@@ -711,17 +709,7 @@ export const TripHeader = ({
                 <span>Invite</span>
               </button>
 
-              {/* Center: Leave Trip */}
-              <button
-                onClick={() => setShowExitConfirm(true)}
-                className="flex items-center justify-center gap-1 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200 shrink-0"
-                title="Leave this trip"
-              >
-                <LogOut size={14} />
-                <span>Leave Trip</span>
-              </button>
-
-              {/* Right-aligned: PDF Recap */}
+              {/* Center: PDF Recap */}
               <button
                 onClick={() => canExport && onShowExport?.()}
                 disabled={!canExport}
@@ -736,6 +724,16 @@ export const TripHeader = ({
               >
                 <FileDown size={14} />
                 <span>PDF Recap</span>
+              </button>
+
+              {/* Right-aligned: Leave Trip */}
+              <button
+                onClick={() => setShowExitConfirm(true)}
+                className="flex items-center justify-center gap-1 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200 shrink-0"
+                title="Leave this trip"
+              >
+                <LogOut size={14} />
+                <span>Leave Trip</span>
               </button>
             </div>
           </div>
