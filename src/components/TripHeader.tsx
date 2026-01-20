@@ -422,9 +422,9 @@ export const TripHeader = ({
             </h1>
           </div>
 
-          {/* Location and dates at BOTTOM-LEFT */}
+          {/* Location and dates at BOTTOM-LEFT - stacked vertically */}
           <div className="absolute bottom-4 left-4 right-20 z-10">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-lg font-bold text-white">
+            <div className="flex flex-col gap-1 text-lg font-bold text-white">
               {trip.location && (
                 <span className="flex items-center gap-1.5">
                   <MapPin size={18} className="text-primary" />
