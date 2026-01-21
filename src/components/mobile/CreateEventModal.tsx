@@ -16,14 +16,14 @@ interface CreateEventModalProps {
   onEventUpdated?: (event: TripEvent) => void;
 }
 
-export const CreateEventModal = ({ 
-  isOpen, 
-  onClose, 
-  selectedDate, 
-  tripId, 
+export const CreateEventModal = ({
+  isOpen,
+  onClose,
+  selectedDate,
+  tripId,
   onEventCreated,
   editEvent,
-  onEventUpdated
+  onEventUpdated,
 }: CreateEventModalProps) => {
   const [title, setTitle] = useState('');
   const [eventDate, setEventDate] = useState(selectedDate);
@@ -67,10 +67,45 @@ export const CreateEventModal = ({
     setIsSubmitting(true);
 
     try {
+      // Validate title
+      if (!title.trim()) {
+        toast.error('Event title is required');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate date
+      if (!eventDate || isNaN(eventDate.getTime())) {
+        toast.error('Please select a valid date');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate time format
+      if (!time || !/^\d{2}:\d{2}$/.test(time)) {
+        toast.error('Please select a valid time');
+        setIsSubmitting(false);
+        return;
+      }
+
       // Combine selected date and time into ISO string for start_time
       const [hours, minutes] = time.split(':');
       const startTime = new Date(eventDate);
       startTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+      // Final validation that the combined date/time is valid
+      if (isNaN(startTime.getTime())) {
+        toast.error('Invalid date or time. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate tripId
+      if (!tripId) {
+        toast.error('Trip ID is missing. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
 
       if (isEditMode && editEvent) {
         // Update existing event
@@ -84,7 +119,7 @@ export const CreateEventModal = ({
 
         if (success) {
           toast.success('Event updated', {
-            description: `${title} has been updated`
+            description: `${title} has been updated`,
           });
 
           // Trigger callback for UI update
@@ -117,20 +152,20 @@ export const CreateEventModal = ({
             location: location || undefined,
             include_in_itinerary: true,
             source_type: 'manual',
-            source_data: { created_from: 'mobile' }
+            source_data: { created_from: 'mobile' },
           }),
-          timeoutPromise
+          timeoutPromise,
         ]);
 
         if (result.event) {
           // Show conflict warning if overlapping events exist
           if (result.conflicts.length > 0) {
             toast.success('Event created', {
-              description: `${title} has been added to your calendar. Note: This event overlaps with "${result.conflicts[0]}"${result.conflicts.length > 1 ? ` and ${result.conflicts.length - 1} other event(s)` : ''}.`
+              description: `${title} has been added to your calendar. Note: This event overlaps with "${result.conflicts[0]}"${result.conflicts.length > 1 ? ` and ${result.conflicts.length - 1} other event(s)` : ''}.`,
             });
           } else {
             toast.success('Event created', {
-              description: `${title} has been added to your calendar`
+              description: `${title} has been added to your calendar`,
             });
           }
 
@@ -149,9 +184,10 @@ export const CreateEventModal = ({
       }
     } catch (error) {
       console.error('Failed to save event:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Please try again or contact support';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Please try again or contact support';
       toast.error(isEditMode ? 'Failed to update event' : 'Failed to create event', {
-        description: errorMessage
+        description: errorMessage,
       });
     } finally {
       setIsSubmitting(false);
@@ -161,17 +197,16 @@ export const CreateEventModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
       <div className="relative w-full max-w-md bg-glass-slate-card border border-glass-slate-border rounded-t-3xl sm:rounded-3xl shadow-enterprise-2xl p-6 animate-slide-up max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl ${isEditMode ? 'bg-amber-500/20' : 'bg-blue-500/20'} flex items-center justify-center`}>
+            <div
+              className={`w-10 h-10 rounded-xl ${isEditMode ? 'bg-amber-500/20' : 'bg-blue-500/20'} flex items-center justify-center`}
+            >
               {isEditMode ? (
                 <Pencil className="w-5 h-5 text-amber-400" />
               ) : (
@@ -196,13 +231,11 @@ export const CreateEventModal = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Event Title
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Event Title</label>
             <input
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={e => setTitle(e.target.value)}
               placeholder="e.g., Dinner at Italian Restaurant"
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               required
@@ -210,39 +243,42 @@ export const CreateEventModal = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Date
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Date</label>
             <input
               type="date"
               value={format(eventDate, 'yyyy-MM-dd')}
-              onChange={(e) => setEventDate(new Date(e.target.value))}
+              onChange={e => {
+                // Parse date parts to create a date in local timezone
+                // new Date("YYYY-MM-DD") parses as UTC midnight which causes timezone bugs
+                const value = e.target.value;
+                if (value) {
+                  const [year, month, day] = value.split('-').map(Number);
+                  // Month is 0-indexed in Date constructor
+                  setEventDate(new Date(year, month - 1, day));
+                }
+              }}
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Time
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Time</label>
             <input
               type="time"
               value={time}
-              onChange={(e) => setTime(e.target.value)}
+              onChange={e => setTime(e.target.value)}
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Location
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Location</label>
             <input
               type="text"
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={e => setLocation(e.target.value)}
               placeholder="e.g., Central Park"
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             />
@@ -254,7 +290,7 @@ export const CreateEventModal = ({
             </label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={e => setDescription(e.target.value)}
               placeholder="Add any additional details..."
               rows={3}
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
@@ -274,15 +310,19 @@ export const CreateEventModal = ({
             <Button
               type="submit"
               disabled={isSubmitting}
-              className={`flex-1 ${isEditMode 
-                ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700' 
-                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+              className={`flex-1 ${
+                isEditMode
+                  ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700'
+                  : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
               } text-white`}
             >
-              {isSubmitting 
-                ? (isEditMode ? 'Updating...' : 'Creating...') 
-                : (isEditMode ? 'Save Changes' : 'Create Event')
-              }
+              {isSubmitting
+                ? isEditMode
+                  ? 'Updating...'
+                  : 'Creating...'
+                : isEditMode
+                  ? 'Save Changes'
+                  : 'Create Event'}
             </Button>
           </div>
         </form>
