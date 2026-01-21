@@ -53,6 +53,7 @@ const LineupTab = lazy(() => import('../events/LineupTab').then(m => ({ default:
 const EventTasksTab = lazy(() =>
   import('../events/EventTasksTab').then(m => ({ default: m.EventTasksTab })),
 );
+const TeamTab = lazy(() => import('../pro/TeamTab').then(m => ({ default: m.TeamTab })));
 
 interface MobileTripTabsProps {
   activeTab: string;
@@ -64,8 +65,12 @@ interface MobileTripTabsProps {
   tripData?: {
     enabled_features?: string[];
     trip_type?: 'consumer' | 'pro' | 'event';
+    proTripCategory?: string;
+    createdBy?: string;
   };
   eventData?: EventData | null;
+  category?: string;
+  tripCreatorId?: string;
 }
 
 export const MobileTripTabs = ({
@@ -77,6 +82,8 @@ export const MobileTripTabs = ({
   participants = [],
   tripData,
   eventData,
+  category,
+  tripCreatorId,
 }: MobileTripTabsProps) => {
   const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
@@ -132,6 +139,11 @@ export const MobileTripTabs = ({
       { id: 'polls', label: 'Polls', icon: BarChart3, enabled: features.showPolls },
       { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: features.showTasks },
     ];
+
+    // Add Team tab only for Pro trips
+    if (variant === 'pro') {
+      baseTabs.push({ id: 'team', label: 'Team', icon: Users, enabled: features.showTeam ?? true });
+    }
 
     return baseTabs;
   };
@@ -212,6 +224,28 @@ export const MobileTripTabs = ({
           return <EventTasksTab eventId={tripId} isAdmin={isEventAdmin} />;
         }
         return <MobileTripTasks tripId={tripId} />;
+      // Pro-specific tabs
+      case 'team':
+        return (
+          <div className="px-4 py-4 pb-safe overflow-y-auto h-full">
+            <TeamTab
+              roster={participants.map(p => ({
+                id: p.id,
+                name: p.name,
+                role: p.role || 'member',
+                email: '',
+                avatar: '',
+                credentialLevel: 'Guest' as const,
+                permissions: []
+              }))}
+              userRole="admin"
+              isReadOnly={false}
+              category={(category || tripData?.proTripCategory || 'Sports – Pro, Collegiate, Youth') as any}
+              tripId={tripId}
+              tripCreatorId={tripCreatorId || tripData?.createdBy}
+            />
+          </div>
+        );
       // Common tabs
       case 'chat':
         return (
@@ -237,7 +271,7 @@ export const MobileTripTabs = ({
       default:
         return <MobileTripChat tripId={tripId} />;
     }
-  }, [tripId, variant, isEventAdmin, eventData, basecamp, isDemoMode, participants]);
+  }, [tripId, variant, isEventAdmin, eventData, basecamp, isDemoMode, participants, category, tripCreatorId, tripData]);
 
   return (
     <>

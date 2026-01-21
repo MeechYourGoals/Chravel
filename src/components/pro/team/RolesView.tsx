@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../ui/avatar';
 import { getInitials } from '../../../utils/avatarUtils';
 import { useDemoMode } from '../../../hooks/useDemoMode';
 import { useSuperAdmin } from '../../../hooks/useSuperAdmin';
+import { useIsMobile } from '../../../hooks/use-mobile';
 import { AdminManagerDialog } from '../admin/AdminManagerDialog';
 import { JoinRequestsDialog } from '../admin/JoinRequestsDialog';
 import { TripRole } from '../../../types/roleChannels';
@@ -51,6 +52,7 @@ export const RolesView = ({
 }: RolesViewProps) => {
   const { isDemoMode } = useDemoMode();
   const { isSuperAdmin } = useSuperAdmin();
+  const isMobile = useIsMobile();
   const [selectedRole, setSelectedRole] = useState<string>('all');
   const [editingMember, setEditingMember] = useState<ProParticipant | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(true);
@@ -149,17 +151,21 @@ export const RolesView = ({
           )}
         </div>
 
-        {/* Row 2: Consolidated Admin Action Buttons (4 buttons) */}
+        {/* Row 2: Consolidated Admin Action Buttons (4 buttons) - Mobile optimized */}
         {(canManageRoles || isSuperAdmin) && !effectiveIsReadOnly && (
-          <div className="flex items-center justify-center gap-2 mb-3">
+          <div className={`${isMobile 
+            ? 'grid grid-cols-2 gap-2' 
+            : 'flex items-center justify-center gap-2'} mb-3`}>
             <Button
               onClick={onCreateRole}
               disabled={adminLoading || isLoadingRoles}
               variant="outline"
               size="sm"
-              className="rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20"
+              className={`rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20 ${
+                isMobile ? 'min-h-[44px] justify-center text-xs' : ''
+              }`}
             >
-              <UserPlus className="w-4 h-4 mr-2" />
+              <UserPlus className="w-4 h-4 mr-1.5" />
               Create Role
             </Button>
             <Button
@@ -167,30 +173,36 @@ export const RolesView = ({
               variant="outline"
               size="sm"
               disabled={roster.length === 0}
-              className="rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20"
+              className={`rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20 ${
+                isMobile ? 'min-h-[44px] justify-center text-xs' : ''
+              }`}
               title="Assign roles to multiple members"
             >
-              <UsersRound size={16} className="mr-2" />
+              <UsersRound size={16} className="mr-1.5" />
               Assign Roles
             </Button>
             <Button
               onClick={() => setShowAdminsDialog(true)}
               variant="outline"
               size="sm"
-              className="rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20"
+              className={`rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20 ${
+                isMobile ? 'min-h-[44px] justify-center text-xs' : ''
+              }`}
               title="Manage trip administrators"
             >
-              <Shield className="w-4 h-4 mr-2" />
+              <Shield className="w-4 h-4 mr-1.5" />
               Admins
             </Button>
             <Button
               onClick={() => setShowRequestsDialog(true)}
               variant="outline"
               size="sm"
-              className="rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20"
+              className={`rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20 ${
+                isMobile ? 'min-h-[44px] justify-center text-xs' : ''
+              }`}
               title="View join requests"
             >
-              <Clock className="w-4 h-4 mr-2" />
+              <Clock className="w-4 h-4 mr-1.5" />
               Requests
             </Button>
           </div>
@@ -239,8 +251,8 @@ export const RolesView = ({
 
         {/* Row 3: Centered Role Filter Pills */}
         {(availableRoles.length > 0 || existingRoles.length > 0) && (
-          <div className="flex justify-center">
-            <div className="flex flex-wrap gap-2 justify-center items-center max-w-5xl">
+          <div className={`flex ${isMobile ? 'overflow-x-auto scrollbar-hide -mx-3 px-3' : 'justify-center'}`}>
+            <div className={`flex ${isMobile ? 'gap-2 min-w-max' : 'flex-wrap gap-2 justify-center items-center max-w-5xl'}`}>
               {roles.map((role) => {
                 const roleMembers = roster.filter(m => m.role === role);
                 // Always show 'all', and for other roles show if they exist in availableRoles or have members
@@ -281,8 +293,8 @@ export const RolesView = ({
         )}
       </div>
 
-      {/* Team Grid View - Optimized for 3-4 columns */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+      {/* Team Grid View - Optimized for mobile */}
+      <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'}`}>
         {filteredRoster.map((member) => (
           <div key={member.id} className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-lg p-3">
             <div className="flex items-start gap-2.5">
