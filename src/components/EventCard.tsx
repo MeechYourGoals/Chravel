@@ -16,6 +16,7 @@ import { getInitials } from '../utils/avatarUtils';
 import { TravelerTooltip } from './ui/traveler-tooltip';
 import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { getProTripColor } from '../utils/proTripColors';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +46,9 @@ export const EventCard = ({ event, onArchiveSuccess, onHideSuccess, onDeleteSucc
   const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
   const { archiveTrip, hideTrip, deleteTripForMe } = useEvents();
+  
+  // Get color for this event - uses saved color if available, otherwise deterministic fallback
+  const eventColor = getProTripColor(event.id, (event as any).card_color);
   
   // Get added members from the demo store - use stable empty array reference with shallow comparison
   const eventIdStr = event.id.toString();
@@ -132,25 +136,8 @@ export const EventCard = ({ event, onArchiveSuccess, onHideSuccess, onDeleteSucc
     }
   };
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'Technology & Culture': return 'from-purple-500/20 to-purple-600/20 border-purple-500/30';
-      case 'Economics & Policy': return 'from-green-500/20 to-green-600/20 border-green-500/30';
-      case 'Fintech': return 'from-yellow-500/20 to-yellow-600/20 border-yellow-500/30';
-      case 'Media & Entertainment': return 'from-pink-500/20 to-pink-600/20 border-pink-500/30';
-      case 'Marketing & CX': return 'from-orange-500/20 to-orange-600/20 border-orange-500/30';
-      case 'Personal Finance': return 'from-emerald-500/20 to-emerald-600/20 border-emerald-500/30';
-      case 'Music Awards': return 'from-violet-500/20 to-violet-600/20 border-violet-500/30';
-      case 'Startup Showcase': return 'from-cyan-500/20 to-cyan-600/20 border-cyan-500/30';
-      case 'Creator Economy': return 'from-rose-500/20 to-rose-600/20 border-rose-500/30';
-      case 'Film Awards': return 'from-amber-500/20 to-amber-600/20 border-amber-500/30';
-      case 'Sports Ceremony': return 'from-indigo-500/20 to-indigo-600/20 border-indigo-500/30';
-      default: return 'from-blue-500/20 to-blue-600/20 border-blue-500/30';
-    }
-  };
-
   return (
-    <div className={`bg-gradient-to-br ${getCategoryColor(event.category)} backdrop-blur-xl border rounded-3xl overflow-hidden transition-all duration-300 shadow-lg hover:scale-[1.02] relative group`}>
+    <div className={`bg-gradient-to-br ${eventColor.cardGradient} backdrop-blur-xl border border-white/20 hover:border-white/40 rounded-3xl overflow-hidden transition-all duration-300 shadow-lg hover:scale-[1.02] relative group`}>
       {/* Menu */}
       <div className="absolute top-4 right-4 z-10">
         <DropdownMenu>

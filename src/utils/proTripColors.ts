@@ -1,6 +1,8 @@
 /**
- * Deterministic color palette for Pro Trip cards
- * Each trip ID maps to a stable color that doesn't change on re-render
+ * Color palette for Pro Trip and Event cards
+ * Pro Trips: User-selectable from 8 colors
+ * Events: User-selectable from 8 colors (same palette)
+ * My Trips: Use default gray styling (not handled here)
  */
 
 export interface ProTripColor {
@@ -37,13 +39,27 @@ function hashString(str: string): number {
 }
 
 /**
- * Get a deterministic color for a Pro Trip based on its ID
- * The same trip ID will always return the same color
+ * Get a color by its accent name
+ * Used for user-selected colors
+ */
+export function getProTripColorByName(colorName: string): ProTripColor | null {
+  return PRO_TRIP_COLORS.find(c => c.accent === colorName) || null;
+}
+
+/**
+ * Get a color for a Pro Trip or Event based on saved color or fallback to deterministic hash
  * 
  * @param tripId - The unique identifier for the trip (string or number)
+ * @param savedColor - Optional user-selected color name (e.g., 'red', 'blue')
  * @returns ProTripColor object with gradient and accent color
  */
-export function getProTripColor(tripId: string | number): ProTripColor {
+export function getProTripColor(tripId: string | number, savedColor?: string | null): ProTripColor {
+  // If user selected a color, use it
+  if (savedColor) {
+    const color = getProTripColorByName(savedColor);
+    if (color) return color;
+  }
+  // Fallback to deterministic color based on trip ID
   const idString = String(tripId);
   const hash = hashString(idString);
   const index = hash % PRO_TRIP_COLORS.length;
@@ -51,7 +67,7 @@ export function getProTripColor(tripId: string | number): ProTripColor {
 }
 
 /**
- * Get all available Pro Trip colors (for documentation/testing)
+ * Get all available Pro Trip colors (for color picker UI)
  */
 export function getAllProTripColors(): ProTripColor[] {
   return [...PRO_TRIP_COLORS];

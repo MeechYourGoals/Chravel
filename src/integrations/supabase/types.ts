@@ -2914,6 +2914,7 @@ export type Database = {
           basecamp_name: string | null
           basecamp_version: number | null
           capacity: number | null
+          card_color: string | null
           categories: Json | null
           cover_image_url: string | null
           created_at: string
@@ -2940,6 +2941,7 @@ export type Database = {
           basecamp_name?: string | null
           basecamp_version?: number | null
           capacity?: number | null
+          card_color?: string | null
           categories?: Json | null
           cover_image_url?: string | null
           created_at?: string
@@ -2966,6 +2968,7 @@ export type Database = {
           basecamp_name?: string | null
           basecamp_version?: number | null
           capacity?: number | null
+          card_color?: string | null
           categories?: Json | null
           cover_image_url?: string | null
           created_at?: string
