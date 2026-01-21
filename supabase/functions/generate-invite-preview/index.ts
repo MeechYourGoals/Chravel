@@ -356,22 +356,13 @@ function generateInviteHTML(trip: {
   const ogTitle = `You're Invited: ${safeTitle} • ${safeDateRange}`;
   const ogDescription = `${safeLocation} • ${trip.participantCount} Chravelers`;
   
-  // Determine header style based on trip type
+  // Determine trip type for badge display
   const isEvent = trip.tripType === 'event' && trip.themeColor;
   const isPro = trip.tripType === 'pro';
-  
-  // For events with theme colors, use gradient background instead of cover photo
-  // For pro trips, use grayscale gradient
-  // For consumer trips, use cover photo
-  const headerContent = isEvent
-    ? `<div class="cover-gradient" style="background: linear-gradient(135deg, ${trip.themeColor} 0%, ${darkenColor(trip.themeColor!)} 100%); height: 200px; display: flex; align-items: center; justify-content: center;">
-        <span style="font-size: 48px;">🎪</span>
-       </div>`
-    : isPro
-    ? `<div class="cover-gradient" style="background: linear-gradient(135deg, #374151 0%, #1f2937 100%); height: 200px; display: flex; align-items: center; justify-content: center;">
-        <span style="font-size: 48px;">🏢</span>
-       </div>`
-    : `<img src="${escapeHtml(trip.coverPhoto)}" alt="${safeTitle}" class="cover">`;
+
+  // Always use cover photo for all trip types (consumer, pro, event)
+  // This ensures consistent preview behavior and uses the actual uploaded cover photo
+  const headerContent = `<img src="${escapeHtml(trip.coverPhoto)}" alt="${safeTitle}" class="cover">`;
 
   // Badge styling based on trip type
   const badgeStyle = isEvent && trip.themeColor
@@ -631,10 +622,10 @@ serve(async (req: Request): Promise<Response> => {
       });
     }
 
-    // Fetch trip details
+    // Fetch trip details including trip_type for proper badge display
     const { data: trip, error: tripError } = await supabase
       .from('trips')
-      .select('name, description, destination, start_date, end_date, cover_image_url')
+      .select('name, description, destination, start_date, end_date, cover_image_url, trip_type')
       .eq('id', invite.trip_id)
       .maybeSingle();
 
@@ -663,7 +654,8 @@ serve(async (req: Request): Promise<Response> => {
       dateRange,
       description: trip.description || 'An amazing adventure awaits!',
       coverPhoto: trip.cover_image_url || 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=630&fit=crop',
-      participantCount: participantCount || 1
+      participantCount: participantCount || 1,
+      tripType: trip.trip_type as 'consumer' | 'pro' | 'event' | undefined
     };
 
     logStep('Serving invite preview', { tripId: invite.trip_id, title: tripData.title });

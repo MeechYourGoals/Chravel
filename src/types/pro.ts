@@ -304,6 +304,7 @@ export interface ProTripData {
   description: string;
   location: string;
   dateRange: string;
+  coverPhoto?: string; // Cover photo URL for the trip
   category?: string; // Legacy field - use proTripCategory instead
   // Updated category options - consolidated and simplified
   proTripCategory?:

@@ -145,12 +145,29 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
 
   const nextLoadIn = getNextLoadIn();
 
+  // Default fallback image for Pro trips without a cover photo
+  const defaultCoverPhoto = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop';
+  const coverPhoto = trip.coverPhoto || defaultCoverPhoto;
+
   return (
-    <div className={`bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md border border-white/20 rounded-3xl p-6 hover:bg-white/15 transition-all duration-300 hover:scale-105 hover:shadow-xl group hover:border-${accentColors.primary}/50 relative overflow-hidden`}>
-      {/* Menu */}
-      <div className="absolute top-4 right-4 flex items-center gap-2">
-        
-        <DropdownMenu>
+    <div className={`bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md border border-white/20 rounded-3xl overflow-hidden hover:bg-white/15 transition-all duration-300 hover:scale-105 hover:shadow-xl group hover:border-${accentColors.primary}/50 relative`}>
+      {/* Cover Photo Hero */}
+      <div className="relative h-32 md:h-48 bg-gradient-to-br from-gray-700/20 via-gray-600/10 to-transparent">
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-80"
+          style={{
+            backgroundImage: `url('${coverPhoto}')`
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+      </div>
+
+      {/* Card Content */}
+      <div className="p-6 pt-4">
+        {/* Menu */}
+        <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+
+          <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
               variant="ghost" 
@@ -262,6 +279,7 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
           <UserPlus size={16} className="mr-2" />
           Invite
         </Button>
+      </div>
       </div>
 
       <ArchiveConfirmDialog
