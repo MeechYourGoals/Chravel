@@ -85,8 +85,10 @@ export function convertSupabaseTripToProTrip(supabaseTrip: SupabaseTrip): ProTri
     media: [],
     sponsors: [],
     archived: supabaseTrip.is_archived,
-    privacy_mode: 'standard', // Default
-    ai_access_enabled: true
+    privacy_mode: 'standard',
+    ai_access_enabled: true,
+    coverPhoto: supabaseTrip.cover_image_url ?? undefined,
+    card_color: (supabaseTrip as any).card_color ?? undefined,
   };
 }
 
@@ -101,7 +103,7 @@ export function convertSupabaseTripToEvent(supabaseTrip: SupabaseTrip): EventDat
     title: mockTrip.title,
     location: mockTrip.location,
     dateRange: mockTrip.dateRange,
-    category: 'Conference', // Default
+    category: 'Conference',
     description: mockTrip.description || '',
     tags: [],
     capacity: 100,
@@ -122,6 +124,8 @@ export function convertSupabaseTripToEvent(supabaseTrip: SupabaseTrip): EventDat
       spent: 0,
       categories: []
     },
-    itinerary: []
+    itinerary: [],
+    coverPhoto: supabaseTrip.cover_image_url ?? undefined,
+    card_color: (supabaseTrip as any).card_color ?? undefined,
   };
 }

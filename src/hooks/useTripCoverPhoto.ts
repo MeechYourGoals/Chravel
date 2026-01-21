@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
@@ -8,6 +9,7 @@ import { toast } from 'sonner';
 export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
+  const queryClient = useQueryClient();
   const [coverPhoto, setCoverPhoto] = useState<string | undefined>(initialPhotoUrl);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -64,6 +66,8 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
       }
 
       setCoverPhoto(photoUrl);
+      // Invalidate React Query cache to immediately reflect changes in trip lists
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
       toast.success('Cover photo updated');
       return true;
     } catch (error) {
@@ -121,6 +125,8 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
       }
 
       setCoverPhoto(undefined);
+      // Invalidate React Query cache to immediately reflect changes in trip lists
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
       toast.success('Cover photo removed');
       return true;
     } catch (error) {

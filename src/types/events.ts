@@ -103,6 +103,8 @@ export interface EventData {
   attendanceExpected: number;
   groupChatEnabled: boolean;
   archived?: boolean;
+  coverPhoto?: string;
+  card_color?: string;
   // 🆕 Event feature toggles (organizer controls)
   chatEnabled?: boolean; // Default: true
   pollsEnabled?: boolean; // Default: true

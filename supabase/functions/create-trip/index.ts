@@ -42,7 +42,7 @@ serve(async (req) => {
       );
     }
 
-    const { name, description, destination, start_date, end_date, trip_type, cover_image_url, enabled_features } = validation.data;
+    const { name, description, destination, start_date, end_date, trip_type, cover_image_url, enabled_features, card_color } = validation.data;
 
     // Get user's subscription tier, taste test usage, and email
     const { data: profile } = await supabase
@@ -92,6 +92,7 @@ serve(async (req) => {
         name, description, destination, start_date, end_date,
         trip_type: trip_type || 'consumer',
         cover_image_url,
+        card_color, // Persist selected card color for Pro/Event trips
         created_by: user.id,
         enabled_features: enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks']
       })

@@ -253,6 +253,13 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
       
       {/* Hero Section - Dark overlay for text readability */}
       <div className="relative h-32 md:h-48 bg-black/40">
+        {/* Cover photo overlay if available */}
+        {(trip as any).coverPhoto && (
+          <div 
+            className="absolute inset-0 bg-cover bg-center opacity-25"
+            style={{ backgroundImage: `url(${(trip as any).coverPhoto})` }}
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
         
         <div className="relative z-10 flex justify-between items-start h-full p-4 md:p-6">

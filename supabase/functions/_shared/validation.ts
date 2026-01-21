@@ -294,6 +294,7 @@ export const CreateTripSchema = z.object({
   end_date: z.string().datetime({ message: "Invalid date format. Use ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)" }).optional(),
   trip_type: z.enum(['consumer', 'pro', 'event']).optional(),
   cover_image_url: z.string().url().max(500).optional(),
+  card_color: z.string().max(50).optional(), // Color coding for Pro/Event cards
   // ✅ Phase 2: Feature toggles for Pro/Event trips
   enabled_features: z.array(
     z.enum(['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks'])
