@@ -25,52 +25,9 @@ interface InviteLinkResult {
   handleSMSInvite: () => void;
 }
 
-// UUID validation regex
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-// Generate a short branded invite code (e.g., "chravel7x9k2m")
-const generateBrandedCode = (): string => {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let randomPart = '';
-  for (let i = 0; i < 8; i++) {
-    randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return `chravel${randomPart}`;
-};
-
-// Check if a code already exists in the database using secure function
-// This prevents enumeration attacks by only returning boolean, not table data
-const checkCodeExists = async (code: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase.rpc('check_invite_code_exists', {
-      code_param: code,
-    });
-
-    if (error) {
-      console.error('[InviteLink] Error checking code existence:', error);
-      // On error, assume code might exist to be safe (will retry with new code)
-      return true;
-    }
-
-    return data === true;
-  } catch (error) {
-    console.error('[InviteLink] Exception checking code:', error);
-    return true; // Assume exists on error to prevent collision
-  }
-};
-
-// Generate a unique branded code with collision detection
-const generateUniqueCode = async (maxAttempts = 5): Promise<string> => {
-  for (let i = 0; i < maxAttempts; i++) {
-    const code = generateBrandedCode();
-    const exists = await checkCodeExists(code);
-    if (!exists) {
-      return code;
-    }
-  }
-  // Fallback to UUID if we can't generate a unique short code
-  return crypto.randomUUID();
-};
+// Note: Invite code generation is now handled server-side via the
+// generate-invite-code edge function to prevent race conditions and
+// ensure database-level uniqueness guarantees.
 
 export const useInviteLink = ({
   isOpen,
@@ -92,88 +49,11 @@ export const useInviteLink = ({
     }
   }, [isOpen, requireApproval, expireIn7Days, tripId, proTripId, isDemoMode]);
 
-  const createInviteInDatabase = async (
-    tripIdValue: string,
-    inviteCode: string,
-  ): Promise<boolean> => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        console.error('[InviteLink] User not authenticated');
-        toast.error('Please log in to create invite links');
-        return false;
-      }
-
-      // Verify trip exists and user has permission
-      const { data: trip, error: tripError } = await supabase
-        .from('trips')
-        .select('id, created_by')
-        .eq('id', tripIdValue)
-        .single();
-
-      if (tripError || !trip) {
-        console.error('[InviteLink] Trip not found:', tripError);
-        toast.error('Trip not found in database. Make sure this is a real trip, not a demo trip.');
-        return false;
-      }
-
-      // Check if user is creator or admin
-      if (trip.created_by !== user.id) {
-        const { data: admin } = await supabase
-          .from('trip_admins')
-          .select('id')
-          .eq('trip_id', tripIdValue)
-          .eq('user_id', user.id)
-          .single();
-
-        if (!admin) {
-          console.error('[InviteLink] User not authorized');
-          toast.error('Only the trip creator or admins can create invite links');
-          return false;
-        }
-      }
-
-      const inviteData = {
-        trip_id: tripIdValue,
-        code: inviteCode,
-        created_by: user.id,
-        is_active: true,
-        current_uses: 0,
-        require_approval: requireApproval,
-        expires_at: expireIn7Days
-          ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-          : null,
-      };
-
-      const { error } = await supabase.from('trip_invites').insert([inviteData]);
-
-      if (error) {
-        console.error('[InviteLink] Database insert error:', error);
-        if (error.code === '42501' || error.message?.includes('RLS')) {
-          toast.error(
-            'Permission denied. You may not have access to create invites for this trip.',
-          );
-        } else {
-          toast.error('Failed to create invite link. Please try again.');
-        }
-        return false;
-      }
-
-      console.log('[InviteLink] Invite created successfully:', inviteCode.substring(0, 8));
-      return true;
-    } catch (error) {
-      console.error('[InviteLink] Unexpected error:', error);
-      toast.error('An unexpected error occurred. Please try again.');
-      return false;
-    }
-  };
+  // Note: createInviteInDatabase is no longer used. Invite creation is now
+  // handled server-side via the generate-invite-code edge function.
 
   const generateTripLink = async () => {
     setLoading(true);
-    // Always use branded chravel.app URL for invite links
-    const baseUrl = 'https://chravel.app';
     const actualTripId = proTripId || tripId;
 
     if (!actualTripId) {
@@ -192,41 +72,76 @@ export const useInviteLink = ({
       return;
     }
 
-    // AUTHENTICATED MODE: Validate and create real invite
+    // AUTHENTICATED MODE: Use server-side edge function to generate invite
+    // This handles validation, race conditions, and database uniqueness
 
-    // Check if trip ID is a valid UUID (real trips have UUIDs, demo trips have mock IDs)
-    if (!UUID_REGEX.test(actualTripId)) {
-      console.error('[InviteLink] Invalid trip ID format (not UUID):', actualTripId);
-      toast.error(
-        'This appears to be a demo trip. Create a real trip to generate shareable invite links.',
-      );
-      setLoading(false);
-      return;
-    }
-
-    // Check authentication
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
     if (!user) {
       toast.error('Please log in to create invite links');
       setLoading(false);
       return;
     }
 
-    // Generate a unique branded invite code (e.g., "chravel7x9k2m")
-    const inviteCode = await generateUniqueCode();
-    const created = await createInviteInDatabase(actualTripId, inviteCode);
+    try {
+      console.log('[InviteLink] Calling generate-invite-code edge function', {
+        tripId: actualTripId,
+        requireApproval,
+        expiresIn7Days: expireIn7Days,
+      });
 
-    if (!created) {
+      // Call server-side function to generate invite code
+      // This prevents race conditions and validates permissions server-side
+      const { data, error } = await supabase.functions.invoke('generate-invite-code', {
+        body: {
+          tripId: actualTripId,
+          requireApproval,
+          expiresIn7Days: expireIn7Days,
+        },
+      });
+
+      if (error) {
+        console.error('[InviteLink] Edge function error:', error);
+        toast.error('Failed to create invite link. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      if (!data.success) {
+        console.error('[InviteLink] Edge function returned error:', data);
+
+        // Map error codes to user-friendly messages
+        const errorMessages: Record<string, string> = {
+          TRIP_NOT_FOUND: 'Trip not found. It may have been deleted.',
+          TRIP_DELETED: 'This trip has been deleted.',
+          PERMISSION_DENIED: 'Only trip creators and admins can create invite links.',
+          CODE_GENERATION_FAILED: 'Could not generate a unique invite code. Please try again.',
+          DB_ERROR: 'Database error. Please try again.',
+          AUTH_REQUIRED: 'Please log in to create invite links.',
+          INVALID_AUTH: 'Your session has expired. Please log in again.',
+        };
+
+        toast.error(errorMessages[data.code] || data.error || 'Failed to create invite link');
+        setLoading(false);
+        return;
+      }
+
+      // Success! Use the invite URL returned by the server
+      console.log('[InviteLink] Invite created successfully:', {
+        code: data.code?.substring(0, 12) + '...',
+        tripName: data.tripName,
+      });
+
+      setInviteLink(data.inviteUrl);
       setLoading(false);
-      return;
+      toast.success('Invite link created!');
+    } catch (error) {
+      console.error('[InviteLink] Exception calling edge function:', error);
+      toast.error('An unexpected error occurred. Please try again.');
+      setLoading(false);
     }
-
-    // Use branded unfurl domain for rich OG previews
-    setInviteLink(`https://p.chravel.app/j/${inviteCode}`);
-    setLoading(false);
-    toast.success('Invite link created!');
   };
 
   const regenerateInviteToken = async () => {

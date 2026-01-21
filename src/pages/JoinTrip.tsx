@@ -379,32 +379,53 @@ const JoinTrip = () => {
     return startStr;
   };
 
+  // Enhanced error mapping with user actions
+  const ERROR_INFO: Record<
+    ErrorCode,
+    { icon: React.ReactNode; title: string; action?: string }
+  > = {
+    NOT_FOUND: {
+      icon: <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />,
+      title: 'Invite Link Not Found',
+      action: 'Ask the trip organizer to send you a new invite link.',
+    },
+    EXPIRED: {
+      icon: <Clock className="h-12 w-12 text-yellow-400 mx-auto mb-4" />,
+      title: 'Invite Link Expired',
+      action: 'Request a new invite link from the trip organizer.',
+    },
+    INACTIVE: {
+      icon: <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto mb-4" />,
+      title: 'Invite Link Deactivated',
+      action: 'Contact the trip organizer for a new invite link.',
+    },
+    MAX_USES: {
+      icon: <Users className="h-12 w-12 text-yellow-400 mx-auto mb-4" />,
+      title: 'Invite Link Full',
+      action: 'Ask the trip organizer to generate a new invite link.',
+    },
+    NETWORK: {
+      icon: <AlertCircle className="h-12 w-12 text-blue-400 mx-auto mb-4" />,
+      title: 'Connection Error',
+      action: 'Check your internet connection and try again.',
+    },
+    INVALID: {
+      icon: <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />,
+      title: 'Invalid Invite',
+      action: 'Double-check the link or ask the organizer for a new one.',
+    },
+  };
+
   const getErrorIcon = (code: ErrorCode) => {
-    switch (code) {
-      case 'EXPIRED':
-      case 'INACTIVE':
-      case 'MAX_USES':
-        return <Clock className="h-12 w-12 text-yellow-400 mx-auto mb-4" />;
-      default:
-        return <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />;
-    }
+    return ERROR_INFO[code]?.icon || ERROR_INFO.INVALID.icon;
   };
 
   const getErrorTitle = (code: ErrorCode) => {
-    switch (code) {
-      case 'EXPIRED':
-        return 'Invite Expired';
-      case 'INACTIVE':
-        return 'Invite Deactivated';
-      case 'MAX_USES':
-        return 'Invite Limit Reached';
-      case 'NOT_FOUND':
-        return 'Invite Not Found';
-      case 'NETWORK':
-        return 'Connection Error';
-      default:
-        return 'Invalid Invite';
-    }
+    return ERROR_INFO[code]?.title || ERROR_INFO.INVALID.title;
+  };
+
+  const getErrorAction = (code: ErrorCode) => {
+    return ERROR_INFO[code]?.action;
   };
 
   // Show loading ONLY while fetching invite data
@@ -448,12 +469,23 @@ const JoinTrip = () => {
   }
 
   if (error) {
+    const errorAction = getErrorAction(error.code);
+
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center max-w-md bg-card/50 backdrop-blur-md border border-border rounded-3xl p-8">
           {getErrorIcon(error.code)}
           <h1 className="text-2xl font-bold text-foreground mb-4">{getErrorTitle(error.code)}</h1>
-          <p className="text-muted-foreground mb-6">{error.message}</p>
+          <p className="text-muted-foreground mb-2">{error.message}</p>
+
+          {errorAction && (
+            <div className="mt-4 mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-left">
+              <p className="text-sm text-blue-400">
+                <strong className="block mb-1">What to do:</strong>
+                {errorAction}
+              </p>
+            </div>
+          )}
 
           {error.code === 'NETWORK' && (
             <button
