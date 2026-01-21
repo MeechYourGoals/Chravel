@@ -160,8 +160,46 @@ class ChannelService {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
-      const { data } = await supabase.from('trip_channels').insert({ trip_id: request.tripId, channel_name: request.channelName, channel_slug: request.channelSlug, description: request.description, required_role_id: request.requiredRoleId, is_private: request.isPrivate ?? true, created_by: user.id }).select().single();
-      return { id: data.id, tripId: data.trip_id, channelName: data.channel_name, channelSlug: data.channel_slug, description: data.description, requiredRoleId: data.required_role_id, isPrivate: data.is_private, isArchived: data.is_archived, createdBy: data.created_by, createdAt: data.created_at, updatedAt: data.updated_at };
+
+      const { data, error } = await supabase
+        .from('trip_channels')
+        .insert({
+          trip_id: request.tripId,
+          channel_name: request.channelName,
+          channel_slug: request.channelSlug,
+          description: request.description,
+          required_role_id: request.requiredRoleId,
+          is_private: request.isPrivate ?? true,
+          created_by: user.id
+        })
+        .select()
+        .single();
+
+      if (error || !data) return null;
+
+      // Also populate channel_role_access junction table for multi-role support
+      if (request.requiredRoleId) {
+        await supabase
+          .from('channel_role_access')
+          .insert({
+            channel_id: data.id,
+            role_id: request.requiredRoleId
+          });
+      }
+
+      return {
+        id: data.id,
+        tripId: data.trip_id,
+        channelName: data.channel_name,
+        channelSlug: data.channel_slug,
+        description: data.description,
+        requiredRoleId: data.required_role_id,
+        isPrivate: data.is_private,
+        isArchived: data.is_archived,
+        createdBy: data.created_by,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
     } catch { return null; }
   }
 
@@ -241,9 +279,10 @@ class ChannelService {
       if (userRoles.length === 0) return [];
 
       const roleIds = userRoles.map(r => r.id);
+      const uniqueChannels = new Map<string, TripChannel>();
 
-      // Find channels where ANY of user's roles have access via channel_role_access
-      const { data } = await supabase
+      // Method 1: Find channels via channel_role_access junction table (multi-role support)
+      const { data: junctionChannels } = await supabase
         .from('trip_channels')
         .select(`
           *,
@@ -254,24 +293,26 @@ class ChannelService {
         .eq('is_archived', false)
         .in('channel_role_access.role_id', roleIds);
 
-      // Deduplicate channels (user might have multiple roles granting access to same channel)
-      const uniqueChannels = new Map<string, TripChannel>();
-      (data || []).forEach(d => {
+      (junctionChannels || []).forEach(d => {
         if (!uniqueChannels.has(d.id)) {
-          uniqueChannels.set(d.id, {
-            id: d.id,
-            tripId: d.trip_id,
-            channelName: d.channel_name,
-            channelSlug: d.channel_slug,
-            description: d.description,
-            requiredRoleId: d.required_role_id,
-            requiredRoleName: (d.trip_roles as any)?.role_name,
-            isPrivate: d.is_private,
-            isArchived: d.is_archived,
-            createdBy: d.created_by,
-            createdAt: d.created_at,
-            updatedAt: d.updated_at
-          });
+          uniqueChannels.set(d.id, this.mapChannelData(d));
+        }
+      });
+
+      // Method 2: Find channels via legacy required_role_id field (backward compatibility)
+      const { data: legacyChannels } = await supabase
+        .from('trip_channels')
+        .select(`
+          *,
+          trip_roles!required_role_id(role_name)
+        `)
+        .eq('trip_id', tripId)
+        .eq('is_archived', false)
+        .in('required_role_id', roleIds);
+
+      (legacyChannels || []).forEach(d => {
+        if (!uniqueChannels.has(d.id)) {
+          uniqueChannels.set(d.id, this.mapChannelData(d));
         }
       });
 
@@ -279,6 +320,23 @@ class ChannelService {
     } catch {
       return [];
     }
+  }
+
+  private mapChannelData(d: any): TripChannel {
+    return {
+      id: d.id,
+      tripId: d.trip_id,
+      channelName: d.channel_name,
+      channelSlug: d.channel_slug,
+      description: d.description,
+      requiredRoleId: d.required_role_id,
+      requiredRoleName: (d.trip_roles as any)?.role_name,
+      isPrivate: d.is_private,
+      isArchived: d.is_archived,
+      createdBy: d.created_by,
+      createdAt: d.created_at,
+      updatedAt: d.updated_at
+    };
   }
 
   async sendMessage(request: SendMessageRequest & { 

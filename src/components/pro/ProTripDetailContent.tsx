@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { RoomAssignmentsModal } from './RoomAssignmentsModal';
 import { ProTabNavigation } from './ProTabNavigation';
 import { ProTabContent } from './ProTabContent';
-import { RoleSwitcher } from './RoleSwitcher';
 import { getVisibleTabs } from './ProTabsConfig';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -68,9 +67,6 @@ export const ProTripDetailContent = ({
 
   return (
     <>
-      {/* Role Switcher for Testing - Now Dynamic */}
-      <RoleSwitcher category={selectedCategory} />
-
       {/* Category-Specific Tab Navigation */}
       <ProTabNavigation
         tabs={visibleTabs}
