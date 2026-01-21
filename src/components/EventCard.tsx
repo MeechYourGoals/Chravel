@@ -176,7 +176,13 @@ export const EventCard = ({ event, onArchiveSuccess, onHideSuccess, onDeleteSucc
 
       {/* Header */}
       <div className={`relative h-48 bg-gradient-to-br from-${accentColors.primary}/20 to-${accentColors.secondary}/20 p-6`}>
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=600&h=300&fit=crop')] bg-cover bg-center opacity-20"></div>
+        {/* Cover photo overlay if available */}
+        {(event as any).coverPhoto ? (
+          <div 
+            className="absolute inset-0 bg-cover bg-center opacity-25"
+            style={{ backgroundImage: `url(${(event as any).coverPhoto})` }}
+          />
+        ) : null}
         <div className="relative z-10 h-full flex flex-col justify-between">
           <div>
             <h3 className="text-2xl font-bold text-white mb-2 line-clamp-2">

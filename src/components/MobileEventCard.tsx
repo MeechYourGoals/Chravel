@@ -144,7 +144,13 @@ export const MobileEventCard = ({ event, onArchiveSuccess, onHideSuccess, onDele
 
       {/* Mobile Header */}
       <div className={`relative h-36 bg-gradient-to-br from-${accentColors.primary}/10 to-${accentColors.secondary}/10 p-4`}>
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=400&h=200&fit=crop')] bg-cover bg-center opacity-10"></div>
+        {/* Cover photo overlay if available */}
+        {(event as any).coverPhoto ? (
+          <div 
+            className="absolute inset-0 bg-cover bg-center opacity-15"
+            style={{ backgroundImage: `url(${(event as any).coverPhoto})` }}
+          />
+        ) : null}
         <div className="relative z-10 h-full flex flex-col justify-between">
           <div className="flex-1">
             <div className="inline-block bg-black/20 backdrop-blur-sm px-2 py-1 rounded-lg mb-2">

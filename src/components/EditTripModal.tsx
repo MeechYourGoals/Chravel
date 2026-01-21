@@ -8,6 +8,7 @@ import {
   Image as ImageIcon,
   Palette,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { parseDateRange, formatDateRange } from '@/utils/dateFormatters';
 import { tripService, Trip } from '@/services/tripService';
 import { useAuth } from '@/hooks/useAuth';
@@ -37,6 +38,7 @@ interface EditTripModalProps {
 
 export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModalProps) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const { coverPhoto, updateCoverPhoto, removeCoverPhoto } = useTripCoverPhoto(
     trip.id.toString(),
@@ -132,6 +134,8 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
       const success = await tripService.updateTrip(trip.id.toString(), supabaseUpdates);
 
       if (success) {
+        // Invalidate React Query cache to immediately reflect changes in UI
+        queryClient.invalidateQueries({ queryKey: ['trips'] });
         if (onUpdate) onUpdate(mockUpdates);
         toast({
           title: 'Changes saved',

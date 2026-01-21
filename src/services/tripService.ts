@@ -53,6 +53,7 @@ export interface Trip {
   basecamp_address?: string;
   enabled_features?: string[]; // ✅ Phase 2: Feature toggles for Pro/Event trips
   membership_status?: 'owner' | 'member' | 'pending' | 'rejected'; // Membership status for current user
+  card_color?: string | null; // Color coding for Pro/Event cards
 }
 
 export interface CreateTripData {
@@ -67,6 +68,7 @@ export interface CreateTripData {
   basecamp_name?: string;
   basecamp_address?: string;
   enabled_features?: string[]; // ✅ Phase 2: Feature toggles for Pro/Event trips
+  card_color?: string; // Color coding for Pro/Event cards
 }
 
 export const tripService = {
@@ -150,6 +152,7 @@ export const tripService = {
           end_date: tripData.end_date,
           trip_type: tripData.trip_type || 'consumer',
           cover_image_url: tripData.cover_image_url,
+          card_color: tripData.card_color, // ✅ Pass card color for Pro/Event trips
           enabled_features: tripData.enabled_features, // ✅ Phase 2: Pass feature toggles
         },
       });
