@@ -7,6 +7,7 @@ import { TeamOnboardingBanner } from '../TeamOnboardingBanner';
 import { BulkRoleAssignmentModal } from '../BulkRoleAssignmentModal';
 import { QuickContactMenu } from '../QuickContactMenu';
 import { RoleContactSheet } from '../RoleContactSheet';
+import { TeamMemberProfileSheet } from './TeamMemberProfileSheet';
 import { extractUniqueRoles, getRoleColorClass } from '../../../utils/roleUtils';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
@@ -62,6 +63,7 @@ export const RolesView = ({
   const [showRoleCreation, setShowRoleCreation] = useState(false);
   const [showAdminsDialog, setShowAdminsDialog] = useState(false);
   const [showRequestsDialog, setShowRequestsDialog] = useState(false);
+  const [profileSheetMember, setProfileSheetMember] = useState<ProParticipant | null>(null);
 
   // Super admins are never in read-only mode
   const effectiveIsReadOnly = isSuperAdmin ? false : isReadOnly;
@@ -118,6 +120,13 @@ export const RolesView = ({
 
   // Super admins are always treated as admins
   const isAdmin = isSuperAdmin || userRole === 'admin' || userRole === 'tour manager' || userRole === 'manager';
+
+  // Handle member card click - open profile sheet on mobile
+  const handleMemberCardClick = (member: ProParticipant) => {
+    if (isMobile) {
+      setProfileSheetMember(member);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -296,7 +305,13 @@ export const RolesView = ({
       {/* Team Grid View - Optimized for mobile */}
       <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'}`}>
         {filteredRoster.map((member) => (
-          <div key={member.id} className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-lg p-3">
+          <div
+            key={member.id}
+            className={`bg-white/5 backdrop-blur-sm border border-gray-700 rounded-lg p-3 ${
+              isMobile ? 'cursor-pointer active:bg-white/10 transition-colors' : ''
+            }`}
+            onClick={() => handleMemberCardClick(member)}
+          >
             <div className="flex items-start gap-2.5">
               <Avatar className="w-10 h-10 border-2 border-gray-600 flex-shrink-0">
                 <AvatarImage src={member.avatar} alt={member.name} />
@@ -305,13 +320,17 @@ export const RolesView = ({
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <QuickContactMenu
-                  member={member}
-                >
-                  <h3 className="text-white text-sm font-medium truncate cursor-pointer hover:text-blue-400 transition-colors leading-tight">
+                {isMobile ? (
+                  <h3 className="text-white text-sm font-medium truncate leading-tight">
                     {member.name}
                   </h3>
-                </QuickContactMenu>
+                ) : (
+                  <QuickContactMenu member={member}>
+                    <h3 className="text-white text-sm font-medium truncate cursor-pointer hover:text-blue-400 transition-colors leading-tight">
+                      {member.name}
+                    </h3>
+                  </QuickContactMenu>
+                )}
                 <p className="text-gray-400 text-xs truncate leading-tight">{member.email}</p>
                 {member.phone && (
                   <p className="text-gray-500 text-xs truncate leading-tight">{member.phone}</p>
@@ -322,9 +341,12 @@ export const RolesView = ({
                   </span>
                 </div>
               </div>
-                {(isAdmin || isSuperAdmin) && !effectiveIsReadOnly && onUpdateMemberRole && (
-                <button 
-                  onClick={() => handleEditMember(member)}
+              {(isAdmin || isSuperAdmin) && !effectiveIsReadOnly && onUpdateMemberRole && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditMember(member);
+                  }}
                   className="text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-white/10 flex-shrink-0"
                   title="Edit role"
                 >
@@ -411,6 +433,16 @@ export const RolesView = ({
           />
         </>
       )}
+
+      {/* Mobile Team Member Profile Sheet */}
+      <TeamMemberProfileSheet
+        isOpen={!!profileSheetMember}
+        onClose={() => setProfileSheetMember(null)}
+        member={profileSheetMember}
+        category={category}
+        isAdmin={isAdmin || isSuperAdmin}
+        onEditRole={onUpdateMemberRole ? handleEditMember : undefined}
+      />
     </div>
   );
 };

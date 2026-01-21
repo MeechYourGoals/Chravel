@@ -11,6 +11,7 @@ import { TripRole } from '@/types/roleChannels';
 import { Plus, UserPlus } from 'lucide-react';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useSuperAdmin } from '@/hooks/useSuperAdmin';
+import { useRoleChangeNotifications } from '@/hooks/useRoleChangeNotifications';
 
 interface TeamTabProps {
   roster: ProParticipant[];
@@ -31,6 +32,9 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
   const [isLoadingRoles, setIsLoadingRoles] = useState(true);
   const [createRoleOpen, setCreateRoleOpen] = useState(false);
   const [assignRoleOpen, setAssignRoleOpen] = useState(false);
+
+  // Subscribe to role change notifications for the current user
+  useRoleChangeNotifications({ tripId, enabled: !!tripId });
 
   // Super admins never have read-only restrictions
   const effectiveIsReadOnly = isSuperAdmin ? false : isReadOnly;

@@ -85,8 +85,9 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
       }
       
       // Filter to only show channels user can access and convert to TripChannel
+      // Pass the roles array for multi-role support
       const accessibleChannels = channels
-        .filter(channel => roleChannelService.canUserAccessChannel(channel, userRole))
+        .filter(channel => roleChannelService.canUserAccessChannel(channel, userRole, roles))
         .map(convertToTripChannel);
       
       setAvailableChannels(accessibleChannels);

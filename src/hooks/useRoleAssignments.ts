@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
+import { roleNotificationService } from '@/services/roleNotificationService';
 
 export interface RoleAssignment {
   id: string;
@@ -169,9 +170,27 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
         throw new Error(result.message);
       }
 
+      // Get role name for notification
+      const { data: roleData } = await supabase
+        .from('trip_roles')
+        .select('role_name')
+        .eq('id', roleId)
+        .single();
+
+      // Send notification to the affected user (real-time will handle in-app)
+      if (roleData && user?.id) {
+        roleNotificationService.recordRoleChange({
+          tripId,
+          userId,
+          newRole: roleData.role_name,
+          changedBy: user.id,
+          changeType: 'assigned'
+        });
+      }
+
       toast.success('✅ Role assigned successfully');
       await fetchAssignments();
-      
+
       return result;
     } catch (error) {
       console.error('Error assigning role:', error);
@@ -202,6 +221,13 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
         return { success: true, message: 'Role removed' };
       }
 
+      // Get role name before removal for notification
+      const { data: roleData } = await supabase
+        .from('trip_roles')
+        .select('role_name')
+        .eq('id', roleId)
+        .single();
+
       const { data, error } = await supabase.rpc('remove_user_from_role' as any, {
         _trip_id: tripId,
         _user_id: userId,
@@ -215,9 +241,21 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
         throw new Error(result.message);
       }
 
+      // Send notification to the affected user
+      if (roleData && user?.id) {
+        roleNotificationService.recordRoleChange({
+          tripId,
+          userId,
+          oldRole: roleData.role_name,
+          newRole: '',
+          changedBy: user.id,
+          changeType: 'removed'
+        });
+      }
+
       toast.success('Role removed successfully');
       await fetchAssignments();
-      
+
       return result;
     } catch (error) {
       console.error('Error removing role:', error);

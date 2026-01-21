@@ -107,16 +107,97 @@ class RoleChannelService {
   }
 
   /**
-   * Check if user can access a channel (based on their role)
+   * Check if user can access a channel based on their role(s)
+   * @param channel The channel to check access for
+   * @param userRole The user's primary role (string)
+   * @param userRoles Optional array of all user roles (for multi-role support)
    */
-  canUserAccessChannel(channel: RoleChannel, userRole: string): boolean {
-    // Ideally this check should happen on the server/RLS
-    // For client-side, we might want to check if the user has the role
-    // matching the channel name.
-    // However, since we now support multi-role, the caller should probably pass
-    // the user's roles.
-    // For now, simple check:
-    return true; // We rely on RLS and filtering in useRoleChannels
+  canUserAccessChannel(
+    channel: RoleChannel,
+    userRole: string,
+    userRoles?: string[]
+  ): boolean {
+    // Admin roles always have access to all channels
+    const adminRoles = ['admin', 'manager', 'tour manager', 'owner', 'creator'];
+    if (adminRoles.includes(userRole.toLowerCase())) {
+      return true;
+    }
+
+    // If userRoles array is provided, check if any of the user's roles match
+    if (userRoles && userRoles.length > 0) {
+      const normalizedUserRoles = userRoles.map(r => r.toLowerCase().trim());
+      const channelRole = channel.roleName.toLowerCase().trim();
+
+      // Check if any user role matches the channel role
+      if (normalizedUserRoles.some(r => r === channelRole)) {
+        return true;
+      }
+
+      // Check if user has an admin role in their roles array
+      if (normalizedUserRoles.some(r => adminRoles.includes(r))) {
+        return true;
+      }
+    }
+
+    // Single role check - normalize both strings for comparison
+    const normalizedUserRole = userRole.toLowerCase().trim();
+    const normalizedChannelRole = channel.roleName.toLowerCase().trim();
+
+    // Direct match
+    if (normalizedUserRole === normalizedChannelRole) {
+      return true;
+    }
+
+    // Check for general/public channels that everyone can access
+    const publicChannelNames = ['general', 'announcements', 'all', 'everyone', 'public'];
+    if (publicChannelNames.includes(normalizedChannelRole)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Get channels accessible to a user based on their roles
+   */
+  async getUserAccessibleChannels(
+    tripId: string,
+    userId: string
+  ): Promise<RoleChannel[]> {
+    try {
+      // First, get the user's roles for this trip
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_trip_roles')
+        .select(`
+          role_id,
+          trip_roles (
+            id,
+            role_name
+          )
+        `)
+        .eq('trip_id', tripId)
+        .eq('user_id', userId);
+
+      if (rolesError) {
+        console.error('Error fetching user roles:', rolesError);
+      }
+
+      // Extract role names from the user's assignments
+      const userRoleNames = (userRoles || [])
+        .map((r: any) => r.trip_roles?.role_name)
+        .filter(Boolean) as string[];
+
+      // Get all channels for the trip
+      const allChannels = await this.getRoleChannels(tripId);
+
+      // Filter channels based on user's roles
+      return allChannels.filter(channel =>
+        this.canUserAccessChannel(channel, userRoleNames[0] || 'member', userRoleNames)
+      );
+    } catch (error) {
+      console.error('Error getting user accessible channels:', error);
+      return [];
+    }
   }
 
   /**
