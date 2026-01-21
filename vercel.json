@@ -102,6 +102,12 @@
   "redirects": [
     {
       "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.chravel.app" }],
+      "destination": "https://chravel.app/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
       "has": [{ "type": "host", "value": "chravelapp.com" }],
       "destination": "https://chravel.app/demo",
       "permanent": true
