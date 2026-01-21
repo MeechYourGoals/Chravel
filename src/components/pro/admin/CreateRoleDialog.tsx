@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { PermissionLevel } from '@/types/roleChannels';
 import { Shield, Users, Eye } from 'lucide-react';
 import { validateRole, normalizeRole, MAX_ROLES_PER_TRIP } from '@/utils/roleUtils';
@@ -68,6 +70,7 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
   onRoleCreated
 }) => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const { createRole, isProcessing } = useTripRoles({ tripId, enabled: !!tripId });
   const [roleName, setRoleName] = useState('');
   const [description, setDescription] = useState('');
@@ -126,11 +129,117 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
     }
   };
 
-  const permissionIcons = {
-    admin: Shield,
-    edit: Users,
-    view: Eye
-  };
+  const formContent = (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="roleName">Role Name *</Label>
+        <Input
+          id="roleName"
+          value={roleName}
+          onChange={(e) => setRoleName(e.target.value)}
+          placeholder="e.g., Assistant Coach, Tour Manager"
+          maxLength={50}
+          required
+          className={isMobile ? 'min-h-[44px]' : ''}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Description (Optional)</Label>
+        <Textarea
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Describe the responsibilities of this role..."
+          rows={3}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="permissionLevel">Permission Level *</Label>
+        <Select value={permissionLevel} onValueChange={(value) => setPermissionLevel(value as PermissionLevel)}>
+          <SelectTrigger id="permissionLevel" className={isMobile ? 'min-h-[44px]' : ''}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="admin">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-red-500" />
+                <div>
+                  <div className="font-medium">Admin</div>
+                  <div className="text-xs text-muted-foreground">Full control over all features</div>
+                </div>
+              </div>
+            </SelectItem>
+            <SelectItem value="edit">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-blue-500" />
+                <div>
+                  <div className="font-medium">Edit</div>
+                  <div className="text-xs text-muted-foreground">Can create and modify content</div>
+                </div>
+              </div>
+            </SelectItem>
+            <SelectItem value="view">
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 text-gray-500" />
+                <div>
+                  <div className="font-medium">View</div>
+                  <div className="text-xs text-muted-foreground">Read-only access</div>
+                </div>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex items-center space-x-2 pt-2">
+        <Checkbox
+          id="createChannel"
+          checked={createChannel}
+          onCheckedChange={(checked) => setCreateChannel(checked as boolean)}
+        />
+        <Label htmlFor="createChannel" className="text-sm font-normal cursor-pointer">
+          Create a dedicated channel for this role
+        </Label>
+      </div>
+
+      <div className={`flex gap-2 pt-4 ${isMobile ? 'flex-col' : 'justify-end'}`}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+          disabled={isProcessing}
+          className={isMobile ? 'min-h-[44px] order-2' : ''}
+        >
+          Cancel
+        </Button>
+        <Button 
+          type="submit" 
+          disabled={isProcessing}
+          className={isMobile ? 'min-h-[44px] order-1' : ''}
+        >
+          {isProcessing ? 'Creating...' : 'Create Role'}
+        </Button>
+      </div>
+    </form>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl overflow-y-auto">
+          <SheetHeader className="pb-4">
+            <SheetTitle>Create New Role</SheetTitle>
+            <SheetDescription>
+              Create a custom role for this trip ({currentRoleCount} / {MAX_ROLES_PER_TRIP} roles used)
+            </SheetDescription>
+          </SheetHeader>
+          {formContent}
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -141,94 +250,7 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
             Create a custom role for this trip ({currentRoleCount} / {MAX_ROLES_PER_TRIP} roles used)
           </DialogDescription>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="roleName">Role Name *</Label>
-            <Input
-              id="roleName"
-              value={roleName}
-              onChange={(e) => setRoleName(e.target.value)}
-              placeholder="e.g., Assistant Coach, Tour Manager"
-              maxLength={50}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the responsibilities of this role..."
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="permissionLevel">Permission Level *</Label>
-            <Select value={permissionLevel} onValueChange={(value) => setPermissionLevel(value as PermissionLevel)}>
-              <SelectTrigger id="permissionLevel">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="admin">
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-red-500" />
-                    <div>
-                      <div className="font-medium">Admin</div>
-                      <div className="text-xs text-muted-foreground">Full control over all features</div>
-                    </div>
-                  </div>
-                </SelectItem>
-                <SelectItem value="edit">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-blue-500" />
-                    <div>
-                      <div className="font-medium">Edit</div>
-                      <div className="text-xs text-muted-foreground">Can create and modify content</div>
-                    </div>
-                  </div>
-                </SelectItem>
-                <SelectItem value="view">
-                  <div className="flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-gray-500" />
-                    <div>
-                      <div className="font-medium">View</div>
-                      <div className="text-xs text-muted-foreground">Read-only access</div>
-                    </div>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center space-x-2 pt-2">
-            <Checkbox
-              id="createChannel"
-              checked={createChannel}
-              onCheckedChange={(checked) => setCreateChannel(checked as boolean)}
-            />
-            <Label htmlFor="createChannel" className="text-sm font-normal cursor-pointer">
-              Create a dedicated channel for this role
-            </Label>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isProcessing}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isProcessing}>
-              {isProcessing ? 'Creating...' : 'Create Role'}
-            </Button>
-          </div>
-        </form>
+        {formContent}
       </DialogContent>
     </Dialog>
   );

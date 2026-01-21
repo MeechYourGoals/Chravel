@@ -9,7 +9,8 @@ export const PRO_FEATURES = [
   'payments',
   'places',
   'polls',
-  'tasks'
+  'tasks',
+  'team'
 ] as const;
 
 // Event features (matching actual event tabs)
@@ -46,6 +47,7 @@ export const useFeatureToggle = (config: FeatureConfig) => {
       showPlaces: true,
       showPolls: true,
       showTasks: true,
+      showTeam: false, // Consumer trips don't have Team tab
       showAgenda: false,
       showLineup: false,
       isFeatureEnabled: () => true
@@ -65,6 +67,7 @@ export const useFeatureToggle = (config: FeatureConfig) => {
       showPlaces: enabledFeatures.includes('places'),
       showPolls: enabledFeatures.includes('polls'),
       showTasks: enabledFeatures.includes('tasks'),
+      showTeam: config.trip_type === 'pro' ? (enabledFeatures.includes('team') || true) : false,
       showAgenda: enabledFeatures.includes('agenda'),
       showLineup: enabledFeatures.includes('lineup'),
       isFeatureEnabled: (feature: string) => enabledFeatures.includes(feature)

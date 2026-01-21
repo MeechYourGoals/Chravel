@@ -102,8 +102,9 @@ export const MobileProTripDetail = () => {
       participants: proParticipants,
       roster: proParticipants,
       proTripCategory: 'Sports – Pro, Collegiate, Youth',
-      enabled_features: supabaseTrip.enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks'],
-    } as ProTripData;
+      enabled_features: supabaseTrip.enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks', 'team'],
+      createdBy: supabaseTrip.created_by,
+    } as ProTripData & { createdBy?: string };
   }, [isDemoMode, proTripId, userTrips, tripMembers]);
 
   // Initialize mock roles and channels ONLY in demo mode
@@ -475,7 +476,9 @@ export const MobileProTripDetail = () => {
           name: p.name,
           role: p.role
         }))}
-        tripData={tripData} // Pass full trip data for feature toggles
+        tripData={tripData}
+        category={tripData.proTripCategory}
+        tripCreatorId={(tripData as any).createdBy || user?.id}
       />
 
       {/* Trip Info Drawer */}
