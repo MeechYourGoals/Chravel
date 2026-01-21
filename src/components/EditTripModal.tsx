@@ -6,6 +6,7 @@ import {
   Calendar as CalendarIcon,
   Type,
   Image as ImageIcon,
+  Palette,
 } from 'lucide-react';
 import { parseDateRange, formatDateRange } from '@/utils/dateFormatters';
 import { tripService, Trip } from '@/services/tripService';
@@ -17,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { TripCoverPhotoUpload } from './TripCoverPhotoUpload';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { getAllProTripColors, getProTripColorByName } from '@/utils/proTripColors';
 
 interface EditTripModalProps {
   isOpen: boolean;
@@ -28,6 +30,7 @@ interface EditTripModalProps {
     dateRange: string;
     coverPhoto?: string;
     trip_type?: 'consumer' | 'pro' | 'event';
+    card_color?: string;
   };
   onUpdate?: (updates: Partial<EditTripModalProps['trip']>) => void;
 }
@@ -45,6 +48,10 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
     start_date: '',
     end_date: '',
   });
+  const [selectedCardColor, setSelectedCardColor] = useState<string | undefined>(trip.card_color);
+  
+  const availableColors = getAllProTripColors();
+  const isProOrEvent = trip.trip_type === 'pro' || trip.trip_type === 'event';
 
   // Initialize form data when modal opens
   useEffect(() => {
@@ -56,6 +63,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
         start_date: dates.start,
         end_date: dates.end,
       });
+      setSelectedCardColor(trip.card_color);
     }
   }, [isOpen, trip]);
 
@@ -96,6 +104,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
         destination: formData.destination,
         start_date: formData.start_date,
         end_date: formData.end_date,
+        ...(isProOrEvent && { card_color: selectedCardColor }),
       };
 
       // Convert to mock format for UI callback
@@ -104,6 +113,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
         location: formData.destination,
         dateRange: formatDateRange(formData.start_date, formData.end_date),
         coverPhoto: coverPhoto,
+        ...(isProOrEvent && { card_color: selectedCardColor }),
       };
 
       // Demo mode: store in localStorage
@@ -190,6 +200,40 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
               </p>
             )}
           </div>
+
+          {/* Card Color Picker - Only for Pro and Event trips */}
+          {isProOrEvent && (
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                <Palette size={16} />
+                Card Color
+              </label>
+              <div className="flex flex-wrap gap-3">
+                {availableColors.map((color) => {
+                  const isSelected = selectedCardColor === color.accent;
+                  return (
+                    <button
+                      key={color.accent}
+                      type="button"
+                      onClick={() => setSelectedCardColor(color.accent)}
+                      className={cn(
+                        'w-10 h-10 rounded-full transition-all duration-200 border-2',
+                        `bg-gradient-to-br ${color.cardGradient}`,
+                        isSelected
+                          ? 'border-white ring-2 ring-white/50 scale-110'
+                          : 'border-transparent hover:scale-105 hover:border-white/30'
+                      )}
+                      aria-label={`Select ${color.accent} color`}
+                      disabled={loading}
+                    />
+                  );
+                })}
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                Color-code your {trip.trip_type === 'pro' ? 'trips' : 'events'} for easy organization
+              </p>
+            </div>
+          )}
 
           {/* Trip Name */}
           <div>
