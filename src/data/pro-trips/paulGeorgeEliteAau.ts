@@ -8,7 +8,7 @@ export const paulGeorgeEliteAau: ProTripData = {
   location: 'Orlando FL',
   dateRange: 'Jul 8 - Jul 14, 2026',
   proTripCategory: 'Sports – Pro, Collegiate, Youth',
-  tags: ['Sports – Team Trip', 'Basketball', 'AAU', 'Nationals'],
+  tags: [],
   basecamp_name: 'Orange County Convention Center',
   basecamp_address: '9800 International Drive, Orlando, FL 32819',
   tasks: [

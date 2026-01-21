@@ -8,7 +8,7 @@ export const nvidiaBowlingNight: ProTripData = {
   location: 'Los Angeles, CA',
   dateRange: 'October 20 - October 28, 2026',
   proTripCategory: 'Business Travel',
-  tags: ['Tech', 'Venture Capital', 'Startups', 'Networking'],
+  tags: [],
   basecamp_name: 'Hotel Figueroa',
   basecamp_address: '939 S Figueroa St, Los Angeles, CA 90015',
   tasks: [

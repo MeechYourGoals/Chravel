@@ -8,7 +8,7 @@ export const lakersRoadTrip: ProTripData = {
   location: 'Phoenix AZ, Denver CO, Portland OR',
   dateRange: 'Jan 20 - Feb 3, 2025',
   proTripCategory: 'Sports – Pro, Collegiate, Youth',
-  tags: ['Sports', 'Basketball', 'Road Trip'],
+  tags: [],
   basecamp_name: 'Staples Center',
   basecamp_address: '1111 S Figueroa St, Los Angeles, CA 90015',
   tasks: [

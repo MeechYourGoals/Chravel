@@ -8,7 +8,7 @@ export const realHousewivesAtlShoot: ProTripData = {
   location: 'Atlanta GA',
   dateRange: 'Aug 1 - Sep 30, 2025',
   category: 'TV Production',
-  tags: ['TV Production', 'Reality Show', 'Cast & Crew'],
+  tags: [],
   participants: [
     { id: '27', name: 'Kenya Moore', avatar: getMockAvatar('Kenya Moore'), role: 'Cast' },
     { id: '28', name: 'Executive Producer', avatar: getMockAvatar('Executive Producer'), role: 'Producers' },

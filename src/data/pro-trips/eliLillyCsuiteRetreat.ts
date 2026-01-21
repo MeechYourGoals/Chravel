@@ -8,7 +8,7 @@ export const eliLillyCsuiteRetreat: ProTripData = {
   location: 'Terranea Resort, Rancho Palos Verdes CA',
   dateRange: 'Jan 15 - Jan 18, 2026',
   proTripCategory: 'Business Travel',
-  tags: ['Business Travel', 'Executive', 'Strategy'],
+  tags: [],
   basecamp_name: 'Terranea Resort',
   basecamp_address: '100 Terranea Way, Rancho Palos Verdes, CA 90275',
   tasks: [

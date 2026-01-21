@@ -8,7 +8,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
   location: 'London, Paris, Tokyo, Sydney',
   dateRange: 'Mar 1 - Apr 30, 2025',
   proTripCategory: 'Tour – Music, Comedy, etc.',
-  tags: ['Music Tour', 'Concert', 'International'],
+  tags: [],
   basecamp_name: 'Wembley Stadium',
   basecamp_address: 'Wembley, London HA9 0WS, United Kingdom',
   broadcasts: [
