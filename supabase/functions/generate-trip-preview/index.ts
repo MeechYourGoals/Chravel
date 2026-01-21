@@ -354,22 +354,13 @@ function generateHTML(trip: {
   // Where humans should land after unfurling (public preview page with auth handling).
   const appTripUrl = `${appBaseUrl}/trip/${encodeURIComponent(tripId)}/preview`;
   
-  // Determine header style based on trip type
+  // Determine trip type for badge display
   const isEvent = trip.tripType === 'event' && trip.themeColor;
   const isPro = trip.tripType === 'pro';
-  
-  // For events with theme colors, use gradient background instead of cover photo
-  // For pro trips, use grayscale gradient
-  // For consumer trips, use cover photo
-  const headerContent = isEvent
-    ? `<div class="cover-gradient" style="background: linear-gradient(135deg, ${trip.themeColor} 0%, ${darkenColor(trip.themeColor!)} 100%); height: 200px; display: flex; align-items: center; justify-content: center;">
-        <span style="font-size: 48px;">🎪</span>
-       </div>`
-    : isPro
-    ? `<div class="cover-gradient" style="background: linear-gradient(135deg, #374151 0%, #1f2937 100%); height: 200px; display: flex; align-items: center; justify-content: center;">
-        <span style="font-size: 48px;">🏢</span>
-       </div>`
-    : `<img src="${safeCoverPhoto}" alt="${safeTitle}" class="cover">`;
+
+  // Always use cover photo for all trip types (consumer, pro, event)
+  // This ensures consistent preview behavior across all trip types
+  const headerContent = `<img src="${safeCoverPhoto}" alt="${safeTitle}" class="cover">`;
 
   // Type badge for non-consumer trips
   const typeBadge = isEvent 
@@ -565,7 +556,7 @@ serve(async (req: Request): Promise<Response> => {
 
     const { data: trip, error } = await supabase
       .from('trips')
-      .select('name, description, destination, start_date, end_date, cover_image_url')
+      .select('name, description, destination, start_date, end_date, cover_image_url, trip_type')
       .eq('id', tripId)
       .maybeSingle();
 
@@ -602,7 +593,8 @@ serve(async (req: Request): Promise<Response> => {
       dateRange,
       description: trip.description || 'An amazing adventure awaits!',
       coverPhoto: trip.cover_image_url || 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=630&fit=crop',
-      participantCount: participantCount || 1
+      participantCount: participantCount || 1,
+      tripType: trip.trip_type as 'consumer' | 'pro' | 'event' | undefined
     };
 
     console.log('[generate-trip-preview] Serving real trip:', tripId, tripData.title);

@@ -392,8 +392,8 @@ export const TripHeader = ({
 
   return (
     <>
-      {/* Cover Photo Hero (Consumer Only) - Always show for consumer trips */}
-      {!isProOrEvent && (
+      {/* Cover Photo Hero - Show for ALL trip types (consumer, pro, event) */}
+      {(
         <div
           data-trip-section="hero"
           className={cn(
@@ -488,83 +488,20 @@ export const TripHeader = ({
       <div
         data-trip-section="details"
         className={cn(
-          'relative rounded-2xl md:rounded-3xl p-3 md:p-4 overflow-hidden border border-white/20',
-          hasCoverPhoto && isProOrEvent ? 'shadow-2xl' : 'bg-white/10 backdrop-blur-md',
+          'relative rounded-2xl md:rounded-3xl p-3 md:p-4 overflow-hidden border border-white/20 bg-white/10 backdrop-blur-md',
           drawerLayout
             ? 'h-full min-h-0 overflow-y-auto mb-0 pb-[env(safe-area-inset-bottom,20px)]'
             : 'mb-0 md:mb-3',
         )}
       >
-        {/* Background Cover Photo for Pro/Events */}
-        {hasCoverPhoto && isProOrEvent && (
-          <>
-            <div
-              className="absolute inset-0 bg-cover bg-center transition-all duration-500"
-              style={{
-                backgroundImage: `url(${coverPhoto})`,
-                filter: isEvent ? 'brightness(0.25)' : 'brightness(0.35)',
-              }}
-            />
-            <div
-              className={cn(
-                'absolute inset-0',
-                isEvent
-                  ? 'bg-gradient-to-t from-black/90 via-black/50 to-transparent'
-                  : 'bg-gradient-to-t from-black/70 via-black/40 to-transparent',
-              )}
-            />
-          </>
-        )}
-
-        <div
-          className={cn(
-            'grid grid-cols-1 lg:grid-cols-2 gap-6',
-            hasCoverPhoto && isProOrEvent && 'relative z-10',
-          )}
-        >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: Trip Details */}
           <div className="space-y-4">
-            {/* Show title/location/dates here only for Pro/Event trips (consumer trips show in hero section) */}
-            {isProOrEvent && (
-              <>
-                <div className="flex items-center gap-3 mb-4">
-                  <h1 className="text-4xl font-bold text-white">{trip.title}</h1>
-                </div>
-
-                {/* Category Tags for Pro trips */}
-                {isPro && category && (
-                  <div className="mb-4">
-                    <CategoryTags category={category} tags={tags} />
-                  </div>
-                )}
-
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-                  <div
-                    className={cn(
-                      'flex items-center gap-2',
-                      coverPhoto ? 'text-white/90' : 'text-gray-300',
-                    )}
-                  >
-                    <MapPin
-                      size={18}
-                      className={coverPhoto ? undefined : `text-${accentColors.primary}`}
-                    />
-                    <span>{trip.location}</span>
-                  </div>
-                  <div
-                    className={cn(
-                      'flex items-center gap-2',
-                      coverPhoto ? 'text-white/90' : 'text-gray-300',
-                    )}
-                  >
-                    <Calendar
-                      size={18}
-                      className={coverPhoto ? undefined : `text-${accentColors.primary}`}
-                    />
-                    <span>{trip.dateRange}</span>
-                  </div>
-                </div>
-              </>
+            {/* Category Tags for Pro trips - shown below hero */}
+            {isPro && category && (
+              <div className="mb-2">
+                <CategoryTags category={category} tags={tags} />
+              </div>
             )}
 
             <EditableDescription
@@ -579,12 +516,7 @@ export const TripHeader = ({
 
           {/* Right: Collaborators Panel - Full width on mobile, constrained on desktop */}
           <div
-            className={cn(
-              'rounded-2xl p-3 pb-2 w-full border border-white/10 max-h-[240px]',
-              hasCoverPhoto && isProOrEvent
-                ? 'bg-black/50 backdrop-blur-md'
-                : 'bg-white/5 backdrop-blur-sm',
-            )}
+            className="rounded-2xl p-3 pb-2 w-full border border-white/10 max-h-[240px] bg-white/5 backdrop-blur-sm"
           >
             {/* Header: Trip Members | count | Show all - consolidated layout */}
             <div className="flex items-center justify-between mb-2">
@@ -619,16 +551,6 @@ export const TripHeader = ({
                 )}
               </div>
             </div>
-
-            {/* Read-only Category Display for Pro trips */}
-            {isPro && category && (
-              <div className="mb-3">
-                <label className="block text-gray-400 text-xs mb-1">Trip Category</label>
-                <div className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
-                  {category}
-                </div>
-              </div>
-            )}
 
             {/* Show skeleton chips when loading members for authenticated trips */}
             {isMembersLoading && mergedParticipants.length === 0 ? (
@@ -727,35 +649,12 @@ export const TripHeader = ({
         <div className="hidden lg:block absolute bottom-2 left-2 z-20">
           <button
             onClick={() => setDescEditTick(t => t + 1)}
-            className={cn(
-              'p-1.5 border border-white/20 rounded-lg transition-all shadow-lg backdrop-blur-sm',
-              hasCoverPhoto && isProOrEvent
-                ? 'bg-black/40 hover:bg-black/60 text-white/80 hover:text-white'
-                : 'bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white',
-            )}
+            className="p-1.5 border border-white/20 rounded-lg transition-all shadow-lg backdrop-blur-sm bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white"
             title="Edit description"
           >
             <Edit size={14} />
           </button>
         </div>
-
-        {/* Edit Trip Button - Positioned for Pro/Event trips only (consumer trips have it in hero section) */}
-        {isProOrEvent && (
-          <div className="absolute bottom-2 right-2 z-20">
-            <button
-              onClick={() => setShowEditModal(true)}
-              className={cn(
-                'p-1.5 border border-white/20 rounded-lg transition-all shadow-lg backdrop-blur-sm',
-                hasCoverPhoto && isProOrEvent
-                  ? 'bg-black/40 hover:bg-black/60 text-white/80 hover:text-white'
-                  : 'bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white',
-              )}
-              title="Edit trip details"
-            >
-              <Edit size={14} />
-            </button>
-          </div>
-        )}
       </div>
 
       <InviteModal
