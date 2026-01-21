@@ -50,8 +50,8 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
   const { isDemoMode } = useDemoMode();
   const { archiveTrip, hideTrip, deleteTripForMe } = useProTrips();
   
-  // Get deterministic color for this trip
-  const tripColor = getProTripColor(trip.id);
+  // Get color for this trip - uses saved color if available, otherwise deterministic fallback
+  const tripColor = getProTripColor(trip.id, (trip as any).card_color);
   
   // Get added members from the demo store
   const tripIdStr = trip.id.toString();

@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PrivacyMode, getDefaultPrivacyMode } from '../types/privacy';
 import { ProTripCategory } from '../types/proCategories';
+import { getAllProTripColors } from '../utils/proTripColors';
 
 interface CreateTripModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   const [tripType, setTripType] = useState<'consumer' | 'pro' | 'event'>('consumer');
   const [proTripCategory, setProTripCategory] = useState<ProTripCategory>('Sports – Pro, Collegiate, Youth');
   const [privacyMode, setPrivacyMode] = useState<PrivacyMode>(() => getDefaultPrivacyMode('consumer'));
+  const [selectedCardColor, setSelectedCardColor] = useState<string>('red'); // Default to first color
   const [selectedOrganization, setSelectedOrganization] = useState<string>('');
   const [formData, setFormData] = useState({
     title: '',
@@ -184,6 +186,8 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         ...(tripType === 'pro' && { category: proTripCategory }),
         // ✅ Pass timezone for Event trips
         ...(tripType === 'event' && { timezone: formData.timezone }),
+        // ✅ Pass card color for Pro/Event trips
+        ...(tripType !== 'consumer' && { card_color: selectedCardColor }),
         privacy_mode: privacyMode,
         ai_access_enabled: privacyMode === 'standard',
         // ✅ Phase 2: Pass feature toggles for Pro/Event trips
@@ -661,8 +665,33 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               </CollapsibleTrigger>
               
               <CollapsibleContent className="space-y-4 bg-slate-700/20 rounded-xl p-4">
+                {/* Trip Color Picker */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Trip Color Label
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {getAllProTripColors().map((color) => (
+                      <button
+                        key={color.accent}
+                        type="button"
+                        onClick={() => setSelectedCardColor(color.accent)}
+                        className={`w-10 h-10 rounded-full bg-gradient-to-br ${color.cardGradient} transition-all duration-200 hover:scale-110 ${
+                          selectedCardColor === color.accent 
+                            ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-800 scale-110' 
+                            : 'opacity-70 hover:opacity-100'
+                        }`}
+                        title={color.accent.charAt(0).toUpperCase() + color.accent.slice(1)}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">
+                    Color-code your {tripType === 'pro' ? 'Pro trips' : 'Events'} for easy organization
+                  </p>
+                </div>
+
                 {/* Enable All Toggle */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between pt-2 border-t border-slate-600/50">
                   <label className="text-sm font-medium text-slate-300">
                     Enable all features
                   </label>
