@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import useCasesBackground from '@/assets/built-for-every-journey-bg.png';
 
 const scenarios = [
   {
@@ -72,17 +71,7 @@ export const UseCasesSection = () => {
   };
 
   return (
-    <div
-      className="relative min-h-screen flex flex-col items-center justify-start pt-8 pb-12 md:pb-16 space-y-4 md:space-y-6"
-      style={{
-        backgroundImage: `url(${useCasesBackground})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center bottom',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
-      {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-black/50" />
+    <div className="relative min-h-screen flex flex-col items-center justify-start pt-8 pb-12 md:pb-16 space-y-4 md:space-y-6">
       
       <div className="container mx-auto px-4 relative z-10 flex flex-col items-center space-y-12">
       {/* Headline - positioned higher to avoid towel overlap */}
