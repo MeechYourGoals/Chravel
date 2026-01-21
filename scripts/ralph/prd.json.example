@@ -1,0 +1,56 @@
+{
+  "featureName": "Trip Details Modal Mobile Fix",
+  "branchName": "feature/trip-details-modal-mobile",
+  "description": "Fix layout and spacing issues in trip details modal on mobile devices",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Fix header overflow on small screens",
+      "description": "Trip name and date header overflows on iPhone SE (320px). Implement text truncation with ellipsis. Use flex-shrink and min-width: 0 pattern.",
+      "acceptanceCriteria": [
+        "Header fits within 320px viewport",
+        "Long trip names truncate with ellipsis",
+        "No horizontal scroll appears",
+        "Date remains visible below trip name"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "US-002",
+      "title": "Fix tab bar spacing on mobile",
+      "description": "Tab icons (Chat, Calendar, Tasks, etc.) overlap on narrow screens. Reduce padding and use scrollable tabs if needed.",
+      "acceptanceCriteria": [
+        "All tabs visible or scrollable on 320px width",
+        "Active tab indicator displays correctly",
+        "Touch targets remain 44px minimum"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "US-003",
+      "title": "Fix notification panel text wrapping",
+      "description": "Long notification messages don't wrap properly, causing horizontal overflow. Apply word-break and proper padding.",
+      "acceptanceCriteria": [
+        "Notification text wraps within container",
+        "No horizontal scroll in notifications panel",
+        "Timestamps align consistently"
+      ],
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "US-004",
+      "title": "Verify authenticated mode layout parity",
+      "description": "Ensure all layout fixes work identically in authenticated mode. Test with real trip data from Supabase.",
+      "acceptanceCriteria": [
+        "Demo mode layout matches authenticated mode",
+        "Real trip data displays without overflow",
+        "No console errors in authenticated mode"
+      ],
+      "priority": 4,
+      "passes": false
+    }
+  ]
+}
