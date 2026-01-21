@@ -69,6 +69,8 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(
       storage: createSafeStorage(),
       persistSession: true,
       autoRefreshToken: true,
+      storageKey: 'chravel-auth-session', // Explicit key for consistent session storage
+      detectSessionInUrl: true, // Ensure OAuth callbacks are detected
     },
   }
 );

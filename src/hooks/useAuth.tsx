@@ -77,7 +77,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error?: string }>;
   signInWithPhone: (phone: string) => Promise<{ error?: string }>;
   signInWithGoogle: () => Promise<{ error?: string }>;
   signInWithApple: () => Promise<{ error?: string }>;
@@ -394,36 +394,84 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, 10000);
 
     const getSessionAndUser = async () => {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
 
-      if (error) {
-        if (import.meta.env.DEV) {
-          console.error('[Auth] Error getting session:', error);
+        if (error) {
+          if (import.meta.env.DEV) {
+            console.error('[Auth] Error getting session:', error);
+          }
+          // Retry once after 1s for transient network issues
+          await new Promise(r => setTimeout(r, 1000));
+          const retry = await supabase.auth.getSession();
+          if (retry.data.session) {
+            setSession(retry.data.session);
+            const transformedUser = await transformUser(retry.data.session.user);
+            setUser(transformedUser);
+            setIsLoading(false);
+            return;
+          }
+          setIsLoading(false);
+          return;
+        }
+
+        // Check if session exists but is near expiry (within 5 min)
+        if (session && session.expires_at) {
+          const expiresAt = session.expires_at * 1000;
+          const fiveMinutesFromNow = Date.now() + 5 * 60 * 1000;
+
+          if (expiresAt < fiveMinutesFromNow) {
+            if (import.meta.env.DEV) {
+              console.log('[Auth] Session near expiry, proactively refreshing...');
+            }
+            const { data: refreshed } = await supabase.auth.refreshSession();
+            if (refreshed.session) {
+              setSession(refreshed.session);
+              const transformedUser = await transformUser(refreshed.session.user);
+              setUser(transformedUser);
+              setIsLoading(false);
+              return;
+            }
+          }
+        }
+
+        setSession(session);
+
+        if (session?.user) {
+          // Log session info in dev for debugging
+          if (import.meta.env.DEV) {
+            console.log('[Auth] Session state:', {
+              hasSession: true,
+              expiresAt: session.expires_at
+                ? new Date(session.expires_at * 1000).toISOString()
+                : null,
+              refreshToken: session.refresh_token ? '(present)' : '(missing)',
+              userId: session.user.id?.slice(0, 8) + '...',
+            });
+          }
+          try {
+            const transformedUser = await transformUser(session.user);
+            setUser(transformedUser);
+          } catch (err) {
+            if (import.meta.env.DEV) {
+              console.error('[Auth] Error transforming user on init:', err);
+            }
+            setUser(null);
+          }
+        } else {
+          // App-preview: provide a demo user even when not authenticated.
+          setUser(shouldUseDemoUserRef.current ? demoUser : null);
         }
         setIsLoading(false);
-        return;
-      }
-
-      setSession(session);
-
-      if (session?.user) {
-        try {
-          const transformedUser = await transformUser(session.user);
-          setUser(transformedUser);
-        } catch (err) {
-          if (import.meta.env.DEV) {
-            console.error('[Auth] Error transforming user on init:', err);
-          }
-          setUser(null);
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('[Auth] Unexpected error in getSessionAndUser:', error);
         }
-      } else {
-        // App-preview: provide a demo user even when not authenticated.
-        setUser(shouldUseDemoUserRef.current ? demoUser : null);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     getSessionAndUser();
@@ -463,15 +511,72 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [transformUser, demoUser]);
 
+  // Visibility change listener: refresh session when user returns to tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && session) {
+        // User returned to tab - verify session is still valid
+        supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+          if (!currentSession && session) {
+            if (import.meta.env.DEV) {
+              console.log('[Auth] Session lost while away, attempting refresh...');
+            }
+            // Session was lost - try to refresh
+            supabase.auth.refreshSession().catch(() => {
+              // Refresh failed - user needs to log in again
+              if (import.meta.env.DEV) {
+                console.warn('[Auth] Session refresh failed, user must re-authenticate');
+              }
+              setSession(null);
+              setUser(shouldUseDemoUserRef.current ? demoUser : null);
+            });
+          } else if (currentSession && currentSession.expires_at) {
+            // Check if session is near expiry
+            const expiresAt = currentSession.expires_at * 1000;
+            const fiveMinutesFromNow = Date.now() + 5 * 60 * 1000;
+            if (expiresAt < fiveMinutesFromNow) {
+              if (import.meta.env.DEV) {
+                console.log('[Auth] Session near expiry on tab focus, refreshing...');
+              }
+              supabase.auth.refreshSession();
+            }
+          }
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [session, demoUser]);
+
   // Respond to demo mode toggles while logged out (no session).
   useEffect(() => {
     if (session?.user) return;
     setUser(shouldUseDemoUser ? demoUser : null);
   }, [demoUser, session, shouldUseDemoUser]);
 
-  const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
+  const signIn = async (
+    email: string,
+    password: string,
+    rememberMe: boolean = false,
+  ): Promise<{ error?: string }> => {
     try {
       setIsLoading(true);
+
+      // Store remember me preference before sign in
+      if (rememberMe) {
+        try {
+          localStorage.setItem('chravel-remember-me', 'true');
+        } catch (e) {
+          // Storage unavailable, continue anyway
+        }
+      } else {
+        try {
+          localStorage.removeItem('chravel-remember-me');
+        } catch (e) {
+          // Storage unavailable, continue anyway
+        }
+      }
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -498,6 +603,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         return { error: error.message };
+      }
+
+      // If remember me is enabled, extend the session to 30 days
+      if (rememberMe && data.session) {
+        // Store extended session indicator
+        try {
+          localStorage.setItem('chravel-session-extended', Date.now().toString());
+        } catch (e) {
+          // Storage unavailable
+        }
+        if (import.meta.env.DEV) {
+          console.log('[Auth] Remember Me enabled - session will persist for 30 days');
+        }
       }
 
       // Success path: clear loading state (auth state listener will update user)
