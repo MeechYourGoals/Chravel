@@ -45,7 +45,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
       {/* Full-Page Scrolling Container with PWA safe-area support */}
       <div
         ref={scrollContainerRef}
-        className="md:snap-y md:snap-mandatory overflow-y-auto overflow-x-hidden h-screen scroll-smooth"
+        className="overflow-y-auto overflow-x-hidden h-screen scroll-smooth"
         style={{
           paddingLeft: 'env(safe-area-inset-left)',
           paddingRight: 'env(safe-area-inset-right)'
@@ -128,7 +128,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
         </FullPageLandingSection>
 
         {/* Footer */}
-        <div id="section-footer" className="snap-start">
+        <div id="section-footer">
           <Suspense fallback={<SectionLoader />}>
             <FooterSection />
           </Suspense>
