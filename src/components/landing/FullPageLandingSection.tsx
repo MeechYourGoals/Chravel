@@ -1,35 +1,70 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { VideoBackground } from './VideoBackground';
 
 interface FullPageLandingSectionProps {
   id: string;
-  videoSrc?: string;
-  imageFallback?: string;
-  videoOpacity?: number;
   enableSnapScroll?: boolean;
   minHeight?: string;
   children: React.ReactNode;
   className?: string;
-  imagePosition?: string;
-  backgroundStyle?: 'image' | 'gradient';
-  gradientColors?: [string, string];
+  backgroundStyle?: 'gradient' | 'solid';
+  gradientColors?: [string, string, string?]; // Start, end, optional mid
+  gradientDirection?: 'diagonal' | 'vertical' | 'radial';
+  accentGlow?: {
+    color: string;
+    position: 'top' | 'bottom' | 'center';
+    opacity?: number;
+  };
 }
 
 export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
   id,
-  videoSrc,
-  imageFallback,
-  videoOpacity = 0.4,
   enableSnapScroll = true,
   minHeight = '100vh',
   children,
   className,
-  imagePosition = 'center',
-  backgroundStyle = 'image',
-  gradientColors = ['#1a1a2e', '#16213e']
+  backgroundStyle = 'gradient',
+  gradientColors = ['#0a0a14', '#1a1a2e'],
+  gradientDirection = 'diagonal',
+  accentGlow
 }) => {
-  const useGradient = backgroundStyle === 'gradient' || (!videoSrc && !imageFallback);
+  // Build the gradient based on direction and colors
+  const getGradientStyle = () => {
+    const [start, end, mid] = gradientColors;
+    
+    if (gradientDirection === 'radial') {
+      return mid 
+        ? `radial-gradient(ellipse at center, ${mid} 0%, ${start} 50%, ${end} 100%)`
+        : `radial-gradient(ellipse at center bottom, ${start} 0%, ${end} 100%)`;
+    }
+    
+    if (gradientDirection === 'vertical') {
+      return mid
+        ? `linear-gradient(180deg, ${start} 0%, ${mid} 50%, ${end} 100%)`
+        : `linear-gradient(180deg, ${start} 0%, ${end} 100%)`;
+    }
+    
+    // Default: diagonal
+    return mid
+      ? `linear-gradient(135deg, ${start} 0%, ${mid} 50%, ${end} 100%)`
+      : `linear-gradient(135deg, ${start} 0%, ${end} 100%)`;
+  };
+
+  // Build accent glow overlay
+  const getAccentGlowStyle = () => {
+    if (!accentGlow) return null;
+    
+    const { color, position, opacity = 0.15 } = accentGlow;
+    const positionMap = {
+      top: 'at center top',
+      bottom: 'at center bottom', 
+      center: 'at center center'
+    };
+    
+    return `radial-gradient(ellipse ${positionMap[position]}, ${color}${Math.round(opacity * 255).toString(16).padStart(2, '0')} 0%, transparent 60%)`;
+  };
+
+  const accentStyle = getAccentGlowStyle();
 
   return (
     <section
@@ -46,18 +81,14 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
       )}
       style={{
         ['--section-desktop-min-height' as string]: minHeight,
-        ...(useGradient && {
-          background: `linear-gradient(135deg, ${gradientColors[0]} 0%, ${gradientColors[1]} 100%)`
-        })
+        background: getGradientStyle()
       }}
     >
-      {/* Background Video/Image - only render if not using gradient */}
-      {!useGradient && (videoSrc || imageFallback) && (
-        <VideoBackground
-          videoSrc={videoSrc}
-          imageFallback={imageFallback || ''}
-          opacity={videoOpacity}
-          imagePosition={imagePosition}
+      {/* Accent glow overlay */}
+      {accentStyle && (
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: accentStyle }}
         />
       )}
 
