@@ -27,18 +27,21 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   onTripBasecampSet,
   // onCenterMap is deprecated - map centering is disconnected from basecamp saving
   personalBasecamp: externalPersonalBasecamp,
-  onPersonalBasecampUpdate
+  onPersonalBasecampUpdate,
 }) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const { clearBasecamp } = useBasecamp();
-  const [internalPersonalBasecamp, setInternalPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
+  const [internalPersonalBasecamp, setInternalPersonalBasecamp] = useState<PersonalBasecamp | null>(
+    null,
+  );
   const [showTripSelector, setShowTripSelector] = useState(false);
   const [showPersonalSelector, setShowPersonalSelector] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Use external state if provided, otherwise use internal state
-  const personalBasecamp = externalPersonalBasecamp !== undefined ? externalPersonalBasecamp : internalPersonalBasecamp;
+  const personalBasecamp =
+    externalPersonalBasecamp !== undefined ? externalPersonalBasecamp : internalPersonalBasecamp;
   const setPersonalBasecamp = onPersonalBasecampUpdate || setInternalPersonalBasecamp;
 
   // Generate a consistent demo user ID for the session
@@ -65,7 +68,10 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
       setLoading(true);
       try {
         if (isDemoMode) {
-          const sessionBasecamp = demoModeService.getSessionPersonalBasecamp(tripId, effectiveUserId);
+          const sessionBasecamp = demoModeService.getSessionPersonalBasecamp(
+            tripId,
+            effectiveUserId,
+          );
           setInternalPersonalBasecamp(sessionBasecamp);
         } else if (user) {
           const dbBasecamp = await basecampService.getPersonalBasecamp(tripId, user.id);
@@ -92,7 +98,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
 
   const handleTripBasecampClear = async () => {
     if (!tripBasecamp) return;
-    
+
     try {
       if (isDemoMode) {
         demoModeService.clearSessionTripBasecamp(tripId);
@@ -108,7 +114,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   const handlePersonalBasecampSet = async (location: BasecampLocation) => {
     try {
       let savedBasecamp: PersonalBasecamp | null = null;
-      
+
       if (isDemoMode) {
         // Save without coordinates - basecamp is just a text reference now
         savedBasecamp = demoModeService.setSessionPersonalBasecamp({
@@ -118,9 +124,8 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           address: location.address,
           // No coordinates - basecamp is text-only
           latitude: undefined,
-          longitude: undefined
+          longitude: undefined,
         });
-        setPersonalBasecamp(savedBasecamp);
       } else if (user) {
         // Save without coordinates - basecamp is just a text reference now
         savedBasecamp = await basecampService.upsertPersonalBasecamp({
@@ -129,13 +134,26 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           address: location.address,
           // No coordinates - basecamp is text-only
           latitude: undefined,
-          longitude: undefined
+          longitude: undefined,
         });
-        setPersonalBasecamp(savedBasecamp);
       }
-      
-      setShowPersonalSelector(false);
-      toast.success('Personal basecamp saved');
+
+      // CRITICAL FIX: Only show success and update state if we actually saved
+      if (savedBasecamp) {
+        setPersonalBasecamp(savedBasecamp);
+        setShowPersonalSelector(false);
+        toast.success('Personal basecamp saved');
+        console.log(
+          '[BasecampsPanel] Personal basecamp saved successfully:',
+          savedBasecamp.address,
+        );
+      } else {
+        // Service returned null - save failed silently
+        console.error(
+          '[BasecampsPanel] Personal basecamp save returned null - database operation may have failed',
+        );
+        toast.error('Failed to save personal base camp. Please try again.');
+      }
       // Note: Map centering is now disconnected from basecamp saving
       // Basecamps are simple text references without coordinates
     } catch (error) {
@@ -166,7 +184,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
     address: pb.address || '',
     name: pb.name,
     type: 'other',
-    coordinates: pb.latitude && pb.longitude ? { lat: pb.latitude, lng: pb.longitude } : undefined
+    coordinates: pb.latitude && pb.longitude ? { lat: pb.latitude, lng: pb.longitude } : undefined,
   });
 
   return (
@@ -180,7 +198,9 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <MapPin size={16} className="text-sky-400 flex-shrink-0" />
-                    <h3 className="text-white font-semibold text-sm md:text-base">Trip Base Camp</h3>
+                    <h3 className="text-white font-semibold text-sm md:text-base">
+                      Trip Base Camp
+                    </h3>
                   </div>
                   <button
                     onClick={() => setShowTripSelector(true)}
@@ -195,9 +215,13 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                     <MapPin size={18} className="text-sky-400 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       {tripBasecamp.name && (
-                        <p className="text-white font-semibold text-base md:text-lg truncate">{tripBasecamp.name}</p>
+                        <p className="text-white font-semibold text-base md:text-lg truncate">
+                          {tripBasecamp.name}
+                        </p>
                       )}
-                      <p className="text-gray-300 text-base md:text-lg break-words">{tripBasecamp.address}</p>
+                      <p className="text-gray-300 text-base md:text-lg break-words">
+                        {tripBasecamp.address}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -236,7 +260,9 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <User size={16} className="text-emerald-400 flex-shrink-0" />
-                    <h3 className="text-white font-semibold text-sm md:text-base">Personal Base Camp</h3>
+                    <h3 className="text-white font-semibold text-sm md:text-base">
+                      Personal Base Camp
+                    </h3>
                     <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
                       <Lock size={8} />
                       Private
@@ -255,9 +281,13 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                     <MapPin size={18} className="text-emerald-400 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       {personalBasecamp.name && (
-                        <p className="text-white font-semibold text-base md:text-lg truncate">{personalBasecamp.name}</p>
+                        <p className="text-white font-semibold text-base md:text-lg truncate">
+                          {personalBasecamp.name}
+                        </p>
                       )}
-                      <p className="text-gray-300 text-base md:text-lg break-words">{personalBasecamp.address}</p>
+                      <p className="text-gray-300 text-base md:text-lg break-words">
+                        {personalBasecamp.address}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -266,7 +296,9 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
               <>
                 <div className="flex items-center gap-2 mb-2">
                   <User size={16} className="text-emerald-400 flex-shrink-0" />
-                  <h3 className="text-white font-semibold text-sm md:text-base">Personal Base Camp</h3>
+                  <h3 className="text-white font-semibold text-sm md:text-base">
+                    Personal Base Camp
+                  </h3>
                   <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs bg-emerald-900/40 text-emerald-200 border border-emerald-500/30">
                     <Lock size={8} />
                     Private
