@@ -42,8 +42,6 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
         'min-h-screen md:min-h-[var(--section-desktop-min-height,100vh)]',
         // Add top padding on mobile to account for header and safe areas
         'pt-20 md:pt-0',
-        // Only enable snap scrolling on desktop
-        enableSnapScroll && 'md:snap-start md:snap-always',
         className
       )}
       style={{
