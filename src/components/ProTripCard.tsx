@@ -1,20 +1,25 @@
-
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Eye, Users, Clock, MoreHorizontal, Archive, EyeOff, UserPlus, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, Users, MoreHorizontal, Archive, EyeOff, UserPlus, Trash2, FileDown, Share2 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from './ui/button';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { DeleteTripConfirmDialog } from './DeleteTripConfirmDialog';
 import { InviteModal } from './InviteModal';
+import { ShareTripModal } from './share/ShareTripModal';
+import { TripExportModal } from './trip/TripExportModal';
 import { ProTripData } from '../types/pro';
-import { useTripVariant } from '../contexts/TripVariantContext';
 import { useProTrips } from '../hooks/useProTrips';
 import { useToast } from '../hooks/use-toast';
 import { useAuth } from '../hooks/useAuth';
 import { getPeopleCountValue, formatPeopleCount, calculateDaysCount, calculateProTripPlacesCount } from '../utils/tripStatsUtils';
 import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { getProTripColor } from '../utils/proTripColors';
+import { demoModeService } from '../services/demoModeService';
+import { openOrDownloadBlob } from '../utils/download';
+import { orderExportSections } from '../utils/exportSectionOrder';
+import type { ExportSection } from '../types/tripExport';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,17 +39,21 @@ interface ProTripCardProps {
 
 export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuccess }: ProTripCardProps) => {
   const navigate = useNavigate();
-  const { accentColors } = useTripVariant();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const { archiveTrip, hideTrip, deleteTripForMe } = useProTrips();
   
-  // Get added members from the demo store - use stable empty array reference with shallow comparison
+  // Get deterministic color for this trip
+  const tripColor = getProTripColor(trip.id);
+  
+  // Get added members from the demo store
   const tripIdStr = trip.id.toString();
   const addedDemoMembers = useDemoTripMembersStore(
     useShallow((state) => isDemoMode && state.addedMembers[tripIdStr] 
@@ -55,10 +64,8 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
   // Calculate updated people count including added members
   const totalPeopleCount = React.useMemo(() => {
     let baseCount = getPeopleCountValue(trip);
-    // Ensure at least 1 person (creator) is counted
     if (baseCount === 0) baseCount = 1;
-    
-    return formatPeopleCount(baseCount + addedDemoMembers.length);
+    return baseCount + addedDemoMembers.length;
   }, [trip, addedDemoMembers]);
 
   const handleViewTrip = () => {
@@ -70,14 +77,14 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
       await archiveTrip(trip.id);
       toast({
         title: "Professional trip archived",
-        description: `"${trip.title}" has been archived. View it in the Archived tab.`,
+        description: `"${trip.title}" has been archived.`,
       });
       setShowArchiveDialog(false);
       onArchiveSuccess?.();
     } catch (error) {
       toast({
         title: "Failed to archive trip",
-        description: "There was an error archiving your trip. Please try again.",
+        description: "There was an error archiving your trip.",
         variant: "destructive",
       });
     }
@@ -88,13 +95,13 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
       await hideTrip(trip.id);
       toast({
         title: "Trip hidden",
-        description: `"${trip.title}" is now hidden. Enable "Show Hidden Trips" in Settings to view it.`,
+        description: `"${trip.title}" is now hidden.`,
       });
       onHideSuccess?.();
     } catch (error) {
       toast({
         title: "Failed to hide trip",
-        description: "There was an error hiding your trip. Please try again.",
+        description: "There was an error hiding your trip.",
         variant: "destructive",
       });
     }
@@ -115,14 +122,14 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
       await deleteTripForMe({ tripId: trip.id.toString(), userId: user.id });
       toast({
         title: "Trip removed",
-        description: `"${trip.title}" has been removed from your account.`,
+        description: `"${trip.title}" has been removed.`,
       });
       setShowDeleteDialog(false);
       onDeleteSuccess?.();
     } catch (error) {
       toast({
         title: "Failed to remove trip",
-        description: "There was an error removing the trip. Please try again.",
+        description: "There was an error removing the trip.",
         variant: "destructive",
       });
     } finally {
@@ -130,158 +137,247 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
     }
   };
 
-  // Get next load-in event from schedule
-  const getNextLoadIn = () => {
-    if (!trip.schedule || trip.schedule.length === 0) return null;
+  // Export handler for Recap - matches TripCard pattern
+  // TripExportModal passes only sections, we capture tripId from closure
+  const handleExportPdf = useCallback(async (sections: ExportSection[]) => {
+    const orderedSections = orderExportSections(sections);
+    const isNumericId = !tripIdStr.includes('-'); // UUIDs have dashes, demo IDs don't
     
-    const now = new Date();
-    const loadInEvents = trip.schedule
-      .filter(event => event.type === 'load-in')
-      .filter(event => new Date(event.startTime) > now)
-      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-    
-    return loadInEvents.length > 0 ? loadInEvents[0] : null;
+    toast({
+      title: "Creating Recap",
+      description: `Building your trip memories for "${trip.title}"...`,
+    });
+
+    try {
+      let blob: Blob;
+      
+      if (isDemoMode || isNumericId) {
+        // Demo mode - use mock data from services
+        const mockCalendar = demoModeService.getMockCalendarEvents(tripIdStr);
+        const mockAttachments = demoModeService.getMockAttachments(tripIdStr);
+        const mockPayments = demoModeService.getMockPayments(tripIdStr);
+        const mockPolls = demoModeService.getMockPolls(tripIdStr);
+        const mockTasks = demoModeService.getMockTasks(tripIdStr);
+        const mockPlaces = demoModeService.getMockPlaces(tripIdStr);
+        
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
+        blob = await generateClientPDF(
+          {
+            tripId: tripIdStr,
+            tripTitle: trip.title,
+            destination: trip.location,
+            dateRange: trip.dateRange,
+            calendar: orderedSections.includes('calendar') ? mockCalendar : undefined,
+            payments: orderedSections.includes('payments') && mockPayments.length > 0 ? {
+              items: mockPayments,
+              total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
+              currency: mockPayments[0]?.currency || 'USD'
+            } : undefined,
+            polls: orderedSections.includes('polls') ? mockPolls : undefined,
+            tasks: orderedSections.includes('tasks') ? mockTasks.map(task => ({
+              title: task.title,
+              description: task.description,
+              completed: task.completed
+            })) : undefined,
+            places: orderedSections.includes('places') ? mockPlaces : undefined,
+            attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
+          },
+          orderedSections,
+          { customization: { compress: true, maxItemsPerSection: 100 } }
+        );
+      } else {
+        // Authenticated mode - fetch real data from Supabase
+        const { getExportData } = await import('../services/tripExportDataService');
+        const realData = await getExportData(tripIdStr, orderedSections);
+        
+        if (!realData) {
+          throw new Error('Could not fetch trip data for export');
+        }
+        
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
+        blob = await generateClientPDF(
+          {
+            tripId: tripIdStr,
+            tripTitle: realData.trip.title,
+            destination: realData.trip.destination,
+            dateRange: realData.trip.dateRange,
+            description: realData.trip.description,
+            calendar: realData.calendar,
+            payments: realData.payments,
+            polls: realData.polls,
+            tasks: realData.tasks,
+            places: realData.places,
+            roster: realData.roster,
+            attachments: realData.attachments,
+          },
+          orderedSections,
+          { customization: { compress: true, maxItemsPerSection: 100 } }
+        );
+      }
+
+      // Generate filename
+      const sanitizedTitle = trip.title.replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `ProTrip_${sanitizedTitle}_${Date.now()}.pdf`;
+
+      // Download the blob
+      await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
+
+      toast({
+        title: "Recap ready",
+        description: `PDF downloaded: ${filename}`,
+      });
+    } catch (error) {
+      console.error('[ProTripCard Export] Error:', error);
+      toast({
+        title: "Recap failed",
+        description: error instanceof Error ? error.message : "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  }, [trip, isDemoMode, toast, tripIdStr]);
+
+  // Share trip data structure
+  const shareTrip = {
+    id: trip.id,
+    title: trip.title,
+    location: trip.location,
+    dateRange: trip.dateRange,
+    participants: trip.participants || [],
+    coverPhoto: undefined,
+    peopleCount: totalPeopleCount
   };
 
-  const nextLoadIn = getNextLoadIn();
-
-  // Default fallback image for Pro trips without a cover photo
-  const defaultCoverPhoto = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop';
-  const coverPhoto = trip.coverPhoto || defaultCoverPhoto;
-
   return (
-    <div className={`bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md border border-white/20 rounded-3xl overflow-hidden hover:bg-white/15 transition-all duration-300 hover:scale-105 hover:shadow-xl group hover:border-${accentColors.primary}/50 relative`}>
-      {/* Cover Photo Hero */}
-      <div className="relative h-32 md:h-48 bg-gradient-to-br from-gray-700/20 via-gray-600/10 to-transparent">
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-80"
-          style={{
-            backgroundImage: `url('${coverPhoto}')`
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-      </div>
-
-      {/* Card Content */}
-      <div className="p-6 pt-4">
-        {/* Menu */}
-        <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-
-          <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="text-white/60 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-200"
-            >
-              <MoreHorizontal size={16} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-background border-border">
-            <DropdownMenuItem
-              onClick={() => setShowArchiveDialog(true)}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Archive className="mr-2 h-4 w-4" />
-              Archive Trip
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={handleHideTrip}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <EyeOff className="mr-2 h-4 w-4" />
-              Hide Trip
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setShowDeleteDialog(true)}
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete for me
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      {/* Header - Removed category badges and tags */}
-      <div className="mb-4 pr-12 pl-12">
-        <h3 className={`text-xl font-semibold text-white group-hover:text-${accentColors.secondary} transition-colors mb-2`}>
-          {trip.title}
-        </h3>
-
-        {/* Status Pills */}
-        {nextLoadIn && (
-          <div className="flex flex-wrap gap-2 mb-3">
-            <div className="flex items-center gap-1 bg-orange-500/20 text-orange-300 px-3 py-1 rounded-full text-xs border border-orange-500/30">
-              <Clock size={12} />
-              <span>Next Load-In: {new Date(nextLoadIn.startTime).toLocaleDateString()}</span>
+    <div className={`group bg-gradient-to-br ${tripColor.cardGradient} backdrop-blur-xl border border-white/20 hover:border-white/40 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg relative`}>
+      
+      {/* Hero Section - Dark overlay for text readability */}
+      <div className="relative h-32 md:h-48 bg-black/40">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+        
+        <div className="relative z-10 flex justify-between items-start h-full p-4 md:p-6">
+          {/* Trip Info - Inside Hero */}
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col justify-end">
+            <h3 className="text-lg md:text-xl font-bold text-white group-hover:text-white/90 transition-colors line-clamp-2 mb-2">
+              {trip.title}
+            </h3>
+            
+            <div className="flex items-center gap-2 text-white/80 mb-1 md:mb-2 text-sm md:text-base">
+              <MapPin size={14} className="text-white/60 shrink-0" />
+              <span className="font-medium truncate">{trip.location}</span>
+            </div>
+            
+            <div className="flex items-center gap-2 text-white/80 text-sm md:text-base">
+              <Calendar size={14} className="text-white/60 shrink-0" />
+              <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Location */}
-      <div className="flex items-center gap-3 text-white/80 mb-4">
-        <div className={`w-8 h-8 bg-${accentColors.primary}/20 backdrop-blur-sm rounded-lg flex items-center justify-center`}>
-          <MapPin size={16} className={`text-${accentColors.primary}`} />
+          
+          {/* Menu Button */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="text-white/60 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-200 h-8 w-8"
+              >
+                <MoreHorizontal size={16} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-background border-border">
+              <DropdownMenuItem
+                onClick={() => setShowArchiveDialog(true)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Archive className="mr-2 h-4 w-4" />
+                Archive Trip
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleHideTrip}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <EyeOff className="mr-2 h-4 w-4" />
+                Hide Trip
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete for me
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        <span className="font-medium">{trip.location}</span>
       </div>
 
-      {/* Date */}
-      <div className="flex items-center gap-3 text-white/80 mb-6">
-        <div className={`w-8 h-8 bg-${accentColors.secondary}/20 backdrop-blur-sm rounded-lg flex items-center justify-center`}>
-          <Calendar size={16} className={`text-${accentColors.secondary}`} />
-        </div>
-        <span className="font-medium">{trip.dateRange}</span>
-      </div>
-
-      {/* Stats Grid - People, Days, Places */}
-      <div className="grid grid-cols-3 gap-4 mb-6 bg-black/20 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <Users size={14} className={`text-${accentColors.primary}`} />
-            <span className="text-xs text-white/60 uppercase tracking-wide">People</span>
+      {/* Content Section */}
+      <div className="p-4 md:p-6">
+        {/* Stats Row - Matches TripCard exactly */}
+        <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-0.5">
+              <Users size={12} className="text-white/50" />
+            </div>
+            <div className="text-xl md:text-2xl font-bold text-white">{formatPeopleCount(totalPeopleCount)}</div>
+            <div className="text-xs md:text-sm text-white/60">People</div>
           </div>
-          <div className="text-lg font-bold text-white">{totalPeopleCount}</div>
-        </div>
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <Calendar size={14} className={`text-${accentColors.primary}`} />
-            <span className="text-xs text-white/60 uppercase tracking-wide">Days</span>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-0.5">
+              <Calendar size={12} className="text-white/50" />
+            </div>
+            <div className="text-xl md:text-2xl font-bold text-white">{calculateDaysCount(trip.dateRange)}</div>
+            <div className="text-xs md:text-sm text-white/60">Days</div>
           </div>
-          <div className="text-lg font-bold text-white">{calculateDaysCount(trip.dateRange)}</div>
-        </div>
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <MapPin size={14} className={`text-${accentColors.primary}`} />
-            <span className="text-xs text-white/60 uppercase tracking-wide">Places</span>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-0.5">
+              <MapPin size={12} className="text-white/50" />
+            </div>
+            <div className="text-xl md:text-2xl font-bold text-white">{calculateProTripPlacesCount(trip)}</div>
+            <div className="text-xs md:text-sm text-white/60">Places</div>
           </div>
-          <div className="text-lg font-bold text-white">{calculateProTripPlacesCount(trip)}</div>
+        </div>
+
+        {/* CTA Grid 2x2 - Matches TripCard order: Recap/Invite top, View/Share bottom */}
+        <div className="grid grid-cols-2 gap-2 md:gap-3">
+          {/* Top Row: Recap + Invite */}
+          <Button
+            onClick={() => setShowExportModal(true)}
+            variant="ghost"
+            className="bg-black/30 hover:bg-black/40 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-xs md:text-sm h-auto"
+          >
+            <FileDown size={14} className="mr-1.5" />
+            Recap
+          </Button>
+          <Button
+            onClick={() => setShowInviteModal(true)}
+            variant="ghost"
+            className="bg-black/30 hover:bg-black/40 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-xs md:text-sm h-auto"
+          >
+            <UserPlus size={14} className="mr-1.5" />
+            Invite
+          </Button>
+          
+          {/* Bottom Row: View + Share */}
+          {/* View button uses neutral dark style (NOT yellow like Regular TripCard) */}
+          <Button
+            onClick={handleViewTrip}
+            className="bg-white/10 hover:bg-white/20 text-white font-semibold py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-300 text-xs md:text-sm h-auto border border-white/10"
+          >
+            View
+          </Button>
+          <Button
+            onClick={() => setShowShareModal(true)}
+            variant="ghost"
+            className="bg-black/30 hover:bg-black/40 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-xs md:text-sm h-auto"
+          >
+            <Share2 size={14} className="mr-1.5" />
+            Share
+          </Button>
         </div>
       </div>
 
-      {/* Action Buttons - Side by Side */}
-      <div className="grid grid-cols-2 gap-2 md:gap-3">
-        <Button
-          onClick={handleViewTrip}
-          className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm h-auto"
-          variant="ghost"
-        >
-          <Eye size={16} className="mr-2" />
-          View Trip
-        </Button>
-        
-        <Button
-          onClick={() => setShowInviteModal(true)}
-          className={`bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white transition-all duration-300 font-semibold py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl text-xs md:text-sm h-auto`}
-        >
-          <UserPlus size={16} className="mr-2" />
-          Invite
-        </Button>
-      </div>
-      </div>
-
+      {/* Modals */}
       <ArchiveConfirmDialog
         isOpen={showArchiveDialog}
         onClose={() => setShowArchiveDialog(false)}
@@ -304,6 +400,20 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
         tripName={trip.title}
         proTripId={trip.id}
         tripType="pro"
+      />
+
+      <ShareTripModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        trip={shareTrip}
+      />
+
+      <TripExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        tripId={trip.id.toString()}
+        tripName={trip.title}
+        onExport={handleExportPdf}
       />
     </div>
   );
