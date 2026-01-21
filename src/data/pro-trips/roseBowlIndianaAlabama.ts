@@ -8,7 +8,7 @@ export const roseBowlIndianaAlabama: ProTripData = {
   location: 'Pasadena, California',
   dateRange: 'December 29, 2025 - Jan 2, 2026',
   proTripCategory: 'Sports – Pro, Collegiate, Youth',
-  tags: ['Sports', 'NCAA Division I', 'Football', 'Bowl Game'],
+  tags: [],
   basecamp_name: 'Rose Bowl Stadium',
   basecamp_address: '1001 Rose Bowl Dr, Pasadena, CA 91103',
   tasks: [

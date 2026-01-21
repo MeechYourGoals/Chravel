@@ -8,7 +8,7 @@ export const postMaloneJellyRollTour: ProTripData = {
   location: 'Chicago, Boston, New York, Philadelphia, Atlanta, Austin, Los Angeles',
   dateRange: 'May 8 - Jul 19, 2026',
   proTripCategory: 'Tour – Music, Comedy, etc.',
-  tags: ['Comedy', 'Stand-Up', 'North America', 'Multi-City'],
+  tags: [],
   basecamp_name: 'United Center',
   basecamp_address: '1901 W Madison St, Chicago, IL 60612',
   tasks: [

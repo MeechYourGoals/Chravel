@@ -9,7 +9,7 @@ export const googleIO2026: ProTripData = {
   dateRange: 'May 12 - May 15, 2026',
   category: 'Enterprise',
   proTripCategory: 'Business Travel',
-  tags: ['Tech Conference', 'Enterprise', 'Developer'],
+  tags: [],
   participants: [
     { id: '1', name: 'Sundar Pichai', avatar: getMockAvatar('Sundar Pichai'), role: 'Keynote Speakers' },
     { id: '2', name: 'Aparna Pappu', avatar: getMockAvatar('Aparna Pappu'), role: 'Demo Team' },

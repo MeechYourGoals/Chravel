@@ -8,7 +8,7 @@ export const yCombinatorCohort: ProTripData = {
   location: 'Miami, FL',
   dateRange: 'Aug 3 - Aug 8, 2026',
   proTripCategory: 'Content',
-  tags: ['Content Creation', 'Streaming', 'Production', 'Creator'],
+  tags: [],
   basecamp_name: 'Miami Creator House',
   basecamp_address: '1200 Ocean Dr, Miami Beach, FL 33139',
   tasks: [

@@ -8,7 +8,7 @@ export const ohioStateNotreDame: ProTripData = {
   location: 'South Bend, IN',
   dateRange: 'Sep 13 - Sep 14, 2025',
   proTripCategory: 'Sports – Pro, Collegiate, Youth',
-  tags: ['Sports', 'NCAA Division I', 'Football'],
+  tags: [],
   basecamp_name: 'Notre Dame Stadium',
   basecamp_address: 'Notre Dame, IN 46556',
   tasks: [
