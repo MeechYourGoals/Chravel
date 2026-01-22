@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Poll as PollType } from './poll/types';
@@ -12,10 +12,24 @@ import { toast } from 'sonner';
 
 interface PollComponentProps {
   tripId: string;
+  showCreatePoll?: boolean;
+  onShowCreatePollChange?: (show: boolean) => void;
+  hideCreateButton?: boolean;
 }
 
-export const PollComponent = ({ tripId }: PollComponentProps) => {
-  const [showCreatePoll, setShowCreatePoll] = useState(false);
+export const PollComponent = ({ 
+  tripId, 
+  showCreatePoll: controlledShowCreatePoll,
+  onShowCreatePollChange,
+  hideCreateButton = false
+}: PollComponentProps) => {
+  // Use controlled state if provided, otherwise use internal state
+  const isControlled = controlledShowCreatePoll !== undefined && onShowCreatePollChange !== undefined;
+  const [internalShowCreatePoll, setInternalShowCreatePoll] = React.useState(false);
+  
+  const showCreatePoll = isControlled ? controlledShowCreatePoll : internalShowCreatePoll;
+  const setShowCreatePoll = isControlled ? onShowCreatePollChange : setInternalShowCreatePoll;
+
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const {
@@ -141,25 +155,10 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
     });
   };
 
-  // Show empty state if no polls and not in demo mode
-  if (!isLoading && formattedPolls.length === 0 && !showCreatePoll && !isDemoMode) {
-    return (
-      <div className="space-y-3 mobile-safe-scroll">
-        <PollsEmptyState onCreatePoll={() => setShowCreatePoll(true)} />
-        {showCreatePoll && (
-          <CreatePollForm
-            onCreatePoll={handleCreatePoll}
-            onCancel={() => setShowCreatePoll(false)}
-            isSubmitting={isCreatingPoll}
-          />
-        )}
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-3 mobile-safe-scroll">
-      {!showCreatePoll && (
+    <div className="space-y-3">
+      {/* Show create button only if not hidden and not showing form */}
+      {!hideCreateButton && !showCreatePoll && (
         <Button
           onClick={() => setShowCreatePoll(true)}
           className="w-full h-10 rounded-xl bg-gradient-to-r from-glass-enterprise-blue to-glass-enterprise-blue-light hover:from-glass-enterprise-blue-light hover:to-glass-enterprise-blue font-semibold shadow-enterprise border border-glass-enterprise-blue/50 text-white text-sm"
@@ -181,10 +180,8 @@ export const PollComponent = ({ tripId }: PollComponentProps) => {
         <div className="flex justify-center py-6">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
         </div>
-      ) : formattedPolls.length === 0 ? (
-        <div className="text-center py-6 text-muted-foreground text-sm">
-          No polls have been created yet.
-        </div>
+      ) : formattedPolls.length === 0 && !showCreatePoll ? (
+        <PollsEmptyState />
       ) : (
         formattedPolls.map(poll => (
           <Poll
