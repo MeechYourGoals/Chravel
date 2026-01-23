@@ -1,113 +1,204 @@
 
-# Update Edge Functions and tripsData.ts with Supabase Storage URLs
+# Fix "Remember Me for 30 Days" Session Persistence
 
-## Overview
+## Root Cause Analysis
 
-The image migration is complete. All 12 demo images have been successfully uploaded to Supabase Storage at `trip-media/demo-covers/`. Now we need to update all references to use these permanent public URLs.
+After investigating the authentication implementation, I've identified the **critical issue**: The "Remember Me" checkbox is purely cosmetic - it only stores a flag in localStorage but **does not actually extend the session duration**.
 
-## Storage URL Pattern
+### The Problem
 
-```text
-Base URL: https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/
-```
+Looking at `src/hooks/useAuth.tsx` lines 558-631:
 
-| Trip ID | Filename |
-|---------|----------|
-| 1 | cancun-spring-break.jpg |
-| 2 | tokyo-adventure.jpg |
-| 3 | bali-destination-wedding.jpg |
-| 4 | nashville-bachelorette.jpg |
-| 5 | coachella-festival.jpg |
-| 6 | dubai-birthday.jpg |
-| 7 | phoenix-golf-outing.jpg |
-| 8 | tulum-yoga-wellness.jpg |
-| 9 | napa-wine-getaway.jpg |
-| 10 | aspen-corporate-ski.jpg |
-| 11 | disney-family-cruise.jpg |
-| 12 | yellowstone-hiking-group.jpg |
-
----
-
-## Files to Modify
-
-### 1. supabase/functions/generate-trip-preview/index.ts
-
-**Change**: Replace Unsplash URLs for trips 1-12 with Supabase Storage URLs
-
-Before:
 ```typescript
-coverPhoto: 'https://images.unsplash.com/photo-1530789253388-582c481c54b0?w=1200&h=630&fit=crop',
+const signIn = async (email: string, password: string, rememberMe: boolean = false) => {
+  // Stores preference in localStorage - but this does NOTHING to Supabase session
+  if (rememberMe) {
+    localStorage.setItem('chravel-remember-me', 'true');
+  }
+  
+  // Standard sign-in - NO session extension options passed
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+  
+  // Just logs a message - doesn't actually extend anything
+  if (rememberMe && data.session) {
+    localStorage.setItem('chravel-session-extended', Date.now().toString());
+    console.log('[Auth] Remember Me enabled - session will persist for 30 days');
+  }
+}
 ```
 
-After:
-```typescript
-coverPhoto: 'https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/cancun-spring-break.jpg',
-```
+### Why Sessions Are Terminating
 
-### 2. supabase/functions/get-trip-preview/index.ts
+1. **Supabase session duration is controlled server-side** via the JWT expiry setting in the Supabase Dashboard (default: 1 hour for access tokens, but refresh tokens work indefinitely if used)
 
-**Change**: Same updates for trips 1-12 in the `demoTrips` object
+2. **The client-side `signInWithPassword` method does NOT accept a session duration parameter** - this must be configured in the Supabase Dashboard under Authentication > Sessions
 
-### 3. supabase/functions/generate-invite-preview/index.ts
+3. **The "chravel-remember-me" localStorage flag** is never read or used anywhere else in the codebase
 
-**Change**: Same updates for trips 1-12 in the `demoTrips` object
-
-### 4. src/data/tripsData.ts
-
-**Change**: Remove WebP imports and replace with storage URLs
-
-Before:
-```typescript
-import cancunSpringBreak from '../assets/trip-covers/cancun-spring-break.webp';
-// ... 11 more imports
-coverPhoto: cancunSpringBreak,
-```
-
-After:
-```typescript
-const DEMO_COVERS_BASE = 'https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers';
-
-// In each trip object:
-coverPhoto: `${DEMO_COVERS_BASE}/cancun-spring-break.jpg`,
-```
+4. **Possible inactivity timeout** configured in Supabase Dashboard - if set, sessions terminate after periods of inactivity
 
 ---
 
 ## Technical Details
 
-### URL Mapping (Complete)
+### How Supabase Sessions Actually Work
 
-| Trip ID | Old (Unsplash/WebP) | New (Supabase Storage) |
-|---------|---------------------|------------------------|
-| 1 | cancun-spring-break.webp | cancun-spring-break.jpg |
-| 2 | tokyo-adventure.webp | tokyo-adventure.jpg |
-| 3 | bali-destination-wedding.webp | bali-destination-wedding.jpg |
-| 4 | nashville-bachelorette.webp | nashville-bachelorette.jpg |
-| 5 | coachella-festival-new.webp | coachella-festival.jpg |
-| 6 | dubai-birthday-cameron-knight.webp | dubai-birthday.jpg |
-| 7 | phoenix-golf-outing.webp | phoenix-golf-outing.jpg |
-| 8 | tulum-yoga-wellness.webp | tulum-yoga-wellness.jpg |
-| 9 | napa-wine-getaway.webp | napa-wine-getaway.jpg |
-| 10 | aspen-corporate-ski.webp | aspen-corporate-ski.jpg |
-| 11 | disney-family-cruise.webp | disney-family-cruise.jpg |
-| 12 | yellowstone-hiking-group.webp | yellowstone-hiking-group.jpg |
+| Component | Duration | Client Control |
+|-----------|----------|----------------|
+| Access Token (JWT) | Configurable (default 1hr) | No - Dashboard only |
+| Refresh Token | Indefinite | No - Dashboard only |
+| Session Timeout | Configurable (Pro plan) | No - Dashboard only |
+| Inactivity Timeout | Configurable (Pro plan) | No - Dashboard only |
 
-### Benefits
-
-1. **Visual Parity**: In-app images now match OG preview images exactly
-2. **Smaller Bundle**: Removes ~12 WebP images from the client bundle
-3. **Single Source of Truth**: All demo trip images come from one location
-4. **Crawler Compatibility**: JPG format works universally with OG scrapers
+**Key insight**: The `signInWithPassword` API does NOT support a duration parameter. Session lifetime is entirely controlled server-side.
 
 ---
 
-## Cleanup (After Verification)
+## Solution Approach
 
-Once the updates are verified working:
+Since true 30-day sessions require Supabase Dashboard configuration (Pro plan feature), we have two options:
 
-1. Remove the migration page route from `src/App.tsx`
-2. Delete `src/pages/AdminMigrateDemoImages.tsx`
-3. Optionally delete the 12 WebP files from `src/assets/trip-covers/`
+### Option A: Dashboard Configuration (Recommended - Requires Pro Plan)
+
+Configure in Supabase Dashboard > Authentication > Sessions:
+- Set **Time-box user sessions** to 30 days (720 hours)
+- Or disable session expiry entirely (default behavior)
+
+### Option B: Client-Side Session Refresh Strategy (Works on all plans)
+
+Implement aggressive session refresh to keep the session alive:
+1. Check and refresh session on every app load
+2. Refresh session on tab visibility change
+3. Periodically refresh session in background (every 30-55 minutes)
+4. Store refresh intent and proactively maintain session
+
+---
+
+## Implementation Plan
+
+### Step 1: Add Aggressive Session Refresh Logic
+
+Update `src/hooks/useAuth.tsx` to implement a robust session refresh system:
+
+```text
+Location: src/hooks/useAuth.tsx
+
+Changes:
+1. Add a periodic session refresh interval (every 30 minutes when rememberMe is true)
+2. Actually USE the stored "chravel-remember-me" flag to control refresh behavior
+3. Add session refresh on app initialization if rememberMe was previously set
+4. Improve visibility change handler to always refresh if rememberMe is enabled
+```
+
+### Step 2: Modify Sign-In Flow
+
+Update the signIn function to:
+1. Set a more robust marker indicating 30-day session intent
+2. Immediately trigger a session refresh after sign-in to ensure tokens are fresh
+3. Start the periodic refresh interval
+
+### Step 3: Add Session Health Monitoring
+
+Implement a background task that:
+1. Checks session validity every 30 minutes (below typical 1hr JWT expiry)
+2. Proactively refreshes before expiry
+3. Only runs when "Remember Me" was selected
+4. Cleans up on sign-out
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/hooks/useAuth.tsx` | Add periodic refresh logic, use rememberMe flag, improve session persistence |
+| `src/integrations/supabase/client.ts` | No changes needed - already configured correctly |
+
+---
+
+## Code Changes Detail
+
+### src/hooks/useAuth.tsx
+
+**Add periodic session refresh (new useEffect):**
+
+```typescript
+// Periodic session refresh for "Remember Me" users
+useEffect(() => {
+  let refreshInterval: NodeJS.Timeout | null = null;
+  
+  // Check if user selected "Remember Me"
+  const shouldRemember = (() => {
+    try {
+      return localStorage.getItem('chravel-remember-me') === 'true';
+    } catch {
+      return false;
+    }
+  })();
+  
+  if (session && shouldRemember) {
+    // Refresh session every 30 minutes to keep it alive
+    refreshInterval = setInterval(async () => {
+      if (import.meta.env.DEV) {
+        console.log('[Auth] Periodic session refresh (Remember Me active)');
+      }
+      try {
+        await supabase.auth.refreshSession();
+      } catch (err) {
+        console.warn('[Auth] Periodic refresh failed:', err);
+      }
+    }, 30 * 60 * 1000); // 30 minutes
+    
+    // Also refresh immediately on mount if session exists
+    supabase.auth.refreshSession().catch(console.warn);
+  }
+  
+  return () => {
+    if (refreshInterval) clearInterval(refreshInterval);
+  };
+}, [session]);
+```
+
+**Update signIn function to refresh immediately:**
+
+```typescript
+// After successful sign-in with rememberMe
+if (rememberMe && data.session) {
+  // Immediately refresh to get a fresh token
+  await supabase.auth.refreshSession();
+}
+```
+
+**Update visibility change handler:**
+
+```typescript
+const shouldRemember = (() => {
+  try {
+    return localStorage.getItem('chravel-remember-me') === 'true';
+  } catch {
+    return false;
+  }
+})();
+
+// If Remember Me is enabled, always refresh on tab focus
+if (shouldRemember) {
+  supabase.auth.refreshSession();
+}
+```
+
+---
+
+## Dashboard Recommendation
+
+Even with client-side fixes, I recommend checking the Supabase Dashboard:
+
+1. Go to: `https://supabase.com/dashboard/project/jmjiyekmxwsxkfnqwyaa/auth/sessions`
+2. Verify no **Inactivity Timeout** is set (or set it high, like 30 days)
+3. Verify no **Time-box user sessions** is restricting session lifetime
+4. Check **JWT Expiry** at `/settings/jwt` - default 1hr is fine with refresh logic
 
 ---
 
@@ -115,8 +206,8 @@ Once the updates are verified working:
 
 | # | Criterion | Verification |
 |---|-----------|--------------|
-| 1 | Edge functions use Supabase Storage URLs | Code inspection |
-| 2 | tripsData.ts uses Supabase Storage URLs | Code inspection |
-| 3 | OG preview matches in-app image | Share demo trip link, check preview |
-| 4 | No Unsplash dependencies for demo trips | Search codebase for unsplash.com |
-| 5 | Bundle size reduced | Build output comparison |
+| 1 | Session persists across browser closes when "Remember Me" checked | Manual test |
+| 2 | Session persists for 30 days of inactivity | Long-term test |
+| 3 | Session refreshes proactively in background | Console logs |
+| 4 | No unexpected logouts during active use | User testing |
+| 5 | Session properly terminates on explicit sign-out | Manual test |
