@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 const scenarios = [
   {
     title: 'Family Trips & Year-Round Hubs',
-    subtitle: 'Multi-generation travel · holidays · reunions · shared family life',
+    subtitle: 'Errands, Vacations, or Important Moments · One Household Hub for Fam or Roommates',
     before: 'Multiple group chats. Buried emails. Someone always asking, "Where\'s the plan?"',
     expandCTA: 'See how families stay coordinated',
     after:
@@ -18,7 +18,7 @@ const scenarios = [
     title: 'Touring Artists & Crews',
     subtitle: 'Musicians · comedians · podcasts · managers · production',
     before:
-      'Spreadsheets, texts, last-minute changes, and missed details. An overwhelmed tour manager trying to keep everyone aligned.',
+      'Spreadsheets, countless texts, last-minute changes, and missed details. Overwhelmed Tour Managers & Annoyed Artists.',
     expandCTA: 'See how tours stay in sync',
     after:
       'Show days, off days, crew channels, logistics, and payments—all in one place. Everyone aligned, every city.',
@@ -35,13 +35,13 @@ const scenarios = [
     badge: 'Fewer questions · more memories',
   },
   {
-    title: 'After-School Activities & Carpools',
-    subtitle: 'Sports · dance · music · parent coordination',
+    title: 'Schedules, Pickups & Carpools',
+    subtitle: 'Practices · lessons · rehearsals · shared logistics',
     before:
-      'Last-minute texts. Missed pickups. Confusion over times, locations, and responsibilities.',
+      "Last-minute texts. Missed pickups. Confusion over times, locations, and who's responsible.",
     expandCTA: 'See how parents stay organized',
     after:
-      'Shared calendars, carpool plans, assignments, and updates—automatically synced for every parent.',
+      'One shared calendar for schedules, pickups, and changes—everyone knows where to be, and when.',
     badge: 'Time saved · fewer drop-offs missed',
   },
   {
