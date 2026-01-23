@@ -1,16 +1,6 @@
-// Import all trip cover images
-import cancunSpringBreak from '../assets/trip-covers/cancun-spring-break.webp';
-import tokyoAdventure from '../assets/trip-covers/tokyo-adventure.webp';
-import baliDestinationWedding from '../assets/trip-covers/bali-destination-wedding.webp';
-import nashvilleBachelorette from '../assets/trip-covers/nashville-bachelorette.webp';
-import cochelleFestivalNew from '../assets/trip-covers/coachella-festival-new.webp';
-import dubaiBirthdayCameronKnight from '../assets/trip-covers/dubai-birthday-cameron-knight.webp';
-import phoenixGolfOuting from '../assets/trip-covers/phoenix-golf-outing.webp';
-import tulumYogaWellness from '../assets/trip-covers/tulum-yoga-wellness.webp';
-import napaWineGetaway from '../assets/trip-covers/napa-wine-getaway.webp';
-import aspenCorporateSki from '../assets/trip-covers/aspen-corporate-ski.webp';
-import disneyFamilyCruise from '../assets/trip-covers/disney-family-cruise.webp';
-import yellowstoneHikingGroup from '../assets/trip-covers/yellowstone-hiking-group.webp';
+// Demo trip covers are served from Supabase Storage for consistency with OG previews
+const DEMO_COVERS_BASE = 'https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers';
+
 import { getMockAvatar } from '../utils/mockAvatars';
 
 export interface TripParticipant {
@@ -49,7 +39,7 @@ export const tripsData: Trip[] = [
     location: "Cancun, Mexico",
     dateRange: "Mar 15 - Mar 22, 2026",
     description: "Brotherhood spring break getaway with beach activities, nightlife, and bonding experiences",
-    coverPhoto: cancunSpringBreak,
+    coverPhoto: `${DEMO_COVERS_BASE}/cancun-spring-break.jpg`,
     placesCount: 15,
     participants: [
       { id: 1, name: "Marcus", avatar: getMockAvatar("Marcus") },
@@ -74,7 +64,7 @@ export const tripsData: Trip[] = [
     location: "Tokyo, Japan",
     dateRange: "Oct 5 - Oct 15, 2026",
     description: "Cultural exploration of Japan's capital with temples, modern tech districts, and amazing cuisine",
-    coverPhoto: tokyoAdventure,
+    coverPhoto: `${DEMO_COVERS_BASE}/tokyo-adventure.jpg`,
     placesCount: 9,
     participants: [
       { id: 4, name: "Alex", avatar: getMockAvatar("Alex") },
@@ -98,7 +88,7 @@ export const tripsData: Trip[] = [
     location: "Bali, Indonesia",
     dateRange: "Dec 10 - Dec 12, 2026",
     description: "Romantic destination wedding celebration with family and friends in paradise, featuring welcome dinner, ceremony, and reception",
-    coverPhoto: baliDestinationWedding,
+    coverPhoto: `${DEMO_COVERS_BASE}/bali-destination-wedding.jpg`,
     placesCount: 4,
     peopleCount: 63, // Explicit count — do not derive from participants array
     participants: Array.from({ length: 63 }, (_, i) => {
@@ -121,7 +111,7 @@ export const tripsData: Trip[] = [
     location: "Nashville, TN",
     dateRange: "Nov 8 - Nov 10, 2026",
     description: "Epic bachelorette celebration with honky-tonk bars, live music, spa day, karaoke, and unforgettable memories across multiple Nashville venues",
-    coverPhoto: nashvilleBachelorette,
+    coverPhoto: `${DEMO_COVERS_BASE}/nashville-bachelorette.jpg`,
     placesCount: 7,
     participants: [
       { id: 10, name: "Kristen", avatar: getMockAvatar("Kristen") },
@@ -154,7 +144,7 @@ export const tripsData: Trip[] = [
     location: "Indio, CA",
     dateRange: "Apr 10 - Apr 13, 2026",
     description: "Music festival adventure with top artists, desert vibes, and group camping",
-    coverPhoto: cochelleFestivalNew,
+    coverPhoto: `${DEMO_COVERS_BASE}/coachella-festival.jpg`,
     placesCount: 7,
     participants: [
       { id: 16, name: "Tyler", avatar: getMockAvatar("Tyler") },
@@ -187,7 +177,7 @@ export const tripsData: Trip[] = [
     location: "Dubai, UAE",
     dateRange: "Jul 5 - Jul 9, 2026",
     description: "Luxury birthday celebration in Dubai featuring Burj Khalifa, desert safari, yacht party, and fine dining",
-    coverPhoto: dubaiBirthdayCameronKnight, // Unique Dubai cityscape — no wedding imagery
+    coverPhoto: `${DEMO_COVERS_BASE}/dubai-birthday.jpg`,
     placesCount: 4,
     participants: [
       { id: 21, name: "Cameron", avatar: getMockAvatar("Cameron") },
@@ -206,7 +196,7 @@ export const tripsData: Trip[] = [
     location: "Phoenix, Arizona",
     dateRange: "Feb 20 - Feb 23, 2026",
     description: "Annual guys' golf trip with tournaments, poker nights, and fantasy football draft",
-    coverPhoto: phoenixGolfOuting,
+    coverPhoto: `${DEMO_COVERS_BASE}/phoenix-golf-outing.jpg`,
     placesCount: 6,
     participants: [
       { id: 26, name: "Commissioner Mike", avatar: getMockAvatar("Mike") },
@@ -223,7 +213,7 @@ export const tripsData: Trip[] = [
     location: "Tulum, Mexico",
     dateRange: "Nov 10 - Nov 23, 2026",
     description: "Yoga and wellness focused retreat with breathwork, meditation, and spa treatments",
-    coverPhoto: tulumYogaWellness,
+    coverPhoto: `${DEMO_COVERS_BASE}/tulum-yoga-wellness.jpg`,
     placesCount: 10,
     participants: Array.from({ length: 34 }, (_, i) => {
       const names = ["Elena Ramirez", "Jason Wu", "Amara Vance", "Sophia Chen", "Marcus Thompson", "Isla Rodriguez", "Maya Patel", "River Johnson", "Luna Martinez", "Phoenix Anderson", "Aurora Kim", "Sage Williams", "Willow Davis", "Ocean Brooks", "Sky Thompson", "Rain Garcia", "Storm Lee", "Ember Jones", "Aspen Miller", "Sierra Wilson", "Canyon Moore", "River Taylor", "Jade Martinez", "Crystal White", "Harmony Brown", "Serenity Clark", "Karma Lopez", "Zen Jackson", "Peace Harris", "Lotus Martin", "Chakra Robinson", "Mantra Lewis", "Aura Walker", "Nirvana Hall"];
@@ -236,7 +226,7 @@ export const tripsData: Trip[] = [
     location: "Napa Valley, CA",
     dateRange: "May 2 - May 5, 2026",
     description: "Celebratory wine country escape with close friends to mark a major career milestone, featuring tastings, spa treatments, and new adventures",
-    coverPhoto: napaWineGetaway,
+    coverPhoto: `${DEMO_COVERS_BASE}/napa-wine-getaway.jpg`,
     placesCount: 8,
     participants: [
       { id: 40, name: "Olivia Parker", avatar: getMockAvatar("Olivia") },
@@ -253,7 +243,7 @@ export const tripsData: Trip[] = [
     location: "Aspen, CO",
     dateRange: "Dec 12 - Dec 15, 2026",
     description: "Company holiday celebration with skiing, team building, and winter activities featuring corporate lodging, group ski lessons, and team dinners",
-    coverPhoto: aspenCorporateSki,
+    coverPhoto: `${DEMO_COVERS_BASE}/aspen-corporate-ski.jpg`,
     placesCount: 3,
     participants: Array.from({ length: 44 }, (_, i) => {
       const names = ["Tom Nguyen", "Heather Cole", "Luis Ortiz", "Sarah Kim", "Michael Chang", "Jennifer Lee", "David Park", "Lisa Wong", "Kevin Zhang", "Emily Chen", "Robert Smith", "Anna Garcia", "James Wilson", "Maria Rodriguez", "John Martinez", "Patricia Anderson", "Carlos Thomas", "Linda Taylor", "Daniel Moore", "Nancy Jackson", "Matthew White", "Karen Harris", "Anthony Martin", "Betty Thompson", "Mark Garcia", "Sandra Lee", "Donald Lewis", "Ashley Robinson", "Steven Clark", "Donna Walker", "Paul Hall", "Carol Allen", "Andrew Young", "Michelle King", "Joshua Wright", "Laura Lopez", "Kenneth Hill", "Kimberly Scott", "Brian Green", "Elizabeth Adams", "George Baker", "Deborah Nelson", "Edward Carter", "Jessica Mitchell"];
@@ -266,7 +256,7 @@ export const tripsData: Trip[] = [
     location: "Port Canaveral, FL",
     dateRange: "Jun 15 - Jun 22, 2026",
     description: "Magical family cruise with Disney characters, activities, and island adventures",
-    coverPhoto: disneyFamilyCruise,
+    coverPhoto: `${DEMO_COVERS_BASE}/disney-family-cruise.jpg`,
     placesCount: 10,
     participants: [
       { id: 56, name: "Liam Turner", avatar: getMockAvatar("Liam") },
@@ -284,7 +274,7 @@ export const tripsData: Trip[] = [
     location: "Yellowstone, WY",
     dateRange: "Jul 10 - Jul 17, 2026",
     description: "Outdoor adventure exploring geysers, wildlife, and backcountry hiking trails",
-    coverPhoto: yellowstoneHikingGroup,
+    coverPhoto: `${DEMO_COVERS_BASE}/yellowstone-hiking-group.jpg`,
     placesCount: 14,
     participants: [
       { id: 63, name: "Brent Miller", avatar: getMockAvatar("Brent") },
@@ -321,133 +311,181 @@ const getCitySpecificLinks = (location: string) => {
       { title: 'Senso-ji Temple', url: 'https://www.senso-ji.jp/english/', category: 'Attraction', domain: 'senso-ji.jp', description: "Tokyo's oldest Buddhist temple in Asakusa" }
     ],
     'Bali': [
-      { title: 'The Mulia Resort - Nusa Dua', url: 'https://www.themulia.com/', category: 'Accommodation', domain: 'themulia.com', description: 'Beachfront luxury resort with private pools' },
-      { title: 'Bali Swing at Tegallalang Rice Terraces', url: 'https://baliswing.com/', category: 'Activity', domain: 'baliswing.com', description: 'Jungle swings over rice paddies and waterfall' },
-      { title: 'Locavore Restaurant', url: 'https://www.locavore.co.id/', category: 'Appetite', domain: 'locavore.co.id', description: 'Award-winning contemporary Indonesian tasting menu' },
-      { title: 'Uluwatu Temple', url: 'https://bali.com/bali/attractions/uluwatu-temple/', category: 'Attraction', domain: 'bali.com', description: 'Clifftop temple with sunset Kecak fire dance' }
+      { title: 'Mulia Bali Resort', url: 'https://www.themulia.com/mulia-bali', category: 'Accommodation', domain: 'themulia.com', description: 'Luxury beachfront resort with private beach' },
+      { title: 'Mount Batur Sunrise Trek', url: 'https://www.balihai-cruises.com/batur', category: 'Activity', domain: 'balihai-cruises.com', description: 'Guided volcano trek with sunrise views' },
+      { title: 'Locavore Restaurant Ubud', url: 'https://www.locavore.co.id/', category: 'Appetite', domain: 'locavore.co.id', description: 'Farm-to-table Indonesian fine dining' },
+      { title: 'Tirta Empul Water Temple', url: 'https://www.bali.com/tirta-empul-temple.html', category: 'Attraction', domain: 'bali.com', description: 'Sacred Balinese Hindu water temple' }
     ],
     'Nashville': [
-      { title: 'The Hermitage Hotel', url: 'https://www.thehermitagehotel.com/', category: 'Accommodation', domain: 'thehermitagehotel.com', description: 'Historic luxury hotel downtown near Broadway' },
-      { title: 'Nashville Pedal Tavern', url: 'https://nashvillepedaltavern.com/', category: 'Activity', domain: 'nashvillepedaltavern.com', description: 'Party bike bar crawl through downtown' },
-      { title: "Hattie B's Hot Chicken", url: 'https://hattieb.com/', category: 'Appetite', domain: 'hattieb.com', description: 'Legendary Nashville hot chicken restaurant' },
-      { title: 'Grand Ole Opry', url: 'https://www.opry.com/', category: 'Attraction', domain: 'opry.com', description: 'Iconic country music venue and live shows' }
+      { title: 'The Hermitage Hotel', url: 'https://www.thehermitagehotel.com/', category: 'Accommodation', domain: 'thehermitagehotel.com', description: 'Historic luxury hotel in downtown Nashville' },
+      { title: 'Grand Ole Opry VIP Tour', url: 'https://www.opry.com/tour', category: 'Activity', domain: 'opry.com', description: 'Backstage tour of country music landmark' },
+      { title: 'Hattie B\'s Hot Chicken', url: 'https://www.hattieb.com/', category: 'Appetite', domain: 'hattieb.com', description: 'Famous Nashville hot chicken restaurant' },
+      { title: 'Country Music Hall of Fame', url: 'https://www.countrymusichalloffame.org/', category: 'Attraction', domain: 'countrymusichalloffame.org', description: 'Museum celebrating country music history' }
     ],
     'Indio': [
-      { title: 'Renaissance Indian Wells Resort & Spa', url: 'https://www.marriott.com/hotels/travel/pspbr-renaissance-indian-wells-resort-and-spa/', category: 'Accommodation', domain: 'marriott.com', description: 'Desert resort 20 minutes from Coachella grounds' },
-      { title: 'Joshua Tree National Park Day Trip', url: 'https://www.nps.gov/jotr/index.htm', category: 'Activity', domain: 'nps.gov', description: 'Desert hiking and rock climbing 45 minutes away' },
-      { title: "Pappy & Harriet's Pioneertown Palace", url: 'https://pappyandharriets.com/', category: 'Appetite', domain: 'pappyandharriets.com', description: 'BBQ restaurant and live music venue in desert' },
-      { title: 'Coachella Valley Music Festival', url: 'https://www.coachella.com/', category: 'Attraction', domain: 'coachella.com', description: 'Annual music and arts festival with major artists' }
-    ],
-    'Saratoga Springs': [
-      { title: 'Saratoga Arms Hotel', url: 'https://www.saratogaarms.com/', category: 'Accommodation', domain: 'saratogaarms.com', description: 'Boutique hotel steps from downtown and racetrack' },
-      { title: 'Saratoga Race Course Tours', url: 'https://www.nyra.com/saratoga/', category: 'Activity', domain: 'nyra.com', description: 'Historic thoroughbred horse racing experience' },
-      { title: 'The Brook Tavern', url: 'https://www.thebrooktavern.com/', category: 'Appetite', domain: 'thebrooktavern.com', description: 'Farm-to-table dining with seasonal New York cuisine' },
-      { title: 'Saratoga Spa State Park', url: 'https://parks.ny.gov/parks/saratogaspa', category: 'Attraction', domain: 'parks.ny.gov', description: 'Natural mineral springs, hiking trails, and spa' }
-    ],
-    'Phoenix': [
-      { title: 'The Phoenician Resort', url: 'https://www.thephoenician.com/', category: 'Accommodation', domain: 'thephoenician.com', description: 'Luxury golf resort at base of Camelback Mountain' },
-      { title: 'TPC Scottsdale Champions Course', url: 'https://www.tpc.com/scottsdale/', category: 'Activity', domain: 'tpc.com', description: 'PGA Tour golf course, home of Phoenix Open' },
-      { title: 'The Mission - Modern Latin Cuisine', url: 'https://themissionaz.com/', category: 'Appetite', domain: 'themissionaz.com', description: 'Upscale Latin fusion in Old Town Scottsdale' },
-      { title: 'Desert Botanical Garden', url: 'https://www.dbg.org/', category: 'Attraction', domain: 'dbg.org', description: 'World-class desert plant collection and trails' }
-    ],
-    'Tulum': [
-      { title: 'Azulik Eco-Resort & Maya Spa', url: 'https://www.azulik.com/', category: 'Accommodation', domain: 'azulik.com', description: 'Adults-only treehouse villas on private beach' },
-      { title: 'Cenote Dos Ojos Cave Snorkeling', url: 'https://www.cenotedosojos.com/', category: 'Activity', domain: 'cenotedosojos.com', description: 'Crystal-clear underground cenote diving' },
-      { title: 'Hartwood Restaurant', url: 'https://www.hartwoodtulum.com/', category: 'Appetite', domain: 'hartwoodtulum.com', description: 'Jungle dining with wood-fired seasonal cuisine' },
-      { title: 'Tulum Archaeological Site', url: 'https://www.inah.gob.mx/zonas/159-zona-arqueologica-de-tulum', category: 'Attraction', domain: 'inah.gob.mx', description: 'Mayan ruins overlooking Caribbean Sea' }
-    ],
-    'Napa Valley': [
-      { title: 'Auberge du Soleil', url: 'https://aubergeresorts.com/aubergedusoleil/', category: 'Accommodation', domain: 'aubergeresorts.com', description: 'Luxury hillside resort with vineyard views' },
-      { title: 'Napa Valley Wine Train', url: 'https://www.winetrain.com/', category: 'Activity', domain: 'winetrain.com', description: 'Vintage train tour through wine country with tastings' },
-      { title: 'The French Laundry', url: 'https://www.thomaskeller.com/tfl', category: 'Appetite', domain: 'thomaskeller.com', description: 'Three-Michelin-star fine dining by Thomas Keller' },
-      { title: 'Castello di Amorosa Winery', url: 'https://www.castellodiamorosa.com/', category: 'Attraction', domain: 'castellodiamorosa.com', description: '13th-century Tuscan castle winery with tours' }
-    ],
-    'Aspen': [
-      { title: 'The Little Nell', url: 'https://www.thelittlenell.com/', category: 'Accommodation', domain: 'thelittlenell.com', description: 'Five-star ski-in/ski-out hotel at Aspen Mountain base' },
-      { title: 'Aspen Snowmass Ski Resort', url: 'https://www.aspensnowmass.com/', category: 'Activity', domain: 'aspensnowmass.com', description: 'Four mountains with world-class skiing and terrain' },
-      { title: 'Matsuhisa Aspen', url: 'https://www.matsuhisaaspen.com/', category: 'Appetite', domain: 'matsuhisaaspen.com', description: "Nobu's original restaurant with Japanese-Peruvian fusion" },
-      { title: 'Maroon Bells', url: 'https://www.fs.usda.gov/recarea/whiteriver/recarea/?recid=40565', category: 'Attraction', domain: 'fs.usda.gov', description: 'Most photographed peaks in North America' }
-    ],
-    'Port Canaveral': [
-      { title: 'Disney Cruise Line', url: 'https://disneycruise.disney.go.com/', category: 'Accommodation', domain: 'disney.go.com', description: 'Family cruise ships departing from Port Canaveral' },
-      { title: 'Kennedy Space Center Visitor Complex', url: 'https://www.kennedyspacecenter.com/', category: 'Activity', domain: 'kennedyspacecenter.com', description: 'NASA tours, rocket launches, and space exhibits' },
-      { title: 'Grills Seafood Deck & Tiki Bar', url: 'https://www.grillsseafood.com/', category: 'Appetite', domain: 'grillsseafood.com', description: 'Waterfront seafood with fresh catch and sunset views' },
-      { title: 'Cocoa Beach Pier', url: 'https://www.cocoabeachpier.com/', category: 'Attraction', domain: 'cocoabeachpier.com', description: 'Historic 800-foot pier with shops, restaurants, surfing' }
-    ],
-    'Yellowstone': [
-      { title: 'Old Faithful Inn', url: 'https://www.yellowstonenationalparklodges.com/lodgings/historic-lodges/old-faithful-inn/', category: 'Accommodation', domain: 'yellowstonenationalparklodges.com', description: 'Historic log lodge next to Old Faithful geyser' },
-      { title: 'Grand Prismatic Spring Overlook Trail', url: 'https://www.nps.gov/yell/planyourvisit/grand-prismatic-spring.htm', category: 'Activity', domain: 'nps.gov', description: "Hike to view the park's largest hot spring" },
-      { title: 'Old Faithful Inn Dining Room', url: 'https://www.yellowstonenationalparklodges.com/dining/', category: 'Appetite', domain: 'yellowstonenationalparklodges.com', description: 'Historic lodge dining with regional American cuisine' },
-      { title: 'Old Faithful Geyser', url: 'https://www.nps.gov/yell/planyourvisit/exploreoldfaithful.htm', category: 'Attraction', domain: 'nps.gov', description: 'Iconic geyser erupting every 90 minutes' }
+      { title: 'La Quinta Resort & Club', url: 'https://www.laquintaresort.com/', category: 'Accommodation', domain: 'laquintaresort.com', description: 'Luxury desert resort near festival grounds' },
+      { title: 'Hot Air Balloon Ride Palm Desert', url: 'https://www.fantasticballoons.com/', category: 'Activity', domain: 'fantasticballoons.com', description: 'Scenic balloon flights over Coachella Valley' },
+      { title: 'Tac/Quila Mexican Restaurant', url: 'https://tacquila.com/', category: 'Appetite', domain: 'tacquila.com', description: 'Upscale Mexican cuisine with desert views' },
+      { title: 'Joshua Tree National Park', url: 'https://www.nps.gov/jotr/', category: 'Attraction', domain: 'nps.gov', description: 'Iconic desert landscape with unique rock formations' }
     ],
     'Dubai': [
-      { title: 'Burj Al Arab Jumeirah', url: 'https://www.jumeirah.com/en/stay/dubai/burj-al-arab-jumeirah', category: 'Accommodation', domain: 'jumeirah.com', description: 'Iconic luxury hotel shaped like a sail' },
-      { title: 'Desert Safari Dubai Adventure', url: 'https://www.desertsafaridubai.com/', category: 'Activity', domain: 'desertsafaridubai.com', description: 'Dune bashing, camel rides, and Bedouin dinner' },
-      { title: 'At.mosphere - Burj Khalifa', url: 'https://www.atmosphereburjkhalifa.com/', category: 'Appetite', domain: 'atmosphereburjkhalifa.com', description: 'Fine dining on 122nd floor of Burj Khalifa' },
-      { title: 'Burj Khalifa Observation Deck', url: 'https://www.burjkhalifa.ae/en/', category: 'Attraction', domain: 'burjkhalifa.ae', description: "World's tallest building with panoramic views" }
+      { title: 'Burj Al Arab Jumeirah', url: 'https://www.jumeirah.com/burj-al-arab', category: 'Accommodation', domain: 'jumeirah.com', description: 'Iconic sail-shaped luxury hotel' },
+      { title: 'Desert Safari with BBQ Dinner', url: 'https://www.arabian-adventures.com/', category: 'Activity', domain: 'arabian-adventures.com', description: 'Dune bashing and traditional Bedouin camp' },
+      { title: 'Nobu Dubai', url: 'https://www.noburestaurants.com/dubai', category: 'Appetite', domain: 'noburestaurants.com', description: 'World-famous Japanese-Peruvian fusion' },
+      { title: 'Burj Khalifa Observation Deck', url: 'https://www.burjkhalifa.ae/', category: 'Attraction', domain: 'burjkhalifa.ae', description: "World's tallest building with stunning views" }
+    ],
+    'Phoenix': [
+      { title: 'The Phoenician Resort', url: 'https://www.thephoenician.com/', category: 'Accommodation', domain: 'thephoenician.com', description: 'Luxury Scottsdale resort at Camelback Mountain' },
+      { title: 'TPC Scottsdale Golf Course', url: 'https://www.tpc.com/scottsdale', category: 'Activity', domain: 'tpc.com', description: 'Championship golf course hosting PGA Tour' },
+      { title: 'Steak 44', url: 'https://www.steak44.com/', category: 'Appetite', domain: 'steak44.com', description: 'Premier Phoenix steakhouse experience' },
+      { title: 'Desert Botanical Garden', url: 'https://www.dbg.org/', category: 'Attraction', domain: 'dbg.org', description: 'Stunning desert plant collections and trails' }
+    ],
+    'Tulum': [
+      { title: 'Azulik Resort', url: 'https://www.azulik.com/', category: 'Accommodation', domain: 'azulik.com', description: 'Eco-luxury treehouse resort on the beach' },
+      { title: 'Gran Cenote Swimming', url: 'https://grancenote.com/', category: 'Activity', domain: 'grancenote.com', description: 'Crystal-clear cenote swimming and snorkeling' },
+      { title: 'Hartwood Restaurant', url: 'https://www.hartwoodtulum.com/', category: 'Appetite', domain: 'hartwoodtulum.com', description: 'Farm-to-table dining by candlelight' },
+      { title: 'Tulum Archaeological Zone', url: 'https://www.inah.gob.mx/zonas/zona-arqueologica-de-tulum', category: 'Attraction', domain: 'inah.gob.mx', description: 'Mayan ruins overlooking the Caribbean Sea' }
+    ],
+    'Napa Valley': [
+      { title: 'Meadowood Napa Valley', url: 'https://www.meadowood.com/', category: 'Accommodation', domain: 'meadowood.com', description: 'Luxury estate resort in wine country' },
+      { title: 'Hot Air Balloon Over Vineyards', url: 'https://www.balloonrides.com/napa', category: 'Activity', domain: 'balloonrides.com', description: 'Sunrise balloon flight with champagne toast' },
+      { title: 'The French Laundry', url: 'https://www.thomaskeller.com/tfl', category: 'Appetite', domain: 'thomaskeller.com', description: 'Three-Michelin-star culinary experience' },
+      { title: 'Opus One Winery', url: 'https://www.opusonewinery.com/', category: 'Attraction', domain: 'opusonewinery.com', description: 'Iconic Napa winery with premium tastings' }
+    ],
+    'Aspen': [
+      { title: 'The Little Nell', url: 'https://www.thelittlenell.com/', category: 'Accommodation', domain: 'thelittlenell.com', description: 'Ski-in/ski-out luxury at base of Aspen Mountain' },
+      { title: 'Aspen Skiing Company Lessons', url: 'https://www.aspensnowmass.com/lessons', category: 'Activity', domain: 'aspensnowmass.com', description: 'Expert ski and snowboard instruction' },
+      { title: 'Matsuhisa Aspen', url: 'https://www.noburestaurants.com/matsuhisa-aspen', category: 'Appetite', domain: 'noburestaurants.com', description: 'Nobu\'s original mountain Japanese restaurant' },
+      { title: 'Maroon Bells', url: 'https://www.aspenchamber.org/maroon-bells', category: 'Attraction', domain: 'aspenchamber.org', description: 'Colorado\'s most photographed peaks' }
+    ],
+    'Port Canaveral': [
+      { title: 'Cape Canaveral Beach Resort', url: 'https://www.capecanaveralbeachresort.com/', category: 'Accommodation', domain: 'capecanaveralbeachresort.com', description: 'Oceanfront resort near cruise port' },
+      { title: 'Kennedy Space Center Visitor Complex', url: 'https://www.kennedyspacecenter.com/', category: 'Activity', domain: 'kennedyspacecenter.com', description: 'NASA space exploration experience' },
+      { title: 'Grills Seafood Deck', url: 'https://www.grillsseafood.com/', category: 'Appetite', domain: 'grillsseafood.com', description: 'Waterfront fresh seafood and rocket views' },
+      { title: 'Exploration Tower', url: 'https://www.explorationtower.com/', category: 'Attraction', domain: 'explorationtower.com', description: '7-story observation tower with port views' }
+    ],
+    'Yellowstone': [
+      { title: 'Old Faithful Inn', url: 'https://www.yellowstonenationalparklodges.com/lodgings/hotel/old-faithful-inn/', category: 'Accommodation', domain: 'yellowstonenationalparklodges.com', description: 'Historic lodge overlooking Old Faithful geyser' },
+      { title: 'Yellowstone Wildlife Safari', url: 'https://www.yellowstonesafari.com/', category: 'Activity', domain: 'yellowstonesafari.com', description: 'Guided wildlife viewing and photography tours' },
+      { title: 'Lake Yellowstone Hotel Dining Room', url: 'https://www.yellowstonenationalparklodges.com/dine/lake-yellowstone-hotel-dining-room/', category: 'Appetite', domain: 'yellowstonenationalparklodges.com', description: 'Elegant lakeside dining in the park' },
+      { title: 'Grand Prismatic Spring', url: 'https://www.nps.gov/yell/planyourvisit/grand-prismatic-spring.htm', category: 'Attraction', domain: 'nps.gov', description: 'Largest hot spring in the United States' }
     ]
   };
   
   return linkTemplates[city] || [
-    { title: `Visit ${city} - Official Guide`, url: `https://www.google.com/search?q=visit+${city.replace(/\s/g, '+')}`, category: 'General', domain: 'google.com', description: `Comprehensive ${city} travel information` },
-    { title: `Things to Do in ${city}`, url: `https://www.tripadvisor.com/Tourism-g${city.replace(/\s/g, '_')}.html`, category: 'Attractions', domain: 'tripadvisor.com', description: `Top-rated activities and sights` },
-    { title: `Best Restaurants ${city}`, url: `https://www.yelp.com/search?find_desc=restaurants&find_loc=${city.replace(/\s/g, '+')}`, category: 'Food', domain: 'yelp.com', description: `Local dining recommendations` },
-    { title: `${city} Hotels & Accommodation`, url: `https://www.booking.com/searchresults.html?ss=${city.replace(/\s/g, '+')}`, category: 'Accommodation', domain: 'booking.com', description: `Places to stay in ${city}` },
-    { title: `Getting Around ${city}`, url: `https://www.google.com/maps/place/${city.replace(/\s/g, '+')}`, category: 'Transportation', domain: 'google.com', description: `Maps and navigation for ${city}` }
+    { title: `${city} Hotels on Booking.com`, url: `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(city)}`, category: 'Accommodation', domain: 'booking.com', description: `Find the best hotels in ${city}` },
+    { title: `${city} Activities on Viator`, url: `https://www.viator.com/searchResults/all?text=${encodeURIComponent(city)}`, category: 'Activity', domain: 'viator.com', description: `Tours and activities in ${city}` },
+    { title: `${city} Restaurants on Yelp`, url: `https://www.yelp.com/search?find_desc=Restaurants&find_loc=${encodeURIComponent(city)}`, category: 'Appetite', domain: 'yelp.com', description: `Best restaurants in ${city}` },
+    { title: `Things to do in ${city}`, url: `https://www.tripadvisor.com/Search?q=${encodeURIComponent(city)}`, category: 'Attraction', domain: 'tripadvisor.com', description: `Top attractions in ${city}` }
   ];
 };
 
-export const generateTripMockData = (trip: Trip) => {
-  // Convert id to string for consistent cache key
-  const cacheKey = String(trip.id);
+/**
+ * Generate comprehensive mock data for a trip.
+ * Accepts a Trip object, trip ID (number), or UUID string.
+ */
+export const generateTripMockData = (tripOrId: Trip | number | string) => {
+  // Extract ID from Trip object or use directly
+  const tripId = typeof tripOrId === 'object' && tripOrId !== null ? tripOrId.id : tripOrId;
+  const cacheKey = String(tripId);
   
-  // Check cache first for performance
+  // Check cache first
   if (mockDataCache.has(cacheKey)) {
     return mockDataCache.get(cacheKey)!;
   }
-
-  const participantNames = trip.participants.map(p => p.name);
-  const cityLinks = getCitySpecificLinks(trip.location);
   
-  const mockData = {
-    basecamp: {
-      name: `${trip.location.split(',')[0]} Base Hotel`,
-      address: `123 Main Street, ${trip.location}`
-    },
-    broadcasts: [
-      {
-        id: 1,
-        senderName: participantNames[0] || "Organizer",
-        content: `Looking forward to ${trip.title}! Everything is confirmed and ready to go.`,
-        timestamp: "2026-01-15T15:30:00Z"
-      },
-      {
-        id: 2,
-        senderName: participantNames[1] || "Coordinator",
-        content: `Just confirmed all arrangements for ${trip.location}. This is going to be amazing!`,
-        timestamp: "2026-01-15T10:00:00Z"
-      }
-    ],
-    links: cityLinks.map((link, index) => ({
-      id: index + 1,
-      title: link.title,
-      url: link.url,
-      category: link.category,
-      domain: link.domain,
-      description: link.description
-    })),
-    itinerary: [
-      {
-        date: trip.dateRange.split(' - ')[0].replace(/\w{3} /, '2026-03-'),
-        events: [
-          { title: "Arrival & Check-in", location: `${trip.location.split(',')[0]} Base Hotel`, time: "14:00" },
-          { title: "Welcome Dinner", location: `Local Restaurant in ${trip.location.split(',')[0]}`, time: "19:30" }
-        ]
-      }
-    ]
+  // Get trip data - use passed Trip object or look up by ID
+  const trip = typeof tripOrId === 'object' && tripOrId !== null 
+    ? tripOrId 
+    : (typeof tripId === 'number' ? getTripById(tripId) : getTripById(parseInt(String(tripId), 10)));
+  
+  const participants = trip?.participants || [
+    { id: 1, name: "Demo User", avatar: getMockAvatar("Demo") }
+  ];
+  
+  const location = trip?.location || "Unknown Location";
+  
+  // Generate mock calendar events
+  const generateCalendarEvents = () => {
+    const events = [
+      { id: 1, title: "Arrival & Check-in", date: "Day 1", time: "2:00 PM", type: "logistics" },
+      { id: 2, title: "Welcome Dinner", date: "Day 1", time: "7:00 PM", type: "dining" },
+      { id: 3, title: "Group Activity", date: "Day 2", time: "10:00 AM", type: "activity" },
+      { id: 4, title: "Free Time / Explore", date: "Day 2", time: "2:00 PM", type: "free" },
+      { id: 5, title: "Sunset Experience", date: "Day 2", time: "6:00 PM", type: "activity" },
+      { id: 6, title: "Farewell Brunch", date: "Day 3", time: "10:00 AM", type: "dining" },
+      { id: 7, title: "Departure", date: "Day 3", time: "1:00 PM", type: "logistics" }
+    ];
+    return events;
   };
 
-  // Cache for future calls
+  // Generate mock messages with realistic chat flow
+  const generateMessages = () => {
+    const messageTemplates = [
+      { author: 0, content: "Hey everyone! So excited for this trip! 🎉", time: "2 days ago" },
+      { author: 1, content: "Can't wait! Has everyone booked their flights?", time: "2 days ago" },
+      { author: 2, content: "Yes! Arriving Thursday afternoon", time: "1 day ago" },
+      { author: 0, content: "Perfect! I'll share the itinerary tonight", time: "1 day ago" },
+      { author: 3, content: "Should we rent a car or use rideshare?", time: "1 day ago" },
+      { author: 1, content: "I think rideshare might be easier in the city", time: "20 hours ago" },
+      { author: 4, content: "Agreed! Plus we can all explore together 🚗", time: "18 hours ago" },
+      { author: 2, content: "What's the dress code for dinner?", time: "12 hours ago" },
+      { author: 0, content: "Smart casual! Nothing too fancy", time: "10 hours ago" },
+      { author: 5, content: "This is going to be amazing! 🙌", time: "8 hours ago" },
+      { author: 3, content: "Just packed my bags! Ready to go!", time: "4 hours ago" },
+      { author: 1, content: "See everyone soon! Safe travels! ✈️", time: "2 hours ago" }
+    ];
+    
+    return messageTemplates.map((msg, idx) => ({
+      id: idx + 1,
+      author: participants[msg.author % participants.length]?.name || "Guest",
+      authorAvatar: participants[msg.author % participants.length]?.avatar || getMockAvatar("Guest"),
+      content: msg.content,
+      time: msg.time,
+      reactions: idx % 3 === 0 ? ["❤️", "🎉"] : idx % 2 === 0 ? ["👍"] : []
+    }));
+  };
+
+  // Generate mock media items
+  const generateMedia = () => {
+    const mediaItems = [
+      { id: 1, type: "photo", url: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400", uploadedBy: participants[0]?.name || "Guest", date: "Day 1" },
+      { id: 2, type: "photo", url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400", uploadedBy: participants[1]?.name || "Guest", date: "Day 1" },
+      { id: 3, type: "photo", url: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400", uploadedBy: participants[2]?.name || "Guest", date: "Day 2" },
+      { id: 4, type: "photo", url: "https://images.unsplash.com/photo-1530789253388-582c481c54b0?w=400", uploadedBy: participants[0]?.name || "Guest", date: "Day 2" },
+      { id: 5, type: "photo", url: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=400", uploadedBy: participants[3]?.name || "Guest", date: "Day 3" },
+      { id: 6, type: "photo", url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400", uploadedBy: participants[1]?.name || "Guest", date: "Day 3" }
+    ];
+    return mediaItems;
+  };
+
+  // Generate mock payments/expenses
+  const generatePayments = () => {
+    const payments = [
+      { id: 1, description: "Accommodation (4 nights)", amount: 1200, paidBy: participants[0]?.name || "Guest", splitWith: participants.slice(0, 4).map(p => p.name), status: "pending" },
+      { id: 2, description: "Welcome dinner", amount: 280, paidBy: participants[1]?.name || "Guest", splitWith: participants.slice(0, 6).map(p => p.name), status: "settled" },
+      { id: 3, description: "Activity booking", amount: 450, paidBy: participants[2]?.name || "Guest", splitWith: participants.slice(0, 8).map(p => p.name), status: "pending" },
+      { id: 4, description: "Transportation", amount: 180, paidBy: participants[3]?.name || "Guest", splitWith: participants.slice(0, 4).map(p => p.name), status: "settled" }
+    ];
+    return payments;
+  };
+
+  // Generate mock links using city-specific templates
+  const generateLinks = () => {
+    return getCitySpecificLinks(location);
+  };
+
+  const mockData = {
+    calendarEvents: generateCalendarEvents(),
+    messages: generateMessages(),
+    media: generateMedia(),
+    payments: generatePayments(),
+    links: generateLinks(),
+    participants
+  };
+  
+  // Cache the result
   mockDataCache.set(cacheKey, mockData);
+  
   return mockData;
 };

@@ -82,7 +82,7 @@ const DemoEntry = lazy(() => retryImport(() => import("./pages/DemoEntry")));
 const TripPreview = lazy(() => retryImport(() => import("./pages/TripPreview")));
 const AuthPage = lazy(() => retryImport(() => import("./pages/AuthPage")));
 const DeviceTestMatrix = lazy(() => retryImport(() => import("./pages/DeviceTestMatrix")));
-const AdminMigrateDemoImages = lazy(() => retryImport(() => import("./pages/AdminMigrateDemoImages")));
+// AdminMigrateDemoImages removed - migration complete, images now in Supabase Storage
 
 // Note: Large components are already optimized with code splitting
 
@@ -442,11 +442,6 @@ const App = () => {
                     <Route path="/dev/device-matrix" element={
                       <LazyRoute>
                         <DeviceTestMatrix />
-                      </LazyRoute>
-                    } />
-                    <Route path="/admin/migrate-demo-images" element={
-                      <LazyRoute>
-                        <AdminMigrateDemoImages />
                       </LazyRoute>
                     } />
                     <Route path="*" element={
