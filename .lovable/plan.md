@@ -1,142 +1,156 @@
 
 
-# Convert WebP Demo Images to JPG/PNG in Supabase Storage
+# Automated WebP → JPG Conversion and Upload
 
-## Problem Recap
+## Solution Overview
 
-Currently, demo trips have **two different image sources**:
-1. **In-App**: Uses bundled `.webp` files from `src/assets/trip-covers/` (e.g., `cancun-spring-break.webp`)
-2. **OG Previews**: Uses Unsplash URLs in edge functions (e.g., `https://images.unsplash.com/photo-...`)
+Create a temporary admin page that automates the entire image conversion process in-browser, eliminating all manual steps.
 
-This causes visual mismatch between what users see in the app and what appears in iMessage/WhatsApp previews.
+## How It Works
 
-## Solution: Upload Demo Images to Supabase Storage
-
-Convert the existing WebP demo images to JPG and upload them to the `trip-media` bucket (which is already **public**). Then update both:
-- The client-side `tripsData.ts` to use those URLs
-- The edge functions to use those same URLs
-
-**Result**: Perfect visual parity between in-app and OG previews.
-
----
+```text
+User visits /admin/migrate-demo-images
+        ↓
+Click "Migrate Images" button
+        ↓
+For each WebP image:
+  1. Load bundled WebP via import
+  2. Draw to HTML5 Canvas
+  3. Export as JPEG (quality 90%)
+  4. Upload to Supabase Storage: trip-media/demo-covers/
+  5. Log success/failure
+        ↓
+All 12 images now in Supabase Storage
+        ↓
+Update edge functions + tripsData.ts to use new URLs
+```
 
 ## Implementation Steps
 
-### Step 1: Create a Demo Covers Folder in Storage
+### Step 1: Create Migration Utility Page
 
-Create a folder structure in the existing `trip-media` bucket:
-```text
-trip-media/
-  └── demo-covers/
-      ├── cancun-spring-break.jpg
-      ├── tokyo-adventure.jpg
-      ├── bali-destination-wedding.jpg
-      ├── nashville-bachelorette.jpg
-      ├── coachella-festival.jpg
-      ├── dubai-birthday.jpg
-      ├── phoenix-golf-outing.jpg
-      ├── tulum-yoga-wellness.jpg
-      ├── napa-wine-getaway.jpg
-      ├── aspen-corporate-ski.jpg
-      ├── disney-family-cruise.jpg
-      └── yellowstone-hiking-group.jpg
+**New File: `src/pages/AdminMigrateDemoImages.tsx`**
+
+- Imports all 12 WebP images from `src/assets/trip-covers/`
+- For each image:
+  - Creates an `<img>` element to load the WebP
+  - Draws it to a `<canvas>` element
+  - Uses `canvas.toBlob('image/jpeg', 0.9)` to convert
+  - Uploads the blob to Supabase Storage at `trip-media/demo-covers/{filename}.jpg`
+- Displays progress and results
+
+### Step 2: Add Route (Temporary)
+
+**Modify: `src/App.tsx`**
+
+Add a route for the migration page:
+```typescript
+<Route path="/admin/migrate-demo-images" element={<AdminMigrateDemoImages />} />
 ```
 
-### Step 2: Convert and Upload Images (Manual Step Required)
+### Step 3: Run Migration (Your Action)
 
-The WebP images need to be converted to JPG/PNG and uploaded. This requires **manual action**:
+1. Visit `https://chravel.lovable.app/admin/migrate-demo-images`
+2. Click "Migrate All Images"
+3. Wait for completion (should take ~10-30 seconds)
+4. Verify the 12 JPG files appear in Supabase Storage
 
-1. Download the 12 `.webp` files from `src/assets/trip-covers/`:
-   - `cancun-spring-break.webp`
-   - `tokyo-adventure.webp`
-   - `bali-destination-wedding.webp`
-   - `nashville-bachelorette.webp`
-   - `coachella-festival-new.webp`
-   - `dubai-birthday-cameron-knight.webp`
-   - `phoenix-golf-outing.webp`
-   - `tulum-yoga-wellness.webp`
-   - `napa-wine-getaway.webp`
-   - `aspen-corporate-ski.webp`
-   - `disney-family-cruise.webp`
-   - `yellowstone-hiking-group.webp`
+### Step 4: Update Edge Functions
 
-2. Convert each to `.jpg` (recommended for photo content, smaller file size) using any tool:
-   - macOS: Open in Preview → Export as JPEG (quality 85-90%)
-   - Online: cloudconvert.com, convertio.co
-   - CLI: `convert input.webp -quality 90 output.jpg` (ImageMagick)
-
-3. Upload to Supabase Storage:
-   - Go to [Supabase Storage Dashboard](https://supabase.com/dashboard/project/jmjiyekmxwsxkfnqwyaa/storage/buckets)
-   - Open `trip-media` bucket
-   - Create `demo-covers` folder
-   - Upload all 12 JPG files
-
-### Step 3: Update Edge Functions with Storage URLs
-
-After upload, the public URLs will follow this pattern:
-```text
-https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/{filename}.jpg
-```
-
-Update these files:
+**Modify these files to use Supabase Storage URLs:**
 
 | File | Change |
 |------|--------|
-| `supabase/functions/generate-trip-preview/index.ts` | Replace Unsplash URLs in demoTrips with Supabase storage URLs |
-| `supabase/functions/get-trip-preview/index.ts` | Replace Unsplash URLs in demoTrips with Supabase storage URLs |
-| `supabase/functions/generate-invite-preview/index.ts` | Replace Unsplash URLs in demoTrips with Supabase storage URLs |
+| `supabase/functions/generate-trip-preview/index.ts` | Replace 12 Unsplash URLs with storage URLs |
+| `supabase/functions/get-trip-preview/index.ts` | Replace demo trip URLs |
+| `supabase/functions/generate-invite-preview/index.ts` | Replace demo trip URLs |
 
-Example change for trip ID 1:
-```typescript
-// Before:
-coverPhoto: 'https://images.unsplash.com/photo-1530789253388-582c481c54b0?w=1200&h=630&fit=crop',
+### Step 5: Update Client tripsData.ts
 
-// After:
-coverPhoto: 'https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers/cancun-spring-break.jpg',
-```
+**Modify: `src/data/tripsData.ts`**
 
-### Step 4: Update Client-Side tripsData.ts (Optional but Recommended)
-
-Update `src/data/tripsData.ts` to also use the Supabase storage URLs instead of bundled imports:
-
+Replace bundled imports with storage URLs:
 ```typescript
 // Before:
 import cancunSpringBreak from '../assets/trip-covers/cancun-spring-break.webp';
-...
-coverPhoto: cancunSpringBreak,
 
 // After:
 const DEMO_COVERS_BASE = 'https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers';
-...
-coverPhoto: `${DEMO_COVERS_BASE}/cancun-spring-break.jpg`,
+const coverPhotos = {
+  cancunSpringBreak: `${DEMO_COVERS_BASE}/cancun-spring-break.jpg`,
+  // ... all 12 images
+};
 ```
 
-**Benefits of this approach:**
-- Smaller bundle size (removes ~12 WebP images from the app bundle)
-- Single source of truth for all demo images
-- Perfect consistency between in-app and OG previews
+### Step 6: Cleanup (Optional)
 
-**Tradeoff:**
-- Slightly slower initial load for demo trips (network request vs bundled asset)
-- If Supabase is down, demo images won't load (unlikely given Supabase's uptime SLA)
+After confirming everything works:
+- Remove the migration page route
+- Delete `src/pages/AdminMigrateDemoImages.tsx`
+- Remove the 12 WebP files from `src/assets/trip-covers/` (reduces bundle size)
 
 ---
 
-## Files to Modify (After Upload)
+## Technical Details
 
-| File | Purpose |
-|------|---------|
-| `supabase/functions/generate-trip-preview/index.ts` | Update 12 consumer trip + Pro/Event coverPhoto URLs |
-| `supabase/functions/get-trip-preview/index.ts` | Update demo trip coverPhoto URLs |
-| `supabase/functions/generate-invite-preview/index.ts` | Update demo trip coverPhoto URLs |
-| `src/data/tripsData.ts` | (Optional) Replace bundled imports with storage URLs |
+### Canvas Conversion Code
+
+```typescript
+const convertWebPToJpeg = async (webpUrl: string): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0);
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error('Conversion failed')),
+        'image/jpeg',
+        0.9 // 90% quality
+      );
+    };
+    img.onerror = reject;
+    img.src = webpUrl;
+  });
+};
+```
+
+### Storage Upload Code
+
+```typescript
+const uploadToStorage = async (blob: Blob, filename: string) => {
+  const { data, error } = await supabase.storage
+    .from('trip-media')
+    .upload(`demo-covers/${filename}`, blob, {
+      contentType: 'image/jpeg',
+      upsert: true
+    });
+  return { data, error };
+};
+```
 
 ---
 
-## Image Mapping Reference
+## Files to Create/Modify
 
-| Trip ID | Current WebP | New Storage Path |
-|---------|--------------|------------------|
+| File | Action |
+|------|--------|
+| `src/pages/AdminMigrateDemoImages.tsx` | **CREATE** - Migration utility page |
+| `src/App.tsx` | **MODIFY** - Add temporary route |
+| `supabase/functions/generate-trip-preview/index.ts` | **MODIFY** - Update 12 coverPhoto URLs |
+| `supabase/functions/get-trip-preview/index.ts` | **MODIFY** - Update demo trip URLs |
+| `supabase/functions/generate-invite-preview/index.ts` | **MODIFY** - Update demo trip URLs |
+| `src/data/tripsData.ts` | **MODIFY** - Replace imports with storage URLs |
+
+---
+
+## Image Mapping
+
+| Trip ID | WebP Source | Target Storage Path |
+|---------|-------------|---------------------|
 | 1 | cancun-spring-break.webp | demo-covers/cancun-spring-break.jpg |
 | 2 | tokyo-adventure.webp | demo-covers/tokyo-adventure.jpg |
 | 3 | bali-destination-wedding.webp | demo-covers/bali-destination-wedding.jpg |
@@ -152,38 +166,23 @@ coverPhoto: `${DEMO_COVERS_BASE}/cancun-spring-break.jpg`,
 
 ---
 
+## Your Minimal Action Required
+
+1. **Approve this plan** → I create the migration page
+2. **Visit the migration page** → Click one button
+3. **Confirm success** → I update all edge functions and tripsData
+
+Total time: ~2 minutes of your involvement vs. 30+ minutes of manual conversion/upload.
+
+---
+
 ## Acceptance Criteria
 
-After implementation:
-
-| # | Criterion | How It's Achieved |
-|---|-----------|-------------------|
-| 1 | Demo trip OG preview shows same image as in-app | Both use same Supabase storage URL |
-| 2 | Images are JPG/PNG (crawler-compatible) | Converted from WebP during upload |
-| 3 | URLs are permanent and public | `trip-media` bucket is public, no expiry |
-| 4 | No Unsplash dependency for demo trips | All Unsplash URLs replaced with storage URLs |
-| 5 | User-uploaded trips unaffected | Only demo trip IDs (1-12) are updated |
-
----
-
-## Action Required From You
-
-Before I can implement the code changes:
-
-1. **Convert the 12 WebP files to JPG** (any online converter works)
-2. **Upload them to Supabase Storage** at `trip-media/demo-covers/`
-3. **Confirm the upload is complete**
-
-Once confirmed, I'll update all edge functions and optionally `tripsData.ts` to use the new storage URLs.
-
----
-
-## Alternative: Automated Edge Function Conversion
-
-If you'd prefer not to manually convert/upload, we could create an edge function that:
-1. Fetches the Unsplash images currently in use
-2. Uploads them to Supabase storage
-3. Returns the new URLs
-
-However, this adds complexity and the Unsplash images may not exactly match your WebP files. The manual approach ensures visual fidelity.
+| # | Criterion | Verification |
+|---|-----------|--------------|
+| 1 | All 12 JPG files exist in `trip-media/demo-covers/` | Check Supabase Storage dashboard |
+| 2 | Demo trip OG preview matches in-app image | Share a demo trip link, check preview |
+| 3 | No Unsplash URLs in edge functions | Code review |
+| 4 | tripsData.ts uses storage URLs | Code review |
+| 5 | Migration page is removed after use | Cleanup step |
 
