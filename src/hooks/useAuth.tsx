@@ -511,37 +511,102 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [transformUser, demoUser]);
 
+  // Periodic session refresh for "Remember Me" users - keeps session alive for 30 days
+  useEffect(() => {
+    let refreshInterval: ReturnType<typeof setInterval> | null = null;
+
+    // Check if user selected "Remember Me"
+    const shouldRemember = (() => {
+      try {
+        return localStorage.getItem('chravel-remember-me') === 'true';
+      } catch {
+        return false;
+      }
+    })();
+
+    if (session && shouldRemember) {
+      // Refresh session every 30 minutes to keep it alive (well before 1hr JWT expiry)
+      refreshInterval = setInterval(async () => {
+        if (import.meta.env.DEV) {
+          console.log('[Auth] Periodic session refresh (Remember Me active)');
+        }
+        try {
+          const { error } = await supabase.auth.refreshSession();
+          if (error) {
+            console.warn('[Auth] Periodic refresh failed:', error.message);
+          }
+        } catch (err) {
+          console.warn('[Auth] Periodic refresh error:', err);
+        }
+      }, 30 * 60 * 1000); // 30 minutes
+
+      // Also refresh immediately on mount if session exists and Remember Me is enabled
+      if (import.meta.env.DEV) {
+        console.log('[Auth] Remember Me active - refreshing session on mount');
+      }
+      supabase.auth.refreshSession().catch(err => {
+        console.warn('[Auth] Initial Remember Me refresh failed:', err);
+      });
+    }
+
+    return () => {
+      if (refreshInterval) clearInterval(refreshInterval);
+    };
+  }, [session]);
+
   // Visibility change listener: refresh session when user returns to tab
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && session) {
-        // User returned to tab - verify session is still valid
-        supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-          if (!currentSession && session) {
-            if (import.meta.env.DEV) {
-              console.log('[Auth] Session lost while away, attempting refresh...');
-            }
-            // Session was lost - try to refresh
-            supabase.auth.refreshSession().catch(() => {
-              // Refresh failed - user needs to log in again
-              if (import.meta.env.DEV) {
-                console.warn('[Auth] Session refresh failed, user must re-authenticate');
-              }
-              setSession(null);
-              setUser(shouldUseDemoUserRef.current ? demoUser : null);
-            });
-          } else if (currentSession && currentSession.expires_at) {
-            // Check if session is near expiry
-            const expiresAt = currentSession.expires_at * 1000;
-            const fiveMinutesFromNow = Date.now() + 5 * 60 * 1000;
-            if (expiresAt < fiveMinutesFromNow) {
-              if (import.meta.env.DEV) {
-                console.log('[Auth] Session near expiry on tab focus, refreshing...');
-              }
-              supabase.auth.refreshSession();
-            }
+      if (document.visibilityState === 'visible') {
+        // Check if Remember Me is enabled - if so, always refresh on tab focus
+        const shouldRemember = (() => {
+          try {
+            return localStorage.getItem('chravel-remember-me') === 'true';
+          } catch {
+            return false;
           }
-        });
+        })();
+
+        if (shouldRemember && session) {
+          // Remember Me users: always refresh on tab focus for maximum session persistence
+          if (import.meta.env.DEV) {
+            console.log('[Auth] Tab focused with Remember Me - refreshing session');
+          }
+          supabase.auth.refreshSession().catch(err => {
+            console.warn('[Auth] Tab focus refresh failed:', err);
+          });
+          return;
+        }
+
+        // Standard behavior: only check/refresh if there's an existing session
+        if (session) {
+          supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+            if (!currentSession && session) {
+              if (import.meta.env.DEV) {
+                console.log('[Auth] Session lost while away, attempting refresh...');
+              }
+              // Session was lost - try to refresh
+              supabase.auth.refreshSession().catch(() => {
+                // Refresh failed - user needs to log in again
+                if (import.meta.env.DEV) {
+                  console.warn('[Auth] Session refresh failed, user must re-authenticate');
+                }
+                setSession(null);
+                setUser(shouldUseDemoUserRef.current ? demoUser : null);
+              });
+            } else if (currentSession && currentSession.expires_at) {
+              // Check if session is near expiry
+              const expiresAt = currentSession.expires_at * 1000;
+              const fiveMinutesFromNow = Date.now() + 5 * 60 * 1000;
+              if (expiresAt < fiveMinutesFromNow) {
+                if (import.meta.env.DEV) {
+                  console.log('[Auth] Session near expiry on tab focus, refreshing...');
+                }
+                supabase.auth.refreshSession();
+              }
+            }
+          });
+        }
       }
     };
 
@@ -605,16 +670,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
-      // If remember me is enabled, extend the session to 30 days
+      // If remember me is enabled, immediately refresh to get fresh tokens
       if (rememberMe && data.session) {
-        // Store extended session indicator
         try {
           localStorage.setItem('chravel-session-extended', Date.now().toString());
+          // Immediately refresh session to ensure we have the freshest tokens
+          const { error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError) {
+            console.warn('[Auth] Post-login refresh failed:', refreshError.message);
+          } else if (import.meta.env.DEV) {
+            console.log('[Auth] Remember Me enabled - session refreshed, will persist for 30 days');
+          }
         } catch (e) {
-          // Storage unavailable
-        }
-        if (import.meta.env.DEV) {
-          console.log('[Auth] Remember Me enabled - session will persist for 30 days');
+          // Storage unavailable or refresh failed, continue anyway
+          if (import.meta.env.DEV) {
+            console.warn('[Auth] Remember Me setup warning:', e);
+          }
         }
       }
 
@@ -846,6 +917,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const demoModeStore = useDemoModeStore.getState();
     if (demoModeStore.isDemoMode || demoModeStore.demoView === 'app-preview') {
       demoModeStore.setDemoView('off');
+    }
+
+    // Clear Remember Me and session extension flags
+    try {
+      localStorage.removeItem('chravel-remember-me');
+      localStorage.removeItem('chravel-session-extended');
+    } catch (e) {
+      // Storage unavailable
     }
 
     // Clear onboarding cache to prevent stale data polluting next account
