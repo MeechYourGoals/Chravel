@@ -28,7 +28,8 @@ export const MobileTripDetail = () => {
   const { isDemoMode } = useDemoMode();
 
   // ⚡ PERFORMANCE: Use unified hook for parallel data fetching with TanStack Query cache
-  const { trip, tripMembers, tripCreatorId, isLoading: loading } = useTripDetailData(tripId);
+  // 🔄 FIX: Get isAuthLoading to prevent false "not found" during auth resolution
+  const { trip, tripMembers, tripCreatorId, isLoading: loading, isAuthLoading } = useTripDetailData(tripId);
 
   // Persist activeTab in sessionStorage to survive orientation changes
   const getInitialTab = () => {
@@ -299,7 +300,8 @@ export const MobileTripDetail = () => {
 
   // ⚡ PERFORMANCE: Show skeleton UI for perceived instant load
   // This provides immediate visual feedback while data loads
-  if (loading) {
+  // 🔄 FIX: Also show skeleton during auth resolution to prevent false "not found"
+  if (loading || isAuthLoading) {
     return (
       <MobileErrorBoundary>
         <div className="flex flex-col min-h-screen bg-black">

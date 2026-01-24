@@ -1,6 +1,7 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { tripService, Trip } from '@/services/tripService';
 import { useDemoMode } from './useDemoMode';
+import { useAuth } from './useAuth';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { getTripById as getDemoTripById } from '@/data/tripsData';
 import { convertSupabaseTripToMock } from '@/utils/tripConverter';
@@ -20,6 +21,7 @@ interface UseTripDetailDataResult {
   isLoading: boolean;
   isMembersLoading: boolean;
   error: Error | null;
+  isAuthLoading: boolean;
 }
 
 /**
@@ -30,9 +32,11 @@ interface UseTripDetailDataResult {
  * - TanStack Query cache integration (prefetch hits work)
  * - Demo mode fast path (no network calls)
  * - Progressive rendering - trip loads first, members follow
+ * - Auth-aware: waits for auth to resolve before querying
  */
 export const useTripDetailData = (tripId: string | undefined): UseTripDetailDataResult => {
   const { isDemoMode } = useDemoMode();
+  const { user, isLoading: isAuthLoading } = useAuth();
 
   // Demo mode: Fast path - synchronous, no network
   const isNumericId = tripId ? /^\d+$/.test(tripId) : false;
@@ -44,27 +48,31 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   );
 
   // ⚡ PRIORITY 1: Trip data - gates rendering
+  // 🔄 FIX: Wait for auth to resolve before querying to prevent false "not found" errors
   const tripQuery = useQuery({
     queryKey: tripKeys.detail(tripId!),
     queryFn: async () => {
       const data = await tripService.getTripById(tripId!);
       return data;
     },
-    enabled: !!tripId && !shouldUseDemoPath,
+    enabled: !!tripId && !shouldUseDemoPath && !isAuthLoading,
     staleTime: QUERY_CACHE_CONFIG.trip.staleTime,
     gcTime: QUERY_CACHE_CONFIG.trip.gcTime,
+    retry: 2, // Retry on transient failures
   });
 
   // ⚡ PRIORITY 2: Members data - can render progressively
   // 🔄 FIX: Include demoAddedMembersCount in query key to invalidate cache when demo members change
+  // 🔄 FIX: Wait for auth to resolve before querying
   const membersQuery = useQuery({
     queryKey: [...tripKeys.members(tripId!), demoAddedMembersCount],
     queryFn: async () => {
       return await tripService.getTripMembersWithCreator(tripId!);
     },
-    enabled: !!tripId && !shouldUseDemoPath,
+    enabled: !!tripId && !shouldUseDemoPath && !isAuthLoading,
     staleTime: QUERY_CACHE_CONFIG.members.staleTime,
     gcTime: QUERY_CACHE_CONFIG.members.gcTime,
+    retry: 2, // Retry on transient failures
   });
 
   // Demo mode: Return mock data immediately
@@ -82,19 +90,24 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
       isLoading: false,
       isMembersLoading: false,
       error: null,
+      isAuthLoading: false,
     };
   }
 
   // Production mode: Convert Supabase trip to mock format for backward compatibility
   const trip = tripQuery.data ? convertSupabaseTripToMock(tripQuery.data) : null;
 
+  // Show loading while auth is resolving or data is fetching
+  const isLoading = isAuthLoading || tripQuery.isLoading;
+
   return {
     trip,
     tripMembers: membersQuery.data?.members || [],
     tripCreatorId: membersQuery.data?.creatorId || null,
-    isLoading: tripQuery.isLoading,
-    isMembersLoading: membersQuery.isLoading,
+    isLoading,
+    isMembersLoading: isAuthLoading || membersQuery.isLoading,
     error: tripQuery.error as Error | null,
+    isAuthLoading,
   };
 };
 

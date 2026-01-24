@@ -51,12 +51,14 @@ export const TripDetailDesktop = () => {
 
   // ⚡ PERFORMANCE: Use unified hook for parallel data fetching with TanStack Query cache
   // 🔄 FIX: Also get isMembersLoading to prevent "0 members" flash during loading
+  // 🔄 FIX: Get isAuthLoading to prevent false "not found" during auth resolution
   const {
     trip,
     tripMembers,
     tripCreatorId,
     isLoading: loading,
     isMembersLoading,
+    isAuthLoading,
   } = useTripDetailData(tripId);
 
   // 🔄 Keep useTripMembers for member management actions (canRemoveMembers, removeMember, leaveTrip)
@@ -200,7 +202,8 @@ export const TripDetailDesktop = () => {
   // ⚡ OPTIMIZATION: Show skeleton UI for perceived instant load
   // Don't block on members loading - show trip immediately, members load in background
   // NOTE: Removed demoModeLoading check - store uses synchronous localStorage
-  if (loading) {
+  // 🔄 FIX: Also show skeleton during auth resolution to prevent false "not found"
+  if (loading || isAuthLoading) {
     return (
       <div className="min-h-screen bg-black">
         <div className="container mx-auto px-6 py-4 pb-8 max-w-7xl">
