@@ -435,7 +435,6 @@ export const SUBSCRIPTION_TIERS = {
     features: [
       'Up to 50 team members',
       'Advanced permissions',
-      'Compliance features',
       'Team management dashboard',
       'Basic integrations',
       'Email support',
@@ -465,8 +464,6 @@ export const SUBSCRIPTION_TIERS = {
       'Up to 250 team members',
       'Custom integrations',
       'Dedicated success manager',
-      'SLA guarantees',
-      'White-label options',
       '24/7 premium support',
       'Unlimited Events for your team',
       'Your first Pro Trip + Event included free'
