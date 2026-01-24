@@ -16,6 +16,7 @@ import { proTripMockData } from '../data/proTripMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useTrips } from '../hooks/useTrips';
+import { PRO_FEATURES } from '../hooks/useFeatureToggle';
 import { useTripMembers } from '../hooks/useTripMembers';
 import { convertSupabaseTripsToMock, convertSupabaseTripToProTrip } from '../utils/tripConverter';
 import { MockRolesService } from '../services/mockRolesService';
@@ -62,11 +63,11 @@ export const MobileProTripDetail = () => {
       sessionStorage.setItem(`protrip_${proTripId}_activeTab`, activeTab);
     }
   }, [activeTab, proTripId]);
- 
+
   // Keyboard handling for mobile inputs
   useKeyboardHandler({
     preventZoom: true,
-    adjustViewport: true
+    adjustViewport: true,
   });
 
   // Calculate tripData with useMemo - MUST be before any conditional returns
@@ -74,8 +75,16 @@ export const MobileProTripDetail = () => {
   const tripData = useMemo(() => {
     if (!proTripId) return null;
 
+    const defaultFeatures = [...PRO_FEATURES];
+
     if (isDemoMode) {
-      return proTripId in proTripMockData ? proTripMockData[proTripId] : null;
+      const demoTrip = proTripId in proTripMockData ? proTripMockData[proTripId] : null;
+      if (!demoTrip) return null;
+      return {
+        ...demoTrip,
+        trip_type: 'pro',
+        enabled_features: demoTrip.enabled_features ?? defaultFeatures,
+      };
     }
 
     // Find Pro trip from Supabase data
@@ -87,23 +96,27 @@ export const MobileProTripDetail = () => {
     const convertedTrip = convertSupabaseTripToProTrip(supabaseTrip);
 
     // Populate with real trip members from hook
-    const proParticipants: ProParticipant[] = tripMembers.map(m => ({
-      id: m.id,
-      name: m.name,
-      avatar: m.avatar,
-      role: 'member',
-      email: '',
-      credentialLevel: 'Guest',
-      permissions: []
-    } as ProParticipant));
+    const proParticipants: ProParticipant[] = tripMembers.map(
+      m =>
+        ({
+          id: m.id,
+          name: m.name,
+          avatar: m.avatar,
+          role: 'member',
+          email: '',
+          credentialLevel: 'Guest',
+          permissions: [],
+        }) as ProParticipant,
+    );
 
     return {
       ...convertedTrip,
       participants: proParticipants,
       roster: proParticipants,
       proTripCategory: 'Sports – Pro, Collegiate, Youth',
-      enabled_features: supabaseTrip.enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks', 'team'],
+      enabled_features: supabaseTrip.enabled_features || defaultFeatures,
       createdBy: supabaseTrip.created_by,
+      trip_type: 'pro',
     } as ProTripData & { createdBy?: string };
   }, [isDemoMode, proTripId, userTrips, tripMembers]);
 
@@ -117,7 +130,7 @@ export const MobileProTripDetail = () => {
         const roles = MockRolesService.seedRolesForTrip(
           proTripId,
           mockTripData.proTripCategory,
-          user?.id || 'demo-user'
+          user?.id || 'demo-user',
         );
         MockRolesService.seedChannelsForRoles(proTripId, roles, user?.id || 'demo-user');
       }
@@ -130,7 +143,7 @@ export const MobileProTripDetail = () => {
       setTripDescription(tripData.description || '');
     }
   }, [tripData, tripDescription]);
-  
+
   // Measure header height and expose as CSS var for sticky offsets
   React.useEffect(() => {
     const setHeaderHeightVar = () => {
@@ -155,97 +168,105 @@ export const MobileProTripDetail = () => {
   }, []);
 
   // PDF Export handler
-  const handleExport = useCallback(async (sections: ExportSection[]) => {
-    const orderedSections = orderExportSections(sections);
-    const tripIdStr = proTripId || '1';
-    const isNumericId = !tripIdStr.includes('-');
-    
-    toast.info('Creating Recap', {
-      description: `Building your trip memories for "${tripData?.title || 'Pro Trip'}"...`,
-    });
+  const handleExport = useCallback(
+    async (sections: ExportSection[]) => {
+      const orderedSections = orderExportSections(sections);
+      const tripIdStr = proTripId || '1';
+      const isNumericId = !tripIdStr.includes('-');
 
-    try {
-      let blob: Blob;
+      toast.info('Creating Recap', {
+        description: `Building your trip memories for "${tripData?.title || 'Pro Trip'}"...`,
+      });
 
-      if (isDemoMode || isNumericId) {
-        const mockCalendar = demoModeService.getMockCalendarEvents(tripIdStr);
-        const mockAttachments = demoModeService.getMockAttachments(tripIdStr);
-        const mockPayments = demoModeService.getMockPayments(tripIdStr);
-        const mockPolls = demoModeService.getMockPolls(tripIdStr);
-        const mockTasks = demoModeService.getMockTasks(tripIdStr);
-        const mockPlaces = demoModeService.getMockPlaces(tripIdStr);
-        
-        const { generateClientPDF } = await import('../utils/exportPdfClient');
-        blob = await generateClientPDF(
-          {
-            tripId: tripIdStr,
-            tripTitle: tripData?.title || 'Pro Trip',
-            destination: tripData?.location,
-            dateRange: tripData?.dateRange,
-            calendar: orderedSections.includes('calendar') ? mockCalendar : undefined,
-            payments: orderedSections.includes('payments') && mockPayments.length > 0 ? {
-              items: mockPayments,
-              total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
-              currency: mockPayments[0]?.currency || 'USD'
-            } : undefined,
-            polls: orderedSections.includes('polls') ? mockPolls : undefined,
-            tasks: orderedSections.includes('tasks') ? mockTasks.map(task => ({
-              title: task.title,
-              description: task.description,
-              completed: task.completed
-            })) : undefined,
-            places: orderedSections.includes('places') ? mockPlaces : undefined,
-            attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
-          },
-          orderedSections,
-          { customization: { compress: true, maxItemsPerSection: 100 } }
-        );
-      } else {
-        const { getExportData } = await import('../services/tripExportDataService');
-        const realData = await getExportData(tripIdStr, orderedSections);
-        
-        if (!realData) {
-          throw new Error('Could not fetch trip data for export');
+      try {
+        let blob: Blob;
+
+        if (isDemoMode || isNumericId) {
+          const mockCalendar = demoModeService.getMockCalendarEvents(tripIdStr);
+          const mockAttachments = demoModeService.getMockAttachments(tripIdStr);
+          const mockPayments = demoModeService.getMockPayments(tripIdStr);
+          const mockPolls = demoModeService.getMockPolls(tripIdStr);
+          const mockTasks = demoModeService.getMockTasks(tripIdStr);
+          const mockPlaces = demoModeService.getMockPlaces(tripIdStr);
+
+          const { generateClientPDF } = await import('../utils/exportPdfClient');
+          blob = await generateClientPDF(
+            {
+              tripId: tripIdStr,
+              tripTitle: tripData?.title || 'Pro Trip',
+              destination: tripData?.location,
+              dateRange: tripData?.dateRange,
+              calendar: orderedSections.includes('calendar') ? mockCalendar : undefined,
+              payments:
+                orderedSections.includes('payments') && mockPayments.length > 0
+                  ? {
+                      items: mockPayments,
+                      total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
+                      currency: mockPayments[0]?.currency || 'USD',
+                    }
+                  : undefined,
+              polls: orderedSections.includes('polls') ? mockPolls : undefined,
+              tasks: orderedSections.includes('tasks')
+                ? mockTasks.map(task => ({
+                    title: task.title,
+                    description: task.description,
+                    completed: task.completed,
+                  }))
+                : undefined,
+              places: orderedSections.includes('places') ? mockPlaces : undefined,
+              attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
+            },
+            orderedSections,
+            { customization: { compress: true, maxItemsPerSection: 100 } },
+          );
+        } else {
+          const { getExportData } = await import('../services/tripExportDataService');
+          const realData = await getExportData(tripIdStr, orderedSections);
+
+          if (!realData) {
+            throw new Error('Could not fetch trip data for export');
+          }
+
+          const { generateClientPDF } = await import('../utils/exportPdfClient');
+          blob = await generateClientPDF(
+            {
+              tripId: tripIdStr,
+              tripTitle: realData.trip.title,
+              destination: realData.trip.destination,
+              dateRange: realData.trip.dateRange,
+              description: realData.trip.description,
+              calendar: realData.calendar,
+              payments: realData.payments,
+              polls: realData.polls,
+              tasks: realData.tasks,
+              places: realData.places,
+              roster: realData.roster,
+              attachments: realData.attachments,
+            },
+            orderedSections,
+            { customization: { compress: true, maxItemsPerSection: 100 } },
+          );
         }
-        
-        const { generateClientPDF } = await import('../utils/exportPdfClient');
-        blob = await generateClientPDF(
-          {
-            tripId: tripIdStr,
-            tripTitle: realData.trip.title,
-            destination: realData.trip.destination,
-            dateRange: realData.trip.dateRange,
-            description: realData.trip.description,
-            calendar: realData.calendar,
-            payments: realData.payments,
-            polls: realData.polls,
-            tasks: realData.tasks,
-            places: realData.places,
-            roster: realData.roster,
-            attachments: realData.attachments,
 
-          },
-          orderedSections,
-          { customization: { compress: true, maxItemsPerSection: 100 } }
-        );
+        const sanitizedTitle = (tripData?.title || 'Pro Trip').replace(/[^a-zA-Z0-9]/g, '_');
+        const filename = `ProTrip_${sanitizedTitle}_${Date.now()}.pdf`;
+
+        await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
+
+        toast.success('Recap ready', {
+          description: `PDF ready: ${filename}`,
+        });
+      } catch (error) {
+        console.error('[MobileProTripDetail Export] Error:', error);
+        toast.error('Recap failed', {
+          description:
+            error instanceof Error ? error.message : 'Failed to generate PDF. Please try again.',
+        });
+        throw error;
       }
-
-      const sanitizedTitle = (tripData?.title || 'Pro Trip').replace(/[^a-zA-Z0-9]/g, '_');
-      const filename = `ProTrip_${sanitizedTitle}_${Date.now()}.pdf`;
-
-      await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
-
-      toast.success('Recap ready', {
-        description: `PDF ready: ${filename}`,
-      });
-    } catch (error) {
-      console.error('[MobileProTripDetail Export] Error:', error);
-      toast.error('Recap failed', {
-        description: error instanceof Error ? error.message : 'Failed to generate PDF. Please try again.',
-      });
-      throw error;
-    }
-  }, [proTripId, tripData, isDemoMode]);
+    },
+    [proTripId, tripData, isDemoMode],
+  );
 
   // Share Trip handler - uses native Web Share API with clipboard fallback
   const handleShare = useCallback(async () => {
@@ -260,7 +281,7 @@ export const MobileProTripDetail = () => {
         await navigator.share({
           title: tripData.title,
           text: shareText,
-          url: previewLink
+          url: previewLink,
         });
         toast.success('Share sheet opened');
       } catch (error) {
@@ -306,7 +327,8 @@ export const MobileProTripDetail = () => {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       if (errorMessage === 'CREATOR_CANNOT_DELETE') {
         toast.error('Cannot delete trip', {
-          description: 'As the trip creator, you cannot delete this trip for yourself. Consider archiving it instead.',
+          description:
+            'As the trip creator, you cannot delete this trip for yourself. Consider archiving it instead.',
         });
       } else {
         toast.error('Failed to delete trip', {
@@ -349,7 +371,7 @@ export const MobileProTripDetail = () => {
       </div>
     );
   }
-  
+
   if (tripsLoading && !isDemoMode) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -362,7 +384,7 @@ export const MobileProTripDetail = () => {
   }
 
   if (!tripData) {
-    const errorMessage = isDemoMode 
+    const errorMessage = isDemoMode
       ? "The demo trip you're looking for doesn't exist."
       : "This Pro trip doesn't exist or you don't have access.";
     return (
@@ -384,19 +406,19 @@ export const MobileProTripDetail = () => {
       </div>
     );
   }
-  
+
   const trip = {
     id: parseInt(tripData.id) || 0, // Fallback for numeric ID
     title: tripData.title,
     location: tripData.location,
     dateRange: tripData.dateRange,
     description: tripDescription || tripData.description || '',
-    participants: tripData.participants || []
+    participants: tripData.participants || [],
   };
 
   const basecamp = {
     name: tripData.basecamp_name || 'Team Base',
-    address: tripData.basecamp_address || tripData.location
+    address: tripData.basecamp_address || tripData.location,
   };
 
   const handleBack = () => {
@@ -412,130 +434,132 @@ export const MobileProTripDetail = () => {
   return (
     <MobileErrorBoundary>
       <div className="flex flex-col min-h-screen bg-black">
-      {/* Mobile Header - Sticky with iOS safe area */}
-      <div
-        ref={headerRef}
-        className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 mobile-safe-header"
-      >
-        <div className="px-4 py-2">
-          <div className="flex items-center justify-between gap-2">
-            {/* Back button */}
-            <button
-              onClick={handleBack}
-              className="flex-shrink-0 min-w-[44px] min-h-[44px] p-2 -ml-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
-              style={{ touchAction: 'manipulation' }}
-            >
-              <ArrowLeft size={22} className="text-white" />
-            </button>
-            
-            {/* Trip info - centered */}
-            <div className="flex-1 min-w-0 text-center">
-              <h1 className="text-base font-semibold text-white leading-tight truncate">
-                {tripData.title}
-              </h1>
-              <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
-                <span className="truncate">{tripData.location} • {tripData.participants?.length || 0} team members</span>
-                <button
-                  onClick={() => {
-                    hapticService.light();
-                    setShowTripInfo(true);
-                  }}
-                  className="flex-shrink-0 flex items-center gap-0.5 active:scale-95 transition-transform text-blue-400 hover:text-blue-300"
-                  aria-label="View trip details"
-                >
-                  <Info size={14} />
-                  <span className="font-medium">More</span>
-                </button>
+        {/* Mobile Header - Sticky with iOS safe area */}
+        <div
+          ref={headerRef}
+          className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 mobile-safe-header"
+        >
+          <div className="px-4 py-2">
+            <div className="flex items-center justify-between gap-2">
+              {/* Back button */}
+              <button
+                onClick={handleBack}
+                className="flex-shrink-0 min-w-[44px] min-h-[44px] p-2 -ml-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
+                style={{ touchAction: 'manipulation' }}
+              >
+                <ArrowLeft size={22} className="text-white" />
+              </button>
+
+              {/* Trip info - centered */}
+              <div className="flex-1 min-w-0 text-center">
+                <h1 className="text-base font-semibold text-white leading-tight truncate">
+                  {tripData.title}
+                </h1>
+                <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
+                  <span className="truncate">
+                    {tripData.location} • {tripData.participants?.length || 0} team members
+                  </span>
+                  <button
+                    onClick={() => {
+                      hapticService.light();
+                      setShowTripInfo(true);
+                    }}
+                    className="flex-shrink-0 flex items-center gap-0.5 active:scale-95 transition-transform text-blue-400 hover:text-blue-300"
+                    aria-label="View trip details"
+                  >
+                    <Info size={14} />
+                    <span className="font-medium">More</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Options button */}
+              <button
+                onClick={() => {
+                  hapticService.light();
+                  setShowOptionsSheet(true);
+                }}
+                className="flex-shrink-0 min-w-[44px] min-h-[44px] p-2 -mr-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
+                style={{ touchAction: 'manipulation' }}
+              >
+                <MoreVertical size={22} className="text-white" />
+              </button>
             </div>
-            
-            {/* Options button */}
-            <button
-              onClick={() => {
-                hapticService.light();
-                setShowOptionsSheet(true);
-              }}
-              className="flex-shrink-0 min-w-[44px] min-h-[44px] p-2 -mr-2 active:scale-95 transition-transform touch-manipulation flex items-center justify-center"
-              style={{ touchAction: 'manipulation' }}
-            >
-              <MoreVertical size={22} className="text-white" />
-            </button>
           </div>
         </div>
-      </div>
 
-      {/* Mobile Tabs - Swipeable */}
-      <MobileTripTabs
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        tripId={proTripId}
-        basecamp={basecamp}
-        variant="pro"
-        participants={(tripData.participants || []).map((p) => ({
-          id: String(p.id),
-          name: p.name,
-          role: p.role
-        }))}
-        tripData={tripData}
-        category={tripData.proTripCategory}
-        tripCreatorId={(tripData as any).createdBy || user?.id}
-      />
+        {/* Mobile Tabs - Swipeable */}
+        <MobileTripTabs
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          tripId={proTripId}
+          basecamp={basecamp}
+          variant="pro"
+          participants={(tripData.participants || []).map(p => ({
+            id: String(p.id),
+            name: p.name,
+            role: p.role,
+          }))}
+          tripData={tripData}
+          category={tripData.proTripCategory}
+          tripCreatorId={(tripData as any).createdBy || user?.id}
+        />
 
-      {/* Trip Info Drawer */}
-      <MobileTripInfoDrawer
-        trip={trip}
-        isOpen={showTripInfo}
-        onClose={() => {
-          hapticService.light();
-          setShowTripInfo(false);
-        }}
-        onDescriptionUpdate={setTripDescription}
-        onShowExport={() => {
-          setShowTripInfo(false);
-          // Delay to let drawer close before opening modal
-          setTimeout(() => setShowExportModal(true), 200);
-        }}
-        category={tripData.proTripCategory}
-        tags={tripData.tags}
-      />
+        {/* Trip Info Drawer */}
+        <MobileTripInfoDrawer
+          trip={trip}
+          isOpen={showTripInfo}
+          onClose={() => {
+            hapticService.light();
+            setShowTripInfo(false);
+          }}
+          onDescriptionUpdate={setTripDescription}
+          onShowExport={() => {
+            setShowTripInfo(false);
+            // Delay to let drawer close before opening modal
+            setTimeout(() => setShowExportModal(true), 200);
+          }}
+          category={tripData.proTripCategory}
+          tags={tripData.tags}
+        />
 
-      {/* Options Sheet (Three-dot menu) */}
-      <MobileHeaderOptionsSheet
-        isOpen={showOptionsSheet}
-        onClose={() => setShowOptionsSheet(false)}
-        tripTitle={tripData?.title}
-        onShare={handleShare}
-        onExport={() => setShowExportModal(true)}
-        onInvite={() => setShowInviteModal(true)}
-        onDelete={() => setShowDeleteDialog(true)}
-      />
+        {/* Options Sheet (Three-dot menu) */}
+        <MobileHeaderOptionsSheet
+          isOpen={showOptionsSheet}
+          onClose={() => setShowOptionsSheet(false)}
+          tripTitle={tripData?.title}
+          onShare={handleShare}
+          onExport={() => setShowExportModal(true)}
+          onInvite={() => setShowInviteModal(true)}
+          onDelete={() => setShowDeleteDialog(true)}
+        />
 
-      {/* Export Modal */}
-      <TripExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        onExport={handleExport}
-        tripName={tripData?.title || 'Pro Trip'}
-        tripId={proTripId || '1'}
-      />
+        {/* Export Modal */}
+        <TripExportModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          onExport={handleExport}
+          tripName={tripData?.title || 'Pro Trip'}
+          tripId={proTripId || '1'}
+        />
 
-      {/* Invite Modal */}
-      <InviteModal
-        isOpen={showInviteModal}
-        onClose={() => setShowInviteModal(false)}
-        tripName={tripData?.title || 'Pro Trip'}
-        proTripId={proTripId}
-        tripType="pro"
-      />
+        {/* Invite Modal */}
+        <InviteModal
+          isOpen={showInviteModal}
+          onClose={() => setShowInviteModal(false)}
+          tripName={tripData?.title || 'Pro Trip'}
+          proTripId={proTripId}
+          tripType="pro"
+        />
 
-      {/* Delete Trip Confirm Dialog */}
-      <DeleteTripConfirmDialog
-        isOpen={showDeleteDialog}
-        onClose={() => setShowDeleteDialog(false)}
-        onConfirm={handleDeleteTripForMe}
-        tripTitle={tripData?.title || 'Pro Trip'}
-        isLoading={isDeleting}
-      />
+        {/* Delete Trip Confirm Dialog */}
+        <DeleteTripConfirmDialog
+          isOpen={showDeleteDialog}
+          onClose={() => setShowDeleteDialog(false)}
+          onConfirm={handleDeleteTripForMe}
+          tripTitle={tripData?.title || 'Pro Trip'}
+          isLoading={isDeleting}
+        />
       </div>
     </MobileErrorBoundary>
   );
