@@ -13,40 +13,50 @@ const PricingLandingSection = lazy(() => import('./sections/PricingLandingSectio
 const FooterSection = lazy(() => import('./FooterSection').then(module => ({ default: module.FooterSection })));
 
 // Enterprise gradient color palette using brand tokens
+// Navy-Gold Design Tokens
+const DESIGN_TOKENS = {
+  navyBase: '#070B1A',
+  deepNavy: '#0B1230',
+  goldAccent: '#F4B23A',
+  softGoldGlow: 'rgba(244,178,58,0.18)',
+  blueGlow: 'rgba(79,140,255,0.14)'
+};
+
 const GRADIENTS = {
   hero: {
-    colors: ['#0a0a14', '#1a1a2e', '#0d1f2d'] as [string, string, string],
-    direction: 'radial' as const,
-    accentGlow: { color: '#3b82f6', position: 'bottom' as const, opacity: 0.12 }
+    colors: [DESIGN_TOKENS.navyBase, DESIGN_TOKENS.deepNavy] as [string, string],
+    direction: 'vertical' as const,
+    accentGlow: { color: DESIGN_TOKENS.blueGlow, position: 'bottom' as const, opacity: 0.14 }
   },
   replaces: {
-    colors: ['#0d0d18', '#151525'] as [string, string],
-    direction: 'diagonal' as const
+    colors: [DESIGN_TOKENS.deepNavy, DESIGN_TOKENS.navyBase] as [string, string],
+    direction: 'diagonal' as const,
+    accentGlow: { color: DESIGN_TOKENS.softGoldGlow, position: 'center' as const, opacity: 0.08 }
   },
   howItWorks: {
-    colors: ['#0a1520', '#1a1a2e'] as [string, string],
+    colors: [DESIGN_TOKENS.navyBase, DESIGN_TOKENS.deepNavy] as [string, string],
     direction: 'vertical' as const,
-    accentGlow: { color: '#14b8a6', position: 'center' as const, opacity: 0.08 }
+    accentGlow: { color: DESIGN_TOKENS.blueGlow, position: 'center' as const, opacity: 0.10 }
   },
   useCases: {
-    colors: ['#0d1520', '#1a1a2e', '#151525'] as [string, string, string],
+    colors: [DESIGN_TOKENS.deepNavy, DESIGN_TOKENS.navyBase] as [string, string],
     direction: 'diagonal' as const,
-    accentGlow: { color: '#f97316', position: 'bottom' as const, opacity: 0.06 }
+    accentGlow: { color: DESIGN_TOKENS.softGoldGlow, position: 'bottom' as const, opacity: 0.10 }
   },
   aiFeatures: {
-    colors: ['#1a1a2e', '#0d1f2d'] as [string, string],
+    colors: [DESIGN_TOKENS.navyBase, DESIGN_TOKENS.deepNavy] as [string, string],
     direction: 'vertical' as const,
-    accentGlow: { color: '#f97316', position: 'bottom' as const, opacity: 0.1 }
+    accentGlow: { color: DESIGN_TOKENS.softGoldGlow, position: 'bottom' as const, opacity: 0.12 }
   },
   pricing: {
-    colors: ['#0a0a14', '#1a1a2e'] as [string, string],
+    colors: [DESIGN_TOKENS.deepNavy, DESIGN_TOKENS.navyBase] as [string, string],
     direction: 'diagonal' as const,
-    accentGlow: { color: '#3b82f6', position: 'top' as const, opacity: 0.08 }
+    accentGlow: { color: DESIGN_TOKENS.blueGlow, position: 'top' as const, opacity: 0.10 }
   },
   faq: {
-    colors: ['#1a1a2e', '#0d1520', '#1a1520'] as [string, string, string],
+    colors: [DESIGN_TOKENS.navyBase, DESIGN_TOKENS.deepNavy] as [string, string],
     direction: 'vertical' as const,
-    accentGlow: { color: '#f97316', position: 'center' as const, opacity: 0.05 }
+    accentGlow: { color: DESIGN_TOKENS.softGoldGlow, position: 'center' as const, opacity: 0.06 }
   }
 };
 
