@@ -11,6 +11,8 @@ export interface Category {
   title: string;
   subtitle: string;
   icon: string;
+  benefit: string;
+  benefitQuote?: string;
   hero: AppItem[];
   full: AppItem[];
 }
@@ -21,6 +23,7 @@ export const CATEGORIES: Category[] = [
     title: "Chat",
     subtitle: "",
     icon: "💬",
+    benefit: "A Private Group chat specific to your trip allowing you to declutter your iMessage/WhatsApp Inboxes",
     hero: [
       { name: "WhatsApp" },
       { name: "Telegram" },
@@ -41,6 +44,7 @@ export const CATEGORIES: Category[] = [
     title: "Calendar",
     subtitle: "",
     icon: "📅",
+    benefit: "One Shared Schedule everyone actually sees.",
     hero: [
       { name: "Google Calendar" },
       { name: "Outlook Calendar" },
@@ -53,9 +57,10 @@ export const CATEGORIES: Category[] = [
 
   {
     key: "concierge",
-    title: "AI Concierge",
+    title: "Concierge",
     subtitle: "",
     icon: "🤖",
+    benefit: "Your AI Concierge has your Trips' Context and Preferences for Better Suggestions.",
     hero: [
       { name: "ChatGPT" },
       { name: "Gemini" },
@@ -75,6 +80,7 @@ export const CATEGORIES: Category[] = [
     title: "Media",
     subtitle: "",
     icon: "📸",
+    benefit: "Photos, Videos, Files, & Links. The whole group uploads to the same hub, no more chasing content down",
     hero: [
       { name: "Google Drive" },
       { name: "Google Photos" },
@@ -97,6 +103,7 @@ export const CATEGORIES: Category[] = [
     title: "Payments",
     subtitle: "",
     icon: "💳",
+    benefit: "Quickly see Who owes what—no spreadsheets.",
     hero: [
       { name: "Venmo" },
       { name: "Zelle" },
@@ -117,6 +124,7 @@ export const CATEGORIES: Category[] = [
     title: "Places",
     subtitle: "",
     icon: "📍",
+    benefit: "Links & Locations saved once, found instantly.",
     hero: [
       { name: "Google Maps" },
       { name: "Apple Maps" },
@@ -136,6 +144,7 @@ export const CATEGORIES: Category[] = [
     title: "Polls",
     subtitle: "",
     icon: "📊",
+    benefit: "Old polling got buried by new texts. Surface group decisions quickly without the endless scrolling.",
     hero: [
       { name: "Doodle" },
       { name: "Google Forms" },
@@ -153,6 +162,8 @@ export const CATEGORIES: Category[] = [
     title: "Tasks",
     subtitle: "",
     icon: "✅",
+    benefitQuote: "\"I thought you were handling?\"",
+    benefit: "Tasks brings Reminders + Accountability for Individuals or the group as a whole.",
     hero: [
       { name: "Notion" },
       { name: "Asana" },
