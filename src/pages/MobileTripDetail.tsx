@@ -20,6 +20,8 @@ import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { demoModeService } from '../services/demoModeService';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { tripKeys } from '@/lib/queryKeys';
 
 export const MobileTripDetail = () => {
   const { tripId } = useParams();
@@ -28,8 +30,17 @@ export const MobileTripDetail = () => {
   const { isDemoMode } = useDemoMode();
 
   // ⚡ PERFORMANCE: Use unified hook for parallel data fetching with TanStack Query cache
-  // 🔄 FIX: Get isAuthLoading to prevent false "not found" during auth resolution
-  const { trip, tripMembers, tripCreatorId, isLoading: loading, isAuthLoading } = useTripDetailData(tripId);
+  // 🔒 FIX: Get tripError/membersError/isAuthLoading to distinguish errors from not-found
+  const { 
+    trip, 
+    tripMembers, 
+    tripCreatorId, 
+    isLoading: loading,
+    isMembersLoading,
+    isAuthLoading,
+    tripError,
+    membersError,
+  } = useTripDetailData(tripId);
 
   // Persist activeTab in sessionStorage to survive orientation changes
   const getInitialTab = () => {
@@ -298,9 +309,11 @@ export const MobileTripDetail = () => {
     }
   }, [user?.id, tripId, tripWithUpdatedDescription?.title, navigate]);
 
+  // Get query client for retry functionality
+  const queryClient = useQueryClient();
+
   // ⚡ PERFORMANCE: Show skeleton UI for perceived instant load
-  // This provides immediate visual feedback while data loads
-  // 🔄 FIX: Also show skeleton during auth resolution to prevent false "not found"
+  // 🔒 CRITICAL: Show skeleton during auth loading OR trip loading (not "Trip Not Found")
   if (loading || isAuthLoading) {
     return (
       <MobileErrorBoundary>
@@ -340,13 +353,52 @@ export const MobileTripDetail = () => {
     );
   }
 
-  // Handle missing trip - check after data loaded
+  // 🔒 Handle fetch errors - show retry option instead of "Trip Not Found"
+  if (tripError) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <h1 className="text-2xl font-bold text-white mb-4">Couldn't Load Trip</h1>
+          <p className="text-gray-400 mb-6">
+            {tripError.message.includes('permission')
+              ? "You don't have access to this trip."
+              : 'There was a problem loading this trip. Please try again.'}
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => {
+                hapticService.light();
+                queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId!) });
+                queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId!) });
+              }}
+              className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => {
+                hapticService.light();
+                navigate('/');
+              }}
+              className="bg-white/10 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+            >
+              Back to My Trips
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle missing trip - only show this when we're sure it doesn't exist (no error, no loading)
   if (!tripWithUpdatedDescription) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <h1 className="text-2xl font-bold text-white mb-4">Trip Not Found</h1>
-          <p className="text-gray-400 mb-6">The trip you're looking for doesn't exist.</p>
+          <p className="text-gray-400 mb-6">
+            The trip you're looking for doesn't exist or has been deleted.
+          </p>
           <button
             onClick={() => {
               hapticService.light();

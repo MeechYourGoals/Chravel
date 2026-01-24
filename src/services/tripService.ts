@@ -322,17 +322,25 @@ export const tripService = {
   },
 
   async getTripById(tripId: string): Promise<Trip | null> {
-    try {
-      const { data, error } = await supabase.from('trips').select('*').eq('id', tripId).single();
+    // Use maybeSingle() to distinguish "no rows" from errors
+    const { data, error } = await supabase.from('trips').select('*').eq('id', tripId).maybeSingle();
 
-      if (error) throw error;
-      return data;
-    } catch (error) {
+    if (error) {
+      // Log in dev for debugging
       if (import.meta.env.DEV) {
-        console.error('Error fetching trip:', error);
+        console.error('[tripService.getTripById] Error:', {
+          tripId,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        });
       }
-      return null;
+      // CRITICAL: Throw so React Query marks this as an error (not cached as null success)
+      throw new Error(`Failed to load trip: ${error.message}`);
     }
+
+    // No error but no data means trip doesn't exist (legitimate null)
+    return data;
   },
 
   async updateTrip(tripId: string, updates: Partial<Trip>): Promise<boolean> {
@@ -434,96 +442,96 @@ export const tripService = {
     members: Array<{ id: string; name: string; avatar?: string; isCreator?: boolean }>;
     creatorId: string | null;
   }> {
-    try {
+    if (import.meta.env.DEV) {
       console.log('[tripService.getTripMembersWithCreator] Fetching for tripId:', tripId);
-      
-      // Parallel fetch: trip creator + members
-      const [tripResult, membersResult] = await Promise.all([
-        supabase.from('trips').select('created_by').eq('id', tripId).single(),
-        supabase.from('trip_members').select('id, user_id, role, created_at').eq('trip_id', tripId),
-      ]);
+    }
+    
+    // Parallel fetch: trip creator + members
+    const [tripResult, membersResult] = await Promise.all([
+      supabase.from('trips').select('created_by').eq('id', tripId).maybeSingle(),
+      supabase.from('trip_members').select('id, user_id, role, created_at').eq('trip_id', tripId),
+    ]);
 
-      const creatorId = tripResult.data?.created_by || null;
-      
+    // CRITICAL: Check for auth/RLS/network errors and THROW (don't silently return empty)
+    if (tripResult.error) {
+      if (import.meta.env.DEV) {
+        console.error('[tripService.getTripMembersWithCreator] Trip query error:', {
+          tripId,
+          code: tripResult.error.code,
+          message: tripResult.error.message,
+        });
+      }
+      throw new Error(`Failed to load trip data: ${tripResult.error.message}`);
+    }
+
+    if (membersResult.error) {
+      if (import.meta.env.DEV) {
+        console.error('[tripService.getTripMembersWithCreator] Members query error:', {
+          tripId,
+          code: membersResult.error.code,
+          message: membersResult.error.message,
+        });
+      }
+      throw new Error(`Failed to load trip members: ${membersResult.error.message}`);
+    }
+
+    const creatorId = tripResult.data?.created_by || null;
+    
+    if (import.meta.env.DEV) {
       console.log('[tripService.getTripMembersWithCreator] Results:', {
         creatorId,
         membersCount: membersResult.data?.length ?? 0,
-        tripError: tripResult.error?.message,
-        membersError: membersResult.error?.message
       });
-
-      // If members query returned error, log it but continue with creator fallback
-      if (membersResult.error) {
-        console.error('[tripService] Members query error:', membersResult.error);
-        // Return creator as minimum member if we have creatorId
-        if (creatorId) {
-          const { data: creatorProfile } = await supabase
-            .from('profiles_public')
-            .select('user_id, display_name, avatar_url')
-            .eq('user_id', creatorId)
-            .single();
-          
-          return {
-            members: [{
-              id: creatorId,
-              name: creatorProfile?.display_name || 'Trip Creator',
-              avatar: creatorProfile?.avatar_url,
-              isCreator: true,
-            }],
-            creatorId
-          };
-        }
-        return { members: [], creatorId };
-      }
-      
-      // If no members in table but we have creator, fetch creator as minimum
-      if (!membersResult.data || membersResult.data.length === 0) {
-        console.warn('[tripService] No members found in trip_members table for trip:', tripId);
-        if (creatorId) {
-          const { data: creatorProfile } = await supabase
-            .from('profiles_public')
-            .select('user_id, display_name, avatar_url')
-            .eq('user_id', creatorId)
-            .single();
-          
-          return {
-            members: [{
-              id: creatorId,
-              name: creatorProfile?.display_name || 'Trip Creator',
-              avatar: creatorProfile?.avatar_url,
-              isCreator: true,
-            }],
-            creatorId
-          };
-        }
-        return { members: [], creatorId };
-      }
-
-      // Fetch profiles for all members
-      const userIds = membersResult.data.map(m => m.user_id);
-      const { data: profilesData } = await supabase
-        .from('profiles_public')
-        .select('user_id, display_name, avatar_url')
-        .in('user_id', userIds);
-
-      const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
-
-      const members = membersResult.data.map(m => {
-        const profile = profilesMap.get(m.user_id);
-        return {
-          id: m.user_id,
-          name: profile?.display_name || 'Unknown User',
-          avatar: profile?.avatar_url,
-          isCreator: m.user_id === creatorId,
-        };
-      });
-
-      console.log('[tripService.getTripMembersWithCreator] Returning', members.length, 'members');
-      return { members, creatorId };
-    } catch (error) {
-      console.error('[tripService] Error fetching trip members with creator:', error);
-      return { members: [], creatorId: null };
     }
+    
+    // If no members in table but we have creator, fetch creator as minimum member
+    if (!membersResult.data || membersResult.data.length === 0) {
+      if (import.meta.env.DEV) {
+        console.warn('[tripService] No members found in trip_members table for trip:', tripId);
+      }
+      if (creatorId) {
+        const { data: creatorProfile } = await supabase
+          .from('profiles_public')
+          .select('user_id, display_name, avatar_url')
+          .eq('user_id', creatorId)
+          .maybeSingle();
+        
+        return {
+          members: [{
+            id: creatorId,
+            name: creatorProfile?.display_name || 'Trip Creator',
+            avatar: creatorProfile?.avatar_url,
+            isCreator: true,
+          }],
+          creatorId
+        };
+      }
+      return { members: [], creatorId };
+    }
+
+    // Fetch profiles for all members
+    const userIds = membersResult.data.map(m => m.user_id);
+    const { data: profilesData } = await supabase
+      .from('profiles_public')
+      .select('user_id, display_name, avatar_url')
+      .in('user_id', userIds);
+
+    const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
+
+    const members = membersResult.data.map(m => {
+      const profile = profilesMap.get(m.user_id);
+      return {
+        id: m.user_id,
+        name: profile?.display_name || 'Unknown User',
+        avatar: profile?.avatar_url,
+        isCreator: m.user_id === creatorId,
+      };
+    });
+
+    if (import.meta.env.DEV) {
+      console.log('[tripService.getTripMembersWithCreator] Returning', members.length, 'members');
+    }
+    return { members, creatorId };
   },
 
   async addTripMember(tripId: string, userId: string, role: string = 'member'): Promise<boolean> {

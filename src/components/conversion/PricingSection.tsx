@@ -54,7 +54,7 @@ const consumerTiers: PricingTier[] = [
     id: 'free',
     name: 'Free Plan',
     price: '$0',
-    description: 'Perfect for trying ChravelApp with your crew',
+    description: 'Perfect for trying ChravelApp with your Crew',
     icon: <Users size={24} />,
     features: [
       'Core group chat',
@@ -69,7 +69,7 @@ const consumerTiers: PricingTier[] = [
       '🎁 1 free Pro trip to try',
       '🎁 1 free Event to try'
     ],
-    cta: 'Create My First Trip',
+    cta: 'Start First Trip Free',
     category: 'consumer',
     limitation: 'Archive trips to make room for new ones. Upgrade to restore anytime!'
   },
@@ -79,7 +79,7 @@ const consumerTiers: PricingTier[] = [
     price: '$9.99',
     annualPrice: '$99',
     originalPrice: '$119.88',
-    description: 'For people who travel often and want smarter planning',
+    description: 'For people who travel regularly and want smarter planning',
     icon: <Globe size={24} />,
     features: [
       'Everything in Free',
@@ -90,7 +90,7 @@ const consumerTiers: PricingTier[] = [
       'Location-aware AI recommendations',
       'Search past trips and memories'
     ],
-    cta: 'Never Lose a Trip',
+    cta: 'Upgrade to Explorer',
     popular: true,
     category: 'consumer',
     badge: 'Most Popular',
@@ -102,7 +102,7 @@ const consumerTiers: PricingTier[] = [
     price: '$19.99',
     annualPrice: '$199',
     originalPrice: '$239.88',
-    description: 'For power users, organizers, and travel pros',
+    description: 'For Frequent Flyers, Teams, and Tours',
     icon: <Sparkles size={24} />,
     features: [
       'Everything in Explorer',
@@ -113,7 +113,7 @@ const consumerTiers: PricingTier[] = [
       'Custom trip categories',
       'Early feature access'
     ],
-    cta: 'Go Unlimited',
+    cta: 'Upgrade to Frequent',
     category: 'consumer',
     savings: 'Save $40/year'
   }
@@ -173,7 +173,7 @@ const proTiers: PricingTier[] = [
 const valuePropItems = [
   {
     icon: <Heart size={20} />,
-    title: 'The average trip costs $2,000+',
+    title: 'Trips can easily exceed $1,000',
     description: 'Your memories are worth more than $9.99/month'
   },
   {
@@ -320,12 +320,12 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
         <div className="space-y-4">
           <div className="inline-block bg-primary px-6 py-3 rounded-lg">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
-              Upgrade your travel experience today
+              Start free. Upgrade when your trip gets serious.
             </h2>
           </div>
           <div className="bg-primary backdrop-blur-sm px-4 py-3 rounded-lg max-w-3xl mx-auto">
             <p className="text-sm sm:text-base md:text-lg text-white font-bold leading-relaxed break-words">
-              Make sure your next trip makes it out of the group chat. <span className="text-white font-bold">Save more time, money, and headaches with ChravelApp.</span>
+              Don't lose receipts, links, or the final plan. <span className="text-white font-bold">Free works forever—upgrade only when you need more.</span>
             </p>
           </div>
         </div>

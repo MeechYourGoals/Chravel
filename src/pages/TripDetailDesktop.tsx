@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 import { demoModeService } from '../services/demoModeService';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useQueryClient } from '@tanstack/react-query';
+import { tripKeys } from '@/lib/queryKeys';
 
 /**
  * TripDetailDesktop Component
@@ -51,7 +52,7 @@ export const TripDetailDesktop = () => {
 
   // ⚡ PERFORMANCE: Use unified hook for parallel data fetching with TanStack Query cache
   // 🔄 FIX: Also get isMembersLoading to prevent "0 members" flash during loading
-  // 🔄 FIX: Get isAuthLoading to prevent false "not found" during auth resolution
+  // 🔒 FIX: Get tripError/membersError/isAuthLoading to distinguish errors from not-found
   const {
     trip,
     tripMembers,
@@ -59,6 +60,8 @@ export const TripDetailDesktop = () => {
     isLoading: loading,
     isMembersLoading,
     isAuthLoading,
+    tripError,
+    membersError,
   } = useTripDetailData(tripId);
 
   // 🔄 Keep useTripMembers for member management actions (canRemoveMembers, removeMember, leaveTrip)
@@ -200,9 +203,8 @@ export const TripDetailDesktop = () => {
   }, [tripId, tripWithUpdatedData, basecamp, mockData, isDemoMode, tripMembers]);
 
   // ⚡ OPTIMIZATION: Show skeleton UI for perceived instant load
+  // 🔒 CRITICAL: Show skeleton during auth loading OR trip loading (not "Trip Not Found")
   // Don't block on members loading - show trip immediately, members load in background
-  // NOTE: Removed demoModeLoading check - store uses synchronous localStorage
-  // 🔄 FIX: Also show skeleton during auth resolution to prevent false "not found"
   if (loading || isAuthLoading) {
     return (
       <div className="min-h-screen bg-black">
@@ -238,13 +240,48 @@ export const TripDetailDesktop = () => {
     );
   }
 
-  // Handle missing trip - render after all computations complete
+  // 🔒 Handle fetch errors - show retry option instead of "Trip Not Found"
+  if (tripError) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center max-w-md px-4">
+          <h1 className="text-3xl font-bold text-white mb-4">Couldn't Load Trip</h1>
+          <p className="text-gray-400 mb-6">
+            {tripError.message.includes('permission')
+              ? "You don't have access to this trip."
+              : 'There was a problem loading this trip. Please try again.'}
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId!) });
+                queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId!) });
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-colors"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl transition-colors"
+            >
+              Back to My Trips
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle missing trip - only show this when we're sure it doesn't exist (no error, no loading)
   if (!tripWithUpdatedData) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-md px-4">
           <h1 className="text-4xl font-bold text-white mb-4">Trip Not Found</h1>
-          <p className="text-gray-400 mb-6">The trip you're looking for doesn't exist.</p>
+          <p className="text-gray-400 mb-6">
+            The trip you're looking for doesn't exist or has been deleted.
+          </p>
           <button
             onClick={() => navigate('/')}
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-colors"
