@@ -11,25 +11,25 @@ import {
 export const ReplacesGrid = () => {
   return (
     <section className="w-full max-w-6xl mx-auto px-6 lg:px-12 pt-8 sm:pt-6 pb-12 sm:pb-16">
-      {/* Header */}
-      <div className="text-center mb-8 md:mb-12 space-y-3">
+      {/* Header with FAQ-style bold typography */}
+      <div className="text-center mb-8 md:mb-12 space-y-4 max-w-4xl mx-auto">
         <h2 
-          className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white break-words"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white break-words"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
         >
-          Your trip shouldn't need 10+ apps
+          Why Juggle a Dozen different apps to plan ONE Trip?
         </h2>
         <p 
-          className="text-lg sm:text-xl md:text-2xl text-white font-medium max-w-4xl mx-auto"
-          style={{ textShadow: '0 2px 6px rgba(0,0,0,0.6)' }}
+          className="text-xl sm:text-2xl md:text-3xl text-white font-bold max-w-4xl mx-auto"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
         >
-          Download Overload? ChravelApp consolidates dozens of scattered Apps into 8 simple ChravelTabs
+          Fix Your Download Overload: ChravelApp's Core 8 Tabs cover almost all trip needs...with one app.
         </p>
         <p 
-          className="text-base sm:text-lg text-white/80 font-medium mt-4"
-          style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
+          className="text-lg sm:text-xl text-white font-bold mt-4"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
         >
-          Ready to Replace your App Arsenal? Navigate your trips faster with Tabs:
+          Ready to Replace your App Arsenal? Click Below to see how you can navigate your trips faster with ChravelTabs
         </p>
       </div>
 
