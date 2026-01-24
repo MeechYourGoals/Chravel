@@ -25,6 +25,9 @@ import { useDeepLinks } from "@/hooks/useDeepLinks";
 import { toast } from "@/hooks/use-toast";
 import { setupGlobalSyncProcessor } from "./services/globalSyncProcessor";
 
+// Trip recovery utilities (exposes debugTrips, searchAllTrips, recoverTrip to window)
+import "@/utils/tripRecovery";
+
 // Lazy load pages for better performance
 // Enhanced retry mechanism with exponential backoff and better error handling
 const retryImport = <T,>(importFn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> => {

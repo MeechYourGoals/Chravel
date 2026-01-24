@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTripVariant } from '../../contexts/TripVariantContext';
-import { useAuth } from '../../hooks/useAuth';
 import {
   AlertCircle,
   Clock,
@@ -44,7 +43,6 @@ export const ProTripNotFound = ({
 }: ProTripNotFoundProps) => {
   const navigate = useNavigate();
   const { accentColors } = useTripVariant();
-  const { user } = useAuth();
 
   const getIcon = () => {
     const iconClass = 'h-12 w-12 mx-auto mb-4';
@@ -106,7 +104,7 @@ export const ProTripNotFound = ({
         )}
 
         {/* Primary CTA based on reason */}
-        {reason === 'auth_required' && !user ? (
+        {reason === 'auth_required' ? (
           <button
             onClick={handleLogin}
             className={`w-full bg-gradient-to-r ${accentColors.gradient} text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 mb-3`}

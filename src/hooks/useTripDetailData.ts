@@ -134,6 +134,9 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   // Production mode: Convert Supabase trip to mock format for backward compatibility
   const trip = tripQuery.data ? convertSupabaseTripToMock(tripQuery.data) : null;
 
+  // Show loading while auth is resolving or data is fetching
+  const isLoading = isAuthLoading || tripQuery.isLoading;
+
   return {
     trip,
     tripMembers: membersQuery.data?.members || [],
