@@ -1,9 +1,32 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'sonner';
-import { Loader2, Users, MapPin, Calendar, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import {
+  Loader2,
+  Users,
+  MapPin,
+  Calendar,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
+  LogIn,
+  UserPlus,
+  RefreshCw,
+  Mail,
+  ArrowRight,
+  Lock,
+  WifiOff,
+  UserX,
+} from 'lucide-react';
+import {
+  InviteErrorCode,
+  InviteError,
+  INVITE_ERROR_SPECS,
+  normalizeErrorCode,
+  createInviteError,
+} from '../types/inviteErrors';
 
 interface InvitePreviewData {
   invite: {
@@ -23,13 +46,6 @@ interface InvitePreviewData {
     trip_type: string | null;
     member_count: number;
   };
-}
-
-type ErrorCode = 'INVALID' | 'EXPIRED' | 'INACTIVE' | 'MAX_USES' | 'NOT_FOUND' | 'NETWORK';
-
-interface InviteError {
-  message: string;
-  code: ErrorCode;
 }
 
 const INVITE_CODE_STORAGE_KEY = 'chravel_pending_invite_code';
@@ -66,10 +82,7 @@ const JoinTrip = () => {
         console.error('[JoinTrip] Loading timeout after 5s - forcing completion');
         setLoading(false);
         if (!inviteData && !error) {
-          setError({
-            message: 'Failed to load invite details. Please refresh and try again.',
-            code: 'NETWORK',
-          });
+          setError(createInviteError('NETWORK_ERROR'));
         }
       }
     }, 5000);
@@ -138,7 +151,7 @@ const JoinTrip = () => {
     if (token) {
       checkDeepLinkAndFetchInvite();
     } else {
-      setError({ message: 'Invalid invite link', code: 'INVALID' });
+      setError(createInviteError('INVALID_LINK'));
       setLoading(false);
     }
   }, [token]);
@@ -177,10 +190,9 @@ const JoinTrip = () => {
     // Validate Supabase client
     if (!supabase) {
       console.error('[JoinTrip] Supabase client not initialized');
-      setError({
-        message: 'App initialization error. Please refresh the page.',
-        code: 'NETWORK',
-      });
+      setError(
+        createInviteError('NETWORK_ERROR', undefined, 'App initialization error. Please refresh the page.'),
+      );
       setLoading(false);
       return;
     }
@@ -204,10 +216,7 @@ const JoinTrip = () => {
         if (import.meta.env.DEV) {
           console.error('[JoinTrip] Edge function error:', funcError);
         }
-        setError({
-          message: 'Failed to load invite details. Please check your connection and try again.',
-          code: 'NETWORK',
-        });
+        setError(createInviteError('NETWORK_ERROR'));
         return;
       }
 
@@ -215,10 +224,18 @@ const JoinTrip = () => {
         if (import.meta.env.DEV) {
           console.error('[JoinTrip] Invite preview error:', data?.error);
         }
-        setError({
-          message: data?.error || 'Invalid invite link',
-          code: data?.error_code || 'INVALID',
-        });
+        // Normalize legacy error codes to new taxonomy
+        const errorCode = normalizeErrorCode(data?.error_code);
+        setError(
+          createInviteError(
+            errorCode,
+            {
+              tripId: data?.trip?.id,
+              tripName: data?.trip?.name,
+            },
+            data?.error,
+          ),
+        );
         return;
       }
 
@@ -230,10 +247,7 @@ const JoinTrip = () => {
       if (import.meta.env.DEV) {
         console.error('[JoinTrip] Critical error fetching invite preview:', err);
       }
-      setError({
-        message: 'An unexpected error occurred. Please try again.',
-        code: 'NETWORK',
-      });
+      setError(createInviteError('UNKNOWN_ERROR'));
     } finally {
       // ALWAYS stop loading regardless of success/failure
       setLoading(false);
@@ -379,33 +393,156 @@ const JoinTrip = () => {
     return startStr;
   };
 
-  const getErrorIcon = (code: ErrorCode) => {
-    switch (code) {
-      case 'EXPIRED':
-      case 'INACTIVE':
-      case 'MAX_USES':
-        return <Clock className="h-12 w-12 text-yellow-400 mx-auto mb-4" />;
-      default:
-        return <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />;
-    }
-  };
+  /**
+   * Get the appropriate icon for an error code.
+   * Icons are color-coded by severity: info (blue), warning (yellow), error (red).
+   */
+  const getErrorIcon = useCallback((error: InviteError) => {
+    const spec = INVITE_ERROR_SPECS[error.code];
+    const iconClass = 'h-12 w-12 mx-auto mb-4';
 
-  const getErrorTitle = (code: ErrorCode) => {
-    switch (code) {
-      case 'EXPIRED':
-        return 'Invite Expired';
-      case 'INACTIVE':
-        return 'Invite Deactivated';
-      case 'MAX_USES':
-        return 'Invite Limit Reached';
-      case 'NOT_FOUND':
-        return 'Invite Not Found';
-      case 'NETWORK':
-        return 'Connection Error';
+    const colorClass =
+      spec.severity === 'error'
+        ? 'text-red-400'
+        : spec.severity === 'warning'
+          ? 'text-yellow-400'
+          : 'text-blue-400';
+
+    switch (spec.icon) {
+      case 'auth':
+        return <LogIn className={`${iconClass} ${colorClass}`} />;
+      case 'clock':
+        return <Clock className={`${iconClass} ${colorClass}`} />;
+      case 'lock':
+        return <Lock className={`${iconClass} ${colorClass}`} />;
+      case 'users':
+        return <Users className={`${iconClass} ${colorClass}`} />;
+      case 'network':
+        return <WifiOff className={`${iconClass} ${colorClass}`} />;
+      case 'check':
+        return <CheckCircle2 className={`${iconClass} text-green-400`} />;
       default:
-        return 'Invalid Invite';
+        return <AlertCircle className={`${iconClass} ${colorClass}`} />;
     }
-  };
+  }, []);
+
+  /**
+   * Handle CTA button clicks based on error action type.
+   * Each CTA maps to a specific recovery action.
+   */
+  const handleErrorCTA = useCallback(
+    (action: string, errorData?: InviteError['metadata']) => {
+      switch (action) {
+        case 'login':
+          if (token) {
+            sessionStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
+          }
+          navigate(`/auth?mode=signin&returnTo=${encodeURIComponent(location.pathname)}`, {
+            replace: true,
+          });
+          break;
+        case 'signup':
+          if (token) {
+            sessionStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
+          }
+          navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(location.pathname)}`, {
+            replace: true,
+          });
+          break;
+        case 'switch_account':
+          // Sign out and redirect to login with invite preserved
+          if (token) {
+            sessionStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
+          }
+          supabase.auth.signOut().then(() => {
+            navigate(`/auth?mode=signin&returnTo=${encodeURIComponent(location.pathname)}`, {
+              replace: true,
+            });
+          });
+          break;
+        case 'request_new_invite':
+          // Show toast with guidance and redirect to dashboard
+          toast.info('Contact the trip organizer for a new invite link.');
+          navigate('/');
+          break;
+        case 'contact_host':
+          toast.info('Contact the trip organizer for help.');
+          navigate('/');
+          break;
+        case 'go_to_dashboard':
+          navigate('/');
+          break;
+        case 'retry':
+          setError(null);
+          setLoading(true);
+          void fetchInvitePreview();
+          break;
+        case 'view_request_status':
+          // Navigate to home where pending requests are shown
+          navigate('/');
+          break;
+        case 'open_trip':
+          if (errorData?.tripId) {
+            const tripType = errorData.tripType || 'consumer';
+            if (tripType === 'pro') {
+              navigate(`/tour/pro/${errorData.tripId}`);
+            } else if (tripType === 'event') {
+              navigate(`/event/${errorData.tripId}`);
+            } else {
+              navigate(`/trip/${errorData.tripId}`);
+            }
+          } else {
+            navigate('/');
+          }
+          break;
+        default:
+          navigate('/');
+      }
+    },
+    [navigate, token, location.pathname],
+  );
+
+  /**
+   * Get CTA button label based on action type.
+   */
+  const getCTALabel = useCallback((action: string): string => {
+    const labels: Record<string, string> = {
+      login: 'Log In',
+      signup: 'Sign Up',
+      switch_account: 'Switch Account',
+      request_new_invite: 'Request New Invite',
+      contact_host: 'Contact Host',
+      go_to_dashboard: 'Go to Dashboard',
+      retry: 'Try Again',
+      view_request_status: 'View Request Status',
+      open_trip: 'Open Trip',
+    };
+    return labels[action] || 'Continue';
+  }, []);
+
+  /**
+   * Get CTA button icon based on action type.
+   */
+  const getCTAIcon = useCallback((action: string) => {
+    switch (action) {
+      case 'login':
+        return <LogIn className="h-4 w-4" />;
+      case 'signup':
+        return <UserPlus className="h-4 w-4" />;
+      case 'switch_account':
+        return <UserX className="h-4 w-4" />;
+      case 'request_new_invite':
+      case 'contact_host':
+        return <Mail className="h-4 w-4" />;
+      case 'retry':
+        return <RefreshCw className="h-4 w-4" />;
+      case 'open_trip':
+      case 'view_request_status':
+        return <ArrowRight className="h-4 w-4" />;
+      default:
+        return null;
+    }
+  }, []);
 
   // Show loading ONLY while fetching invite data
   // DO NOT block on authLoading - unauthenticated users should see preview immediately
@@ -428,7 +565,7 @@ const JoinTrip = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center max-w-md bg-card/50 backdrop-blur-md border border-border rounded-3xl p-8 shadow-xl">
-          <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+          <WifiOff className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground mb-4">Something went wrong</h1>
           <p className="text-muted-foreground mb-6">
             We couldn't load the invite details. Please try again.
@@ -436,11 +573,18 @@ const JoinTrip = () => {
           <button
             onClick={() => {
               setLoading(true);
-              fetchInvitePreview();
+              void fetchInvitePreview();
             }}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-colors"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
           >
+            <RefreshCw className="h-4 w-4" />
             Reload
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            className="mt-3 w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground px-6 py-3 rounded-xl transition-colors"
+          >
+            Go to Dashboard
           </button>
         </div>
       </div>
@@ -448,32 +592,69 @@ const JoinTrip = () => {
   }
 
   if (error) {
+    const spec = INVITE_ERROR_SPECS[error.code];
+    const primaryCTA = error.primaryCTA || spec.primaryCTA;
+    const secondaryCTA = error.secondaryCTA || spec.secondaryCTA;
+
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center max-w-md bg-card/50 backdrop-blur-md border border-border rounded-3xl p-8">
-          {getErrorIcon(error.code)}
-          <h1 className="text-2xl font-bold text-foreground mb-4">{getErrorTitle(error.code)}</h1>
+          {getErrorIcon(error)}
+          <h1 className="text-2xl font-bold text-foreground mb-4">{error.title}</h1>
           <p className="text-muted-foreground mb-6">{error.message}</p>
 
-          {error.code === 'NETWORK' && (
+          {/* Trip context if available */}
+          {error.metadata?.tripName && (
+            <div className="mb-6 p-3 bg-muted/30 border border-border rounded-xl">
+              <p className="text-sm text-muted-foreground">
+                Trip: <span className="text-foreground font-medium">{error.metadata.tripName}</span>
+              </p>
+            </div>
+          )}
+
+          {/* Account mismatch context */}
+          {error.code === 'ACCOUNT_MISMATCH' && error.metadata?.invitedEmail && (
+            <div className="mb-6 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+              <p className="text-sm text-yellow-400">
+                Invite sent to:{' '}
+                <span className="font-medium">{error.metadata.invitedEmail}</span>
+              </p>
+              {error.metadata.currentEmail && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Logged in as: <span className="font-medium">{error.metadata.currentEmail}</span>
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Primary CTA Button */}
+          <button
+            onClick={() => handleErrorCTA(primaryCTA, error.metadata)}
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-colors flex items-center justify-center gap-2 font-medium"
+          >
+            {getCTAIcon(primaryCTA)}
+            {getCTALabel(primaryCTA)}
+          </button>
+
+          {/* Secondary CTA Button */}
+          {secondaryCTA && (
             <button
-              onClick={() => {
-                setError(null);
-                setLoading(true);
-                fetchInvitePreview();
-              }}
-              className="mb-4 w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground px-6 py-3 rounded-xl transition-colors"
+              onClick={() => handleErrorCTA(secondaryCTA, error.metadata)}
+              className="mt-3 w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground px-6 py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
             >
-              Try Again
+              {getCTAIcon(secondaryCTA)}
+              {getCTALabel(secondaryCTA)}
             </button>
           )}
 
-          <button
-            onClick={() => navigate('/')}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-xl transition-colors"
-          >
-            Go to Dashboard
-          </button>
+          {/* Help text for certain errors */}
+          {(error.code === 'INVITE_EXPIRED' ||
+            error.code === 'INVITE_INACTIVE' ||
+            error.code === 'INVITE_MAX_USES') && (
+            <p className="mt-4 text-xs text-muted-foreground">
+              Tip: Ask the trip organizer to send you a new invite link.
+            </p>
+          )}
         </div>
       </div>
     );

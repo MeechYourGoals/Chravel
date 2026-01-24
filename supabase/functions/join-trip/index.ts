@@ -7,6 +7,25 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[JOIN-TRIP] ${step}${detailsStr}`);
 };
 
+/**
+ * Error codes for join-trip failures.
+ * These map to the InviteErrorCode type in the frontend for targeted CTAs.
+ */
+type JoinTripErrorCode =
+  | 'AUTH_REQUIRED'
+  | 'AUTH_EXPIRED'
+  | 'INVALID_LINK'
+  | 'INVITE_NOT_FOUND'
+  | 'INVITE_EXPIRED'
+  | 'INVITE_INACTIVE'
+  | 'INVITE_MAX_USES'
+  | 'TRIP_NOT_FOUND'
+  | 'TRIP_ARCHIVED'
+  | 'TRIP_FULL'
+  | 'APPROVAL_PENDING'
+  | 'ALREADY_MEMBER'
+  | 'UNKNOWN_ERROR';
+
 function createJsonResponse(data: unknown, status: number, corsHeaders: HeadersInit): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -14,8 +33,13 @@ function createJsonResponse(data: unknown, status: number, corsHeaders: HeadersI
   });
 }
 
-function errorResponse(message: string, status: number, corsHeaders: HeadersInit): Response {
-  return createJsonResponse({ success: false, message }, status, corsHeaders);
+function errorResponse(
+  message: string,
+  status: number,
+  corsHeaders: HeadersInit,
+  errorCode?: JoinTripErrorCode,
+): Response {
+  return createJsonResponse({ success: false, message, error_code: errorCode }, status, corsHeaders);
 }
 
 function successResponse(data: Record<string, unknown>, corsHeaders: HeadersInit): Response {
@@ -43,7 +67,12 @@ serve(async req => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       logStep('ERROR: No authorization header');
-      return errorResponse('Authentication required', 401, corsHeaders);
+      return errorResponse(
+        'You need to sign in to join this trip.',
+        401,
+        corsHeaders,
+        'AUTH_REQUIRED',
+      );
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -51,7 +80,12 @@ serve(async req => {
 
     if (userError || !userData.user) {
       logStep('ERROR: User authentication failed', { error: userError?.message });
-      return errorResponse('Invalid authentication', 401, corsHeaders);
+      return errorResponse(
+        'Your session has expired. Please sign in again.',
+        401,
+        corsHeaders,
+        'AUTH_EXPIRED',
+      );
     }
 
     const user = userData.user;
@@ -61,7 +95,12 @@ serve(async req => {
     const { inviteCode } = await req.json();
     if (!inviteCode) {
       logStep('ERROR: No invite code provided');
-      return errorResponse('Invite code is required', 400, corsHeaders);
+      return errorResponse(
+        'This invite link appears to be malformed.',
+        400,
+        corsHeaders,
+        'INVALID_LINK',
+      );
     }
 
     logStep('Processing invite code', { inviteCode });
@@ -76,9 +115,10 @@ serve(async req => {
     if (inviteError || !invite) {
       logStep('ERROR: Invite not found', { error: inviteError?.message });
       return errorResponse(
-        'Invalid invite link. This invite may have been deleted or never existed.',
+        'This invite link is invalid or has been deleted. Ask the host for a new link.',
         404,
         corsHeaders,
+        'INVITE_NOT_FOUND',
       );
     }
 
@@ -88,9 +128,10 @@ serve(async req => {
     if (!invite.is_active) {
       logStep('ERROR: Invite is not active');
       return errorResponse(
-        'This invite link has been deactivated by the trip organizer.',
+        'The host has turned off this invite link. Contact them for a new one.',
         403,
         corsHeaders,
+        'INVITE_INACTIVE',
       );
     }
 
@@ -98,9 +139,10 @@ serve(async req => {
     if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
       logStep('ERROR: Invite has expired', { expiresAt: invite.expires_at });
       return errorResponse(
-        'This invite link has expired. Please request a new one from the trip organizer.',
+        'This invite link has expired. Ask the host for a fresh link.',
         403,
         corsHeaders,
+        'INVITE_EXPIRED',
       );
     }
 
@@ -111,9 +153,10 @@ serve(async req => {
         maxUses: invite.max_uses,
       });
       return errorResponse(
-        'This invite link has reached its maximum number of uses. Please request a new one.',
+        'This invite link has been used the maximum number of times. Ask the host for a new link.',
         403,
         corsHeaders,
+        'INVITE_MAX_USES',
       );
     }
 
@@ -147,16 +190,32 @@ serve(async req => {
       );
     }
 
-    // Get trip details
+    // Get trip details including archive status
     const { data: trip, error: tripError } = await supabaseClient
       .from('trips')
-      .select('name, trip_type, created_by')
+      .select('name, trip_type, created_by, is_archived')
       .eq('id', invite.trip_id)
       .single();
 
     if (tripError || !trip) {
       logStep('ERROR: Trip not found', { error: tripError?.message });
-      return errorResponse('Trip not found. It may have been deleted.', 404, corsHeaders);
+      return errorResponse(
+        'This trip no longer exists. It may have been deleted by the organizer.',
+        404,
+        corsHeaders,
+        'TRIP_NOT_FOUND',
+      );
+    }
+
+    // Check if trip is archived
+    if (trip.is_archived) {
+      logStep('ERROR: Trip is archived', { tripId: invite.trip_id });
+      return errorResponse(
+        'This trip has been archived and is no longer accepting new members.',
+        403,
+        corsHeaders,
+        'TRIP_ARCHIVED',
+      );
     }
 
     logStep('Trip found', { tripName: trip.name, tripType: trip.trip_type });
@@ -407,6 +466,11 @@ serve(async req => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep('ERROR in join-trip', { message: errorMessage });
-    return errorResponse('An unexpected error occurred. Please try again.', 500, corsHeaders);
+    return errorResponse(
+      'An unexpected error occurred. Please try again.',
+      500,
+      corsHeaders,
+      'UNKNOWN_ERROR',
+    );
   }
 });
