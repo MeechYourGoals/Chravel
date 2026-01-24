@@ -19,18 +19,17 @@ export const ReplacesGrid = () => {
         >
           Why Juggle a Dozen different apps to plan ONE Trip?
         </h2>
-        <p 
-          className="text-xl sm:text-2xl md:text-3xl text-white font-bold max-w-4xl mx-auto"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
-        >
-          Fix Your Download Overload: ChravelApp's Core 8 Tabs cover almost all trip needs...with one app.
-        </p>
-        <p 
+        <p
           className="text-lg sm:text-xl text-white font-bold mt-4"
           style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
         >
           Ready to Replace your App Arsenal? Click Below to see how you can navigate your trips faster with ChravelTabs
         </p>
+
+        {/* Placeholder for ChravelTabs screenshot */}
+        <div className="mt-8 mb-4">
+          {/* Screenshot of ChravelTabs will be inserted here */}
+        </div>
       </div>
 
       {/* Accordion */}
@@ -110,6 +109,16 @@ export const ReplacesGrid = () => {
           );
         })}
       </Accordion>
+
+      {/* Bottom text - moved from top */}
+      <div className="text-center mt-8 md:mt-12 max-w-4xl mx-auto">
+        <p
+          className="text-xl sm:text-2xl md:text-3xl text-white font-bold"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
+        >
+          Fix Your Download Overload: ChravelApp's Core 8 Tabs cover almost all trip needs...with one app.
+        </p>
+      </div>
     </section>
   );
 };
