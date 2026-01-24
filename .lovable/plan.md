@@ -1,177 +1,145 @@
 
+## SCOPE_DEFINITION (Gate 1)
 
-# Landing Page Copy Updates & ChravelTabs Styling Enhancement
+**Objective:** Fix authenticated trip access so “Trip Not Found”, “0 members”, and “no access to payments” never appear for trips the user can clearly see on the dashboard.
 
-## Objective
-Update copy across the Hero section and ChravelTabs (ReplacesGrid) section, plus enhance the visual styling of the ChravelTabs section to match the bold, high-contrast look of the FAQ section.
+**What we know (evidence from Live DB):**
+- User `ccamechi@gmail.com` exists in `auth.users` with id `013d9240-10c0-44e5-8da5-abfa2c4751c5`.
+- The affected trips exist in `public.trips` (Live):
+  - **The Good Fellas de Los Tylers** `421120c6-8489-4471-84e4-3db83655e28c` (`trip_type=consumer`, not archived/hidden)
+  - **Nard and Mari’s Wedding** `27f3f7a4-595f-48ad-8951-85391654a62d` (`trip_type=consumer`, not archived/hidden)
+- The user has memberships in `public.trip_members` for multiple trips including the above (Live).
 
----
+**Primary hypothesis (most likely root cause):**
+- **We are caching “null trip / empty members” results as successful React Query responses** because:
+  - `tripService.getTripById()` catches errors and returns `null` (does not throw).
+  - `tripService.getTripMembersWithCreator()` catches errors and returns `{ members: [], creatorId: null }` (does not throw).
+- If a query runs even once with missing/late auth token (or transient RLS/network failure), React Query stores the “success” result as `null`/`[]` and does not refetch until stale/invalidation → user sees “Trip Not Found” and “0 members” even though the trip exists and they’re authenticated.
 
-## Files to Modify
+**Secondary hypothesis (also likely contributing):**
+- `useTripDetailData()` does not gate `enabled` on auth readiness and does not include `userId` in the query key; so it can fire before the session is hydrated and then cache the wrong result.
 
-| File | Changes |
-|------|---------|
-| `src/components/landing/sections/HeroSection.tsx` | 4 copy changes in hero area |
-| `src/components/conversion/ReplacesGrid.tsx` | 3 copy changes + major visual styling upgrade |
-
----
-
-## Part 1: Hero Section Copy Updates
-
-**File: `src/components/landing/sections/HeroSection.tsx`**
-
-### Change 1: Add "For" to subtitle (Line 57)
-| Current | New |
-|---------|-----|
-| "Friends, Families, Sports, Tours, Work Trips & More." | "**For** Friends, Families, Sports, Tours, Work Trips & More." |
-
-### Change 2: "Coordinated" to "Coordination" (Line 127)
-| Current | New |
-|---------|-----|
-| "Less Chaos, More Coordinated" | "Less Chaos, More Coordination" |
-
-### Change 3: Remove "FINALLY" and capitalize "Shared" (Line 139)
-| Current | New |
-|---------|-----|
-| "Plans, Photos, Places, PDFs, & Payments — FINALLY in one shared space." | "Plans, Photos, Places, PDFs, & Payments — in one Shared space." |
+**Success criteria:**
+1. Opening any trip card you can see on Home always loads the trip (no “Trip Not Found” for valid access).
+2. Trip Members never shows `0` for real trips; minimum is creator/you while members load.
+3. Payments tab never shows “no access” for authorized users; if there is a real permission issue it should show a precise reason + recovery CTA.
+4. No regressions in Demo mode or trip invite/join flows.
+5. Clear observability: errors are surfaced as errors (not silently converted to null) and are actionable in UI.
 
 ---
 
-## Part 2: ChravelTabs Section Copy & Styling Updates
+## TARGET_MANIFEST (Gate 2)
 
-**File: `src/components/conversion/ReplacesGrid.tsx`**
+**High-confidence code hotspots (by impact):**
+1. `src/services/tripService.ts`
+   - `getTripById()` currently uses `.single()` + swallow errors → returns null.
+   - `getTripMembersWithCreator()` currently swallows errors → returns empty members.
+2. `src/hooks/useTripDetailData.ts`
+   - Query `enabled` doesn’t depend on auth readiness; query keys don’t include `userId`.
+   - Only returns `tripQuery.error` and hides members errors.
+3. `src/pages/TripDetailDesktop.tsx` and `src/pages/MobileTripDetail.tsx`
+   - Treat `trip === null` as “Trip Not Found” without checking `error`.
+   - Show member count directly from `participants.length` which can be 0 if members query cached empty.
+4. Payments layer (exact file(s) to confirm during implementation):
+   - Likely a hook/component that interprets any error/empty as “no access”.
+   - Needs same treatment: don’t silently map RLS/network failures to “access denied”.
 
-### Copy Changes
-
-#### Change 1: Headline (Lines 16-21)
-| Current | New |
-|---------|-----|
-| "Your trip shouldn't need 10+ apps" | "Why Juggle a Dozen different apps to plan ONE Trip?" |
-
-#### Change 2: Subhead (Lines 22-27)
-| Current | New |
-|---------|-----|
-| "Download Overload? ChravelApp consolidates dozens of scattered Apps into 8 simple ChravelTabs" | "Fix Your Download Overload: ChravelApp's Core 8 Tabs cover almost all trip needs...with one app." |
-
-#### Change 3: Helper line (Lines 28-33)
-| Current | New |
-|---------|-----|
-| "Ready to Replace your App Arsenal? Navigate your trips faster with Tabs:" | "Ready to Replace your App Arsenal? Click Below to see how you can navigate your trips faster with ChravelTabs" |
-
-### Visual Styling Upgrade
-
-Apply FAQ-style bold, high-contrast typography to the header section:
-
-**Current styling (muted):**
-```tsx
-<h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white break-words"
-    style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}>
-```
-
-**New styling (FAQ-style bold with enhanced shadows):**
-```tsx
-<h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white break-words"
-    style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}>
-```
-
-**Apply to all text elements:**
-- Headline: `text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold` with double-layer text shadow
-- Subhead: `text-xl sm:text-2xl md:text-3xl font-bold` with double-layer text shadow  
-- Helper line: `text-lg sm:text-xl font-bold` with double-layer text shadow
+**DB/RLS verification target (only if needed):**
+- Ensure payments tables (`trip_payments`, `trip_expenses`, etc.) have SELECT policies using `is_trip_member()`; otherwise fix RLS (minimal and least-privileged).
 
 ---
 
-## Detailed Code Changes
+## IMPLEMENTATION DESIGN (Gate 3 — Minimalist, no billing logic changes)
 
-### HeroSection.tsx
+### A) Stop caching failures as “successful null”
+**Trip fetch**
+- Update `tripService.getTripById(tripId)`:
+  - Use `.maybeSingle()` instead of `.single()` to avoid throwing on “0 rows”.
+  - If PostgREST returns “no rows” → return `null`.
+  - If error is 401/403/JWT/network/other → **throw** so React Query marks it as error and can retry/refetch.
+  - Add structured logs (DEV-only) that include `tripId`, `error.code`, `status`, `message`.
 
-**Lines 56-59 - Add "For":**
-```tsx
-<p
-  className="text-sm sm:text-base md:text-lg lg:text-xl text-white/80 font-medium max-w-3xl mx-auto mb-3 md:mb-4 animate-fade-in"
-  style={{
-    animationDelay: '0.05s',
-    textShadow: '0 2px 4px rgba(0,0,0,0.4)',
-  }}
->
-  For Friends, Families, Sports, Tours, Work Trips & More.<br className="hidden sm:inline" />
-  Planning is Frustrating. <span className="text-[#F4B23A] font-semibold">Get UnFrustrated.</span>
-</p>
-```
+**Members fetch**
+- Update `tripService.getTripMembersWithCreator(tripId)`:
+  - If either trip or members query errors due to auth/RLS/network → **throw** (do not return empty success).
+  - Keep the “creator fallback member” only for true empty-data situations (e.g., no rows but trip exists) not for errors.
+  - Return a sentinel “minimum member” (creator) only if we can fetch creatorId successfully.
 
-**Line 127 - Change "Coordinated" to "Coordination":**
-```tsx
-Less Chaos, More Coordination
-```
+### B) Make `useTripDetailData` auth-aware + query-key correct
+- Add auth readiness gating:
+  - Pull `user` and `isAuthLoading` (or equivalent) from `useAuth()`.
+  - `enabled` should be `!!tripId && !shouldUseDemoPath && !!user && !isAuthLoading`.
+- Include `user?.id` in query keys:
+  - `tripKeys.detail(tripId, userId)` (or append `userId` to key arrays) so cached anon fetch can never poison authenticated fetch.
+- Return richer error surface:
+  - `tripError`, `membersError` (or a combined error object) so pages can render correct states.
+- Keep progressive rendering:
+  - Trip can render first, members can load second, but **members loading must not display “0”**.
 
-**Line 139 - Update shared space text:**
-```tsx
-Plans, Photos, Places, PDFs, & Payments — in one Shared space.
-```
+### C) Fix “Trip Not Found” screen logic (desktop + mobile)
+- Update `TripDetailDesktop` and `MobileTripDetail` rendering rules:
+  1. If auth not ready → show skeleton (not “Trip Not Found”).
+  2. If `tripError` exists → show “Couldn’t load trip” with **Retry** (invalidate query + refetch) and **Back to My Trips**.
+  3. If `trip === null` and no error → show true “Trip Not Found / No Access” UI, ideally reusing `ProTripNotFound` patterns (reasoned messaging).
+- Member count display:
+  - While `isMembersLoading` (or membersError), show “—” or a small spinner instead of 0.
+  - After members load: show real count.
+  - If still empty (should not happen) show at least 1 (creator) with a small “syncing…” note (and trigger a refetch).
 
-### ReplacesGrid.tsx
+### D) Payments “no access” bug fix (no regressions)
+- Identify the payments hook/component:
+  - Ensure it throws on RLS/network errors instead of returning an “access denied” UX for transient failures.
+  - Gate payment queries on `user` and (optionally) confirmed membership.
+  - If there is a real 403:
+    - Show “You don’t have permission for Payments in this trip” with rationale and “Contact organizer” CTA.
+- If RLS is actually missing/incorrect for payments tables:
+  - Minimal policy update: allow SELECT/INSERT/UPDATE only when `is_trip_member(auth.uid(), trip_id)` (or stricter by role if required).
 
-**Lines 14-34 - Complete header section rewrite with FAQ-style styling:**
-```tsx
-{/* Header with FAQ-style bold typography */}
-<div className="text-center mb-8 md:mb-12 space-y-4 max-w-4xl mx-auto">
-  <h2 
-    className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white break-words"
-    style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
-  >
-    Why Juggle a Dozen different apps to plan ONE Trip?
-  </h2>
-  <p 
-    className="text-xl sm:text-2xl md:text-3xl text-white font-bold max-w-4xl mx-auto"
-    style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
-  >
-    Fix Your Download Overload: ChravelApp's Core 8 Tabs cover almost all trip needs...with one app.
-  </p>
-  <p 
-    className="text-lg sm:text-xl text-white font-bold mt-4"
-    style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
-  >
-    Ready to Replace your App Arsenal? Click Below to see how you can navigate your trips faster with ChravelTabs
-  </p>
-</div>
-```
+### E) Optional but recommended: Data integrity backfill (defensive)
+Even if the core bug is caching/async auth, we should harden the DB invariant:
+- Ensure every trip creator is also in `trip_members` as `admin`.
+- Provide a one-time SQL backfill for Live (run via Cloud View > Run SQL in Live) if we discover any creator missing membership rows.
+  - This is safe and aligns with the existing “ensure_creator_is_member” trigger pattern.
 
 ---
 
-## Visual Comparison
+## VERIFICATION (Gate 4)
 
-### Before (ChravelTabs Header)
-```text
-┌──────────────────────────────────────────────────────────────┐
-│    Your trip shouldn't need 10+ apps                         │  ← smaller, single shadow
-│    Download Overload? ChravelApp consolidates...             │  ← medium weight
-│    Ready to Replace your App Arsenal? Navigate...            │  ← lighter, muted
-└──────────────────────────────────────────────────────────────┘
-```
+**Repro + fix validation path (desktop):**
+1. Log in as `ccamechi@gmail.com`.
+2. Open:
+   - The Good Fellas de Los Tylers → should load consistently.
+   - Nard and Mari’s Wedding → should load with members count > 0 and populate shortly after.
+3. Navigate tabs, especially Payments:
+   - No “no access” unless truly unauthorized; errors show retryable state.
+4. Hard refresh on a trip detail route:
+   - Should not cache “null” and show “Trip Not Found”.
 
-### After (FAQ-style Bold)
-```text
-┌──────────────────────────────────────────────────────────────┐
-│  Why Juggle a Dozen different apps to plan ONE Trip?        │  ← LARGER, BOLDER, double shadow
-│  Fix Your Download Overload: ChravelApp's Core 8 Tabs...    │  ← BOLD, double shadow
-│  Ready to Replace your App Arsenal? Click Below to see...   │  ← BOLD, double shadow
-└──────────────────────────────────────────────────────────────┘
-```
+**Regression checks:**
+- Demo mode numeric trips still load instantly.
+- Trip list page still loads (no query key mismatch).
+- JoinTrip flow unchanged (existing error taxonomy remains for invites).
 
 ---
 
-## Acceptance Criteria
+## DELIVERY (Gate 5)
 
-| # | Criterion |
-|---|-----------|
-| 1 | Hero subtitle reads "**For** Friends, Families, Sports, Tours, Work Trips & More." |
-| 2 | Bottom tagline reads "Less Chaos, More **Coordination**" |
-| 3 | Subheadline reads "Plans, Photos, Places, PDFs, & Payments — in one **Shared** space." (no FINALLY) |
-| 4 | ChravelTabs headline reads "Why Juggle a Dozen different apps to plan ONE Trip?" |
-| 5 | ChravelTabs subhead reads "Fix Your Download Overload: ChravelApp's Core 8 Tabs cover almost all trip needs...with one app." |
-| 6 | ChravelTabs helper reads "Ready to Replace your App Arsenal? Click Below to see how you can navigate your trips faster with ChravelTabs" |
-| 7 | ChravelTabs header text is larger (`text-3xl` → `text-6xl` range) |
-| 8 | All ChravelTabs header text uses `font-bold` |
-| 9 | All ChravelTabs header text uses double-layer text shadow matching FAQ style |
-| 10 | No regressions to accordion behavior or mobile responsiveness |
+**Files expected to change (exact list to confirm once implementation starts):**
+- `src/services/tripService.ts`
+- `src/hooks/useTripDetailData.ts`
+- `src/pages/TripDetailDesktop.tsx`
+- `src/pages/MobileTripDetail.tsx`
+- Payments-related hook/component (to be identified during implementation)
+- Possibly: small UI component for “Retry”/error state reuse
 
+**Rollback strategy:**
+- All changes are contained to fetch behavior + UI handling; rollback is reverting those files only.
+
+---
+
+## CRITICAL CLARIFICATIONS (to answer before/while implementing)
+Because you asked for a “deep dive”, two quick facts will let me lock the fix fast:
+1. Are you seeing this on **Published** (`chravel.lovable.app`) or **Preview**?
+2. Does “Trip Not Found” happen **every time** for Goodfellas, or only after refresh / after navigating between trips?
+
+Per your time-critical instruction: I will not run more diagnostics tools in this message. If you want me to proceed, reply “continue” and I’ll start implementing + validating (including capturing the exact Supabase/PostgREST errors that are currently being swallowed).
