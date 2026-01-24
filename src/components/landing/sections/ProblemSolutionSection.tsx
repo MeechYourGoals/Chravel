@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { CalendarPlus, Share2, RefreshCw } from 'lucide-react';
-import tripShareGolf from '@/assets/app-screenshots/trip-share-golf.png';
+import createNewTrip from '@/assets/app-screenshots/create-new-trip.png';
 import tripInviteCoachella from '@/assets/app-screenshots/trip-invite-coachella.png';
+import oneHubChat from '@/assets/app-screenshots/one-hub-chat.png';
 
 export const ProblemSolutionSection = () => {
   const steps = [
@@ -160,12 +161,36 @@ export const ProblemSolutionSection = () => {
         viewport={{ once: true }}
         transition={{ duration: 0.6, delay: 0.2 }}
       >
-        {/* Desktop: Side by side with equal height (lg breakpoint for tablets to show stacked) */}
-        <div className="hidden lg:flex justify-center items-start gap-8">
+        {/* Desktop: Three columns aligned under steps */}
+        <div className="hidden lg:flex justify-center items-start gap-6">
+          {/* Column 1: Create Trip - Under "Create a trip" */}
           <motion.div 
-            className="flex flex-col items-center"
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            className="flex flex-col items-center flex-1 max-w-[300px]"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <span 
+              className="text-white font-semibold text-lg mb-3"
+              style={{ textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}
+            >
+              Create Trip
+            </span>
+            <div className="w-full h-[520px] flex items-center justify-center">
+              <img 
+                src={createNewTrip}
+                alt="Create New Trip form interface"
+                className="w-full h-auto max-h-full object-contain rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
+              />
+            </div>
+          </motion.div>
+
+          {/* Column 2: Trip Invite - Under "Invite your group" */}
+          <motion.div 
+            className="flex flex-col items-center flex-1 max-w-[300px]"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
@@ -173,30 +198,9 @@ export const ProblemSolutionSection = () => {
               className="text-white font-semibold text-lg mb-3"
               style={{ textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}
             >
-              Trip Share
-            </span>
-            <div className="w-[340px] h-[520px] flex items-center">
-              <img 
-                src={tripShareGolf}
-                alt="Golf Outing trip share card showing group sharing interface"
-                className="w-full h-auto max-h-full object-contain rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
-              />
-            </div>
-          </motion.div>
-          <motion.div 
-            className="flex flex-col items-center"
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <span 
-              className="text-white font-semibold text-lg mb-3"
-              style={{ textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}
-            >
               Trip Invite
             </span>
-            <div className="w-[340px] h-[520px] flex items-center">
+            <div className="w-full h-[520px] flex items-center justify-center">
               <img 
                 src={tripInviteCoachella}
                 alt="Coachella trip invite card showing invitation interface"
@@ -204,10 +208,34 @@ export const ProblemSolutionSection = () => {
               />
             </div>
           </motion.div>
+
+          {/* Column 3: One Hub - Under "Everything syncs" */}
+          <motion.div 
+            className="flex flex-col items-center flex-1 max-w-[300px]"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <span 
+              className="text-white font-semibold text-lg mb-3"
+              style={{ textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}
+            >
+              One Hub
+            </span>
+            <div className="w-full h-[520px] flex items-center justify-center">
+              <img 
+                src={oneHubChat}
+                alt="Trip chat interface showing group messages and activity"
+                className="w-full h-auto max-h-full object-contain rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
+              />
+            </div>
+          </motion.div>
         </div>
 
-        {/* Mobile/Tablet: Stacked (shows on screens < 1024px) */}
+        {/* Mobile/Tablet: Stacked in progressive order */}
         <div className="lg:hidden flex flex-col items-center gap-6">
+          {/* Create Trip */}
           <motion.div 
             className="flex flex-col items-center"
             initial={{ opacity: 0, y: 20 }}
@@ -219,16 +247,18 @@ export const ProblemSolutionSection = () => {
               className="text-white font-semibold text-base mb-2"
               style={{ textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}
             >
-              Trip Share
+              Create Trip
             </span>
             <div className="max-w-[300px]">
               <img 
-                src={tripShareGolf}
-                alt="Golf Outing trip share card showing group sharing interface"
+                src={createNewTrip}
+                alt="Create New Trip form interface"
                 className="w-full h-auto rounded-xl shadow-xl border border-border/50"
               />
             </div>
           </motion.div>
+
+          {/* Trip Invite */}
           <motion.div 
             className="flex flex-col items-center"
             initial={{ opacity: 0, y: 20 }}
@@ -246,6 +276,29 @@ export const ProblemSolutionSection = () => {
               <img 
                 src={tripInviteCoachella}
                 alt="Coachella trip invite card showing invitation interface"
+                className="w-full h-auto rounded-xl shadow-xl border border-border/50"
+              />
+            </div>
+          </motion.div>
+
+          {/* One Hub */}
+          <motion.div 
+            className="flex flex-col items-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <span 
+              className="text-white font-semibold text-base mb-2"
+              style={{ textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}
+            >
+              One Hub
+            </span>
+            <div className="max-w-[300px]">
+              <img 
+                src={oneHubChat}
+                alt="Trip chat interface showing group messages and activity"
                 className="w-full h-auto rounded-xl shadow-xl border border-border/50"
               />
             </div>
