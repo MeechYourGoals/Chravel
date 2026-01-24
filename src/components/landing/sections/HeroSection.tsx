@@ -81,8 +81,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       </div>
 
       {/* Demo Preview Image - fills the middle space */}
-      <div className="flex-1 flex flex-col items-center justify-center py-4 md:py-6">
-        <div className="w-full max-w-4xl mx-auto px-2 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+      <div className="flex-1 flex flex-col items-center justify-center py-2 md:py-3">
+        <div className="w-full max-w-6xl mx-auto px-2 animate-fade-in" style={{ animationDelay: '0.1s' }}>
           <div className="relative rounded-xl overflow-hidden shadow-2xl shadow-black/40 border border-white/10">
             <img 
               src={demoPreviewHero}
