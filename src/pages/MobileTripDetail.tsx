@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MoreVertical, Info } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Info, LogIn } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
@@ -353,7 +353,42 @@ export const MobileTripDetail = () => {
     );
   }
 
-  // 🔒 Handle fetch errors - show retry option instead of "Trip Not Found"
+  // 🔒 FIX: Handle AUTH_REQUIRED error - show "Please log in" instead of "Trip Not Found"
+  if (tripError?.message === 'AUTH_REQUIRED') {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <LogIn className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-white mb-4">Please Log In</h1>
+          <p className="text-gray-400 mb-6">
+            You need to be signed in to view this trip.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => {
+                hapticService.light();
+                navigate(`/auth?mode=signin&returnTo=/trip/${tripId}`);
+              }}
+              className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => {
+                hapticService.light();
+                navigate('/');
+              }}
+              className="bg-white/10 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+            >
+              Back to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 🔒 Handle other fetch errors - show retry option
   if (tripError) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">

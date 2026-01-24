@@ -1,5 +1,6 @@
 import React, { useState, Suspense, lazy } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { LogIn } from 'lucide-react';
 import { MessageInbox } from '../components/MessageInbox';
 import { TripDetailHeader } from '../components/trip/TripDetailHeader';
 import { TripDetailModals } from '../components/trip/TripDetailModals';
@@ -107,19 +108,10 @@ export const TripDetailDesktop = () => {
     }
   }, [loading, trip]);
 
-  // 🔄 PHASE 5 FIX: Cleanup TanStack Query cache on unmount to fix navigation bug
-  React.useEffect(() => {
-    return () => {
-      // Clear trip-specific cache entries when component unmounts
-      if (tripId) {
-        queryClient.removeQueries({ queryKey: ['trip', tripId] });
-        queryClient.removeQueries({ queryKey: ['trip-messages', tripId] });
-        queryClient.removeQueries({ queryKey: ['trip-tasks', tripId] });
-        queryClient.removeQueries({ queryKey: ['trip-polls', tripId] });
-        queryClient.removeQueries({ queryKey: ['trip-members', tripId] });
-      }
-    };
-  }, [tripId, queryClient]);
+  // 🔒 FIX: REMOVED dangerous cache cleanup on unmount
+  // This was causing race conditions where queries were removed during navigation.
+  // React Query's built-in garbage collection handles cache cleanup safely.
+  // Keeping this comment for documentation.
 
   // Handle trip updates from edit modal
   const handleTripUpdate = (updates: Partial<MockTrip>) => {
@@ -240,7 +232,36 @@ export const TripDetailDesktop = () => {
     );
   }
 
-  // 🔒 Handle fetch errors - show retry option instead of "Trip Not Found"
+  // 🔒 FIX: Handle AUTH_REQUIRED error - show "Please log in" instead of "Trip Not Found"
+  if (tripError?.message === 'AUTH_REQUIRED') {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center max-w-md px-4">
+          <LogIn className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h1 className="text-3xl font-bold text-white mb-4">Please Log In</h1>
+          <p className="text-gray-400 mb-6">
+            You need to be signed in to view this trip.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => navigate(`/auth?mode=signin&returnTo=/trip/${tripId}`)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-colors"
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl transition-colors"
+            >
+              Back to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 🔒 Handle other fetch errors - show retry option
   if (tripError) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">

@@ -35,10 +35,16 @@ interface UseTripDetailDataResult {
  * - Progressive rendering - trip loads first, members follow
  * - 🔒 Auth-aware: waits for auth hydration before fetching
  * - 🔑 User-scoped cache keys: prevents anon results poisoning auth cache
+ * - 🔒 FIX: Gates on raw session.user instead of transformed user (prevents auth race condition)
  */
 export const useTripDetailData = (tripId: string | undefined): UseTripDetailDataResult => {
   const { isDemoMode } = useDemoMode();
-  const { user, isLoading: isAuthLoading } = useAuth();
+  // 🔒 FIX: Use session directly instead of transformed user to prevent auth race condition
+  // The transformed `user` can be null even when session exists (transform failure)
+  const { session, isLoading: isAuthLoading } = useAuth();
+
+  // 🔒 CRITICAL: Use raw session.user.id for auth gating - more reliable than transformed user
+  const authUserId = session?.user?.id ?? null;
 
   // Demo mode: Fast path - synchronous, no network
   const isNumericId = tripId ? /^\d+$/.test(tripId) : false;
@@ -53,13 +59,16 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   // 1. We have a tripId
   // 2. NOT in demo mode path
   // 3. Auth is fully loaded (not hydrating)
-  // 4. User is authenticated
-  const isQueryEnabled = !!tripId && !shouldUseDemoPath && !isAuthLoading && !!user;
+  // 4. User has active session (use raw session.user.id, not transformed user)
+  // 🔒 FIX: Gate on authUserId (from session) instead of user to prevent race condition
+  // where session exists but user transform fails/is delayed
+  const isQueryEnabled = !!tripId && !shouldUseDemoPath && !isAuthLoading && !!authUserId;
 
   // ⚡ PRIORITY 1: Trip data - gates rendering
-  // 🔑 Include user.id in query key to prevent anon cache poisoning auth cache
+  // 🔑 Include authUserId in query key to prevent anon cache poisoning auth cache
+  // 🔒 FIX: Use authUserId (from session) for consistent cache keys
   const tripQuery = useQuery({
-    queryKey: [...tripKeys.detail(tripId!), user?.id ?? 'anon'],
+    queryKey: [...tripKeys.detail(tripId!), authUserId ?? 'anon'],
     queryFn: async () => {
       const data = await tripService.getTripById(tripId!);
       return data;
@@ -78,9 +87,10 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   });
 
   // ⚡ PRIORITY 2: Members data - can render progressively
-  // 🔑 Include user.id in query key to prevent anon cache poisoning auth cache
+  // 🔑 Include authUserId in query key to prevent anon cache poisoning auth cache
+  // 🔒 FIX: Use authUserId (from session) for consistent cache keys
   const membersQuery = useQuery({
-    queryKey: [...tripKeys.members(tripId!), user?.id ?? 'anon', demoAddedMembersCount],
+    queryKey: [...tripKeys.members(tripId!), authUserId ?? 'anon', demoAddedMembersCount],
     queryFn: async () => {
       return await tripService.getTripMembersWithCreator(tripId!);
     },
