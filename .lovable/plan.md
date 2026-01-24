@@ -1,213 +1,215 @@
 
-# Fix "Remember Me for 30 Days" Session Persistence
+# Landing Page Visual Overhaul: Navy-Gold Gradient System & Hero Enhancement
 
-## Root Cause Analysis
+## Overview
 
-After investigating the authentication implementation, I've identified the **critical issue**: The "Remember Me" checkbox is purely cosmetic - it only stores a flag in localStorage but **does not actually extend the session duration**.
-
-### The Problem
-
-Looking at `src/hooks/useAuth.tsx` lines 558-631:
-
-```typescript
-const signIn = async (email: string, password: string, rememberMe: boolean = false) => {
-  // Stores preference in localStorage - but this does NOTHING to Supabase session
-  if (rememberMe) {
-    localStorage.setItem('chravel-remember-me', 'true');
-  }
-  
-  // Standard sign-in - NO session extension options passed
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  
-  // Just logs a message - doesn't actually extend anything
-  if (rememberMe && data.session) {
-    localStorage.setItem('chravel-session-extended', Date.now().toString());
-    console.log('[Auth] Remember Me enabled - session will persist for 30 days');
-  }
-}
-```
-
-### Why Sessions Are Terminating
-
-1. **Supabase session duration is controlled server-side** via the JWT expiry setting in the Supabase Dashboard (default: 1 hour for access tokens, but refresh tokens work indefinitely if used)
-
-2. **The client-side `signInWithPassword` method does NOT accept a session duration parameter** - this must be configured in the Supabase Dashboard under Authentication > Sessions
-
-3. **The "chravel-remember-me" localStorage flag** is never read or used anywhere else in the codebase
-
-4. **Possible inactivity timeout** configured in Supabase Dashboard - if set, sessions terminate after periods of inactivity
+This plan updates the entire marketing landing page with a consistent navy-to-gold gradient system using official design tokens, adds a subtle noise texture overlay for depth, updates the "ChravelApp" and "Less Chaos, More Coordinated" gradients, inserts a new subtitle, and adds a demo mode preview screenshot in the hero section.
 
 ---
 
-## Technical Details
+## Design Tokens (Source of Truth)
 
-### How Supabase Sessions Actually Work
-
-| Component | Duration | Client Control |
-|-----------|----------|----------------|
-| Access Token (JWT) | Configurable (default 1hr) | No - Dashboard only |
-| Refresh Token | Indefinite | No - Dashboard only |
-| Session Timeout | Configurable (Pro plan) | No - Dashboard only |
-| Inactivity Timeout | Configurable (Pro plan) | No - Dashboard only |
-
-**Key insight**: The `signInWithPassword` API does NOT support a duration parameter. Session lifetime is entirely controlled server-side.
-
----
-
-## Solution Approach
-
-Since true 30-day sessions require Supabase Dashboard configuration (Pro plan feature), we have two options:
-
-### Option A: Dashboard Configuration (Recommended - Requires Pro Plan)
-
-Configure in Supabase Dashboard > Authentication > Sessions:
-- Set **Time-box user sessions** to 30 days (720 hours)
-- Or disable session expiry entirely (default behavior)
-
-### Option B: Client-Side Session Refresh Strategy (Works on all plans)
-
-Implement aggressive session refresh to keep the session alive:
-1. Check and refresh session on every app load
-2. Refresh session on tab visibility change
-3. Periodically refresh session in background (every 30-55 minutes)
-4. Store refresh intent and proactively maintain session
-
----
-
-## Implementation Plan
-
-### Step 1: Add Aggressive Session Refresh Logic
-
-Update `src/hooks/useAuth.tsx` to implement a robust session refresh system:
-
-```text
-Location: src/hooks/useAuth.tsx
-
-Changes:
-1. Add a periodic session refresh interval (every 30 minutes when rememberMe is true)
-2. Actually USE the stored "chravel-remember-me" flag to control refresh behavior
-3. Add session refresh on app initialization if rememberMe was previously set
-4. Improve visibility change handler to always refresh if rememberMe is enabled
-```
-
-### Step 2: Modify Sign-In Flow
-
-Update the signIn function to:
-1. Set a more robust marker indicating 30-day session intent
-2. Immediately trigger a session refresh after sign-in to ensure tokens are fresh
-3. Start the periodic refresh interval
-
-### Step 3: Add Session Health Monitoring
-
-Implement a background task that:
-1. Checks session validity every 30 minutes (below typical 1hr JWT expiry)
-2. Proactively refreshes before expiry
-3. Only runs when "Remember Me" was selected
-4. Cleans up on sign-out
+| Token | Value | Usage |
+|-------|-------|-------|
+| Navy base | `#070B1A` | Primary background start |
+| Deep navy | `#0B1230` | Primary background end |
+| Gold accent | `#F4B23A` | Text gradient highlight |
+| Soft gold glow | `rgba(244,178,58,0.18)` | Accent glow overlays |
+| Blue glow | `rgba(79,140,255,0.14)` | Cool accent glow overlays |
 
 ---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/hooks/useAuth.tsx` | Add periodic refresh logic, use rememberMe flag, improve session persistence |
-| `src/integrations/supabase/client.ts` | No changes needed - already configured correctly |
+### 1. `src/components/landing/FullPageLanding.tsx`
 
----
+**Changes:**
+- Update `GRADIENTS` object to use new navy base/deep navy colors across all 7 sections
+- Replace current accent glows with `rgba(244,178,58,0.18)` (gold) and `rgba(79,140,255,0.14)` (blue)
 
-## Code Changes Detail
-
-### src/hooks/useAuth.tsx
-
-**Add periodic session refresh (new useEffect):**
-
+**Updated GRADIENTS object:**
 ```typescript
-// Periodic session refresh for "Remember Me" users
-useEffect(() => {
-  let refreshInterval: NodeJS.Timeout | null = null;
-  
-  // Check if user selected "Remember Me"
-  const shouldRemember = (() => {
-    try {
-      return localStorage.getItem('chravel-remember-me') === 'true';
-    } catch {
-      return false;
-    }
-  })();
-  
-  if (session && shouldRemember) {
-    // Refresh session every 30 minutes to keep it alive
-    refreshInterval = setInterval(async () => {
-      if (import.meta.env.DEV) {
-        console.log('[Auth] Periodic session refresh (Remember Me active)');
-      }
-      try {
-        await supabase.auth.refreshSession();
-      } catch (err) {
-        console.warn('[Auth] Periodic refresh failed:', err);
-      }
-    }, 30 * 60 * 1000); // 30 minutes
-    
-    // Also refresh immediately on mount if session exists
-    supabase.auth.refreshSession().catch(console.warn);
+const GRADIENTS = {
+  hero: {
+    colors: ['#070B1A', '#0B1230'] as [string, string],
+    direction: 'vertical' as const,
+    accentGlow: { color: 'rgba(79,140,255,0.14)', position: 'bottom' as const, opacity: 0.14 }
+  },
+  replaces: {
+    colors: ['#0B1230', '#070B1A'] as [string, string],
+    direction: 'diagonal' as const,
+    accentGlow: { color: 'rgba(244,178,58,0.18)', position: 'center' as const, opacity: 0.08 }
+  },
+  howItWorks: {
+    colors: ['#070B1A', '#0B1230'] as [string, string],
+    direction: 'vertical' as const,
+    accentGlow: { color: 'rgba(79,140,255,0.14)', position: 'center' as const, opacity: 0.10 }
+  },
+  useCases: {
+    colors: ['#0B1230', '#070B1A'] as [string, string],
+    direction: 'diagonal' as const,
+    accentGlow: { color: 'rgba(244,178,58,0.18)', position: 'bottom' as const, opacity: 0.10 }
+  },
+  aiFeatures: {
+    colors: ['#070B1A', '#0B1230'] as [string, string],
+    direction: 'vertical' as const,
+    accentGlow: { color: 'rgba(244,178,58,0.18)', position: 'bottom' as const, opacity: 0.12 }
+  },
+  pricing: {
+    colors: ['#0B1230', '#070B1A'] as [string, string],
+    direction: 'diagonal' as const,
+    accentGlow: { color: 'rgba(79,140,255,0.14)', position: 'top' as const, opacity: 0.10 }
+  },
+  faq: {
+    colors: ['#070B1A', '#0B1230'] as [string, string],
+    direction: 'vertical' as const,
+    accentGlow: { color: 'rgba(244,178,58,0.18)', position: 'center' as const, opacity: 0.06 }
   }
-  
-  return () => {
-    if (refreshInterval) clearInterval(refreshInterval);
-  };
-}, [session]);
-```
-
-**Update signIn function to refresh immediately:**
-
-```typescript
-// After successful sign-in with rememberMe
-if (rememberMe && data.session) {
-  // Immediately refresh to get a fresh token
-  await supabase.auth.refreshSession();
-}
-```
-
-**Update visibility change handler:**
-
-```typescript
-const shouldRemember = (() => {
-  try {
-    return localStorage.getItem('chravel-remember-me') === 'true';
-  } catch {
-    return false;
-  }
-})();
-
-// If Remember Me is enabled, always refresh on tab focus
-if (shouldRemember) {
-  supabase.auth.refreshSession();
-}
+};
 ```
 
 ---
 
-## Dashboard Recommendation
+### 2. `src/components/landing/FullPageLandingSection.tsx`
 
-Even with client-side fixes, I recommend checking the Supabase Dashboard:
+**Changes:**
+- Add subtle noise texture overlay (CSS-based, very low opacity ~2-4%)
+- Use a pseudo-element or additional div with a noise SVG filter
 
-1. Go to: `https://supabase.com/dashboard/project/jmjiyekmxwsxkfnqwyaa/auth/sessions`
-2. Verify no **Inactivity Timeout** is set (or set it high, like 30 days)
-3. Verify no **Time-box user sessions** is restricting session lifetime
-4. Check **JWT Expiry** at `/settings/jwt` - default 1hr is fine with refresh logic
+**Implementation:**
+```tsx
+{/* Noise texture overlay */}
+<div 
+  className="absolute inset-0 pointer-events-none opacity-[0.03]"
+  style={{
+    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'repeat'
+  }}
+/>
+```
+
+---
+
+### 3. `src/components/landing/sections/HeroSection.tsx`
+
+**Changes:**
+
+#### A. Update "ChravelApp" gradient to match design tokens
+```typescript
+// Before
+background: 'linear-gradient(135deg, #4A90E2 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #4A90E2 100%)'
+
+// After (using #070B1A navy and #F4B23A gold)
+background: 'linear-gradient(135deg, #4F8CFF 0%, #F4B23A 40%, #F4B23A 60%, #4F8CFF 100%)'
+```
+
+#### B. Update "Less Chaos, More Coordinated" gradient
+```typescript
+// Before
+background: 'linear-gradient(135deg, #1E40AF 0%, #E8A838 35%, #F5A623 50%, #E8A838 65%, #1E40AF 100%)'
+
+// After (matching navy-gold tokens)
+background: 'linear-gradient(135deg, #4F8CFF 0%, #F4B23A 40%, #F4B23A 60%, #4F8CFF 100%)'
+```
+
+#### C. Add new subtitle between headline and brand name
+
+Insert after "Group Travel Made Easy" heading, before "ChravelApp":
+```tsx
+{/* New subtitle */}
+<p
+  className="text-base sm:text-lg md:text-xl text-white/80 font-medium max-w-3xl mx-auto mt-3 mb-4 animate-fade-in"
+  style={{
+    animationDelay: '0.05s',
+    textShadow: '0 2px 4px rgba(0,0,0,0.4)',
+  }}
+>
+  Friends, Families, Sports, Tours, Work Trips & More.<br className="hidden sm:inline" />
+  Planning is Frustrating. <span className="text-[#F4B23A] font-semibold">Get UnFrustrated.</span>
+</p>
+```
+
+#### D. Add Demo Mode preview screenshot
+
+Copy the uploaded image to `src/assets/demo-preview-hero.png` and insert between "ChravelApp" and "Less Chaos, More Coordinated":
+
+```tsx
+{/* Demo preview image */}
+<div className="w-full max-w-5xl mx-auto px-4 mt-6 mb-6 md:mt-8 md:mb-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+  <div className="relative rounded-xl overflow-hidden shadow-2xl shadow-black/40 border border-white/10">
+    <img 
+      src={demoPreviewHero}
+      alt="ChravelApp trip dashboard preview"
+      className="w-full h-auto"
+    />
+    {/* Optional subtle overlay to blend edges */}
+    <div className="absolute inset-0 bg-gradient-to-t from-[#070B1A]/30 via-transparent to-transparent pointer-events-none" />
+  </div>
+</div>
+```
+
+#### E. Adjust spacing
+
+- Reduce vertical padding/margins since new content fills the empty space
+- The subtitle and preview image will naturally fill the previously empty middle section
+
+---
+
+## Visual Layout (Hero Section)
+
+```text
++------------------------------------------+
+|        "Group Travel Made Easy"          |  <- Main headline
+|                                          |
+|  "Friends, Families, Sports, Tours..."   |  <- NEW subtitle
+|  "Planning is Frustrating. Get..."       |
+|                                          |
+|           [ ChravelApp ]                 |  <- Gradient brand
+|                                          |
+|    +--------------------------------+    |
+|    |                                |    |
+|    |   [Demo Preview Screenshot]    |    |  <- NEW image
+|    |                                |    |
+|    +--------------------------------+    |
+|                                          |
+|    "Less Chaos, More Coordinated"        |  <- Bottom tagline
+|    "Plans, Photos, Places..."            |
++------------------------------------------+
+```
+
+---
+
+## Asset to Copy
+
+- **Source:** `user-uploads://image-1769216632.png` (demo mode screenshot)
+- **Destination:** `src/assets/demo-preview-hero.png`
+
+---
+
+## Technical Notes
+
+### Noise Overlay Implementation
+Using an inline SVG data URL for the noise texture eliminates the need for an external asset file. The fractal noise filter creates organic grain at 3% opacity.
+
+### Gradient Consistency
+All sections now alternate between:
+- `#070B1A` (navy base) and `#0B1230` (deep navy)
+- Gold glow `rgba(244,178,58,0.18)` or blue glow `rgba(79,140,255,0.14)`
+
+### Text Gradient Colors
+The blue in text gradients uses `#4F8CFF` (a brighter blue that reads well against dark backgrounds) paired with the gold accent `#F4B23A`.
 
 ---
 
 ## Acceptance Criteria
 
-| # | Criterion | Verification |
-|---|-----------|--------------|
-| 1 | Session persists across browser closes when "Remember Me" checked | Manual test |
-| 2 | Session persists for 30 days of inactivity | Long-term test |
-| 3 | Session refreshes proactively in background | Console logs |
-| 4 | No unexpected logouts during active use | User testing |
-| 5 | Session properly terminates on explicit sign-out | Manual test |
+| # | Criterion |
+|---|-----------|
+| 1 | All 7 landing sections use navy base (#070B1A) and deep navy (#0B1230) |
+| 2 | Subtle noise overlay visible on all sections at very low opacity |
+| 3 | "ChravelApp" gradient uses matching blue (#4F8CFF) and gold (#F4B23A) |
+| 4 | "Less Chaos, More Coordinated" uses same gradient colors |
+| 5 | New subtitle appears between headline and brand name |
+| 6 | Demo preview screenshot displays between brand and bottom tagline |
+| 7 | Empty space in hero is filled without feeling cramped |
+| 8 | Mobile responsive - screenshot scales appropriately |
