@@ -7,6 +7,21 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[GET-INVITE-PREVIEW] ${step}${detailsStr}`);
 };
 
+/**
+ * Error codes for invite preview failures.
+ * These map to the InviteErrorCode type in the frontend.
+ */
+type InvitePreviewErrorCode =
+  | 'INVALID_LINK'
+  | 'INVITE_NOT_FOUND'
+  | 'INVITE_EXPIRED'
+  | 'INVITE_INACTIVE'
+  | 'INVITE_MAX_USES'
+  | 'TRIP_NOT_FOUND'
+  | 'TRIP_ARCHIVED'
+  | 'NETWORK_ERROR'
+  | 'UNKNOWN_ERROR';
+
 interface InvitePreviewResponse {
   success: boolean;
   invite?: {
@@ -27,7 +42,7 @@ interface InvitePreviewResponse {
     member_count: number;
   };
   error?: string;
-  error_code?: 'INVALID' | 'EXPIRED' | 'INACTIVE' | 'MAX_USES' | 'NOT_FOUND';
+  error_code?: InvitePreviewErrorCode;
 }
 
 serve(async (req): Promise<Response> => {
@@ -62,8 +77,8 @@ serve(async (req): Promise<Response> => {
       logStep("ERROR: No invite code provided");
       const response: InvitePreviewResponse = {
         success: false,
-        error: "Invite code is required",
-        error_code: 'INVALID'
+        error: "This invite link appears to be malformed. Make sure you copied the full URL.",
+        error_code: 'INVALID_LINK'
       };
       return new Response(
         JSON.stringify(response),
@@ -84,8 +99,8 @@ serve(async (req): Promise<Response> => {
       logStep("Invite not found", { error: inviteError?.message });
       const response: InvitePreviewResponse = {
         success: false,
-        error: "This invite link is invalid or has been deleted.",
-        error_code: 'NOT_FOUND'
+        error: "This invite link is invalid or has been deleted. Ask the host for a new link.",
+        error_code: 'INVITE_NOT_FOUND'
       };
       return new Response(
         JSON.stringify(response),
@@ -100,8 +115,8 @@ serve(async (req): Promise<Response> => {
       logStep("Invite is inactive");
       const response: InvitePreviewResponse = {
         success: false,
-        error: "This invite link has been deactivated.",
-        error_code: 'INACTIVE'
+        error: "The host has turned off this invite link. Contact them for a new one.",
+        error_code: 'INVITE_INACTIVE'
       };
       return new Response(
         JSON.stringify(response),
@@ -113,8 +128,8 @@ serve(async (req): Promise<Response> => {
       logStep("Invite has expired", { expiresAt: invite.expires_at });
       const response: InvitePreviewResponse = {
         success: false,
-        error: "This invite link has expired. Please ask the organizer for a new link.",
-        error_code: 'EXPIRED'
+        error: "This invite link has expired. Ask the host for a fresh link.",
+        error_code: 'INVITE_EXPIRED'
       };
       return new Response(
         JSON.stringify(response),
@@ -126,8 +141,8 @@ serve(async (req): Promise<Response> => {
       logStep("Max uses reached", { currentUses: invite.current_uses, maxUses: invite.max_uses });
       const response: InvitePreviewResponse = {
         success: false,
-        error: "This invite link has reached its maximum number of uses.",
-        error_code: 'MAX_USES'
+        error: "This invite link has been used the maximum number of times. Ask the host for a new link.",
+        error_code: 'INVITE_MAX_USES'
       };
       return new Response(
         JSON.stringify(response),
@@ -135,10 +150,10 @@ serve(async (req): Promise<Response> => {
       );
     }
 
-    // Fetch trip details
+    // Fetch trip details including archive status
     const { data: trip, error: tripError } = await supabaseClient
       .from("trips")
-      .select("id, name, destination, start_date, end_date, cover_image_url, trip_type")
+      .select("id, name, destination, start_date, end_date, cover_image_url, trip_type, is_archived")
       .eq("id", invite.trip_id)
       .single();
 
@@ -146,12 +161,26 @@ serve(async (req): Promise<Response> => {
       logStep("Trip not found", { error: tripError?.message });
       const response: InvitePreviewResponse = {
         success: false,
-        error: "The trip associated with this invite no longer exists.",
-        error_code: 'NOT_FOUND'
+        error: "This trip no longer exists. It may have been deleted by the organizer.",
+        error_code: 'TRIP_NOT_FOUND'
       };
       return new Response(
         JSON.stringify(response),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if trip is archived
+    if (trip.is_archived) {
+      logStep("Trip is archived", { tripId: trip.id });
+      const response: InvitePreviewResponse = {
+        success: false,
+        error: "This trip has been archived and is no longer accepting new members.",
+        error_code: 'TRIP_ARCHIVED'
+      };
+      return new Response(
+        JSON.stringify(response),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -195,7 +224,7 @@ serve(async (req): Promise<Response> => {
     const response: InvitePreviewResponse = {
       success: false,
       error: "An unexpected error occurred. Please try again.",
-      error_code: 'INVALID'
+      error_code: 'UNKNOWN_ERROR'
     };
     return new Response(
       JSON.stringify(response),
