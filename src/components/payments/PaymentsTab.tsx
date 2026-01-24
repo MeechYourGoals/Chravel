@@ -247,12 +247,22 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         setBalanceSummary(summary);
       } catch (error) {
         console.error('Error loading balance summary:', error);
-        if (error instanceof Error && error.message.includes('Unauthorized')) {
-          toast({
-            title: "Access Denied",
-            description: "You don't have permission to view payment balances for this trip.",
-            variant: "destructive"
-          });
+        // Only show access denied for actual permission issues (not transient auth/network errors)
+        if (error instanceof Error) {
+          const msg = error.message.toLowerCase();
+          // Transient auth errors - don't show "access denied", just log and retry later
+          if (msg.includes('authentication required') || msg.includes('jwt') || msg.includes('network')) {
+            console.warn('[PaymentsTab] Transient auth/network error, will retry on next render');
+            // Don't show toast - user just needs to be authenticated
+          } else if (msg.includes('unauthorized') || msg.includes('not a trip member')) {
+            // Genuine permission issue - but verify auth is actually ready
+            // If the user is logged in and still getting this, it's a real permission issue
+            toast({
+              title: "Access Denied",
+              description: "You don't have permission to view payment balances for this trip.",
+              variant: "destructive"
+            });
+          }
         }
         setBalanceSummary({
           totalOwed: 0,

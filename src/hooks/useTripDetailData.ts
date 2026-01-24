@@ -1,6 +1,7 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { tripService, Trip } from '@/services/tripService';
 import { useDemoMode } from './useDemoMode';
+import { useAuth } from './useAuth';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { getTripById as getDemoTripById } from '@/data/tripsData';
 import { convertSupabaseTripToMock } from '@/utils/tripConverter';
@@ -19,7 +20,9 @@ interface UseTripDetailDataResult {
   tripCreatorId: string | null;
   isLoading: boolean;
   isMembersLoading: boolean;
-  error: Error | null;
+  isAuthLoading: boolean;
+  tripError: Error | null;
+  membersError: Error | null;
 }
 
 /**
@@ -30,9 +33,12 @@ interface UseTripDetailDataResult {
  * - TanStack Query cache integration (prefetch hits work)
  * - Demo mode fast path (no network calls)
  * - Progressive rendering - trip loads first, members follow
+ * - 🔒 Auth-aware: waits for auth hydration before fetching
+ * - 🔑 User-scoped cache keys: prevents anon results poisoning auth cache
  */
 export const useTripDetailData = (tripId: string | undefined): UseTripDetailDataResult => {
   const { isDemoMode } = useDemoMode();
+  const { user, isLoading: isAuthLoading } = useAuth();
 
   // Demo mode: Fast path - synchronous, no network
   const isNumericId = tripId ? /^\d+$/.test(tripId) : false;
@@ -43,28 +49,52 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
     tripId ? state.addedMembers[tripId]?.length || 0 : 0,
   );
 
+  // 🔒 CRITICAL: Only enable queries when:
+  // 1. We have a tripId
+  // 2. NOT in demo mode path
+  // 3. Auth is fully loaded (not hydrating)
+  // 4. User is authenticated
+  const isQueryEnabled = !!tripId && !shouldUseDemoPath && !isAuthLoading && !!user;
+
   // ⚡ PRIORITY 1: Trip data - gates rendering
+  // 🔑 Include user.id in query key to prevent anon cache poisoning auth cache
   const tripQuery = useQuery({
-    queryKey: tripKeys.detail(tripId!),
+    queryKey: [...tripKeys.detail(tripId!), user?.id ?? 'anon'],
     queryFn: async () => {
       const data = await tripService.getTripById(tripId!);
       return data;
     },
-    enabled: !!tripId && !shouldUseDemoPath,
+    enabled: isQueryEnabled,
     staleTime: QUERY_CACHE_CONFIG.trip.staleTime,
     gcTime: QUERY_CACHE_CONFIG.trip.gcTime,
+    retry: (failureCount, error) => {
+      // Don't retry on 403/404 - those are permanent
+      const msg = error instanceof Error ? error.message : '';
+      if (msg.includes('permission') || msg.includes('not found')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 
   // ⚡ PRIORITY 2: Members data - can render progressively
-  // 🔄 FIX: Include demoAddedMembersCount in query key to invalidate cache when demo members change
+  // 🔑 Include user.id in query key to prevent anon cache poisoning auth cache
   const membersQuery = useQuery({
-    queryKey: [...tripKeys.members(tripId!), demoAddedMembersCount],
+    queryKey: [...tripKeys.members(tripId!), user?.id ?? 'anon', demoAddedMembersCount],
     queryFn: async () => {
       return await tripService.getTripMembersWithCreator(tripId!);
     },
-    enabled: !!tripId && !shouldUseDemoPath,
+    enabled: isQueryEnabled,
     staleTime: QUERY_CACHE_CONFIG.members.staleTime,
     gcTime: QUERY_CACHE_CONFIG.members.gcTime,
+    retry: (failureCount, error) => {
+      // Don't retry on 403/404 - those are permanent
+      const msg = error instanceof Error ? error.message : '';
+      if (msg.includes('permission') || msg.includes('not found')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 
   // Demo mode: Return mock data immediately
@@ -81,7 +111,23 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
       tripCreatorId: demoMembers[0]?.id || null,
       isLoading: false,
       isMembersLoading: false,
-      error: null,
+      isAuthLoading: false,
+      tripError: null,
+      membersError: null,
+    };
+  }
+
+  // 🔒 If auth is still loading, return loading state (NOT "trip not found")
+  if (isAuthLoading) {
+    return {
+      trip: null,
+      tripMembers: [],
+      tripCreatorId: null,
+      isLoading: true,
+      isMembersLoading: true,
+      isAuthLoading: true,
+      tripError: null,
+      membersError: null,
     };
   }
 
@@ -94,7 +140,9 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
     tripCreatorId: membersQuery.data?.creatorId || null,
     isLoading: tripQuery.isLoading,
     isMembersLoading: membersQuery.isLoading,
-    error: tripQuery.error as Error | null,
+    isAuthLoading: false,
+    tripError: tripQuery.error as Error | null,
+    membersError: membersQuery.error as Error | null,
   };
 };
 
