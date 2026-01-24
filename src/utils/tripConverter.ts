@@ -53,7 +53,7 @@ export function convertSupabaseTripsToMock(supabaseTrips: SupabaseTrip[]): MockT
  */
 export function convertSupabaseTripToProTrip(supabaseTrip: SupabaseTrip): ProTripData {
   const mockTrip = convertSupabaseTripToMock(supabaseTrip);
-  
+
   return {
     id: supabaseTrip.id,
     title: mockTrip.title,
@@ -66,7 +66,7 @@ export function convertSupabaseTripToProTrip(supabaseTrip: SupabaseTrip): ProTri
     budget: {
       total: 0,
       spent: 0,
-      categories: []
+      categories: [],
     },
     itinerary: [],
     roster: [],
@@ -77,7 +77,7 @@ export function convertSupabaseTripToProTrip(supabaseTrip: SupabaseTrip): ProTri
       currency: 'USD',
       startDate: supabaseTrip.start_date || '',
       endDate: supabaseTrip.end_date || '',
-      participants: []
+      participants: [],
     },
     settlement: [],
     medical: [],
@@ -85,6 +85,7 @@ export function convertSupabaseTripToProTrip(supabaseTrip: SupabaseTrip): ProTri
     media: [],
     sponsors: [],
     archived: supabaseTrip.is_archived,
+    trip_type: 'pro',
     privacy_mode: 'standard',
     ai_access_enabled: true,
     coverPhoto: supabaseTrip.cover_image_url ?? undefined,
@@ -97,7 +98,7 @@ export function convertSupabaseTripToProTrip(supabaseTrip: SupabaseTrip): ProTri
  */
 export function convertSupabaseTripToEvent(supabaseTrip: SupabaseTrip): EventData {
   const mockTrip = convertSupabaseTripToMock(supabaseTrip);
-  
+
   return {
     id: supabaseTrip.id,
     title: mockTrip.title,
@@ -122,7 +123,7 @@ export function convertSupabaseTripToEvent(supabaseTrip: SupabaseTrip): EventDat
     budget: {
       total: 0,
       spent: 0,
-      categories: []
+      categories: [],
     },
     itinerary: [],
     coverPhoto: supabaseTrip.cover_image_url ?? undefined,
