@@ -9,18 +9,18 @@ export const AiFeaturesSection = () => {
   const aiFeatures1 = [
     {
       icon: <Wand2 className="text-accent" size={28} />,
-      title: 'AI Concierge',
+      title: 'Context-Aware Concierge',
       description: 'AI that understands your trip — not just your question.'
     },
     {
       icon: <DollarSign className="text-primary" size={28} />,
-      title: 'Payment Summaries',
-      description: 'Payment tracking made easy.'
+      title: 'Payment Tracking',
+      description: 'Keep track of who owes what, without the spreadsheets'
     },
     {
       icon: <BarChart3 className="text-accent" size={28} />,
-      title: 'Polls',
-      description: 'Group decisions, locked in — no scrolling, no second-guessing.'
+      title: 'Decision Lock-In',
+      description: 'Persistent Poll View: No more scrolling to see who voted on what 3 weeks ago.'
     }
   ];
 
@@ -33,13 +33,13 @@ export const AiFeaturesSection = () => {
     },
     {
       icon: <BellRing className="text-accent" size={28} />,
-      title: 'Smart Notifications',
-      description: 'Important updates without the message overload.'
+      title: 'Relevant Notifications',
+      description: 'Important updates without the message overload. You choose what matters'
     },
     {
       icon: <ScrollText className="text-primary" size={28} />,
-      title: 'AI Trip Summaries',
-      description: 'Export clean PDF trip summaries to share off-app.'
+      title: 'Chravel Recap PDFs',
+      description: 'Overwhelmed or want to Share off App? Get a Simple Summary PDF of the trip'
     }
   ];
 
@@ -76,8 +76,14 @@ export const AiFeaturesSection = () => {
           className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white"
           style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
         >
-          Travel Intelligence
+          Travel Intelligence: AI that understands your trip.
         </h2>
+        <p
+          className="text-lg sm:text-xl md:text-2xl text-white/90 font-medium max-w-3xl mx-auto"
+          style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
+        >
+          It reads your itinerary, places, tasks, and group decisions—so answers are actually useful.
+        </p>
       </motion.div>
 
       {/* Split Layout: 2 Rows with Screenshot + 3 Pills each */}
