@@ -1,186 +1,106 @@
 
-# Landing Page Polish & Build Fix
+# Crop Travel Intelligence Screenshots
 
-## Overview
-This plan addresses 4 categories of changes:
-1. **Build Error Fix** - Type compatibility issue in MobileProTripDetail
-2. **ChravelTabs Typography** - Larger feature names, brighter italic descriptions, remove Tasks quote
-3. **Screenshot Cropping** - Remove iPhone status bar from "Create Trip" and "One Hub" screenshots
-4. **Copy Update** - Update "Chravel Recap PDFs" description text
+## Problem
+The two screenshots in the "Travel Intelligence" section have unwanted content:
 
----
+### Screenshot 1 (AI Concierge - `ai-concierge.png`)
+- **TOP**: Shows description box above the tab bar that needs to be removed
+- **BOTTOM**: Shows "vDev - development" text that needs to be removed
+- **Desired crop**: Start at the tab bar (Chat, Calendar, Concierge...) and end before the development text
 
-## 1. Build Error Fix
-
-### Problem
-The `tripData` prop passed to `MobileTripTabs` has `trip_type` typed as `string`, but the component expects `'consumer' | 'pro' | 'event'`.
-
-### Solution
-**File:** `src/pages/MobileProTripDetail.tsx` (lines 112-120)
-
-Add explicit type assertion for `trip_type`:
-
-```typescript
-return {
-  ...convertedTrip,
-  participants: proParticipants,
-  roster: proParticipants,
-  proTripCategory: 'Sports – Pro, Collegiate, Youth',
-  enabled_features: supabaseTrip.enabled_features || defaultFeatures,
-  createdBy: supabaseTrip.created_by,
-  trip_type: 'pro' as const,  // ← Add 'as const' to preserve literal type
-} as ProTripData & { createdBy?: string };
-```
-
-Also fix line 85 in the demo mode path:
-```typescript
-trip_type: 'pro' as const,
-```
+### Screenshot 2 (Places/BaseCamps - `places-maps.png`)  
+- **TOP**: Shows description box above the tab bar that needs to be removed
+- **Desired crop**: Start at the tab bar (Chat, Calendar, Concierge...)
 
 ---
 
-## 2. ChravelTabs Typography Updates
+## Solution: CSS Cropping
 
-### File: `src/components/conversion/ReplacesGrid.tsx`
-
-#### A) Increase Feature Name Font Size
-
-**Desktop (lines 43-48):**
-- Change from `text-lg lg:text-xl` to `text-xl lg:text-2xl`
-
-**Mobile (lines 65-72):**
-- Change from `text-xl sm:text-2xl` to `text-2xl sm:text-3xl`
-
-#### B) Make Descriptions Brighter White + Italic
-
-**Desktop (lines 55-57):**
-- Change from `text-white/80` to `text-white italic`
-
-**Mobile (lines 85-90):**
-- Change from `text-white` to `text-white italic`
-- Both already have font-medium, just need italic added
-
-### File: `src/components/conversion/ReplacesGridData.ts`
-
-#### C) Remove "I thought you were handling?" Quote from Tasks
-
-**Lines 147-152:**
-- Remove or comment out `benefitQuote: '"I thought you were handling?"'` from the Tasks category
-
-```typescript
-// BEFORE
-{
-  key: 'tasks',
-  title: 'Tasks',
-  subtitle: '',
-  icon: '✅',
-  benefitQuote: '"I thought you were handling?"',
-  benefit: 'Reminders and accountability for everyone.',
-  // ...
-}
-
-// AFTER
-{
-  key: 'tasks',
-  title: 'Tasks',
-  subtitle: '',
-  icon: '✅',
-  // benefitQuote removed
-  benefit: 'Reminders and accountability for everyone.',
-  // ...
-}
-```
-
----
-
-## 3. Screenshot Cropping (Status Bar Removal)
-
-The screenshots currently show iPhone status bars (time, signal, battery). These need to be cropped.
-
-### Approach
-Create new cropped versions of the screenshots using CSS `object-fit` and `object-position`, or by applying inline cropping styles that hide the top portion.
-
-### File: `src/components/landing/sections/ProblemSolutionSection.tsx`
-
-#### Option A: CSS Cropping (Recommended - No new assets needed)
-
-For both "Create Trip" and "One Hub" screenshots, wrap in a container that clips the top:
-
-```tsx
-{/* Create Trip Screenshot - with status bar cropped */}
-<div className="w-full h-[520px] flex items-center justify-center overflow-hidden">
-  <div className="relative w-full" style={{ marginTop: '-28px' }}>
-    <img 
-      src={createNewTrip}
-      alt="Create New Trip form interface"
-      className="w-full h-auto object-contain rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
-    />
-  </div>
-</div>
-
-{/* One Hub Screenshot - with status bar cropped */}
-<div className="w-full h-[520px] flex items-center justify-center overflow-hidden">
-  <div className="relative w-full" style={{ marginTop: '-28px' }}>
-    <img 
-      src={oneHubChat}
-      alt="Trip chat interface"
-      className="w-full h-auto object-contain rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
-    />
-  </div>
-</div>
-```
-
-The `marginTop: '-28px'` shifts the image up within its container, and `overflow-hidden` on the parent clips the status bar from view. Apply same treatment to mobile versions.
-
----
-
-## 4. Chravel Recap PDFs Copy Update
+Apply the same CSS cropping technique used in ProblemSolutionSection - using `overflow-hidden` containers with negative margins to clip unwanted portions.
 
 ### File: `src/components/landing/sections/AiFeaturesSection.tsx`
 
-**Lines 39-43:**
+#### Change 1: AI Concierge Screenshot (crop top AND bottom)
 
-```typescript
-// BEFORE
-{
-  icon: <ScrollText className="text-primary" size={28} />,
-  title: 'Chravel Recap PDFs',
-  description: 'Overwhelmed or want to Share off App? Get a Simple Summary PDF of the trip'
-}
-
-// AFTER  
-{
-  icon: <ScrollText className="text-primary" size={28} />,
-  title: 'Chravel Recap PDFs',
-  description: 'Sharing recommendations or just want a quick overview of the trip? Get a simple summary PDF.'
-}
+```tsx
+{/* AI Concierge Screenshot - cropped to tab bar, hiding dev text */}
+<motion.div 
+  className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300"
+  initial={{ opacity: 0, x: -30 }}
+  whileInView={{ opacity: 1, x: 0 }}
+  viewport={{ once: true }}
+  transition={{ duration: 0.5 }}
+  style={{ maxHeight: '420px' }}  // Constrain height to crop bottom
+>
+  <div style={{ marginTop: '-60px', marginBottom: '-30px' }}>  {/* Crop top and bottom */}
+    <img 
+      src={aiConcierge} 
+      alt="AI Concierge providing personalized recommendations" 
+      className="w-full h-auto object-cover"
+    />
+  </div>
+</motion.div>
 ```
+
+- `marginTop: '-60px'` shifts image up to hide the description box at top
+- `marginBottom: '-30px'` crops the bottom to hide "vDev - development"
+- `maxHeight: '420px'` constrains container to prevent overflow showing
+
+#### Change 2: Places Screenshot (crop top only)
+
+```tsx
+{/* Places Screenshot - cropped to tab bar */}
+<motion.div 
+  className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-accent/30 transition-all duration-300"
+  initial={{ opacity: 0, x: -30 }}
+  whileInView={{ opacity: 1, x: 0 }}
+  viewport={{ once: true }}
+  transition={{ duration: 0.5, delay: 0.1 }}
+>
+  <div style={{ marginTop: '-60px' }}>  {/* Crop top */}
+    <img 
+      src={placesMaps} 
+      alt="Interactive maps and places discovery" 
+      className="w-full h-auto object-cover"
+    />
+  </div>
+</motion.div>
+```
+
+- `marginTop: '-60px'` shifts image up to hide the description box at top
 
 ---
 
-## Summary of Files to Modify
+## Technical Notes
+
+### Why CSS Cropping vs New Images
+- **Faster**: No need to create/upload new image assets
+- **Adjustable**: Can fine-tune pixel values if cropping isn't perfect
+- **Reversible**: Easy to undo if needed
+
+### Pixel Values
+The exact crop amounts may need adjustment based on actual image dimensions:
+- `marginTop: '-60px'` is an estimate for hiding the description box
+- `marginBottom: '-30px'` is an estimate for hiding the dev text
+- These can be tweaked after implementation
+
+---
+
+## Files Changed
 
 | File | Changes |
 |------|---------|
-| `src/pages/MobileProTripDetail.tsx` | Add `as const` to `trip_type: 'pro'` (2 locations) |
-| `src/components/conversion/ReplacesGrid.tsx` | Increase font sizes, add italic to descriptions |
-| `src/components/conversion/ReplacesGridData.ts` | Remove `benefitQuote` from Tasks |
-| `src/components/landing/sections/ProblemSolutionSection.tsx` | Add CSS cropping to hide status bars |
-| `src/components/landing/sections/AiFeaturesSection.tsx` | Update Recap PDFs description text |
+| `src/components/landing/sections/AiFeaturesSection.tsx` | Add CSS cropping to both screenshots |
 
 ---
 
 ## Visual Result
 
-### ChravelTabs After Changes
-- **Feature names** (Chat, Calendar, etc.): Larger, bolder
-- **Descriptions**: Pure white (#FFFFFF) instead of gray, italicized
-- **Tasks row**: Only shows "Reminders and accountability for everyone." (no quote)
+### AI Concierge Screenshot
+- **Before**: Shows description box → tab bar → content → "vDev - development"
+- **After**: Shows only tab bar → content (clean, no dev text)
 
-### Screenshots After Changes
-- **Create Trip**: Starts at "Create New Trip" modal header (no 9:41 / battery)
-- **One Hub**: Starts at "Fantasy Football Chat's Annual..." (no 9:51 / battery)
-- **Trip Invite**: Unchanged (middle screenshot doesn't show status bar)
-
-### AI Features Section
-- **Recap PDFs**: New copy reads "Sharing recommendations or just want a quick overview of the trip? Get a simple summary PDF."
+### Places/BaseCamps Screenshot
+- **Before**: Shows description box → tab bar → map content
+- **After**: Shows only tab bar → map content (clean)
