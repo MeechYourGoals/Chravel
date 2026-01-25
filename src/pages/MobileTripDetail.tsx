@@ -430,7 +430,9 @@ export const MobileTripDetail = () => {
   if (!tripWithUpdatedDescription) {
     // Check if user is not logged in - if so, show login prompt instead of "Trip Not Found"
     if (!user) {
-      console.warn('[MobileTripDetail] No trip AND no user - showing login prompt instead of Trip Not Found');
+      if (import.meta.env.DEV) {
+        console.warn('[MobileTripDetail] No trip AND no user - showing login prompt instead of Trip Not Found');
+      }
       return (
         <div className="min-h-screen bg-black flex items-center justify-center p-4">
           <div className="text-center max-w-md">
