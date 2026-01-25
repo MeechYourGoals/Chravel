@@ -425,8 +425,46 @@ export const MobileTripDetail = () => {
     );
   }
 
-  // Handle missing trip - only show this when we're sure it doesn't exist (no error, no loading)
+  // 🔒 SAFETY CHECK: Before showing "Trip Not Found", verify user is actually authenticated
+  // If not authenticated, this is really an auth issue, not a missing trip
   if (!tripWithUpdatedDescription) {
+    // Check if user is not logged in - if so, show login prompt instead of "Trip Not Found"
+    if (!user) {
+      console.warn('[MobileTripDetail] No trip AND no user - showing login prompt instead of Trip Not Found');
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+          <div className="text-center max-w-md">
+            <LogIn className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-white mb-4">Please Log In</h1>
+            <p className="text-gray-400 mb-6">
+              You need to be signed in to view this trip.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  hapticService.light();
+                  navigate(`/auth?mode=signin&returnTo=/trip/${tripId}`);
+                }}
+                className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => {
+                  hapticService.light();
+                  navigate('/');
+                }}
+                className="bg-white/10 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+              >
+                Back to Home
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // User IS logged in but trip not found - genuinely doesn't exist
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center max-w-md">

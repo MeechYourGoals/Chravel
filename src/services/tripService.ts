@@ -322,15 +322,8 @@ export const tripService = {
   },
 
   async getTripById(tripId: string): Promise<Trip | null> {
-    // 🔒 FIX: Check session first - if missing, throw AUTH_REQUIRED
-    // This prevents RLS "no access" from returning null (which looks like "trip not found")
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-      if (import.meta.env.DEV) {
-        console.warn('[tripService.getTripById] No session when fetching trip:', tripId);
-      }
-      throw new Error('AUTH_REQUIRED');
-    }
+    // NOTE: Auth is now handled by useTripDetailData hook (gates query on authUserId)
+    // This service method only runs when user is authenticated
 
     // Use maybeSingle() to distinguish "no rows" from errors
     const { data, error } = await supabase.from('trips').select('*').eq('id', tripId).maybeSingle();
@@ -349,7 +342,7 @@ export const tripService = {
       throw new Error(`Failed to load trip: ${error.message}`);
     }
 
-    // No error but no data means trip doesn't exist (legitimate null with valid session)
+    // No error but no data means trip doesn't exist (legitimate null)
     return data;
   },
 
@@ -452,15 +445,8 @@ export const tripService = {
     members: Array<{ id: string; name: string; avatar?: string; isCreator?: boolean }>;
     creatorId: string | null;
   }> {
-    // 🔒 FIX: Check session first - if missing, throw AUTH_REQUIRED
-    // This prevents RLS "no access" from returning empty results
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-      if (import.meta.env.DEV) {
-        console.warn('[tripService.getTripMembersWithCreator] No session when fetching trip members:', tripId);
-      }
-      throw new Error('AUTH_REQUIRED');
-    }
+    // NOTE: Auth is now handled by useTripDetailData hook (gates query on authUserId)
+    // This service method only runs when user is authenticated
 
     if (import.meta.env.DEV) {
       console.log('[tripService.getTripMembersWithCreator] Fetching for tripId:', tripId);
