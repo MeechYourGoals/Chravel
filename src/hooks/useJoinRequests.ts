@@ -295,7 +295,7 @@ export const useJoinRequests = ({
 
       try {
         // Typed RPC shim until types.ts is regenerated
-        const rpc = supabase.rpc as <T>(
+        const rpc = supabase.rpc.bind(supabase) as unknown as <T>(
           fn: string,
           params?: Record<string, string>,
         ) => Promise<{ data: T | null; error: { message?: string } | null }>;
