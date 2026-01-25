@@ -41,7 +41,7 @@ export const ReplacesGrid = () => {
                 {/* Desktop/Tablet: 3-column grid (md and up) */}
                 <div className="hidden md:grid grid-cols-[200px_1fr_40px] lg:grid-cols-[220px_1fr_40px] gap-4 items-center w-full">
                   <span
-                    className="text-lg lg:text-xl font-bold text-white text-left"
+                    className="text-xl lg:text-2xl font-bold text-white text-left"
                     style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
                   >
                     {category.title}
@@ -52,7 +52,7 @@ export const ReplacesGrid = () => {
                         {category.benefitQuote}
                       </span>
                     )}
-                    <span className="text-sm lg:text-base text-white/80 font-medium">
+                    <span className="text-sm lg:text-base text-white italic font-medium">
                       {category.benefit}
                     </span>
                   </div>
@@ -63,7 +63,7 @@ export const ReplacesGrid = () => {
                 <div className="flex flex-col w-full md:hidden text-center">
                   {/* Feature Name - Large, bold, pure white with glow */}
                   <h3
-                    className="text-xl sm:text-2xl font-bold text-white mb-2"
+                    className="text-2xl sm:text-3xl font-bold text-white mb-2"
                     style={{
                       textShadow: '0 0 10px rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.6)',
                     }}
@@ -81,9 +81,9 @@ export const ReplacesGrid = () => {
                     </span>
                   )}
 
-                  {/* Description - Bright white, readable, full width */}
+                  {/* Description - Bright white, italic, readable, full width */}
                   <p
-                    className="text-base sm:text-lg text-white font-medium leading-relaxed mb-3"
+                    className="text-base sm:text-lg text-white italic font-medium leading-relaxed mb-3"
                     style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
                   >
                     {category.benefit}

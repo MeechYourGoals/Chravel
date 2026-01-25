@@ -177,12 +177,14 @@ export const ProblemSolutionSection = () => {
             >
               Create Trip
             </span>
-            <div className="w-full h-[520px] flex items-center justify-center">
-              <img 
-                src={createNewTrip}
-                alt="Create New Trip form interface"
-                className="w-full h-auto max-h-full object-contain rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
-              />
+            <div className="w-full h-[520px] flex items-center justify-center overflow-hidden rounded-2xl">
+              <div className="relative w-full" style={{ marginTop: '-28px' }}>
+                <img 
+                  src={createNewTrip}
+                  alt="Create New Trip form interface"
+                  className="w-full h-auto object-contain rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
+                />
+              </div>
             </div>
           </motion.div>
 
@@ -223,12 +225,14 @@ export const ProblemSolutionSection = () => {
             >
               One Hub
             </span>
-            <div className="w-full h-[520px] flex items-center justify-center">
-              <img 
-                src={oneHubChat}
-                alt="Trip chat interface showing group messages and activity"
-                className="w-full h-auto max-h-full object-contain rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
-              />
+            <div className="w-full h-[520px] flex items-center justify-center overflow-hidden rounded-2xl">
+              <div className="relative w-full" style={{ marginTop: '-28px' }}>
+                <img 
+                  src={oneHubChat}
+                  alt="Trip chat interface showing group messages and activity"
+                  className="w-full h-auto object-contain rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
+                />
+              </div>
             </div>
           </motion.div>
         </div>
@@ -249,12 +253,14 @@ export const ProblemSolutionSection = () => {
             >
               Create Trip
             </span>
-            <div className="max-w-[300px]">
-              <img 
-                src={createNewTrip}
-                alt="Create New Trip form interface"
-                className="w-full h-auto rounded-xl shadow-xl border border-border/50"
-              />
+            <div className="max-w-[300px] overflow-hidden rounded-xl">
+              <div style={{ marginTop: '-28px' }}>
+                <img 
+                  src={createNewTrip}
+                  alt="Create New Trip form interface"
+                  className="w-full h-auto rounded-xl shadow-xl border border-border/50"
+                />
+              </div>
             </div>
           </motion.div>
 
@@ -295,12 +301,14 @@ export const ProblemSolutionSection = () => {
             >
               One Hub
             </span>
-            <div className="max-w-[300px]">
-              <img 
-                src={oneHubChat}
-                alt="Trip chat interface showing group messages and activity"
-                className="w-full h-auto rounded-xl shadow-xl border border-border/50"
-              />
+            <div className="max-w-[300px] overflow-hidden rounded-xl">
+              <div style={{ marginTop: '-28px' }}>
+                <img 
+                  src={oneHubChat}
+                  alt="Trip chat interface showing group messages and activity"
+                  className="w-full h-auto rounded-xl shadow-xl border border-border/50"
+                />
+              </div>
             </div>
           </motion.div>
         </div>
