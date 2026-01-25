@@ -97,12 +97,15 @@ export const AiFeaturesSection = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
+            style={{ maxHeight: '420px' }}
           >
-            <img 
-              src={aiConcierge} 
-              alt="AI Concierge providing personalized recommendations" 
-              className="w-full h-full object-cover"
-            />
+            <div style={{ marginTop: '-60px', marginBottom: '-30px' }}>
+              <img 
+                src={aiConcierge} 
+                alt="AI Concierge providing personalized recommendations" 
+                className="w-full h-auto object-cover"
+              />
+            </div>
           </motion.div>
 
           {/* Right: 3 Pills matching screenshot height */}
@@ -145,11 +148,13 @@ export const AiFeaturesSection = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <img 
-              src={placesMaps} 
-              alt="Interactive maps and places discovery" 
-              className="w-full h-full object-cover"
-            />
+            <div style={{ marginTop: '-60px' }}>
+              <img 
+                src={placesMaps} 
+                alt="Interactive maps and places discovery" 
+                className="w-full h-auto object-cover"
+              />
+            </div>
           </motion.div>
 
           {/* Right: 3 Pills matching screenshot height */}
