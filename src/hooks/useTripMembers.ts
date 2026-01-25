@@ -26,7 +26,7 @@ export const useTripMembers = (tripId?: string) => {
       id: member.user_id,
       name: member.profiles?.display_name || member.profiles?.first_name || 'Unknown User',
       avatar: member.profiles?.avatar_url,
-      isCreator: member.user_id === creatorId
+      isCreator: member.user_id === creatorId,
     }));
   };
 
@@ -39,29 +39,30 @@ export const useTripMembers = (tripId?: string) => {
     }
     const numericTripId = parseInt(tripId, 10);
     const trip = getTripById(numericTripId);
-    
+
     // Get base participants from static mock data
-    const baseMembers: TripMember[] = trip && trip.participants
-      ? trip.participants.map((participant, index) => ({
-          id: participant.id.toString(),
-          name: participant.name,
-          avatar: participant.avatar,
-          isCreator: index === 0 // First participant is creator in demo
-        }))
-      : [
-          { id: 'user1', name: 'You', isCreator: true },
-          { id: 'user2', name: 'Trip Organizer' }
-        ];
-    
+    const baseMembers: TripMember[] =
+      trip && trip.participants
+        ? trip.participants.map((participant, index) => ({
+            id: participant.id.toString(),
+            name: participant.name,
+            avatar: participant.avatar,
+            isCreator: index === 0, // First participant is creator in demo
+          }))
+        : [
+            { id: 'user1', name: 'You', isCreator: true },
+            { id: 'user2', name: 'Trip Organizer' },
+          ];
+
     // Get any members added at runtime (from approved join requests)
     const addedMembers = useDemoTripMembersStore.getState().getAddedMembers(tripId);
     const addedAsTripMembers: TripMember[] = addedMembers.map(m => ({
       id: m.id.toString(),
       name: m.name,
       avatar: m.avatar,
-      isCreator: false
+      isCreator: false,
     }));
-    
+
     // Merge base + added members (avoid duplicates)
     const allMembers = [...baseMembers];
     for (const added of addedAsTripMembers) {
@@ -69,13 +70,13 @@ export const useTripMembers = (tripId?: string) => {
         allMembers.push(added);
       }
     }
-    
+
     return allMembers;
   };
 
   const loadTripMembers = async (tripId: string) => {
     setLoading(true);
-    
+
     try {
       // ⚡ PERFORMANCE: Fast path for demo mode with numeric IDs - skip database entirely
       const isNumericOnly = /^\d+$/.test(tripId);
@@ -93,7 +94,7 @@ export const useTripMembers = (tripId?: string) => {
         .select('created_by')
         .eq('id', tripId)
         .single();
-      
+
       if (tripData?.created_by) {
         setTripCreatorId(tripData.created_by);
       }
@@ -105,11 +106,13 @@ export const useTripMembers = (tripId?: string) => {
       if (tripData?.created_by && !isDemoMode) {
         const creatorInList = dbMembers?.some((m: any) => m.user_id === tripData.created_by);
         if (!creatorInList) {
-          console.warn(`[useTripMembers] Creator ${tripData.created_by} missing from trip ${tripId}. Auto-fixing...`);
-          
+          console.warn(
+            `[useTripMembers] Creator ${tripData.created_by} missing from trip ${tripId}. Auto-fixing...`,
+          );
+
           // 1. Attempt to add to DB (background operation)
           tripService.addTripMember(tripId, tripData.created_by, 'admin').catch(console.error);
-          
+
           // 2. Fetch profile for local display
           const { data: creatorProfile } = await supabase
             .from('profiles_public')
@@ -124,13 +127,13 @@ export const useTripMembers = (tripId?: string) => {
               role: 'admin',
               created_at: new Date().toISOString(),
               profiles: creatorProfile,
-              id: 'temp-fix-' + Date.now()
+              id: 'temp-fix-' + Date.now(),
             };
             dbMembers = [...(dbMembers || []), tempMember] as any;
           }
         }
       }
-      
+
       if (dbMembers && dbMembers.length > 0) {
         // Database has members - use them
         const formattedMembers = formatTripMembers(dbMembers, tripData?.created_by);
@@ -159,10 +162,10 @@ export const useTripMembers = (tripId?: string) => {
   // Check if current user can remove members (creator or admin)
   const canRemoveMembers = useCallback(async (): Promise<boolean> => {
     if (!tripId || !user?.id) return false;
-    
+
     // Check if user is creator
     if (tripCreatorId === user.id) return true;
-    
+
     // Check if user is admin
     const { data: adminData } = await supabase
       .from('trip_admins')
@@ -170,90 +173,93 @@ export const useTripMembers = (tripId?: string) => {
       .eq('trip_id', tripId)
       .eq('user_id', user.id)
       .maybeSingle();
-    
+
     return !!adminData;
   }, [tripId, user?.id, tripCreatorId]);
 
   // Remove a member from the trip (admin action)
-  const removeMember = useCallback(async (userId: string): Promise<boolean> => {
-    if (!tripId) {
-      toast.error('No trip selected');
-      return false;
-    }
+  const removeMember = useCallback(
+    async (userId: string): Promise<boolean> => {
+      if (!tripId) {
+        toast.error('No trip selected');
+        return false;
+      }
 
-    // Prevent removing the trip creator
-    if (userId === tripCreatorId) {
-      toast.error('Cannot remove the trip creator');
-      return false;
-    }
+      // Prevent removing the trip creator
+      if (userId === tripCreatorId) {
+        toast.error('Cannot remove the trip creator');
+        return false;
+      }
 
-    try {
-      const { error } = await supabase
-        .from('trip_members')
-        .delete()
-        .eq('trip_id', tripId)
-        .eq('user_id', userId);
+      try {
+        const { error } = await supabase
+          .from('trip_members')
+          .delete()
+          .eq('trip_id', tripId)
+          .eq('user_id', userId);
 
-      if (error) {
+        if (error) {
+          console.error('Error removing member:', error);
+          toast.error('Failed to remove member');
+          return false;
+        }
+
+        // Update local state
+        setTripMembers(prev => prev.filter(m => m.id !== userId));
+        toast.success('Member removed from trip');
+        return true;
+      } catch (error) {
         console.error('Error removing member:', error);
         toast.error('Failed to remove member');
         return false;
       }
-
-      // Update local state
-      setTripMembers(prev => prev.filter(m => m.id !== userId));
-      toast.success('Member removed from trip');
-      return true;
-    } catch (error) {
-      console.error('Error removing member:', error);
-      toast.error('Failed to remove member');
-      return false;
-    }
-  }, [tripId, tripCreatorId]);
+    },
+    [tripId, tripCreatorId],
+  );
 
   // Leave trip (self-removal with notification to organizer)
-  const leaveTrip = useCallback(async (tripName: string): Promise<boolean> => {
-    if (!tripId || !user?.id) {
-      toast.error('You must be logged in to leave a trip');
-      return false;
-    }
-
-    // Demo mode: just show toast
-    if (isDemoMode) {
-      toast.success('You have left the trip');
-      return true;
-    }
-
-    try {
-      // Get user's display name for the notification
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('display_name, first_name, last_name')
-        .eq('user_id', user.id)
-        .single();
-      
-      const userName = profileData?.display_name || 
-        `${profileData?.first_name || ''} ${profileData?.last_name || ''}`.trim() || 
-        'A member';
-
-      // Delete trip membership
-      const { error: deleteError } = await supabase
-        .from('trip_members')
-        .delete()
-        .eq('trip_id', tripId)
-        .eq('user_id', user.id);
-
-      if (deleteError) {
-        console.error('Error leaving trip:', deleteError);
-        toast.error('Failed to leave trip');
+  const leaveTrip = useCallback(
+    async (tripName: string): Promise<boolean> => {
+      if (!tripId || !user?.id) {
+        toast.error('You must be logged in to leave a trip');
         return false;
       }
 
-      // Create notification for trip organizer
-      if (tripCreatorId) {
-        await supabase
-          .from('notifications')
-          .insert({
+      // Demo mode: just show toast
+      if (isDemoMode) {
+        toast.success('You have left the trip');
+        return true;
+      }
+
+      try {
+        // Get user's display name for the notification
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('display_name, first_name, last_name')
+          .eq('user_id', user.id)
+          .single();
+
+        const userName =
+          profileData?.display_name ||
+          `${profileData?.first_name || ''} ${profileData?.last_name || ''}`.trim() ||
+          'A member';
+
+        // Delete trip membership
+        const { error: deleteError } = await supabase
+          .from('trip_members')
+          .delete()
+          .eq('trip_id', tripId)
+          .eq('user_id', user.id);
+
+        if (deleteError) {
+          console.error('Error leaving trip:', deleteError);
+          toast.error('Failed to leave trip');
+          return false;
+        }
+
+        // Create notification for trip organizer
+        if (tripCreatorId) {
+          await supabase.from('notifications').insert({
             user_id: tripCreatorId,
             title: `${userName} left ${tripName}`,
             message: `${userName} has left the trip "${tripName}"`,
@@ -262,24 +268,26 @@ export const useTripMembers = (tripId?: string) => {
               trip_id: tripId,
               trip_name: tripName,
               left_user_id: user.id,
-              left_user_name: userName
-            }
+              left_user_name: userName,
+            },
           });
-      }
+        }
 
-      // Update local state
-      setTripMembers(prev => prev.filter(m => m.id !== user.id));
-      return true;
-    } catch (error) {
-      console.error('Error leaving trip:', error);
-      toast.error('Failed to leave trip');
-      return false;
-    }
-  }, [tripId, user?.id, tripCreatorId, isDemoMode]);
+        // Update local state
+        setTripMembers(prev => prev.filter(m => m.id !== user.id));
+        return true;
+      } catch (error) {
+        console.error('Error leaving trip:', error);
+        toast.error('Failed to leave trip');
+        return false;
+      }
+    },
+    [tripId, user?.id, tripCreatorId, isDemoMode],
+  );
 
   // Subscribe to demo store changes - use length as stable dependency to avoid infinite loops
-  const demoAddedMembersCount = useDemoTripMembersStore(state => 
-    tripId ? (state.addedMembers[tripId]?.length || 0) : 0
+  const demoAddedMembersCount = useDemoTripMembersStore(state =>
+    tripId ? state.addedMembers[tripId]?.length || 0 : 0,
   );
 
   useEffect(() => {
@@ -295,15 +303,14 @@ export const useTripMembers = (tripId?: string) => {
 
     let channel: any;
     let profilesChannel: any;
-    let subscriptionTimer: ReturnType<typeof setTimeout>;
 
     // Defer subscription setup to not block initial render
-    subscriptionTimer = setTimeout(() => {
+    const subscriptionTimer = setTimeout(() => {
       const createSubscription = async () => {
         try {
           // Test if we can connect to the database first
           const { data } = await supabase.from('trip_members').select('id').limit(1);
-          
+
           if (data !== null) {
             channel = supabase
               .channel(`trip-members-${tripId}`)
@@ -313,12 +320,12 @@ export const useTripMembers = (tripId?: string) => {
                   event: '*',
                   schema: 'public',
                   table: 'trip_members',
-                  filter: `trip_id=eq.${tripId}`
+                  filter: `trip_id=eq.${tripId}`,
                 },
                 () => {
                   // Reload members when changes occur
                   loadTripMembers(tripId);
-                }
+                },
               )
               .subscribe();
           }
@@ -340,7 +347,11 @@ export const useTripMembers = (tripId?: string) => {
             table: 'profiles',
           },
           payload => {
-            const next = payload.new as { user_id?: string; display_name?: string | null; avatar_url?: string | null } | null;
+            const next = payload.new as {
+              user_id?: string;
+              display_name?: string | null;
+              avatar_url?: string | null;
+            } | null;
             const userId = next?.user_id;
             if (!userId) return;
 
@@ -377,6 +388,6 @@ export const useTripMembers = (tripId?: string) => {
     canRemoveMembers,
     removeMember,
     leaveTrip,
-    refreshMembers: () => tripId && loadTripMembers(tripId)
+    refreshMembers: () => tripId && loadTripMembers(tripId),
   };
 };
