@@ -82,7 +82,7 @@ export const MobileProTripDetail = () => {
       if (!demoTrip) return null;
       return {
         ...demoTrip,
-        trip_type: 'pro',
+        trip_type: 'pro' as const,
         enabled_features: demoTrip.enabled_features ?? defaultFeatures,
       };
     }
@@ -116,7 +116,7 @@ export const MobileProTripDetail = () => {
       proTripCategory: 'Sports – Pro, Collegiate, Youth',
       enabled_features: supabaseTrip.enabled_features || defaultFeatures,
       createdBy: supabaseTrip.created_by,
-      trip_type: 'pro',
+      trip_type: 'pro' as const,
     } as ProTripData & { createdBy?: string };
   }, [isDemoMode, proTripId, userTrips, tripMembers]);
 

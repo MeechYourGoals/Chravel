@@ -148,7 +148,6 @@ export const CATEGORIES: Category[] = [
     title: 'Tasks',
     subtitle: '',
     icon: '✅',
-    benefitQuote: '"I thought you were handling?"',
     benefit: 'Reminders and accountability for everyone.',
     hero: [
       { name: 'Notion' },
