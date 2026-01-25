@@ -40,7 +40,7 @@ export const CATEGORIES: Category[] = [
     title: 'Calendar',
     subtitle: '',
     icon: '📅',
-    benefit: 'One shared schedule—everyone actually sees it.',
+    benefit: 'One shared schedule—Updated live for everyone.',
     hero: [
       { name: 'Google Calendar' },
       { name: 'Outlook Calendar' },
@@ -95,7 +95,7 @@ export const CATEGORIES: Category[] = [
     title: 'Payments',
     subtitle: '',
     icon: '💳',
-    benefit: 'See who owes what. No spreadsheets.',
+    benefit: 'See who owes what. No spreadsheets. Your preferred payment method.',
     hero: [
       { name: 'Venmo' },
       { name: 'Zelle' },
@@ -132,7 +132,7 @@ export const CATEGORIES: Category[] = [
     title: 'Polls',
     subtitle: '',
     icon: '📊',
-    benefit: 'Make group decisions without endless scrolling.',
+    benefit: 'Make group decisions without endless debates. No scrolling to remember the vote.',
     hero: [
       { name: 'Doodle' },
       { name: 'Google Forms' },
@@ -148,7 +148,7 @@ export const CATEGORIES: Category[] = [
     title: 'Tasks',
     subtitle: '',
     icon: '✅',
-    benefit: 'Reminders and accountability for everyone.',
+    benefit: "The Group's To Do List—Reminders and accountability for all.",
     hero: [
       { name: 'Notion' },
       { name: 'Asana' },
