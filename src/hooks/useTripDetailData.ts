@@ -46,6 +46,18 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   // 🔒 CRITICAL: Use raw session.user.id for auth gating - more reliable than transformed user
   const authUserId = session?.user?.id ?? null;
 
+  // 🔍 DEBUG: Log auth state to diagnose "Trip Not Found" issue
+  if (import.meta.env.DEV || typeof window !== 'undefined') {
+    console.log('[useTripDetailData] Auth state:', {
+      tripId,
+      isAuthLoading,
+      hasSession: !!session,
+      hasSessionUser: !!session?.user,
+      authUserId,
+      isDemoMode,
+    });
+  }
+
   // Demo mode: Fast path - synchronous, no network
   const isNumericId = tripId ? /^\d+$/.test(tripId) : false;
   const shouldUseDemoPath = isDemoMode && isNumericId;
@@ -138,6 +150,27 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
       isAuthLoading: true,
       tripError: null,
       membersError: null,
+    };
+  }
+
+  // 🔒 CRITICAL FIX: If auth is done but NO session, return AUTH_REQUIRED error
+  // This prevents showing "Trip Not Found" when user simply isn't logged in
+  // The query won't run (isQueryEnabled=false) so we must return the error here
+  if (!authUserId && !shouldUseDemoPath && tripId) {
+    console.warn('[useTripDetailData] No authUserId after auth loaded - returning AUTH_REQUIRED', {
+      tripId,
+      isAuthLoading,
+      hasSession: !!session,
+    });
+    return {
+      trip: null,
+      tripMembers: [],
+      tripCreatorId: null,
+      isLoading: false,
+      isMembersLoading: false,
+      isAuthLoading: false,
+      tripError: new Error('AUTH_REQUIRED'),
+      membersError: new Error('AUTH_REQUIRED'),
     };
   }
 
