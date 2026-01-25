@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Trip } from '@/services/tripService';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 import { useDemoModeStore } from '@/store/demoModeStore';
+import { isSessionTokenValid, logTokenDebug } from '@/utils/tokenValidation';
 
 // Timeout utility to prevent indefinite hanging on database queries
 const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
@@ -383,6 +384,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     [ensureProfileExists],
   );
 
+  /**
+   * Force refresh session when token is invalid.
+   * Returns refreshed session or null if refresh fails.
+   */
+  const forceRefreshSession = useCallback(async (): Promise<Session | null> => {
+    if (import.meta.env.DEV) {
+      console.log('[Auth] Force refreshing session due to invalid token...');
+    }
+    
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error('[Auth] Force refresh failed:', error);
+        // Clear corrupted session
+        await supabase.auth.signOut();
+        return null;
+      }
+      
+      // Validate the refreshed token
+      if (data.session && !isSessionTokenValid(data.session.access_token)) {
+        console.error('[Auth] Refreshed token still invalid - clearing session');
+        await supabase.auth.signOut();
+        return null;
+      }
+      
+      if (import.meta.env.DEV) {
+        console.log('[Auth] Session force refresh successful');
+      }
+      
+      return data.session;
+    } catch (err) {
+      console.error('[Auth] Force refresh error:', err);
+      await supabase.auth.signOut();
+      return null;
+    }
+  }, []);
+
   // Initialize auth state
   useEffect(() => {
     // Safety timeout: force loading to false after 10 seconds to prevent infinite loading
@@ -408,11 +447,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           await new Promise(r => setTimeout(r, 1000));
           const retry = await supabase.auth.getSession();
           if (retry.data.session) {
+            // Validate token before using
+            if (!isSessionTokenValid(retry.data.session.access_token)) {
+              console.warn('[Auth] Retry session has invalid token - forcing refresh');
+              const refreshed = await forceRefreshSession();
+              if (refreshed) {
+                setSession(refreshed);
+                const transformedUser = await transformUser(refreshed.user);
+                setUser(transformedUser);
+              }
+              setIsLoading(false);
+              return;
+            }
             setSession(retry.data.session);
             const transformedUser = await transformUser(retry.data.session.user);
             setUser(transformedUser);
             setIsLoading(false);
             return;
+          }
+          setIsLoading(false);
+          return;
+        }
+
+        // CRITICAL: Validate token has required claims before using
+        if (session?.access_token && !isSessionTokenValid(session.access_token)) {
+          console.warn('[Auth] Session token missing required claims (sub) - forcing refresh');
+          logTokenDebug('getSessionAndUser:invalid', session.access_token);
+          
+          const refreshedSession = await forceRefreshSession();
+          if (refreshedSession) {
+            setSession(refreshedSession);
+            const transformedUser = await transformUser(refreshedSession.user);
+            setUser(transformedUser);
+          } else {
+            setUser(shouldUseDemoUserRef.current ? demoUser : null);
           }
           setIsLoading(false);
           return;
@@ -428,7 +496,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               console.log('[Auth] Session near expiry, proactively refreshing...');
             }
             const { data: refreshed } = await supabase.auth.refreshSession();
-            if (refreshed.session) {
+            if (refreshed.session && isSessionTokenValid(refreshed.session.access_token)) {
               setSession(refreshed.session);
               const transformedUser = await transformUser(refreshed.session.user);
               setUser(transformedUser);
