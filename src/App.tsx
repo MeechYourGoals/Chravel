@@ -190,6 +190,62 @@ const App = () => {
     });
   }, []);
 
+  // CRITICAL: Validate session token on mount and clear if corrupted
+  // This fixes "403: invalid claim: missing sub claim" errors
+  useEffect(() => {
+    const validateAndClearCorruptedSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.access_token) {
+          // Parse and validate the JWT token
+          const parts = session.access_token.split('.');
+          if (parts.length !== 3) {
+            console.warn('[App] Malformed token structure - clearing session');
+            await supabase.auth.signOut();
+            return;
+          }
+          
+          try {
+            const payload = JSON.parse(atob(parts[1]));
+            
+            // Check for missing 'sub' claim (user ID) - primary cause of 403 errors
+            if (!payload.sub) {
+              console.warn('[App] Token missing sub claim - clearing corrupted session');
+              await supabase.auth.signOut();
+              return;
+            }
+            
+            // Validate sub matches session user id
+            if (payload.sub !== session.user?.id) {
+              console.warn('[App] Token sub claim mismatch - clearing session');
+              await supabase.auth.signOut();
+              return;
+            }
+            
+            // Check if token is expired
+            if (payload.exp && Date.now() > payload.exp * 1000) {
+              console.log('[App] Token expired on mount - refreshing session');
+              const { error } = await supabase.auth.refreshSession();
+              if (error) {
+                console.warn('[App] Token refresh failed - clearing session');
+                await supabase.auth.signOut();
+              }
+            }
+          } catch (parseError) {
+            console.error('[App] Failed to parse token - clearing session:', parseError);
+            await supabase.auth.signOut();
+          }
+        }
+      } catch (error) {
+        console.error('[App] Session validation error:', error);
+        // Don't clear session on validation error - might be transient
+      }
+    };
+    
+    validateAndClearCorruptedSession();
+  }, []);
+
   // Setup global offline sync processor
   useEffect(() => {
     return setupGlobalSyncProcessor();
