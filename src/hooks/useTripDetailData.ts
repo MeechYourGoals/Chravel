@@ -35,28 +35,29 @@ interface UseTripDetailDataResult {
  * - Progressive rendering - trip loads first, members follow
  * - 🔒 Auth-aware: waits for auth hydration before fetching
  * - 🔑 User-scoped cache keys: prevents anon results poisoning auth cache
- * - 🔒 FIX: Gates on raw session.user instead of transformed user (prevents auth race condition)
+ * - 🔒 FIX: Uses SAME auth pattern as useTrips (user?.id) for consistency
  */
 export const useTripDetailData = (tripId: string | undefined): UseTripDetailDataResult => {
   const { isDemoMode } = useDemoMode();
-  // 🔒 FIX: Use session directly instead of transformed user to prevent auth race condition
-  // The transformed `user` can be null even when session exists (transform failure)
-  const { session, isLoading: isAuthLoading } = useAuth();
+  // 🔒 FIX: Get BOTH user and session - use same pattern as useTrips for consistency
+  // useTrips uses `user`, so we should too. This ensures if trips list works, detail works.
+  const { user, session, isLoading: isAuthLoading } = useAuth();
 
-  // 🔒 CRITICAL: Use raw session.user.id for auth gating - more reliable than transformed user
-  const authUserId = session?.user?.id ?? null;
+  // 🔒 CRITICAL: Use user?.id (same as useTrips) as primary auth identifier
+  // Fallback to session?.user?.id only if user transform is incomplete
+  const authUserId = user?.id ?? session?.user?.id ?? null;
 
   // 🔍 DEBUG: Log auth state to diagnose "Trip Not Found" issue
-  if (import.meta.env.DEV || typeof window !== 'undefined') {
-    console.log('[useTripDetailData] Auth state:', {
-      tripId,
-      isAuthLoading,
-      hasSession: !!session,
-      hasSessionUser: !!session?.user,
-      authUserId,
-      isDemoMode,
-    });
-  }
+  console.log('[useTripDetailData] Auth state:', {
+    tripId,
+    isAuthLoading,
+    hasUser: !!user,
+    userId: user?.id?.slice(0, 8),
+    hasSession: !!session,
+    sessionUserId: session?.user?.id?.slice(0, 8),
+    authUserId: authUserId?.slice(0, 8),
+    isDemoMode,
+  });
 
   // Demo mode: Fast path - synchronous, no network
   const isNumericId = tripId ? /^\d+$/.test(tripId) : false;
