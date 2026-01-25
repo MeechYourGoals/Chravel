@@ -1,145 +1,186 @@
 
-## SCOPE_DEFINITION (Gate 1)
+# Landing Page Polish & Build Fix
 
-**Objective:** Fix authenticated trip access so “Trip Not Found”, “0 members”, and “no access to payments” never appear for trips the user can clearly see on the dashboard.
-
-**What we know (evidence from Live DB):**
-- User `ccamechi@gmail.com` exists in `auth.users` with id `013d9240-10c0-44e5-8da5-abfa2c4751c5`.
-- The affected trips exist in `public.trips` (Live):
-  - **The Good Fellas de Los Tylers** `421120c6-8489-4471-84e4-3db83655e28c` (`trip_type=consumer`, not archived/hidden)
-  - **Nard and Mari’s Wedding** `27f3f7a4-595f-48ad-8951-85391654a62d` (`trip_type=consumer`, not archived/hidden)
-- The user has memberships in `public.trip_members` for multiple trips including the above (Live).
-
-**Primary hypothesis (most likely root cause):**
-- **We are caching “null trip / empty members” results as successful React Query responses** because:
-  - `tripService.getTripById()` catches errors and returns `null` (does not throw).
-  - `tripService.getTripMembersWithCreator()` catches errors and returns `{ members: [], creatorId: null }` (does not throw).
-- If a query runs even once with missing/late auth token (or transient RLS/network failure), React Query stores the “success” result as `null`/`[]` and does not refetch until stale/invalidation → user sees “Trip Not Found” and “0 members” even though the trip exists and they’re authenticated.
-
-**Secondary hypothesis (also likely contributing):**
-- `useTripDetailData()` does not gate `enabled` on auth readiness and does not include `userId` in the query key; so it can fire before the session is hydrated and then cache the wrong result.
-
-**Success criteria:**
-1. Opening any trip card you can see on Home always loads the trip (no “Trip Not Found” for valid access).
-2. Trip Members never shows `0` for real trips; minimum is creator/you while members load.
-3. Payments tab never shows “no access” for authorized users; if there is a real permission issue it should show a precise reason + recovery CTA.
-4. No regressions in Demo mode or trip invite/join flows.
-5. Clear observability: errors are surfaced as errors (not silently converted to null) and are actionable in UI.
+## Overview
+This plan addresses 4 categories of changes:
+1. **Build Error Fix** - Type compatibility issue in MobileProTripDetail
+2. **ChravelTabs Typography** - Larger feature names, brighter italic descriptions, remove Tasks quote
+3. **Screenshot Cropping** - Remove iPhone status bar from "Create Trip" and "One Hub" screenshots
+4. **Copy Update** - Update "Chravel Recap PDFs" description text
 
 ---
 
-## TARGET_MANIFEST (Gate 2)
+## 1. Build Error Fix
 
-**High-confidence code hotspots (by impact):**
-1. `src/services/tripService.ts`
-   - `getTripById()` currently uses `.single()` + swallow errors → returns null.
-   - `getTripMembersWithCreator()` currently swallows errors → returns empty members.
-2. `src/hooks/useTripDetailData.ts`
-   - Query `enabled` doesn’t depend on auth readiness; query keys don’t include `userId`.
-   - Only returns `tripQuery.error` and hides members errors.
-3. `src/pages/TripDetailDesktop.tsx` and `src/pages/MobileTripDetail.tsx`
-   - Treat `trip === null` as “Trip Not Found” without checking `error`.
-   - Show member count directly from `participants.length` which can be 0 if members query cached empty.
-4. Payments layer (exact file(s) to confirm during implementation):
-   - Likely a hook/component that interprets any error/empty as “no access”.
-   - Needs same treatment: don’t silently map RLS/network failures to “access denied”.
+### Problem
+The `tripData` prop passed to `MobileTripTabs` has `trip_type` typed as `string`, but the component expects `'consumer' | 'pro' | 'event'`.
 
-**DB/RLS verification target (only if needed):**
-- Ensure payments tables (`trip_payments`, `trip_expenses`, etc.) have SELECT policies using `is_trip_member()`; otherwise fix RLS (minimal and least-privileged).
+### Solution
+**File:** `src/pages/MobileProTripDetail.tsx` (lines 112-120)
 
----
+Add explicit type assertion for `trip_type`:
 
-## IMPLEMENTATION DESIGN (Gate 3 — Minimalist, no billing logic changes)
+```typescript
+return {
+  ...convertedTrip,
+  participants: proParticipants,
+  roster: proParticipants,
+  proTripCategory: 'Sports – Pro, Collegiate, Youth',
+  enabled_features: supabaseTrip.enabled_features || defaultFeatures,
+  createdBy: supabaseTrip.created_by,
+  trip_type: 'pro' as const,  // ← Add 'as const' to preserve literal type
+} as ProTripData & { createdBy?: string };
+```
 
-### A) Stop caching failures as “successful null”
-**Trip fetch**
-- Update `tripService.getTripById(tripId)`:
-  - Use `.maybeSingle()` instead of `.single()` to avoid throwing on “0 rows”.
-  - If PostgREST returns “no rows” → return `null`.
-  - If error is 401/403/JWT/network/other → **throw** so React Query marks it as error and can retry/refetch.
-  - Add structured logs (DEV-only) that include `tripId`, `error.code`, `status`, `message`.
-
-**Members fetch**
-- Update `tripService.getTripMembersWithCreator(tripId)`:
-  - If either trip or members query errors due to auth/RLS/network → **throw** (do not return empty success).
-  - Keep the “creator fallback member” only for true empty-data situations (e.g., no rows but trip exists) not for errors.
-  - Return a sentinel “minimum member” (creator) only if we can fetch creatorId successfully.
-
-### B) Make `useTripDetailData` auth-aware + query-key correct
-- Add auth readiness gating:
-  - Pull `user` and `isAuthLoading` (or equivalent) from `useAuth()`.
-  - `enabled` should be `!!tripId && !shouldUseDemoPath && !!user && !isAuthLoading`.
-- Include `user?.id` in query keys:
-  - `tripKeys.detail(tripId, userId)` (or append `userId` to key arrays) so cached anon fetch can never poison authenticated fetch.
-- Return richer error surface:
-  - `tripError`, `membersError` (or a combined error object) so pages can render correct states.
-- Keep progressive rendering:
-  - Trip can render first, members can load second, but **members loading must not display “0”**.
-
-### C) Fix “Trip Not Found” screen logic (desktop + mobile)
-- Update `TripDetailDesktop` and `MobileTripDetail` rendering rules:
-  1. If auth not ready → show skeleton (not “Trip Not Found”).
-  2. If `tripError` exists → show “Couldn’t load trip” with **Retry** (invalidate query + refetch) and **Back to My Trips**.
-  3. If `trip === null` and no error → show true “Trip Not Found / No Access” UI, ideally reusing `ProTripNotFound` patterns (reasoned messaging).
-- Member count display:
-  - While `isMembersLoading` (or membersError), show “—” or a small spinner instead of 0.
-  - After members load: show real count.
-  - If still empty (should not happen) show at least 1 (creator) with a small “syncing…” note (and trigger a refetch).
-
-### D) Payments “no access” bug fix (no regressions)
-- Identify the payments hook/component:
-  - Ensure it throws on RLS/network errors instead of returning an “access denied” UX for transient failures.
-  - Gate payment queries on `user` and (optionally) confirmed membership.
-  - If there is a real 403:
-    - Show “You don’t have permission for Payments in this trip” with rationale and “Contact organizer” CTA.
-- If RLS is actually missing/incorrect for payments tables:
-  - Minimal policy update: allow SELECT/INSERT/UPDATE only when `is_trip_member(auth.uid(), trip_id)` (or stricter by role if required).
-
-### E) Optional but recommended: Data integrity backfill (defensive)
-Even if the core bug is caching/async auth, we should harden the DB invariant:
-- Ensure every trip creator is also in `trip_members` as `admin`.
-- Provide a one-time SQL backfill for Live (run via Cloud View > Run SQL in Live) if we discover any creator missing membership rows.
-  - This is safe and aligns with the existing “ensure_creator_is_member” trigger pattern.
+Also fix line 85 in the demo mode path:
+```typescript
+trip_type: 'pro' as const,
+```
 
 ---
 
-## VERIFICATION (Gate 4)
+## 2. ChravelTabs Typography Updates
 
-**Repro + fix validation path (desktop):**
-1. Log in as `ccamechi@gmail.com`.
-2. Open:
-   - The Good Fellas de Los Tylers → should load consistently.
-   - Nard and Mari’s Wedding → should load with members count > 0 and populate shortly after.
-3. Navigate tabs, especially Payments:
-   - No “no access” unless truly unauthorized; errors show retryable state.
-4. Hard refresh on a trip detail route:
-   - Should not cache “null” and show “Trip Not Found”.
+### File: `src/components/conversion/ReplacesGrid.tsx`
 
-**Regression checks:**
-- Demo mode numeric trips still load instantly.
-- Trip list page still loads (no query key mismatch).
-- JoinTrip flow unchanged (existing error taxonomy remains for invites).
+#### A) Increase Feature Name Font Size
+
+**Desktop (lines 43-48):**
+- Change from `text-lg lg:text-xl` to `text-xl lg:text-2xl`
+
+**Mobile (lines 65-72):**
+- Change from `text-xl sm:text-2xl` to `text-2xl sm:text-3xl`
+
+#### B) Make Descriptions Brighter White + Italic
+
+**Desktop (lines 55-57):**
+- Change from `text-white/80` to `text-white italic`
+
+**Mobile (lines 85-90):**
+- Change from `text-white` to `text-white italic`
+- Both already have font-medium, just need italic added
+
+### File: `src/components/conversion/ReplacesGridData.ts`
+
+#### C) Remove "I thought you were handling?" Quote from Tasks
+
+**Lines 147-152:**
+- Remove or comment out `benefitQuote: '"I thought you were handling?"'` from the Tasks category
+
+```typescript
+// BEFORE
+{
+  key: 'tasks',
+  title: 'Tasks',
+  subtitle: '',
+  icon: '✅',
+  benefitQuote: '"I thought you were handling?"',
+  benefit: 'Reminders and accountability for everyone.',
+  // ...
+}
+
+// AFTER
+{
+  key: 'tasks',
+  title: 'Tasks',
+  subtitle: '',
+  icon: '✅',
+  // benefitQuote removed
+  benefit: 'Reminders and accountability for everyone.',
+  // ...
+}
+```
 
 ---
 
-## DELIVERY (Gate 5)
+## 3. Screenshot Cropping (Status Bar Removal)
 
-**Files expected to change (exact list to confirm once implementation starts):**
-- `src/services/tripService.ts`
-- `src/hooks/useTripDetailData.ts`
-- `src/pages/TripDetailDesktop.tsx`
-- `src/pages/MobileTripDetail.tsx`
-- Payments-related hook/component (to be identified during implementation)
-- Possibly: small UI component for “Retry”/error state reuse
+The screenshots currently show iPhone status bars (time, signal, battery). These need to be cropped.
 
-**Rollback strategy:**
-- All changes are contained to fetch behavior + UI handling; rollback is reverting those files only.
+### Approach
+Create new cropped versions of the screenshots using CSS `object-fit` and `object-position`, or by applying inline cropping styles that hide the top portion.
+
+### File: `src/components/landing/sections/ProblemSolutionSection.tsx`
+
+#### Option A: CSS Cropping (Recommended - No new assets needed)
+
+For both "Create Trip" and "One Hub" screenshots, wrap in a container that clips the top:
+
+```tsx
+{/* Create Trip Screenshot - with status bar cropped */}
+<div className="w-full h-[520px] flex items-center justify-center overflow-hidden">
+  <div className="relative w-full" style={{ marginTop: '-28px' }}>
+    <img 
+      src={createNewTrip}
+      alt="Create New Trip form interface"
+      className="w-full h-auto object-contain rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
+    />
+  </div>
+</div>
+
+{/* One Hub Screenshot - with status bar cropped */}
+<div className="w-full h-[520px] flex items-center justify-center overflow-hidden">
+  <div className="relative w-full" style={{ marginTop: '-28px' }}>
+    <img 
+      src={oneHubChat}
+      alt="Trip chat interface"
+      className="w-full h-auto object-contain rounded-2xl shadow-2xl border border-border/50 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300"
+    />
+  </div>
+</div>
+```
+
+The `marginTop: '-28px'` shifts the image up within its container, and `overflow-hidden` on the parent clips the status bar from view. Apply same treatment to mobile versions.
 
 ---
 
-## CRITICAL CLARIFICATIONS (to answer before/while implementing)
-Because you asked for a “deep dive”, two quick facts will let me lock the fix fast:
-1. Are you seeing this on **Published** (`chravel.lovable.app`) or **Preview**?
-2. Does “Trip Not Found” happen **every time** for Goodfellas, or only after refresh / after navigating between trips?
+## 4. Chravel Recap PDFs Copy Update
 
-Per your time-critical instruction: I will not run more diagnostics tools in this message. If you want me to proceed, reply “continue” and I’ll start implementing + validating (including capturing the exact Supabase/PostgREST errors that are currently being swallowed).
+### File: `src/components/landing/sections/AiFeaturesSection.tsx`
+
+**Lines 39-43:**
+
+```typescript
+// BEFORE
+{
+  icon: <ScrollText className="text-primary" size={28} />,
+  title: 'Chravel Recap PDFs',
+  description: 'Overwhelmed or want to Share off App? Get a Simple Summary PDF of the trip'
+}
+
+// AFTER  
+{
+  icon: <ScrollText className="text-primary" size={28} />,
+  title: 'Chravel Recap PDFs',
+  description: 'Sharing recommendations or just want a quick overview of the trip? Get a simple summary PDF.'
+}
+```
+
+---
+
+## Summary of Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/pages/MobileProTripDetail.tsx` | Add `as const` to `trip_type: 'pro'` (2 locations) |
+| `src/components/conversion/ReplacesGrid.tsx` | Increase font sizes, add italic to descriptions |
+| `src/components/conversion/ReplacesGridData.ts` | Remove `benefitQuote` from Tasks |
+| `src/components/landing/sections/ProblemSolutionSection.tsx` | Add CSS cropping to hide status bars |
+| `src/components/landing/sections/AiFeaturesSection.tsx` | Update Recap PDFs description text |
+
+---
+
+## Visual Result
+
+### ChravelTabs After Changes
+- **Feature names** (Chat, Calendar, etc.): Larger, bolder
+- **Descriptions**: Pure white (#FFFFFF) instead of gray, italicized
+- **Tasks row**: Only shows "Reminders and accountability for everyone." (no quote)
+
+### Screenshots After Changes
+- **Create Trip**: Starts at "Create New Trip" modal header (no 9:41 / battery)
+- **One Hub**: Starts at "Fantasy Football Chat's Annual..." (no 9:51 / battery)
+- **Trip Invite**: Unchanged (middle screenshot doesn't show status bar)
+
+### AI Features Section
+- **Recap PDFs**: New copy reads "Sharing recommendations or just want a quick overview of the trip? Get a simple summary PDF."
