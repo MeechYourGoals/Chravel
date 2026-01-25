@@ -23,7 +23,7 @@ export const ReplacesGrid = () => {
           className="text-base sm:text-lg md:text-xl text-white font-semibold mt-4"
           style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
         >
-          Tap any tab below to see what ChravelApp replaces.
+          Tap the Tabs below to see ChravelApp Consolidate your App Arsenal
         </p>
 
         {/* Placeholder for ChravelTabs screenshot */}
