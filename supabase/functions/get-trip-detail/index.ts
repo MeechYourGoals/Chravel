@@ -106,7 +106,7 @@ serve(async (req): Promise<Response> => {
       .eq('user_id', authData.user.id)
       .maybeSingle();
 
-    if ((isSuperAdmin || isCreator) && !membership) {
+    if (isCreator && !membership) {
       const { error: upsertError } = await supabaseAdmin.from('trip_members').upsert(
         {
           trip_id: tripId,
