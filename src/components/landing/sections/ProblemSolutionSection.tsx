@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { CalendarPlus, Share2, RefreshCw } from 'lucide-react';
-import createNewTrip from '@/assets/landing/create-new-trip-cropped.png';
+import createNewTrip from '@/assets/app-screenshots/create-new-trip-modal.png';
 import tripInviteCoachella from '@/assets/app-screenshots/trip-invite-coachella.png';
 import oneHubChat from '@/assets/landing/one-hub-chat-cropped.png';
 
