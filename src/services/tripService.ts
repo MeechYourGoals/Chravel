@@ -71,6 +71,45 @@ export interface CreateTripData {
   card_color?: string; // Color coding for Pro/Event cards
 }
 
+type TripDetailErrorCode = 'AUTH_REQUIRED' | 'TRIP_NOT_FOUND' | 'ACCESS_DENIED' | 'BAD_REQUEST';
+
+interface TripDetailFunctionResponse {
+  success: boolean;
+  trip?: Trip;
+  error?: string;
+  error_code?: TripDetailErrorCode;
+}
+
+const fetchTripByIdViaEdgeFunction = async (tripId: string): Promise<Trip | null> => {
+  const { data, error } = await supabase.functions.invoke('get-trip-detail', {
+    body: { tripId },
+  });
+
+  if (error) {
+    throw new Error(`Failed to load trip: ${error.message}`);
+  }
+
+  const response = data as TripDetailFunctionResponse | undefined;
+  if (!response) {
+    throw new Error('Failed to load trip: Empty response');
+  }
+
+  if (!response.success) {
+    if (response.error_code === 'AUTH_REQUIRED') {
+      throw new Error('AUTH_REQUIRED');
+    }
+    if (response.error_code === 'ACCESS_DENIED') {
+      throw new Error('permission denied');
+    }
+    if (response.error_code === 'TRIP_NOT_FOUND') {
+      return null;
+    }
+    throw new Error(response.error || 'Failed to load trip');
+  }
+
+  return response.trip ?? null;
+};
+
 export const tripService = {
   async createTrip(tripData: CreateTripData): Promise<Trip | null> {
     try {
@@ -342,8 +381,12 @@ export const tripService = {
       throw new Error(`Failed to load trip: ${error.message}`);
     }
 
-    // No error but no data means trip doesn't exist (legitimate null)
-    return data;
+    if (data) {
+      return data;
+    }
+
+    // No error but no data could be RLS filtering; fall back to server-side access check
+    return await fetchTripByIdViaEdgeFunction(tripId);
   },
 
   async updateTrip(tripId: string, updates: Partial<Trip>): Promise<boolean> {
@@ -482,14 +525,14 @@ export const tripService = {
     }
 
     const creatorId = tripResult.data?.created_by || null;
-    
+
     if (import.meta.env.DEV) {
       console.log('[tripService.getTripMembersWithCreator] Results:', {
         creatorId,
         membersCount: membersResult.data?.length ?? 0,
       });
     }
-    
+
     // If no members in table but we have creator, fetch creator as minimum member
     if (!membersResult.data || membersResult.data.length === 0) {
       if (import.meta.env.DEV) {
@@ -501,15 +544,17 @@ export const tripService = {
           .select('user_id, display_name, avatar_url')
           .eq('user_id', creatorId)
           .maybeSingle();
-        
+
         return {
-          members: [{
-            id: creatorId,
-            name: creatorProfile?.display_name || 'Trip Creator',
-            avatar: creatorProfile?.avatar_url,
-            isCreator: true,
-          }],
-          creatorId
+          members: [
+            {
+              id: creatorId,
+              name: creatorProfile?.display_name || 'Trip Creator',
+              avatar: creatorProfile?.avatar_url,
+              isCreator: true,
+            },
+          ],
+          creatorId,
         };
       }
       return { members: [], creatorId };
