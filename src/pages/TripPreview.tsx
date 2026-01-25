@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
+import { useDemoMode } from '../hooks/useDemoMode';
 import { tripsData } from '../data/tripsData';
 import { Loader2, Users, MapPin, Calendar, Share2, ExternalLink } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -20,10 +21,14 @@ interface TripPreviewData {
   description?: string | null;
 }
 
+const isUuid = (value: string): boolean =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
 const TripPreview = () => {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { setDemoView } = useDemoMode();
   const [loading, setLoading] = useState(true);
   const [tripData, setTripData] = useState<TripPreviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -170,26 +175,43 @@ const TripPreview = () => {
     }
   };
 
-  const handleViewTrip = () => {
-    // Check if this is a demo trip (numeric ID 1-12)
-    const numericId = tripId ? parseInt(tripId, 10) : NaN;
-    const isDemoTrip = !isNaN(numericId) && numericId > 0 && numericId <= 12;
+  const handleViewTrip = async () => {
+    if (!tripId) return;
+
+    const resolvedTripType =
+      tripData?.trip_type === 'pro' || tripData?.trip_type === 'event'
+        ? tripData.trip_type
+        : 'consumer';
+
+    const tripRoute =
+      resolvedTripType === 'pro'
+        ? `/tour/pro/${tripId}`
+        : resolvedTripType === 'event'
+          ? `/event/${tripId}`
+          : `/trip/${tripId}`;
+
+    const isDemoTrip = !isUuid(tripId);
 
     if (isDemoTrip) {
-      // Demo trips should redirect to auth - they're not real trips in the database
-      navigate(`/auth?mode=signup&returnTo=${encodeURIComponent('/')}`, { replace: true });
+      if (user) {
+        await setDemoView('app-preview');
+        navigate(tripRoute);
+        return;
+      }
+      navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(tripRoute)}`, {
+        replace: true,
+      });
       return;
     }
 
     if (user) {
-      // User is logged in, go to full trip detail
-      navigate(`/trip/${tripId}`);
-    } else {
-      // Prompt to sign up/login
-      navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(`/trip/${tripId}`)}`, {
-        replace: true,
-      });
+      navigate(tripRoute);
+      return;
     }
+
+    navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(tripRoute)}`, {
+      replace: true,
+    });
   };
 
   const formatDateRange = (
