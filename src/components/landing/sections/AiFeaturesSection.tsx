@@ -92,25 +92,22 @@ export const AiFeaturesSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-stretch">
           {/* Left: AI Concierge Screenshot */}
           <motion.div 
-            className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300"
+            className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300 min-h-[300px] lg:min-h-[380px]"
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            style={{ maxHeight: '420px' }}
           >
-            <div style={{ marginTop: '-60px', marginBottom: '-30px' }}>
-              <img 
-                src={aiConcierge} 
-                alt="AI Concierge providing personalized recommendations" 
-                className="w-full h-auto object-cover"
-              />
-            </div>
+            <img 
+              src={aiConcierge} 
+              alt="AI Concierge providing personalized recommendations" 
+              className="w-full h-full object-cover object-top"
+            />
           </motion.div>
 
           {/* Right: 3 Pills matching screenshot height */}
           <motion.div 
-            className="grid grid-rows-3 gap-3 sm:gap-4"
+            className="grid grid-rows-3 gap-3 sm:gap-4 min-h-[300px] lg:min-h-[380px]"
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
@@ -142,24 +139,22 @@ export const AiFeaturesSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-stretch">
           {/* Left: Places Screenshot */}
           <motion.div 
-            className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-accent/30 transition-all duration-300"
+            className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-accent/30 transition-all duration-300 min-h-[300px] lg:min-h-[380px]"
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <div style={{ marginTop: '-60px' }}>
-              <img 
-                src={placesMaps} 
-                alt="Interactive maps and places discovery" 
-                className="w-full h-auto object-cover"
-              />
-            </div>
+            <img 
+              src={placesMaps} 
+              alt="Interactive maps and places discovery" 
+              className="w-full h-full object-cover object-top"
+            />
           </motion.div>
 
           {/* Right: 3 Pills matching screenshot height */}
           <motion.div 
-            className="grid grid-rows-3 gap-3 sm:gap-4"
+            className="grid grid-rows-3 gap-3 sm:gap-4 min-h-[300px] lg:min-h-[380px]"
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
