@@ -28,7 +28,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           onClick={onSignUp}
           className="text-xs px-3 py-1 bg-primary hover:bg-primary/90 backdrop-blur-md border border-white/10 text-primary-foreground shadow-lg h-7"
         >
-          Start Coordinating Free
+          Login or Signup
         </Button>
       </div>
 
@@ -100,7 +100,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           className="mt-4 px-6 py-3 bg-primary hover:bg-primary/90 backdrop-blur-md border border-border/50 text-primary-foreground rounded-lg text-base font-semibold shadow-xl shadow-black/30 animate-fade-in lg:hidden"
           style={{ animationDelay: '0.2s' }}
         >
-          Start Coordinating Free
+          Login or Signup
         </Button>
       </div>
 
