@@ -47,17 +47,19 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   // Fallback to session?.user?.id only if user transform is incomplete
   const authUserId = user?.id ?? session?.user?.id ?? null;
 
-  // 🔍 DEBUG: Log auth state to diagnose "Trip Not Found" issue
-  console.log('[useTripDetailData] Auth state:', {
-    tripId,
-    isAuthLoading,
-    hasUser: !!user,
-    userId: user?.id?.slice(0, 8),
-    hasSession: !!session,
-    sessionUserId: session?.user?.id?.slice(0, 8),
-    authUserId: authUserId?.slice(0, 8),
-    isDemoMode,
-  });
+  // 🔍 DEBUG: Log auth state (dev only) to diagnose issues
+  if (import.meta.env.DEV) {
+    console.log('[useTripDetailData] Auth state:', {
+      tripId,
+      isAuthLoading,
+      hasUser: !!user,
+      userId: user?.id?.slice(0, 8),
+      hasSession: !!session,
+      sessionUserId: session?.user?.id?.slice(0, 8),
+      authUserId: authUserId?.slice(0, 8),
+      isDemoMode,
+    });
+  }
 
   // Demo mode: Fast path - synchronous, no network
   const isNumericId = tripId ? /^\d+$/.test(tripId) : false;
@@ -158,11 +160,13 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   // This prevents showing "Trip Not Found" when user simply isn't logged in
   // The query won't run (isQueryEnabled=false) so we must return the error here
   if (!authUserId && !shouldUseDemoPath && tripId) {
-    console.warn('[useTripDetailData] No authUserId after auth loaded - returning AUTH_REQUIRED', {
-      tripId,
-      isAuthLoading,
-      hasSession: !!session,
-    });
+    if (import.meta.env.DEV) {
+      console.warn('[useTripDetailData] No authUserId after auth loaded - returning AUTH_REQUIRED', {
+        tripId,
+        isAuthLoading,
+        hasSession: !!session,
+      });
+    }
     return {
       trip: null,
       tripMembers: [],
