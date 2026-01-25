@@ -178,7 +178,7 @@ export const ProblemSolutionSection = () => {
               Create Trip
             </span>
             <div className="w-full h-[520px] flex items-center justify-center rounded-2xl overflow-hidden">
-              <div className="w-full h-full" style={{ marginTop: '-24px' }}>
+              <div className="w-full h-full" style={{ marginTop: '-38px' }}>
                 <img 
                   src={createNewTrip}
                   alt="Create New Trip form interface"
@@ -226,7 +226,7 @@ export const ProblemSolutionSection = () => {
               One Hub
             </span>
             <div className="w-full h-[520px] flex items-center justify-center rounded-2xl overflow-hidden">
-              <div className="w-full h-full" style={{ marginTop: '-24px' }}>
+              <div className="w-full h-full" style={{ marginTop: '-38px' }}>
                 <img 
                   src={oneHubChat}
                   alt="Trip chat interface showing group messages and activity"
@@ -254,7 +254,7 @@ export const ProblemSolutionSection = () => {
               Create Trip
             </span>
             <div className="max-w-[300px] rounded-xl overflow-hidden">
-              <div style={{ marginTop: '-20px' }}>
+              <div style={{ marginTop: '-28px' }}>
                 <img 
                   src={createNewTrip}
                   alt="Create New Trip form interface"
@@ -302,7 +302,7 @@ export const ProblemSolutionSection = () => {
               One Hub
             </span>
             <div className="max-w-[300px] rounded-xl overflow-hidden">
-              <div style={{ marginTop: '-20px' }}>
+              <div style={{ marginTop: '-28px' }}>
                 <img 
                   src={oneHubChat}
                   alt="Trip chat interface showing group messages and activity"
