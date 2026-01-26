@@ -5,8 +5,12 @@ import { BasecampProvider } from "@/contexts/BasecampContext";
 import { initNativeLifecycle } from "@/native/lifecycle";
 import { registerServiceWorker } from "./utils/serviceWorkerRegistration";
 import { initRevenueCat } from "@/config/revenuecat";
+import { validateEnv } from "@/config/env";
 import App from "./App.tsx";
 import "./index.css";
+
+// Validate environment variables on startup
+validateEnv();
 
 // TEMPORARY: Kill stale service workers once (remove after one release cycle)
 // if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
