@@ -10,6 +10,7 @@ interface UseInviteLinkProps {
   expireIn7Days: boolean;
   tripId?: string;
   proTripId?: string;
+  tripType?: TripType;
 }
 
 interface InviteLinkResult {
@@ -24,6 +25,8 @@ interface InviteLinkResult {
   handleEmailInvite: () => void;
   handleSMSInvite: () => void;
 }
+
+type TripType = 'consumer' | 'pro' | 'event';
 
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -72,6 +75,13 @@ const generateUniqueCode = async (maxAttempts = 5): Promise<string> => {
   return crypto.randomUUID();
 };
 
+const normalizeTripType = (tripTypeValue?: string | null): TripType => {
+  if (tripTypeValue === 'pro' || tripTypeValue === 'event' || tripTypeValue === 'consumer') {
+    return tripTypeValue;
+  }
+  return 'consumer';
+};
+
 export const useInviteLink = ({
   isOpen,
   tripName,
@@ -79,6 +89,7 @@ export const useInviteLink = ({
   expireIn7Days,
   tripId,
   proTripId,
+  tripType,
 }: UseInviteLinkProps): InviteLinkResult => {
   const [copied, setCopied] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
@@ -90,7 +101,7 @@ export const useInviteLink = ({
     if (isOpen) {
       generateTripLink();
     }
-  }, [isOpen, requireApproval, expireIn7Days, tripId, proTripId, isDemoMode]);
+  }, [isOpen, requireApproval, expireIn7Days, tripId, proTripId, isDemoMode, tripType]);
 
   const createInviteInDatabase = async (
     tripIdValue: string,
@@ -109,7 +120,7 @@ export const useInviteLink = ({
       // Verify trip exists and user has permission
       const { data: trip, error: tripError } = await supabase
         .from('trips')
-        .select('id, created_by')
+        .select('id, created_by, trip_type')
         .eq('id', tripIdValue)
         .single();
 
@@ -119,18 +130,48 @@ export const useInviteLink = ({
         return false;
       }
 
-      // Check if user is creator or admin
-      if (trip.created_by !== user.id) {
-        const { data: admin } = await supabase
+      const resolvedTripType = normalizeTripType(trip.trip_type ?? tripType);
+      const isProOrEvent = resolvedTripType === 'pro' || resolvedTripType === 'event';
+      const isCreator = trip.created_by === user.id;
+
+      let isAdmin = false;
+      if (!isCreator) {
+        const { data: admin, error: adminError } = await supabase
           .from('trip_admins')
           .select('id')
           .eq('trip_id', tripIdValue)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (!admin) {
-          console.error('[InviteLink] User not authorized');
-          toast.error('Only the trip creator or admins can create invite links');
+        if (adminError) {
+          console.error('[InviteLink] Error checking admin status:', adminError);
+        }
+        isAdmin = Boolean(admin);
+      }
+
+      if (isProOrEvent) {
+        if (!isCreator && !isAdmin) {
+          console.error('[InviteLink] User not authorized for pro/event invite');
+          toast.error(
+            'Only the trip creator or admins can create invite links for Pro or Event trips',
+          );
+          return false;
+        }
+      } else if (!isCreator && !isAdmin) {
+        const { data: member, error: memberError } = await supabase
+          .from('trip_members')
+          .select('id')
+          .eq('trip_id', tripIdValue)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (memberError) {
+          console.error('[InviteLink] Error checking membership:', memberError);
+        }
+
+        if (!member) {
+          console.error('[InviteLink] User not a trip member');
+          toast.error('Only trip members can create invite links');
           return false;
         }
       }

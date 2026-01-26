@@ -36,7 +36,15 @@ export const InviteModal = ({
     regenerateInviteToken,
     handleCopyLink,
     handleShare,
-  } = useInviteLink({ isOpen, tripName, requireApproval, expireIn7Days, tripId, proTripId });
+  } = useInviteLink({
+    isOpen,
+    tripName,
+    requireApproval,
+    expireIn7Days,
+    tripId,
+    proTripId,
+    tripType,
+  });
 
   if (!isOpen) return null;
 
