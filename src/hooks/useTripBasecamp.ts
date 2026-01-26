@@ -18,6 +18,7 @@ import { demoModeService } from '@/services/demoModeService';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { BasecampLocation } from '@/types/basecamp';
 import { toast } from 'sonner';
+import { withTimeout } from '@/utils/timeout';
 
 // Query key factory for consistent cache management
 export const tripBasecampKeys = {
@@ -36,7 +37,7 @@ export function useTripBasecamp(tripId: string | undefined) {
 
   return useQuery({
     queryKey: tripBasecampKeys.trip(tripId || 'unknown'),
-    queryFn: async (): Promise<BasecampLocation | null> => {
+    queryFn: () => withTimeout((async (): Promise<BasecampLocation | null> => {
       if (!tripId) {
         console.warn(LOG_PREFIX, 'No tripId provided');
         return null;
@@ -64,7 +65,7 @@ export function useTripBasecamp(tripId: string | undefined) {
       const dbBasecamp = await basecampService.getTripBasecamp(tripId);
       console.log(LOG_PREFIX, 'DB result:', dbBasecamp);
       return dbBasecamp;
-    },
+    })(), 10000, 'Failed to load trip basecamp: Timeout'),
     enabled: !!tripId,
     staleTime: 30_000, // Consider fresh for 30 seconds
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
