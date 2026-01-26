@@ -20,7 +20,6 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true); // Default to true for better UX
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [resetEmailSent, setResetEmailSent] = useState(false);
@@ -71,7 +70,7 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
       if (mode === 'signup') {
         result = await signUp(email, password, firstName, lastName);
       } else {
-        result = await signIn(email, password, rememberMe);
+        result = await signIn(email, password);
       }
 
       if (result.error) {
@@ -271,19 +270,7 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
           </button>
         </div>
         {mode === 'signin' && (
-          <div className="flex justify-between items-center mt-2">
-            {/* Remember Me checkbox */}
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={e => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-white/30 bg-white/10 text-primary focus:ring-primary/50 focus:ring-offset-0 cursor-pointer"
-              />
-              <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
-                Remember me for 30 days
-              </span>
-            </label>
+          <div className="flex justify-end items-center mt-2">
             <button
               type="button"
               onClick={() => {

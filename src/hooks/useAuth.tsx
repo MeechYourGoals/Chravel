@@ -78,7 +78,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error?: string }>;
+  signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signInWithPhone: (phone: string) => Promise<{ error?: string }>;
   signInWithGoogle: () => Promise<{ error?: string }>;
   signInWithApple: () => Promise<{ error?: string }>;
@@ -392,28 +392,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (import.meta.env.DEV) {
       console.log('[Auth] Force refreshing session due to invalid token...');
     }
-    
+
     try {
       const { data, error } = await supabase.auth.refreshSession();
-      
+
       if (error) {
         console.error('[Auth] Force refresh failed:', error);
         // Clear corrupted session
         await supabase.auth.signOut();
         return null;
       }
-      
+
       // Validate the refreshed token
       if (data.session && !isSessionTokenValid(data.session.access_token)) {
         console.error('[Auth] Refreshed token still invalid - clearing session');
         await supabase.auth.signOut();
         return null;
       }
-      
+
       if (import.meta.env.DEV) {
         console.log('[Auth] Session force refresh successful');
       }
-      
+
       return data.session;
     } catch (err) {
       console.error('[Auth] Force refresh error:', err);
@@ -473,7 +473,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (session?.access_token && !isSessionTokenValid(session.access_token)) {
           console.warn('[Auth] Session token missing required claims (sub) - forcing refresh');
           logTokenDebug('getSessionAndUser:invalid', session.access_token);
-          
+
           const refreshedSession = await forceRefreshSession();
           if (refreshedSession) {
             setSession(refreshedSession);
@@ -579,73 +579,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [transformUser, demoUser]);
 
-  // Periodic session refresh for "Remember Me" users - keeps session alive for 30 days
-  useEffect(() => {
-    let refreshInterval: ReturnType<typeof setInterval> | null = null;
-
-    // Check if user selected "Remember Me"
-    const shouldRemember = (() => {
-      try {
-        return localStorage.getItem('chravel-remember-me') === 'true';
-      } catch {
-        return false;
-      }
-    })();
-
-    if (session && shouldRemember) {
-      // Refresh session every 30 minutes to keep it alive (well before 1hr JWT expiry)
-      refreshInterval = setInterval(async () => {
-        if (import.meta.env.DEV) {
-          console.log('[Auth] Periodic session refresh (Remember Me active)');
-        }
-        try {
-          const { error } = await supabase.auth.refreshSession();
-          if (error) {
-            console.warn('[Auth] Periodic refresh failed:', error.message);
-          }
-        } catch (err) {
-          console.warn('[Auth] Periodic refresh error:', err);
-        }
-      }, 30 * 60 * 1000); // 30 minutes
-
-      // Also refresh immediately on mount if session exists and Remember Me is enabled
-      if (import.meta.env.DEV) {
-        console.log('[Auth] Remember Me active - refreshing session on mount');
-      }
-      supabase.auth.refreshSession().catch(err => {
-        console.warn('[Auth] Initial Remember Me refresh failed:', err);
-      });
-    }
-
-    return () => {
-      if (refreshInterval) clearInterval(refreshInterval);
-    };
-  }, [session]);
-
   // Visibility change listener: refresh session when user returns to tab
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Check if Remember Me is enabled - if so, always refresh on tab focus
-        const shouldRemember = (() => {
-          try {
-            return localStorage.getItem('chravel-remember-me') === 'true';
-          } catch {
-            return false;
-          }
-        })();
-
-        if (shouldRemember && session) {
-          // Remember Me users: always refresh on tab focus for maximum session persistence
-          if (import.meta.env.DEV) {
-            console.log('[Auth] Tab focused with Remember Me - refreshing session');
-          }
-          supabase.auth.refreshSession().catch(err => {
-            console.warn('[Auth] Tab focus refresh failed:', err);
-          });
-          return;
-        }
-
         // Standard behavior: only check/refresh if there's an existing session
         if (session) {
           supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
@@ -688,28 +625,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(shouldUseDemoUser ? demoUser : null);
   }, [demoUser, session, shouldUseDemoUser]);
 
-  const signIn = async (
-    email: string,
-    password: string,
-    rememberMe: boolean = false,
-  ): Promise<{ error?: string }> => {
+  const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
     try {
       setIsLoading(true);
-
-      // Store remember me preference before sign in
-      if (rememberMe) {
-        try {
-          localStorage.setItem('chravel-remember-me', 'true');
-        } catch (e) {
-          // Storage unavailable, continue anyway
-        }
-      } else {
-        try {
-          localStorage.removeItem('chravel-remember-me');
-        } catch (e) {
-          // Storage unavailable, continue anyway
-        }
-      }
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -738,27 +656,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
-      // If remember me is enabled, immediately refresh to get fresh tokens
-      if (rememberMe && data.session) {
-        try {
-          localStorage.setItem('chravel-session-extended', Date.now().toString());
-          // Immediately refresh session to ensure we have the freshest tokens
-          const { error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError) {
-            console.warn('[Auth] Post-login refresh failed:', refreshError.message);
-          } else if (import.meta.env.DEV) {
-            console.log('[Auth] Remember Me enabled - session refreshed, will persist for 30 days');
-          }
-        } catch (e) {
-          // Storage unavailable or refresh failed, continue anyway
-          if (import.meta.env.DEV) {
-            console.warn('[Auth] Remember Me setup warning:', e);
-          }
-        }
-      }
-
       // Success path: clear loading state (auth state listener will update user)
       setIsLoading(false);
+      void data;
       return {};
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -811,11 +711,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       // Build the redirect URL - after OAuth completes, Supabase will redirect here
       const redirectUrl = `${window.location.origin}/auth`;
-      
+
       console.log('[Auth] Starting Google OAuth...');
       console.log('[Auth] Origin:', window.location.origin);
       console.log('[Auth] RedirectTo:', redirectUrl);
-      
+
       // Use skipBrowserRedirect to capture the exact authorization URL for debugging
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -831,13 +731,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) {
         console.error('[Auth] Google OAuth error:', error);
-        
+
         if (error.message.includes('not configured') || error.message.includes('OAuth')) {
           return {
-            error: 'Google sign-in is not configured. Please use email to sign in or contact support.',
+            error:
+              'Google sign-in is not configured. Please use email to sign in or contact support.',
           };
         }
-        
+
         if (error.message.includes('invalid_client')) {
           return {
             error: 'Google OAuth configuration error. Please contact support.',
@@ -851,7 +752,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (data?.url) {
         console.log('[Auth] ========== GOOGLE OAUTH DEBUG ==========');
         console.log('[Auth] Full authorization URL:', data.url);
-        
+
         // Parse and log key parameters
         try {
           const url = new URL(data.url);
@@ -864,7 +765,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.warn('[Auth] Could not parse URL params:', parseErr);
         }
         console.log('[Auth] ==========================================');
-        
+
         // Navigate to Google - try multiple methods to handle iframe restrictions
         try {
           // First try window.top (for iframe scenarios)
@@ -893,9 +794,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithApple = async (): Promise<{ error?: string }> => {
     try {
       const redirectUrl = `${window.location.origin}/auth`;
-      
+
       console.log('[Auth] Starting Apple OAuth with redirectTo:', redirectUrl);
-      
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
@@ -987,17 +888,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       demoModeStore.setDemoView('off');
     }
 
-    // Clear Remember Me and session extension flags
-    try {
-      localStorage.removeItem('chravel-remember-me');
-      localStorage.removeItem('chravel-session-extended');
-    } catch (e) {
-      // Storage unavailable
-    }
-
     // Clear onboarding cache to prevent stale data polluting next account
     localStorage.removeItem('chravel_onboarding_completed');
-    
+
     // Reset onboarding store (dynamic import to avoid circular deps)
     import('@/store/onboardingStore').then(({ useOnboardingStore }) => {
       useOnboardingStore.getState().resetOnboarding();
