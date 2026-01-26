@@ -5,6 +5,7 @@ import { CalendarEvent } from '@/types/calendar';
 import { supabase } from '@/integrations/supabase/client';
 import { useDemoMode } from './useDemoMode';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
+import { withTimeout } from '@/utils/timeout';
 
 /**
  * ⚡ PERFORMANCE: TanStack Query-based calendar events hook
@@ -29,7 +30,11 @@ export const useCalendarEvents = (tripId?: string) => {
     refetch,
   } = useQuery({
     queryKey: tripKeys.calendar(tripId || ''),
-    queryFn: () => calendarService.getTripEvents(tripId!),
+    queryFn: () => withTimeout(
+      calendarService.getTripEvents(tripId!),
+      10000,
+      'Failed to load calendar events: Timeout'
+    ),
     enabled: !!tripId,
     staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
     gcTime: QUERY_CACHE_CONFIG.calendar.gcTime,

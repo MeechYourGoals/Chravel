@@ -21,6 +21,7 @@ import { demoModeService } from '@/services/demoModeService';
 import { getTripById, generateTripMockData } from '@/data/tripsData';
 import { toast } from 'sonner';
 import { cacheEntity, getCachedEntity } from '@/offline/cache';
+import { withTimeout } from '@/utils/timeout';
 
 interface PlacesSectionProps {
   tripId?: string;
@@ -169,10 +170,14 @@ export const PlacesSection = ({
         }
 
         // Load real data for authenticated users
-        const { data, error } = await supabase
-          .from('trip_link_index')
-          .select('*')
-          .eq('trip_id', tripId);
+        const { data, error } = await withTimeout(
+          supabase
+            .from('trip_link_index')
+            .select('*')
+            .eq('trip_id', tripId),
+          10000,
+          'Failed to load places: Timeout'
+        ).catch(err => ({ data: null, error: err }));
 
         if (error) {
           if (import.meta.env.DEV) {
