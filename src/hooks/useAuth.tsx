@@ -13,6 +13,7 @@ import { Trip } from '@/services/tripService';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 import { useDemoModeStore } from '@/store/demoModeStore';
 import { isSessionTokenValid, logTokenDebug } from '@/utils/tokenValidation';
+import { authDebug } from '@/utils/authDebug';
 
 // Timeout utility to prevent indefinite hanging on database queries
 const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
@@ -389,14 +390,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
    * Returns refreshed session or null if refresh fails.
    */
   const forceRefreshSession = useCallback(async (): Promise<Session | null> => {
-    if (import.meta.env.DEV) {
-      console.log('[Auth] Force refreshing session due to invalid token...');
-    }
+    authDebug('forceRefreshSession:start');
 
     try {
       const { data, error } = await supabase.auth.refreshSession();
 
       if (error) {
+        authDebug('forceRefreshSession:error', {
+          message: error.message,
+          name: error.name,
+          status: (error as unknown as { status?: number }).status,
+        });
         console.error('[Auth] Force refresh failed:', error);
         // Clear corrupted session
         await supabase.auth.signOut();
@@ -405,17 +409,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       // Validate the refreshed token
       if (data.session && !isSessionTokenValid(data.session.access_token)) {
+        authDebug('forceRefreshSession:refreshedTokenInvalid');
         console.error('[Auth] Refreshed token still invalid - clearing session');
         await supabase.auth.signOut();
         return null;
       }
 
-      if (import.meta.env.DEV) {
-        console.log('[Auth] Session force refresh successful');
-      }
+      authDebug('forceRefreshSession:success', {
+        hasSession: Boolean(data.session),
+        hasUser: Boolean(data.session?.user),
+        hasExpiresAt: Boolean(data.session?.expires_at),
+      });
 
       return data.session;
     } catch (err) {
+      authDebug('forceRefreshSession:exception', { error: String(err) });
       console.error('[Auth] Force refresh error:', err);
       await supabase.auth.signOut();
       return null;
@@ -434,12 +442,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const getSessionAndUser = async () => {
       try {
+        authDebug('init:getSession:start', {
+          visibilityState: document.visibilityState,
+          storageAvailable: (() => {
+            try {
+              return typeof localStorage !== 'undefined';
+            } catch {
+              return false;
+            }
+          })(),
+          hasAuthSessionKey: (() => {
+            try {
+              return Boolean(localStorage.getItem('chravel-auth-session'));
+            } catch {
+              return false;
+            }
+          })(),
+        });
         const {
           data: { session },
           error,
         } = await supabase.auth.getSession();
 
         if (error) {
+          authDebug('init:getSession:error', {
+            message: error.message,
+            name: error.name,
+            status: (error as unknown as { status?: number }).status,
+          });
           if (import.meta.env.DEV) {
             console.error('[Auth] Error getting session:', error);
           }
@@ -447,8 +477,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           await new Promise(r => setTimeout(r, 1000));
           const retry = await supabase.auth.getSession();
           if (retry.data.session) {
+            authDebug('init:getSession:retrySessionPresent', {
+              hasExpiresAt: Boolean(retry.data.session.expires_at),
+              hasRefreshToken: Boolean(retry.data.session.refresh_token),
+            });
             // Validate token before using
             if (!isSessionTokenValid(retry.data.session.access_token)) {
+              authDebug('init:getSession:retryTokenInvalid');
               console.warn('[Auth] Retry session has invalid token - forcing refresh');
               const refreshed = await forceRefreshSession();
               if (refreshed) {
@@ -465,21 +500,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setIsLoading(false);
             return;
           }
+          authDebug('init:getSession:retryNoSession');
           setIsLoading(false);
           return;
         }
 
+        authDebug('init:getSession:result', {
+          hasSession: Boolean(session),
+          hasUser: Boolean(session?.user),
+          hasExpiresAt: Boolean(session?.expires_at),
+          hasRefreshToken: Boolean(session?.refresh_token),
+        });
+
         // CRITICAL: Validate token has required claims before using
         if (session?.access_token && !isSessionTokenValid(session.access_token)) {
+          authDebug('init:getSession:tokenInvalid');
           console.warn('[Auth] Session token missing required claims (sub) - forcing refresh');
           logTokenDebug('getSessionAndUser:invalid', session.access_token);
 
           const refreshedSession = await forceRefreshSession();
           if (refreshedSession) {
+            authDebug('init:getSession:tokenInvalid:recoveredByRefresh', {
+              hasExpiresAt: Boolean(refreshedSession.expires_at),
+            });
             setSession(refreshedSession);
             const transformedUser = await transformUser(refreshedSession.user);
             setUser(transformedUser);
           } else {
+            authDebug('init:getSession:tokenInvalid:refreshFailed');
             setUser(shouldUseDemoUserRef.current ? demoUser : null);
           }
           setIsLoading(false);
@@ -509,6 +557,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
 
         if (session?.user) {
+          authDebug('init:sessionPresent', {
+            hasExpiresAt: Boolean(session.expires_at),
+            hasRefreshToken: Boolean(session.refresh_token),
+          });
           // Log session info in dev for debugging
           if (import.meta.env.DEV) {
             console.log('[Auth] Session state:', {
@@ -524,17 +576,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const transformedUser = await transformUser(session.user);
             setUser(transformedUser);
           } catch (err) {
+            authDebug('init:transformUser:error', { error: String(err) });
             if (import.meta.env.DEV) {
               console.error('[Auth] Error transforming user on init:', err);
             }
             setUser(null);
           }
         } else {
+          authDebug('init:noSession');
           // App-preview: provide a demo user even when not authenticated.
           setUser(shouldUseDemoUserRef.current ? demoUser : null);
         }
         setIsLoading(false);
       } catch (error) {
+        authDebug('init:getSession:exception', { error: String(error) });
         if (import.meta.env.DEV) {
           console.error('[Auth] Unexpected error in getSessionAndUser:', error);
         }
@@ -548,6 +603,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       // CRITICAL: Only synchronous state updates in callback to prevent deadlock
+      authDebug('onAuthStateChange', {
+        event,
+        hasSession: Boolean(session),
+        hasUser: Boolean(session?.user),
+        hasExpiresAt: Boolean(session?.expires_at),
+      });
       setSession(session);
 
       if (session?.user) {
@@ -555,10 +616,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setTimeout(() => {
           transformUser(session.user)
             .then(transformedUser => {
+              authDebug('onAuthStateChange:transformUser:success');
               setUser(transformedUser);
               setIsLoading(false);
             })
             .catch(err => {
+              authDebug('onAuthStateChange:transformUser:error', { error: String(err) });
               if (import.meta.env.DEV) {
                 console.error('[Auth] Error transforming user:', err);
               }
@@ -567,6 +630,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             });
         }, 0);
       } else {
+        authDebug('onAuthStateChange:signedOutOrNoSession');
         // App-preview: keep demo user when logged out.
         setUser(shouldUseDemoUserRef.current ? demoUser : null);
         setIsLoading(false);

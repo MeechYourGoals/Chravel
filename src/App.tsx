@@ -24,6 +24,7 @@ import { useDeepLinks } from '@/hooks/useDeepLinks';
 import { toast } from '@/hooks/use-toast';
 import { setupGlobalSyncProcessor } from './services/globalSyncProcessor';
 import { parseJwtPayload } from '@/utils/tokenValidation';
+import { authDebug } from '@/utils/authDebug';
 
 // Trip recovery utilities (exposes debugTrips, searchAllTrips, recoverTrip to window)
 import '@/utils/tripRecovery';
@@ -221,9 +222,27 @@ const App = () => {
   useEffect(() => {
     const validateAndClearCorruptedSession = async () => {
       try {
+        authDebug('app:validateSession:start', {
+          visibilityState: document.visibilityState,
+          hasAuthSessionKey: (() => {
+            try {
+              return Boolean(localStorage.getItem('chravel-auth-session'));
+            } catch {
+              return false;
+            }
+          })(),
+        });
         const {
           data: { session },
         } = await supabase.auth.getSession();
+
+        authDebug('app:validateSession:gotSession', {
+          hasSession: Boolean(session),
+          hasUser: Boolean(session?.user),
+          hasAccessToken: Boolean(session?.access_token),
+          hasExpiresAt: Boolean(session?.expires_at),
+          hasRefreshToken: Boolean(session?.refresh_token),
+        });
 
         if (session?.access_token) {
           const payload = parseJwtPayload(session.access_token);
@@ -231,27 +250,43 @@ const App = () => {
           // IMPORTANT: Supabase JWT payload is base64url-encoded; parsing failures can happen if decoded incorrectly.
           // If parsing/claims validation fails, attempt a refresh first (refresh token may still be valid).
           if (!payload) {
+            authDebug('app:validateSession:payloadParseFailed:refreshing');
             console.warn('[App] Failed to parse token payload - attempting session refresh');
             const { error } = await supabase.auth.refreshSession();
             if (error) {
+              authDebug('app:validateSession:payloadParseFailed:refreshFailed', {
+                message: error.message,
+                name: error.name,
+                status: (error as unknown as { status?: number }).status,
+              });
               console.warn('[App] Token refresh failed after parse error - clearing session');
               await supabase.auth.signOut();
+              authDebug('app:validateSession:payloadParseFailed:signedOut');
             }
             return;
           }
 
           // Check for missing 'sub' claim (user ID) - primary cause of 403 errors
           if (!payload.sub) {
+            authDebug('app:validateSession:missingSub:refreshing');
             console.warn('[App] Token missing sub claim - attempting session refresh');
             const { data: refreshData, error } = await supabase.auth.refreshSession();
             if (error || !refreshData.session?.access_token) {
+              authDebug('app:validateSession:missingSub:refreshFailed', {
+                message: error?.message,
+                name: error?.name,
+                status: (error as unknown as { status?: number } | undefined)?.status,
+                hasSession: Boolean(refreshData.session),
+              });
               console.warn('[App] Refresh failed after missing sub claim - clearing session');
               await supabase.auth.signOut();
+              authDebug('app:validateSession:missingSub:signedOut');
               return;
             }
 
             const refreshedPayload = parseJwtPayload(refreshData.session.access_token);
             if (!refreshedPayload?.sub) {
+              authDebug('app:validateSession:missingSub:stillMissingAfterRefresh:signedOut');
               console.warn('[App] Refreshed token still missing sub claim - clearing session');
               await supabase.auth.signOut();
             }
@@ -260,16 +295,25 @@ const App = () => {
 
           // Validate sub matches session user id
           if (payload.sub !== session.user?.id) {
+            authDebug('app:validateSession:subMismatch:refreshing');
             console.warn('[App] Token sub claim mismatch - attempting session refresh');
             const { data: refreshData, error } = await supabase.auth.refreshSession();
             if (error || !refreshData.session?.access_token) {
+              authDebug('app:validateSession:subMismatch:refreshFailed', {
+                message: error?.message,
+                name: error?.name,
+                status: (error as unknown as { status?: number } | undefined)?.status,
+                hasSession: Boolean(refreshData.session),
+              });
               console.warn('[App] Refresh failed after sub mismatch - clearing session');
               await supabase.auth.signOut();
+              authDebug('app:validateSession:subMismatch:signedOut');
               return;
             }
 
             const refreshedPayload = parseJwtPayload(refreshData.session.access_token);
             if (refreshedPayload?.sub && refreshedPayload.sub !== refreshData.session.user?.id) {
+              authDebug('app:validateSession:subMismatch:persistedAfterRefresh:signedOut');
               console.warn('[App] Refreshed token sub mismatch persists - clearing session');
               await supabase.auth.signOut();
             }
@@ -278,15 +322,25 @@ const App = () => {
 
           // Check if token is expired
           if (payload.exp && Date.now() > payload.exp * 1000) {
+            authDebug('app:validateSession:expiredToken:refreshing');
             console.log('[App] Token expired on mount - refreshing session');
             const { error } = await supabase.auth.refreshSession();
             if (error) {
+              authDebug('app:validateSession:expiredToken:refreshFailed', {
+                message: error.message,
+                name: error.name,
+                status: (error as unknown as { status?: number }).status,
+              });
               console.warn('[App] Token refresh failed - clearing session');
               await supabase.auth.signOut();
+              authDebug('app:validateSession:expiredToken:signedOut');
             }
           }
+
+          authDebug('app:validateSession:done');
         }
       } catch (error) {
+        authDebug('app:validateSession:exception', { error: String(error) });
         console.error('[App] Session validation error:', error);
         // Don't clear session on validation error - might be transient
       }
