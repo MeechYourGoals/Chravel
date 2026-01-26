@@ -47,7 +47,7 @@ export const TripDetailDesktop = () => {
   usePerformanceMonitor('TripDetailDesktop');
   const { tripId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { isDemoMode } = useDemoMode();
   const queryClient = useQueryClient();
 
@@ -62,7 +62,6 @@ export const TripDetailDesktop = () => {
     isMembersLoading,
     isAuthLoading,
     tripError,
-    membersError,
   } = useTripDetailData(tripId);
 
   // 🔄 Keep useTripMembers for member management actions (canRemoveMembers, removeMember, leaveTrip)
@@ -239,9 +238,7 @@ export const TripDetailDesktop = () => {
         <div className="text-center max-w-md px-4">
           <LogIn className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-white mb-4">Please Log In</h1>
-          <p className="text-gray-400 mb-6">
-            You need to be signed in to view this trip.
-          </p>
+          <p className="text-gray-400 mb-6">You need to be signed in to view this trip.</p>
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => navigate(`/auth?mode=signin&returnTo=/trip/${tripId}`)}
@@ -298,18 +295,19 @@ export const TripDetailDesktop = () => {
   // If not authenticated, this is really an auth issue, not a missing trip
   if (!tripWithUpdatedData) {
     // Check if user is not logged in - if so, show login prompt instead of "Trip Not Found"
-    if (!user) {
+    const isAuthenticated = Boolean(user?.id || session?.user?.id);
+    if (!isAuthenticated) {
       if (import.meta.env.DEV) {
-        console.warn('[TripDetailDesktop] No trip AND no user - showing login prompt instead of Trip Not Found');
+        console.warn(
+          '[TripDetailDesktop] No trip AND no user - showing login prompt instead of Trip Not Found',
+        );
       }
       return (
         <div className="min-h-screen bg-black flex items-center justify-center">
           <div className="text-center max-w-md px-4">
             <LogIn className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h1 className="text-3xl font-bold text-white mb-4">Please Log In</h1>
-            <p className="text-gray-400 mb-6">
-              You need to be signed in to view this trip.
-            </p>
+            <p className="text-gray-400 mb-6">You need to be signed in to view this trip.</p>
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => navigate(`/auth?mode=signin&returnTo=/trip/${tripId}`)}

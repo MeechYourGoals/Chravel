@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, MoreVertical, Info } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
@@ -13,12 +14,11 @@ import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
 import { proTripMockData } from '../data/proTripMockData';
-import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useTrips } from '../hooks/useTrips';
 import { PRO_FEATURES } from '../hooks/useFeatureToggle';
 import { useTripMembers } from '../hooks/useTripMembers';
-import { convertSupabaseTripsToMock, convertSupabaseTripToProTrip } from '../utils/tripConverter';
+import { convertSupabaseTripToProTrip } from '../utils/tripConverter';
 import { MockRolesService } from '../services/mockRolesService';
 import { tripService } from '../services/tripService';
 import { ProTripData, ProParticipant } from '../types/pro';
@@ -27,18 +27,36 @@ import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { demoModeService } from '../services/demoModeService';
 import { toast } from 'sonner';
+import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 
 export const MobileProTripDetail = () => {
   const { proTripId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
 
   // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
   const { trips: userTrips, loading: tripsLoading } = useTrips();
 
+  const authUserId = user?.id ?? session?.user?.id ?? null;
+
+  const tripDetailQuery = useQuery({
+    queryKey: [...tripKeys.detail(proTripId || 'unknown'), authUserId ?? 'anon', 'pro'],
+    queryFn: async () => {
+      if (!proTripId) return null;
+      return await tripService.getTripById(proTripId);
+    },
+    enabled: Boolean(proTripId && !isDemoMode && authUserId),
+    staleTime: QUERY_CACHE_CONFIG.trip.staleTime,
+    gcTime: QUERY_CACHE_CONFIG.trip.gcTime,
+  });
+
+  const resolvedSupabaseTrip =
+    tripDetailQuery.data ??
+    userTrips.find(t => String(t.id) === proTripId && t.trip_type === 'pro');
+
   // 🔄 CRITICAL FIX: Fetch real trip members from database for authenticated trips
-  const { tripMembers, loading: membersLoading } = useTripMembers(proTripId);
+  const { tripMembers } = useTripMembers(proTripId);
 
   // Persist activeTab in sessionStorage to survive orientation changes
   const getInitialTab = () => {
@@ -88,7 +106,7 @@ export const MobileProTripDetail = () => {
     }
 
     // Find Pro trip from Supabase data
-    const supabaseTrip = userTrips.find(t => String(t.id) === proTripId && t.trip_type === 'pro');
+    const supabaseTrip = resolvedSupabaseTrip;
 
     if (!supabaseTrip) return null;
 
@@ -118,7 +136,7 @@ export const MobileProTripDetail = () => {
       createdBy: supabaseTrip.created_by,
       trip_type: 'pro' as const,
     } as ProTripData & { createdBy?: string };
-  }, [isDemoMode, proTripId, userTrips, tripMembers]);
+  }, [isDemoMode, proTripId, resolvedSupabaseTrip, tripMembers]);
 
   // Initialize mock roles and channels ONLY in demo mode
   React.useEffect(() => {
@@ -372,7 +390,7 @@ export const MobileProTripDetail = () => {
     );
   }
 
-  if (tripsLoading && !isDemoMode) {
+  if (!isDemoMode && (tripsLoading || tripDetailQuery.isLoading)) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">
@@ -384,9 +402,13 @@ export const MobileProTripDetail = () => {
   }
 
   if (!tripData) {
+    const authError = tripDetailQuery.error instanceof Error ? tripDetailQuery.error.message : null;
+    const isAuthRequired = Boolean(!isDemoMode && !authUserId) || authError === 'AUTH_REQUIRED';
     const errorMessage = isDemoMode
       ? "The demo trip you're looking for doesn't exist."
-      : "This Pro trip doesn't exist or you don't have access.";
+      : isAuthRequired
+        ? 'Please log in to view this trip.'
+        : "This Pro trip doesn't exist or you don't have access.";
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">

@@ -148,7 +148,7 @@ export const ProTripNotFound = ({
           </button>
         )}
 
-        {reason !== 'auth_required' && reason !== 'pending_approval' && (
+        {reason === 'no_access' && (
           <button
             onClick={() => navigate('/')}
             className="w-full text-gray-500 hover:text-gray-300 px-6 py-2 transition-colors"

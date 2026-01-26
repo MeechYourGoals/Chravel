@@ -3,39 +3,6 @@ import { demoModeService } from './demoModeService';
 import { tripsData } from '@/data/tripsData';
 import { adaptTripsDataToTripSchema } from '@/utils/schemaAdapters';
 
-/**
- * Normalizes date input to YYYY-MM-DD format for database date columns
- * Accepts: YYYY-MM-DD, MM/DD/YYYY, or ISO 8601 datetime strings
- * Returns date-only format (YYYY-MM-DD) expected by Postgres date columns
- */
-function normalizeDateInput(dateStr?: string): string | undefined {
-  if (!dateStr) return undefined;
-
-  // If already YYYY-MM-DD format, return as-is
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    return dateStr;
-  }
-
-  // If ISO 8601 datetime, extract date part only
-  if (dateStr.includes('T')) {
-    const date = new Date(dateStr);
-    if (!isNaN(date.getTime())) {
-      return date.toISOString().split('T')[0];
-    }
-  }
-
-  // Match MM/DD/YYYY and convert to YYYY-MM-DD
-  const usDateMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (usDateMatch) {
-    const [, month, day, year] = usDateMatch;
-    const paddedMonth = month.padStart(2, '0');
-    const paddedDay = day.padStart(2, '0');
-    return `${year}-${paddedMonth}-${paddedDay}`;
-  }
-
-  return undefined;
-}
-
 export interface Trip {
   id: string;
   name: string;
@@ -81,8 +48,20 @@ interface TripDetailFunctionResponse {
 }
 
 const fetchTripByIdViaEdgeFunction = async (tripId: string): Promise<Trip | null> => {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const accessToken = session?.access_token;
+
+  if (!accessToken) {
+    throw new Error('AUTH_REQUIRED');
+  }
+
   const { data, error } = await supabase.functions.invoke('get-trip-detail', {
     body: { tripId },
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
   });
 
   if (error) {

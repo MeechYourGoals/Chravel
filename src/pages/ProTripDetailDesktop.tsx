@@ -1,5 +1,6 @@
 import React, { useState, Suspense, lazy, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { MessageInbox } from '../components/MessageInbox';
 import { ProTripDetailHeader } from '../components/pro/ProTripDetailHeader';
 import { TripDetailModals } from '../components/trip/TripDetailModals';
@@ -8,7 +9,7 @@ import { TripVariantProvider } from '../contexts/TripVariantContext';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useTrips } from '../hooks/useTrips';
-import { convertSupabaseTripsToMock, convertSupabaseTripToProTrip } from '../utils/tripConverter';
+import { convertSupabaseTripToProTrip } from '../utils/tripConverter';
 import { proTripMockData } from '../data/proTripMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { ProTripCategory } from '../types/proCategories';
@@ -19,37 +20,36 @@ import { orderExportSections } from '../utils/exportSectionOrder';
 import { toast } from 'sonner';
 import { supabase } from '../integrations/supabase/client';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { ProAdminDashboard } from '../components/pro/admin/ProAdminDashboard';
-import { useProTripAdmin } from '../hooks/useProTripAdmin';
 import { MockRolesService } from '../services/mockRolesService';
 import { tripService } from '../services/tripService';
 import { demoModeService } from '../services/demoModeService';
 import { ProTripData, ProParticipant } from '../types/pro';
+import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 
 // 🚀 OPTIMIZATION: Lazy load heavy components for faster initial render
 const TripHeader = lazy(() =>
   import('../components/TripHeader').then(module => ({
-    default: module.TripHeader
-  }))
+    default: module.TripHeader,
+  })),
 );
 
 const ProTripDetailContent = lazy(() =>
   import('../components/pro/ProTripDetailContent').then(module => ({
-    default: module.ProTripDetailContent
-  }))
+    default: module.ProTripDetailContent,
+  })),
 );
 
 /**
  * ProTripDetailDesktop Component
- * 
+ *
  * 🎯 Purpose: Desktop-only Pro trip detail view with full functionality
  * 🔒 Safety: All desktop logic isolated from mobile to prevent hook order issues
  */
 export const ProTripDetailDesktop = () => {
   const { proTripId } = useParams<{ proTripId?: string }>();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { isDemoMode, isLoading: demoModeLoading } = useDemoMode();
-  
+
   // ✅ FIXED: Always call useTrips hook for authenticated mode data
   const { trips: userTrips, loading: tripsLoading } = useTrips();
   const [activeTab, setActiveTab] = useState('chat');
@@ -61,20 +61,33 @@ export const ProTripDetailDesktop = () => {
   const [showTripsPlusModal, setShowTripsPlusModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [fetchedParticipants, setFetchedParticipants] = useState<ProParticipant[]>([]);
-  
-  // Check admin status for Pro trips
-  const { isAdmin } = useProTripAdmin(proTripId || '');
+
+  const authUserId = user?.id ?? session?.user?.id ?? null;
+
+  const tripDetailQuery = useQuery({
+    queryKey: [...tripKeys.detail(proTripId || 'unknown'), authUserId ?? 'anon', 'pro'],
+    queryFn: async () => {
+      if (!proTripId) return null;
+      return await tripService.getTripById(proTripId);
+    },
+    enabled: Boolean(proTripId && !isDemoMode && authUserId),
+    staleTime: QUERY_CACHE_CONFIG.trip.staleTime,
+    gcTime: QUERY_CACHE_CONFIG.trip.gcTime,
+  });
+
+  const resolvedSupabaseTrip =
+    tripDetailQuery.data ?? userTrips.find(t => t.id === proTripId && t.trip_type === 'pro');
 
   // ✅ Calculate tripData with useMemo - MUST be before any conditional returns
   const tripData = useMemo(() => {
     if (!proTripId) return null;
-    
+
     if (isDemoMode) {
       return proTripId in proTripMockData ? proTripMockData[proTripId] : null;
     }
 
     // Find Pro trip from Supabase data
-    const supabaseTrip = userTrips.find(t => t.id === proTripId && t.trip_type === 'pro');
+    const supabaseTrip = resolvedSupabaseTrip;
     if (!supabaseTrip) return null;
 
     // Convert to ProTripData format
@@ -85,21 +98,30 @@ export const ProTripDetailDesktop = () => {
       participants: fetchedParticipants.length > 0 ? fetchedParticipants : [],
       roster: fetchedParticipants.length > 0 ? fetchedParticipants : [],
       proTripCategory: 'Sports – Pro, Collegiate, Youth',
-      enabled_features: supabaseTrip.enabled_features || ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks'],
+      enabled_features: supabaseTrip.enabled_features || [
+        'chat',
+        'calendar',
+        'concierge',
+        'media',
+        'payments',
+        'places',
+        'polls',
+        'tasks',
+      ],
     } as ProTripData;
-  }, [isDemoMode, proTripId, userTrips, fetchedParticipants]);
+  }, [isDemoMode, proTripId, resolvedSupabaseTrip, fetchedParticipants]);
 
   // Initialize mock roles and channels ONLY in demo mode
   React.useEffect(() => {
     if (isDemoMode && proTripId && proTripId in proTripMockData) {
       const mockTripData = proTripMockData[proTripId];
       const existingRoles = MockRolesService.getRolesForTrip(proTripId);
-      
+
       if (!existingRoles) {
         const roles = MockRolesService.seedRolesForTrip(
           proTripId,
           mockTripData.proTripCategory,
-          user?.id || 'demo-user'
+          user?.id || 'demo-user',
         );
         MockRolesService.seedChannelsForRoles(proTripId, roles, user?.id || 'demo-user');
       }
@@ -112,17 +134,22 @@ export const ProTripDetailDesktop = () => {
       const fetchMembers = async () => {
         try {
           const members = await tripService.getTripMembers(proTripId);
-          setFetchedParticipants(members.map(m => ({
-            id: m.user_id,
-            name: m.profiles?.display_name || 'Unknown',
-            avatar: m.profiles?.avatar_url,
-            role: m.role || 'member',
-            email: '', // Email not available in member profiles view
-            credentialLevel: 'Guest',
-            permissions: []
-          } as ProParticipant)));
+          setFetchedParticipants(
+            members.map(
+              m =>
+                ({
+                  id: m.user_id,
+                  name: m.profiles?.display_name || 'Unknown',
+                  avatar: m.profiles?.avatar_url,
+                  role: m.role || 'member',
+                  email: '', // Email not available in member profiles view
+                  credentialLevel: 'Guest',
+                  permissions: [],
+                }) as ProParticipant,
+            ),
+          );
         } catch (error) {
-          console.error("Failed to fetch trip members:", error);
+          console.error('Failed to fetch trip members:', error);
         }
       };
       fetchMembers();
@@ -132,11 +159,12 @@ export const ProTripDetailDesktop = () => {
   // ⚡ Memoize derived data - MUST be before any conditional returns
   const tripContext = React.useMemo(() => {
     if (!tripData) return null;
-    
+
     // Get actual creator ID from Supabase trip data in authenticated mode
-    const supabaseTrip = userTrips.find(t => t.id === tripData.id);
-    const actualCreatorId = isDemoMode ? 'demo-user' : (supabaseTrip?.created_by || user?.id || '');
-    
+    const actualCreatorId = isDemoMode
+      ? 'demo-user'
+      : resolvedSupabaseTrip?.created_by || user?.id || '';
+
     const trip = {
       id: tripData.id,
       name: tripData.title,
@@ -148,17 +176,17 @@ export const ProTripDetailDesktop = () => {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       is_archived: false,
-      trip_type: 'pro' as const
+      trip_type: 'pro' as const,
     };
-    
+
     const basecamp = {
       name: tripData.basecamp_name || '',
-      address: tripData.basecamp_address || ''
+      address: tripData.basecamp_address || '',
     };
-    
+
     const broadcasts = tripData.broadcasts || [];
     const links = tripData.links || [];
-    
+
     return {
       ...trip,
       basecamp,
@@ -175,9 +203,9 @@ export const ProTripDetailDesktop = () => {
       medical: tripData.medical,
       compliance: tripData.compliance,
       media: tripData.media,
-      sponsors: tripData.sponsors
+      sponsors: tripData.sponsors,
     };
-  }, [tripData]);
+  }, [tripData, isDemoMode, resolvedSupabaseTrip, user?.id]);
 
   // Auto-scroll to chat on page load (chat-first viewport)
   React.useEffect(() => {
@@ -195,7 +223,7 @@ export const ProTripDetailDesktop = () => {
   }, [tripData]);
 
   // ⚡ Loading states AFTER all hooks
-  if (demoModeLoading || (tripsLoading && !isDemoMode)) {
+  if (demoModeLoading || (!isDemoMode && (tripsLoading || tripDetailQuery.isLoading))) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
         <div className="text-center">
@@ -207,31 +235,34 @@ export const ProTripDetailDesktop = () => {
   }
 
   if (!proTripId) {
-    return (
-      <ProTripNotFound message="No trip ID provided." />
-    );
+    return <ProTripNotFound message="No trip ID provided." />;
   }
+
+  const authError = tripDetailQuery.error instanceof Error ? tripDetailQuery.error.message : null;
+  const isAuthRequired = Boolean(!isDemoMode && !authUserId) || authError === 'AUTH_REQUIRED';
 
   // Handle trip not found case - AFTER all hooks
   if (!tripData || !tripContext) {
-    const errorMessage = isDemoMode 
-      ? "The requested trip could not be found in demo data."
-      : "This Pro trip doesn't exist or you don't have access.";
+    const errorMessage = isDemoMode
+      ? 'The requested trip could not be found in demo data.'
+      : isAuthRequired
+        ? 'Please log in to view this trip.'
+        : "This Pro trip doesn't exist or you don't have access.";
     return (
-      <ProTripNotFound 
+      <ProTripNotFound
         message={errorMessage}
+        reason={isAuthRequired ? 'auth_required' : 'no_access'}
         details={isDemoMode ? `Trip ID: ${proTripId}` : undefined}
         availableIds={isDemoMode ? Object.keys(proTripMockData) : undefined}
       />
     );
   }
 
-  // Derived data for rendering
-  const participants = tripData.participants || [];
   // Get actual creator ID from Supabase trip data in authenticated mode
-  const supabaseTrip = userTrips.find(t => t.id === tripData.id);
-  const actualCreatorId = isDemoMode ? 'demo-user' : (supabaseTrip?.created_by || user?.id || '');
-  
+  const actualCreatorId = isDemoMode
+    ? 'demo-user'
+    : resolvedSupabaseTrip?.created_by || user?.id || '';
+
   const trip = {
     id: tripData.id,
     name: tripData.title,
@@ -243,14 +274,12 @@ export const ProTripDetailDesktop = () => {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_archived: false,
-    trip_type: 'pro' as const
+    trip_type: 'pro' as const,
   };
   const basecamp = {
     name: tripData.basecamp_name || '',
-    address: tripData.basecamp_address || ''
+    address: tripData.basecamp_address || '',
   };
-  const broadcasts = tripData.broadcasts || [];
-  const links = tripData.links || [];
 
   const handleExport = async (sections: ExportSection[]) => {
     const orderedSections = orderExportSections(sections);
@@ -259,15 +288,17 @@ export const ProTripDetailDesktop = () => {
       let preOpenedWindow: Window | null = null;
       try {
         const ua = navigator.userAgent || '';
-        const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isIOS =
+          /iPad|iPhone|iPod/.test(ua) ||
+          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
         if (isIOS && isSafari) {
           preOpenedWindow = window.open('', '_blank');
           if (preOpenedWindow) {
             preOpenedWindow.document.write(
               '<html><head><title>Creating your Recap…</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>' +
-              '<body style="font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial; padding: 16px; color: #e5e7eb; background: #111827">' +
-              '<div>Creating your Recap…</div></body></html>'
+                '<body style="font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial; padding: 16px; color: #e5e7eb; background: #111827">' +
+                '<div>Creating your Recap…</div></body></html>',
             );
           }
         }
@@ -277,7 +308,7 @@ export const ProTripDetailDesktop = () => {
 
       toast.info('Creating Recap...');
       let blob: Blob;
-      
+
       if (isDemoMode) {
         // Lazy load PDF generation (only when export is clicked)
         const { generateClientPDF } = await import('../utils/exportPdfClient');
@@ -292,81 +323,87 @@ export const ProTripDetailDesktop = () => {
 
         // Map Calendar if selected
         if (orderedSections.includes('calendar')) {
-          exportData.calendar = tripData.schedule?.map((s) => ({
-            title: s.title || 'Event',
-            start_time: s.startTime || new Date().toISOString(),
-            location: s.location,
-            description: s.notes
-          })) || [];
+          exportData.calendar =
+            tripData.schedule?.map(s => ({
+              title: s.title || 'Event',
+              start_time: s.startTime || new Date().toISOString(),
+              location: s.location,
+              description: s.notes,
+            })) || [];
         }
 
         // Map Payments if selected
         if (orderedSections.includes('payments')) {
           if (tripData.settlement && tripData.settlement.length > 0) {
             exportData.payments = {
-              items: tripData.settlement.map((p) => ({
+              items: tripData.settlement.map(p => ({
                 description: p.venue || 'Payment',
                 amount: p.finalPayout || 0,
                 currency: 'USD',
                 split_count: 1,
                 is_settled: p.status === 'paid',
-                created_at: p.date
+                created_at: p.date,
               })),
               total: tripData.settlement.reduce((sum, p) => sum + (p.finalPayout || 0), 0),
-              currency: 'USD'
+              currency: 'USD',
             };
           }
         }
 
         // Map Tasks if selected
         if (orderedSections.includes('tasks')) {
-          exportData.tasks = tripData.tasks?.map((t) => ({
-            title: t.title,
-            description: t.description,
-            completed: t.completed,
-            due_date: t.due_at,
-            assigned_to: t.assigned_to
-          })) || [];
+          exportData.tasks =
+            tripData.tasks?.map(t => ({
+              title: t.title,
+              description: t.description,
+              completed: t.completed,
+              due_date: t.due_at,
+              assigned_to: t.assigned_to,
+            })) || [];
         }
 
         // Map Polls if selected
         if (orderedSections.includes('polls')) {
-          exportData.polls = tripData.polls?.map((p) => ({
-            question: p.question,
-            options: p.options,
-            total_votes: p.total_votes,
-            status: p.status
-          })) || [];
+          exportData.polls =
+            tripData.polls?.map(p => ({
+              question: p.question,
+              options: p.options,
+              total_votes: p.total_votes,
+              status: p.status,
+            })) || [];
         }
 
         // Map Places/Links if selected
         if (orderedSections.includes('places')) {
-          exportData.places = tripData.links?.map((link) => ({
-            name: link.title,
-            url: link.url,
-            description: link.description,
-            votes: 0
-          })) || [];
+          exportData.places =
+            tripData.links?.map(link => ({
+              name: link.title,
+              url: link.url,
+              description: link.description,
+              votes: 0,
+            })) || [];
         }
 
         // Map Broadcasts if selected (Pro/Events only)
         if (orderedSections.includes('broadcasts')) {
-          exportData.broadcasts = tripData.broadcasts?.map((b) => ({
-            message: b.message,
-            priority: b.priority,
-            timestamp: b.timestamp,
-            sender: 'Tour Manager',
-            read_count: b.readBy?.length || 0
-          })) || [];
+          exportData.broadcasts =
+            tripData.broadcasts?.map(b => ({
+              message: b.message,
+              priority: b.priority,
+              timestamp: b.timestamp,
+              sender: 'Tour Manager',
+              read_count: b.readBy?.length || 0,
+            })) || [];
         }
 
         // Map Roster if selected
         if (orderedSections.includes('roster')) {
-          exportData.roster = tripData.roster?.map((r) => ({
-            name: r.name,
-            email: r.email,
-            role: r.role
-          })) || [];
+          exportData.roster =
+            tripData.roster?.map(r => ({
+              name: r.name,
+              email: r.email,
+              role: r.role,
+            })) || [];
         }
 
         if (orderedSections.includes('attachments')) {
@@ -377,15 +414,16 @@ export const ProTripDetailDesktop = () => {
       } else {
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData?.session?.access_token || '';
-        
+
         const response = await fetch(
           `https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/export-trip`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`,
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI',
+              Authorization: `Bearer ${accessToken}`,
+              apikey:
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI',
             },
             body: JSON.stringify({
               tripId: proTripId,
@@ -394,7 +432,7 @@ export const ProTripDetailDesktop = () => {
               paper: 'letter',
               privacyRedaction: true,
             }),
-          }
+          },
         );
 
         if (!response.ok) {
@@ -406,10 +444,10 @@ export const ProTripDetailDesktop = () => {
           } catch {
             errorMsg = errorText || errorMsg;
           }
-          
+
           console.error('[PRO-EXPORT] Edge function failed:', errorMsg);
           toast.error('Live export failed, generating offline PDF.');
-          
+
           // Lazy load PDF generation for fallback
           const { generateClientPDF: fallbackPDF } = await import('../utils/exportPdfClient');
           blob = await fallbackPDF(
@@ -419,30 +457,35 @@ export const ProTripDetailDesktop = () => {
               destination: tripData.location,
               dateRange: tripData.dateRange,
               description: tripData.description || '',
-              calendar: tripData.schedule?.map((s) => ({
-                title: s.title || 'Event',
-                start_time: s.startTime || new Date().toISOString(),
-                location: s.location,
-                description: s.notes
-              })) || [],
-              payments: tripData.settlement && tripData.settlement.length > 0 ? {
-                items: tripData.settlement.map((p) => ({
-                  description: p.venue || 'Payment',
-                  amount: p.finalPayout || 0,
-                  currency: 'USD',
-                  split_count: 1,
-                  is_settled: p.status === 'paid'
-                })),
-                total: tripData.settlement.reduce((sum, p) => sum + (p.finalPayout || 0), 0),
-                currency: 'USD'
-              } : undefined,
-              roster: tripData.roster?.map((r) => ({
-                name: r.name,
-                email: r.email,
-                role: r.role
-              })) || [],
+              calendar:
+                tripData.schedule?.map(s => ({
+                  title: s.title || 'Event',
+                  start_time: s.startTime || new Date().toISOString(),
+                  location: s.location,
+                  description: s.notes,
+                })) || [],
+              payments:
+                tripData.settlement && tripData.settlement.length > 0
+                  ? {
+                      items: tripData.settlement.map(p => ({
+                        description: p.venue || 'Payment',
+                        amount: p.finalPayout || 0,
+                        currency: 'USD',
+                        split_count: 1,
+                        is_settled: p.status === 'paid',
+                      })),
+                      total: tripData.settlement.reduce((sum, p) => sum + (p.finalPayout || 0), 0),
+                      currency: 'USD',
+                    }
+                  : undefined,
+              roster:
+                tripData.roster?.map(r => ({
+                  name: r.name,
+                  email: r.email,
+                  role: r.role,
+                })) || [],
             },
-            orderedSections
+            orderedSections,
           );
         } else {
           blob = await response.blob();
@@ -451,7 +494,7 @@ export const ProTripDetailDesktop = () => {
 
       const filename = `Trip_${tripData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
       await openOrDownloadBlob(blob, filename, { preOpenedWindow, mimeType: 'application/pdf' });
-      
+
       toast.success('PDF exported successfully!');
     } catch (error) {
       console.error('[PRO-EXPORT] Export error details:', {
@@ -459,12 +502,10 @@ export const ProTripDetailDesktop = () => {
         errorMessage: error instanceof Error ? error.message : String(error),
         errorStack: error instanceof Error ? error.stack : undefined,
         proTripId,
-        sections
+        sections,
       });
       toast.error(
-        error instanceof Error 
-          ? `Recap failed: ${error.message}` 
-          : 'Failed to create recap'
+        error instanceof Error ? `Recap failed: ${error.message}` : 'Failed to create recap',
       );
       throw error;
     }
@@ -483,21 +524,20 @@ export const ProTripDetailDesktop = () => {
             onShowAuth={() => setShowAuth(true)}
           />
 
-          {showInbox && (
-            <MessageInbox />
-          )}
+          {showInbox && <MessageInbox />}
 
-
-          <Suspense fallback={
-            <div className="mb-8 animate-pulse">
-              <div className="h-8 bg-white/5 rounded w-2/3 mb-4"></div>
-              <div className="flex gap-2 mb-4">
-                <div className="h-6 bg-white/5 rounded w-24"></div>
-                <div className="h-6 bg-white/5 rounded w-24"></div>
+          <Suspense
+            fallback={
+              <div className="mb-8 animate-pulse">
+                <div className="h-8 bg-white/5 rounded w-2/3 mb-4"></div>
+                <div className="flex gap-2 mb-4">
+                  <div className="h-6 bg-white/5 rounded w-24"></div>
+                  <div className="h-6 bg-white/5 rounded w-24"></div>
+                </div>
+                <div className="h-32 bg-white/5 rounded"></div>
               </div>
-              <div className="h-32 bg-white/5 rounded"></div>
-            </div>
-          }>
+            }
+          >
             <TripHeader
               trip={{
                 id: tripData.id,
@@ -507,7 +547,7 @@ export const ProTripDetailDesktop = () => {
                 description: tripData.description || '',
                 participants: tripData.participants,
                 created_by: actualCreatorId,
-                trip_type: 'pro'
+                trip_type: 'pro',
               }}
               category={tripData.proTripCategory as ProTripCategory}
               tags={tripData.tags}
@@ -526,14 +566,14 @@ export const ProTripDetailDesktop = () => {
               tripData={{
                 ...tripData,
                 enabled_features: tripData.enabled_features,
-                trip_type: 'pro'
+                trip_type: 'pro',
               }}
               selectedCategory={tripData.proTripCategory as ProTripCategory}
               trip={trip}
               tripCreatorId={trip.created_by}
             />
-        </Suspense>
-      </div>
+          </Suspense>
+        </div>
 
         <TripDetailModals
           showSettings={showSettings}
