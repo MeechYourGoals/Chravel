@@ -21,7 +21,7 @@ Chravel is an AI-native collaborative travel and logistics platform built on:
 - **Frontend:** React 18 + TypeScript (strict), Tailwind CSS, Vite
 - **State:** Tanstack Query (server), Zustand (client)
 - **Backend:** Supabase (PostgreSQL, Edge Functions, Storage, Auth)
-- **Real-time:** Supabase Realtime (consumer trips), GetStream.io (pro trips)
+- **Real-time:** Supabase Realtime (trip chat + role channels)
 - **Mobile:** Capacitor-ready architecture for iOS/Android
 
 ### Key Design Principles
@@ -65,7 +65,7 @@ const { messages, sendMessage, isLoading } = useUnifiedMessages({
 
 #### Benefits of Consolidation
 
-✅ **Single backend** - No GetStream dependency, reduced bundle size  
+✅ **Single backend** - No third-party chat dependency, reduced bundle size  
 ✅ **Persistent data** - All messages stored in PostgreSQL  
 ✅ **Real-time updates** - Supabase Realtime for live chat  
 ✅ **Cost efficient** - No external messaging service costs  

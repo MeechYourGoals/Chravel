@@ -570,7 +570,7 @@ You assume this project is shipping to production and will be reviewed by senior
 - Styling: Tailwind
 - Backend: Supabase (Postgres, RLS, Edge Functions)
 - Auth: Supabase Auth
-- Real-time: Supabase Realtime / GetStream
+- Real-time: Supabase Realtime
 - Target platforms: Web + PWA + Mobile Web
 - Performance-sensitive paths: View Trip, Chat, Calendar, Invites
 - Zero tolerance for: Trip Not Found regressions, auth desync, RLS leaks

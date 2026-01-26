@@ -115,7 +115,6 @@ return createErrorResponse(errorMessage, statusCode);
 - `broadcasts-fetch`, `broadcasts-react`
 - `ai-features`, `ai-search`, `ai-ingest`
 - `openai-chat`, `perplexity-chat`
-- `getstream-token`
 - `message-parser`, `message-scheduler`
 - `file-upload`, `image-upload`, `photo-upload`
 

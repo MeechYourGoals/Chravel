@@ -33,4 +33,4 @@ npm run claude:security   # Run security audit
 npm run claude:review     # Perform a full review
 ```
 
-Configuration lives in `.claude-code/` and includes MCP settings for Supabase, Capacitor, and GetStream chat integrations.
+Configuration lives in `.claude-code/` and includes MCP settings for Supabase and Capacitor.

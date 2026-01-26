@@ -42,9 +42,8 @@ Chravel MVP is **94% production-ready** with all critical backend infrastructure
 - AI-powered recommendations and search
 
 ✅ **Real-Time Collaboration**
-- Supabase Realtime for consumer trips
-- GetStream.io for pro trips
-- Unified messaging abstraction layer
+- Supabase Realtime for trip chat and role channels
+- Unified messaging via Supabase-backed services
 
 ✅ **Edge Functions (25 total)**
 - JWT verification enabled by default
@@ -76,9 +75,7 @@ Chravel MVP is **94% production-ready** with all critical backend infrastructure
 ### Architecture & Abstraction (95%)
 
 ✅ **Unified Messaging Layer**
-- `IMessagingProvider` interface
-- `SupabaseMessagingProvider` and `StreamMessagingProvider`
-- `MessagingFactory` with caching
+- `unifiedMessagingService` for Supabase Realtime + persistence
 - `useUnifiedMessages` React hook
 
 ✅ **Platform Abstraction**
@@ -207,7 +204,6 @@ Chravel MVP is **94% production-ready** with all critical backend infrastructure
 
 **Missing (for Corpsoft to add):**
 - ⚠️ `VITE_SENTRY_DSN` (for error tracking)
-- ⚠️ `VITE_STREAM_API_KEY` (for pro trip messaging)
 - ⚠️ `VITE_VAPID_PUBLIC_KEY` (for web push notifications)
 
 ### Database Schema
@@ -250,10 +246,8 @@ Chravel MVP is **94% production-ready** with all critical backend infrastructure
 
 ### Architectural Decisions
 
-**Why Two Messaging Systems?**
-- Consumer trips: Supabase Realtime (cost-effective, integrated)
-- Pro trips: GetStream.io (enterprise features, better scalability)
-- Unified abstraction allows future consolidation
+**Why One Messaging System?**
+- Trip chat and role channels use Supabase Realtime with Postgres persistence.
 
 **Why Not React Native?**
 - Capacitor chosen for faster time-to-market

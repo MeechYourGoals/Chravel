@@ -131,7 +131,6 @@
 - `VirtualizedMessageContainer.tsx` - Performance-optimized message list
 - `AiChatInput.tsx` - AI chat input
 - `ChannelSwitcher.tsx` - Channel selection
-- `StreamMessageWithReactions.tsx` - Stream Chat integration
 - `MessageReactionBar.tsx` - Emoji reactions
 
 **Media Management** (`/media`)
@@ -347,8 +346,8 @@
 - `urlUtils.ts` - URL utilities
 - `teamDirectoryExportService.ts` (10 KB) - Team export
 
-### Messaging Services (`/services/messaging`)
-- Stream Chat integration for real-time messaging
+### Messaging Services
+- `unifiedMessagingService.ts` - Supabase Realtime messaging
 
 ---
 
@@ -620,14 +619,9 @@
 - Event synchronization
 - iCal export support
 
-### Stream Chat (Real-time Messaging)
-**Libraries**:
-- `stream-chat-react` (13.2.1)
-- `stream-chat` (9.10.0)
-
+### Supabase Realtime Messaging
 **Features**:
-- Real-time team messaging
-- Channel management
+- Trip chat and role-based channels
 - Message reactions
 - Typing indicators
 - Read receipts
@@ -877,7 +871,6 @@ App Init → useDemoModeStore.init() → demoModeService → return isDemo
 ### Integrations
 - **Supabase** 2.53.0 - Backend as a Service
 - **Google Maps** (@googlemaps/js-api-loader 1.16.10)
-- **Stream Chat** (9.10.0, 13.2.1) - Real-time chat
 
 ### Forms & Validation
 - **React Hook Form** 7.53.0 - Form state
