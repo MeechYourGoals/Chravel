@@ -106,10 +106,10 @@ export const useInviteLink = ({
         return false;
       }
 
-      // Verify trip exists and user has permission
+      // Verify trip exists and get trip type for permission branching
       const { data: trip, error: tripError } = await supabase
         .from('trips')
-        .select('id, created_by')
+        .select('id, created_by, trip_type')
         .eq('id', tripIdValue)
         .single();
 
@@ -119,19 +119,41 @@ export const useInviteLink = ({
         return false;
       }
 
-      // Check if user is creator or admin
-      if (trip.created_by !== user.id) {
-        const { data: admin } = await supabase
-          .from('trip_admins')
-          .select('id')
-          .eq('trip_id', tripIdValue)
-          .eq('user_id', user.id)
-          .single();
+      // Normalize trip type: NULL or undefined = 'consumer' (legacy trips)
+      const tripType = trip.trip_type || 'consumer';
 
-        if (!admin) {
-          console.error('[InviteLink] User not authorized');
-          toast.error('Only the trip creator or admins can create invite links');
-          return false;
+      // Permission check branches by trip type
+      if (tripType === 'consumer') {
+        // Consumer trips: Any trip member can create invites
+        if (trip.created_by !== user.id) {
+          const { data: member } = await supabase
+            .from('trip_members')
+            .select('id')
+            .eq('trip_id', tripIdValue)
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (!member) {
+            console.error('[InviteLink] User is not a trip member');
+            toast.error('Only trip members can create invite links');
+            return false;
+          }
+        }
+      } else {
+        // Pro/Event trips: Only creator or admins can create invites
+        if (trip.created_by !== user.id) {
+          const { data: admin } = await supabase
+            .from('trip_admins')
+            .select('id')
+            .eq('trip_id', tripIdValue)
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (!admin) {
+            console.error('[InviteLink] User not authorized (pro/event trip)');
+            toast.error('Only trip admins can create invite links for this trip');
+            return false;
+          }
         }
       }
 
