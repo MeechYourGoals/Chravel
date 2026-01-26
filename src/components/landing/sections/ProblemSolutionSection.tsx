@@ -23,7 +23,7 @@ export const ProblemSolutionSection = () => {
       number: 3,
       icon: <RefreshCw size={32} className="text-primary" />,
       title: "Everything syncs",
-      description: "Your Trip's changes — Updated Live"
+      description: "Plan Changes. Updated Live"
     }
   ];
 
