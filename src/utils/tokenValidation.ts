@@ -1,6 +1,6 @@
 /**
  * Token Validation Utilities
- * 
+ *
  * Validates JWT tokens to detect malformed/corrupted sessions
  * that cause "403: invalid claim: missing sub claim" errors.
  */
@@ -13,6 +13,28 @@ export interface TokenPayload {
   aud?: string;
   role?: string;
   email?: string;
+}
+
+/**
+ * JWTs use base64url encoding (RFC 7515) which is not directly compatible with `atob`.
+ * This normalizes base64url -> base64 and adds padding.
+ */
+function decodeBase64Url(base64Url: string): string | null {
+  try {
+    if (!base64Url) return null;
+
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+
+    if (typeof globalThis.atob !== 'function') {
+      // In practice this file runs in the browser; keep safe for non-browser environments.
+      return null;
+    }
+
+    return globalThis.atob(padded);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -32,9 +54,13 @@ export function parseJwtPayload(token: string): TokenPayload | null {
     }
 
     const payloadBase64 = parts[1];
-    const payloadJson = atob(payloadBase64);
+    const payloadJson = decodeBase64Url(payloadBase64);
+    if (!payloadJson) {
+      console.warn('[TokenValidation] Failed to base64url-decode JWT payload');
+      return null;
+    }
     const payload = JSON.parse(payloadJson);
-    
+
     return payload as TokenPayload;
   } catch (error) {
     console.error('[TokenValidation] Failed to parse JWT:', error);
@@ -48,7 +74,7 @@ export function parseJwtPayload(token: string): TokenPayload | null {
  */
 export function validateToken(token: string): { valid: boolean; reason?: string } {
   const payload = parseJwtPayload(token);
-  
+
   if (!payload) {
     return { valid: false, reason: 'TOKEN_PARSE_FAILED' };
   }
@@ -83,13 +109,13 @@ export function isSessionTokenValid(accessToken: string | undefined): boolean {
   if (!accessToken) {
     return false;
   }
-  
+
   const result = validateToken(accessToken);
-  
+
   if (!result.valid && import.meta.env.DEV) {
     console.warn('[TokenValidation] Invalid token detected:', result.reason);
   }
-  
+
   return result.valid;
 }
 
@@ -98,14 +124,14 @@ export function isSessionTokenValid(accessToken: string | undefined): boolean {
  */
 export function logTokenDebug(context: string, token: string | undefined): void {
   if (!import.meta.env.DEV) return;
-  
+
   if (!token) {
     console.log(`[TokenDebug - ${context}] No token present`);
     return;
   }
 
   const payload = parseJwtPayload(token);
-  
+
   if (!payload) {
     console.error(`[TokenDebug - ${context}] Failed to parse token`);
     return;

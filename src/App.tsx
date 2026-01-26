@@ -1,32 +1,32 @@
+import React, { lazy, useCallback, useEffect } from 'react';
+import { Toaster } from '@/components/ui/toaster';
+import { Toaster as Sonner } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { AuthProvider, useAuth } from './hooks/useAuth';
+import { ConsumerSubscriptionProvider } from './hooks/useConsumerSubscription';
+import { MobileAppLayout } from './components/mobile/MobileAppLayout';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { LazyRoute } from './components/LazyRoute';
+import { performanceService } from './services/performanceService';
+import { useDemoModeStore } from './store/demoModeStore';
+import { errorTracking } from './services/errorTracking';
+import { supabase } from './integrations/supabase/client';
+import { AppInitializer } from './components/app/AppInitializer';
+import BuildBadge from './components/BuildBadge';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
-import React, { lazy, useCallback, useEffect } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from "react-router-dom";
-import { AuthProvider, useAuth } from "./hooks/useAuth";
-import { ConsumerSubscriptionProvider } from "./hooks/useConsumerSubscription";
-import { MobileAppLayout } from "./components/mobile/MobileAppLayout";
-import { ErrorBoundary } from "./components/ErrorBoundary";
-import { LazyRoute } from "./components/LazyRoute";
-import { performanceService } from "./services/performanceService";
-import { useDemoModeStore } from "./store/demoModeStore";
-import { errorTracking } from "./services/errorTracking";
-import { supabase } from "./integrations/supabase/client";
-import { AppInitializer } from "./components/app/AppInitializer";
-import BuildBadge from "./components/BuildBadge";
-import { OfflineIndicator } from "./components/OfflineIndicator";
+import { ExitDemoButton } from './components/demo';
+import { attachNavigator, onNativeResume, setNativeBadgeCount } from '@/native/lifecycle';
+import { useDeepLinks } from '@/hooks/useDeepLinks';
 
-import { ExitDemoButton } from "./components/demo";
-import { attachNavigator, onNativeResume, setNativeBadgeCount } from "@/native/lifecycle";
-import { useDeepLinks } from "@/hooks/useDeepLinks";
-
-import { toast } from "@/hooks/use-toast";
-import { setupGlobalSyncProcessor } from "./services/globalSyncProcessor";
+import { toast } from '@/hooks/use-toast';
+import { setupGlobalSyncProcessor } from './services/globalSyncProcessor';
+import { parseJwtPayload } from '@/utils/tokenValidation';
 
 // Trip recovery utilities (exposes debugTrips, searchAllTrips, recoverTrip to window)
-import "@/utils/tripRecovery";
+import '@/utils/tripRecovery';
 
 // Lazy load pages for better performance
 // Enhanced retry mechanism with exponential backoff and better error handling
@@ -34,25 +34,25 @@ const retryImport = <T,>(importFn: () => Promise<T>, retries = 3, delay = 1000):
   return new Promise((resolve, reject) => {
     importFn()
       .then(resolve)
-      .catch((error) => {
+      .catch(error => {
         const errorMessage = error?.message || String(error);
-        const isChunkError = 
+        const isChunkError =
           errorMessage.includes('Failed to fetch dynamically imported module') ||
           errorMessage.includes('Loading chunk') ||
           errorMessage.includes('Failed to fetch') ||
           errorMessage.includes('NetworkError');
-        
+
         // Only retry on chunk loading errors
         if (!isChunkError || retries === 0) {
           console.error('Import failed after retries:', error);
           reject(error);
           return;
         }
-        
+
         // Exponential backoff: 1s, 2s, 4s
         const nextDelay = delay * Math.pow(2, 3 - retries);
         console.warn(`Retrying import (${retries} retries left) after ${nextDelay}ms...`);
-        
+
         setTimeout(() => {
           retryImport(importFn, retries - 1, delay).then(resolve, reject);
         }, nextDelay);
@@ -60,31 +60,57 @@ const retryImport = <T,>(importFn: () => Promise<T>, retries = 3, delay = 1000):
   });
 };
 
-const Index = lazy(() => retryImport(() => import("./pages/Index")));
-const TripDetail = lazy(() => retryImport(() => import("./pages/TripDetail")));
-const DemoTripGate = lazy(() => retryImport(() => import("./pages/DemoTripGate")));
+const Index = lazy(() => retryImport(() => import('./pages/Index')));
+const TripDetail = lazy(() => retryImport(() => import('./pages/TripDetail')));
+const DemoTripGate = lazy(() => retryImport(() => import('./pages/DemoTripGate')));
 
-const ProTripDetail = lazy(() => retryImport(() => import("./pages/ProTripDetail")));
-const EventDetail = lazy(() => retryImport(() => import("./pages/EventDetail")));
-const NotFound = lazy(() => retryImport(() => import("./pages/NotFound")));
-const JoinTrip = lazy(() => retryImport(() => import("./pages/JoinTrip")));
-const ProfilePage = lazy(() => retryImport(() => import("./pages/ProfilePage")));
-const SettingsPage = lazy(() => retryImport(() => import("./pages/SettingsPage")));
-const ArchivePage = lazy(() => retryImport(() => import("./pages/ArchivePage")));
-const AdminDashboard = lazy(() => retryImport(() => import("./pages/AdminDashboard").then(module => ({ default: module.AdminDashboard }))));
-const OrganizationDashboard = lazy(() => retryImport(() => import("./pages/OrganizationDashboard").then(module => ({ default: module.OrganizationDashboard }))));
-const OrganizationsHub = lazy(() => retryImport(() => import("./pages/OrganizationsHub").then(module => ({ default: module.OrganizationsHub }))));
-const AcceptOrganizationInvite = lazy(() => retryImport(() => import("./pages/AcceptOrganizationInvite").then(module => ({ default: module.AcceptOrganizationInvite }))));
-const ChravelRecsPage = lazy(() => retryImport(() => import("./pages/ChravelRecsPage").then(module => ({ default: module.ChravelRecsPage }))));
-const ForTeams = lazy(() => retryImport(() => import("./pages/ForTeams").then(module => ({ default: module.ForTeams }))));
-const AdvertiserDashboard = lazy(() => retryImport(() => import("./pages/AdvertiserDashboard")));
-const Healthz = lazy(() => retryImport(() => import("./pages/Healthz")));
-const PrivacyPolicy = lazy(() => retryImport(() => import("./pages/PrivacyPolicy")));
-const TermsOfService = lazy(() => retryImport(() => import("./pages/TermsOfService")));
-const DemoEntry = lazy(() => retryImport(() => import("./pages/DemoEntry")));
-const TripPreview = lazy(() => retryImport(() => import("./pages/TripPreview")));
-const AuthPage = lazy(() => retryImport(() => import("./pages/AuthPage")));
-const DeviceTestMatrix = lazy(() => retryImport(() => import("./pages/DeviceTestMatrix")));
+const ProTripDetail = lazy(() => retryImport(() => import('./pages/ProTripDetail')));
+const EventDetail = lazy(() => retryImport(() => import('./pages/EventDetail')));
+const NotFound = lazy(() => retryImport(() => import('./pages/NotFound')));
+const JoinTrip = lazy(() => retryImport(() => import('./pages/JoinTrip')));
+const ProfilePage = lazy(() => retryImport(() => import('./pages/ProfilePage')));
+const SettingsPage = lazy(() => retryImport(() => import('./pages/SettingsPage')));
+const ArchivePage = lazy(() => retryImport(() => import('./pages/ArchivePage')));
+const AdminDashboard = lazy(() =>
+  retryImport(() =>
+    import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })),
+  ),
+);
+const OrganizationDashboard = lazy(() =>
+  retryImport(() =>
+    import('./pages/OrganizationDashboard').then(module => ({
+      default: module.OrganizationDashboard,
+    })),
+  ),
+);
+const OrganizationsHub = lazy(() =>
+  retryImport(() =>
+    import('./pages/OrganizationsHub').then(module => ({ default: module.OrganizationsHub })),
+  ),
+);
+const AcceptOrganizationInvite = lazy(() =>
+  retryImport(() =>
+    import('./pages/AcceptOrganizationInvite').then(module => ({
+      default: module.AcceptOrganizationInvite,
+    })),
+  ),
+);
+const ChravelRecsPage = lazy(() =>
+  retryImport(() =>
+    import('./pages/ChravelRecsPage').then(module => ({ default: module.ChravelRecsPage })),
+  ),
+);
+const ForTeams = lazy(() =>
+  retryImport(() => import('./pages/ForTeams').then(module => ({ default: module.ForTeams }))),
+);
+const AdvertiserDashboard = lazy(() => retryImport(() => import('./pages/AdvertiserDashboard')));
+const Healthz = lazy(() => retryImport(() => import('./pages/Healthz')));
+const PrivacyPolicy = lazy(() => retryImport(() => import('./pages/PrivacyPolicy')));
+const TermsOfService = lazy(() => retryImport(() => import('./pages/TermsOfService')));
+const DemoEntry = lazy(() => retryImport(() => import('./pages/DemoEntry')));
+const TripPreview = lazy(() => retryImport(() => import('./pages/TripPreview')));
+const AuthPage = lazy(() => retryImport(() => import('./pages/AuthPage')));
+const DeviceTestMatrix = lazy(() => retryImport(() => import('./pages/DeviceTestMatrix')));
 // AdminMigrateDemoImages removed - migration complete, images now in Supabase Storage
 
 // Note: Large components are already optimized with code splitting
@@ -172,7 +198,7 @@ const App = () => {
   }, []);
   // Track app initialization performance
   const stopTiming = performanceService.startTiming('App Initialization');
-  
+
   React.useEffect(() => {
     stopTiming();
   }, [stopTiming]);
@@ -180,11 +206,11 @@ const App = () => {
   // Initialize error tracking with user context
   useEffect(() => {
     errorTracking.init({ environment: import.meta.env.MODE });
-    
+
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
         errorTracking.setUser(data.user.id, {
-          email: data.user.email
+          email: data.user.email,
         });
       }
     });
@@ -195,46 +221,69 @@ const App = () => {
   useEffect(() => {
     const validateAndClearCorruptedSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
         if (session?.access_token) {
-          // Parse and validate the JWT token
-          const parts = session.access_token.split('.');
-          if (parts.length !== 3) {
-            console.warn('[App] Malformed token structure - clearing session');
-            await supabase.auth.signOut();
+          const payload = parseJwtPayload(session.access_token);
+
+          // IMPORTANT: Supabase JWT payload is base64url-encoded; parsing failures can happen if decoded incorrectly.
+          // If parsing/claims validation fails, attempt a refresh first (refresh token may still be valid).
+          if (!payload) {
+            console.warn('[App] Failed to parse token payload - attempting session refresh');
+            const { error } = await supabase.auth.refreshSession();
+            if (error) {
+              console.warn('[App] Token refresh failed after parse error - clearing session');
+              await supabase.auth.signOut();
+            }
             return;
           }
-          
-          try {
-            const payload = JSON.parse(atob(parts[1]));
-            
-            // Check for missing 'sub' claim (user ID) - primary cause of 403 errors
-            if (!payload.sub) {
-              console.warn('[App] Token missing sub claim - clearing corrupted session');
+
+          // Check for missing 'sub' claim (user ID) - primary cause of 403 errors
+          if (!payload.sub) {
+            console.warn('[App] Token missing sub claim - attempting session refresh');
+            const { data: refreshData, error } = await supabase.auth.refreshSession();
+            if (error || !refreshData.session?.access_token) {
+              console.warn('[App] Refresh failed after missing sub claim - clearing session');
               await supabase.auth.signOut();
               return;
             }
-            
-            // Validate sub matches session user id
-            if (payload.sub !== session.user?.id) {
-              console.warn('[App] Token sub claim mismatch - clearing session');
+
+            const refreshedPayload = parseJwtPayload(refreshData.session.access_token);
+            if (!refreshedPayload?.sub) {
+              console.warn('[App] Refreshed token still missing sub claim - clearing session');
+              await supabase.auth.signOut();
+            }
+            return;
+          }
+
+          // Validate sub matches session user id
+          if (payload.sub !== session.user?.id) {
+            console.warn('[App] Token sub claim mismatch - attempting session refresh');
+            const { data: refreshData, error } = await supabase.auth.refreshSession();
+            if (error || !refreshData.session?.access_token) {
+              console.warn('[App] Refresh failed after sub mismatch - clearing session');
               await supabase.auth.signOut();
               return;
             }
-            
-            // Check if token is expired
-            if (payload.exp && Date.now() > payload.exp * 1000) {
-              console.log('[App] Token expired on mount - refreshing session');
-              const { error } = await supabase.auth.refreshSession();
-              if (error) {
-                console.warn('[App] Token refresh failed - clearing session');
-                await supabase.auth.signOut();
-              }
+
+            const refreshedPayload = parseJwtPayload(refreshData.session.access_token);
+            if (refreshedPayload?.sub && refreshedPayload.sub !== refreshData.session.user?.id) {
+              console.warn('[App] Refreshed token sub mismatch persists - clearing session');
+              await supabase.auth.signOut();
             }
-          } catch (parseError) {
-            console.error('[App] Failed to parse token - clearing session:', parseError);
-            await supabase.auth.signOut();
+            return;
+          }
+
+          // Check if token is expired
+          if (payload.exp && Date.now() > payload.exp * 1000) {
+            console.log('[App] Token expired on mount - refreshing session');
+            const { error } = await supabase.auth.refreshSession();
+            if (error) {
+              console.warn('[App] Token refresh failed - clearing session');
+              await supabase.auth.signOut();
+            }
           }
         }
       } catch (error) {
@@ -242,7 +291,7 @@ const App = () => {
         // Don't clear session on validation error - might be transient
       }
     };
-    
+
     validateAndClearCorruptedSession();
   }, []);
 
@@ -251,20 +300,19 @@ const App = () => {
     return setupGlobalSyncProcessor();
   }, []);
 
-
   // Breaking-only version check - only triggers for true breaking changes (manually incremented)
   useEffect(() => {
     const BREAKING_VERSION_KEY = 'chravel_breaking_version';
     const CURRENT_BREAKING_VERSION = '1'; // Only increment for true breaking changes (auth, API, schema)
-    
+
     const storedBreaking = localStorage.getItem(BREAKING_VERSION_KEY);
-    
+
     // First visit - store and continue
     if (!storedBreaking) {
       localStorage.setItem(BREAKING_VERSION_KEY, CURRENT_BREAKING_VERSION);
       return;
     }
-    
+
     // Breaking change detected - force reload silently
     if (storedBreaking !== CURRENT_BREAKING_VERSION) {
       console.log('[App] Breaking version change detected, reloading silently');
@@ -288,7 +336,7 @@ const App = () => {
         });
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
@@ -326,8 +374,9 @@ const App = () => {
         toastShown = true;
 
         toast({
-          title: "Loading Error",
-          description: "Failed to load page. This usually happens after an app update. Clear cache to continue.",
+          title: 'Loading Error',
+          description:
+            'Failed to load page. This usually happens after an app update. Clear cache to continue.',
           action: (
             <button
               onClick={clearCachesAndReload}
@@ -346,8 +395,8 @@ const App = () => {
       const error = event.message || String(event.error);
       if (
         (error.includes('Failed to fetch dynamically imported') ||
-         error.includes('Loading chunk') ||
-         error.includes('Failed to load module script')) &&
+          error.includes('Loading chunk') ||
+          error.includes('Failed to load module script')) &&
         !toastShown
       ) {
         handleUnhandledRejection({
@@ -374,144 +423,219 @@ const App = () => {
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
-                
+
                 <BuildBadge />
                 <OfflineIndicator />
                 {/* All components using react-router hooks must render inside <Router> */}
                 <Router>
-                <ExitDemoButtonWithNav />
-                <NativeLifecycleBridge client={queryClient} />
-                <MobileAppLayout>
-                  <Routes>
-                    <Route path="/" element={
-                      <LazyRoute>
-                        <Index />
-                      </LazyRoute>
-                    } />
-                    <Route path="/trip/:tripId" element={
-                      <LazyRoute>
-                        <TripDetail />
-                      </LazyRoute>
-                    } />
-                    <Route path="/trip/:tripId/preview" element={
-                      <LazyRoute>
-                        <TripPreview />
-                      </LazyRoute>
-                    } />
-                    <Route path="/demo/trip/:demoTripId" element={
-                      <LazyRoute>
-                        <DemoTripGate />
-                      </LazyRoute>
-                    } />
-                    <Route path="/demo" element={
-                      <LazyRoute>
-                        <DemoEntry />
-                      </LazyRoute>
-                    } />
-                    <Route path="/auth" element={
-                      <LazyRoute>
-                        <AuthPage />
-                      </LazyRoute>
-                    } />
-                    <Route path="/join/:token" element={
-                      <LazyRoute>
-                        <JoinTrip />
-                      </LazyRoute>
-                    } />
-                    <Route path="/tour/pro/:proTripId" element={
-                      <LazyRoute>
-                        <ProTripDetail />
-                      </LazyRoute>
-                    } />
-                    <Route path="/tour/pro-:proTripId" element={
-                      <LazyRoute>
-                        <LegacyProTripRedirect />
-                      </LazyRoute>
-                    } />
-                    <Route path="/event/:eventId" element={
-                      <LazyRoute>
-                        <EventDetail />
-                      </LazyRoute>
-                    } />
-                    <Route path="/teams" element={
-                      <LazyRoute>
-                        <ForTeams />
-                      </LazyRoute>
-                    } />
-                    <Route path="/recs" element={
-                      <LazyRoute>
-                        <ChravelRecsPage />
-                      </LazyRoute>
-                    } />
-                    <Route path="/advertiser" element={
-                      <LazyRoute>
-                        <AdvertiserDashboard />
-                      </LazyRoute>
-                    } />
-                    <Route path="/healthz" element={
-                      <LazyRoute>
-                        <Healthz />
-                      </LazyRoute>
-                    } />
-                    <Route path="/privacy" element={
-                      <LazyRoute>
-                        <PrivacyPolicy />
-                      </LazyRoute>
-                    } />
-                    <Route path="/terms" element={
-                      <LazyRoute>
-                        <TermsOfService />
-                      </LazyRoute>
-                    } />
-                    <Route path="/profile" element={
-                      <LazyRoute>
-                        <ProfilePage />
-                      </LazyRoute>
-                    } />
-                    <Route path="/settings" element={
-                      <LazyRoute>
-                        <SettingsPage />
-                      </LazyRoute>
-                    } />
-                    <Route path="/archive" element={
-                      <LazyRoute>
-                        <ArchivePage />
-                      </LazyRoute>
-                    } />
-                    <Route path="/admin/scheduled-messages" element={
-                      <LazyRoute>
-                        <AdminDashboard />
-                      </LazyRoute>
-                    } />
-                    <Route path="/organizations" element={
-                      <LazyRoute>
-                        <OrganizationsHub />
-                      </LazyRoute>
-                    } />
-                    <Route path="/organization/:orgId" element={
-                      <LazyRoute>
-                        <OrganizationDashboard />
-                      </LazyRoute>
-                    } />
-                    <Route path="/accept-invite/:token" element={
-                      <LazyRoute>
-                        <AcceptOrganizationInvite />
-                      </LazyRoute>
-                    } />
-                    <Route path="/dev/device-matrix" element={
-                      <LazyRoute>
-                        <DeviceTestMatrix />
-                      </LazyRoute>
-                    } />
-                    <Route path="*" element={
-                      <LazyRoute>
-                        <NotFound />
-                      </LazyRoute>
-                    } />
-                   </Routes>
-                 </MobileAppLayout>
-               </Router>
-             </TooltipProvider>
+                  <ExitDemoButtonWithNav />
+                  <NativeLifecycleBridge client={queryClient} />
+                  <MobileAppLayout>
+                    <Routes>
+                      <Route
+                        path="/"
+                        element={
+                          <LazyRoute>
+                            <Index />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/trip/:tripId"
+                        element={
+                          <LazyRoute>
+                            <TripDetail />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/trip/:tripId/preview"
+                        element={
+                          <LazyRoute>
+                            <TripPreview />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/demo/trip/:demoTripId"
+                        element={
+                          <LazyRoute>
+                            <DemoTripGate />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/demo"
+                        element={
+                          <LazyRoute>
+                            <DemoEntry />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/auth"
+                        element={
+                          <LazyRoute>
+                            <AuthPage />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/join/:token"
+                        element={
+                          <LazyRoute>
+                            <JoinTrip />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/tour/pro/:proTripId"
+                        element={
+                          <LazyRoute>
+                            <ProTripDetail />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/tour/pro-:proTripId"
+                        element={
+                          <LazyRoute>
+                            <LegacyProTripRedirect />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/event/:eventId"
+                        element={
+                          <LazyRoute>
+                            <EventDetail />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/teams"
+                        element={
+                          <LazyRoute>
+                            <ForTeams />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/recs"
+                        element={
+                          <LazyRoute>
+                            <ChravelRecsPage />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/advertiser"
+                        element={
+                          <LazyRoute>
+                            <AdvertiserDashboard />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/healthz"
+                        element={
+                          <LazyRoute>
+                            <Healthz />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/privacy"
+                        element={
+                          <LazyRoute>
+                            <PrivacyPolicy />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/terms"
+                        element={
+                          <LazyRoute>
+                            <TermsOfService />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/profile"
+                        element={
+                          <LazyRoute>
+                            <ProfilePage />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/settings"
+                        element={
+                          <LazyRoute>
+                            <SettingsPage />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/archive"
+                        element={
+                          <LazyRoute>
+                            <ArchivePage />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/scheduled-messages"
+                        element={
+                          <LazyRoute>
+                            <AdminDashboard />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/organizations"
+                        element={
+                          <LazyRoute>
+                            <OrganizationsHub />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/organization/:orgId"
+                        element={
+                          <LazyRoute>
+                            <OrganizationDashboard />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/accept-invite/:token"
+                        element={
+                          <LazyRoute>
+                            <AcceptOrganizationInvite />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/dev/device-matrix"
+                        element={
+                          <LazyRoute>
+                            <DeviceTestMatrix />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="*"
+                        element={
+                          <LazyRoute>
+                            <NotFound />
+                          </LazyRoute>
+                        }
+                      />
+                    </Routes>
+                  </MobileAppLayout>
+                </Router>
+              </TooltipProvider>
             </AppInitializer>
           </ConsumerSubscriptionProvider>
         </AuthProvider>
