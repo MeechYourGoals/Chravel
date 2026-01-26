@@ -1,18 +1,17 @@
 # 🧭 CHRAVEL ENGINEERING MANIFESTO
-> **For Cursor AI** - Read this file for all coding standards
-> **Full Documentation:** See CLAUDE.md for complete details
+> **For Cursor AI** - Read this file for all coding standards  
+> **Quick Reference:** See `CLAUDE.md` for patterns and examples  
+> **Full v7.0 Protocol:** See [`docs/ENGINEERING_PROTOCOL.md`](./docs/ENGINEERING_PROTOCOL.md) for comprehensive spec  
 > **Non-negotiable:** Every edit must pass `npm run lint && npm run typecheck && npm run build` before commit
 
 ---
 
-## ⚠️ CRITICAL: READ CLAUDE.md FOR FULL STANDARDS
+## ⚠️ CRITICAL: READ FULL DOCUMENTATION
 
-This file provides quick reference. **Always consult CLAUDE.md** for:
-- Complete React patterns
-- Supabase integration rules
-- Google Maps implementation patterns
-- Error prevention strategies
-- Full code examples
+This file provides quick reference. **For comprehensive standards, consult:**
+- **`docs/ENGINEERING_PROTOCOL.md`** — Full v7.0 Engineering Protocol
+- **`CLAUDE.md`** — Patterns and code examples
+- **`docs/AI_AGENT_CONDUCT.md`** — AI agent behavior rules
 
 ---
 
@@ -195,5 +194,12 @@ npm run validate     # Run all checks
 
 ---
 
-**📖 For complete details, patterns, and examples: Read CLAUDE.md**
-**Last Updated:** 2025-10-31
+## 📚 Related Documentation
+
+- [`docs/ENGINEERING_PROTOCOL.md`](./docs/ENGINEERING_PROTOCOL.md) — **Full v7.0 Protocol**
+- [`CLAUDE.md`](./CLAUDE.md) — Patterns and examples
+- [`docs/AI_AGENT_CONDUCT.md`](./docs/AI_AGENT_CONDUCT.md) — AI agent quick reference
+
+---
+
+**Last Updated:** 2026-01-11

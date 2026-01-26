@@ -1,7 +1,8 @@
 # 🧭 CHRAVEL ENGINEERING MANIFESTO
-> **Purpose:** Universal AI coding standards for Chravel (group travel + events platform)
-> **Audience:** All AI assistants (Claude Code, Cursor, Lovable, Codex, Google Jules, Replit)
-> **Non-negotiable:** Every edit must pass `npm run lint && npm run typecheck && npm run build` before commit
+> **Purpose:** Universal AI coding standards for Chravel (group travel + events platform)  
+> **Audience:** All AI assistants (Claude Code, Cursor, Lovable, Codex, Google Jules, Replit)  
+> **Non-negotiable:** Every edit must pass `npm run lint && npm run typecheck && npm run build` before commit  
+> **📖 Comprehensive Protocol:** See [`/docs/ENGINEERING_PROTOCOL.md`](./docs/ENGINEERING_PROTOCOL.md) for the full v7.0 specification
 
 ---
 
@@ -545,5 +546,13 @@ npm run preview      # Preview production build
 
 ---
 
-**Last Updated:** 2025-10-31
+## 📚 Related Documentation
+
+- [`/docs/ENGINEERING_PROTOCOL.md`](./docs/ENGINEERING_PROTOCOL.md) — **Full v7.0 Protocol** (comprehensive spec)
+- [`/docs/AI_AGENT_CONDUCT.md`](./docs/AI_AGENT_CONDUCT.md) — AI agent quick reference
+- `/.cursorrules` — Cursor-specific rules (references this file)
+
+---
+
+**Last Updated:** 2026-01-11  
 **Maintained By:** AI Engineering Team + Meech
