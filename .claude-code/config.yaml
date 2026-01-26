@@ -25,5 +25,3 @@ claude:
     architecture: true
   mobile:
     framework: capacitor
-  chat:
-    provider: getstream

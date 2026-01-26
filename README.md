@@ -146,8 +146,6 @@ cp .env.example .env
   - Get from: https://console.cloud.google.com/apis/credentials
   - Enable: Maps JavaScript API, Places API, Geocoding API
 - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` – Required for database connection
-- `VITE_STREAM_API_KEY` – Required for chat features
-
 **Backend/Supabase Functions Variables:**
 - `LOVABLE_API_KEY` – Required for AI Concierge powered by Google Gemini
 - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` – Allow functions to read/write data

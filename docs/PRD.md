@@ -24,7 +24,7 @@ Key Principles
 - State/Server State: TanStack Query; lightweight local state via hooks and Zustand.
 - Backend: Supabase (Postgres, RLS, Auth, Storage, Edge Functions).
 - AI: Perplexity (current) via edge function; OpenAI alternative via edge function; OpenAI Concierge service orchestrator.
-- Realtime/Chat: Stream (GetStream) integration (edge token function).
+- Realtime/Chat: Supabase Realtime with Postgres persistence.
 - Notifications: Push (Capacitor + service worker), in-app notifications, scheduled/broadcast.
 - Maps/Calendar: Google Maps, Google Calendar integrations via proxy/edge functions.
 
@@ -89,7 +89,7 @@ Key Principles
 - Tasks: TripTasksTab, TaskCreateModal, TaskRow, CompletionDrawer; client-side store with path for Supabase persistence.
 
 4.10 Chat and Broadcasts
-- Chat: Stream (GetStream) integration via getstream-token function; TripChat and TourChat components; reactions, inline replies.
+- Chat: Supabase Realtime for trip chat and role channels; TripChat and TourChat components; reactions, inline replies.
 - Broadcasts: broadcasts-create/fetch/react functions; BroadcastComposer, EmergencyBroadcast, SegmentedBroadcastsSection.
 
 5. Data and Persistence
@@ -99,12 +99,11 @@ Key Principles
 
 6. External Integrations and Edge Functions
 6.1 Edge Functions (existing folders)
-- ai-features, broadcasts-create, broadcasts-fetch, broadcasts-react, calendar-sync, daily-digest, delete-stale-locations, enhanced-ai-parser, file-upload, getstream-token, google-calendar-sync, google-maps-proxy, image-upload, message-scheduler, perplexity-chat, photo-upload, populate-search-index, push-notifications, search, seed-mock-messages, update-location, venue-enricher, openai-chat, file-ai-parser, receipt-parser.
+- ai-features, broadcasts-create, broadcasts-fetch, broadcasts-react, calendar-sync, daily-digest, delete-stale-locations, enhanced-ai-parser, file-upload, google-calendar-sync, google-maps-proxy, image-upload, message-scheduler, perplexity-chat, photo-upload, populate-search-index, push-notifications, search, seed-mock-messages, update-location, venue-enricher, openai-chat, file-ai-parser, receipt-parser.
 - All functions must include CORS headers and adhere to Supabase client usage (no raw SQL). JWT verification enabled by default unless explicitly disabled in config.
 
 6.2 Third-Party APIs
 - Supabase: Auth, Postgres, Storage, Functions, Realtime (RLS heavily used).
-- GetStream: Chat; token minted server-side via getstream-token function.
 - Google Maps: Autocomplete, Map embeds, geocoding via google-maps-proxy.
 - Google Calendar: OAuth + sync (edge); calendar export file generation.
 - Perplexity: Chat Completions for online RAG; API key in Supabase secrets.
@@ -132,7 +131,6 @@ Key Principles
 
 8. Costs (Rough Estimates)
 - Supabase: $25–$200+/mo depending on scale (DB, storage, edge invocations).
-- GetStream: Starter $499/mo+ for production chat; or usage-based tiers.
 - Google Maps: $200 monthly credit; $7–$17 per 1000 calls by API type.
 - Google Calendar: Free; OAuth infra; negligible.
 - Perplexity: $20–$50+/mo per seat or usage-based; chat completions $ TBD.

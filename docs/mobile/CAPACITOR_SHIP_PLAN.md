@@ -74,7 +74,6 @@ npm run ios:open
   - `VITE_SUPABASE_URL`
   - `VITE_SUPABASE_ANON_KEY`
   - `VITE_GOOGLE_MAPS_API_KEY`
-  - `VITE_STREAM_API_KEY`
   - `VITE_STRIPE_PUBLISHABLE_KEY`
   - `VITE_VAPID_PUBLIC_KEY` (web push)
   - Feature flags: `VITE_ENABLE_*`

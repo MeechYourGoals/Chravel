@@ -27,18 +27,7 @@ This guide walks you through obtaining and configuring all required API keys and
 - Enable Row Level Security (RLS) on all tables
 - Run all migrations in `/supabase/migrations/`
 
-### 2. Stream Chat (Real-time Messaging)
-
-**Cost:** Free for 1000 MAU, $399/month for 10K MAU
-
-1. Sign up at [getstream.io](https://getstream.io)
-2. Create new app
-3. Go to Dashboard → App Settings
-4. Copy:
-   - `Key` → `VITE_STREAM_API_KEY`
-   - `Secret` → `STREAM_API_SECRET` (server-side only)
-
-### 3. Google Maps (Location Services)
+### 2. Google Maps (Location Services)
 
 **Cost:** $200/month free credit, then usage-based
 
@@ -52,7 +41,7 @@ This guide walks you through obtaining and configuring all required API keys and
 5. Restrict key to your domains
 6. Copy API Key → `VITE_GOOGLE_MAPS_API_KEY`
 
-### 4. OpenAI (AI Concierge)
+### 3. OpenAI (AI Concierge)
 
 **Cost:** Pay-as-you-go, ~$0.03 per query
 
@@ -63,7 +52,7 @@ This guide walks you through obtaining and configuring all required API keys and
 
 **Model:** Uses GPT-4 for best results
 
-### 5. Stripe (Payments)
+### 4. Stripe (Payments)
 
 **Cost:** 2.9% + $0.30 per transaction
 
@@ -85,7 +74,7 @@ This guide walks you through obtaining and configuring all required API keys and
 3. Events: `checkout.session.completed`, `customer.subscription.*`
 4. Copy signing secret → `STRIPE_WEBHOOK_SECRET`
 
-### 6. Resend (Email Service)
+### 5. Resend (Email Service)
 
 **Cost:** Free for 3000/month, $20/month for 50K
 
@@ -146,7 +135,6 @@ supabase functions deploy send-organization-invite
 ## Verification Checklist
 
 - [ ] Supabase project created and URL/keys added
-- [ ] Stream Chat app created and keys added
 - [ ] Google Maps APIs enabled and key added
 - [ ] OpenAI API key created
 - [ ] Stripe products created and webhook configured
@@ -181,7 +169,6 @@ supabase functions deploy send-organization-invite
 
 **Minimum (< 1000 users):**
 - Supabase: $0 (free tier)
-- Stream Chat: $0 (free tier) 
 - Google Maps: $0 (within credit)
 - OpenAI: ~$30
 - Stripe: Transaction fees only
@@ -190,12 +177,11 @@ supabase functions deploy send-organization-invite
 
 **Growth (10K users):**
 - Supabase: $25
-- Stream Chat: $399
 - Google Maps: ~$200
 - OpenAI: ~$300
 - Stripe: Transaction fees
 - Resend: $20
-- **Total: ~$944 + transaction fees**
+- **Total: ~$545 + transaction fees**
 
 ## Troubleshooting
 
@@ -206,7 +192,7 @@ supabase functions deploy send-organization-invite
 
 **"CORS errors" in browser:**
 - Add your domain to Supabase allowed origins
-- Check Stream Chat CORS settings
+- Check proxy and third-party API CORS settings
 
 **"Rate limit exceeded":**
 - Implement client-side rate limiting
@@ -215,6 +201,5 @@ supabase functions deploy send-organization-invite
 ## Support Resources
 
 - Supabase Discord: [discord.supabase.com](https://discord.supabase.com)
-- Stream Chat Docs: [getstream.io/chat/docs](https://getstream.io/chat/docs)
 - Stripe Support: [support.stripe.com](https://support.stripe.com)
 - Google Maps: [developers.google.com/maps/support](https://developers.google.com/maps/support)
