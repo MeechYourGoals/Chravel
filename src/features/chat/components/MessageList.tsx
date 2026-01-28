@@ -1,7 +1,7 @@
 import React, { useMemo, memo } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { MessageItem } from './MessageItem';
-import { ChatMessage } from '@/hooks/useChatComposer';
+import { ChatMessage } from '../hooks/useChatComposer';
 
 interface MessageListProps {
   messages: (ChatMessage & { status?: 'sending' | 'sent' | 'failed' })[];

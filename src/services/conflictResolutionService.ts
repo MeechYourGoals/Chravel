@@ -124,7 +124,7 @@ export async function handleOptimisticUpdateConflict<T extends VersionedData>(
       const resolution = resolveConflict(optimisticData, serverData, strategy);
       onConflict(resolution);
 
-      return resolution.resolvedData || serverData;
+      return (resolution.resolvedData || serverData) as T;
     }
 
     // No conflict
